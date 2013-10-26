@@ -1,0 +1,43 @@
+/// This first block provides a dummy classification to all files, thus overcoming the feature of the DO to stop as soon as one file has no classification.
+if (T) then
+{
+   REFLEX.CATG="UNDEFINED";
+}
+/// This block copies PRO.CATG into REFLEX.CATG to cover the case in which the latter is not assigned explicitely below.
+if PRO.CATG is string then
+{
+  REFLEX.CATG=PRO.CATG;
+}
+//Classification rules
+if DPR.CATG=="CALIB"   then 
+{
+  RAW.TYPE = "CALIB";
+  REFLEX.CATG = "CALIB";
+}
+if DPR.CATG=="SCIENCE" then
+{
+  RAW.TYPE = "SCIENCE";
+  REFLEX.CATG = "SCIENCE";
+  REFLEX.TARGET = "T"; //It indicates that Reflex should start bootstraping the Data Organizer from here.
+}
+
+//Selection rules
+select execute(ACTION_CALIB) from inputFiles where RAW.TYPE=="SCIENCE"
+  group by TPL.START as (TPL_A,tpl);
+select execute(ACTION_SCIENCE) from inputFiles where RAW.TYPE=="SCIENCE"
+  group by TPL.START as (TPL_A,tpl);
+
+//Action rules
+action ACTION_CALIB
+{
+  recipe rrrecipe_calib;
+  //Definition of a virtual product
+  product MASTER_CALIB { PRO.CATG="MASTER_CALIB"; REFLEX.CATG="MASTER_CALIB"; PRO.EXT="tpl_0000.fits";}
+}
+action ACTION_SCIENCE
+{
+  //Association of the virtual product
+  minRet = 1; maxRet = 1;
+  select file as MASTER_CALIB from calibFiles where REFLEX.CATG=="MASTER_CALIB";
+  recipe rrrecipe;
+}

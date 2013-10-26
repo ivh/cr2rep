@@ -1,0 +1,7 @@
+#! /bin/bash
+#
+# This script is only for the CVS repository to bootstrap the checked
+# out module. It will be deleted before making the distribution.
+#
+
+. autogen.sh $*

@@ -1,0 +1,85 @@
+DOXYGEN_BUILD_DIR = $(top_builddir)/doxygen
+DOXYGEN_HTML_DIR = $(top_builddir)/html
+DOXYGEN_HTML_INSTDIR = $(apidocdir)/
+
+if MAINTAINER_MODE
+
+DOXYGEN_RECURSIVE_TARGETS = install-doxygen-recursive
+
+doxygen: doxygen-am
+
+doxygen-am:
+	@if test -f $(DOXYGEN_BUILD_DIR)/Doxyfile; then \
+	  echo "cd $(DOXYGEN_BUILD_DIR) && $(DOXYGEN)"; \
+	  d=`pwd`; cd $(DOXYGEN_BUILD_DIR) && $(DOXYGEN); cd $$d; \
+	  if test -n "$(POST_DOXYGEN_CLEANFILES)"; then \
+	    cd $(DOXYGEN_HTML_DIR) && rm -f $(POST_DOXYGEN_CLEANFILES); \
+	  fi; \
+	else \
+	  echo "Nothing to be done for \`$@'."; \
+	fi
+
+clean-doxygen: clean-doxygen-am
+
+clean-doxygen-am:
+	-rm -rf $(DOXYGEN_HTML_DIR)
+
+DOXYGEN_INSTALL_TARGETS = doxygen-am install-doxygen-generic
+
+else
+
+DOXYGEN_RECURSIVE_TARGETS = install-doxygen-recursive
+DOXYGEN_INSTALL_TARGETS = install-doxygen-generic
+
+doxygen-am:
+
+endif
+
+install-doxygen: install-doxygen-recursive
+install-doxygen-am: $(DOXYGEN_INSTALL_TARGETS)
+
+install-doxygen-generic: doxygen-am
+	@$(NORMAL_INSTALL)
+	echo "Installing doxygen $(DOXYGEN_HTML_DIR)"
+	@if test -d $(DOXYGEN_HTML_DIR); then \
+	  echo "$(mkinstalldirs) $(DESTDIR)$(DOXYGEN_HTML_INSTDIR)"; \
+	  $(mkinstalldirs) $(DESTDIR)$(DOXYGEN_HTML_INSTDIR); \
+	  list="`ls -1 $(DOXYGEN_HTML_DIR)`"; \
+	  for p in $$list; do \
+	    if test -f $(DOXYGEN_HTML_DIR)/$$p; then \
+	      echo " $(INSTALL_DATA) $(DOXYGEN_HTML_DIR)/$$p $(DESTDIR)$(DOXYGEN_HTML_INSTDIR)/$$p"; \
+	      $(INSTALL_DATA) $(DOXYGEN_HTML_DIR)/$$p $(DESTDIR)$(DOXYGEN_HTML_INSTDIR)/$$p; \
+	    else if test -f $$p; then \
+	      echo " $(INSTALL_DATA) $$p $(DESTDIR)$(DOXYGEN_HTML_INSTDIR)/$$p"; \
+	      $(INSTALL_DATA) $$p $(DESTDIR)$(DOXYGEN_HTML_INSTDIR)/$$p; \
+	    fi; fi; \
+	  done; \
+	fi
+
+uninstall-doxygen:
+	@$(NORMAL_UNINSTALL)
+	@list="`ls -1 $(DESTDIR)$(DOXYGEN_HTML_INSTDIR)`"; \
+	for p in $$list; do \
+	  echo " rm -f $(DESTDIR)$(DOXYGEN_HTML_INSTDIR)/$$p"; \
+	  rm -f $(DESTDIR)$(DOXYGEN_HTML_INSTDIR)/$$p; \
+	done
+
+$(DOXYGEN_RECURSIVE_TARGETS):
+	@set fnord $(MAKEFLAGS); amf=$$2; \
+	dot_seen=no; \
+	target=`echo $@ | sed s/-recursive//`; \
+	list='$(DOXYGEN_SUBDIRS)'; \
+	for subdir in $$list; do \
+	  echo "Making $$target in $$subdir"; \
+	  if test "$$subdir" = "."; then \
+	    dot_seen=yes; \
+	    local_target="$$target-am"; \
+	  else \
+	    local_target="$$target"; \
+	  fi; \
+	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
+	  || case "$$amf" in *=*) exit 1;; *k*) fail=yes;; *) exit 1;; esac; \
+	done; \
+	if test "$$dot_seen" = "no"; then \
+	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
+	fi; test -z "$$fail"
