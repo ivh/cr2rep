@@ -17,7 +17,7 @@
 ##   along with this program; if not, write to the Free Software
 ##   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
 
-AUTOMAKE_OPTIONS = 1.8 foreign serial-tests
+AUTOMAKE_OPTIONS = 1.8 foreign 
 
 ACLOCAL_AMFLAGS = -I m4macros
 
