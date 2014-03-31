@@ -152,6 +152,7 @@ AC_DEFUN([CR2RE_CREATE_SYMBOLS],
 
     LIBCR2RE='$(top_builddir)/cr2re/libcr2re.la'
     LIBIRPLIB='$(top_builddir)/irplib/libirplib.la'
+    LIBHDRL='$(top_builddir)/hdrl/libhdrl.la'
 
     # Substitute the defined symbols
 
@@ -159,7 +160,7 @@ AC_DEFUN([CR2RE_CREATE_SYMBOLS],
     AC_SUBST(CR2RE_LDFLAGS)
 
     AC_SUBST(LIBCR2RE)
-    AC_SUBST(LIBIRPLIB)
+    AC_SUBST(LIBHDRL)
 
     # Check for CPL and user defined libraries
     AC_REQUIRE([CPL_CHECK_LIBS])

@@ -100,6 +100,8 @@ AC_CONFIG_FILES(Makefile
                 recipes/Makefile
                 regtests/Makefile
                 regtests/tests/Makefile
+                hdrl/Makefile
+                hdrl/tests/Makefile
                 irplib/Makefile
                 irplib/tests/Makefile)
 AC_OUTPUT
