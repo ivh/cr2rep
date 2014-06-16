@@ -1,5 +1,4 @@
-/* $Id: cr2re_bias.c,v 1.3 2013-09-13 08:18:07 marquart Exp $
- *
+/*
  * This file is part of the CR2RE Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
@@ -16,13 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
- */
-
-/*
- * $Author: marquart $
- * $Date: 2013-09-13 08:18:07 $
- * $Revision: 1.3 $
- * $Name: not supported by cvs2svn $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -49,20 +41,20 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
-static int cr2re_bias_create(cpl_plugin *);
-static int cr2re_bias_exec(cpl_plugin *);
-static int cr2re_bias_destroy(cpl_plugin *);
-static int cr2re_bias(cpl_frameset *, const cpl_parameterlist *);
+static int cr2res_trace_create(cpl_plugin *);
+static int cr2res_trace_exec(cpl_plugin *);
+static int cr2res_trace_destroy(cpl_plugin *);
+static int cr2res_trace(cpl_frameset *, const cpl_parameterlist *);
 
 /*-----------------------------------------------------------------------------
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2re_bias_description[] =
+static char cr2res_trace_description[] =
 "This example text is used to describe the recipe.\n"
 "The description should include the required FITS-files and\n"
 "their associated tags, e.g.\n"
-"raw-file.fits " CR2RE_BIAS_RAW "\n"
+"raw-file.fits " CR2RE_TRACE_RAW "\n"
 "\n"
 "Additionally, it should describe functionality of the expected output."
 "\n";
@@ -91,15 +83,15 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CPL_PLUGIN_API,
                     CR2RE_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
-                    "cr2re_bias",
-                    "Short description of cr2re_bias",
-                    cr2re_bias_description,
-                    "Firstname Lastname",
+                    "cr2res_trace",
+                    "Tracing programm",
+                    cr2res_trace_description,
+                    "Thomas Marquart",
                     PACKAGE_BUGREPORT,
                     cr2re_get_license(),
-                    cr2re_bias_create,
-                    cr2re_bias_exec,
-                    cr2re_bias_destroy)) {    
+                    cr2res_trace_create,
+                    cr2res_trace_exec,
+                    cr2res_trace_destroy)) {    
         cpl_msg_error(cpl_func, "Plugin initialization failed");
         (void)cpl_error_set_where(cpl_func);                          
         return 1;                                               
@@ -123,7 +115,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
   Defining the command-line/configuration parameters for the recipe.
  */
 /*----------------------------------------------------------------------------*/
-static int cr2re_bias_create(cpl_plugin * plugin)
+static int cr2res_trace_create(cpl_plugin * plugin)
 {
     cpl_recipe    * recipe;                                               
     cpl_parameter * p;
@@ -158,15 +150,15 @@ static int cr2re_bias_create(cpl_plugin * plugin)
 
     /* Fill the parameters list */
     /* --stropt */
-    p = cpl_parameter_new_value("cr2re.cr2re_bias.str_option", 
-            CPL_TYPE_STRING, "the string option", "cr2re.cr2re_bias",NULL);
+    p = cpl_parameter_new_value("cr2res.cr2res_trace.str_option", 
+            CPL_TYPE_STRING, "the string option", "cr2res.cr2res_trace",NULL);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "stropt");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     /* --boolopt */
-    p = cpl_parameter_new_value("cr2re.cr2re_bias.bool_option", 
-            CPL_TYPE_BOOL, "a flag", "cr2re.cr2re_bias", TRUE);
+    p = cpl_parameter_new_value("cr2res.cr2res_trace.bool_option", 
+            CPL_TYPE_BOOL, "a flag", "cr2res.cr2res_trace", TRUE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "boolopt");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -181,7 +173,7 @@ static int cr2re_bias_create(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2re_bias_exec(cpl_plugin * plugin)
+static int cr2res_trace_exec(cpl_plugin * plugin)
 {
 
     cpl_recipe * recipe;                                                   
@@ -220,7 +212,7 @@ static int cr2re_bias_exec(cpl_plugin * plugin)
     }                                                                      
                                                                            
     /* Invoke the recipe */                                                
-    recipe_status = cr2re_bias(recipe->frames, recipe->parameters);
+    recipe_status = cr2res_trace(recipe->frames, recipe->parameters);
                                                                            
     /* Ensure DFS-compliance of the products */                            
     if (cpl_dfs_update_product_header(recipe->frames)) {                   
@@ -243,7 +235,7 @@ static int cr2re_bias_exec(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2re_bias_destroy(cpl_plugin * plugin)
+static int cr2res_trace_destroy(cpl_plugin * plugin)
 {
     cpl_recipe * recipe;                                          
                                                                   
@@ -274,8 +266,9 @@ static int cr2re_bias_destroy(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2re_bias(cpl_frameset            * frameset,
-                    const cpl_parameterlist * parlist)
+static int cr2res_trace(
+        cpl_frameset            * frameset,
+        const cpl_parameterlist * parlist)
 {
     const cpl_parameter *   param;
     const char          *   str_option;
@@ -293,12 +286,12 @@ static int cr2re_bias(cpl_frameset            * frameset,
     /* HOW TO RETRIEVE INPUT PARAMETERS */
     /* --stropt */
     param = cpl_parameterlist_find_const(parlist,
-                                         "cr2re.cr2re_bias.str_option");
+                                         "cr2res.cr2res_trace.str_option");
     str_option = cpl_parameter_get_string(param);
 
     /* --boolopt */
     param = cpl_parameterlist_find_const(parlist,
-                                         "cr2re.cr2re_bias.bool_option");
+                                         "cr2res.cr2res_trace.bool_option");
     bool_option = cpl_parameter_get_bool(param);
   
     if (!cpl_errorstate_is_equal(prestate)) {
@@ -319,7 +312,7 @@ static int cr2re_bias(cpl_frameset            * frameset,
            is not found, so we will set one here. */
         return (int)cpl_error_set_message(cpl_func, CPL_ERROR_DATA_NOT_FOUND,
                                           "SOF does not have any file tagged "
-                                          "with %s", CR2RE_BIAS_RAW);
+                                          "with %s", CR2RE_TRACE_RAW);
     }
     
     /* HOW TO GET THE VALUE OF A FITS KEYWORD */
@@ -350,16 +343,16 @@ static int cr2re_bias(cpl_frameset            * frameset,
 
     /* Add the product category  */
     cpl_propertylist_append_string(applist, CPL_DFS_PRO_CATG,
-                                   CR2RE_BIAS_PROCATG);
+                                   CR2RE_TRACE_PROCATG);
 
     /* Add a QC parameter  */
     cpl_propertylist_append_double(applist, "ESO QC QCPARAM", qc_param);
     
     /* HOW TO SAVE A DFS-COMPLIANT PRODUCT TO DISK  */
     if (cpl_dfs_save_image(frameset, plist, parlist, frameset, NULL, image,
-                           CPL_BPP_IEEE_FLOAT, "cr2re_bias", applist,
+                           CPL_BPP_IEEE_FLOAT, "cr2res_trace", applist,
                            NULL, PACKAGE "/" PACKAGE_VERSION,
-                           "cr2re_bias.fits")) {
+                           "cr2res_trace.fits")) {
         /* Propagate the error */
         (void)cpl_error_set_where(cpl_func);
     }

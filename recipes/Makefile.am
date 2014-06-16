@@ -33,15 +33,15 @@ AM_CPPFLAGS = $(all_includes)
 
 noinst_HEADERS = 
 
-plugin_LTLIBRARIES = cr2re_bias.la \
-                     cr2re_trace.la
+plugin_LTLIBRARIES = cr2res_bias.la \
+                     cr2res_trace.la
 
-cr2re_bias_la_SOURCES = cr2re_bias.c 
-cr2re_bias_la_LIBADD = $(LIBCR2RE)
-cr2re_bias_la_LDFLAGS = -module -avoid-version -no-undefined
-cr2re_bias_la_DEPENDENCIES = $(LIBCR2RE)
+cr2res_bias_la_SOURCES = cr2res_bias.c 
+cr2res_bias_la_LIBADD = $(LIBCR2RE)
+cr2res_bias_la_LDFLAGS = -module -avoid-version -no-undefined
+cr2res_bias_la_DEPENDENCIES = $(LIBCR2RE)
 
-cr2re_trace_la_SOURCES = cr2re_trace.c 
-cr2re_trace_la_LIBADD = $(LIBCR2RE)
-cr2re_trace_la_LDFLAGS = -module -avoid-version -no-undefined
-cr2re_trace_la_DEPENDENCIES = $(LIBCR2RE)
+cr2res_trace_la_SOURCES = cr2res_trace.c 
+cr2res_trace_la_LIBADD = $(LIBCR2RE)
+cr2res_trace_la_LDFLAGS = -module -avoid-version -no-undefined
+cr2res_trace_la_DEPENDENCIES = $(LIBCR2RE)
