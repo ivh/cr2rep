@@ -34,9 +34,11 @@
 
 /* Define here the PRO.CATG keywords */
 #define CR2RE_BIAS_PROCATG              "CALPRO_BIAS"
+#define CR2RE_TRACE_PROCATG             "CALPRO_TRACE"
 
 /* Define here the DO.CATG keywords */
-#define CR2RE_BIAS_RAW                  "CAL_BIAS"
+#define CR2RE_BIAS_RAW                  "BIAS"
+#define CR2RE_TRACE_RAW                 "TRACE"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes

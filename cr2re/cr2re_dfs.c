@@ -72,10 +72,12 @@ cpl_error_code cr2re_dfs_set_groups(cpl_frameset * set)
 
         if (tag == NULL) {
             cpl_msg_warning(cpl_func, "Frame %d has no tag", i);
-        } else if (!strcmp(tag, CR2RE_BIAS_RAW)) {
+        } else if (!strcmp(tag, CR2RE_BIAS_RAW) ||
+                !strcmp(tag, CR2RE_TRACE_RAW)) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
-        } else if (!strcmp(tag, CR2RE_BIAS_PROCATG)) {
+        } else if (!strcmp(tag, CR2RE_BIAS_PROCATG) ||
+                !strcmp(tag, CR2RE_TRACE_PROCATG)) {
             /* CALIB frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_CALIB);
         }
