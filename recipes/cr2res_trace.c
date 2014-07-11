@@ -149,17 +149,27 @@ static int cr2res_trace_create(cpl_plugin * plugin)
     }
 
     /* Fill the parameters list */
-    /* --stropt */
-    p = cpl_parameter_new_value("cr2res.cr2res_trace.str_option",
-            CPL_TYPE_STRING, "the string option", "cr2res.cr2res_trace",NULL);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "stropt");
+    p = cpl_parameter_new_value("cr2res.cr2res_trace.poly_order",
+            CPL_TYPE_INT,
+            "polynomial order for the fit to the orders",
+            "cr2res.cr2res_trace",4);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "polyorder");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    /* --boolopt */
-    p = cpl_parameter_new_value("cr2res.cr2res_trace.bool_option",
-            CPL_TYPE_BOOL, "a flag", "cr2res.cr2res_trace", TRUE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "boolopt");
+    p = cpl_parameter_new_value("cr2res.cr2res_trace.min_cluster",
+            CPL_TYPE_INT,
+            "size (number of pixels) of the smallest allowed cluster",
+            "cr2res.cr2res_trace",40);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "mincluster");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_trace.smooth",
+            CPL_TYPE_DOUBLE,
+            "Length of the smoothing kernel, relative to inter-order separation",
+            "cr2res.cr2res_trace", 1.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -271,35 +281,44 @@ static int cr2res_trace(
         const cpl_parameterlist * parlist)
 {
     const cpl_parameter *   param;
-    const char          *   str_option;
-    int                     bool_option;
+    int                     polyorder;
+    int                     mincluster;
+    double                   smoothfactor;
     const cpl_frame     *   rawframe;
     double                  qc_param;
     cpl_propertylist    *   plist;
     cpl_propertylist    *   applist;
     cpl_image           *   image;
+    cpl_image           *   smimage;
     cpl_imagelist       *   imlist;
     cpl_mask            *   mask;
     cpl_size                npix;
+    cpl_matrix          *   kernel;
     int                 *   xs;
     int                 *   ys;
     int                 *   clusters;
     int i,j,nx,ny,nclusters;
     int count=0;
+    int ordersep=180; //this needs to come from a static calibration, each band
+
     /* Use the errorstate to detect an error in a function that does not
        return an error code. */
     cpl_errorstate          prestate = cpl_errorstate_get();
 
     /* HOW TO RETRIEVE INPUT PARAMETERS */
-    /* --stropt */
     param = cpl_parameterlist_find_const(parlist,
-                                         "cr2res.cr2res_trace.str_option");
-    str_option = cpl_parameter_get_string(param);
+                                         "cr2res.cr2res_trace.min_cluster");
+    mincluster = cpl_parameter_get_int(param);
 
-    /* --boolopt */
     param = cpl_parameterlist_find_const(parlist,
-                                         "cr2res.cr2res_trace.bool_option");
-    bool_option = cpl_parameter_get_bool(param);
+                                         "cr2res.cr2res_trace.poly_order");
+    polyorder = cpl_parameter_get_int(param);
+
+    param = cpl_parameterlist_find_const(parlist,
+                                         "cr2res.cr2res_trace.smooth");
+    smoothfactor = cpl_parameter_get_double(param);
+
+
 
     if (!cpl_errorstate_is_equal(prestate)) {
         return (int)cpl_error_set_message(cpl_func, cpl_error_get_code(),
@@ -343,7 +362,7 @@ static int cr2res_trace(
     image = cpl_imagelist_get(imlist,0);
     if (image == NULL) {
         return (int)cpl_error_set_message(cpl_func, cpl_error_get_code(),
-                                     "Average failed");
+                                     "Could not get image out of imagelist");
     }
 
     applist = cpl_propertylist_duplicate(plist);
@@ -354,6 +373,21 @@ static int cr2res_trace(
 
     /* Add a QC parameter  */
     cpl_propertylist_append_double(applist, "ESO QC QCPARAM", qc_param);
+
+
+    /* find the pixels with signal*/
+    smimage = cpl_image_duplicate(image);
+    ordersep = (int) (ordersep*smoothfactor);
+    if (ordersep % 2 == 0) ordersep +=1;
+    cpl_msg_debug(cpl_func,cpl_sprintf("ordersep: %d",ordersep));
+    kernel = cpl_matrix_new( ordersep ,1);
+    cpl_matrix_add_scalar(kernel,0.01);
+    if (cpl_image_filter(smimage, image, kernel,
+        CPL_FILTER_LINEAR, CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
+         return cpl_error_set_message(cpl_func, CPL_ERROR_ILLEGAL_INPUT,
+         "The filter went bad");
+    }
+
 
     mask = cpl_mask_threshold_image_create(image,100,1000);
     cpl_mask_save(mask,"mask.fits",plist,CPL_IO_CREATE);
@@ -379,7 +413,7 @@ static int cr2res_trace(
         }
     }
 
-    nclusters = cluster(xs,ys,npix,nx,ny,0,clusters);
+    nclusters = cluster(xs,ys,npix,nx,ny,mincluster,clusters);
 
     /* put the results bac into 2d image form */
     for(i=0;i<npix;i++){
@@ -387,7 +421,7 @@ static int cr2res_trace(
     }
 
     /* HOW TO SAVE A DFS-COMPLIANT PRODUCT TO DISK  */
-    if (cpl_dfs_save_image(frameset, plist, parlist, frameset, NULL, image,
+    if (cpl_dfs_save_image(frameset, plist, parlist, frameset, NULL, smimage,
                            CPL_BPP_IEEE_FLOAT, "cr2res_trace", applist,
                            NULL, PACKAGE "/" PACKAGE_VERSION,
                            "cr2res_trace.fits")) {
@@ -399,8 +433,9 @@ static int cr2res_trace(
     cpl_propertylist_delete(plist);
     cpl_propertylist_delete(applist);
     cpl_imagelist_delete(imlist);
-    //cpl_image_delete(image);
+    cpl_image_delete(smimage);
     cpl_mask_delete(mask);
+    cpl_matrix_delete(kernel);
     cpl_free(xs);
     cpl_free(ys);
     cpl_free(clusters);
