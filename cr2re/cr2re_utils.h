@@ -40,4 +40,6 @@
 
 const char * cr2re_get_license(void) ;
 
+int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index);
+
 #endif
