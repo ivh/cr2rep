@@ -124,6 +124,49 @@ int *diag_sort(int *x, int *y, int *index, int n, int nX, int nY)
   return index;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Detect the Orders signal
+  @param   
+  @return 
+ */
+/*----------------------------------------------------------------------------*/
+cpl_mask * cr2re_cluster_detect(
+        const cpl_image     *   image,
+        int                     ordersep,
+        double                  smoothfactor) 
+{
+    cpl_image       *   smimage ;
+    int                 ordersep_loc ;
+    cpl_matrix      *   kernel ;
+    cpl_mask        *   mask ;
+
+    /* Prepare the kernel used for median filtering */
+    ordersep_loc = (int) (ordersep*smoothfactor);
+    if (ordersep_loc % 2 == 0) ordersep_loc +=1;
+    cpl_msg_debug(__func__, "Order separation: %d", ordersep_loc);
+    kernel = cpl_matrix_new(ordersep_loc, 1);
+    cpl_matrix_add_scalar(kernel, 0.01) ;
+    
+    /* Median filtering */
+    smimage = cpl_image_duplicate(image);
+    if (cpl_image_filter(smimage, image, kernel, CPL_FILTER_LINEAR, 
+                CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Cannot filter the image") ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        cpl_matrix_delete(kernel);
+        cpl_image_delete(smimage) ;
+        return NULL ;
+    }
+    cpl_matrix_delete(kernel);
+
+    mask = cpl_mask_threshold_image_create(image,100,1000);
+    /* mask = cpl_mask_threshold_image_create(smimage,100,1000); */
+    cpl_image_delete(smimage) ;
+
+    return mask ;
+}
+
 int locate_clusters(int argc, void *argv[])
 {
 /*
@@ -243,39 +286,45 @@ int locate_clusters(int argc, void *argv[])
   return n;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Identify clusters of pixels
+  @param    x   X positions of detected pixels
+  @param    y   Y positions of detected pixels
+  @param    n   Number of pixels
+  @return   0 if everything is ok
+  Cluster takes two 1D integer arrays with X and Y coodinates of
+  pixels somehow selected in a 2D (Nx,Ny) array and identifies
+  clusters of pixels. X and Y should be Y-sorted, that is X should run faster
+  while Y should increase monotonously. If that is not the case, it could be
+  achieved with the following commands:
+  i=sort(Y*2L^15+X) & Y=Y(i) & X=X(i)
+  A cluster is defined so that every pixel in a cluster is adjacent to at
+  list one other pixel from the same cluster (their X and Y coordinates do
+  not differ by more then 1) and all the pixels that are adjacent to any
+  pixel in a cluster belong ; to the same cluster.
+  The function returns a 1D integer array of the same size as X and Y
+  that contains cluster number for each pixel. Non-cluster members
+  are marked with 0.
+  Other parameters:
+    thres    - (input) consider clusters with "threshold"
+               or smaller number of members to be non-clustered (index eq 0)
+    index    - (output) integer array of the same size as x and y containing
+               cluster number that contains pixel with coordinates [x, y]
+    nregions - (output) contain the number of identified clusters also
+               counting non-cluster pixels (if any) as a separate cluster
+ 
+  History: 17-July-2000 N.Piskunov wrote the version optimized for
+                        clusters oriented preferentially along rows or
+                        columns.
+           21-July-2000 N.Piskunov modified to handle arbitrary oriented
+                        clusters in the optimal way. It is slower than the
+                        original version by about 10% for spectral orders
+                        which are nearly horizontal/vertical.
+ */
+/*----------------------------------------------------------------------------*/
 int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index)
 {
-/*
- Cluster takes two 1D integer arrays with X and Y coodinates of
- pixels somehow selected in a 2D (Nx,Ny) array and identifies
- clusters of pixels. X and Y should be Y-sorted, that is X should run faster
- while Y should increase monotonously. If that is not the case, it could be
- achieved with the following commands:
- i=sort(Y*2L^15+X) & Y=Y(i) & X=X(i)
- A cluster is defined so that every pixel in a cluster is adjacent to at
- list one other pixel from the same cluster (their X and Y coordinates do
- not differ by more then 1) and all the pixels that are adjacent to any
- pixel in a cluster belong ; to the same cluster.
- The function returns a 1D integer array of the same size as X and Y
- that contains cluster number for each pixel. Non-cluster members
- are marked with 0.
- Other parameters:
-   thres    - (input) consider clusters with "threshold"
-              or smaller number of members to be non-clustered (index eq 0)
-   index    - (output) integer array of the same size as x and y containing
-              cluster number that contains pixel with coordinates [x, y]
-   nregions - (output) contain the number of identified clusters also
-              counting non-cluster pixels (if any) as a separate cluster
-
- History: 17-July-2000 N.Piskunov wrote the version optimized for
-                       clusters oriented preferentially along rows or
-                       columns.
-          21-July-2000 N.Piskunov modified to handle arbitrary oriented
-                       clusters in the optimal way. It is slower than the
-                       original version by about 10% for spectral orders
-                       which are nearly horizontal/vertical.
-*/
-
   //int *x, *y, n, nX, nY, thres, *index;
   int *Xsort, *i2X, *X2i, *Ysort, *i2Y, *Y2i,
       *Lsort, *i2L, *L2i, *Rsort, *i2R, *R2i,
@@ -283,7 +332,6 @@ int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index)
   int i, j[9], jj, nj, njj, j1, j2, iX, iY, n_branches;
   int threshold, nregions;
   int min_clr, max_clr, clrs[9], *uniq_clr, *translation;
-
 
   //if(argc<7) return -1;
   //x=(int *)argv[0];

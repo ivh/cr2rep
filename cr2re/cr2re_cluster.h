@@ -30,6 +30,7 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
+cpl_mask * cr2re_cluster_detect(const cpl_image *, int, double) ;
 int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index);
 
 #endif
