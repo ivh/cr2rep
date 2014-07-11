@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-#ifndef CR2RE_UTILS_H
-#define CR2RE_UTILS_H
+#ifndef CR2RE_CLUSTER_H
+#define CR2RE_CLUSTER_H
 
 /*-----------------------------------------------------------------------------
                                    Includes
@@ -30,6 +30,6 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-const char * cr2re_get_license(void) ;
+int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index);
 
 #endif

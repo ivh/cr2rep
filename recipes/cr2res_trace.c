@@ -29,6 +29,7 @@
 
 #include "cr2re_utils.h"
 #include "cr2re_pfits.h"
+#include "cr2re_cluster.h"
 #include "cr2re_dfs.h"
 
 /*-----------------------------------------------------------------------------
@@ -152,7 +153,7 @@ static int cr2res_trace_create(cpl_plugin * plugin)
     p = cpl_parameter_new_value("cr2res.cr2res_trace.poly_order",
             CPL_TYPE_INT,
             "polynomial order for the fit to the orders",
-            "cr2res.cr2res_trace",4);
+            "cr2res.cr2res_trace", 4);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "polyorder");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -160,7 +161,7 @@ static int cr2res_trace_create(cpl_plugin * plugin)
     p = cpl_parameter_new_value("cr2res.cr2res_trace.min_cluster",
             CPL_TYPE_INT,
             "size (number of pixels) of the smallest allowed cluster",
-            "cr2res.cr2res_trace",40);
+            "cr2res.cr2res_trace", 40);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "mincluster");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);

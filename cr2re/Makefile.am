@@ -34,6 +34,7 @@ endif
 AM_CPPFLAGS = -DCX_LOG_DOMAIN=\"Cr2reLib\" $(all_includes)
 
 noinst_HEADERS =    cr2re_utils.h \
+                    cr2re_cluster.h \
                     cr2re_pfits.h \
                     cr2re_dfs.h
 
@@ -43,6 +44,7 @@ privatelib_LTLIBRARIES = libcr2re.la
 
 libcr2re_la_SOURCES =    cr2re_utils.c \
                                 cr2re_pfits.c \
+                                cr2re_cluster.c \
                                 cr2re_dfs.c
 
 libcr2re_la_LDFLAGS = $(CPL_LDFLAGS) $(XXCLIPM_LDFLAGS) -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
