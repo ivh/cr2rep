@@ -1,4 +1,4 @@
-/* 
+/*
  * This file is part of the CR2RE Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
@@ -31,7 +31,7 @@
 
 /*----------------------------------------------------------------------------*/
 /**
- * @defgroup cr2re_cluster  Cluster related 
+ * @defgroup cr2re_cluster  Cluster related
  */
 /*----------------------------------------------------------------------------*/
 
@@ -127,14 +127,15 @@ int *diag_sort(int *x, int *y, int *index, int n, int nX, int nY)
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Detect the Orders signal
-  @param   
-  @return 
+  @param
+  @return
  */
 /*----------------------------------------------------------------------------*/
-cpl_mask * cr2re_cluster_detect(
+cpl_mask * cr2re_signal_detect(
         const cpl_image     *   image,
         int                     ordersep,
-        double                  smoothfactor) 
+        double                  smoothfactor,
+        double                  thresh)
 {
     cpl_image       *   smimage ;
     int                 ordersep_loc ;
@@ -146,11 +147,12 @@ cpl_mask * cr2re_cluster_detect(
     if (ordersep_loc % 2 == 0) ordersep_loc +=1;
     cpl_msg_debug(__func__, "Order separation: %d", ordersep_loc);
     kernel = cpl_matrix_new(ordersep_loc, 1);
-    cpl_matrix_add_scalar(kernel, 0.01) ;
-    
+    /* kernel should have normalized values */
+    cpl_matrix_add_scalar(kernel, 1.0/((double)ordersep_loc)) ;
+
     /* Median filtering */
     smimage = cpl_image_duplicate(image);
-    if (cpl_image_filter(smimage, image, kernel, CPL_FILTER_LINEAR, 
+    if (cpl_image_filter(smimage, image, kernel, CPL_FILTER_LINEAR,
                 CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot filter the image") ;
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -159,10 +161,16 @@ cpl_mask * cr2re_cluster_detect(
         return NULL ;
     }
     cpl_matrix_delete(kernel);
+    cpl_image_save(smimage, "smimage.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
 
-    mask = cpl_mask_threshold_image_create(image,100,1000);
-    /* mask = cpl_mask_threshold_image_create(smimage,100,1000); */
+    /* save in smimage since image is static */
+    /* tis means the pixels we want are the ones with values below -thresh */
+    cpl_image_subtract(smimage,image);
+
+    mask = cpl_mask_threshold_image_create(image,-thresh,9999);
+    cpl_mask_save(mask, "mask.fits", NULL, CPL_IO_CREATE);
     cpl_image_delete(smimage) ;
+
 
     return mask ;
 }
@@ -203,10 +211,10 @@ int locate_clusters(int argc, void *argv[])
 
  Returning negative number indicates an error:
    -1     - not all mandatory arguments were specified;
-   -2     - 
+   -2     -
 
  WARNING: locate_clusters do not check the consitency between the actual size
-          of the arrays and their given dimensions. 
+          of the arrays and their given dimensions.
 
   A typical call from IDL may look like this:
 
@@ -228,7 +236,7 @@ int locate_clusters(int argc, void *argv[])
   float noise;
   int iX, iY, half, has_mask;
   float offset, box, nbox;
-  
+
   if(argc<7) return -1;
   nX    =*(int *)argv[0];
   nY    =*(int *)argv[1];
@@ -244,7 +252,7 @@ int locate_clusters(int argc, void *argv[])
     has_mask=1;
   }
   else has_mask=0;
-  
+
   n=0;
   half=filter/2;
   if(has_mask)
@@ -262,7 +270,7 @@ int locate_clusters(int argc, void *argv[])
           if(n==nmax) return -2;
           x[n]=iX; y[n]=iY; n++;
         }
-      }   
+      }
     }
   }
   else
@@ -280,7 +288,7 @@ int locate_clusters(int argc, void *argv[])
           if(n==nmax) return -2;
           x[n]=iX; y[n]=iY; n++;
         }
-      }   
+      }
     }
   }
   return n;
@@ -313,7 +321,7 @@ int locate_clusters(int argc, void *argv[])
                cluster number that contains pixel with coordinates [x, y]
     nregions - (output) contain the number of identified clusters also
                counting non-cluster pixels (if any) as a separate cluster
- 
+
   History: 17-July-2000 N.Piskunov wrote the version optimized for
                         clusters oriented preferentially along rows or
                         columns.
@@ -420,7 +428,7 @@ int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index)
     if(j2>=0 && x[R2i[j2]]+1==x[i] && y[R2i[j2]]+1==y[i]) j[nj++]=R2i[j2];
     j2=j1+1;                             /* Next X-sorted number        */
     if(j2<n  && x[R2i[j2]]-1==x[i] && y[R2i[j2]]-1==y[i]) j[nj++]=R2i[j2];
-  
+
     njj=0;
     min_clr=n+1;                         /* Initialize minimum color     */
     for(j1=0; j1<nj; j1++)               /* Find minimum color           */
@@ -449,7 +457,7 @@ int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index)
   cpl_free(Y2i); cpl_free(i2Y);
   cpl_free(L2i); cpl_free(i2L);
   cpl_free(R2i); cpl_free(i2R);
-	
+
   for(i=0; i<n; i++)                      /* Reduce reference chains in look-up  */
   {                                       /* table to single direct references   */
     translation[i]=translation[translation[i]];
@@ -491,5 +499,42 @@ int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index)
 
   return nregions;
 }
+
+int cr2re_cluster_detect(cpl_mask *mask, int mincluster, int * xs, int * ys, int * clusters){
+    int i, j, nx, ny, nclusters, count, npix ;
+
+    /* Convert the Mask in inputs needed by cluster() */
+    npix = cpl_mask_count(mask);
+    nx = cpl_mask_get_size_x(mask);
+    ny = cpl_mask_get_size_y(mask);
+    cpl_msg_debug(__func__, "mask: %d %d, %d", nx, ny, npix);
+
+    xs=(int *)cpl_malloc(npix*sizeof(int));
+    ys=(int *)cpl_malloc(npix*sizeof(int));
+    clusters=(int *)cpl_malloc(npix*sizeof(int));
+    count = 0 ;
+    for (i=1 ; i<=nx ; i++) {
+        for (j=1 ; j<=ny ; j++) {
+            if (cpl_mask_get(mask,i,j) == CPL_BINARY_1) {
+                xs[count] = i ;
+                ys[count] = j ;
+                count++;
+            }
+        }
+    }
+
+    nclusters = cluster(xs, ys, npix, nx, ny, mincluster, clusters) ;
+
+    /* Convert the results back into a CPL image */
+    /* (Actually not needed for the time being) */
+    /* for (i=0 ; i<npix ; i++) cpl_image_set(clusterimage, xs[i], ys[i], clusters[i]); */
+
+    cpl_free(xs);
+    cpl_free(ys);
+    cpl_free(clusters);
+    
+    return nclusters;
+}
+
 
 /**@}*/

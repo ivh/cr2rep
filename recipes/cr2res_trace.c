@@ -206,6 +206,7 @@ static int cr2res_trace(
     const cpl_parameter *   param;
     int                     polyorder;
     int                     mincluster;
+    int                     nclusters;
     double                  smoothfactor;
     const cpl_frame     *   rawframe;
     double                  qc_param;
@@ -219,9 +220,9 @@ static int cr2res_trace(
     int                 *   xs;
     int                 *   ys;
     int                 *   clusters;
-    int                     i, j, nx, ny, nclusters, count ;
     /* This needs to come from a static calibration, each band */
     int                     ordersep=180;
+    double                  thresh=0; // set to read-noise later, also input-para
 
     /* Check entries */
     if (parlist == NULL || frameset == NULL) {
@@ -266,7 +267,6 @@ static int cr2res_trace(
         return -1 ;
     }
 
-    qc_param = cr2re_pfits_get_dit(plist);
 
     /* NOW PERFORMING THE DATA REDUCTION */
     image = cpl_imagelist_get(imlist,0);
@@ -285,42 +285,23 @@ static int cr2res_trace(
             CR2RE_TRACE_PROCATG);
 
     /* Detect the orders */
-    mask = cr2re_cluster_detect(image, ordersep, smoothfactor) ;
+    mask = cr2re_signal_detect(image, ordersep, smoothfactor, thresh) ;
 
-    cpl_mask_save(mask, "mask.fits", plist, CPL_IO_CREATE);
-
-    /* Convert the Mask in inputs needed by cluster() */
-    npix = cpl_mask_count(mask);
-    nx = cpl_mask_get_size_x(mask);
-    ny = cpl_mask_get_size_y(mask);
-    cpl_msg_debug(__func__, "mask: %d %d, %d", nx, ny, npix);
-
-    xs=(int *)cpl_malloc(npix*sizeof(int));
-    ys=(int *)cpl_malloc(npix*sizeof(int));
-    clusters=(int *)cpl_malloc(npix*sizeof(int));
-    count = 0 ;
-    for (i=1 ; i<=nx ; i++) {
-        for (j=1 ; j<=ny ; j++) {
-            if (cpl_mask_get(mask,i,j) == CPL_BINARY_1) {
-                xs[count] = i ;
-                ys[count] = j ;
-                count++;
-            }
-        }
-    }
-    cpl_mask_delete(mask);
 
     /* Call cluster() */
-    nclusters = cluster(xs, ys, npix, nx, ny, mincluster, clusters) ;
+    nclusters = cr2re_cluster_detect(mask, mincluster, xs, ys, clusters) ;
 
-    /* Convert the results back into a CPL image */
-    for (i=0 ; i<npix ; i++) cpl_image_set(image, xs[i], ys[i], clusters[i]);
+    /* do the fit to ys here*/
+
+    cpl_mask_delete(mask);
+    cpl_free(clusters);
     cpl_free(xs);
     cpl_free(ys);
-    cpl_free(clusters);
+
+    qc_param = nclusters;
 
     if (cpl_dfs_save_image(frameset, plist, parlist, frameset, NULL, image,
-                CPL_BPP_IEEE_FLOAT, "cr2res_trace", applist, NULL, 
+                CPL_BPP_IEEE_FLOAT, "cr2res_trace", applist, NULL,
                 PACKAGE "/" PACKAGE_VERSION, "cr2res_trace.fits")) {
         /* Propagate the error */
         (void)cpl_error_set_where(cpl_func);
