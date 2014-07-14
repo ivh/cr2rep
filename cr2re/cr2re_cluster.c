@@ -26,8 +26,21 @@
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
-
 #include "cr2re_cluster.h"
+
+/*-----------------------------------------------------------------------------
+                                   Defines
+ -----------------------------------------------------------------------------*/
+
+#define SWAP(r,s)  do{int t=r; r=s; s=t; } while(0)
+
+/*-----------------------------------------------------------------------------
+                                Functions prototypes
+ -----------------------------------------------------------------------------*/
+
+static void siftDown(int *a, int *i, int start, int end) ;
+static void isort(int *a, int *i, int count) ;
+static int * diag_sort(int *x, int *y, int *index, int n, int nX, int nY) ;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -36,93 +49,6 @@
 /*----------------------------------------------------------------------------*/
 
 /**@{*/
-
-#define SWAP(r,s)  do{int t=r; r=s; s=t; } while(0)
-
-void siftDown(int *a, int *i, int start, int end)
-{
-  int root = start;
-
-  while(root*2+1 < end)
-  {
-    int child = 2*root + 1;
-    if((child+1 < end) && (a[child] < a[child+1]))
-    {
-      child++;
-    }
-    if(a[root] < a[child])
-    {
-      SWAP(a[child], a[root]);
-      SWAP(i[child], i[root]);
-      root = child;
-    }
-    else return;
-  }
-}
-
-void isort(int *a, int *i, int count)
-{
-  int start, end;
-
-  for(start=0; start<count; start++) i[start]=start;
-
-  for(start=(count-2)/2; start>=0; start--)
-  {
-    siftDown(a, i, start, count);
-  }
-
-  for (end=count-1; end > 0; end--)
-  {
-    SWAP(a[end], a[0]);
-    SWAP(i[end], i[0]);
-    siftDown(a, i, 0, end);
-  }
-}
-
-int *diag_sort(int *x, int *y, int *index, int n, int nX, int nY)
-{
-  int i, diag;
-
-  if(nX<=nY)
-  {
-    for(i=0;i<n;i++)
-    {
-      diag=x[i]+y[i]+1;
-      if(diag<nX-1)
-      {
-        index[i]=diag*(diag+1)/2-x[i]-1;
-      }
-      else if(diag>=nX-1 && diag<nY)
-      {
-        index[i]=nX*(nX-1)/2+(diag-nX)*nX+nX-x[i]-1;
-      }
-      else if(diag>=nY)
-      {
-        index[i]=nX*nY-(nX+nY-diag)*(nX+nY-diag+1)/2+nX-x[i]-1;
-      }
-    }
-  }
-  else
-  {
-    for(i=0;i<n;i++)
-    {
-      diag=x[i]+y[i]+1;
-      if(diag<nY)
-      {
-        index[i]=diag*(diag+1)/2-x[i]-1;
-      }
-      else if(diag>=nY && diag<=nX)
-      {
-        index[i]=nY*(nY-1)/2+(diag-nY)*nY+y[i];
-      }
-      else if(diag>nX)
-      {
-        index[i]=nX*nY-(nX+nY-diag)*(nX+nY-diag+1)/2+nX-x[i]-1;
-      }
-    }
-  }
-  return index;
-}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -536,5 +462,90 @@ int cr2re_cluster_detect(cpl_mask *mask, int mincluster, int * xs, int * ys, int
     return nclusters;
 }
 
-
 /**@}*/
+
+static void siftDown(int *a, int *i, int start, int end)
+{
+  int root = start;
+
+  while(root*2+1 < end)
+  {
+    int child = 2*root + 1;
+    if((child+1 < end) && (a[child] < a[child+1]))
+    {
+      child++;
+    }
+    if(a[root] < a[child])
+    {
+      SWAP(a[child], a[root]);
+      SWAP(i[child], i[root]);
+      root = child;
+    }
+    else return;
+  }
+}
+
+static void isort(int *a, int *i, int count)
+{
+  int start, end;
+
+  for(start=0; start<count; start++) i[start]=start;
+
+  for(start=(count-2)/2; start>=0; start--)
+  {
+    siftDown(a, i, start, count);
+  }
+
+  for (end=count-1; end > 0; end--)
+  {
+    SWAP(a[end], a[0]);
+    SWAP(i[end], i[0]);
+    siftDown(a, i, 0, end);
+  }
+}
+
+static int *diag_sort(int *x, int *y, int *index, int n, int nX, int nY)
+{
+  int i, diag;
+
+  if(nX<=nY)
+  {
+    for(i=0;i<n;i++)
+    {
+      diag=x[i]+y[i]+1;
+      if(diag<nX-1)
+      {
+        index[i]=diag*(diag+1)/2-x[i]-1;
+      }
+      else if(diag>=nX-1 && diag<nY)
+      {
+        index[i]=nX*(nX-1)/2+(diag-nX)*nX+nX-x[i]-1;
+      }
+      else if(diag>=nY)
+      {
+        index[i]=nX*nY-(nX+nY-diag)*(nX+nY-diag+1)/2+nX-x[i]-1;
+      }
+    }
+  }
+  else
+  {
+    for(i=0;i<n;i++)
+    {
+      diag=x[i]+y[i]+1;
+      if(diag<nY)
+      {
+        index[i]=diag*(diag+1)/2-x[i]-1;
+      }
+      else if(diag>=nY && diag<=nX)
+      {
+        index[i]=nY*(nY-1)/2+(diag-nY)*nY+y[i];
+      }
+      else if(diag>nX)
+      {
+        index[i]=nX*nY-(nX+nY-diag)*(nX+nY-diag+1)/2+nX-x[i]-1;
+      }
+    }
+  }
+  return index;
+}
+
