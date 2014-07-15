@@ -204,12 +204,9 @@ static int cr2res_trace(
         const cpl_parameterlist * parlist)
 {
     const cpl_parameter *   param;
-    int                     polyorder;
-    int                     mincluster;
-    int                     nclusters;
+    int                     polyorder, mincluster, qc_nclusters;
     double                  smoothfactor;
     const cpl_frame     *   rawframe;
-    double                  qc_param;
     cpl_propertylist    *   plist;
     cpl_propertylist    *   applist;
     cpl_image           *   image;
@@ -219,9 +216,11 @@ static int cr2res_trace(
     cpl_matrix          *   kernel;
     cpl_table           *   clustertable;
     cpl_table           *   fittable;
-    /* This needs to come from a static calibration, each band */
+    
+    /* TODO This needs to come from a static calibration, each band */
     int                     ordersep=180;
-    double                  thresh=0; // set to read-noise later, also input-para
+    /* TODO Set to read-noise later, also input-para */
+    double                  thresh=0; 
 
     /* Check entries */
     if (parlist == NULL || frameset == NULL) {
@@ -249,7 +248,7 @@ static int cr2res_trace(
         return -1 ;
     }
 
-    /* Load the images */
+    /* Load the image list */
     imlist = cpl_imagelist_load_frameset(frameset, CPL_TYPE_DOUBLE, 0, 0);
     if (imlist== NULL) {
         cpl_msg_error(__func__, "Cannot Load images") ;
@@ -266,8 +265,7 @@ static int cr2res_trace(
         return -1 ;
     }
 
-
-    /* NOW PERFORMING THE DATA REDUCTION */
+    /* Get access to the first image */
     image = cpl_imagelist_get(imlist,0);
     if (image == NULL) {
         cpl_imagelist_delete(imlist) ;
@@ -277,39 +275,43 @@ static int cr2res_trace(
         return -1 ;
     }
 
-    applist = cpl_propertylist_duplicate(plist);
-
-    /* Add the product category  */
-    cpl_propertylist_append_string(applist, CPL_DFS_PRO_CATG,
-            CR2RE_TRACE_PROCATG);
-
     /* Detect the orders */
     mask = cr2re_signal_detect(image, ordersep, smoothfactor, thresh) ;
 
+    /* Detect the clusters */
+    cr2re_cluster_detect(mask, mincluster, &clustertable) ;
+    cpl_mask_delete(mask);
 
-    /* Call cluster() */
-    nclusters = cr2re_cluster_detect(mask, mincluster, clustertable) ;
 
-    nclusters=cpl_table_get_column_max(clustertable,"clusters");
-    cpl_msg_debug(__func__, "n: %d",nclusters);
 
-    cpl_table_save(clustertable,NULL,NULL,"clustertable.fits",CPL_IO_CREATE);
 
-    /* do the fit to ys here*/
 
-    cr2re_orders_fit(clustertable,fittable);
+    qc_nclusters = cpl_table_get_column_max(clustertable, "clusters");
+    cpl_msg_debug(__func__, "Number of clusters: %d", qc_nclusters);
 
-    qc_param = nclusters;
+    cpl_table_save(clustertable, NULL, NULL, "clustertable.fits", 
+            CPL_IO_CREATE);
 
+    /* Fit ys */
+    cr2re_orders_fit(clustertable, fittable);
+    cpl_table_delete(clustertable);
+    cpl_table_delete(fittable);
+
+    cpl_imagelist_delete(imlist) ;
+    cpl_propertylist_delete(plist) ;
+    return 0 ;
+    /* Add a number of keywords to the product header */
+    applist = cpl_propertylist_duplicate(plist);
+    cpl_propertylist_append_string(applist, CPL_DFS_PRO_CATG,
+            CR2RE_TRACE_PROCATG);
+    cpl_propertylist_append_int(applist, "ESO QC NBCLUSTERS", qc_nclusters) ;
+
+    /* Save the product */
     if (cpl_dfs_save_image(frameset, plist, parlist, frameset, NULL, image,
                 CPL_BPP_IEEE_FLOAT, "cr2res_trace", applist, NULL,
                 PACKAGE "/" PACKAGE_VERSION, "cr2res_trace.fits")) {
         (void)cpl_error_set_where(cpl_func);
     }
-
-    cpl_mask_delete(mask);
-    cpl_table_delete(clustertable);
-    cpl_table_delete(fittable);
 
     cpl_imagelist_delete(imlist) ;
     cpl_propertylist_delete(plist) ;

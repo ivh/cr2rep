@@ -50,7 +50,6 @@ static int * diag_sort(int *x, int *y, int *index, int n, int nX, int nY) ;
 
 /**@{*/
 
-
 int locate_clusters(int argc, void *argv[])
 {
 /*
@@ -376,9 +375,25 @@ int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index)
   return nregions;
 }
 
-int cr2re_cluster_detect(cpl_mask *mask, int mincluster, cpl_table *table){
-    int i, j, nx, ny, nclusters, count, npix ;
-    int *xs, *ys, *clusters ;
+/*----------------------------------------------------------------------------*/
+/**
+  @brief 
+  @param 
+  @param 
+  @param 
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+int cr2re_cluster_detect(
+        cpl_mask    *   mask, 
+        int             mincluster, 
+        cpl_table   **   table)
+{
+    int         i, j, nx, ny, nclusters, count, npix ;
+    int     *   xs ;
+    int     *   ys ;
+    int     *   clusters ;
+
     /* Convert the Mask in inputs needed by cluster() */
     npix = cpl_mask_count(mask);
     nx = cpl_mask_get_size_x(mask);
@@ -411,10 +426,10 @@ int cr2re_cluster_detect(cpl_mask *mask, int mincluster, cpl_table *table){
 
     
     /* Put result into a table*/
-    table = cpl_table_new(npix);
-    cpl_table_wrap_int(table,xs,"xs");
-    cpl_table_wrap_int(table,ys,"ys");
-    cpl_table_wrap_int(table,clusters,"clusters");
+    *table = cpl_table_new(npix);
+    cpl_table_wrap_int(*table,xs,"xs");
+    cpl_table_wrap_int(*table,ys,"ys");
+    cpl_table_wrap_int(*table,clusters,"clusters");
 
     return nclusters;
 }
