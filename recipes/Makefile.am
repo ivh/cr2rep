@@ -42,6 +42,6 @@ cr2res_bias_la_LDFLAGS = -module -avoid-version -no-undefined
 cr2res_bias_la_DEPENDENCIES = $(LIBCR2RE)
 
 cr2res_trace_la_SOURCES = cr2res_trace.c 
-cr2res_trace_la_LIBADD = $(LIBCR2RE)
+cr2res_trace_la_LIBADD = $(LIBCR2RE) $(LIBCPLDRS) 
 cr2res_trace_la_LDFLAGS = -module -avoid-version -no-undefined
 cr2res_trace_la_DEPENDENCIES = $(LIBCR2RE)
