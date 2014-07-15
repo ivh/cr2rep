@@ -143,9 +143,16 @@ static int cr2res_trace_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_trace.smooth",
             CPL_TYPE_DOUBLE,
-            "Length of the smoothing kernel, relative to inter-order separation",
+            "Length of the smoothing kernel,relative to inter-order separation",
             "cr2res.cr2res_trace", 1.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_trace.cpl-lab",
+            CPL_TYPE_BOOL, "Use CPL labelization",
+            "cr2res.cr2res_trace", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cpl-lab");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -204,7 +211,7 @@ static int cr2res_trace(
         const cpl_parameterlist * parlist)
 {
     const cpl_parameter *   param;
-    int                     polyorder, mincluster, qc_nclusters;
+    int                     cpl_lab, polyorder, mincluster, qc_nclusters;
     double                  smoothfactor;
     const cpl_frame     *   rawframe;
     cpl_propertylist    *   plist;
@@ -216,6 +223,9 @@ static int cr2res_trace(
     cpl_matrix          *   kernel;
     cpl_table           *   clustertable;
     cpl_table           *   fittable;
+    cpl_image           *   labels ;
+    cpl_apertures       *   aperts ;
+    int                     nlabels ;
     
     /* TODO This needs to come from a static calibration, each band */
     int                     ordersep=180;
@@ -239,6 +249,9 @@ static int cr2res_trace(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_trace.smooth");
     smoothfactor = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_trace.cpl-lab");
+    cpl_lab = cpl_parameter_get_bool(param);
 
     /* Check Parameters */
     /* Identify the RAW and CALIB frames in the input frameset */
@@ -278,13 +291,25 @@ static int cr2res_trace(
     /* Detect the orders */
     mask = cr2re_signal_detect(image, ordersep, smoothfactor, thresh) ;
 
-    /* Detect the clusters */
-    cr2re_cluster_detect(mask, mincluster, &clustertable) ;
+    /* Use CPL method for labelization */
+    if (cpl_lab) {
+        labels = cpl_image_labelise_mask_create(mask, &nlabels);
+        aperts = cpl_apertures_new_from_image(image, labels);
+        cpl_image_delete(labels) ;
+        cpl_apertures_dump(aperts, stdout) ;
+        cpl_apertures_delete(aperts) ;
+
+
+        cpl_imagelist_delete(imlist) ;
+        cpl_propertylist_delete(plist) ;
+        cpl_mask_delete(mask);
+        return 0 ;
+
+    } else {
+        /* Detect the clusters */
+        cr2re_cluster_detect(mask, mincluster, &clustertable) ;
+    }
     cpl_mask_delete(mask);
-
-
-
-
 
     qc_nclusters = cpl_table_get_column_max(clustertable, "clusters");
     cpl_msg_debug(__func__, "Number of clusters: %d", qc_nclusters);
@@ -297,9 +322,6 @@ static int cr2res_trace(
     cpl_table_delete(clustertable);
     cpl_table_delete(fittable);
 
-    cpl_imagelist_delete(imlist) ;
-    cpl_propertylist_delete(plist) ;
-    return 0 ;
     /* Add a number of keywords to the product header */
     applist = cpl_propertylist_duplicate(plist);
     cpl_propertylist_append_string(applist, CPL_DFS_PRO_CATG,
