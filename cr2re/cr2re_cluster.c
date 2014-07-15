@@ -416,15 +416,6 @@ int cr2re_cluster_detect(
 
     nclusters = cluster(xs, ys, npix, nx, ny, mincluster, clusters) ;
 
-    /* Convert the results back into a CPL image */
-    /* (Actually not needed for the time being) */
-    /*cpl_image * clusterimage;
-    clusterimage = cpl_image_new(nx,ny,CPL_TYPE_INT);
-    for (i=0 ; i<npix ; i++) cpl_image_set(clusterimage, xs[i], ys[i], clusters[i]);
-    cpl_image_save(clusterimage, "clusterimage.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
-    cpl_msg_debug(__func__, "wrote clusterimage.fits"); */
-
-    
     /* Put result into a table*/
     *table = cpl_table_new(npix);
     cpl_table_wrap_int(*table,xs,"xs");
