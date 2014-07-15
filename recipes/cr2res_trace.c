@@ -217,9 +217,8 @@ static int cr2res_trace(
     cpl_mask            *   mask;
     cpl_size                npix;
     cpl_matrix          *   kernel;
-    int                 *   xs;
-    int                 *   ys;
-    int                 *   clusters;
+    cpl_table           *   clustertable;
+    cpl_table           *   fittable;
     /* This needs to come from a static calibration, each band */
     int                     ordersep=180;
     double                  thresh=0; // set to read-noise later, also input-para
@@ -289,23 +288,28 @@ static int cr2res_trace(
 
 
     /* Call cluster() */
-    nclusters = cr2re_cluster_detect(mask, mincluster, xs, ys, clusters) ;
+    nclusters = cr2re_cluster_detect(mask, mincluster, clustertable) ;
+
+    nclusters=cpl_table_get_column_max(clustertable,"clusters");
+    cpl_msg_debug(__func__, "n: %d",nclusters);
+
+    cpl_table_save(clustertable,NULL,NULL,"clustertable.fits",CPL_IO_CREATE);
 
     /* do the fit to ys here*/
 
-    cpl_mask_delete(mask);
-    cpl_free(clusters);
-    cpl_free(xs);
-    cpl_free(ys);
+    cr2re_orders_fit(clustertable,fittable);
 
     qc_param = nclusters;
 
     if (cpl_dfs_save_image(frameset, plist, parlist, frameset, NULL, image,
                 CPL_BPP_IEEE_FLOAT, "cr2res_trace", applist, NULL,
                 PACKAGE "/" PACKAGE_VERSION, "cr2res_trace.fits")) {
-        /* Propagate the error */
         (void)cpl_error_set_where(cpl_func);
     }
+
+    cpl_mask_delete(mask);
+    cpl_table_delete(clustertable);
+    cpl_table_delete(fittable);
 
     cpl_imagelist_delete(imlist) ;
     cpl_propertylist_delete(plist) ;

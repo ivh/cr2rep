@@ -30,8 +30,6 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-cpl_mask * cr2re_signal_detect(const cpl_image *, int, double, double) ;
-int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index);
-int cr2re_cluster_detect(cpl_mask *mask, int mincluster, int * xs, int * ys, int * clusters);
+int cr2re_cluster_detect(cpl_mask *mask, int mincluster, cpl_table *table);
 
 #endif

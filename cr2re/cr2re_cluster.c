@@ -50,56 +50,6 @@ static int * diag_sort(int *x, int *y, int *index, int n, int nX, int nY) ;
 
 /**@{*/
 
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Detect the Orders signal
-  @param
-  @return
- */
-/*----------------------------------------------------------------------------*/
-cpl_mask * cr2re_signal_detect(
-        const cpl_image     *   image,
-        int                     ordersep,
-        double                  smoothfactor,
-        double                  thresh)
-{
-    cpl_image       *   smimage ;
-    int                 ordersep_loc ;
-    cpl_matrix      *   kernel ;
-    cpl_mask        *   mask ;
-
-    /* Prepare the kernel used for median filtering */
-    ordersep_loc = (int) (ordersep*smoothfactor);
-    if (ordersep_loc % 2 == 0) ordersep_loc +=1;
-    cpl_msg_debug(__func__, "Order separation: %d", ordersep_loc);
-    kernel = cpl_matrix_new(ordersep_loc, 1);
-    /* kernel should have normalized values */
-    cpl_matrix_add_scalar(kernel, 1.0/((double)ordersep_loc)) ;
-
-    /* Median filtering */
-    smimage = cpl_image_duplicate(image);
-    if (cpl_image_filter(smimage, image, kernel, CPL_FILTER_LINEAR,
-                CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
-        cpl_msg_error(__func__, "Cannot filter the image") ;
-        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
-        cpl_matrix_delete(kernel);
-        cpl_image_delete(smimage) ;
-        return NULL ;
-    }
-    cpl_matrix_delete(kernel);
-    cpl_image_save(smimage, "smimage.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-
-    /* save in smimage since image is static */
-    /* tis means the pixels we want are the ones with values below -thresh */
-    cpl_image_subtract(smimage,image);
-
-    mask = cpl_mask_threshold_image_create(image,-thresh,9999);
-    cpl_mask_save(mask, "mask.fits", NULL, CPL_IO_CREATE);
-    cpl_image_delete(smimage) ;
-
-
-    return mask ;
-}
 
 int locate_clusters(int argc, void *argv[])
 {
@@ -426,9 +376,9 @@ int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index)
   return nregions;
 }
 
-int cr2re_cluster_detect(cpl_mask *mask, int mincluster, int * xs, int * ys, int * clusters){
+int cr2re_cluster_detect(cpl_mask *mask, int mincluster, cpl_table *table){
     int i, j, nx, ny, nclusters, count, npix ;
-
+    int *xs, *ys, *clusters ;
     /* Convert the Mask in inputs needed by cluster() */
     npix = cpl_mask_count(mask);
     nx = cpl_mask_get_size_x(mask);
@@ -453,12 +403,19 @@ int cr2re_cluster_detect(cpl_mask *mask, int mincluster, int * xs, int * ys, int
 
     /* Convert the results back into a CPL image */
     /* (Actually not needed for the time being) */
-    /* for (i=0 ; i<npix ; i++) cpl_image_set(clusterimage, xs[i], ys[i], clusters[i]); */
+    /*cpl_image * clusterimage;
+    clusterimage = cpl_image_new(nx,ny,CPL_TYPE_INT);
+    for (i=0 ; i<npix ; i++) cpl_image_set(clusterimage, xs[i], ys[i], clusters[i]);
+    cpl_image_save(clusterimage, "clusterimage.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+    cpl_msg_debug(__func__, "wrote clusterimage.fits"); */
 
-    cpl_free(xs);
-    cpl_free(ys);
-    cpl_free(clusters);
     
+    /* Put result into a table*/
+    table = cpl_table_new(npix);
+    cpl_table_wrap_int(table,xs,"xs");
+    cpl_table_wrap_int(table,ys,"ys");
+    cpl_table_wrap_int(table,clusters,"clusters");
+
     return nclusters;
 }
 
