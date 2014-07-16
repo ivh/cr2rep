@@ -231,11 +231,11 @@ static int cr2res_trace(
     cpl_apertures       *   aperts ;
     cpl_size                nlabels ;
     int                     i, j, count ;
-    
+
     /* TODO This needs to come from a static calibration, each band */
     int                     ordersep=180;
     /* TODO Set to read-noise later, also input-para */
-    double                  thresh=0; 
+    double                  thresh=0;
 
     /* Check entries */
     if (parlist == NULL || frameset == NULL) {
@@ -325,15 +325,15 @@ static int cr2res_trace(
         }
     } else {
         /* Detect the clusters */
-        cr2re_cluster_detect(mask, mincluster, &clustertable) ;
+        clustertable = cr2re_cluster_detect(mask, mincluster) ;
 
         /* Create labels image  */
-        labels = cpl_image_new(cpl_image_get_size_x(image), 
+        labels = cpl_image_new(cpl_image_get_size_x(image),
                 cpl_image_get_size_y(image), CPL_TYPE_INT);
         pxs = cpl_table_get_data_int_const(clustertable, "xs") ;
         pys = cpl_table_get_data_int_const(clustertable, "ys") ;
         pclusters = cpl_table_get_data_int_const(clustertable, "clusters") ;
-        for (i=0 ; i<cpl_table_get_nrow(clustertable) ; i++) 
+        for (i=0 ; i<cpl_table_get_nrow(clustertable) ; i++)
             cpl_image_set(labels, pxs[i], pys[i], pclusters[i]);
     }
     cpl_mask_delete(mask);
@@ -345,14 +345,14 @@ static int cr2res_trace(
     qc_nclusters = cpl_table_get_column_max(clustertable, "clusters");
     cpl_msg_info(__func__, "Number of clusters: %d", qc_nclusters);
 
-    /* Save table */
-    cpl_table_save(clustertable, NULL, NULL, "clustertable.fits", 
+    cpl_table_save(clustertable, NULL, NULL, "clustertable.fits",
             CPL_IO_CREATE);
 
     /* Fit ys */
-    /* cr2re_orders_fit(clustertable, fittable); */
-    /* cpl_table_delete(fittable); */
+    fittable = cr2re_orders_fit(clustertable);
     cpl_table_delete(clustertable);
+    cpl_table_save(fittable, NULL, NULL, "fittable.fits",
+        CPL_IO_CREATE);
 
     /* Add a number of keywords to the product header */
     applist = cpl_propertylist_duplicate(plist);
@@ -372,6 +372,7 @@ static int cr2res_trace(
         return -1 ;
     }
 
+    cpl_table_delete(fittable) ;
     cpl_imagelist_delete(imlist) ;
     cpl_propertylist_delete(plist) ;
     cpl_propertylist_delete(applist) ;

@@ -90,34 +90,141 @@ cpl_mask * cr2re_signal_detect(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Fit polynomial to the detected orders
+  @brief    Fit function, polynomail 3rd order
   @param
   @return
  */
 /*----------------------------------------------------------------------------*/
 
+int cr2re_poly3(const double x[], const double a[], double *result){
+    int n,i;
+    n = sizeof(x) / sizeof(x[0]);
+    for (i=0,i<n;i++;i++){
+        result[i] = a[0] + (a[1]*x[i]) + (a[2]*x[i]) + (a[3]*x[i]);
+    }
+    return 0;
+}
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Derivate fit function, polynomail 3rd order
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
 
-cpl_error_code cr2re_order_fit(int *xs, int *ys){
-/* fit a single order */
-
+int cr2re_poly3_dfda(const double x[], const double a[], double result[]){
+    int n,i;
+    n = sizeof(x) / sizeof(x[0]);
+    for (i=0,i<n;i++;i++){
+        result[i] = a[1] + (a[2]*x[i]) + (a[3]*x[i]);
+    }
+    return 0;
 
 }
 
-cpl_error_code cr2re_orders_fit(cpl_table *table, cpl_table *fittable){
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Fit a single order
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+cpl_array * cr2re_order_fit(
+    cpl_table             *    table,
+    cpl_size                   n)
+{
+    cpl_size                   i;
+    int                   *    xs;
+    int                   *    ys;
+    cpl_matrix            *    x;
+    cpl_vector            *    y;
+    cpl_vector            *    fitparams;
+    double                *    vecdata;
 
-    int i, n;
-    cpl_size nclusters_cur;
-
-    n=cpl_table_get_column_max(table,"clusters");
-    for (i=1;i <= n ;i++){
-        nclusters_cur = cpl_table_and_selected_int(table,"clusters",CPL_EQUAL_TO,i);
-        cpl_msg_debug(__func__, "Cluster %d has %d pixels", i, nclusters_cur);
-
+    xs = cpl_table_get_data_int(table,"xs");
+    ys = cpl_table_get_data_int(table,"ys");
+    x = cpl_matrix_new(n,1);
+    for (i=0;i<n;i++){
+        //cpl_msg_debug(__func__, "i,xs: %d %d %d", i,xs[i]);
+        cpl_matrix_set(x,i,0,xs[i]);
+    }
+    y = cpl_vector_new(n);
+    for (i=0;i<n;i++){
+        cpl_vector_set(y,i,(double)ys[i]);
     }
 
-    fittable = cpl_table_new(55);
+    fitparams = cpl_vector_new(4);
+    cpl_vector_set(fitparams,0, cpl_table_get_column_mean(table,"ys"));
+    cpl_vector_set(fitparams,1,0.0);
+    cpl_vector_set(fitparams,2,0.0);
+    cpl_vector_set(fitparams,3,0.0);
 
-    return 0;
+    if ( cpl_fit_lvmq(
+	    x,                         //const cpl_matrix *  	x,
+		NULL,                      //const cpl_matrix *  	sigma_x,
+		y,                         //const cpl_vector *  	y,
+		NULL,                      //const cpl_vector *  	sigma_y,
+		fitparams,                 // initial values aka fit params, cpl_vector *  	a,
+		NULL,                      //const int  	ia[],
+		cr2re_poly3,               //int(*)(const double x[], const double a[], double *result)  	f,
+		cr2re_poly3_dfda,          //int(*)(const double x[], const double a[], double result[])  	dfda,
+		CPL_FIT_LVMQ_TOLERANCE,    //double  	relative_tolerance,
+		CPL_FIT_LVMQ_COUNT,        //int  	tolerance_count,
+		CPL_FIT_LVMQ_MAXITER,      //int  	max_iterations,
+		NULL,                      //double *  	mse,
+		NULL,                      //double *  	red_chisq,
+		NULL                      //cpl_matrix **  	covariance
+	) != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Cannot fit the data") ;
+        cpl_error_set(__func__, CPL_ERROR_CONTINUE) ;
+        cpl_matrix_delete(x);
+        cpl_vector_delete(y);
+        cpl_vector_delete(fitparams);
+        return NULL;
+    }
+
+    cpl_matrix_delete(x);
+    cpl_vector_delete(y);
+    vecdata = cpl_vector_get_data(fitparams);
+    cpl_vector_unwrap(fitparams);
+    return cpl_array_wrap_double( vecdata, 4);
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Go through the orders and initiate the polynomial fit for each
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+cpl_table * cr2re_orders_fit(
+    cpl_table         *    clustertable)
+{
+    int                    i, n;
+    cpl_array         *    fitparams;
+    cpl_table         *    fittable;
+    cpl_table         *    seltable;
+    cpl_size               nclusters_cur;
+
+    n = cpl_table_get_column_max(clustertable,"clusters");
+    fittable = cpl_table_new(n);
+    cpl_table_new_column_array(fittable,"fitparams",CPL_TYPE_DOUBLE,4);
+
+    for (i=1;i <= n ;i++){
+        nclusters_cur = cpl_table_and_selected_int(clustertable,"clusters",CPL_EQUAL_TO,i);
+        cpl_msg_debug(__func__, "Cluster %d has %d pixels", i, nclusters_cur);
+        seltable = cpl_table_extract_selected(clustertable);
+        fitparams = cr2re_order_fit(seltable,nclusters_cur);
+        cpl_msg_debug(__func__, "Fit results: %e %e %e %e", fitparams);
+        cpl_table_set_array(fittable,"fitparams",i-1,fitparams);
+        cpl_array_delete(fitparams);
+        cpl_table_delete(seltable);
+        cpl_table_select_all(clustertable);
+    }
+
+
+    return fittable;
 }
 
 /**@{*/
@@ -133,7 +240,7 @@ cpl_error_code cr2re_orders_fit(cpl_table *table, cpl_table *fittable){
 /*----------------------------------------------------------------------------*/
 const char * cr2re_get_license(void)
 {
-    const char  *   cr2re_license = 
+    const char  *   cr2re_license =
         "This file is part of the CR2RE Instrument Pipeline\n"
         "Copyright (C) 2002,2003 European Southern Observatory\n"
         "\n"
@@ -155,4 +262,3 @@ const char * cr2re_get_license(void)
 }
 
 /**@}*/
-

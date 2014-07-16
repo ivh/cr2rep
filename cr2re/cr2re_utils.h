@@ -32,7 +32,9 @@
 
 const char * cr2re_get_license(void) ;
 
-cpl_error_code cr2re_orders_fit(cpl_table *table, cpl_table *fittable);
+cpl_table * cr2re_orders_fit(
+        cpl_table           *   table);
+
 cpl_mask * cr2re_signal_detect(
         const cpl_image     *   image,
         int                     ordersep,

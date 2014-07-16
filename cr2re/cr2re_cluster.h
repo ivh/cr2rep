@@ -30,6 +30,6 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-int cr2re_cluster_detect(cpl_mask *mask, int mincluster, cpl_table **table);
+cpl_table * cr2re_cluster_detect(cpl_mask *mask, int mincluster);
 
 #endif
