@@ -79,7 +79,8 @@ cpl_mask * cr2re_signal_detect(
     /* tis means the pixels we want are the ones with values below -thresh */
     cpl_image_subtract(smimage,image);
 
-    mask = cpl_mask_threshold_image_create(image,-thresh,DBL_MAX);
+    mask = cpl_mask_new(cpl_image_get_size_x(image),cpl_image_get_size_y(image));
+    cpl_mask_threshold_image(mask,smimage,-1*thresh,DBL_MAX,CPL_BINARY_0);
     cpl_mask_save(mask, "mask.fits", NULL, CPL_IO_CREATE);
     cpl_image_delete(smimage) ;
 
@@ -103,24 +104,23 @@ cpl_array * cr2re_order_fit(
     int                   *    xs;
     int                   *    ys;
     const cpl_size             deg=3;
-    cpl_matrix            *    x = cpl_matrix_new(n,1);
+    cpl_matrix            *    x = cpl_matrix_new(1,n);
     cpl_vector            *    y = cpl_vector_new(n);
     cpl_polynomial        *    poly1 = cpl_polynomial_new(1);
     cpl_array             *    result = cpl_array_new(deg+1,CPL_TYPE_DOUBLE);
-
 
     xs = cpl_table_get_data_int(table,"xs");
     ys = cpl_table_get_data_int(table,"ys");
     for (i=0;i<n;i++){
         //cpl_msg_debug(__func__, "i,xs: %d %d %d", i,xs[i]);
-        cpl_matrix_set(x,i,0,xs[i]);
+        cpl_matrix_set(x,0,i,xs[i]);
     }
     for (i=0;i<n;i++){
         cpl_vector_set(y,i,(double)ys[i]);
     }
 
     if ( cpl_polynomial_fit(poly1, x, NULL, y, NULL,
-            CPL_FALSE, NULL, deg) != CPL_ERROR_NONE) {
+            CPL_FALSE, NULL, &deg) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot fit the data") ;
         cpl_error_set(__func__, CPL_ERROR_CONTINUE) ;
         cpl_polynomial_delete(poly1);
@@ -131,7 +131,6 @@ cpl_array * cr2re_order_fit(
     }
 
     for (i=0;i<=deg;i++){
-        cpl_msg_debug(__func__, "i, fitpar: %d %e", i,cpl_polynomial_get_coeff(poly1,&i));
         cpl_array_set(result,i,cpl_polynomial_get_coeff(poly1,&i));
     }
     cpl_polynomial_delete(poly1);
@@ -166,7 +165,6 @@ cpl_table * cr2re_orders_fit(
         cpl_msg_debug(__func__, "Cluster %d has %d pixels", i, nclusters_cur);
         seltable = cpl_table_extract_selected(clustertable);
         fitparams = cr2re_order_fit(seltable,nclusters_cur);
-        cpl_msg_debug(__func__, "Fit results: %e %e %e %e", fitparams);
         cpl_table_set_array(fittable,"fitparams",i-1,fitparams);
         cpl_array_delete(fitparams);
         cpl_table_delete(seltable);

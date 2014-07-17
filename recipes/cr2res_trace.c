@@ -233,9 +233,9 @@ static int cr2res_trace(
     int                     i, j, count ;
 
     /* TODO This needs to come from a static calibration, each band */
-    int                     ordersep=180;
+    int                     ordersep=80;
     /* TODO Set to read-noise later, also input-para */
-    double                  thresh=0;
+    double                  thresh=10;
 
     /* Check entries */
     if (parlist == NULL || frameset == NULL) {
@@ -267,12 +267,13 @@ static int cr2res_trace(
     }
 
     /* Load the image list */
-    imlist = cpl_imagelist_load_frameset(frameset, CPL_TYPE_DOUBLE, 0, 0);
+    imlist = cpl_imagelist_load_frameset(frameset, CPL_TYPE_DOUBLE, 0, -1);
     if (imlist== NULL) {
         cpl_msg_error(__func__, "Cannot Load images") ;
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
+    cpl_msg_debug(__func__,"%d images in framset.",cpl_imagelist_get_size(imlist));
 
     rawframe = cpl_frameset_get_position(frameset,0);
     plist = cpl_propertylist_load(cpl_frame_get_filename(rawframe), 0);
