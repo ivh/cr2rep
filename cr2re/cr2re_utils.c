@@ -73,17 +73,17 @@ cpl_mask * cr2re_signal_detect(
         return NULL ;
     }
     cpl_matrix_delete(kernel);
-    cpl_image_save(smimage, "smimage.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+
+    cpl_image_save(smimage, "smimage.fits", CPL_TYPE_DOUBLE, NULL, 
+            CPL_IO_CREATE);
 
     /* save in smimage since image is static */
     /* tis means the pixels we want are the ones with values below -thresh */
     cpl_image_subtract(smimage,image);
 
-    mask = cpl_mask_new(cpl_image_get_size_x(image),cpl_image_get_size_y(image));
+    mask=cpl_mask_new(cpl_image_get_size_x(image),cpl_image_get_size_y(image));
     cpl_mask_threshold_image(mask,smimage,-1*thresh,DBL_MAX,CPL_BINARY_0);
-    cpl_mask_save(mask, "mask.fits", NULL, CPL_IO_CREATE);
     cpl_image_delete(smimage) ;
-
 
     return mask ;
 }

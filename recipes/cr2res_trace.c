@@ -156,6 +156,13 @@ static int cr2res_trace_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_trace.join-clusters",
+            CPL_TYPE_BOOL, "Use a morphological closing to rejoin clusters",
+            "cr2res.cr2res_trace", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "join-clusters");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     return 0;
 }
 
@@ -211,7 +218,8 @@ static int cr2res_trace(
         const cpl_parameterlist * parlist)
 {
     const cpl_parameter *   param;
-    int                     cpl_lab, polyorder, mincluster, qc_nclusters;
+    int                     cpl_lab, join_clusters, polyorder, mincluster, 
+                            qc_nclusters;
     double                  smoothfactor;
     const cpl_frame     *   rawframe;
     cpl_propertylist    *   plist;
@@ -219,6 +227,8 @@ static int cr2res_trace(
     cpl_image           *   image;
     cpl_imagelist       *   imlist;
     cpl_mask            *   mask;
+    cpl_mask            *   mask_kernel;
+    cpl_mask            *   joined_mask;
     cpl_size                nx, ny ;
     cpl_matrix          *   kernel;
     cpl_table           *   clustertable;
@@ -257,6 +267,9 @@ static int cr2res_trace(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_trace.cpl-lab");
     cpl_lab = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_trace.join-clusters");
+    join_clusters = cpl_parameter_get_bool(param);
 
     /* Check Parameters */
     /* Identify the RAW and CALIB frames in the input frameset */
@@ -273,7 +286,8 @@ static int cr2res_trace(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
-    cpl_msg_debug(__func__,"%d images in framset.",cpl_imagelist_get_size(imlist));
+    cpl_msg_debug(__func__,"%d images in framset",
+            cpl_imagelist_get_size(imlist));
 
     rawframe = cpl_frameset_get_position(frameset,0);
     plist = cpl_propertylist_load(cpl_frame_get_filename(rawframe), 0);
@@ -298,6 +312,21 @@ static int cr2res_trace(
 
     /* Detect the orders */
     mask = cr2re_signal_detect(image, ordersep, smoothfactor, thresh) ;
+
+    /* Apply a closing to join horizontally the close clusters */
+    if (join_clusters) {
+        mask_kernel = cpl_mask_new(3, 1) ;
+        cpl_mask_not(mask_kernel);
+        joined_mask = cpl_mask_duplicate(mask) ;
+        cpl_mask_filter(joined_mask, mask, mask_kernel, CPL_FILTER_CLOSING, 
+                CPL_BORDER_COPY) ;
+        cpl_mask_delete(mask_kernel) ;
+        cpl_mask_delete(mask) ;
+        mask = joined_mask ;
+    }
+        
+    cpl_mask_save(mask, "mask.fits", NULL, CPL_IO_CREATE);
+
 
     /* Use CPL method for labelization */
     if (cpl_lab) {
