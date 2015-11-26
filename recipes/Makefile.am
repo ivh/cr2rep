@@ -34,12 +34,18 @@ AM_CPPFLAGS = $(all_includes)
 noinst_HEADERS = 
 
 plugin_LTLIBRARIES = cr2res_bias.la \
+                     cr2res_etalon.la \
                      cr2res_trace.la
 
 cr2res_bias_la_SOURCES = cr2res_bias.c 
 cr2res_bias_la_LIBADD = $(LIBCR2RE)
 cr2res_bias_la_LDFLAGS = -module -avoid-version -no-undefined
 cr2res_bias_la_DEPENDENCIES = $(LIBCR2RE)
+
+cr2res_etalon_la_SOURCES = cr2res_etalon.c 
+cr2res_etalon_la_LIBADD = $(LIBCR2RE)
+cr2res_etalon_la_LDFLAGS = -module -avoid-version -no-undefined
+cr2res_etalon_la_DEPENDENCIES = $(LIBCR2RE)
 
 cr2res_trace_la_SOURCES = cr2res_trace.c 
 cr2res_trace_la_LIBADD = $(LIBCR2RE) $(LIBCPLDRS) 
