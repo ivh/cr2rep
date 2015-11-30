@@ -1,5 +1,4 @@
-/* $Id: cr2re_dfs.c,v 1.2 2013-03-21 14:02:52 yjung Exp $
- *
+/*
  * This file is part of the CR2RE Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
@@ -16,13 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
- */
-
-/*
- * $Author: yjung $
- * $Date: 2013-03-21 14:02:52 $
- * $Revision: 1.2 $
- * $Name: not supported by cvs2svn $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -73,7 +65,9 @@ cpl_error_code cr2re_dfs_set_groups(cpl_frameset * set)
         if (tag == NULL) {
             cpl_msg_warning(cpl_func, "Frame %d has no tag", i);
         } else if (!strcmp(tag, CR2RE_BIAS_RAW) ||
-                !strcmp(tag, CR2RE_TRACE_RAW)) {
+                !strcmp(tag, CR2RE_TRACE_RAW) ||
+                !strcmp(tag, CR2RE_ETALON_RAW) ||
+                !strcmp(tag, "COMMAND_LINE")) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
         } else if (!strcmp(tag, CR2RE_BIAS_PROCATG) ||

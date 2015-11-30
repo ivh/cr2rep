@@ -1,5 +1,4 @@
-/* $Id: cr2re_dfs.h,v 1.1.1.1 2013-03-21 13:53:45 yjung Exp $
- *
+/*
  * This file is part of the CR2RE Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
@@ -18,33 +17,19 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-/*
- * $Author: yjung $
- * $Date: 2013-03-21 13:53:45 $
- * $Revision: 1.1.1.1 $
- * $Name: not supported by cvs2svn $
- */
-
-#ifndef CR2RE_DFS_H
-#define CR2RE_DFS_H
+#ifndef CR2RE_ETALON_H
+#define CR2RE_ETALON_H
 
 /*-----------------------------------------------------------------------------
-                                   Define
+                                   Includes
  -----------------------------------------------------------------------------*/
 
-/* Define here the PRO.CATG keywords */
-#define CR2RE_BIAS_PROCATG              "CALPRO_BIAS"
-#define CR2RE_TRACE_PROCATG             "CALPRO_TRACE"
-
-/* Define here the DO.CATG keywords */
-#define CR2RE_BIAS_RAW                  "BIAS"
-#define CR2RE_TRACE_RAW                 "TRACE"
-#define CR2RE_ETALON_RAW                "ETALON"
+#include <cpl.h>
 
 /*-----------------------------------------------------------------------------
-                                Functions prototypes
+                                       Prototypes
  -----------------------------------------------------------------------------*/
 
-cpl_error_code cr2re_dfs_set_groups(cpl_frameset *);
+cpl_image * cr2res_etalon_computation(const cpl_image * in) ;
 
 #endif
