@@ -47,6 +47,13 @@ static cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector *) ;
 
 /**@{*/
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the etalon Image, and detects the blobs
+  @param    in      The Etalon image
+  @return   The labels int image or NULL in error case
+ */
+/*----------------------------------------------------------------------------*/
 cpl_image * cr2res_etalon_computation(const cpl_image * in)
 {
     cpl_mask        *   mask ;
@@ -59,7 +66,8 @@ cpl_image * cr2res_etalon_computation(const cpl_image * in)
         cpl_msg_error(__func__, "Cannot Binarise the image") ;
         return NULL ;
     }
-
+        
+    /* Debugging */
     cpl_mask_save(mask, "mask.fits", NULL, CPL_IO_CREATE) ;
 
     /* Labelise the different detected apertures */
@@ -89,6 +97,13 @@ cpl_image * cr2res_etalon_computation(const cpl_image * in)
 
 /**@}*/
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Create a mask identifying the blogs (all separated)
+  @param    in      The Etalon image
+  @return   The mask
+ */
+/*----------------------------------------------------------------------------*/
 static cpl_mask * cr2res_etalon_binary_image(const cpl_image * in)
 {
     cpl_mask        *   mask ;
@@ -113,14 +128,14 @@ static cpl_mask * cr2res_etalon_binary_image(const cpl_image * in)
     /* Smooth */
     /* TODO */
 
-
     /* Convert as vector */
     collapsed_vec = cpl_vector_new_from_image_row(collapsed_im, 1) ;
     cpl_image_delete(collapsed_im) ;
 
+    /* Debugging */
     cpl_plot_vector(NULL, "w lines", NULL, collapsed_vec) ;
 
-    /* Store local maxima */
+    /* Store local maxima positions of the plot */
     local_maxima = cr2res_etalon_get_maxpos(collapsed_vec) ;
     pmax = cpl_vector_get_data(local_maxima) ;
     cpl_vector_delete(collapsed_vec) ;
@@ -128,7 +143,7 @@ static cpl_mask * cr2res_etalon_binary_image(const cpl_image * in)
     /* Create the output mask  */
     mask = cpl_mask_new(cpl_image_get_size_x(in), cpl_image_get_size_y(in)) ;
    
-    /* Loop on the Maxima */
+    /* Loop on the Maxima positions and isolate the blob */
     for (i=0 ; i<cpl_vector_get_size(local_maxima) ; i++) {
 
         /* Get start_x end_x */
@@ -153,7 +168,7 @@ static cpl_mask * cr2res_etalon_binary_image(const cpl_image * in)
 
         /* Binarise the image */
         blob_mask = cpl_mask_threshold_image_create(blob_image, threshold, 
-                        DBL_MAX) ;
+                DBL_MAX) ;
         cpl_image_delete(blob_image); 
 
         /* Set the left column to 0 to separate from the neighbor */
@@ -173,6 +188,13 @@ static cpl_mask * cr2res_etalon_binary_image(const cpl_image * in)
 
 /**@}*/
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Detect maxima from a 1d periodic signal and store their positions
+  @param    in      The 1d signal as a vector
+  @return   The vector with the maxima positions
+ */
+/*----------------------------------------------------------------------------*/
 static cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector * in)
 {
     double      *   pin ;
@@ -182,6 +204,7 @@ static cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector * in)
     int             i ;
 
     /* Check Entries */
+    if (in==NULL) return NULL ;
 
     /* Initialise */
     pin = cpl_vector_get_data(in) ;
