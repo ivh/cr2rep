@@ -241,4 +241,389 @@ cpl_table * cr2res_io_load_EXTRACT_POL(
         const char  *   filename,
         int             detector)
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a MASTER_DARK
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    data        The data images to save (1 per detector)
+  @param    errors      The error images to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_MASTER_DARK(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_imagelist           *   data,
+        cpl_imagelist           *   errors,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a MASTER_BPM
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    data        The data images to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_MASTER_BPM(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_imagelist           *   data,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a DETLIN_COEFFS
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    data        The data imagelists to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_DETLIN_COEFFS(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_imagelist           **  data,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a MASTER_FLAT
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    data        The data images to save (1 per detector)
+  @param    errors      The error images to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_MASTER_FLAT(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_imagelist           *   data,
+        cpl_imagelist           *   errors,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a TRACE_OPEN
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    tables      The tables to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_TRACE_OPEN(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  tables,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a TRACE_DECKER
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    tables      The tables to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_TRACE_DECKER(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  tables,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a BLAZE
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    tables      The tables to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_BLAZE(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  tables,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a BLAZE_IMAGE
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    data        The data images to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_BLAZE_IMAGE(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_imagelist           *   data,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a SLIT_ILLUM
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    data        The data images to save (1 per detector)
+  @param    errors      The error images to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_SLIT_ILLUM(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_imagelist           *   data,
+        cpl_imagelist           *   errors,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a WAVE_MAP
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    data        The data images to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_WAVE_MAP(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_imagelist           *   data,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+int cr2res_io_save_WAVE_SUB_ORDER()
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a SLITPOS_MAP
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    data        The data images to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_SLITPOS_MAP(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_imagelist           *   data,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a TILT_MAP
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    data        The data images to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_TILT_MAP(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_imagelist           *   data,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a TILT_POLY
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    tables      The tables to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_TILT_POLY(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  tables,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a EXTRACT_1D
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    tables      The tables to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_EXTRACT_1D(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  tables,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a SPLICED_1D
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    tables      The tables to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_SPLICED_1D(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  tables,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a EXTRACT_2D
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    table       The table to save
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_EXTRACT_2D(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               *   table,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a EXTRACT_POL
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    tables      The tables to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    recipe      The recipe name
+  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_EXTRACT_POL(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  tables,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id)
+
+
+
+
 
