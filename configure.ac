@@ -39,12 +39,6 @@ AC_PROG_CPP
 AM_PROG_CC_C_O
 AC_PROG_LN_S
 
-#
-# Check for purify
-#
-CHECK_PURIFY
-
-
 ESO_ENABLE_DEBUG(no)
 ESO_ENABLE_STRICT(no)
 # probably unecessary, was required for some ancient HP/UX machines
@@ -91,7 +85,6 @@ CR2RE_CREATE_SYMBOLS
 AM_WITH_DMALLOC
 
 AC_CONFIG_FILES(Makefile
-                Makefile.purify
                 doxygen/Doxyfile
                 cr2re/Makefile
                 cr2re/tests/Makefile

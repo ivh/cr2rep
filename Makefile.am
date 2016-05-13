@@ -35,7 +35,7 @@ DOXYGEN_SUBDIRS =
 
 SUBDIRS = $(COMPILE_FIRST) $(TOPSUBDIRS) $(COMPILE_LAST)
 
-EXTRA_DIST = m4macros/eso.m4 m4macros/cpl.m4 m4macros/purify.m4 admin/doxygen.am \
+EXTRA_DIST = m4macros/eso.m4 m4macros/cpl.m4 admin/doxygen.am \
 	doxygen/Doxyfile.in setup 
 
 
