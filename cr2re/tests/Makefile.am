@@ -55,6 +55,3 @@ XFAIL_TESTS =
 # We need to remove any files that the above tests created.
 clean-local:
 
-if PURIFY
-include $(top_builddir)/Makefile.purify
-endif
