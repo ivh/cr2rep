@@ -71,6 +71,9 @@ ESO_FUNC_STRDUP
 # Check for CPL presence and usability
 CPL_CHECK_LIBS
 
+# setup hdrl folder
+HDRL_CHECK([hdrl])
+
 # Check for <xx>clipm
 # - can be called multiple times
 # - replace the argument "xxclipm" by your library name,
@@ -84,6 +87,8 @@ CR2RE_CREATE_SYMBOLS
 
 AM_WITH_DMALLOC
 
+AC_CONFIG_SUBDIRS([hdrl])
+
 AC_CONFIG_FILES(Makefile
                 doxygen/Doxyfile
                 cr2re/Makefile
@@ -93,8 +98,6 @@ AC_CONFIG_FILES(Makefile
                 recipes/Makefile
                 regtests/Makefile
                 regtests/tests/Makefile
-                hdrl/Makefile
-                hdrl/tests/Makefile
                 irplib/Makefile
                 irplib/tests/Makefile)
 AC_OUTPUT
