@@ -191,10 +191,11 @@ static int cr2res_test(
     int             len, hw, i ;
     cpl_vector  *   vec_in ;
     cpl_vector  *   vec_out ;
+    cpl_vector  *   vec_diff ;
 
     /* Initialise */
     len = 150 ;
-    hw = 5 ;
+    hw = 15 ;
 
     /* Create thje input array */
     in = cpl_malloc(len * sizeof(double)) ;
@@ -204,13 +205,13 @@ static int cr2res_test(
 
     /* Wrap the vector around */
     vec_in = cpl_vector_wrap(len, in) ;
-    
-    /* Plot input */
-    cpl_plot_vector("set grid;", "t 'in' w lines", "", vec_in) ;
 
     /* Median filter */
     vec_out = cpl_vector_filter_median_create(vec_in, hw);
 
+    /* Compute the difference */
+    cpl_vector_subtract(vec_out, vec_in) ;
+    
     /* Unwrap */
     cpl_vector_unwrap(vec_in);
     cpl_free(in) ;
