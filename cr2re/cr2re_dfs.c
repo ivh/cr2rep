@@ -67,6 +67,7 @@ cpl_error_code cr2re_dfs_set_groups(cpl_frameset * set)
         } else if (!strcmp(tag, CR2RE_BIAS_RAW) ||
                 !strcmp(tag, CR2RE_TRACE_RAW) ||
                 !strcmp(tag, CR2RE_ETALON_RAW) ||
+                !strcmp(tag, CR2RE_TEST_RAW) ||
                 !strcmp(tag, "COMMAND_LINE")) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);

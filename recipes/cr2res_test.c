@@ -187,26 +187,40 @@ static int cr2res_test(
         cpl_frameset            *   frameset,
         const cpl_parameterlist *   parlist)
 {
-    cpl_frame           *   rawframe ;
-    cpl_image           *   test_im ;
+    double      *   in ;
+    int             len, hw, i ;
+    cpl_vector  *   vec_in ;
+    cpl_vector  *   vec_out ;
 
-    /* Identify the RAW and CALIB frames in the input frameset */
-    cr2re_dfs_set_groups(frameset) ;
- 
-    /* Get Data */
-    rawframe = cpl_frameset_get_position(frameset, 0);
-    test_im = cpl_image_load(cpl_frame_get_filename(rawframe), 
-            CPL_TYPE_DOUBLE,0,0);
-    if (test_im == NULL) {
-        return -1 ;
-    }
+    /* Initialise */
+    len = 150 ;
+    hw = 5 ;
 
-    /* NOW PERFORMING THE TEST */
+    /* Create thje input array */
+    in = cpl_malloc(len * sizeof(double)) ;
 
+    /* Initialise */
+    for (i=0 ; i<len ; i++) in[i] = (int)(i-50)*(i-50) ;
 
+    /* Wrap the vector around */
+    vec_in = cpl_vector_wrap(len, in) ;
+    
+    /* Plot input */
+    cpl_plot_vector("set grid;", "t 'in' w lines", "", vec_in) ;
 
-    /* Free and return */
-    cpl_image_delete(test_im) ;
+    /* Median filter */
+    vec_out = cpl_vector_filter_median_create(vec_in, hw);
+
+    /* Unwrap */
+    cpl_vector_unwrap(vec_in);
+    cpl_free(in) ;
+
+    /* Plot output */
+    cpl_plot_vector("set grid;", "t 'out' w lines", "", vec_out) ;
+
+    /* Clean the remaining memory */
+    cpl_vector_delete(vec_out) ;
+
     return (int)cpl_error_get_code();
 }
 

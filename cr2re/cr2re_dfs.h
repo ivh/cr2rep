@@ -1,5 +1,4 @@
-/* $Id: cr2re_dfs.h,v 1.1.1.1 2013-03-21 13:53:45 yjung Exp $
- *
+/* 
  * This file is part of the CR2RE Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
@@ -18,13 +17,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-/*
- * $Author: yjung $
- * $Date: 2013-03-21 13:53:45 $
- * $Revision: 1.1.1.1 $
- * $Name: not supported by cvs2svn $
- */
-
 #ifndef CR2RE_DFS_H
 #define CR2RE_DFS_H
 
@@ -40,6 +32,7 @@
 #define CR2RE_BIAS_RAW                  "BIAS"
 #define CR2RE_TRACE_RAW                 "TRACE"
 #define CR2RE_ETALON_RAW                "ETALON"
+#define CR2RE_TEST_RAW                  "TEST"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
