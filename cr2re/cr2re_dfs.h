@@ -17,22 +17,30 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-#ifndef CR2RE_DFS_H
-#define CR2RE_DFS_H
+#ifndef CR2RES_DFS_H
+#define CR2RES_DFS_H
 
 /*-----------------------------------------------------------------------------
                                    Define
  -----------------------------------------------------------------------------*/
 
 /* Define here the PRO.CATG keywords */
-#define CR2RE_BIAS_PROCATG              "CALPRO_BIAS"
-#define CR2RE_TRACE_PROCATG             "CALPRO_TRACE"
+#define CR2RES_DETLIN_BPM_PROCATG       "DETLIN_BPM" 
+#define CR2RES_MASTER_DARK_PROCATG      "MASTER_DARK"
+#define CR2RES_MASTER_BPM_PROCATG       "MASTER_BPM"
+#define CR2RES_DARK_BPM_PROCATG         "DARK_BPM"
 
 /* Define here the DO.CATG keywords */
+#define CR2RES_DARK_RAW                 "DARK"
+
+/* This is meant to eventually disappear */
 #define CR2RE_BIAS_RAW                  "BIAS"
 #define CR2RE_TRACE_RAW                 "TRACE"
 #define CR2RE_ETALON_RAW                "ETALON"
 #define CR2RE_TEST_RAW                  "TEST"
+
+#define CR2RE_BIAS_PROCATG              "CALPRO_BIAS"
+#define CR2RE_TRACE_PROCATG             "CALPRO_TRACE"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
