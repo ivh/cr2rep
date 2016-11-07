@@ -203,11 +203,13 @@ static int cr2res_cal_dark(
     plist = cpl_propertylist_load(cpl_frame_get_filename(rawframe), 0);
     in = cpl_image_load(cpl_frame_get_filename(rawframe), CPL_TYPE_DOUBLE,0,0);
     if (in == NULL) {
+        cpl_msg_error(__func__, "Cannot load the input image") ;
         cpl_propertylist_delete(plist) ;
         return -1 ;
     }
 
     /* NOW PERFORMING THE DATA REDUCTION */
+    cpl_msg_info(__func__, "Compute the dark") ;
     master_dark = cpl_image_duplicate(in);
     if (master_dark == NULL) {
         cpl_propertylist_delete(plist) ;
