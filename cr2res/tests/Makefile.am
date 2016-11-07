@@ -29,16 +29,16 @@ MAINTAINERCLEANFILES = Makefile.in
 endif
 
 
-LIBCR2RE = $(top_builddir)/cr2re/libcr2re.la
+LIBCR2RE = $(top_builddir)/cr2res/libcr2res.la
 
 AM_CPPFLAGS = $(all_includes)
 AM_LDFLAGS = $(CPL_LDFLAGS)
 LDADD = $(LIBCR2RE) $(LIBCPLDFS) $(LIBCPLUI) $(LIBCPLDRS) $(LIBCPLCORE)
 
-check_PROGRAMS = cr2re_dfs-test
+check_PROGRAMS = cr2res_dfs-test
 
-cr2re_dfs_test_SOURCES = cr2re_dfs-test.c
-cr2re_dfs_test_DEPENDENCIES = $(LIBCR2RE)
+cr2res_dfs_test_SOURCES = cr2res_dfs-test.c
+cr2res_dfs_test_DEPENDENCIES = $(LIBCR2RE)
 
 # Be sure to reexport important environment variables.
 TESTS_ENVIRONMENT = MAKE="$(MAKE)" CC="$(CC)" CFLAGS="$(CFLAGS)" \

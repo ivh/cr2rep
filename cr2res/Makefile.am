@@ -23,32 +23,30 @@ SUBDIRS = . tests
 
 DISTCLEANFILES = *~
 
-
 if MAINTAINER_MODE
 
 MAINTAINERCLEANFILES = Makefile.in
 
 endif
 
+AM_CPPFLAGS = -DCX_LOG_DOMAIN=\"Cr2resLib\" $(all_includes)
 
-AM_CPPFLAGS = -DCX_LOG_DOMAIN=\"Cr2reLib\" $(all_includes)
-
-noinst_HEADERS =    cr2re_utils.h \
-                    cr2re_cluster.h \
-                    cr2re_etalon.h \
-                    cr2re_pfits.h \
-                    cr2re_dfs.h
+noinst_HEADERS =    cr2res_utils.h \
+                    cr2res_cluster.h \
+                    cr2res_etalon.h \
+                    cr2res_pfits.h \
+                    cr2res_dfs.h
 
 pkginclude_HEADERS =
 
-privatelib_LTLIBRARIES = libcr2re.la
+privatelib_LTLIBRARIES = libcr2res.la
 
-libcr2re_la_SOURCES =    cr2re_utils.c \
-                                cr2re_pfits.c \
-                                cr2re_cluster.c \
-                                cr2re_etalon.c \
-                                cr2re_dfs.c
+libcr2res_la_SOURCES =    cr2res_utils.c \
+                                cr2res_pfits.c \
+                                cr2res_cluster.c \
+                                cr2res_etalon.c \
+                                cr2res_dfs.c
 
-libcr2re_la_LDFLAGS = $(CPL_LDFLAGS) $(XXCLIPM_LDFLAGS) -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
-libcr2re_la_LIBADD = $(LIBCPLDFS) $(LIBCPLUI) $(LIBCPLDRS) $(LIBCPLCORE) $(LIBXXCLIPM)
-libcr2re_la_DEPENDENCIES =
+libcr2res_la_LDFLAGS = $(CPL_LDFLAGS) $(XXCLIPM_LDFLAGS) -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
+libcr2res_la_LIBADD = $(LIBIRPLIB) $(LIBCPLDFS) $(LIBCPLUI) $(LIBCPLDRS) $(LIBCPLCORE)
+libcr2res_la_DEPENDENCIES = $(LIBIRPLIB)

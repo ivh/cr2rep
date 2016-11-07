@@ -90,7 +90,7 @@ AC_CONFIG_SUBDIRS([hdrl])
 
 AC_CONFIG_FILES(Makefile
                 doxygen/Doxyfile
-                cr2re/Makefile
+                cr2res/Makefile
                 cr2re/tests/Makefile
                 reflex/Makefile
                 reflex/Cr2re.xml
