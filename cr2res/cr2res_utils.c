@@ -189,7 +189,7 @@ cpl_table * cr2res_orders_fit(
 const char * cr2res_get_license(void)
 {
     const char  *   cr2res_license =
-        "This file is part of the CR2RE Instrument Pipeline\n"
+        "This file is part of the CR2RES Instrument Pipeline\n"
         "Copyright (C) 2002,2003 European Southern Observatory\n"
         "\n"
         "This program is free software; you can redistribute it and/or modify\n"

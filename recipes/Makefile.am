@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-##   This file is part of the CR2RE Pipeline
+##   This file is part of the CR2RES Pipeline
 ##   Copyright (C) 2002,2003 European Southern Observatory
 
 ##   This library is free software; you can redistribute it and/or modify
@@ -33,15 +33,10 @@ AM_CPPFLAGS = $(all_includes)
 
 noinst_HEADERS = 
 
-plugin_LTLIBRARIES = cr2res_bias.la \
-                     cr2res_cal_dark.la \
-                     cr2res_etalon.la \
-                     cr2res_test.la \
-                     cr2res_trace.la 
-
+plugin_LTLIBRARIES = cr2res_cal_dark.la 
 
 cr2res_cal_dark_la_SOURCES = cr2res_cal_dark.c 
-cr2res_cal_dark_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RE)
+cr2res_cal_dark_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
 cr2res_cal_dark_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
-cr2res_cal_dark_la_DEPENDENCIES = $(LIBCR2RE)
+cr2res_cal_dark_la_DEPENDENCIES = $(LIBCR2RES)
 

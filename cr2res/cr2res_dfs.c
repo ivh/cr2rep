@@ -64,7 +64,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
 
         if (tag == NULL) {
             cpl_msg_warning(cpl_func, "Frame %d has no tag", i);
-        } else if (!strcmp(tag, CR2RES_DARK_RAW)
+        } else if (!strcmp(tag, CR2RES_DARK_RAW) ||
                 !strcmp(tag, "COMMAND_LINE")) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
