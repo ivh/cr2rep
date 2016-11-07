@@ -26,6 +26,7 @@
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
+#include "hdrl.h"
 
 #include "cr2re_utils.h"
 #include "cr2re_pfits.h"
@@ -118,8 +119,11 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_dark_create(cpl_plugin * plugin)
 {
-    cpl_recipe    * recipe;                                               
-    cpl_parameter * p;
+    cpl_recipe          *   recipe ;
+    cpl_parameter       *   p ;
+    cpl_parameterlist   *   collapse_par ;
+    hdrl_parameter      *   sigclip_def ;
+    hdrl_parameter      *   minmax_def ;
 
     /* Check that the plugin is part of a valid recipe */
     if (cpl_plugin_get_type(plugin) == CPL_PLUGIN_TYPE_RECIPE)
@@ -131,6 +135,24 @@ static int cr2res_cal_dark_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
+	/* --gain */
+    p = cpl_parameter_new_value("cr2res_cal_dark.gain", CPL_TYPE_DOUBLE,
+       "Gain in [e- / ADU]", "cr2res_cal_dark", 2.5);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "gain");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    /* Collapsing related parameters */
+    sigclip_def = hdrl_collapse_sigclip_parameter_create(3., 3., 5);
+    minmax_def = hdrl_collapse_minmax_parameter_create(1., 1.);
+    collapse_par = hdrl_collapse_parameter_create_parlist("cr2res_cal_dark", 
+            "", "MEDIAN", sigclip_def, minmax_def) ;
+    hdrl_parameter_delete(sigclip_def);
+    hdrl_parameter_delete(minmax_def);
+    for (p = cpl_parameterlist_get_first(collapse_par) ;
+            p != NULL; p = cpl_parameterlist_get_next(collapse_par))
+        cpl_parameterlist_append(recipe->parameters,cpl_parameter_duplicate(p));
+    cpl_parameterlist_delete(collapse_par);
 
     return 0;
 }
@@ -186,6 +208,10 @@ static int cr2res_cal_dark(
         cpl_frameset            *   frameset,
         const cpl_parameterlist *   parlist)
 {
+    const cpl_parameter *   par ;
+    double                  gain ;
+    hdrl_parameter      *   collapse_params ;
+
     cpl_propertylist    *   plist;
     cpl_frame           *   rawframe ;
     cpl_propertylist    *   applist;
@@ -193,10 +219,23 @@ static int cr2res_cal_dark(
     cpl_image           *   master_dark ;
 
     /* RETRIEVE INPUT PARAMETERS */
-  
-    
+    /* --gain */
+    par = cpl_parameterlist_find_const(parlist, "cr2res.cr2res_cal_dark.gain");
+    gain = cpl_parameter_get_double(par);
+    /* Collapse parameters */
+    collapse_params = hdrl_collapse_parameter_parse_parlist(parlist,
+            "cr2res.cr2res_cal_dark") ;
+   
     /* Identify the RAW and CALIB frames in the input frameset */
-    cr2re_dfs_set_groups(frameset) ;
+    if (cr2re_dfs_set_groups(frameset)) {
+        hdrl_parameter_destroy(collapse_params) ;
+        cpl_msg_error(__func__, "Cannot identify RAW and CALIB frames") ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
+	
+    /* Extract DARK frames */
+
  
     /* Get Data */
     rawframe = cpl_frameset_get_position(frameset, 0);
