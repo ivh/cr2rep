@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([CR2RE Instrument Pipeline], [0.1.0], [usd-help@eso.org], [cr2re])
+AC_INIT([CR2RES Instrument Pipeline], [0.1.0], [usd-help@eso.org], [cr2re])
 AC_PREREQ([2.59])
 
 AC_CONFIG_SRCDIR([Makefile.am])
@@ -14,7 +14,7 @@ AC_CONFIG_HEADERS([config.h])
 
 AM_MAINTAINER_MODE
 
-CR2RE_SET_PREFIX(${PIPE_HOME:-/usr/local})
+CR2RES_SET_PREFIX(${PIPE_HOME:-/usr/local})
 
 # Immediately before every release do:
 #-------------------------------------
@@ -30,7 +30,7 @@ CR2RE_SET_PREFIX(${PIPE_HOME:-/usr/local})
 #           AGE = 0;
 #   }
 
-CR2RE_SET_VERSION_INFO([$VERSION])
+CR2RES_SET_VERSION_INFO([$VERSION])
 
 # Checks for programs.
 AC_PROG_CC
@@ -81,8 +81,8 @@ HDRL_CHECK([hdrl])
 # XXCLIPM_CHECK_LIB(xxclipm)
 
 # call after CPL_CHECK_LIBS and XXCLIPM_CHECK_LIB
-CR2RE_SET_PATHS 
-CR2RE_CREATE_SYMBOLS
+CR2RES_SET_PATHS 
+CR2RES_CREATE_SYMBOLS
 
 AM_WITH_DMALLOC
 
@@ -91,7 +91,7 @@ AC_CONFIG_SUBDIRS([hdrl])
 AC_CONFIG_FILES(Makefile
                 doxygen/Doxyfile
                 cr2res/Makefile
-                cr2re/tests/Makefile
+                cr2res/tests/Makefile
                 reflex/Makefile
                 reflex/Cr2re.xml
                 recipes/Makefile
