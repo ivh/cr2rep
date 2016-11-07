@@ -1,5 +1,5 @@
 /*
- * This file is part of the CR2RE Pipeline
+ * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,7 +26,7 @@
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
-#include "cr2re_cluster.h"
+#include "cr2res_cluster.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
@@ -44,7 +44,7 @@ static int * diag_sort(int *x, int *y, int *index, int n, int nX, int nY) ;
 
 /*----------------------------------------------------------------------------*/
 /**
- * @defgroup cr2re_cluster  Cluster related
+ * @defgroup cr2res_cluster  Cluster related
  */
 /*----------------------------------------------------------------------------*/
 
@@ -384,7 +384,7 @@ int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index)
   @return
  */
 /*----------------------------------------------------------------------------*/
-cpl_table * cr2re_cluster_detect(
+cpl_table * cr2res_cluster_detect(
         cpl_mask    *   mask,
         int             mincluster)
 {

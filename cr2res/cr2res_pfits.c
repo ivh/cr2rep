@@ -1,6 +1,5 @@
-/* $Id: cr2re_pfits.c,v 1.1.1.1 2013-03-21 13:53:45 yjung Exp $
- *
- * This file is part of the CR2RE Pipeline
+/* 
+ * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -18,13 +17,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-/*
- * $Author: yjung $
- * $Date: 2013-03-21 13:53:45 $
- * $Revision: 1.1.1.1 $
- * $Name: not supported by cvs2svn $
- */
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -35,11 +27,11 @@
 
 #include <cpl.h>
 
-#include "cr2re_pfits.h"
+#include "cr2res_pfits.h"
 
 /*----------------------------------------------------------------------------*/
 /**
- * @defgroup cr2re_pfits     FITS header protected access
+ * @defgroup cr2res_pfits     FITS header protected access
  *
  */
 /*----------------------------------------------------------------------------*/
@@ -57,7 +49,7 @@
   @return   pointer to statically allocated character string
  */
 /*----------------------------------------------------------------------------*/
-const char * cr2re_pfits_get_arcfile(const cpl_propertylist * plist)
+const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
 {
     const char * value = cpl_propertylist_get_string(plist, "ARCFILE");
 
@@ -73,7 +65,7 @@ const char * cr2re_pfits_get_arcfile(const cpl_propertylist * plist)
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
-double cr2re_pfits_get_dit(const cpl_propertylist * plist)
+double cr2res_pfits_get_dit(const cpl_propertylist * plist)
 {
     cpl_errorstate prestate = cpl_errorstate_get();
     const double value = cpl_propertylist_get_double(plist, "ESO DET DIT");

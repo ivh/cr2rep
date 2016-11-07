@@ -1,5 +1,5 @@
 /*
- * This file is part of the CR2RE Pipeline
+ * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -83,14 +83,14 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
 
     if (cpl_plugin_init(plugin,
                     CPL_PLUGIN_API,
-                    CR2RE_BINARY_VERSION,
+                    CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
                     "cr2res_cal_dark",
                     "Dark recipe",
                     cr2res_cal_dark_description,
                     "Thomas Marquart, Yves Jung",
                     PACKAGE_BUGREPORT,
-                    cr2re_get_license(),
+                    cr2res_get_license(),
                     cr2res_cal_dark_create,
                     cr2res_cal_dark_exec,
                     cr2res_cal_dark_destroy)) {    
@@ -227,7 +227,7 @@ static int cr2res_cal_dark(
             "cr2res.cr2res_cal_dark") ;
    
     /* Identify the RAW and CALIB frames in the input frameset */
-    if (cr2re_dfs_set_groups(frameset)) {
+    if (cr2res_dfs_set_groups(frameset)) {
         hdrl_parameter_destroy(collapse_params) ;
         cpl_msg_error(__func__, "Cannot identify RAW and CALIB frames") ;
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;

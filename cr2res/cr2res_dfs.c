@@ -1,5 +1,5 @@
 /*
- * This file is part of the CR2RE Pipeline
+ * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -30,11 +30,11 @@
 
 #include <cpl.h>
 
-#include "cr2re_dfs.h"
+#include "cr2res_dfs.h"
 
 /*----------------------------------------------------------------------------*/
 /**
- * @defgroup cr2re_dfs  DFS related functions
+ * @defgroup cr2res_dfs  DFS related functions
  *
  * TBD
  */
@@ -49,7 +49,7 @@
   @return   CPL_ERROR_NONE iff OK
  */
 /*----------------------------------------------------------------------------*/
-cpl_error_code cr2re_dfs_set_groups(cpl_frameset * set)
+cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
 {
     cpl_errorstate prestate = cpl_errorstate_get();
     cpl_frame * frame = NULL;
@@ -64,20 +64,14 @@ cpl_error_code cr2re_dfs_set_groups(cpl_frameset * set)
 
         if (tag == NULL) {
             cpl_msg_warning(cpl_func, "Frame %d has no tag", i);
-        } else if (!strcmp(tag, CR2RE_BIAS_RAW) ||
-                !strcmp(tag, CR2RE_TRACE_RAW) ||
-                !strcmp(tag, CR2RE_ETALON_RAW) ||
-                !strcmp(tag, CR2RE_TEST_RAW) ||
-                !strcmp(tag, CR2RES_DARK_RAW) ||
+        } else if (!strcmp(tag, CR2RES_DARK_RAW)
                 !strcmp(tag, "COMMAND_LINE")) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
         } else if (!strcmp(tag, CR2RES_MASTER_BPM_PROCATG) ||
                 !strcmp(tag, CR2RES_DETLIN_BPM_PROCATG) ||
                 !strcmp(tag, CR2RES_MASTER_DARK_PROCATG) ||
-                !strcmp(tag, CR2RES_DARK_BPM_PROCATG) ||
-                !strcmp(tag, CR2RE_BIAS_PROCATG) || 
-                !strcmp(tag, CR2RE_TRACE_PROCATG)) {
+                !strcmp(tag, CR2RES_DARK_BPM_PROCATG)) {
             /* CALIB frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_CALIB);
         }
@@ -85,8 +79,7 @@ cpl_error_code cr2re_dfs_set_groups(cpl_frameset * set)
 
     if (!cpl_errorstate_is_equal(prestate)) {
         return cpl_error_set_message(cpl_func, cpl_error_get_code(),
-                                     "Could not identify RAW and CALIB "
-                                     "frames");
+                "Could not identify RAW and CALIB frames");
     }
 
     return CPL_ERROR_NONE;

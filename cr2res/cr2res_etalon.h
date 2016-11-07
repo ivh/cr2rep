@@ -1,5 +1,5 @@
 /*
- * This file is part of the CR2RE Pipeline
+ * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-#ifndef CR2RE_ETALON_H
-#define CR2RE_ETALON_H
+#ifndef CR2RES_ETALON_H
+#define CR2RES_ETALON_H
 
 /*-----------------------------------------------------------------------------
                                    Includes

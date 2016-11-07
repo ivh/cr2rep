@@ -1,6 +1,5 @@
-/* $Id: cr2re_pfits.h,v 1.1.1.1 2013-03-21 13:53:45 yjung Exp $
- *
- * This file is part of the CR2RE Pipeline
+/*
+ * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -18,15 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-/*
- * $Author: yjung $
- * $Date: 2013-03-21 13:53:45 $
- * $Revision: 1.1.1.1 $
- * $Name: not supported by cvs2svn $
- */
-
-#ifndef CR2RE_PFITS_H
-#define CR2RE_PFITS_H
+#ifndef CR2RES_PFITS_H
+#define CR2RES_PFITS_H
 
 /*-----------------------------------------------------------------------------
                                    Includes
@@ -38,7 +30,7 @@
                                    Functions prototypes
  -----------------------------------------------------------------------------*/
 
-const char * cr2re_pfits_get_arcfile(const cpl_propertylist *) ;
-double cr2re_pfits_get_dit(const cpl_propertylist *) ;
+const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
+double cr2res_pfits_get_dit(const cpl_propertylist *) ;
 
 #endif

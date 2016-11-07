@@ -1,5 +1,5 @@
 /* 
- * This file is part of the CR2RE Pipeline
+ * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,19 +33,10 @@
 /* Define here the DO.CATG keywords */
 #define CR2RES_DARK_RAW                 "DARK"
 
-/* This is meant to eventually disappear */
-#define CR2RE_BIAS_RAW                  "BIAS"
-#define CR2RE_TRACE_RAW                 "TRACE"
-#define CR2RE_ETALON_RAW                "ETALON"
-#define CR2RE_TEST_RAW                  "TEST"
-
-#define CR2RE_BIAS_PROCATG              "CALPRO_BIAS"
-#define CR2RE_TRACE_PROCATG             "CALPRO_TRACE"
-
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-cpl_error_code cr2re_dfs_set_groups(cpl_frameset *);
+cpl_error_code cr2res_dfs_set_groups(cpl_frameset *);
 
 #endif

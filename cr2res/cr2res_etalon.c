@@ -1,5 +1,5 @@
 /*
- * This file is part of the CR2RE Pipeline
+ * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,7 +26,7 @@
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
-#include "cr2re_etalon.h"
+#include "cr2res_etalon.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
@@ -41,7 +41,7 @@ static cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector *) ;
 
 /*----------------------------------------------------------------------------*/
 /**
- * @defgroup cr2re_etalon       Etalon related
+ * @defgroup cr2res_etalon       Etalon related
  */
 /*----------------------------------------------------------------------------*/
 

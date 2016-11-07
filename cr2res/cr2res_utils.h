@@ -1,5 +1,5 @@
 /*
- * This file is part of the CR2RE Pipeline
+ * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-#ifndef CR2RE_UTILS_H
-#define CR2RE_UTILS_H
+#ifndef CR2RES_UTILS_H
+#define CR2RES_UTILS_H
 
 /*-----------------------------------------------------------------------------
                                    Includes
@@ -30,12 +30,12 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-const char * cr2re_get_license(void) ;
+const char * cr2res_get_license(void) ;
 
-cpl_table * cr2re_orders_fit(
+cpl_table * cr2res_orders_fit(
         cpl_table           *   table);
 
-cpl_mask * cr2re_signal_detect(
+cpl_mask * cr2res_signal_detect(
         const cpl_image     *   image,
         int                     ordersep,
         double                  smoothfactor,

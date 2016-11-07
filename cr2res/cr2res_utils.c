@@ -1,5 +1,5 @@
 /*
- * This file is part of the CR2RE Pipeline
+ * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -27,11 +27,11 @@
 
 #include <cpl.h>
 
-#include "cr2re_utils.h"
+#include "cr2res_utils.h"
 
 /*----------------------------------------------------------------------------*/
 /**
- * @defgroup cr2re_utils     Miscellaneous Utilities
+ * @defgroup cr2res_utils     Miscellaneous Utilities
  */
 /*----------------------------------------------------------------------------*/
 
@@ -43,7 +43,7 @@
   @return
  */
 /*----------------------------------------------------------------------------*/
-cpl_mask * cr2re_signal_detect(
+cpl_mask * cr2res_signal_detect(
         const cpl_image     *   image,
         int                     ordersep,
         double                  smoothfactor,
@@ -96,7 +96,7 @@ cpl_mask * cr2re_signal_detect(
   @return
  */
 /*----------------------------------------------------------------------------*/
-cpl_array * cr2re_order_fit(
+cpl_array * cr2res_order_fit(
     cpl_table             *    table,
     cpl_size                   n)
 {
@@ -147,7 +147,7 @@ cpl_array * cr2re_order_fit(
   @return
  */
 /*----------------------------------------------------------------------------*/
-cpl_table * cr2re_orders_fit(
+cpl_table * cr2res_orders_fit(
     cpl_table         *    clustertable)
 {
     int                    i, n;
@@ -164,7 +164,7 @@ cpl_table * cr2re_orders_fit(
         nclusters_cur = cpl_table_and_selected_int(clustertable,"clusters",CPL_EQUAL_TO,i);
         cpl_msg_debug(__func__, "Cluster %d has %d pixels", i, nclusters_cur);
         seltable = cpl_table_extract_selected(clustertable);
-        fitparams = cr2re_order_fit(seltable,nclusters_cur);
+        fitparams = cr2res_order_fit(seltable,nclusters_cur);
         cpl_table_set_array(fittable,"fitparams",i-1,fitparams);
         cpl_array_delete(fitparams);
         cpl_table_delete(seltable);
@@ -186,9 +186,9 @@ cpl_table * cr2re_orders_fit(
   This string should not be modified using the returned pointer.
  */
 /*----------------------------------------------------------------------------*/
-const char * cr2re_get_license(void)
+const char * cr2res_get_license(void)
 {
-    const char  *   cr2re_license =
+    const char  *   cr2res_license =
         "This file is part of the CR2RE Instrument Pipeline\n"
         "Copyright (C) 2002,2003 European Southern Observatory\n"
         "\n"
@@ -206,7 +206,7 @@ const char * cr2re_get_license(void)
         "along with this program; if not, write to the Free Software\n"
         "Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, \n"
         "MA  02111-1307  USA" ;
-    return cr2re_license ;
+    return cr2res_license ;
 }
 
 /**@}*/
