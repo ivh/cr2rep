@@ -28,9 +28,9 @@
 #include <cpl.h>
 #include "hdrl.h"
 
-#include "cr2re_utils.h"
-#include "cr2re_pfits.h"
-#include "cr2re_dfs.h"
+#include "cr2res_utils.h"
+#include "cr2res_pfits.h"
+#include "cr2res_dfs.h"
 
 /*-----------------------------------------------------------------------------
                              Plugin registration
