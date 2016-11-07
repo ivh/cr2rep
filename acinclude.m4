@@ -145,7 +145,7 @@ AC_DEFUN([CR2RE_CREATE_SYMBOLS],
 
     # Symbols for package include file and library search paths
 
-    CR2RE_INCLUDES='-I$(top_srcdir)/cr2re'
+    CR2RE_INCLUDES='-I$(top_srcdir)/cr2re -I$(top_srcdir)/hdrl'
     CR2RE_LDFLAGS='-L$(top_builddir)/cr2re'
 
     # Library aliases
