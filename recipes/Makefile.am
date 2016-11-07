@@ -31,12 +31,17 @@ endif
 
 AM_CPPFLAGS = $(all_includes)
 
-noinst_HEADERS = 
+noinst_HEADERS =
 
-plugin_LTLIBRARIES = cr2res_cal_dark.la 
+plugin_LTLIBRARIES = cr2res_cal_dark.la \
+                     cr2res_util_trace.la
 
-cr2res_cal_dark_la_SOURCES = cr2res_cal_dark.c 
+cr2res_cal_dark_la_SOURCES = cr2res_cal_dark.c
 cr2res_cal_dark_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
 cr2res_cal_dark_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
 cr2res_cal_dark_la_DEPENDENCIES = $(LIBCR2RES)
 
+cr2res_util_trace_la_SOURCES = cr2res_util_trace.c
+cr2res_util_trace_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
+cr2res_util_trace_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
+cr2res_util_trace_la_DEPENDENCIES = $(LIBCR2RES)

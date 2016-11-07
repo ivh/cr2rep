@@ -65,13 +65,17 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
         if (tag == NULL) {
             cpl_msg_warning(cpl_func, "Frame %d has no tag", i);
         } else if (!strcmp(tag, CR2RES_DARK_RAW) ||
+                !strcmp(tag, CR2RES_FLAT_OPEN_RAW) ||
+                !strcmp(tag, CR2RES_FLAT_DECKER_RAW) ||
                 !strcmp(tag, "COMMAND_LINE")) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
         } else if (!strcmp(tag, CR2RES_MASTER_BPM_PROCATG) ||
                 !strcmp(tag, CR2RES_DETLIN_BPM_PROCATG) ||
                 !strcmp(tag, CR2RES_MASTER_DARK_PROCATG) ||
-                !strcmp(tag, CR2RES_DARK_BPM_PROCATG)) {
+                !strcmp(tag, CR2RES_DARK_BPM_PROCATG)||
+                !strcmp(tag, CR2RES_TRACE_OPEN_PROCATG) ||
+                !strcmp(tag, CR2RES_TRACE_DECKER_PROCATG)) {
             /* CALIB frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_CALIB);
         }

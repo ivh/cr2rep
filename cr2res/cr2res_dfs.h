@@ -1,4 +1,4 @@
-/* 
+/*
  * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
@@ -25,13 +25,17 @@
  -----------------------------------------------------------------------------*/
 
 /* Define here the PRO.CATG keywords */
-#define CR2RES_DETLIN_BPM_PROCATG       "DETLIN_BPM" 
+#define CR2RES_DETLIN_BPM_PROCATG       "DETLIN_BPM"
 #define CR2RES_MASTER_DARK_PROCATG      "MASTER_DARK"
 #define CR2RES_MASTER_BPM_PROCATG       "MASTER_BPM"
 #define CR2RES_DARK_BPM_PROCATG         "DARK_BPM"
+#define CR2RES_TRACE_OPEN_PROCATG       "TRACE_OPEN"
+#define CR2RES_TRACE_DECKER_PROCATG     "TRACE_DECKER"
 
 /* Define here the DO.CATG keywords */
 #define CR2RES_DARK_RAW                 "DARK"
+#define CR2RES_FLAT_OPEN_RAW            "FLAT_OPEN"
+#define CR2RES_FLAT_DECKER_RAW          "FLAT_DECKER"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
