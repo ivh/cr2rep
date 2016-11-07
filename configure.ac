@@ -1,7 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([CR2RE Instrument Pipeline], [0.0.2], [flastname@eso.org],
-[cr2re])
+AC_INIT([CR2RE Instrument Pipeline], [0.1.0], [usd-help@eso.org], [cr2re])
 AC_PREREQ([2.59])
 
 AC_CONFIG_SRCDIR([Makefile.am])
