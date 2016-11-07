@@ -45,8 +45,8 @@ cr2res_bias_la_LDFLAGS = -module -avoid-version -no-undefined
 cr2res_bias_la_DEPENDENCIES = $(LIBCR2RE)
 
 cr2res_cal_dark_la_SOURCES = cr2res_cal_dark.c 
-cr2res_cal_dark_la_LIBADD = $(LIBCR2RE)
-cr2res_cal_dark_la_LDFLAGS = -module -avoid-version -no-undefined
+cr2res_cal_dark_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RE)
+cr2res_cal_dark_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
 cr2res_cal_dark_la_DEPENDENCIES = $(LIBCR2RE)
 
 cr2res_etalon_la_SOURCES = cr2res_etalon.c 
