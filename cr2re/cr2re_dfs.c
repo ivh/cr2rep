@@ -68,10 +68,15 @@ cpl_error_code cr2re_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RE_TRACE_RAW) ||
                 !strcmp(tag, CR2RE_ETALON_RAW) ||
                 !strcmp(tag, CR2RE_TEST_RAW) ||
+                !strcmp(tag, CR2RES_DARK_RAW) ||
                 !strcmp(tag, "COMMAND_LINE")) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
-        } else if (!strcmp(tag, CR2RE_BIAS_PROCATG) ||
+        } else if (!strcmp(tag, CR2RES_MASTER_BPM_PROCATG) ||
+                !strcmp(tag, CR2RES_DETLIN_BPM_PROCATG) ||
+                !strcmp(tag, CR2RES_MASTER_DARK_PROCATG) ||
+                !strcmp(tag, CR2RES_DARK_BPM_PROCATG) ||
+                !strcmp(tag, CR2RE_BIAS_PROCATG) || 
                 !strcmp(tag, CR2RE_TRACE_PROCATG)) {
             /* CALIB frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_CALIB);
