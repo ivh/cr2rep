@@ -258,7 +258,8 @@ cpl_table * cr2res_orders_fit(
 
     for (i=1;i <= n ;i++){
         nclusters_cur = cpl_table_and_selected_int(clustertable,"clusters",CPL_EQUAL_TO,i);
-        cpl_msg_debug(__func__, "Cluster %d has %d pixels", i, nclusters_cur);
+        cpl_msg_debug(__func__, "Cluster %d has %"CPL_SIZE_FORMAT" pixels", 
+                i, nclusters_cur);
         seltable = cpl_table_extract_selected(clustertable);
         fitparams = cr2res_order_fit(seltable,nclusters_cur);
         cpl_table_set_array(fittable,"fitparams",i-1,fitparams);
