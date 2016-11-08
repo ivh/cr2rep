@@ -30,7 +30,7 @@
                                    Define
  -----------------------------------------------------------------------------*/
 
-#define CR2RES_NB_DETECTORS     4
+#define CR2RES_NB_DETECTORS     3
 
 typedef enum {
     CR2RES_DECKER_NONE,

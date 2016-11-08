@@ -109,8 +109,9 @@ cpl_table * cr2res_io_load_EXTRACT_POL(
         int             detector);
 
 int cr2res_io_save_MASTER_DARK(
-        const char              *   filename,
         cpl_frameset            *   allframes,
+        const char              *   filename,
+        cpl_frameset            *   used_frames,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  master_darks,
         const cpl_propertylist  *   qc_list,

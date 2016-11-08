@@ -374,15 +374,18 @@ cpl_table * cr2res_io_load_EXTRACT_POL(
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_io_save_MASTER_DARK(
-        const char              *   filename,
         cpl_frameset            *   allframes,
+        const char              *   filename,
+        cpl_frameset            *   used_frames,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  master_darks,
         const cpl_propertylist  *   qc_list,
         const char              *   procatg,
         const char              *   recipe)
 {
-    cpl_propertylist * qclist_loc ;
+    cpl_propertylist    *   qclist_loc ;
+    char          		*   sval ;
+    int                     ext ;
 
     /* Create a local QC list and add the PRO.CATG */
     if (qc_list == NULL) {
@@ -392,14 +395,39 @@ int cr2res_io_save_MASTER_DARK(
     }
     cpl_propertylist_update_string(qclist_loc, CPL_DFS_PRO_CATG, procatg);
 
-    /* Save the data */
-    cpl_dfs_save_image(allframes, NULL, parlist, allframes, NULL,
-            hdrl_image_get_image(master_darks[0]), CPL_TYPE_FLOAT, recipe, 
-            qclist_loc, NULL, PACKAGE "/" PACKAGE_VERSION, filename);
+    /* Create the Primary Data Unit without data */
+    if (cpl_dfs_save_image(allframes, NULL, parlist, used_frames, NULL, NULL,
+                CPL_BPP_IEEE_FLOAT, recipe, qclist_loc, NULL, 
+                PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Cannot save the empty primary HDU") ;
+        cpl_propertylist_delete(qclist_loc) ;
+        return -1 ;
+    }
+    /* Delete PRO LIST */
+    cpl_propertylist_delete(qclist_loc) ;
 
-    cpl_propertylist_delete(qclist_loc);
+    /* Save the extensions */
+    for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
+        /* Save the DATA */
+        qclist_loc = cpl_propertylist_new() ;
+        sval = cpl_sprintf("DET.%d.DATA", ext) ;
+        cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", sval) ;
+        cpl_image_save(hdrl_image_get_image(master_darks[ext-1]),
+                filename, CPL_BPP_IEEE_FLOAT, qclist_loc, CPL_IO_EXTEND) ;
+        cpl_propertylist_delete(qclist_loc) ;
+        cpl_free(sval) ;
 
-	return -1 ;
+        /* Save the NOISE */
+        qclist_loc = cpl_propertylist_new() ;
+        sval = cpl_sprintf("DET.%d.NOISE", ext) ;
+        cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", sval) ;
+        cpl_image_save(hdrl_image_get_error(master_darks[ext-1]),
+                filename, CPL_BPP_IEEE_FLOAT, qclist_loc, CPL_IO_EXTEND) ;
+        cpl_propertylist_delete(qclist_loc) ;
+        cpl_free(sval) ;
+    }
+
+	return 0 ;
 }
 
 /*----------------------------------------------------------------------------*/

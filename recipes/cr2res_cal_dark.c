@@ -246,7 +246,7 @@ static int cr2res_cal_dark(
 	
     /* Extract RAW frames */
     rawframes = cr2res_extract_frameset(frameset, CR2RES_DARK_RAW) ;
-    if (cpl_frameset_get_size(rawframes) <= 0) {
+    if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
         hdrl_parameter_destroy(collapse_params) ;
         cpl_msg_error(__func__, "Cannot find any RAW file") ;
         cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
@@ -255,27 +255,62 @@ static int cr2res_cal_dark(
     nb_frames = cpl_frameset_get_size(rawframes) ;
 
 	/* Loop on the extensions */
-    for (ext=1 ; ext<CR2RES_NB_DETECTORS ; ext++) {
+    for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
         cpl_msg_info(__func__, "Process Detector nb %i", ext) ;
         cpl_msg_indent_more() ;
 
-        /* Load the Data */
+        /* Loop on the frames */
         dark_cube = hdrl_imagelist_new();
         for (i=0; i<nb_frames ; i++) {
+            /* Identify current file */
             fname=cpl_frame_get_filename(
-                    cpl_frameset_get_position(rawframes,i)); 
-            ima_data = cpl_image_load(fname, CPL_TYPE_DOUBLE, 0, ext) ;
-            cr2res_detector_shotnoise_model(ima_data, gain, 10., &ima_err) ;
+                    cpl_frameset_get_position(rawframes, i)) ; 
+            cpl_msg_info(__func__, "Load Image from File %s / Detector %i", 
+                    fname, ext) ;
+            
+            /* Load the image */
+            if ((ima_data=cpl_image_load(fname,CPL_TYPE_DOUBLE,0,ext))==NULL) {
+                hdrl_parameter_destroy(collapse_params) ;
+                cpl_frameset_delete(rawframes) ;
+                hdrl_imagelist_delete(dark_cube) ;
+                cpl_msg_error(__func__, 
+                        "Cannot load image from File %s / Detector %d", 
+                        fname, ext) ;
+                cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
+                cpl_msg_indent_less() ;
+                return -1 ;
+            }
+
+            /* Create the noise image */
+            cpl_msg_info(__func__, "Create the associated Noise image");
+            if (cr2res_detector_shotnoise_model(ima_data, gain, 10.,
+                        &ima_err) != CPL_ERROR_NONE) {
+                hdrl_parameter_destroy(collapse_params) ;
+                cpl_frameset_delete(rawframes) ;
+                hdrl_imagelist_delete(dark_cube) ;
+                cpl_image_delete(ima_data); 
+                cpl_msg_error(__func__, "Cannot create the Noise image") ;
+                cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
+                cpl_msg_indent_less() ;
+                return -1 ;
+            }
+
+            /* Store Data and Error together in an hdrl image */
             hdrl_ima = hdrl_image_create(ima_data, ima_err);
-            hdrl_image_insert(hdrl_ima, ima_data, ima_err, 1, 1);
-            hdrl_imagelist_set(dark_cube, hdrl_ima, i);
             cpl_image_delete(ima_data);
             cpl_image_delete(ima_err);
+            
+            /* Store the hdrl image in the dark_cube */
+            hdrl_imagelist_set(dark_cube, hdrl_ima, i);
         }
 
         /* Get the proper collapsing function and perform frames combination */
-        hdrl_imagelist_collapse(dark_cube, collapse_params,
-                &(master_darks[ext-1]), &contrib_map);
+        if (hdrl_imagelist_collapse(dark_cube, collapse_params,
+                &(master_darks[ext-1]), &contrib_map) != CPL_ERROR_NONE) {
+            cpl_msg_warning(__func__, "Cannot collapse Detector %d", ext) ;
+            master_darks[ext-1] = NULL ;
+            contrib_map = NULL ;
+        }
         cpl_image_delete(contrib_map);
         hdrl_imagelist_delete(dark_cube);
     
@@ -284,12 +319,23 @@ static int cr2res_cal_dark(
     hdrl_parameter_delete(collapse_params);
 
 	/* Save the results */
-	cr2res_io_save_MASTER_DARK("cr2res_cal_dark_master.fits", rawframes,
-            parlist, master_darks, NULL, CR2RES_MASTER_DARK_PROCATG, 
-            RECIPE_STRING) ;
+	if (cr2res_io_save_MASTER_DARK(frameset, "cr2res_cal_dark_master.fits", 
+                rawframes, parlist, master_darks, NULL, 
+                CR2RES_MASTER_DARK_PROCATG, RECIPE_STRING) != 0) {
+        cpl_frameset_delete(rawframes) ;
+        for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
+            if (master_darks[ext-1] != NULL) 
+                hdrl_image_delete(master_darks[ext-1]);
+        }
+        cpl_msg_error(__func__, "Cannot save the MASTER DARK") ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        cpl_msg_indent_less() ;
+        return -1 ;
+
+    }
     cpl_frameset_delete(rawframes) ;
-    for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
-        hdrl_image_delete(master_darks[i]);
+    for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
+        if (master_darks[ext-1] != NULL) hdrl_image_delete(master_darks[ext-1]);
     }
 
     return (int)cpl_error_get_code();
