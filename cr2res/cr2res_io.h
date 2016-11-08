@@ -25,6 +25,7 @@
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
+#include "hdrl.h"
 
 /*-----------------------------------------------------------------------------
                                    Functions prototypes
@@ -110,11 +111,10 @@ int cr2res_io_save_MASTER_DARK(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
-        cpl_imagelist           *   errors,
+        hdrl_image              **  master_darks,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   procatg,
+        const char              *   recipe) ;
 
 int cr2res_io_save_MASTER_BPM(
         const char              *   filename,

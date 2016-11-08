@@ -30,6 +30,9 @@
 
 #include <cpl.h>
 
+#include <cr2res_io.h>
+
+
 /*----------------------------------------------------------------------------*/
 /**
  * @defgroup cr2res_io  IO related functions
@@ -365,11 +368,10 @@ cpl_table * cr2res_io_load_EXTRACT_POL(
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
-  @param    data        The data images to save (1 per detector)
-  @param    errors      The error images to save (1 per detector)
+  @param    master_darks  The data/error master darks (1 per detector)
   @param    qc_list     The QC parameters
+  @param    procatg     The PRO CATG
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -377,15 +379,30 @@ int cr2res_io_save_MASTER_DARK(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
-        cpl_imagelist           *   errors,
+        hdrl_image              **  master_darks,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   procatg,
+        const char              *   recipe)
 {
-        return -1 ;
-}
+    cpl_propertylist * qclist_loc ;
 
+    /* Create a local QC list and add the PRO.CATG */
+    if (qc_list == NULL) {
+        qclist_loc = cpl_propertylist_new();
+    } else {
+        qclist_loc = cpl_propertylist_duplicate(qc_list) ;
+    }
+    cpl_propertylist_update_string(qclist_loc, CPL_DFS_PRO_CATG, procatg);
+
+    /* Save the data */
+    cpl_dfs_save_image(allframes, NULL, parlist, allframes, NULL,
+            hdrl_image_get_image(master_darks[0]), CPL_TYPE_FLOAT, recipe, 
+            qclist_loc, NULL, PACKAGE "/" PACKAGE_VERSION, filename);
+
+    cpl_propertylist_delete(qclist_loc);
+
+	return -1 ;
+}
 
 /*----------------------------------------------------------------------------*/
 /**

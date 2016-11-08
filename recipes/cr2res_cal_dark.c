@@ -31,6 +31,13 @@
 #include "cr2res_utils.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
+#include "cr2res_io.h"
+
+/*-----------------------------------------------------------------------------
+                                Define
+ -----------------------------------------------------------------------------*/
+
+#define RECIPE_STRING "cr2res_cal_dark"
 
 /*-----------------------------------------------------------------------------
                              Plugin registration
@@ -215,21 +222,19 @@ static int cr2res_cal_dark(
     const char          *   fname ;
     cpl_image           *   ima_data ;
     cpl_image           *   ima_err ;
+    hdrl_image 			*   master_darks[CR2RES_NB_DETECTORS] ;
     hdrl_image 			* 	hdrl_ima ;
     hdrl_image 			* 	master;
     cpl_image 			*	contrib_map;
-    int                     nb_frames, i ;
-
-    /* TODO */
-    int     ext_number = 0 ;
+    int                     nb_frames, i, ext ;
 
     /* RETRIEVE INPUT PARAMETERS */
     /* --gain */
-    par = cpl_parameterlist_find_const(parlist, "cr2res.cr2res_cal_dark.gain");
+    par = cpl_parameterlist_find_const(parlist, "cr2res_cal_dark.gain");
     gain = cpl_parameter_get_double(par);
     /* Collapse parameters */
     collapse_params = hdrl_collapse_parameter_parse_parlist(parlist,
-            "cr2res.cr2res_cal_dark") ;
+            "cr2res_cal_dark") ;
    
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
@@ -250,70 +255,42 @@ static int cr2res_cal_dark(
     nb_frames = cpl_frameset_get_size(rawframes) ;
 
 	/* Loop on the extensions */
+    for (ext=1 ; ext<CR2RES_NB_DETECTORS ; ext++) {
+        cpl_msg_info(__func__, "Process Detector nb %i", ext) ;
+        cpl_msg_indent_more() ;
 
+        /* Load the Data */
+        dark_cube = hdrl_imagelist_new();
+        for (i=0; i<nb_frames ; i++) {
+            fname=cpl_frame_get_filename(
+                    cpl_frameset_get_position(rawframes,i)); 
+            ima_data = cpl_image_load(fname, CPL_TYPE_DOUBLE, 0, ext) ;
+            cr2res_detector_shotnoise_model(ima_data, gain, 10., &ima_err) ;
+            hdrl_ima = hdrl_image_create(ima_data, ima_err);
+            hdrl_image_insert(hdrl_ima, ima_data, ima_err, 1, 1);
+            hdrl_imagelist_set(dark_cube, hdrl_ima, i);
+            cpl_image_delete(ima_data);
+            cpl_image_delete(ima_err);
+        }
 
-
-
-    /* Load the Data */
-    dark_cube = hdrl_imagelist_new();
-    for (i = 0; i < nb_frames ; i++) {
-        fname=cpl_frame_get_filename(cpl_frameset_get_position(rawframes, i)) ; 
-        ima_data = cpl_image_load(fname, CPL_TYPE_DOUBLE, 0, ext_number) ;
-        cr2res_detector_shotnoise_model(ima_data, gain, 10., &ima_err) ;
-
-        hdrl_ima = hdrl_image_create(ima_data, ima_err);
-        hdrl_image_insert(hdrl_ima, ima_data, ima_err, 1, 1);
-        hdrl_imagelist_set(dark_cube, hdrl_ima, i);
-        
-        cpl_image_delete(ima_data);
-        cpl_image_delete(ima_err);
+        /* Get the proper collapsing function and perform frames combination */
+        hdrl_imagelist_collapse(dark_cube, collapse_params,
+                &(master_darks[ext-1]), &contrib_map);
+        cpl_image_delete(contrib_map);
+        hdrl_imagelist_delete(dark_cube);
+    
+        cpl_msg_indent_less() ;
     }
-    cpl_frameset_delete(rawframes) ;
-
-	/* Get the proper collapsing function and perform frames combination */
-    hdrl_imagelist_collapse(dark_cube, collapse_params, &master, &contrib_map);
     hdrl_parameter_delete(collapse_params);
-    hdrl_imagelist_delete(dark_cube);
 
-    /* Save the results */
-    /*
-	hdrldemo_save_image(HDRLDEMO_MASTER_DARK,
-					"hdrldemo_masterdark.fits", CPL_TYPE_FLOAT,
-					hdrl_image_get_image(master), parlist, frameset);
-	hdrldemo_save_image(HDRLDEMO_MASTER_DARK_ERROR,
-						"hdrldemo_masterdark_error.fits", CPL_TYPE_FLOAT,
-						hdrl_image_get_error(master), parlist, frameset);
-	hdrldemo_save_image(HDRLDEMO_MASTER_DARK_CONTRIBUTION,
-						"hdrldemo_masterdark_contribution.fits",
-						CPL_TYPE_FLOAT,
-						contrib_map, parlist, frameset);
-                        */
-
-    hdrl_image_delete(master);
-    cpl_image_delete(contrib_map);
+	/* Save the results */
+	cr2res_io_save_MASTER_DARK("cr2res_cal_dark_master.fits", rawframes,
+            parlist, master_darks, NULL, CR2RES_MASTER_DARK_PROCATG, 
+            RECIPE_STRING) ;
+    cpl_frameset_delete(rawframes) ;
+    for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
+        hdrl_image_delete(master_darks[i]);
+    }
 
     return (int)cpl_error_get_code();
-
-
-/* "master_dark.fits " CR2RES_MASTER_DARK_PROCATG "\n" */
-/* "master_bpm.fits " CR2RES_MASTER_BPM_PROCATG "\n" */
-/* "dark_bpm.fits " CR2RES_DARK_BPM_PROCATG "\n" */
-/*  */
-/* "cr2res_cal_dark_master.fits " CR2RES_MASTER_DARK_PROCATG "\n" */
-/* "cr2res_cal_dark_bpm.fits " CR2RES_MASTER_BPM_PROCATG "\n" */
-
-
-
-    /* Add the product category  */
-    /*
-    applist = cpl_propertylist_duplicate(plist);
-    cpl_propertylist_append_string(applist, CPL_DFS_PRO_CATG, 
-            CR2RES_MASTER_DARK_PROCATG);
-
-    cpl_dfs_save_image(frameset, plist, parlist, frameset, NULL,
-            master_dark, CPL_BPP_IEEE_FLOAT, "cr2res_cal_dark", applist,
-            NULL, PACKAGE "/" PACKAGE_VERSION, "cr2res_cal_dark.fits") ;
-            */
-    
 }
-
