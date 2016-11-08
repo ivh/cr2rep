@@ -1,0 +1,41 @@
+TestEnv:
+  ESOREX_SUPPRESS_PREFIX: "TRUE"
+  ESOREX_TIME: "TRUE"
+
+# log default parameters
+PreExec:
+    - "esorex --man cr2res_cal_dark"
+
+Defaults:
+# defaults that apply to all EsorexTests
+  EsorexTests:
+    recipe: cr2res_cal_dark
+
+# Naming convention: xx_yy_zz - anchor xx_recipe_yy
+#   xx: Identifies data period (01 for pre-PAE, 02 for Comm1, ...)
+#   yy: Identifies the data set ID
+#   zz: Identifies the test case ID
+
+EsorexTests:
+  - '01_01_01': &01_cr2res_cal_dark_01
+      description: "Old CRIRES data - cr2res_cal_dark - set #1"
+      sof:
+        - ["cr2res/raw/CRIRE.2007-08-19T15:04:14.628.fits", "DARK"]
+        - ["cr2res/raw/CRIRE.2007-08-19T15:10:10.872.fits", "DARK"]
+        - ["cr2res/raw/CRIRE.2007-08-19T15:16:07.118.fits", "DARK"]
+      parameters: &cr2res_cal_dark_default_par
+        gain:                   2.5
+        method:                 "MEDIAN"
+        sigclip.kappa-low:      3.0
+        sigclip.kappa-high:     3.0
+        sigclip.niter:          5
+        minmax.nlow:            1.0
+        minmax.nhigh :          1.0
+
+  - '01_01_02':
+      <<: *01_cr2res_cal_dark_01
+      parameters:
+        <<: *cr2res_cal_dark_default_par
+        method:                 "MINMAX"
+
+
