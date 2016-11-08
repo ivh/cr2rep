@@ -32,6 +32,14 @@
 
 const char * cr2res_get_license(void) ;
 
+cpl_frameset * cr2res_extract_frameset(const cpl_frameset *, const char *) ;
+
+cpl_error_code cr2res_detector_shotnoise_model(
+        const cpl_image *   ima_data,
+        const double        gain,
+        const double        ron,
+        cpl_image       **  ima_errs) ;
+
 cpl_table * cr2res_orders_fit(
         cpl_table           *   table);
 

@@ -25,6 +25,7 @@
                                    Includes
  -----------------------------------------------------------------------------*/
 
+#include <string.h>
 #include <cpl.h>
 
 #include "cr2res_utils.h"
@@ -35,6 +36,101 @@
  */
 /*----------------------------------------------------------------------------*/
 
+/**@{*/
+
+/*----------------------------------------------------------------------------*/
+/**
+   @brief   Extract the frames with the given tag from a frameset
+   @param   in      A non-empty frameset
+   @param   tag     The tag of the requested frames   
+   @return  The newly created frameset or NULL on error
+
+   The returned frameset must be de allocated with cpl_frameset_delete()
+ */
+/*----------------------------------------------------------------------------*/
+cpl_frameset * cr2res_extract_frameset(
+        const cpl_frameset  *   in,
+        const char          *   tag)
+{
+    cpl_frameset    *   out ;
+    const cpl_frame *   cur_frame ;
+    cpl_frame       *   loc_frame ;
+    int                 nbframes, nbext ;
+    int                 i ;
+
+    /* Test entries */
+    if (in == NULL) return NULL ;
+    if (tag == NULL) return NULL ;
+
+    /* Initialise */
+    nbframes = cpl_frameset_get_size(in) ;
+
+    /* Count the frames with the tag */
+    if ((nbext = cpl_frameset_count_tags(in, tag)) == 0) return NULL ;
+
+    /* Create the output frameset */
+    out = cpl_frameset_new() ;
+
+    /* Loop on the requested frames and store them in out */
+    nbext = 0 ;
+    for (i=0 ; i<nbframes ; i++) {
+        cur_frame = cpl_frameset_get_position_const(in, i) ;
+        if (!strcmp(cpl_frame_get_tag(cur_frame), tag)) {
+            loc_frame = cpl_frame_duplicate(cur_frame) ;
+            cpl_frameset_insert(out, loc_frame) ;
+            nbext ++ ;
+        }
+    }
+    return out ;
+}
+
+/* This function is copied from HDRLDEMO -> should not be changed */
+/* It could be added in HDRL */
+/*----------------------------------------------------------------------------*/
+/**
+  @brief   compute photon count error in [ADU]
+  @param   ima_data in [ADU]
+  @param   gain detector's gain in [e- / ADU]
+  @param   ron  detector's read out noise in [ADU]
+  @param   ima_errs output error image in [ADU]
+  @return  cpl_error_code
+  @note ima_errs need to be deallocated
+        ima_data must contain the photon counts with no offsets
+        this usually means the image must be overscan and bias corrected
+        Then the shot noise can be calculated from the poissonian distribution
+        as sqrt(electron-counts). To this (transformed back into ADUs) the
+        readout noise is added in quadrature.
+  @doc
+  error is computed with standard formula
+
+  \f$ err_{ADU} = \sqrt{ \frac{ counts }{ gain } + ron^{ 2 } } \f$
+
+  If an image value is negative the associated error is set to RON
+ */
+/*----------------------------------------------------------------------------*/
+cpl_error_code cr2res_detector_shotnoise_model(
+        const cpl_image *   ima_data, 
+        const double        gain,
+        const double        ron, 
+        cpl_image       **  ima_errs)
+{
+    cpl_ensure_code(ima_data, CPL_ERROR_NULL_INPUT);
+    cpl_ensure_code(ima_errs, CPL_ERROR_NULL_INPUT);
+    cpl_ensure_code(gain > 0., CPL_ERROR_ILLEGAL_INPUT);
+    cpl_ensure_code(ron > 0., CPL_ERROR_ILLEGAL_INPUT);
+
+    *ima_errs = cpl_image_duplicate(ima_data);
+    /* set negative values (= zero measurable electrons) to read out noise */
+    cpl_image_threshold(*ima_errs, 0., DBL_MAX, ron, ron);
+
+    /* err_ADU = sqrt(counts/gain + ron * ron)*/
+
+    cpl_image_divide_scalar(*ima_errs, gain);
+    cpl_image_add_scalar(*ima_errs, ron * ron);
+    cpl_image_power(*ima_errs, 0.5);
+
+    return cpl_error_get_code();
+}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -175,7 +271,6 @@ cpl_table * cr2res_orders_fit(
     return fittable;
 }
 
-/**@{*/
 
 /*----------------------------------------------------------------------------*/
 /**
