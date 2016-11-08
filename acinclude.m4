@@ -145,7 +145,7 @@ AC_DEFUN([CR2RES_CREATE_SYMBOLS],
 
     # Symbols for package include file and library search paths
 
-    CR2RES_INCLUDES='-I$(top_srcdir)/cr2res -I$(top_srcdir)/hdrl'
+    CR2RES_INCLUDES='-I$(top_srcdir)/cr2res -I$(top_srcdir)/hdrl -I$(top_srcdir)/irplib'
     CR2RES_LDFLAGS='-L$(top_builddir)/cr2res'
 
     # Library aliases
@@ -160,6 +160,7 @@ AC_DEFUN([CR2RES_CREATE_SYMBOLS],
     AC_SUBST(CR2RES_LDFLAGS)
 
     AC_SUBST(LIBCR2RES)
+    AC_SUBST(LIBIRPLIB)
     AC_SUBST(LIBHDRL)
 
     # Check for CPL and user defined libraries
