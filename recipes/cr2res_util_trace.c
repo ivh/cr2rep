@@ -274,7 +274,8 @@ static int cr2res_util_trace(
             return -1 ;
         }
         plist = cpl_propertylist_load(cpl_frame_get_filename(rawframe), 0);
-        cr2res_trace(in, &npolys);
+        cr2res_trace(in, CR2RES_DECKER_NONE, &npolys);
+        cpl_msg_debug(__func__,"%d npolys found.",npolys);
     }
     cpl_frameset_delete(openslit_frames);
     for (i=0; i<nb_decker; i++){
