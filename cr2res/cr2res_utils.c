@@ -42,7 +42,7 @@
 /**
    @brief   Extract the frames with the given tag from a frameset
    @param   in      A non-empty frameset
-   @param   tag     The tag of the requested frames   
+   @param   tag     The tag of the requested frames
    @return  The newly created frameset or NULL on error
 
    The returned frameset must be de allocated with cpl_frameset_delete()
@@ -55,7 +55,7 @@ cpl_frameset * cr2res_extract_frameset(
     cpl_frameset    *   out ;
     const cpl_frame *   cur_frame ;
     cpl_frame       *   loc_frame ;
-    int                 nbframes, nbext ;
+    int                 nbframes;
     int                 i ;
 
     /* Test entries */
@@ -66,19 +66,17 @@ cpl_frameset * cr2res_extract_frameset(
     nbframes = cpl_frameset_get_size(in) ;
 
     /* Count the frames with the tag */
-    if ((nbext = cpl_frameset_count_tags(in, tag)) == 0) return NULL ;
+    if ((cpl_frameset_count_tags(in, tag)) == 0) return NULL ;
 
     /* Create the output frameset */
     out = cpl_frameset_new() ;
 
     /* Loop on the requested frames and store them in out */
-    nbext = 0 ;
     for (i=0 ; i<nbframes ; i++) {
         cur_frame = cpl_frameset_get_position_const(in, i) ;
         if (!strcmp(cpl_frame_get_tag(cur_frame), tag)) {
             loc_frame = cpl_frame_duplicate(cur_frame) ;
             cpl_frameset_insert(out, loc_frame) ;
-            nbext ++ ;
         }
     }
     return out ;
@@ -109,9 +107,9 @@ cpl_frameset * cr2res_extract_frameset(
  */
 /*----------------------------------------------------------------------------*/
 cpl_error_code cr2res_detector_shotnoise_model(
-        const cpl_image *   ima_data, 
+        const cpl_image *   ima_data,
         const double        gain,
-        const double        ron, 
+        const double        ron,
         cpl_image       **  ima_errs)
 {
     cpl_ensure_code(ima_data, CPL_ERROR_NULL_INPUT);
@@ -170,7 +168,7 @@ cpl_mask * cr2res_signal_detect(
     }
     cpl_matrix_delete(kernel);
 
-    cpl_image_save(smimage, "smimage.fits", CPL_TYPE_DOUBLE, NULL, 
+    cpl_image_save(smimage, "smimage.fits", CPL_TYPE_DOUBLE, NULL,
             CPL_IO_CREATE);
 
     /* save in smimage since image is static */
@@ -258,7 +256,7 @@ cpl_table * cr2res_orders_fit(
 
     for (i=1;i <= n ;i++){
         nclusters_cur = cpl_table_and_selected_int(clustertable,"clusters",CPL_EQUAL_TO,i);
-        cpl_msg_debug(__func__, "Cluster %d has %"CPL_SIZE_FORMAT" pixels", 
+        cpl_msg_debug(__func__, "Cluster %d has %"CPL_SIZE_FORMAT" pixels",
                 i, nclusters_cur);
         seltable = cpl_table_extract_selected(clustertable);
         fitparams = cr2res_order_fit(seltable,nclusters_cur);

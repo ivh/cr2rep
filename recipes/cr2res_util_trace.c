@@ -31,7 +31,7 @@
 #include "cr2res_utils.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
-#include "cr2res_cluster.h"
+#include "cr2res_trace.h"
 
 /*-----------------------------------------------------------------------------
                              Plugin registration
@@ -231,6 +231,9 @@ static int cr2res_util_trace(
     cpl_image           *   in ;
     cpl_image           *   trace ;
     const cpl_parameter * param;
+    cpl_frameset        *   openslit_frames;
+    cpl_frameset        *   decker_frames;
+    int                     npolys;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -255,23 +258,39 @@ static int cr2res_util_trace(
     }
 
     /* Get Data */
-    rawframe = cpl_frameset_get_position(frameset, 0);
-    plist = cpl_propertylist_load(cpl_frame_get_filename(rawframe), 0);
-    in = cpl_image_load(cpl_frame_get_filename(rawframe), CPL_TYPE_DOUBLE,0,0);
-    if (in == NULL) {
-        cpl_msg_error(__func__, "Cannot load the input image") ;
-        cpl_propertylist_delete(plist) ;
-        return -1 ;
-    }
+    openslit_frames = cr2res_extract_frameset(frameset, CR2RES_FLAT_OPEN_RAW);
+    int nb_open = cpl_frameset_get_size(openslit_frames);
+    decker_frames = cr2res_extract_frameset(frameset, CR2RES_FLAT_DECKER_RAW);
+    int nb_decker = cpl_frameset_get_size(decker_frames);
+    cpl_msg_info(__func__, "Got %d & %d open slit and decker files, resp.", nb_open, nb_decker);
 
-    /* NOW PERFORMING THE DATA REDUCTION */
-    cpl_msg_info(__func__, "Compute the trace") ;
+    int i;
+    for (i=0; i<nb_open; i++){
+        rawframe = cpl_frameset_get_position(frameset, i);
+        in = cpl_image_load(cpl_frame_get_filename(rawframe), CPL_TYPE_DOUBLE,0,0);
+        if (in == NULL) {
+            cpl_msg_error(__func__, "Cannot load the input image") ;
+            cpl_propertylist_delete(plist) ;
+            return -1 ;
+        }
+        plist = cpl_propertylist_load(cpl_frame_get_filename(rawframe), 0);
+        cr2res_trace(in, &npolys);
+    }
+    cpl_frameset_delete(openslit_frames);
+    for (i=0; i<nb_decker; i++){
+        rawframe = cpl_frameset_get_position(frameset, i);
+    }
+    cpl_frameset_delete(decker_frames);
+
+
     trace = cpl_image_duplicate(in);
     if (trace == NULL) {
         cpl_propertylist_delete(plist) ;
         cpl_image_delete(in) ;
         return -1 ;
     }
+
+
     cpl_image_delete(in) ;
 
     /* Add the product category  */
