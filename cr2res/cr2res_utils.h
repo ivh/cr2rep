@@ -32,6 +32,12 @@
 
 #define CR2RES_NB_DETECTORS     4
 
+typedef enum {
+    CR2RES_DECKER_NONE,
+    CR2RES_DECKER_1_3,
+    CR2RES_DECKER_2_4
+} cr2res_decker ;
+
 /*-----------------------------------------------------------------------------
                                        Prototypes
  -----------------------------------------------------------------------------*/
