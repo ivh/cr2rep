@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-##   This file is part of the CR2RE Pipeline Library
+##   This file is part of the CR2RES Pipeline Library
 ##   Copyright (C) 2002,2003 European Southern Observatory
 
 ##   This library is free software; you can redistribute it and/or modify
@@ -28,17 +28,16 @@ MAINTAINERCLEANFILES = Makefile.in
 
 endif
 
-
-LIBCR2RE = $(top_builddir)/cr2res/libcr2res.la
+LIBCR2RES = $(top_builddir)/cr2res/libcr2res.la
 
 AM_CPPFLAGS = $(all_includes)
 AM_LDFLAGS = $(CPL_LDFLAGS)
-LDADD = $(LIBCR2RE) $(LIBCPLDFS) $(LIBCPLUI) $(LIBCPLDRS) $(LIBCPLCORE)
+LDADD = $(LIBCR2RES) $(LIBCPLDFS) $(LIBCPLUI) $(LIBCPLDRS) $(LIBCPLCORE)
 
 check_PROGRAMS = cr2res_dfs-test
 
 cr2res_dfs_test_SOURCES = cr2res_dfs-test.c
-cr2res_dfs_test_DEPENDENCIES = $(LIBCR2RE)
+cr2res_dfs_test_DEPENDENCIES = $(LIBCR2RES)
 
 # Be sure to reexport important environment variables.
 TESTS_ENVIRONMENT = MAKE="$(MAKE)" CC="$(CC)" CFLAGS="$(CFLAGS)" \
