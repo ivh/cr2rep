@@ -27,6 +27,8 @@
 #include <cpl.h>
 #include "hdrl.h"
 
+#include "cr2res_utils.h"
+
 /*-----------------------------------------------------------------------------
                                    Functions prototypes
  -----------------------------------------------------------------------------*/
@@ -53,12 +55,11 @@ cpl_table * cr2res_io_load_TRACE_OPEN(
         const char  *   filename,
         int             detector);
 
-/*
 cpl_table * cr2res_io_load_TRACE_DECKER(
         const char  *   filename,
         int             detector,
         cr2res_decker * decker_type);
-*/
+
 cpl_table * cr2res_io_load_BLAZE(
         const char  *   filename,
         int             detector);

@@ -145,7 +145,6 @@ cpl_table * cr2res_io_load_TRACE_OPEN(
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
-/*            
 cpl_table * cr2res_io_load_TRACE_DECKER(
         const char  *   filename,
         int             detector,
@@ -153,7 +152,6 @@ cpl_table * cr2res_io_load_TRACE_DECKER(
 {
         return NULL ;
 }
-*/
 
 /*----------------------------------------------------------------------------*/
 /**
