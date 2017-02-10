@@ -17,35 +17,27 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-#ifndef CR2RES_DFS_H
-#define CR2RES_DFS_H
+#ifndef CR2RES_SLITDEC_H
+#define CR2RES_SLITDEC_H
 
 /*-----------------------------------------------------------------------------
-                                   Define
+                                   Includes
  -----------------------------------------------------------------------------*/
 
-/* Define here the PRO.CATG keywords */
-#define CR2RES_DETLIN_BPM_PROCATG       "DETLIN_BPM"
-#define CR2RES_MASTER_DARK_PROCATG      "MASTER_DARK"
-#define CR2RES_MASTER_BPM_PROCATG       "MASTER_BPM"
-#define CR2RES_DARK_BPM_PROCATG         "DARK_BPM"
-#define CR2RES_TRACE_OPEN_PROCATG       "TRACE_OPEN"
-#define CR2RES_TRACE_DECKER_PROCATG     "TRACE_DECKER"
-#define CR2RES_WAVE_COEFFS_PROCATG      "WAVE_COEFFS"
-#define CR2RES_TILT_COEFFS_PROCATG      "TILT_COEFFS"
-
-/* Define here the DO.CATG keywords */
-#define CR2RES_DARK_RAW                 "DARK"
-#define CR2RES_FLAT_OPEN_RAW            "FLAT_OPEN"
-#define CR2RES_FLAT_DECKER_RAW          "FLAT_DECKER"
-#define CR2RES_SCI_1D_RAW               "OBS_1D"
-#define CR2RES_SCI_2D_RAW               "OBS_2D"
-#define CR2RES_SCI_POL_RAW              "OBS_POL"
+#include <cpl.h>
+#include "cr2res_utils.h"
 
 /*-----------------------------------------------------------------------------
-                                Functions prototypes
+                                       Prototypes
  -----------------------------------------------------------------------------*/
-
-cpl_error_code cr2res_dfs_set_groups(cpl_frameset *);
+ cpl_image * cr2res_slitdec_vert(  cpl_image * img_in, // full detector image
+                         cpl_vector * ycen, // current order mid-line y-coordinates
+                         int height, // number of pix above and below mid-line
+                         int swath, // width per swath
+                         int oversample, // factor for oversampling
+                         double smooth_slit,
+                         cpl_vector * slit_func, // slit illumination
+                         cpl_vector * spec // spectrum
+     ) ;
 
 #endif
