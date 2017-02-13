@@ -67,6 +67,9 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
         } else if (!strcmp(tag, CR2RES_DARK_RAW) ||
                 !strcmp(tag, CR2RES_FLAT_OPEN_RAW) ||
                 !strcmp(tag, CR2RES_FLAT_DECKER_RAW) ||
+                !strcmp(tag, CR2RES_SCI_1D_RAW) ||
+                !strcmp(tag, CR2RES_SCI_2D_RAW) ||
+                !strcmp(tag, CR2RES_SCI_POL_RAW) ||
                 !strcmp(tag, "COMMAND_LINE")) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
@@ -75,7 +78,9 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_MASTER_DARK_PROCATG) ||
                 !strcmp(tag, CR2RES_DARK_BPM_PROCATG)||
                 !strcmp(tag, CR2RES_TRACE_OPEN_PROCATG) ||
-                !strcmp(tag, CR2RES_TRACE_DECKER_PROCATG)) {
+                !strcmp(tag, CR2RES_TRACE_DECKER_PROCATG) ||
+                !strcmp(tag, CR2RES_WAVE_COEFFS_PROCATG) ||
+                !strcmp(tag, CR2RES_TILT_COEFFS_PROCATG)) {
             /* CALIB frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_CALIB);
         }

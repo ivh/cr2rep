@@ -44,6 +44,7 @@ typedef enum {
 
 const char * cr2res_get_license(void) ;
 
+const char * cr2res_extract_filename(const cpl_frameset *, const char *) ;
 cpl_frameset * cr2res_extract_frameset(const cpl_frameset *, const char *) ;
 
 cpl_error_code cr2res_detector_shotnoise_model(

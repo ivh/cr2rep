@@ -40,6 +40,25 @@
 
 /*----------------------------------------------------------------------------*/
 /**
+   @brief   Extract the filename for the first frame of the given tag
+   @param   in      A non-empty frameset
+   @param   tag     The tag of the requested file 
+   @return  Pointer to the file
+ */
+/*----------------------------------------------------------------------------*/
+const char * cr2res_extract_filename(
+        const cpl_frameset  *   in,
+        const char          *   tag)
+{
+    const cpl_frame *   cur_frame ;
+
+    /* Get the frame  */
+    if ((cur_frame = cpl_frameset_find_const(in, tag)) == NULL) return NULL ;
+    return cpl_frame_get_filename(cur_frame) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
    @brief   Extract the frames with the given tag from a frameset
    @param   in      A non-empty frameset
    @param   tag     The tag of the requested frames
