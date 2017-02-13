@@ -273,6 +273,100 @@ cpl_table * cr2res_orders_fit(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Turn a single table column into a polynomial
+  @param    trace table
+  @param    column name
+  @return   cpl_polynomial
+
+  Read a table column as doubles and assign them as coefficients to a cpl_polynomial.
+  The index of the column corresponds to the degree of the coefficient.
+
+  The allocated cpl_polynomial will need to be destroyed by the caller.
+ */
+/*----------------------------------------------------------------------------*/
+
+cpl_polynomial * cr2res_trace_column_to_polynomial(
+            cpl_table * trace, char * col_name) {
+    int i;
+    double coeff;
+    int flag;
+    int polyorder = cpl_table_get_nrow(trace);
+    cpl_polynomial * poly = cpl_polynomial_new(1);
+
+    for (i=0;i<polyorder;i++){
+        coeff = cpl_table_get_double(trace, col_name, i, &flag) ;
+        /* TODO: check return flag?*/
+        cpl_polynomial_set_coeff(poly, &i, coeff) ;
+    }
+
+    return poly
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Select the columns that belong to the same order as polynomials
+  @param    open trace cpl_table
+  @param    order number
+  @return   array of two polynomials
+
+
+  The polynomials will need to be dealocated by the caller.
+
+ */
+/*----------------------------------------------------------------------------*/
+
+cpl_polynomial ** cr2es_trace_open_get_polynomials(
+            cpl_table * trace, cpl_const order_nb ) {
+
+    cpl_polynomial * polys[2];
+    char * col_name;
+
+    col_name = cpl_sprintf("%2d_Upper",);
+    polys[0] = cr2res_trace_column_to_polynomial(trace, col_name);
+    cpl_free(col_name);
+
+    col_name = cpl_sprintf("%2d_Lower",);
+    polys[1] = cr2res_trace_column_to_polynomial(trace, col_name);
+    cpl_free(col_name);
+
+    return polys
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Select the columns that belong to the same order as polynomials
+  @param    open trace cpl_table
+  @param    number of orders
+  @return   int array of order numbers
+ */
+/*----------------------------------------------------------------------------*/
+
+int * cr2res_trace_get_order_numbers(
+        cpl_table trace, int * nb_orders) {
+
+        nb_orders = cpl_malloc();
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Select the columns that belong to the same order as polynomials
+  @param    decker trace cpl_table
+  @param    order number
+  @return   array of four polynomials
+ */
+/*----------------------------------------------------------------------------*/
+
+cpl_polynomial ** cr2es_trace_decker_get_polynomials(
+            cpl_table * trace, cpl_const order_nb ) {
+
+
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get the pipeline copyright and license
   @return   The copyright and license string
 
