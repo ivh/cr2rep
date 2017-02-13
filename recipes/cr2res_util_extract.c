@@ -217,16 +217,18 @@ static int cr2res_util_extract(
         const cpl_parameterlist *   parlist)
 {
     cpl_propertylist    *   plist;
-    cpl_frame           *   rawframe ;
     cpl_propertylist    *   applist;
+    const cpl_parameter *   param;
+    cpl_frameset        *   sci_frames;
+    cpl_frameset        *   trace_frames;
+    cpl_frame           *   rawframe ;
     cpl_image           *   in ;
     cpl_image           *   model ;
-    const cpl_parameter *   param;
-    cpl_frameset        *   openslit_frames;
-    cpl_frameset        *   decker_frames;
-    cpl_vector          *   ycen;
-    cpl_vector          *   slit_func;
-    cpl_vector          *   spectrum;
+    cpl_polynomial      *   trace ;
+    cpl_vector          *   ycen ;
+    cpl_vector          *   slit_func ;
+    cpl_vector          *   spectrum ;
+    int                     height ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -251,14 +253,21 @@ static int cr2res_util_extract(
     }
 
     /* Get Data */
-    openslit_frames = cr2res_extract_frameset(frameset, CR2RES_FLAT_OPEN_RAW);
-    int nb_open = cpl_frameset_get_size(openslit_frames);
-    decker_frames = cr2res_extract_frameset(frameset, CR2RES_FLAT_DECKER_RAW);
-    int nb_decker = cpl_frameset_get_size(decker_frames);
-    cpl_msg_info(__func__, "Got %d & %d open slit and decker files, resp.", nb_open, nb_decker);
+    sci_frames = cr2res_extract_frameset(frameset, CR2RES_SCI_1D_RAW);
+    int nb_sci = cpl_frameset_get_size(frameset);
+    trace_frames = cr2res_extract_frameset(frameset, CR2RES_TRACE_OPEN_PROCATG);
+    int nb_trace = cpl_frameset_get_size(frameset);
+    cpl_msg_info(__func__, "Got %d traces and %d raw frames", nb_trace, nb_sci);
+
+    // TODO: loop over traces.
+    /* Derive the ycen array and order height from trace polynomials */
+
+    trace = cpl_polynomial_new(3) ;
+    cpl_vector_fill_polynomial(ycen, trace, 0, 128) ;
+
 
     int i;
-    for (i=0; i<nb_open; i++){
+    for (i=0; i<nb_sci; i++){
         rawframe = cpl_frameset_get_position(frameset, i);
         in = cpl_image_load(cpl_frame_get_filename(rawframe), CPL_TYPE_DOUBLE,0,0);
         if (in == NULL) {
@@ -277,13 +286,10 @@ static int cr2res_util_extract(
                     spectrum
                     ); //TODO: fix call
     }
-    cpl_frameset_delete(openslit_frames);
-    for (i=0; i<nb_decker; i++){
-        rawframe = cpl_frameset_get_position(frameset, i);
-    }
-    cpl_frameset_delete(decker_frames);
-
-
+    cpl_frameset_delete(sci_frames);
+    cpl_frameset_delete(trace_frames);
+    cpl_polynomial_delete(trace);
+    cpl_vector_delete(ycen);
     cpl_image_delete(in) ;
 
     /* Add the product category  */

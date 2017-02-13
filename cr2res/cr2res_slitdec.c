@@ -57,7 +57,7 @@ cpl_image * cr2res_slitdec_vert(  cpl_image * img_in, // full detector image
                         int height, // number of pix above and below mid-line
                         int swath, // width per swath
                         int oversample, // factor for oversampling
-                        double smooth_slit, 
+                        double smooth_slit,
                         cpl_vector * slit_func, // slit illumination
                         cpl_vector * spec // spectrum
     ){
@@ -72,6 +72,7 @@ The task of this function then is to
         * cut out the relevant pixels of the order
         * shift im in y integers, so that nrows becomes minimal, adapt ycen accordingly
         * loop over swaths, in half-steps
+        * derive a good starting guess for the spectrum, by median-filter average along slit, beware of cosmics
         * run slit_func_vert()
         * merge overlapping swath results by linear weights from swath-width to edge.
         * return re-assembled model image, slit-fu, spectrum, new mask.
