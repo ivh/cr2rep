@@ -146,7 +146,7 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_extract.smooth_slit",
+    p = cpl_parameter_new_value("cr2res.cr2res_extract._slit",
             CPL_TYPE_DOUBLE,
             "Smoothing along the slit",
             "cr2res.cr2res_extract", 0.0);
@@ -158,7 +158,7 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
             CPL_TYPE_BOOL,
             "If True, sum along detector column only, instead of slit decomposition",
             "cr2res.cr2res_extract", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "sumonly");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -254,21 +254,28 @@ static int cr2res_util_extract(
 
     /* Get Data */
     sci_frames = cr2res_extract_frameset(frameset, CR2RES_SCI_1D_RAW);
-    int nb_sci = cpl_frameset_get_size(frameset);
+    int nb_sci = cpl_frameset_get_size(sci_frames);
     trace_frames = cr2res_extract_frameset(frameset, CR2RES_TRACE_OPEN_PROCATG);
-    int nb_trace = cpl_frameset_get_size(frameset);
+    int nb_trace = cpl_frameset_get_size(trace_frames);
     cpl_msg_info(__func__, "Got %d traces and %d raw frames", nb_trace, nb_sci);
 
     // TODO: loop over traces.
     /* Derive the ycen array and order height from trace polynomials */
 
-    trace = cpl_polynomial_new(3) ;
-    cpl_vector_fill_polynomial(ycen, trace, 0, 128) ;
-
-
+    trace = cpl_polynomial_new(1) ;
+    ycen = cpl_vector_new(128);
+    cpl_size power = 1;
+    cpl_polynomial_set_coeff(trace, &power, 2.0);
+    power = 2;
+    cpl_polynomial_set_coeff(trace, &power, 3.0);
+    cpl_msg_info(__func__, "%f", cpl_polynomial_eval_1d(trace,15.0,NULL));
+    cpl_vector_fill_polynomial(ycen, trace, 10, 1) ;
+    for (i=0; i<128; i++){
+        //cpl_msg_info(__func__, "%f", cpl_vector_get(ycen,i));
+    }
     int i;
     for (i=0; i<nb_sci; i++){
-        rawframe = cpl_frameset_get_position(frameset, i);
+        rawframe = cpl_frameset_get_position(sci_frames, i);
         in = cpl_image_load(cpl_frame_get_filename(rawframe), CPL_TYPE_DOUBLE,0,0);
         if (in == NULL) {
             cpl_msg_error(__func__, "Cannot load the input image") ;
