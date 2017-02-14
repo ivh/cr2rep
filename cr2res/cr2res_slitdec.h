@@ -30,14 +30,16 @@
 /*-----------------------------------------------------------------------------
                                        Prototypes
  -----------------------------------------------------------------------------*/
- cpl_image * cr2res_slitdec_vert(  cpl_image * img_in, // full detector image
-                         cpl_vector * ycen, // current order mid-line y-coordinates
-                         int height, // number of pix above and below mid-line
-                         int swath, // width per swath
-                         int oversample, // factor for oversampling
-                         double smooth_slit,
-                         cpl_vector * slit_func, // slit illumination
-                         cpl_vector * spec // spectrum
-     ) ;
+
+int cr2res_slitdec_vert(
+        cpl_image   *   img_in,
+        cpl_vector  *   ycen,
+        int             height,
+        int             swath,
+        int             oversample,
+        double          smooth_slit,
+        cpl_vector  **  slit_func,
+        cpl_vector  **  spec,
+        cpl_image   **  model)
 
 #endif
