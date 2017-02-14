@@ -68,10 +68,14 @@ cpl_image * cr2res_io_load_BLAZE_IMAGE(
         const char  *   filename,
         int             detector);
 
-cpl_image * cr2res_io_load_SLIT_ILLUM(
+cpl_image * cr2res_io_load_SLIT_MODEL(
         const char  *   filename,
         int             detector,
         int             data);
+
+cpl_table * cr2res_io_load_SLIT_FUNC(
+        const char  *   filename,
+        int             detector) ;
 
 cpl_image * cr2res_io_load_WAVE_MAP(
         const char  *   filename,
@@ -182,12 +186,21 @@ int cr2res_io_save_BLAZE_IMAGE(
         const char              *   recipe,
         const char              *   pipe_id);
 
-int cr2res_io_save_SLIT_ILLUM(
+int cr2res_io_save_SLIT_MODEL(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
         cpl_imagelist           *   data,
         cpl_imagelist           *   errors,
+        const cpl_propertylist  *   qc_list,
+        const char              *   recipe,
+        const char              *   pipe_id);
+
+int cr2res_io_save_SLIT_FUNC(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
         const char              *   recipe,
         const char              *   pipe_id);
