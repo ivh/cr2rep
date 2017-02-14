@@ -201,7 +201,6 @@ cpl_mask * cr2res_signal_detect(
     return mask ;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Fit a single order
@@ -210,8 +209,8 @@ cpl_mask * cr2res_signal_detect(
  */
 /*----------------------------------------------------------------------------*/
 cpl_array * cr2res_order_fit(
-    cpl_table             *    table,
-    cpl_size                   n)
+        cpl_table             *    table,
+        cpl_size                   n)
 {
     cpl_size                   i;
     int                   *    xs;
@@ -252,7 +251,6 @@ cpl_array * cr2res_order_fit(
     return result;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Go through the orders and initiate the polynomial fit for each
@@ -274,7 +272,8 @@ cpl_table * cr2res_orders_fit(
     cpl_table_new_column_array(fittable,"fitparams",CPL_TYPE_DOUBLE,4);
 
     for (i=1;i <= n ;i++){
-        nclusters_cur = cpl_table_and_selected_int(clustertable,"clusters",CPL_EQUAL_TO,i);
+        nclusters_cur = cpl_table_and_selected_int(clustertable,"clusters",
+                CPL_EQUAL_TO,i);
         cpl_msg_debug(__func__, "Cluster %d has %"CPL_SIZE_FORMAT" pixels",
                 i, nclusters_cur);
         seltable = cpl_table_extract_selected(clustertable);
@@ -285,10 +284,42 @@ cpl_table * cr2res_orders_fit(
         cpl_table_select_all(clustertable);
     }
 
-
     return fittable;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the positions between 2 trace polynomials
+  @param    poly1   First trace
+  @param    poly2   Second trace
+  @param    size    Output vector size
+  @return   
+  The returned vector contains the pixel positions of the middle of the
+  2 traces. 
+  The nth vector value is trace1(n) + trace2(n) / 2
+  n=1 for the first value
+ */
+/*----------------------------------------------------------------------------*/
+cpl_vector * cr2res_trace_compute_middle(
+        cpl_polynomial  *   trace1,
+        cpl_polynomial  *   trace2,
+        int                 vector_size)
+{
+    cpl_vector  *   out ;
+    double      *   pout ;
+    int             i ;
+
+    /* Allocate the output vector */
+    out = cpl_vector_new(vector_size) ;
+    pout = cpl_vector_get_data(out) ;
+
+    /* Loop on the vector */
+    for (i=0 ; i<vector_size ; i++) {
+        pout[i] = (cpl_polynomial_eval_1d(trace1, (double)(i+1), NULL) +
+            cpl_polynomial_eval_1d(trace1, (double)(i+1), NULL)) / 2.0 ;
+    }
+    return out ;
+}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -297,16 +328,17 @@ cpl_table * cr2res_orders_fit(
   @param    column name
   @return   cpl_polynomial
 
-  Read a table column as doubles and assign them as coefficients to a cpl_polynomial.
+  Read a table column as doubles and assign them as coefficients to a 
+  cpl_polynomial.
   The index of the column corresponds to the degree of the coefficient.
 
   The allocated cpl_polynomial will need to be destroyed by the caller.
  */
 /*----------------------------------------------------------------------------*/
-
 cpl_polynomial * cr2res_trace_column_to_polynomial(
-            cpl_table * trace, char * col_name) {
-    int i;
+            cpl_table   *   trace, 
+            char        *   col_name) {
+    cpl_size i;
     double coeff;
     int flag;
     int polyorder = cpl_table_get_nrow(trace);
@@ -317,10 +349,8 @@ cpl_polynomial * cr2res_trace_column_to_polynomial(
         /* TODO: check return flag?*/
         cpl_polynomial_set_coeff(poly, &i, coeff) ;
     }
-
     return poly;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -329,29 +359,30 @@ cpl_polynomial * cr2res_trace_column_to_polynomial(
   @param    order number
   @return   array of two polynomials
 
-
   The polynomials will need to be dealocated by the caller.
 
  */
 /*----------------------------------------------------------------------------*/
-
 cpl_polynomial ** cr2es_trace_open_get_polynomials(
-            cpl_table * trace, cpl_size order_nb ) {
+            cpl_table   *   trace,
+            cpl_size        order_nb ) {
 
-    cpl_polynomial * polys[2];
+    cpl_polynomial ** polys ;
     char * col_name;
 
-    col_name = cpl_sprintf("%2d_Upper",order_nb);
+    /* Allocate the returned pointer */
+    polys = cpl_malloc(2 * sizeof(cpl_polynomial*)) ;
+
+    col_name = cpl_sprintf("%2d_Upper",(int)order_nb);
     polys[0] = cr2res_trace_column_to_polynomial(trace, col_name);
     cpl_free(col_name);
 
-    col_name = cpl_sprintf("%2d_Lower",order_nb);
+    col_name = cpl_sprintf("%2d_Lower",(int)order_nb);
     polys[1] = cr2res_trace_column_to_polynomial(trace, col_name);
     cpl_free(col_name);
 
     return polys;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -361,7 +392,6 @@ cpl_polynomial ** cr2es_trace_open_get_polynomials(
   @return   int array of order numbers
  */
 /*----------------------------------------------------------------------------*/
-
 int * cr2res_trace_get_order_numbers(
         cpl_table * trace, int * nb_orders) {
 
@@ -376,13 +406,11 @@ int * cr2res_trace_get_order_numbers(
   @return   array of four polynomials
  */
 /*----------------------------------------------------------------------------*/
-
 cpl_polynomial ** cr2es_trace_decker_get_polynomials(
             cpl_table * trace, cpl_size order_nb ) {
 
 
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
