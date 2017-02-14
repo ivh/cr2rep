@@ -1,5 +1,5 @@
 /*
- * This file is part of the CR2RES Pipeline
+ * This file is part of the CR2RE Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -84,7 +84,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
                     "cr2res_util_extract",
-                    "Extraction utility",
+                    "extract utility recipe",
                     cr2res_util_extract_description,
                     "Thomas Marquart, Yves Jung",
                     PACKAGE_BUGREPORT,
@@ -130,30 +130,35 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
-    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.oversample",
-            CPL_TYPE_INT, "factor by which to oversample the extraction",
-            "cr2res.cr2res_util_extract", 10);
+    p = cpl_parameter_new_value("cr2res.cr2res_extract.oversample",
+            CPL_TYPE_INT,
+            "factor by which to oversample the extraction",
+            "cr2res.cr2res_extract", 10);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "oversample");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.swath_width",
-            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_util_extract", 256);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "swath_width");
+    p = cpl_parameter_new_value("cr2res.cr2res_extract.swath_width",
+            CPL_TYPE_INT,
+            "The swath width (number of columns) over which the slit function is assumed constant",
+            "cr2res.cr2res_extract", 256);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "swathwidth");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.smooth_slit",
-            CPL_TYPE_DOUBLE, "Smoothing along the slit",
-            "cr2res.cr2res_util_extract", 0.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_slit");
+    p = cpl_parameter_new_value("cr2res.cr2res_extract._slit",
+            CPL_TYPE_DOUBLE,
+            "Smoothing along the slit",
+            "cr2res.cr2res_extract", 0.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smoothslit");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.sum_only",
-            CPL_TYPE_BOOL, "Flag to only sum along detector",
-            "cr2res.cr2res_util_extract", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "sum_only");
+    p = cpl_parameter_new_value("cr2res.cr2res_extract.sum_only",
+            CPL_TYPE_BOOL,
+            "If True, sum along detector column only, instead of slit decomposition",
+            "cr2res.cr2res_extract", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "sumonly");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -211,36 +216,36 @@ static int cr2res_util_extract(
         cpl_frameset            *   frameset,
         const cpl_parameterlist *   parlist)
 {
+    cpl_propertylist    *   plist;
+    cpl_propertylist    *   applist;
     const cpl_parameter *   param;
-    int                     oversample, swath_width, sum_only ;
-    double                  smooth_slit ;
-    char                *   science_file ;
-    char                *   trace_file ;
-    cpl_table           *   trace_table ;
-    int                 *   orders ;
-    int                     nb_orders ;
-    cpl_image           *   science_ima ;
-    cpl_polynomial      **  traces ;
-    cpl_vector          *   y_center ;
-    int                     det_nr ;
+    cpl_frameset        *   sci_frames;
+    cpl_frameset        *   trace_frames;
+    cpl_frame           *   rawframe ;
+    cpl_image           *   in ;
+    cpl_image           *   model ;
+    cpl_polynomial      *   trace ;
+    cpl_vector          *   ycen ;
+    cpl_vector          *   slit_func ;
+    cpl_vector          *   spectrum ;
+    int                     height ;
+    int                     i;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_extract.oversample");
-    oversample = cpl_parameter_get_int(param);
+    int oversample = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.swath_width");
-    swath_width = cpl_parameter_get_int(param);
+            "cr2res.cr2res_extract.swath_width");
+    int swath_width = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.smooth_slit");
-    smooth_slit = cpl_parameter_get_double(param);
+            "cr2res.cr2res_extract.smooth_slit");
+    double smooth_slit = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.sum_only");
-    sum_only = cpl_parameter_get_bool(param);
+            "cr2res.cr2res_extract.sum_only");
+    int cpl_lab = cpl_parameter_get_bool(param);
 
     /* Check Parameters */
-    /* TODO */
-
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot identify RAW and CALIB frames") ;
@@ -248,68 +253,65 @@ static int cr2res_util_extract(
         return -1 ;
     }
 
-    /* Get Inputs */
-    science_file = cr2res_extract_filename(frameset, CR2RES_SCI_1D_RAW) ;
-    trace_file = cr2res_extract_filename(frameset, CR2RES_TRACE_OPEN_PROCATG); 
-    if (science_file == NULL || trace_file == NULL) {
-        cpl_msg_error(__func__, "The utility needs a science file and a trace");
-        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
-        return -1 ;
+    /* Get Data */
+    sci_frames = cr2res_extract_frameset(frameset, CR2RES_SCI_1D_RAW);
+    int nb_sci = cpl_frameset_get_size(sci_frames);
+    trace_frames = cr2res_extract_frameset(frameset, CR2RES_TRACE_OPEN_PROCATG);
+    int nb_trace = cpl_frameset_get_size(trace_frames);
+    cpl_msg_info(__func__, "Got %d traces and %d raw frames", nb_trace, nb_sci);
+
+    // TODO: loop over traces.
+    /* Derive the ycen array and order height from trace polynomials */
+
+    trace = cpl_polynomial_new(1) ;
+    ycen = cpl_vector_new(128);
+    cpl_size power = 1;
+    cpl_polynomial_set_coeff(trace, &power, 2.0);
+    power = 2;
+    cpl_polynomial_set_coeff(trace, &power, 3.0);
+    cpl_msg_info(__func__, "%f", cpl_polynomial_eval_1d(trace,15.0,NULL));
+    cpl_vector_fill_polynomial(ycen, trace, 10, 1) ;
+    for (i=0; i<128; i++){
+        //cpl_msg_info(__func__, "%f", cpl_vector_get(ycen,i));
     }
-
-    /* Loop over the detectors */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
-        cpl_msg_indent_more() ;
-
-        /* Load the trace table of this detector */
-        trace_table = cr2res_io_load_TRACE_OPEN(trace_file, det_nr) ;
-
-        /* Get the list of orders in the trace table */
-        orders = cr2res_trace_get_order_numbers(trace_table, &nb_orders) ;
-
-        /* Load the image in which the orders are to extract*/
-        science_ima = cpl_image_load(science_file, CPL_TYPE_FLOAT, 0, det_nr) ;
-        
-        /* Loop over the orders and extract them */
-        for (i=0 ; i<nb_orders ; i++) {
-            cpl_msg_info(__func__, "Process Order number %d", orders[i]) ;
-            cpl_msg_indent_more() ;
-
-            /* Get the 2 Traces for the current order */
-            traces = cr2res_(trace_table, orders[i]) ;
-
-            /* Get the values between the 2 traces  */
-            y_center = cr2res_(traces[0], traces[1],
-                    cpl_image_get_size_x(science_ima);) ;
-            cpl_polynomial_delete(traces[0]) ;
-            cpl_polynomial_delete(traces[1]) ;
-
-            if (cr2res_slitdec_vert(science_ima, y_center, 10, 
-                    swath_width, oversample, smooth_slit, spectrum) !=
-                    CPL_ERROR_NONE) {
-
-                cpl_msg_error(__func__, 
-                        "Cannot extract order %d on detector %d",
-
-            }
-            cpl_free(y_center) ;
-            cpl_msg_indent_less() ;
+    for (i=0; i<nb_sci; i++){
+        rawframe = cpl_frameset_get_position(sci_frames, i);
+        in = cpl_image_load(cpl_frame_get_filename(rawframe), CPL_TYPE_DOUBLE,0,0);
+        if (in == NULL) {
+            cpl_msg_error(__func__, "Cannot load the input image") ;
+            cpl_propertylist_delete(plist) ;
+            return -1 ;
         }
-
-        /* Deallocate */
-        cpl_image_delete(science_ima) ;
-        cpl_free(orders) ;
-        cpl_table_delete(trace_table) ;
-
-        cpl_msg_indent_less() ;
+        plist = cpl_propertylist_load(cpl_frame_get_filename(rawframe), 0);
+        model = cr2res_slitdec_vert(in,
+                    ycen,
+                    10, // height
+                    swath_width,
+                    oversample,
+                    smooth_slit,
+                    slit_func,
+                    spectrum
+                    ); //TODO: fix call
     }
+    cpl_frameset_delete(sci_frames);
+    cpl_frameset_delete(trace_frames);
+    cpl_polynomial_delete(trace);
+    cpl_vector_delete(ycen);
+    cpl_image_delete(in) ;
 
-    /* Save the Products */
+    /* Add the product category  */
+    applist = cpl_propertylist_duplicate(plist);
+    cpl_propertylist_append_string(applist, CPL_DFS_PRO_CATG,
+            CR2RES_TRACE_OPEN_PROCATG);
 
+    /* Save Product */
+    cpl_dfs_save_image(frameset, plist, parlist, frameset, NULL,
+            model, CPL_BPP_IEEE_FLOAT, "cr2res_util_extract", applist,
+            NULL, PACKAGE "/" PACKAGE_VERSION, "cr2res_util_extract.fits") ;
 
     /* Free and return */
-
-
+    cpl_image_delete(model) ;
+    cpl_propertylist_delete(plist) ;
+    cpl_propertylist_delete(applist) ;
     return (int)cpl_error_get_code();
 }

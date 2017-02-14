@@ -32,6 +32,7 @@
                                    Defines
  -----------------------------------------------------------------------------*/
 
+
  typedef unsigned char byte;
  #define min(a,b) (((a)<(b))?(a):(b))
  #define max(a,b) (((a)>(b))?(a):(b))
@@ -41,6 +42,7 @@
  -----------------------------------------------------------------------------*/
 
  int bandsol(double *a, double *r, int n, int nd) ;
+
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -77,22 +79,44 @@ The task of this function then is to
     */
 
     double * model;
+    cpl_mask * mask_cpl;
+    cpl_binary * mask_cpl_data;
+
+    double *sP, *sL, *ycen; // raw data of cpl vec and matrices
+    sP = cpl_vector_get_data(sP_cpl);
+    sL = cpl_vector_get_data(sL_cpl);
+    ycen = cpl_vector_get_data(ycen_cpl);
+    double im[nrows][ncols];
+    memcpy(im, cpl_image_get_data(img_in), sizeof(im));
 
     model = cpl_image_get_data(img_in);
 
-    return cpl_image_wrap_double(ncols, nrows, (double *)model);;
+/*
+reconstruct "mask" which is the inverse of the bad-pixel-mask attached to the image
+*/
+    mask_cpl = cpl_image_get_bpm(img_in);
+    cpl_mask_not(mask_cpl);
+    mask_cpl_data = cpl_mask_get_data(mask_cpl);
+    for(i=0; i<nrows;i++){
+        for(j=0; j<ncols;j++) mask[i][j] = (byte)mask_cpl_data[i*ncols + j];
+    }
+
+
+    return cpl_image_wrap_double(ncols, nrows, (double *)model);
 }
 
 
-// returns model
-cpl_image * slit_func_vert(int ncols,             /* Swath width in pixels                                 */
+/* Internal function, not announced via .h, only called by wrapper above */
+/* It gets its input & output arrays pre-accocated, allocates only double arrays */
+double * slit_func_vert(int ncols,             /* Swath width in pixels                                 */
                    int nrows,                     /* Extraction slit height in pixels                      */
                    int osample,                   /* Subpixel ovsersampling factor                         */
-                   cpl_image * im_cpl,            /* Image to be decomposed                                */
-                   cpl_vector * ycen_cpl,         /* Order centre line offset from pixel row boundary      */
-                   cpl_vector * sL_cpl,           /* Slit function resulting from decomposition, start     */
+                   double * im,                   /* Image to be decomposed                                */
+                   double * ycen,         /* Order centre line offset from pixel row boundary      */
+                   double * sL,           /* Slit function resulting from decomposition, start     */
                                                   /* guess is input, gets overwriteten with result         */
-                   cpl_vector * sP_cpl,           /* Spectrum resulting from decomposition                 */
+                   double * sP,           /* Spectrum resulting from decomposition                 */
+                   double * model,       /* the model reconstruction of im*/
                    double lambda_sP,              /* Smoothing parameter for the spectrum, coiuld be zero  */
                    double lambda_sL,              /* Smoothing parameter for the slit function, usually >0 */
                    double sP_stop,                /* Fraction of spectyrum change, stop condition          */
@@ -102,12 +126,6 @@ cpl_image * slit_func_vert(int ncols,             /* Swath width in pixels      
 	double step, d1, d2, sum, norm, dev, lambda, diag_tot, sP_change, sP_max;
 	int info, iter, isum;
 
-    nd=2*osample+1;
-	ny=osample*(nrows+1)+1; /* The size of the sf array */
-    if ( ny != (int)cpl_vector_get_size(sL_cpl) ) {
-        cpl_msg_error(__func__, "Size for sL does not match! %d %d",ny,(int)cpl_vector_get_size(sL_cpl));
-    }
-    step=1.e0/osample;
     double omega[ny][nrows][ncols];
     byte mask[nrows][ncols];
     double E[ncols];
@@ -116,25 +134,10 @@ cpl_image * slit_func_vert(int ncols,             /* Swath width in pixels      
     double Aij[ny*ny];
     double bj[ny];
     double Adiag[ncols*3];
-    cpl_mask * mask_cpl;
-    cpl_binary * mask_cpl_data;
 
-    double *sP, *sL, *ycen; // raw data of cpl vec and matrices
-    sP = cpl_vector_get_data(sP_cpl);
-    sL = cpl_vector_get_data(sL_cpl);
-    ycen = cpl_vector_get_data(ycen_cpl);
-    double im[nrows][ncols];
-    memcpy(im, cpl_image_get_data(im_cpl), sizeof(im));
-
-/*
-reconstruct "mask" which is the inverse of the bad-pixel-mask attached to the image
-*/
-    mask_cpl = cpl_image_get_bpm(im_cpl);
-    cpl_mask_not(mask_cpl);
-    mask_cpl_data = cpl_mask_get_data(mask_cpl);
-    for(i=0; i<nrows;i++){
-        for(j=0; j<ncols;j++) mask[i][j] = (byte)mask_cpl_data[i*ncols + j];
-    }
+    nd=2*osample+1;
+	ny=osample*(nrows+1)+1; /* The size of the sf array */
+    step=1.e0/osample;
 
 /*
    Construct the omega tensor. Normally it has the dimensionality of ny*nrows*ncols.

@@ -42,7 +42,7 @@
 /**
    @brief   Extract the filename for the first frame of the given tag
    @param   in      A non-empty frameset
-   @param   tag     The tag of the requested file 
+   @param   tag     The tag of the requested file
    @return  Pointer to the file
  */
 /*----------------------------------------------------------------------------*/
@@ -318,7 +318,7 @@ cpl_polynomial * cr2res_trace_column_to_polynomial(
         cpl_polynomial_set_coeff(poly, &i, coeff) ;
     }
 
-    return poly
+    return poly;
 }
 
 
@@ -336,20 +336,20 @@ cpl_polynomial * cr2res_trace_column_to_polynomial(
 /*----------------------------------------------------------------------------*/
 
 cpl_polynomial ** cr2es_trace_open_get_polynomials(
-            cpl_table * trace, cpl_const order_nb ) {
+            cpl_table * trace, cpl_size order_nb ) {
 
     cpl_polynomial * polys[2];
     char * col_name;
 
-    col_name = cpl_sprintf("%2d_Upper",);
+    col_name = cpl_sprintf("%2d_Upper",order_nb);
     polys[0] = cr2res_trace_column_to_polynomial(trace, col_name);
     cpl_free(col_name);
 
-    col_name = cpl_sprintf("%2d_Lower",);
+    col_name = cpl_sprintf("%2d_Lower",order_nb);
     polys[1] = cr2res_trace_column_to_polynomial(trace, col_name);
     cpl_free(col_name);
 
-    return polys
+    return polys;
 }
 
 
@@ -363,9 +363,9 @@ cpl_polynomial ** cr2es_trace_open_get_polynomials(
 /*----------------------------------------------------------------------------*/
 
 int * cr2res_trace_get_order_numbers(
-        cpl_table trace, int * nb_orders) {
+        cpl_table * trace, int * nb_orders) {
 
-        nb_orders = cpl_malloc();
+        nb_orders = 1; //cpl_malloc();
 }
 
 /*----------------------------------------------------------------------------*/
@@ -378,7 +378,7 @@ int * cr2res_trace_get_order_numbers(
 /*----------------------------------------------------------------------------*/
 
 cpl_polynomial ** cr2es_trace_decker_get_polynomials(
-            cpl_table * trace, cpl_const order_nb ) {
+            cpl_table * trace, cpl_size order_nb ) {
 
 
 }
