@@ -399,7 +399,7 @@ int * cr2res_trace_get_order_numbers(
     cpl_size ncols;
     const char * col_name;
     char * numstr;
-    numstr = cpl_malloc(2*sizeof(char))
+    numstr = cpl_malloc(2*sizeof(char)) ;
     int i,j;
     int * order_numbers;
     int * order_indices;
