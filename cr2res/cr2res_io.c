@@ -123,7 +123,7 @@ cpl_image * cr2res_io_load_MASTER_FLAT(
   @brief    Load a table from a TRACE_OPEN
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
-  @return   A table or NULL in error case. The returned object 
+  @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -131,7 +131,7 @@ cpl_table * cr2res_io_load_TRACE_OPEN(
         const char  *   filename,
         int             detector)
 {
-        return NULL ;
+        return cpl_table_load(filename,detector,1);
 }
 
 
@@ -141,7 +141,7 @@ cpl_table * cr2res_io_load_TRACE_OPEN(
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
   @param    decker_type [out] CR2RES_DECKER_1_3 or CR2RES_DECKER_2_4
-  @return   A table or NULL in error case. The returned object 
+  @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -158,7 +158,7 @@ cpl_table * cr2res_io_load_TRACE_DECKER(
   @brief    Load a table from a BLAZE
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
-  @return   A table or NULL in error case. The returned object 
+  @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -228,7 +228,7 @@ cpl_image * cr2res_io_load_WAVE_MAP(
   @brief    Load a table from a WAVE_SUB_ORDER
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
-  @return   A table or NULL in error case. The returned object 
+  @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -279,7 +279,7 @@ cpl_image * cr2res_io_load_TILT_MAP(
   @brief    Load a table from a TILT_POLY
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
-  @return   A table or NULL in error case. The returned object 
+  @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -296,7 +296,7 @@ cpl_table * cr2res_io_load_TILT_POLY(
   @brief    Load a table from a EXTRACT_1D
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
-  @return   A table or NULL in error case. The returned object 
+  @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -313,7 +313,7 @@ cpl_table * cr2res_io_load_EXTRACT_1D(
   @brief    Load a table from a SPLICED_1D
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
-  @return   A table or NULL in error case. The returned object 
+  @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -329,7 +329,7 @@ cpl_table * cr2res_io_load_SPLICED_1D(
 /**
   @brief    Load a table from a EXTRACT_2D
   @param    filename    The FITS file name
-  @return   A table or NULL in error case. The returned object 
+  @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -345,7 +345,7 @@ cpl_table * cr2res_io_load_EXTRACT_2D(
   @brief    Load a table from a EXTRACT_POL
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
-  @return   A table or NULL in error case. The returned object 
+  @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -397,7 +397,7 @@ int cr2res_io_save_MASTER_DARK(
 
     /* Create the Primary Data Unit without data */
     if (cpl_dfs_save_image(allframes, NULL, parlist, used_frames, NULL, NULL,
-                CPL_BPP_IEEE_FLOAT, recipe, qclist_loc, NULL, 
+                CPL_BPP_IEEE_FLOAT, recipe, qclist_loc, NULL,
                 PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot save the empty primary HDU") ;
         cpl_propertylist_delete(qclist_loc) ;

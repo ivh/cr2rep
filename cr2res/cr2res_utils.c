@@ -395,7 +395,41 @@ cpl_polynomial ** cr2es_trace_open_get_polynomials(
 int * cr2res_trace_get_order_numbers(
         cpl_table * trace, int * nb_orders) {
 
-        nb_orders = 1; //cpl_malloc();
+    cpl_array * col_names;
+    cpl_size ncols;
+    const char * col_name;
+    char * numstr;
+    numstr = cpl_malloc(2*sizeof(char))
+    int i,j;
+    int * order_numbers;
+    int * order_indices;
+    order_indices = cpl_malloc(128*sizeof(int));
+
+    col_names = cpl_table_get_column_names(trace);
+    ncols = cpl_array_get_size(col_names);
+    for (i=0;i<ncols;i++){
+        col_name = cpl_array_get_string(col_names, i);
+        memcpy(numstr,col_name,2*sizeof(char));
+        j = atoi(numstr);
+        order_indices[j] = 1;
+    }
+    *nb_orders=0;
+    for (i=0;i<128;i++){
+        *nb_orders += order_indices[i];
+    }
+    order_numbers = cpl_malloc(*nb_orders * sizeof(int));
+    j=0;
+    for (i=0;i<128;i++){
+        if (order_indices[i]==1){
+            order_numbers[j]=i;
+            j++;
+        }
+    }
+
+    cpl_free(numstr);
+    cpl_free(order_indices);
+    cpl_array_delete(col_names);
+    return order_numbers;
 }
 
 /*----------------------------------------------------------------------------*/
