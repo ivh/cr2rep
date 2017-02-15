@@ -293,9 +293,9 @@ cpl_table * cr2res_orders_fit(
   @param    poly1   First trace
   @param    poly2   Second trace
   @param    size    Output vector size
-  @return   
+  @return
   The returned vector contains the pixel positions of the middle of the
-  2 traces. 
+  2 traces.
   The nth vector value is trace1(n) + trace2(n) / 2
   n=1 for the first value
  */
@@ -328,7 +328,7 @@ cpl_vector * cr2res_trace_compute_middle(
   @param    column name
   @return   cpl_polynomial
 
-  Read a table column as doubles and assign them as coefficients to a 
+  Read a table column as doubles and assign them as coefficients to a
   cpl_polynomial.
   The index of the column corresponds to the degree of the coefficient.
 
@@ -336,7 +336,7 @@ cpl_vector * cr2res_trace_compute_middle(
  */
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_trace_column_to_polynomial(
-            cpl_table   *   trace, 
+            cpl_table   *   trace,
             char        *   col_name) {
     cpl_size i;
     double coeff;
@@ -359,7 +359,7 @@ cpl_polynomial * cr2res_trace_column_to_polynomial(
   @param    order number
   @return   array of two polynomials
 
-  The polynomials will need to be dealocated by the caller.
+  The polynomials will need to be destroyed by the caller.
 
  */
 /*----------------------------------------------------------------------------*/
@@ -386,10 +386,13 @@ cpl_polynomial ** cr2es_trace_open_get_polynomials(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Select the columns that belong to the same order as polynomials
-  @param    open trace cpl_table
-  @param    number of orders
+  @brief    Count and return the order numbers in a trace table
+  @param    trace cpl_table
+  @param    number of orders (output)
   @return   int array of order numbers
+
+The int array will need to be freed by the caller.
+
  */
 /*----------------------------------------------------------------------------*/
 int * cr2res_trace_get_order_numbers(
