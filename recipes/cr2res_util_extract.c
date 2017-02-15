@@ -44,6 +44,10 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static cpl_table * cr2res_slit_func_tab_create(
+        cpl_vector      **  slit_func,
+        int             *   orders,
+        int                 nborders) ;
 static int cr2res_util_extract_create(cpl_plugin *);
 static int cr2res_util_extract_exec(cpl_plugin *);
 static int cr2res_util_extract_destroy(cpl_plugin *);
@@ -63,6 +67,14 @@ static char cr2res_util_extract_description[] =
 /*-----------------------------------------------------------------------------
                                 Function code
  -----------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @defgroup cr2res_util_extract 	Optimal Extraction Utility
+ */
+/*----------------------------------------------------------------------------*/
+
+/**@{*/
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -219,10 +231,17 @@ static int cr2res_util_extract(
     const char          *   trace_file ;
     cpl_table           *   trace_table ;
     int                 *   orders ;
-    int                     nb_orders ;
+    int                     nb_orders[CR2RES_NB_DETECTORS] ;
     cpl_image           *   science_ima ;
     cpl_polynomial      **  traces ;
     cpl_vector          *   y_center ;
+    cpl_image           *   model_master[CR2RES_NB_DETECTORS] ;
+    cpl_image           *   model_tmp ;
+    cpl_vector          **  spectrum[CR2RES_NB_DETECTORS] ;
+    cpl_vector          **  spectrum_error[CR2RES_NB_DETECTORS] ;
+    cpl_vector          **  slit_func[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   slit_func_tab[CR2RES_NB_DETECTORS] ;
+
     int                     det_nr, i ;
 
     /* RETRIEVE INPUT PARAMETERS */
@@ -267,13 +286,29 @@ static int cr2res_util_extract(
         trace_table = cr2res_io_load_TRACE_OPEN(trace_file, det_nr) ;
 
         /* Get the list of orders in the trace table */
-        orders = cr2res_trace_get_order_numbers(trace_table, &nb_orders) ;
+        orders = cr2res_trace_get_order_numbers(trace_table, 
+                &(nb_orders[det_nr-1])) ;
 
         /* Load the image in which the orders are to extract*/
         science_ima = cpl_image_load(science_file, CPL_TYPE_FLOAT, 0, det_nr) ;
         
+        /* Allocate Data containers */
+        spectrum[det_nr-1] = cpl_malloc(nb_orders[det_nr-1] * 
+                sizeof(cpl_vector *)) ;
+        slit_func[det_nr-1] = cpl_malloc(nb_orders[det_nr-1] * 
+                sizeof(cpl_vector *)) ;
+        model_master[det_nr-1] = cpl_image_duplicate(science_ima) ;
+        cpl_image_multiply_scalar(model_master[det_nr-1], 0.0) ;
+
+        /*
+        cpl_free(orders) ;
+        cpl_table_delete(trace_table) ;
+        cpl_image_delete(science_ima) ;
+        return 0 ;
+        */
+
         /* Loop over the orders and extract them */
-        for (i=0 ; i<nb_orders ; i++) {
+        for (i=0 ; i<nb_orders[det_nr-1] ; i++) {
             cpl_msg_info(__func__, "Process Order number %d", orders[i]) ;
             cpl_msg_indent_more() ;
 
@@ -285,35 +320,76 @@ static int cr2res_util_extract(
                     cpl_image_get_size_x(science_ima)) ;
             cpl_polynomial_delete(traces[0]) ;
             cpl_polynomial_delete(traces[1]) ;
+            cpl_free(traces) ;
 
             if (cr2res_slitdec_vert(science_ima, y_center, 10, 
-                    swath_width, oversample, smooth_slit, spectrum) !=
-                    CPL_ERROR_NONE) {
-
+                    swath_width, oversample, smooth_slit,
+                    &(slit_func[det_nr-1][i]),
+                    &(spectrum[det_nr-1][i]),
+                    &model_tmp) != 0) {
                 cpl_msg_error(__func__, 
                         "Cannot extract order %d on detector %d",
-
+                        orders[i], det_nr) ;
+                slit_func[det_nr-1][i] = NULL ;
+                spectrum[det_nr-1][i] = NULL ;
+                model_tmp = NULL ;
             }
             cpl_free(y_center) ;
+
+            /* Update the model global image */
+            if (model_tmp != NULL) {
+                cpl_image_add(model_master[det_nr-1], model_tmp) ;
+                cpl_image_delete(model_tmp) ;
+            }
             cpl_msg_indent_less() ;
         }
-
-        /* Deallocate */
         cpl_image_delete(science_ima) ;
-        cpl_free(orders) ;
         cpl_table_delete(trace_table) ;
 
+        /* Create the slit_func_tab for the current detector */
+        slit_func_tab[det_nr-1] = cr2res_slit_func_tab_create(
+                slit_func[det_nr-1], orders, nb_orders[det_nr-1]) ;
+        for (i=0 ; i<nb_orders[det_nr-1] ; i++) {
+            cpl_vector_delete(slit_func[det_nr-1][i]) ;
+            cpl_vector_delete(spectrum[det_nr-1][i]) ;
+        }
+        cpl_free(orders) ;
         cpl_msg_indent_less() ;
     }
 
     /* Save the Products */
-    cr2res_io_save_SLIT_MODEL() ;
-    cr2res_io_save_SLIT_FUNC() ;
-
-
+    /* cr2res_io_save_SLIT_MODEL() ; */
+    cr2res_io_save_SLIT_FUNC("cr2res_util_extract_slit_func.fits", frameset, 
+            parlist, slit_func_tab, NULL, "cr2res_util_extract", 
+            PACKAGE "/" PACKAGE_VERSION) ;
 
     /* Free and return */
-
-
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        cpl_table_delete(slit_func_tab[det_nr-1]) ;
+    }
     return (int)cpl_error_get_code();
 }
+
+/**@}*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Create the slit functions table to be saved
+  @param    slit_func   The slit functions of the different orders
+  @param    orders      The orders numbers
+  @param    nborders    The number of orders
+  @return   the slit_func table or NULL
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_table * cr2res_slit_func_tab_create(
+        cpl_vector      **  slit_func,
+        int             *   orders,
+        int                 nborders)
+{
+
+    return NULL ;
+
+
+
+}
+
