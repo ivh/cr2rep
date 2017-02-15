@@ -300,13 +300,6 @@ static int cr2res_util_extract(
         model_master[det_nr-1] = cpl_image_duplicate(science_ima) ;
         cpl_image_multiply_scalar(model_master[det_nr-1], 0.0) ;
 
-        /*
-        cpl_free(orders) ;
-        cpl_table_delete(trace_table) ;
-        cpl_image_delete(science_ima) ;
-        return 0 ;
-        */
-
         /* Loop over the orders and extract them */
         for (i=0 ; i<nb_orders[det_nr-1] ; i++) {
             cpl_msg_info(__func__, "Process Order number %d", orders[i]) ;
@@ -334,7 +327,7 @@ static int cr2res_util_extract(
                 spectrum[det_nr-1][i] = NULL ;
                 model_tmp = NULL ;
             }
-            cpl_free(y_center) ;
+            cpl_vector_delete(y_center) ;
 
             /* Update the model global image */
             if (model_tmp != NULL) {
@@ -342,6 +335,7 @@ static int cr2res_util_extract(
                 cpl_image_delete(model_tmp) ;
             }
             cpl_msg_indent_less() ;
+    printf("A : %s\n", cpl_error_get_where()) ;
         }
         cpl_image_delete(science_ima) ;
         cpl_table_delete(trace_table) ;
@@ -350,9 +344,13 @@ static int cr2res_util_extract(
         slit_func_tab[det_nr-1] = cr2res_slit_func_tab_create(
                 slit_func[det_nr-1], orders, nb_orders[det_nr-1]) ;
         for (i=0 ; i<nb_orders[det_nr-1] ; i++) {
-            cpl_vector_delete(slit_func[det_nr-1][i]) ;
-            cpl_vector_delete(spectrum[det_nr-1][i]) ;
+            if (slit_func[det_nr-1][i] != NULL)
+                cpl_vector_delete(slit_func[det_nr-1][i]) ;
+            if (spectrum[det_nr-1][i] != NULL)
+                cpl_vector_delete(spectrum[det_nr-1][i]) ;
         }
+        cpl_free(spectrum[det_nr-1]) ;
+        cpl_free(slit_func[det_nr-1]) ;
         cpl_free(orders) ;
         cpl_msg_indent_less() ;
     }
@@ -366,7 +364,9 @@ static int cr2res_util_extract(
     /* Free and return */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         cpl_table_delete(slit_func_tab[det_nr-1]) ;
+        cpl_image_delete(model_master[det_nr-1]) ;
     }
+    printf("%s\n", cpl_error_get_where()) ;
     return (int)cpl_error_get_code();
 }
 
@@ -386,10 +386,43 @@ static cpl_table * cr2res_slit_func_tab_create(
         int             *   orders,
         int                 nborders)
 {
+    cpl_table       *   out ;
+    char            *   col_name ;
+    const double    *   pslit ;
+    int                 nrows, all_null, i ;
 
-    return NULL ;
+    /* Check entries */
+    if (slit_func == NULL) return NULL ;
+    if (nborders < 1) return NULL ;
+    
+    /* Check the all vectorѕ are not null */
+    all_null = 1 ;
+    for (i=0 ; i<nborders ; i++) 
+        if (slit_func[i] != NULL) {
+            nrows = cpl_vector_get_size(slit_func[i]) ;
+            all_null = 0 ;
+        }
+    if (all_null == 1) return NULL ;
 
+    /* Check the sizes */
+    for (i=0 ; i<nborders ; i++) 
+        if (slit_func[i] != NULL && cpl_vector_get_size(slit_func[i]) != nrows)
+            return NULL ;
+ 
+    /* Create the table */
+    out = cpl_table_new(nrows);
+    for (i=0 ; i<nborders ; i++) {
+        col_name = cpl_sprintf("%02d_SLIT_FUNC", orders[i]) ;
+        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+        cpl_free(col_name) ;
+    }
 
-
+    /* Fill the table */
+    for (i=0 ; i<nborders ; i++) {
+        pslit = cpl_vector_get_data_const(slit_func[i]) ;
+        col_name = cpl_sprintf("%02d_SLIT_FUNC", orders[i]) ;
+        cpl_table_copy_data_double(out, col_name, pslit) ;
+        cpl_free(col_name) ;
+    }
+    return out ;
 }
-
