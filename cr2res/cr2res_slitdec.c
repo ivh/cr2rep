@@ -123,8 +123,11 @@ int cr2res_slitdec_vert(
     cpl_size lenx;
     cpl_image * img_sw;
     cpl_image * tmp;
+    cpl_image * img_out;
     cpl_vector * spec_sw;
     cpl_vector * slitfu_sw;
+    cpl_vector * spc;
+    cpl_vector * slitfu;
 
     lenx = cpl_image_get_size_x(img_in);
     nswaths = (lenx / swath) ; // TODO: Allow last swath be partial
@@ -139,6 +142,10 @@ int cr2res_slitdec_vert(
         ycen_rest[i] = fmod(cpl_vector_get(ycen,i), 1.0) ;
     }
 
+    // Local versions of return data
+    slitfu = cpl_vector_new(height);
+    spc = cpl_vector_new(lenx);
+    img_out = cpl_image_new(lenx, cpl_image_get_size_y(img_in), CPL_TYPE_DOUBLE);
 
     for (i=0;i<nswaths;i++){
         sw_start = i*swath;
@@ -149,7 +156,7 @@ int cr2res_slitdec_vert(
                 x = i*swath + col;          // coords in large image
                 y = ycen_int[x] + row;
                 pixval = cpl_image_get(img_in, x, y, &badpix);
-                cpl_image_set(img_sw, row, col, pixval);
+                cpl_image_set(img_sw, col, row, pixval);
                 if (badpix ==0) mask_sw[row*swath+col] = 1;
                 else mask_sw[row*swath+col] = 0;
             }
@@ -174,12 +181,34 @@ int cr2res_slitdec_vert(
                         0.e-6, smooth_slit, 1.0e-5, 20);
 
 
-    }
+        for(col=1; col<=swath; col++){      // col is x-index in cut-out
+            for(row=1;row<=height;row++){   // row is y-index in cut-out
+                x = i*swath + col;          // coords in large image
+                y = ycen_int[x] + row;
+                cpl_image_set(img_out,x,y, model_sw[row*swath+col]);
+            }
+        }
 
+        if (i==0) cpl_vector_copy(slitfu,slitfu_sw);
+        else cpl_vector_add(slitfu,slitfu_sw);
+
+        for (i=sw_start;i<sw_end;i++) {
+            cpl_vector_set(spc, i, cpl_vector_get(spec_sw,i-sw_start));
+        }
+    } // End loop over swaths
+
+    // divide by nswaths to make the slitfu into the average over all swaths.
+    cpl_vector_divide_scalar(slitfu,nswaths);
+
+    // TODO: Deallocate return arrays in case of error, return -1
 
     cpl_vector_delete(spec_sw);
     cpl_vector_delete(slitfu_sw);
     cpl_free(img_sw);
+
+    *slit_func = slitfu;
+    *spec = spc;
+    *model = img_out;
 
     return 0;
 }
