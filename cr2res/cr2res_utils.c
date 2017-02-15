@@ -373,11 +373,11 @@ cpl_polynomial ** cr2es_trace_open_get_polynomials(
     /* Allocate the returned pointer */
     polys = cpl_malloc(2 * sizeof(cpl_polynomial*)) ;
 
-    col_name = cpl_sprintf("%2d_Upper",(int)order_nb);
+    col_name = cpl_sprintf("%02d_Upper",(int)order_nb);
     polys[0] = cr2res_trace_column_to_polynomial(trace, col_name);
     cpl_free(col_name);
 
-    col_name = cpl_sprintf("%2d_Lower",(int)order_nb);
+    col_name = cpl_sprintf("%02d_Lower",(int)order_nb);
     polys[1] = cr2res_trace_column_to_polynomial(trace, col_name);
     cpl_free(col_name);
 
