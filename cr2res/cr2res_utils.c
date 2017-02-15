@@ -406,7 +406,7 @@ int * cr2res_trace_get_order_numbers(
     int i,j;
     int * order_numbers;
     int * order_indices;
-    order_indices = cpl_malloc(128*sizeof(int));
+    order_indices = cpl_calloc(128, sizeof(int));
 
     col_names = cpl_table_get_column_names(trace);
     ncols = cpl_array_get_size(col_names);
