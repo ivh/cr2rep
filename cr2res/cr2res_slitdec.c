@@ -39,7 +39,7 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
- int slit_func_vert(
+static int slit_func_vert(
          int         ncols,
          int         nrows,
          int         osample,
@@ -150,6 +150,7 @@ int cr2res_slitdec_vert(
     img_out = cpl_image_new(lenx, cpl_image_get_size_y(img_in), CPL_TYPE_DOUBLE);
 
     for (i=0;i<nswaths;i++){
+
         sw_start = i*swath;
         sw_end = (i+1)*swath;
 
@@ -194,19 +195,23 @@ int cr2res_slitdec_vert(
         if (i==0) cpl_vector_copy(slitfu,slitfu_sw);
         else cpl_vector_add(slitfu,slitfu_sw);
 
-        for (i=sw_start;i<sw_end;i++) {
-            cpl_vector_set(spc, i, cpl_vector_get(spec_sw,i-sw_start));
+        for (j=sw_start;j<sw_end;j++) {
+            cpl_vector_set(spc, j, cpl_vector_get(spec_sw,j-sw_start));
         }
+        cpl_vector_delete(spec_sw);
+        cpl_vector_delete(slitfu_sw);
     } // End loop over swaths
 
     // divide by nswaths to make the slitfu into the average over all swaths.
     cpl_vector_divide_scalar(slitfu,nswaths);
 
     // TODO: Deallocate return arrays in case of error, return -1
-
-    cpl_vector_delete(spec_sw);
-    cpl_vector_delete(slitfu_sw);
-    cpl_free(img_sw);
+    cpl_image_delete(img_sw);
+    cpl_free(mask_sw) ;
+    cpl_free(model_sw) ;
+    cpl_free(ycen_int) ;
+    cpl_free(ycen_rest);
+    cpl_free(ycen_sw);
 
     *slit_func = slitfu;
     *spec = spc;
@@ -237,7 +242,7 @@ int cr2res_slitdec_vert(
   @return
  */
 /*----------------------------------------------------------------------------*/
-int slit_func_vert(
+static int slit_func_vert(
         int         ncols,
         int         nrows,
         int         osample,
