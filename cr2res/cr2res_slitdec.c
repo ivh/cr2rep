@@ -154,12 +154,16 @@ int cr2res_slitdec_vert(
         sw_start = i*swath;
         sw_end = (i+1)*swath;
 
-        for(col=1; col<=swath; col++){      // col is x-index in cut-out
-            for(row=1;row<=height;row++){   // row is y-index in cut-out
+        for(col=0; col<swath; col++){      // col is x-index in cut-out
+            for(row=0;row<height;row++){   // row is y-index in cut-out
                 x = i*swath + col;          // coords in large image
                 y = ycen_int[x] - (height/2) + row;
-                pixval = cpl_image_get(img_in, x, y, &badpix);
-                cpl_image_set(img_sw, col, row, pixval);
+                /* printf("X,Y: %d %d\n", x, y) ; */
+                /* printf("Xmax,Ymax: %d %d\n", */
+                        /* cpl_image_get_size_x(img_in), */
+                        /* cpl_image_get_size_y(img_in)) ; */
+                pixval = cpl_image_get(img_in, x+1, y+1, &badpix);
+                cpl_image_set(img_sw, col+1, row+1, pixval);
                 if (badpix ==0) mask_sw[row*swath+col] = 1;
                 else mask_sw[row*swath+col] = 0;
             }
@@ -168,6 +172,7 @@ int cr2res_slitdec_vert(
         img_sw_data = cpl_image_get_data_double(img_sw);
         tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
         spec_sw = cpl_vector_new_from_image_row(tmp,1);
+        cpl_image_save(tmp, "tmp.fits", CPL_TYPE_FLOAT, NULL, CPL_IO_CREATE);
         cpl_image_delete(tmp);
         spec_sw_data = cpl_vector_get_data(spec_sw);
 
@@ -180,17 +185,19 @@ int cr2res_slitdec_vert(
 
         /* Finally ready to call the slit-decomp */
         //cpl_vector_dump(spec_sw,stdout);
+        printf("%d\n", oversample) ;
         slit_func_vert(swath, height, oversample, img_sw_data, mask_sw,
                         ycen_sw, slitfu_sw_data, spec_sw_data, model_sw,
                         0.0, smooth_slit, 1.0e-5, 20);
+        return -1 ;
 
         //cpl_vector_dump(spec_sw,stdout);
 
-        for(col=1; col<=swath; col++){      // col is x-index in cut-out
-            for(row=1;row<=height;row++){   // row is y-index in cut-out
+        for(col=0; col<swath; col++){      // col is x-index in cut-out
+            for(row=0;row<height;row++){   // row is y-index in cut-out
                 x = i*swath + col;          // coords in large image
                 y = ycen_int[x] - (height/2) + row;
-                cpl_image_set(img_out,x,y, model_sw[row*swath+col]);
+                cpl_image_set(img_out,x+1,y+1, model_sw[row*swath+col]);
             }
         }
 
@@ -345,6 +352,7 @@ static int slit_func_vert(
             }
             diag_tot+=Aij[iy+ny*osample];
         }
+        printf("SUM : %e\n", sum);
 
         /* Scale regularization parameters */
 	    lambda=lambda_sL*diag_tot/ny;
