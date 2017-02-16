@@ -190,11 +190,10 @@ int cr2res_io_save_SLIT_MODEL(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
-        cpl_imagelist           *   errors,
+        hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
         const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   pipe_id) ;
 
 int cr2res_io_save_SLIT_FUNC(
         const char              *   filename,

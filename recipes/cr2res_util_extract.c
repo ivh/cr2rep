@@ -43,7 +43,10 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
 /*-----------------------------------------------------------------------------
                             Private function prototypes
  -----------------------------------------------------------------------------*/
-
+static cpl_table * cr2res_extract_tab_create(
+        cpl_vector      **  spectrum,
+        int             *   orders,
+        int                 nborders) ;
 static cpl_table * cr2res_slit_func_tab_create(
         cpl_vector      **  slit_func,
         int             *   orders,
@@ -241,6 +244,7 @@ static int cr2res_util_extract(
     cpl_vector          **  spectrum_error[CR2RES_NB_DETECTORS] ;
     cpl_vector          **  slit_func[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slit_func_tab[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   extract_tab[CR2RES_NB_DETECTORS] ;
 
     int                     det_nr, i ;
 
@@ -335,7 +339,6 @@ static int cr2res_util_extract(
                 cpl_image_delete(model_tmp) ;
             }
             cpl_msg_indent_less() ;
-    printf("A : %s\n", cpl_error_get_where()) ;
         }
         cpl_image_delete(science_ima) ;
         cpl_table_delete(trace_table) ;
@@ -343,6 +346,12 @@ static int cr2res_util_extract(
         /* Create the slit_func_tab for the current detector */
         slit_func_tab[det_nr-1] = cr2res_slit_func_tab_create(
                 slit_func[det_nr-1], orders, nb_orders[det_nr-1]) ;
+
+        /* Create the extracted_tab for the current detector */
+        extract_tab[det_nr-1] = cr2res_extract_tab_create(
+                spectrum[det_nr-1], orders, nb_orders[det_nr-1]) ;
+
+		/* Deallocate Vectors */
         for (i=0 ; i<nb_orders[det_nr-1] ; i++) {
             if (slit_func[det_nr-1][i] != NULL)
                 cpl_vector_delete(slit_func[det_nr-1][i]) ;
@@ -360,18 +369,75 @@ static int cr2res_util_extract(
     cr2res_io_save_SLIT_FUNC("cr2res_util_extract_slit_func.fits", frameset, 
             parlist, slit_func_tab, NULL, "cr2res_util_extract", 
             PACKAGE "/" PACKAGE_VERSION) ;
+    cr2res_io_save_EXTRACT_1D("cr2res_util_extract_extract_1D.fits", frameset, 
+            parlist, extract_tab, NULL, "cr2res_util_extract", 
+            PACKAGE "/" PACKAGE_VERSION) ;
 
     /* Free and return */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         cpl_table_delete(slit_func_tab[det_nr-1]) ;
+        cpl_table_delete(extract_tab[det_nr-1]) ;
         cpl_image_delete(model_master[det_nr-1]) ;
     }
-    printf("%s\n", cpl_error_get_where()) ;
     return (int)cpl_error_get_code();
 }
 
 /**@}*/
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Create the extract 1D table to be saved
+  @param    spectrum   	The extracted spectra of the different orders
+  @param    orders      The orders numbers
+  @param    nborders    The number of orders
+  @return   the extract_1D table or NULL
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_table * cr2res_extract_tab_create(
+        cpl_vector      **  spectrum,
+        int             *   orders,
+        int                 nborders)
+{
+    cpl_table       *   out ;
+    char            *   col_name ;
+    const double    *   pspec ;
+    int                 nrows, all_null, i ;
+
+    /* Check entries */
+    if (spectrum == NULL) return NULL ;
+    if (nborders < 1) return NULL ;
+    
+    /* Check the all vectorѕ are not null */
+    all_null = 1 ;
+    for (i=0 ; i<nborders ; i++) 
+        if (spectrum[i] != NULL) {
+            nrows = cpl_vector_get_size(spectrum[i]) ;
+            all_null = 0 ;
+        }
+    if (all_null == 1) return NULL ;
+
+    /* Check the sizes */
+    for (i=0 ; i<nborders ; i++) 
+        if (spectrum[i] != NULL && cpl_vector_get_size(spectrum[i]) != nrows)
+            return NULL ;
+ 
+    /* Create the table */
+    out = cpl_table_new(nrows);
+    for (i=0 ; i<nborders ; i++) {
+        col_name = cpl_sprintf("%02d_SPEC", orders[i]) ;
+        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+        cpl_free(col_name) ;
+    }
+
+    /* Fill the table */
+    for (i=0 ; i<nborders ; i++) {
+        pspec = cpl_vector_get_data_const(spectrum[i]) ;
+        col_name = cpl_sprintf("%02d_SPEC", orders[i]) ;
+        cpl_table_copy_data_double(out, col_name, pspec) ;
+        cpl_free(col_name) ;
+    }
+    return out ;
+}
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Create the slit functions table to be saved
