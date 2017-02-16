@@ -320,8 +320,7 @@ static int cr2res_cal_dark(
 
 	/* Save the results */
 	if (cr2res_io_save_MASTER_DARK(frameset, "cr2res_cal_dark_master.fits", 
-                rawframes, parlist, master_darks, NULL, 
-                CR2RES_MASTER_DARK_PROCATG, RECIPE_STRING) != 0) {
+                rawframes, parlist, master_darks, NULL, RECIPE_STRING) != 0) {
         cpl_frameset_delete(rawframes) ;
         for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
             if (master_darks[ext-1] != NULL) 

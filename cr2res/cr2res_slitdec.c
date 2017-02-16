@@ -105,7 +105,7 @@ int cr2res_slitdec_vert(
         double          smooth_slit,
         cpl_vector  **  slit_func,
         cpl_vector  **  spec,
-        cpl_image   **  model)
+        hdrl_image  **  model)
 {
     int i, j, nswaths;
     int row, col, x, y;
@@ -227,8 +227,8 @@ int cr2res_slitdec_vert(
 
     *slit_func = slitfu;
     *spec = spc;
-    *model = img_out;
-
+    *model = hdrl_image_create(img_out, NULL);
+    cpl_image_delete(img_out) ;
 
     return 0;
 }

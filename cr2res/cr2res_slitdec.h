@@ -25,6 +25,8 @@
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
+#include "hdrl.h"
+
 #include "cr2res_utils.h"
 
 /*-----------------------------------------------------------------------------
@@ -40,6 +42,6 @@ int cr2res_slitdec_vert(
         double          smooth_slit,
         cpl_vector  **  slit_func,
         cpl_vector  **  spec,
-        cpl_image   **  model) ;
+        hdrl_image  **  model) ;
 
 #endif

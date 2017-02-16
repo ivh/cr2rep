@@ -119,7 +119,6 @@ int cr2res_io_save_MASTER_DARK(
         const cpl_parameterlist *   parlist,
         hdrl_image              **  master_darks,
         const cpl_propertylist  *   qc_list,
-        const char              *   procatg,
         const char              *   recipe) ;
 
 int cr2res_io_save_MASTER_BPM(
@@ -128,8 +127,7 @@ int cr2res_io_save_MASTER_BPM(
         const cpl_parameterlist *   parlist,
         cpl_imagelist           *   data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_DETLIN_COEFFS(
         const char              *   filename,
@@ -137,8 +135,7 @@ int cr2res_io_save_DETLIN_COEFFS(
         const cpl_parameterlist *   parlist,
         cpl_imagelist           **  data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_MASTER_FLAT(
         const char              *   filename,
@@ -147,8 +144,7 @@ int cr2res_io_save_MASTER_FLAT(
         cpl_imagelist           *   data,
         cpl_imagelist           *   errors,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_TRACE_OPEN(
         const char              *   filename,
@@ -156,8 +152,7 @@ int cr2res_io_save_TRACE_OPEN(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_TRACE_DECKER(
         const char              *   filename,
@@ -165,8 +160,7 @@ int cr2res_io_save_TRACE_DECKER(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_BLAZE(
         const char              *   filename,
@@ -174,8 +168,7 @@ int cr2res_io_save_BLAZE(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_BLAZE_IMAGE(
         const char              *   filename,
@@ -183,8 +176,7 @@ int cr2res_io_save_BLAZE_IMAGE(
         const cpl_parameterlist *   parlist,
         cpl_imagelist           *   data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_SLIT_MODEL(
         const char              *   filename,
@@ -192,8 +184,7 @@ int cr2res_io_save_SLIT_MODEL(
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id) ;
+        const char              *   recipe);
 
 int cr2res_io_save_SLIT_FUNC(
         const char              *   filename,
@@ -201,8 +192,7 @@ int cr2res_io_save_SLIT_FUNC(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_WAVE_MAP(
         const char              *   filename,
@@ -210,8 +200,7 @@ int cr2res_io_save_WAVE_MAP(
         const cpl_parameterlist *   parlist,
         cpl_imagelist           *   data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_WAVE_SUB_ORDER(
         const char              *   filename,
@@ -219,8 +208,7 @@ int cr2res_io_save_WAVE_SUB_ORDER(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_SLITPOS_MAP(
         const char              *   filename,
@@ -228,8 +216,7 @@ int cr2res_io_save_SLITPOS_MAP(
         const cpl_parameterlist *   parlist,
         cpl_imagelist           *   data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_TILT_MAP(
         const char              *   filename,
@@ -237,8 +224,7 @@ int cr2res_io_save_TILT_MAP(
         const cpl_parameterlist *   parlist,
         cpl_imagelist           *   data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_TILT_POLY(
         const char              *   filename,
@@ -246,8 +232,7 @@ int cr2res_io_save_TILT_POLY(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_EXTRACT_1D(
         const char              *   filename,
@@ -255,8 +240,7 @@ int cr2res_io_save_EXTRACT_1D(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_SPLICED_1D(
         const char              *   filename,
@@ -264,8 +248,7 @@ int cr2res_io_save_SPLICED_1D(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_EXTRACT_2D(
         const char              *   filename,
@@ -273,8 +256,7 @@ int cr2res_io_save_EXTRACT_2D(
         const cpl_parameterlist *   parlist,
         cpl_table               *   table,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe);
 
 int cr2res_io_save_EXTRACT_POL(
         const char              *   filename,
@@ -282,8 +264,7 @@ int cr2res_io_save_EXTRACT_POL(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id);
+        const char              *   recipe) ;
 
 #endif
 

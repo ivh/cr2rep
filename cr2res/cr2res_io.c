@@ -30,7 +30,8 @@
 
 #include <cpl.h>
 
-#include <cr2res_io.h>
+#include "cr2res_io.h"
+#include "cr2res_dfs.h"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -43,7 +44,6 @@ static int cr2res_io_save_image(
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
         const char              *   recipe,
-        const char              *   pipe_id,
         const char              *   procatg,
         const char              *   protype) ;
 static int cr2res_io_save_table(
@@ -53,7 +53,6 @@ static int cr2res_io_save_table(
         cpl_table               **  slit_func,
         const cpl_propertylist  *   qc_list,
         const char              *   recipe,
-        const char              *   pipe_id,
         const char              *   procatg,
         const char              *   protype) ;
 
@@ -168,7 +167,7 @@ cpl_table * cr2res_io_load_TRACE_OPEN(
     wished_ext_nb = -1 ;
 
     /* Create wished EXTNAME */
-    wished_extname = cpl_sprintf("CHIP%d.INT1", detector) ;
+    wished_extname = cpl_sprintf("CHIP%d", detector) ;
 
     /* Get the number of extensions */
     nb_ext = cpl_fits_count_extensions(filename) ;
@@ -425,7 +424,6 @@ cpl_table * cr2res_io_load_EXTRACT_POL(
   @param    parlist     The recipe input parameters
   @param    master_darks  The data/error master darks (1 per detector)
   @param    qc_list     The QC parameters
-  @param    procatg     The PRO CATG
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -437,12 +435,10 @@ int cr2res_io_save_MASTER_DARK(
         const cpl_parameterlist *   parlist,
         hdrl_image              **  master_darks,
         const cpl_propertylist  *   qc_list,
-        const char              *   procatg,
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            master_darks, qc_list, recipe, PACKAGE "/" PACKAGE_VERSION,
-            procatg, "") ;
+            master_darks, qc_list, recipe, CR2RES_MASTER_DARK_PROCATG, "") ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -454,7 +450,6 @@ int cr2res_io_save_MASTER_DARK(
   @param    data        The data images to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -464,8 +459,7 @@ int cr2res_io_save_MASTER_BPM(
         const cpl_parameterlist *   parlist,
         cpl_imagelist           *   data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -480,7 +474,6 @@ int cr2res_io_save_MASTER_BPM(
   @param    data        The data imagelists to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -490,8 +483,7 @@ int cr2res_io_save_DETLIN_COEFFS(
         const cpl_parameterlist *   parlist,
         cpl_imagelist           **  data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -507,7 +499,6 @@ int cr2res_io_save_DETLIN_COEFFS(
   @param    errors      The error images to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -518,8 +509,7 @@ int cr2res_io_save_MASTER_FLAT(
         cpl_imagelist           *   data,
         cpl_imagelist           *   errors,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -534,7 +524,6 @@ int cr2res_io_save_MASTER_FLAT(
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -544,8 +533,7 @@ int cr2res_io_save_TRACE_OPEN(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -560,7 +548,6 @@ int cr2res_io_save_TRACE_OPEN(
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -570,8 +557,7 @@ int cr2res_io_save_TRACE_DECKER(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -586,7 +572,6 @@ int cr2res_io_save_TRACE_DECKER(
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -596,8 +581,7 @@ int cr2res_io_save_BLAZE(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -612,7 +596,6 @@ int cr2res_io_save_BLAZE(
   @param    data        The data images to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -622,8 +605,7 @@ int cr2res_io_save_BLAZE_IMAGE(
         const cpl_parameterlist *   parlist,
         cpl_imagelist           *   data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -638,7 +620,6 @@ int cr2res_io_save_BLAZE_IMAGE(
   @param    data        The tables to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -648,11 +629,11 @@ int cr2res_io_save_SLIT_FUNC(
         const cpl_parameterlist *   parlist,
         cpl_table               **  slit_func,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
     return cr2res_io_save_table(filename, allframes, parlist, slit_func, 
-            qc_list, recipe, pipe_id, "SLIT_FUNC", "SLIT_FUNC") ;
+            qc_list, recipe, CR2RES_SLIT_FUNC_PROCATG,
+            CR2RES_SLIT_FUNC_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -664,7 +645,6 @@ int cr2res_io_save_SLIT_FUNC(
   @param    data        The data images to save (DATA and ERROR per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -674,11 +654,11 @@ int cr2res_io_save_SLIT_MODEL(
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            data, qc_list, recipe, pipe_id, "SLIT_MODEL", "SLIT_MODEL") ;
+            data, qc_list, recipe, CR2RES_SLIT_MODEL_PROCATG,
+            CR2RES_SLIT_MODEL_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -690,7 +670,6 @@ int cr2res_io_save_SLIT_MODEL(
   @param    data        The data images to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -700,8 +679,7 @@ int cr2res_io_save_WAVE_MAP(
         const cpl_parameterlist *   parlist,
         cpl_imagelist           *   data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -716,7 +694,6 @@ int cr2res_io_save_WAVE_MAP(
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -726,8 +703,7 @@ int cr2res_io_save_WAVE_SUB_ORDER(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -742,7 +718,6 @@ int cr2res_io_save_WAVE_SUB_ORDER(
   @param    data        The data images to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -752,8 +727,7 @@ int cr2res_io_save_SLITPOS_MAP(
         const cpl_parameterlist *   parlist,
         cpl_imagelist           *   data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -768,7 +742,6 @@ int cr2res_io_save_SLITPOS_MAP(
   @param    data        The data images to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -778,8 +751,7 @@ int cr2res_io_save_TILT_MAP(
         const cpl_parameterlist *   parlist,
         cpl_imagelist           *   data,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -794,7 +766,6 @@ int cr2res_io_save_TILT_MAP(
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -804,8 +775,7 @@ int cr2res_io_save_TILT_POLY(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -819,7 +789,6 @@ int cr2res_io_save_TILT_POLY(
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -829,11 +798,11 @@ int cr2res_io_save_EXTRACT_1D(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
     return cr2res_io_save_table(filename, allframes, parlist, tables, 
-            qc_list, recipe, pipe_id, "EXTRACT_1D", "EXTRACT_1D") ;
+            qc_list, recipe, CR2RES_EXTRACT_1D_PROCATG,
+            CR2RES_EXTRACT_1D_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -845,7 +814,6 @@ int cr2res_io_save_EXTRACT_1D(
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -855,8 +823,7 @@ int cr2res_io_save_SPLICED_1D(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -870,7 +837,6 @@ int cr2res_io_save_SPLICED_1D(
   @param    table       The table to save
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -880,8 +846,7 @@ int cr2res_io_save_EXTRACT_2D(
         const cpl_parameterlist *   parlist,
         cpl_table               *   table,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
             return -1 ;
 }
@@ -896,7 +861,6 @@ int cr2res_io_save_EXTRACT_2D(
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -906,8 +870,7 @@ int cr2res_io_save_EXTRACT_POL(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
-        const char              *   recipe,
-        const char              *   pipe_id)
+        const char              *   recipe)
 {
     return -1 ;
 }
@@ -924,7 +887,6 @@ int cr2res_io_save_EXTRACT_POL(
   @param    tab         The tables to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @param    procatg     PRO.CATG
   @param    protype     PRO.TYPE
   @return   0 if ok, -1 in error case
@@ -937,7 +899,6 @@ static int cr2res_io_save_table(
         cpl_table               **  tab,
         const cpl_propertylist  *   qc_list,
         const char              *   recipe,
-        const char              *   pipe_id,
         const char              *   procatg,
         const char              *   protype)
 {
@@ -959,12 +920,12 @@ static int cr2res_io_save_table(
 
     /* Create the first extension header */
     ext_head = cpl_propertylist_new() ;
-    cpl_propertylist_append_string(ext_head, "EXTNAME", "CHIP1.INT1") ;
+    cpl_propertylist_append_string(ext_head, "EXTNAME", "CHIP1") ;
 
     /* Save the first extension */
     if (cpl_dfs_save_table(allframes, NULL, parlist, allframes, NULL,
                 tab[0], ext_head, recipe, pro_list, NULL,
-                pipe_id, filename) != CPL_ERROR_NONE) {
+                PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot save the first extension table") ;
         cpl_propertylist_delete(ext_head) ;
         cpl_propertylist_delete(pro_list) ;
@@ -976,7 +937,7 @@ static int cr2res_io_save_table(
     /* Save the extensions */
     for (i=1 ; i<CR2RES_NB_DETECTORS ; i++) {
         ext_head = cpl_propertylist_new() ;
-        sprintf(sval, "CHIP%d.INT1", i+1) ;
+        sprintf(sval, "CHIP%d", i+1) ;
         cpl_propertylist_prepend_string(ext_head, "EXTNAME", sval) ;
         cpl_table_save(tab[i], NULL, ext_head, filename, CPL_IO_EXTEND) ;
         cpl_propertylist_delete(ext_head) ;
@@ -993,7 +954,6 @@ static int cr2res_io_save_table(
   @param    data        The images to save (data and error per detector)
   @param    qc_list     The QC parameters
   @param    recipe      The recipe name
-  @param    pipe_id     PACKAGE "/" PACKAGE_VERSION
   @param    procatg     PRO.CATG
   @param    protype     PRO.TYPE
   @return   0 if ok, -1 in error case
@@ -1006,7 +966,6 @@ static int cr2res_io_save_image(
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
         const char              *   recipe,
-        const char              *   pipe_id,
         const char              *   procatg,
         const char              *   protype)
 {
@@ -1026,7 +985,7 @@ static int cr2res_io_save_image(
     /* Create the Primary Data Unit without data */
     if (cpl_dfs_save_image(allframes, NULL, parlist, allframes, NULL, NULL,
                 CPL_BPP_IEEE_FLOAT, recipe, qclist_loc, NULL,
-                pipe_id, filename) != CPL_ERROR_NONE) {
+                PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot save the empty primary HDU") ;
         cpl_propertylist_delete(qclist_loc) ;
         return -1 ;
@@ -1038,7 +997,7 @@ static int cr2res_io_save_image(
     for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
         /* Save the DATA */
         qclist_loc = cpl_propertylist_new() ;
-        sval = cpl_sprintf("DET.%d.DATA", ext) ;
+        sval = cpl_sprintf("CHIP%d", ext) ;
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", sval) ;
         cpl_image_save(hdrl_image_get_image(data[ext-1]),
                 filename, CPL_BPP_IEEE_FLOAT, qclist_loc, CPL_IO_EXTEND) ;
@@ -1047,7 +1006,7 @@ static int cr2res_io_save_image(
 
         /* Save the NOISE */
         qclist_loc = cpl_propertylist_new() ;
-        sval = cpl_sprintf("DET.%d.NOISE", ext) ;
+        sval = cpl_sprintf("CHIP%dERR", ext) ;
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", sval) ;
         cpl_image_save(hdrl_image_get_error(data[ext-1]),
                 filename, CPL_BPP_IEEE_FLOAT, qclist_loc, CPL_IO_EXTEND) ;

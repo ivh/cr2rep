@@ -24,6 +24,11 @@
                                    Define
  -----------------------------------------------------------------------------*/
 
+/* Define here the PRO.TYPE keywords */
+#define CR2RES_SLIT_FUNC_PROTYPE        "SLIT_FUNC"
+#define CR2RES_SLIT_MODEL_PROTYPE       "SLIT_MODEL"
+#define CR2RES_EXTRACT_1D_PROTYPE       "EXTRACT_1D"
+
 /* Define here the PRO.CATG keywords */
 #define CR2RES_DETLIN_BPM_PROCATG       "DETLIN_BPM"
 #define CR2RES_MASTER_DARK_PROCATG      "MASTER_DARK"
@@ -33,6 +38,9 @@
 #define CR2RES_TRACE_DECKER_PROCATG     "TRACE_DECKER"
 #define CR2RES_WAVE_COEFFS_PROCATG      "WAVE_COEFFS"
 #define CR2RES_TILT_COEFFS_PROCATG      "TILT_COEFFS"
+#define CR2RES_SLIT_FUNC_PROCATG        "SLIT_FUNC"
+#define CR2RES_SLIT_MODEL_PROCATG       "SLIT_MODEL"
+#define CR2RES_EXTRACT_1D_PROCATG       "EXTRACT_1D"
 
 /* Define here the DO.CATG keywords */
 #define CR2RES_DARK_RAW                 "DARK"

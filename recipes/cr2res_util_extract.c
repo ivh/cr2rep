@@ -35,6 +35,12 @@
 #include "cr2res_slitdec.h"
 
 /*-----------------------------------------------------------------------------
+                                Define
+ -----------------------------------------------------------------------------*/
+
+#define RECIPE_STRING "cr2res_util_extract"
+
+/*-----------------------------------------------------------------------------
                              Plugin registration
  -----------------------------------------------------------------------------*/
 
@@ -238,14 +244,13 @@ static int cr2res_util_extract(
     cpl_image           *   science_ima ;
     cpl_polynomial      **  traces ;
     cpl_vector          *   y_center ;
-    cpl_image           *   model_master[CR2RES_NB_DETECTORS] ;
-    cpl_image           *   model_tmp ;
+    hdrl_image          *   model_master[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   model_tmp ;
     cpl_vector          **  spectrum[CR2RES_NB_DETECTORS] ;
     cpl_vector          **  spectrum_error[CR2RES_NB_DETECTORS] ;
     cpl_vector          **  slit_func[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slit_func_tab[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extract_tab[CR2RES_NB_DETECTORS] ;
-
     int                     det_nr, i ;
 
     /* RETRIEVE INPUT PARAMETERS */
@@ -301,8 +306,8 @@ static int cr2res_util_extract(
                 sizeof(cpl_vector *)) ;
         slit_func[det_nr-1] = cpl_malloc(nb_orders[det_nr-1] * 
                 sizeof(cpl_vector *)) ;
-        model_master[det_nr-1] = cpl_image_duplicate(science_ima) ;
-        cpl_image_multiply_scalar(model_master[det_nr-1], 0.0) ;
+        model_master[det_nr-1] = hdrl_image_create(science_ima, NULL) ;
+        hdrl_image_mul_scalar(model_master[det_nr-1], (hdrl_value){0.0, 0.0}) ;
 
         /* Loop over the orders and extract them */
         for (i=0 ; i<nb_orders[det_nr-1] ; i++) {
@@ -335,8 +340,8 @@ static int cr2res_util_extract(
 
             /* Update the model global image */
             if (model_tmp != NULL) {
-                cpl_image_add(model_master[det_nr-1], model_tmp) ;
-                cpl_image_delete(model_tmp) ;
+                hdrl_image_add_image(model_master[det_nr-1], model_tmp) ;
+                hdrl_image_delete(model_tmp) ;
             }
             cpl_msg_indent_less() ;
         }
@@ -365,19 +370,18 @@ static int cr2res_util_extract(
     }
 
     /* Save the Products */
-    /* cr2res_io_save_SLIT_MODEL() ; */
+    cr2res_io_save_SLIT_MODEL("cr2res_util_extract_model.fits", frameset, 
+            parlist, model_master, NULL, RECIPE_STRING) ;
     cr2res_io_save_SLIT_FUNC("cr2res_util_extract_slit_func.fits", frameset, 
-            parlist, slit_func_tab, NULL, "cr2res_util_extract", 
-            PACKAGE "/" PACKAGE_VERSION) ;
+            parlist, slit_func_tab, NULL, RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D("cr2res_util_extract_extract_1D.fits", frameset, 
-            parlist, extract_tab, NULL, "cr2res_util_extract", 
-            PACKAGE "/" PACKAGE_VERSION) ;
+            parlist, extract_tab, NULL, RECIPE_STRING) ;
 
     /* Free and return */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         cpl_table_delete(slit_func_tab[det_nr-1]) ;
         cpl_table_delete(extract_tab[det_nr-1]) ;
-        cpl_image_delete(model_master[det_nr-1]) ;
+        hdrl_image_delete(model_master[det_nr-1]) ;
     }
     return (int)cpl_error_get_code();
 }
