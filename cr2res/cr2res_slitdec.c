@@ -137,6 +137,8 @@ int cr2res_slitdec_vert(
     img_sw = cpl_image_new(height, swath, CPL_TYPE_DOUBLE);
     ycen_int = cpl_malloc(lenx*sizeof(int));
     ycen_rest = cpl_malloc(lenx*sizeof(double));
+    ycen_sw = cpl_malloc(swath*sizeof(double));
+
     for (i=0;i<lenx;i++){
         ycen_int[i] = (int)cpl_vector_get(ycen,i) ;
         ycen_rest[i] = fmod(cpl_vector_get(ycen,i), 1.0) ;
@@ -253,17 +255,16 @@ int slit_func_vert(
     int x, y, iy, jy, iy1, iy2, ny, nd, i, j;
 	double step, d1, d2, sum, norm, dev, lambda, diag_tot, sP_change, sP_max;
 	int info, iter, isum;
-    double omega[ny][nrows][ncols];
     double E[ncols];
     double sP_old[ncols];
-    double Aij[ny*ny];
-    double bj[ny];
-    double Adiag[ncols*3];
-
     /* Initialise */
     nd=2*osample+1;
 	ny=osample*(nrows+1)+1; /* The size of the sf array */
     step=1.e0/osample;
+    double omega[ny][nrows][ncols];
+    double Aij[ny*ny];
+    double bj[ny];
+    double Adiag[ncols*3];
 
     /*
       Construct the omega tensor. Normally it has the dimensionality of
