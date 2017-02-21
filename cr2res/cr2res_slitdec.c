@@ -118,7 +118,7 @@ int cr2res_slitdec_vert(
     double * ycen_sw;
     double * img_sw_data;
     double * spec_sw_data;
-    double * slitfu_os;
+    double * slitfu_sw_data;
     double * model_sw;
     int * mask_sw;
     cpl_size lenx;
@@ -140,7 +140,6 @@ int cr2res_slitdec_vert(
     ycen_int = cpl_malloc(lenx*sizeof(int));
     ycen_rest = cpl_malloc(lenx*sizeof(double));
     ycen_sw = cpl_malloc(swath*sizeof(double));
-    slitfu_os = cpl_malloc( ny_os * sizeof(double));
 
     for (i=0;i<lenx;i++){
         ycen_int[i] = (int)cpl_vector_get(ycen,i) ;
@@ -148,18 +147,19 @@ int cr2res_slitdec_vert(
     }
 
     // Local versions of return data
-    slitfu = cpl_vector_new(height);
+    slitfu = cpl_vector_new(ny_os);
     spc = cpl_vector_new(lenx);
     img_out = cpl_image_new(lenx, cpl_image_get_size_y(img_in), CPL_TYPE_DOUBLE);
+    slitfu_sw = cpl_vector_new(ny_os);
+    slitfu_sw_data = cpl_vector_get_data(slitfu_sw);
 
     for (i=0;i<nswaths;i++){
-
         sw_start = i*swath;
         sw_end = (i+1)*swath;
 
         for(col=0; col<swath; col++){      // col is x-index in cut-out
+            x = i*swath + col;          // coords in large image
             for(row=0;row<height;row++){   // row is y-index in cut-out
-                x = i*swath + col;          // coords in large image
                 y = ycen_int[x] - (height/2) + row;
                 pixval = cpl_image_get(img_in, x+1, y+1, &badpix);
                 cpl_image_set(img_sw, col+1, row+1, pixval);
@@ -167,8 +167,11 @@ int cr2res_slitdec_vert(
                 else mask_sw[row*swath+col] = 0;
             }
         }
+        printf("%d %d %d %d\n", sw_start,ycen_int[x] - (height/2),sw_end,ycen_int[x] + (height/2));
+        cpl_plot_image(NULL,NULL,NULL,cpl_image_extract(img_in,sw_start,ycen_int[x] - (height/2),sw_end,ycen_int[x] + (height/2)));
+
         img_median = cpl_image_get_median(img_sw);
-        for (j=0;j<ny_os;j++) slitfu_os[j] = img_median;
+        for (j=0;j<ny_os;j++) cpl_vector_set(slitfu_sw,j,img_median);
         img_sw_data = cpl_image_get_data_double(img_sw);
         tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
         spec_sw = cpl_vector_new_from_image_row(tmp,1);
@@ -178,7 +181,7 @@ int cr2res_slitdec_vert(
 
         /* Finally ready to call the slit-decomp */
         slit_func_vert(swath, height, oversample, img_sw_data, mask_sw,
-                        ycen_sw, slitfu_os, spec_sw_data, model_sw,
+                        ycen_sw, slitfu_sw_data, spec_sw_data, model_sw,
                         0.0, smooth_slit, 1.0e-5, 20);
 
         for(col=0; col<swath; col++){      // col is x-index in cut-out
@@ -196,11 +199,18 @@ int cr2res_slitdec_vert(
             cpl_vector_set(spc, j, cpl_vector_get(spec_sw,j-sw_start));
         }
         cpl_vector_delete(spec_sw);
-        cpl_vector_delete(slitfu_sw);
     } // End loop over swaths
+    cpl_vector_delete(slitfu_sw);
 
     // divide by nswaths to make the slitfu into the average over all swaths.
     cpl_vector_divide_scalar(slitfu,nswaths);
+
+
+    cpl_vector_dump(slitfu,stdout);
+    cpl_plot_vector(NULL,NULL,NULL,slitfu);
+    cpl_plot_image(NULL,NULL,NULL,img_sw);
+
+
 
     // TODO: Update BPM in img_out
     // TODO: Calculate error and return it.
@@ -212,7 +222,6 @@ int cr2res_slitdec_vert(
     cpl_free(ycen_int) ;
     cpl_free(ycen_rest);
     cpl_free(ycen_sw);
-    cpl_free(slitfu_os);
 
     *slit_func = slitfu;
     *spec = spc;
@@ -284,13 +293,13 @@ static int slit_func_vert(
       pre-computed once.
       */
     for(x=0; x<ncols; x++) {
+        printf("%d %d\n", ncols, x);
 		iy2=(1.e0-ycen[x])*osample;
         /*
            The initial offset should be reconsidered.
            It looks fine but needs theory.
          */
 		iy1=iy2-osample;
-
 		if(iy2==0) d1=step;
 		else if(iy1==0) d1=0.e0;
 		else d1=fmod(ycen[x], step);

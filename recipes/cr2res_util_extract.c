@@ -235,6 +235,7 @@ static int cr2res_util_extract(
 {
     const cpl_parameter *   param;
     int                     oversample, swath_width, sum_only ;
+    int                     extr_height;
     double                  smooth_slit ;
     const char          *   science_file ;
     const char          *   trace_file ;
@@ -322,14 +323,17 @@ static int cr2res_util_extract(
             /* Get the 2 Traces for the current order */
             traces = cr2es_trace_open_get_polynomials(trace_table, orders[i]) ;
 
-            /* Get the values between the 2 traces  */
+            /* Get the values between the 2 traces and the height */
             y_center = cr2res_trace_compute_middle(traces[0], traces[1],
+                    cpl_image_get_size_x(science_ima)) ;
+            extr_height = cr2res_trace_compute_height(traces[0], traces[1],
                     cpl_image_get_size_x(science_ima)) ;
             cpl_polynomial_delete(traces[0]) ;
             cpl_polynomial_delete(traces[1]) ;
             cpl_free(traces) ;
 
-            if (cr2res_slitdec_vert(science_ima, y_center, 10,
+            printf("H: %d\n", extr_height);
+            if (cr2res_slitdec_vert(science_ima, y_center, 20,
                     swath_width, oversample, smooth_slit,
                     &(slit_func[det_nr-1][i]),
                     &(spectrum[det_nr-1][i]),
@@ -342,6 +346,7 @@ static int cr2res_util_extract(
                 model_tmp = NULL ;
             }
             cpl_vector_delete(y_center) ;
+            return -1;
 
             /* Update the model global image */
             if (model_tmp != NULL) {

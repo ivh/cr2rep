@@ -26,6 +26,7 @@
  -----------------------------------------------------------------------------*/
 
 #include <string.h>
+#include <math.h>
 #include <cpl.h>
 
 #include "cr2res_utils.h"
@@ -306,19 +307,50 @@ cpl_vector * cr2res_trace_compute_middle(
         int                 vector_size)
 {
     cpl_vector  *   out ;
-    double      *   pout ;
-    int             i ;
+    cpl_polynomial * diff;
 
-    /* Allocate the output vector */
     out = cpl_vector_new(vector_size) ;
-    pout = cpl_vector_get_data(out) ;
+    diff =  cpl_polynomial_new(1);
+    cpl_polynomial_subtract(diff, trace2, trace1);
+    cpl_polynomial_add(diff, trace1, diff);
 
-    /* Loop on the vector */
-    for (i=0 ; i<vector_size ; i++) {
-        pout[i] = (cpl_polynomial_eval_1d(trace1, (double)(i+1), NULL) +
-            cpl_polynomial_eval_1d(trace1, (double)(i+1), NULL)) / 2.0 ;
-    }
+    cpl_vector_fill_polynomial(out, diff, 1, 1);
+    cpl_polynomial_delete(diff);
     return out ;
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes extraction height between 2 trace polynomials
+  @param    poly1   First trace
+  @param    poly2   Second trace
+  @return
+  The returned int is the rounded-up mean difference between the two
+  input polynomials, evaluated on a vector from 1 to vector_size.
+
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_trace_compute_height(
+        cpl_polynomial  *   trace1,
+        cpl_polynomial  *   trace2,
+        int                 vector_size)
+{
+    int height;
+    cpl_polynomial * diff_poly;
+    cpl_vector  *   diff_vec ;
+
+    diff_poly =  cpl_polynomial_new(1);
+    diff_vec =  cpl_vector_new(vector_size);
+    cpl_polynomial_subtract(diff_poly, trace2, trace1);
+    cpl_vector_fill_polynomial(diff_vec, diff_poly, 1, 1);
+    height = (int)ceil(fabs( cpl_vector_get_mean(diff_vec) ));
+
+    if (cpl_vector_get_stdev(diff_vec) > 5){ // TODO: make this not hardcoded?
+        cpl_msg_warn(__func__, "Stdev of extraction height is large.");
+    }
+
+    return height;
 }
 
 /*----------------------------------------------------------------------------*/
