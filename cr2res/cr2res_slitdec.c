@@ -92,7 +92,8 @@ static int bandsol(double *, double *, int, int) ;
     -run slit_func_vert()
     -merge overlapping swath results by linear weights from swath-width to edge.
     -return re-assembled model image, slit-fu, spectrum, new mask.
-    -calculate the errors and return them.
+    -calculate the errors and return them. This is done by comparing the
+        variance of (im-model) to the poisson-statistics of the spectrum.
 
  */
 /*----------------------------------------------------------------------------*/
@@ -108,16 +109,16 @@ int cr2res_slitdec_vert(
         hdrl_image  **  model)
 {
     int i, j, nswaths;
-    int row, col, x, y;
+    int row, col, x, y, ny_os;
     int sw_start, sw_end;
-    double pixval;
+    double pixval, img_median;
     int * ycen_int;
     int badpix;
     double * ycen_rest;
     double * ycen_sw;
     double * img_sw_data;
     double * spec_sw_data;
-    double * slitfu_sw_data;
+    double * slitfu_os;
     double * model_sw;
     int * mask_sw;
     cpl_size lenx;
@@ -130,6 +131,7 @@ int cr2res_slitdec_vert(
     cpl_vector * slitfu;
 
     lenx = cpl_image_get_size_x(img_in);
+    ny_os = (height*(oversample+1)) +1; // number of rows after oversampling
     nswaths = (lenx / swath) ; // TODO: Allow last swath be partial
 
     mask_sw = cpl_malloc(height*swath*sizeof(int));
@@ -138,6 +140,7 @@ int cr2res_slitdec_vert(
     ycen_int = cpl_malloc(lenx*sizeof(int));
     ycen_rest = cpl_malloc(lenx*sizeof(double));
     ycen_sw = cpl_malloc(swath*sizeof(double));
+    slitfu_os = cpl_malloc( ny_os * sizeof(double));
 
     for (i=0;i<lenx;i++){
         ycen_int[i] = (int)cpl_vector_get(ycen,i) ;
@@ -158,40 +161,25 @@ int cr2res_slitdec_vert(
             for(row=0;row<height;row++){   // row is y-index in cut-out
                 x = i*swath + col;          // coords in large image
                 y = ycen_int[x] - (height/2) + row;
-                /* printf("X,Y: %d %d\n", x, y) ; */
-                /* printf("Xmax,Ymax: %d %d\n", */
-                        /* cpl_image_get_size_x(img_in), */
-                        /* cpl_image_get_size_y(img_in)) ; */
                 pixval = cpl_image_get(img_in, x+1, y+1, &badpix);
                 cpl_image_set(img_sw, col+1, row+1, pixval);
                 if (badpix ==0) mask_sw[row*swath+col] = 1;
                 else mask_sw[row*swath+col] = 0;
             }
         }
-
+        img_median = cpl_image_get_median(img_sw);
+        for (j=0;j<ny_os;j++) slitfu_os[j] = img_median;
         img_sw_data = cpl_image_get_data_double(img_sw);
         tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
         spec_sw = cpl_vector_new_from_image_row(tmp,1);
-        cpl_image_save(tmp, "tmp.fits", CPL_TYPE_FLOAT, NULL, CPL_IO_CREATE);
         cpl_image_delete(tmp);
         spec_sw_data = cpl_vector_get_data(spec_sw);
-
-        tmp = cpl_image_collapse_median_create(img_sw, 1, 0, 0);
-        slitfu_sw = cpl_vector_new_from_image_column(tmp,1);
-        cpl_image_delete(tmp);
-        slitfu_sw_data = cpl_vector_get_data(slitfu_sw);
-
         for (j=sw_start;j<sw_end;j++) ycen_sw[j-sw_start] = ycen_rest[j];
 
         /* Finally ready to call the slit-decomp */
-        //cpl_vector_dump(spec_sw,stdout);
-        printf("%d\n", oversample) ;
         slit_func_vert(swath, height, oversample, img_sw_data, mask_sw,
-                        ycen_sw, slitfu_sw_data, spec_sw_data, model_sw,
+                        ycen_sw, slitfu_os, spec_sw_data, model_sw,
                         0.0, smooth_slit, 1.0e-5, 20);
-        return -1 ;
-
-        //cpl_vector_dump(spec_sw,stdout);
 
         for(col=0; col<swath; col++){      // col is x-index in cut-out
             for(row=0;row<height;row++){   // row is y-index in cut-out
@@ -224,6 +212,7 @@ int cr2res_slitdec_vert(
     cpl_free(ycen_int) ;
     cpl_free(ycen_rest);
     cpl_free(ycen_sw);
+    cpl_free(slitfu_os);
 
     *slit_func = slitfu;
     *spec = spc;
@@ -352,7 +341,7 @@ static int slit_func_vert(
             }
             diag_tot+=Aij[iy+ny*osample];
         }
-        printf("SUM : %e\n", sum);
+        // printf("SUM : %e\n", sum);
 
         /* Scale regularization parameters */
 	    lambda=lambda_sL*diag_tot/ny;
@@ -386,7 +375,6 @@ static int slit_func_vert(
         /* Compute spectrum sP */
         for(x=0; x<ncols; x++)
         {
-            printf("%e %d\n", sum,mask[y*ncols+x]);
             Adiag[x+ncols]=0.e0;
         	E[x]=0.e0;
         	for(y=0; y<nrows; y++)

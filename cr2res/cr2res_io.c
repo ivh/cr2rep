@@ -180,7 +180,7 @@ cpl_table * cr2res_io_load_TRACE_OPEN(
         extname = cpl_propertylist_get_string(pl, "EXTNAME");
 
         /* Compare to the wished one */
-        if (!strcmp(extname, wished_extname)) wished_ext_nb = i ;
+        if (strcmp(extname, wished_extname)==0) wished_ext_nb = i ;
         cpl_propertylist_delete(pl) ;
     }
     cpl_free(wished_extname) ;
@@ -631,7 +631,7 @@ int cr2res_io_save_SLIT_FUNC(
         const cpl_propertylist  *   qc_list,
         const char              *   recipe)
 {
-    return cr2res_io_save_table(filename, allframes, parlist, slit_func, 
+    return cr2res_io_save_table(filename, allframes, parlist, slit_func,
             qc_list, recipe, CR2RES_SLIT_FUNC_PROCATG,
             CR2RES_SLIT_FUNC_PROTYPE) ;
 }
@@ -800,7 +800,7 @@ int cr2res_io_save_EXTRACT_1D(
         const cpl_propertylist  *   qc_list,
         const char              *   recipe)
 {
-    return cr2res_io_save_table(filename, allframes, parlist, tables, 
+    return cr2res_io_save_table(filename, allframes, parlist, tables,
             qc_list, recipe, CR2RES_EXTRACT_1D_PROCATG,
             CR2RES_EXTRACT_1D_PROTYPE) ;
 }
@@ -913,7 +913,7 @@ static int cr2res_io_save_table(
     /* Add the PRO keys */
     if (qc_list != NULL) pro_list = cpl_propertylist_duplicate(qc_list) ;
     else pro_list = cpl_propertylist_new() ;
-        
+
     /* Add PRO Keys */
     cpl_propertylist_append_string(pro_list, CPL_DFS_PRO_CATG, procatg) ;
     cpl_propertylist_append_string(pro_list, CPL_DFS_PRO_TYPE, protype) ;

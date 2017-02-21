@@ -279,7 +279,7 @@ static int cr2res_util_extract(
 
     /* Get Inputs */
     science_file = cr2res_extract_filename(frameset, CR2RES_SCI_1D_RAW) ;
-    trace_file = cr2res_extract_filename(frameset, CR2RES_TRACE_OPEN_PROCATG); 
+    trace_file = cr2res_extract_filename(frameset, CR2RES_TRACE_OPEN_PROCATG);
     if (science_file == NULL || trace_file == NULL) {
         cpl_msg_error(__func__, "The utility needs a science file and a trace");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -293,25 +293,30 @@ static int cr2res_util_extract(
 
         /* Load the trace table of this detector */
         trace_table = cr2res_io_load_TRACE_OPEN(trace_file, det_nr) ;
+        if (trace_table == NULL) {
+            cpl_msg_error(__func__, "Failed to get trace table for detector #%d", det_nr);
+            cpl_error_set(__func__, CPL_ERROR_CONTINUE) ;
+            continue ;
+        }
 
         /* Get the list of orders in the trace table */
-        orders = cr2res_trace_get_order_numbers(trace_table, 
+        orders = cr2res_trace_get_order_numbers(trace_table,
                 &(nb_orders[det_nr-1])) ;
 
         /* Load the image in which the orders are to extract*/
         science_ima = cpl_image_load(science_file, CPL_TYPE_FLOAT, 0, det_nr) ;
-        
+
         /* Allocate Data containers */
-        spectrum[det_nr-1] = cpl_malloc(nb_orders[det_nr-1] * 
+        spectrum[det_nr-1] = cpl_malloc(nb_orders[det_nr-1] *
                 sizeof(cpl_vector *)) ;
-        slit_func[det_nr-1] = cpl_malloc(nb_orders[det_nr-1] * 
+        slit_func[det_nr-1] = cpl_malloc(nb_orders[det_nr-1] *
                 sizeof(cpl_vector *)) ;
         model_master[det_nr-1] = hdrl_image_create(science_ima, NULL) ;
         hdrl_image_mul_scalar(model_master[det_nr-1], (hdrl_value){0.0, 0.0}) ;
 
         /* Loop over the orders and extract them */
         for (i=0 ; i<nb_orders[det_nr-1] ; i++) {
-            cpl_msg_info(__func__, "Process Order number %d", orders[i]) ;
+            cpl_msg_info(__func__, "Process order number %d", orders[i]) ;
             cpl_msg_indent_more() ;
 
             /* Get the 2 Traces for the current order */
@@ -324,12 +329,12 @@ static int cr2res_util_extract(
             cpl_polynomial_delete(traces[1]) ;
             cpl_free(traces) ;
 
-            if (cr2res_slitdec_vert(science_ima, y_center, 10, 
+            if (cr2res_slitdec_vert(science_ima, y_center, 10,
                     swath_width, oversample, smooth_slit,
                     &(slit_func[det_nr-1][i]),
                     &(spectrum[det_nr-1][i]),
                     &model_tmp) != 0) {
-                cpl_msg_error(__func__, 
+                cpl_msg_error(__func__,
                         "Cannot extract order %d on detector %d",
                         orders[i], det_nr) ;
                 slit_func[det_nr-1][i] = NULL ;
@@ -370,11 +375,11 @@ static int cr2res_util_extract(
     }
 
     /* Save the Products */
-    cr2res_io_save_SLIT_MODEL("cr2res_util_extract_model.fits", frameset, 
+    cr2res_io_save_SLIT_MODEL("cr2res_util_extract_model.fits", frameset,
             parlist, model_master, NULL, RECIPE_STRING) ;
-    cr2res_io_save_SLIT_FUNC("cr2res_util_extract_slit_func.fits", frameset, 
+    cr2res_io_save_SLIT_FUNC("cr2res_util_extract_slit_func.fits", frameset,
             parlist, slit_func_tab, NULL, RECIPE_STRING) ;
-    cr2res_io_save_EXTRACT_1D("cr2res_util_extract_extract_1D.fits", frameset, 
+    cr2res_io_save_EXTRACT_1D("cr2res_util_extract_extract_1D.fits", frameset,
             parlist, extract_tab, NULL, RECIPE_STRING) ;
 
     /* Free and return */
@@ -410,10 +415,10 @@ static cpl_table * cr2res_extract_tab_create(
     /* Check entries */
     if (spectrum == NULL) return NULL ;
     if (nborders < 1) return NULL ;
-    
+
     /* Check the all vectorѕ are not null */
     all_null = 1 ;
-    for (i=0 ; i<nborders ; i++) 
+    for (i=0 ; i<nborders ; i++)
         if (spectrum[i] != NULL) {
             nrows = cpl_vector_get_size(spectrum[i]) ;
             all_null = 0 ;
@@ -421,10 +426,10 @@ static cpl_table * cr2res_extract_tab_create(
     if (all_null == 1) return NULL ;
 
     /* Check the sizes */
-    for (i=0 ; i<nborders ; i++) 
+    for (i=0 ; i<nborders ; i++)
         if (spectrum[i] != NULL && cpl_vector_get_size(spectrum[i]) != nrows)
             return NULL ;
- 
+
     /* Create the table */
     out = cpl_table_new(nrows);
     for (i=0 ; i<nborders ; i++) {
@@ -464,10 +469,10 @@ static cpl_table * cr2res_slit_func_tab_create(
     /* Check entries */
     if (slit_func == NULL) return NULL ;
     if (nborders < 1) return NULL ;
-    
+
     /* Check the all vectorѕ are not null */
     all_null = 1 ;
-    for (i=0 ; i<nborders ; i++) 
+    for (i=0 ; i<nborders ; i++)
         if (slit_func[i] != NULL) {
             nrows = cpl_vector_get_size(slit_func[i]) ;
             all_null = 0 ;
@@ -475,10 +480,10 @@ static cpl_table * cr2res_slit_func_tab_create(
     if (all_null == 1) return NULL ;
 
     /* Check the sizes */
-    for (i=0 ; i<nborders ; i++) 
+    for (i=0 ; i<nborders ; i++)
         if (slit_func[i] != NULL && cpl_vector_get_size(slit_func[i]) != nrows)
             return NULL ;
- 
+
     /* Create the table */
     out = cpl_table_new(nrows);
     for (i=0 ; i<nborders ; i++) {
