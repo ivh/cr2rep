@@ -332,8 +332,7 @@ static int cr2res_util_extract(
             cpl_polynomial_delete(traces[1]) ;
             cpl_free(traces) ;
 
-            printf("H: %d\n", extr_height);
-            if (cr2res_slitdec_vert(science_ima, y_center, 20,
+            if (cr2res_slitdec_vert(science_ima, y_center, extr_height,
                     swath_width, oversample, smooth_slit,
                     &(slit_func[det_nr-1][i]),
                     &(spectrum[det_nr-1][i]),
@@ -346,7 +345,6 @@ static int cr2res_util_extract(
                 model_tmp = NULL ;
             }
             cpl_vector_delete(y_center) ;
-            return -1;
 
             /* Update the model global image */
             if (model_tmp != NULL) {

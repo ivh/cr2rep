@@ -307,15 +307,15 @@ cpl_vector * cr2res_trace_compute_middle(
         int                 vector_size)
 {
     cpl_vector  *   out ;
-    cpl_polynomial * diff;
+    cpl_polynomial * tmp;
 
     out = cpl_vector_new(vector_size) ;
-    diff =  cpl_polynomial_new(1);
-    cpl_polynomial_subtract(diff, trace2, trace1);
-    cpl_polynomial_add(diff, trace1, diff);
+    tmp =  cpl_polynomial_new(1);
+    cpl_polynomial_add(tmp, trace1, trace2);
+    cpl_polynomial_multiply_scalar(tmp, tmp, 0.5);
 
-    cpl_vector_fill_polynomial(out, diff, 1, 1);
-    cpl_polynomial_delete(diff);
+    cpl_vector_fill_polynomial(out, tmp, 1, 1);
+    cpl_polynomial_delete(tmp);
     return out ;
 }
 
@@ -347,7 +347,7 @@ int cr2res_trace_compute_height(
     height = (int)ceil(fabs( cpl_vector_get_mean(diff_vec) ));
 
     if (cpl_vector_get_stdev(diff_vec) > 5){ // TODO: make this not hardcoded?
-        cpl_msg_warn(__func__, "Stdev of extraction height is large.");
+        cpl_msg_warning(__func__, "Stdev of extraction height is large.");
     }
 
     return height;
