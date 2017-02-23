@@ -156,7 +156,8 @@ int cr2res_slitdec_vert(
     for (i=0;i<nswaths;i++){
         sw_start = i*swath;
         sw_end = (i+1)*swath;
-        printf("Indices: %d %d %d %d\n", sw_start+1,ycen_int[0] - (height/2),sw_end+1,ycen_int[0] + (height/2));
+        cpl_msg_debug(__func__,"Img: x:%d-%d y:%d%d",
+            sw_start+1, sw_end, ycen_int[0]-(height/2), ycen_int[0]+(height/2));
         for(col=0; col<swath; col++){      // col is x-index in cut-out
             x = i*swath + col;          // coords in large image
             for(row=0;row<height;row++){   // row is y-index in cut-out
@@ -289,7 +290,6 @@ static int slit_func_vert(
       pre-computed once.
       */
     for(x=0; x<ncols; x++) {
-        continue;
 		iy2=(1.e0-ycen[x])*osample;
         /*
            The initial offset should be reconsidered.
