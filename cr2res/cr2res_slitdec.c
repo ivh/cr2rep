@@ -54,6 +54,7 @@ static int slit_func_vert(
          double      sP_stop,
          int         maxiter) ;
 static int bandsol(double *, double *, int, int) ;
+static int cr2res_slitdec_adjust_swath(int sw, int nx);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -108,7 +109,7 @@ int cr2res_slitdec_vert(
         cpl_vector  **  spec,
         hdrl_image  **  model)
 {
-    int i, j, nswaths;
+    int i, j, nswaths, halfswath;
     int row, col, x, y, ny_os;
     int sw_start, sw_end;
     double pixval, img_median;
@@ -121,7 +122,7 @@ int cr2res_slitdec_vert(
     double * slitfu_sw_data;
     double * model_sw;
     int * mask_sw;
-    cpl_size lenx;
+    cpl_size lenx, leny;
     cpl_image * img_sw;
     cpl_image * tmp;
     cpl_image * img_out;
@@ -129,10 +130,15 @@ int cr2res_slitdec_vert(
     cpl_vector * slitfu_sw;
     cpl_vector * spc;
     cpl_vector * slitfu;
+    cpl_vector * weights_sw;
 
     lenx = cpl_image_get_size_x(img_in);
+    leny = cpl_image_get_size_y(img_in);
     ny_os = oversample*(height+1) +1; // number of rows after oversampling
-    nswaths = (lenx / swath) ; // TODO: Allow last swath be partial
+    swath = cr2res_slitdec_adjust_swath(swath, lenx);
+    halfswath = swath/2;
+    nswaths = (lenx / swath) *2; // *2 because we step in half swaths!
+    if (lenx%swath >= halfswath) nswaths +=1;
 
     mask_sw = cpl_malloc(height*swath*sizeof(int));
     model_sw = cpl_malloc(height*swath*sizeof(double));
@@ -141,25 +147,39 @@ int cr2res_slitdec_vert(
     ycen_rest = cpl_malloc(lenx*sizeof(double));
     ycen_sw = cpl_malloc(swath*sizeof(double));
 
-    for (i=0;i<lenx;i++){
-        ycen_int[i] = (int)cpl_vector_get(ycen,i) ;
-        ycen_rest[i] = fmod(cpl_vector_get(ycen,i), 1.0) ;
-    }
-
     // Local versions of return data
     slitfu = cpl_vector_new(ny_os);
     spc = cpl_vector_new(lenx);
-    img_out = cpl_image_new(lenx, cpl_image_get_size_y(img_in), CPL_TYPE_DOUBLE);
+    img_out = cpl_image_new(lenx, leny, CPL_TYPE_DOUBLE);
+
+    // Work vectors
     slitfu_sw = cpl_vector_new(ny_os);
     slitfu_sw_data = cpl_vector_get_data(slitfu_sw);
+    weights_sw = cpl_vector_new(swath);
+
+    /* Some things need to be initialized before starting the actuial work*/
+    for (i=0;i<lenx;i++){
+        ycen_int[i] = (int)cpl_vector_get(ycen,i) ;
+        ycen_rest[i] = fmod(cpl_vector_get(ycen,i), 1.0) ;
+        cpl_vector_set(spc, i, 0.0);
+        for(j=0;j<leny;j++) cpl_image_set(img_out,i,j,0.0);
+    }
+    /* Pre-calculate the weights for overlapping swaths*/
+    for (i=0;i<halfswath;i++) {
+         cpl_vector_set(weights_sw,i,i+1);
+         cpl_vector_set(weights_sw,swath-i-1,i+1);
+    }
+    cpl_vector_divide_scalar(weights_sw,i+1); // normalize such that max(w)=1
+    //cpl_vector_dump(weights_sw,stdout);
 
     for (i=0;i<nswaths;i++){
-        sw_start = i*swath;
-        sw_end = (i+1)*swath;
-        cpl_msg_debug(__func__,"Img: x:%d-%d y:%d%d",
-            sw_start+1, sw_end, ycen_int[0]-(height/2), ycen_int[0]+(height/2));
+        sw_start = i*halfswath;
+        sw_end = sw_start + swath;
+        cpl_msg_debug(__func__,"Img: x:%d-%d y:%d-%d",
+            sw_start+1, sw_end,
+            ycen_int[sw_start]-(height/2), ycen_int[sw_start]+(height/2));
         for(col=0; col<swath; col++){      // col is x-index in cut-out
-            x = i*swath + col;          // coords in large image
+            x = i*halfswath + col;          // coords in large image
             for(row=0;row<height;row++){   // row is y-index in cut-out
                 y = ycen_int[x] - (height/2) + row;
                 pixval = cpl_image_get(img_in, x+1, y+1, &badpix);
@@ -168,7 +188,8 @@ int cr2res_slitdec_vert(
                 else mask_sw[row*swath+col] = 0;
             }
         }
-        cpl_image_save(img_sw, "tmp.fits", CPL_TYPE_FLOAT, NULL, CPL_IO_CREATE);
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+            cpl_image_save(img_sw, "img_sw.fits", CPL_TYPE_FLOAT, NULL, CPL_IO_CREATE); }
 
         img_median = cpl_image_get_median(img_sw);
         for (j=0;j<ny_os;j++) cpl_vector_set(slitfu_sw,j,img_median);
@@ -186,7 +207,7 @@ int cr2res_slitdec_vert(
 
         for(col=0; col<swath; col++){      // col is x-index in cut-out
             for(row=0;row<height;row++){   // row is y-index in cut-out
-                x = i*swath + col;          // coords in large image
+                x = i*halfswath + col;          // coords in large image
                 y = ycen_int[x] - (height/2) + row;
                 cpl_image_set(img_out,x+1,y+1, model_sw[row*swath+col]);
             }
@@ -195,12 +216,25 @@ int cr2res_slitdec_vert(
         if (i==0) cpl_vector_copy(slitfu,slitfu_sw);
         else cpl_vector_add(slitfu,slitfu_sw);
 
+        /* Multiply by weights and add to output array */
+        cpl_vector_multiply(spec_sw, weights_sw);
+        if (i==0){ for (j=0;j<halfswath;j++) {
+            cpl_vector_set(spec_sw,j, cpl_vector_get(spec_sw,j)/cpl_vector_get(weights_sw,j));
+        }}
+        if (i==nswaths-1) { for (j=halfswath;j<swath;j++) {
+            cpl_vector_set(spec_sw,j, cpl_vector_get(spec_sw,j)/cpl_vector_get(weights_sw,j));
+        }}
+
         for (j=sw_start;j<sw_end;j++) {
-            cpl_vector_set(spc, j, cpl_vector_get(spec_sw,j-sw_start));
+            cpl_vector_set(spc, j,
+                cpl_vector_get(spec_sw,j-sw_start) + cpl_vector_get(spc, j) );
         }
         cpl_vector_delete(spec_sw);
     } // End loop over swaths
     cpl_vector_delete(slitfu_sw);
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_vector_save(spc, "spc.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE); }
 
     // divide by nswaths to make the slitfu into the average over all swaths.
     cpl_vector_divide_scalar(slitfu,nswaths);
@@ -556,3 +590,21 @@ static int bandsol(
     r[0]/=a[n*(nd/2)];
     return 0;
 }
+
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief   Adjust the swath width to match the length of detector
+  @param    sw Swath width to start from
+  @param    nx number of pixel columns to match
+
+  Returns the new swath width. CURRENTLY UNIMPLEMENTED, except it ensures
+  an even number.
+
+ */
+/*----------------------------------------------------------------------------*/
+
+static int cr2res_slitdec_adjust_swath(int sw, int nx){
+    if (sw%2 != 0) sw+=1;
+    return sw;
+};
