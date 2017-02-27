@@ -286,7 +286,7 @@ static int cr2res_util_trace(
        
         /* Get the traces */
         trace_polynomials[det_nr-1] = cr2res_trace(science_ima,
-                CR2RES_DECKER_NONE, smooth, closing, cpl_lab,
+                CR2RES_DECKER_NONE, smooth, closing, cpl_lab, min_cluster,
                 &(npolys[det_nr-1])) ;
 
         cpl_image_delete(science_ima) ;
