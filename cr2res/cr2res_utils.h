@@ -58,13 +58,4 @@ cpl_error_code cr2res_detector_shotnoise_model(
         const double        ron,
         cpl_image       **  ima_errs) ;
 
-cpl_table * cr2res_orders_fit(
-        cpl_table           *   table);
-
-cpl_mask * cr2res_signal_detect(
-        const cpl_image     *   image,
-        int                     ordersep,
-        double                  smoothfactor,
-        double                  thresh);
-
 #endif

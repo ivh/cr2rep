@@ -1,5 +1,5 @@
 /*
- * This file is part of the CR2RE Pipeline
+ * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -31,7 +31,14 @@
 #include "cr2res_utils.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
+#include "cr2res_io.h"
 #include "cr2res_trace.h"
+
+/*-----------------------------------------------------------------------------
+                                Define
+ -----------------------------------------------------------------------------*/
+
+#define RECIPE_STRING "cr2res_util_trace"
 
 /*-----------------------------------------------------------------------------
                              Plugin registration
@@ -54,17 +61,21 @@ static int cr2res_util_trace(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_util_trace_description[] =
 "TODO : Descripe here the recipe in / out / params / basic algo\n"
-"trace-open.fits " CR2RES_FLAT_OPEN_RAW "\n"
-"trace-decker.fits " CR2RES_FLAT_DECKER_RAW "\n"
-"master_bpm.fits " CR2RES_MASTER_BPM_PROCATG "\n"
+"science.fits " CR2RES_SCI_1D_RAW "\n"
 " The recipe produces the following products:\n"
-"master_dark.fits " CR2RES_TRACE_OPEN_PROCATG "\n"
-"dark_bpm.fits " CR2RES_TRACE_DECKER_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
                                 Function code
  -----------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @defgroup cr2res_util_trace   Trace Utility
+ */
+/*----------------------------------------------------------------------------*/
+
+/**@{*/
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -87,7 +98,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
                     "cr2res_util_trace",
-                    "Trace utility recipe",
+                    "Trace utility",
                     cr2res_util_trace_description,
                     "Thomas Marquart, Yves Jung",
                     PACKAGE_BUGREPORT,
@@ -105,7 +116,6 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
         (void)cpl_error_set_where(cpl_func);
         return 1;
     }
-
     return 0;
 }
 
@@ -133,41 +143,38 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
-    p = cpl_parameter_new_value("cr2res.cr2res_trace.poly_order",
-            CPL_TYPE_INT,
-            "polynomial order for the fit to the orders",
-            "cr2res.cr2res_trace", 4);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "polyorder");
+    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.degree",
+            CPL_TYPE_INT, "polynomial degree for the fit to the orders",
+            "cr2res.cr2res_util_trace", 5);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "degree");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_trace.min_cluster",
-            CPL_TYPE_INT,
-            "size (number of pixels) of the smallest allowed cluster",
-            "cr2res.cr2res_trace", 40);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "mincluster");
+    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.min_cluster",
+            CPL_TYPE_INT, "size in pixels of the smallest allowed cluster",
+            "cr2res.cr2res_util_trace", 40);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "min_cluster");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_trace.smooth",
-            CPL_TYPE_DOUBLE,
-            "Length of the smoothing kernel,relative to inter-order separation",
-            "cr2res.cr2res_trace", 1.0);
+    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.smooth",
+            CPL_TYPE_DOUBLE, "Length of the smoothing kernel",
+            "cr2res.cr2res_util_trace", 1.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_trace.cpl-lab",
-            CPL_TYPE_BOOL, "Use CPL labelization",
-            "cr2res.cr2res_trace", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cpl-lab");
+    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.cpl_lab",
+            CPL_TYPE_BOOL, "Use CPL labelization", "cr2res.cr2res_util_trace",
+            FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cpl_lab");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_trace.join-clusters",
+    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.closing",
             CPL_TYPE_BOOL, "Use a morphological closing to rejoin clusters",
-            "cr2res.cr2res_trace", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "join-clusters");
+            "cr2res.cr2res_util_trace", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "closing");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -225,31 +232,35 @@ static int cr2res_util_trace(
         cpl_frameset            *   frameset,
         const cpl_parameterlist *   parlist)
 {
-    cpl_propertylist    *   plist;
-    cpl_frame           *   rawframe ;
-    cpl_propertylist    *   applist;
-    cpl_image           *   in ;
-    cpl_image           *   trace ;
-    const cpl_parameter * param;
-    cpl_frameset        *   openslit_frames;
-    cpl_frameset        *   decker_frames;
-    int                     npolys;
+    const cpl_parameter *   param;
+    int                     min_cluster, degree, cpl_lab, closing ;
+    double                  smooth ;
+    const char          *   science_file ;
+    cpl_image           *   science_ima ;
+    int                     det_nr ;
+    cpl_polynomial      **  trace_polynomials[CR2RES_NB_DETECTORS] ;
+    int                     npolys[CR2RES_NB_DETECTORS] ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.min_cluster");
-    int mincluster = cpl_parameter_get_int(param);
+    min_cluster = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_trace.poly_order");
-    int polyorder = cpl_parameter_get_int(param);
+            "cr2res.cr2res_util_trace.degree");
+    degree = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_trace.smooth");
-    int smoothfactor = cpl_parameter_get_double(param);
+            "cr2res.cr2res_util_trace.smooth");
+    smooth = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_trace.cpl-lab");
-    int cpl_lab = cpl_parameter_get_bool(param);
+            "cr2res.cr2res_util_trace.cpl_lab");
+    cpl_lab = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist, 
+            "cr2res.cr2res_util_trace.closing");
+    closing = cpl_parameter_get_bool(param);
 
     /* Check Parameters */
+    /* TODO */
+
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot identify RAW and CALIB frames") ;
@@ -257,56 +268,43 @@ static int cr2res_util_trace(
         return -1 ;
     }
 
-    /* Get Data */
-    openslit_frames = cr2res_extract_frameset(frameset, CR2RES_FLAT_OPEN_RAW);
-    int nb_open = cpl_frameset_get_size(openslit_frames);
-    decker_frames = cr2res_extract_frameset(frameset, CR2RES_FLAT_DECKER_RAW);
-    int nb_decker = cpl_frameset_get_size(decker_frames);
-    cpl_msg_info(__func__, "Got %d & %d open slit and decker files, resp.", nb_open, nb_decker);
-
-    int i;
-    for (i=0; i<nb_open; i++){
-        rawframe = cpl_frameset_get_position(frameset, i);
-        in = cpl_image_load(cpl_frame_get_filename(rawframe), CPL_TYPE_DOUBLE,0,0);
-        if (in == NULL) {
-            cpl_msg_error(__func__, "Cannot load the input image") ;
-            cpl_propertylist_delete(plist) ;
-            return -1 ;
-        }
-        plist = cpl_propertylist_load(cpl_frame_get_filename(rawframe), 0);
-        cr2res_trace(in, CR2RES_DECKER_NONE, &npolys);
-        cpl_msg_debug(__func__,"%d npolys found.",npolys);
-    }
-    cpl_frameset_delete(openslit_frames);
-    for (i=0; i<nb_decker; i++){
-        rawframe = cpl_frameset_get_position(frameset, i);
-    }
-    cpl_frameset_delete(decker_frames);
-
-
-    trace = cpl_image_duplicate(in);
-    if (trace == NULL) {
-        cpl_propertylist_delete(plist) ;
-        cpl_image_delete(in) ;
+    /* Get Inputs */
+    science_file = cr2res_extract_filename(frameset, CR2RES_SCI_1D_RAW) ;
+    if (science_file == NULL) {
+        cpl_msg_error(__func__, "The utility needs a science file");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
 
+    /* Loop over the detectors */
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
+        cpl_msg_indent_more() ;
 
-    cpl_image_delete(in) ;
+        /* Load the image in which the orders are to extract*/
+        science_ima = cpl_image_load(science_file, CPL_TYPE_FLOAT, 0, det_nr) ;
+       
+        /* Get the traces */
+        trace_polynomials[det_nr-1] = cr2res_trace(science_ima,
+                CR2RES_DECKER_NONE, smooth, closing, cpl_lab,
+                &(npolys[det_nr-1])) ;
 
-    /* Add the product category  */
-    applist = cpl_propertylist_duplicate(plist);
-    cpl_propertylist_append_string(applist, CPL_DFS_PRO_CATG,
-            CR2RES_TRACE_OPEN_PROCATG);
+        cpl_image_delete(science_ima) ;
+        
+        cpl_msg_indent_less() ;
+    }
 
-    /* Save Product */
-    cpl_dfs_save_image(frameset, plist, parlist, frameset, NULL,
-            trace, CPL_BPP_IEEE_FLOAT, "cr2res_util_trace", applist,
-            NULL, PACKAGE "/" PACKAGE_VERSION, "cr2res_util_trace.fits") ;
+    /* Save the Products */
+    cr2res_io_save_XXX("cr2res_util_trace_xxx.fits", frameset, 
+            parlist, , NULL, RECIPE_STRING) ;
 
     /* Free and return */
-    cpl_propertylist_delete(plist) ;
-    cpl_propertylist_delete(applist) ;
-    cpl_image_delete(trace) ;
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        if (trace_polynomials[det_nr-1] != NULL)
+            cpl_polynomial_delete(trace_polynomials[det_nr-1]) ;
+    }
     return (int)cpl_error_get_code();
 }
+
+/**@}*/
+
