@@ -171,13 +171,20 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.closing",
-            CPL_TYPE_BOOL, "Use a morphological closing to rejoin clusters",
+    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.opening",
+            CPL_TYPE_BOOL, "Use a morphological opening to rejoin clusters",
             "cr2res.cr2res_util_trace", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "closing");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "opening");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.detector",
+            CPL_TYPE_INT, "Only reduce the specified detector",
+            "cr2res.cr2res_util_trace", 0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "detector");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+ 
     return 0;
 }
 
@@ -233,13 +240,14 @@ static int cr2res_util_trace(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param;
-    int                     min_cluster, degree, cpl_lab, closing ;
+    int                     min_cluster, degree, cpl_lab, opening, reduce_det ;
     double                  smooth ;
     const char          *   science_file ;
     cpl_image           *   science_ima ;
+    cpl_image           *   debug_ima ;
     int                     det_nr ;
-    cpl_polynomial      **  trace_polynomials[CR2RES_NB_DETECTORS] ;
-    int                     npolys[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   traces[CR2RES_NB_DETECTORS] ;
+    int                     i ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -255,8 +263,11 @@ static int cr2res_util_trace(
             "cr2res.cr2res_util_trace.cpl_lab");
     cpl_lab = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist, 
-            "cr2res.cr2res_util_trace.closing");
-    closing = cpl_parameter_get_bool(param);
+            "cr2res.cr2res_util_trace.opening");
+    opening = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_trace.detector");
+    reduce_det = cpl_parameter_get_int(param);
 
     /* Check Parameters */
     /* TODO */
@@ -278,31 +289,64 @@ static int cr2res_util_trace(
 
     /* Loop over the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+
+        /* Initialise */
+        traces[det_nr-1] = NULL ;
+
+        /* Compute only one detector */
+        if (reduce_det != 0 && det_nr != reduce_det) continue ;
+
         cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
         cpl_msg_indent_more() ;
 
         /* Load the image in which the orders are to extract*/
-        science_ima = cpl_image_load(science_file, CPL_TYPE_FLOAT, 0, det_nr) ;
+        cpl_msg_info(__func__, "Load the Image") ;
+        if ((science_ima = cpl_image_load(science_file, CPL_TYPE_FLOAT,
+                        0, det_nr)) == NULL) {
+            cpl_msg_warning(__func__, 
+                    "Cannot load the image - skip detector");
+            cpl_error_reset() ;
+            cpl_msg_indent_less() ;
+            continue ;
+        }
        
         /* Get the traces */
-        trace_polynomials[det_nr-1] = cr2res_trace(science_ima,
-                CR2RES_DECKER_NONE, smooth, closing, cpl_lab, min_cluster,
-                &(npolys[det_nr-1])) ;
-
+        cpl_msg_info(__func__, "Compute the traces") ;
+        cpl_msg_indent_more() ;
+        if ((traces[det_nr-1] = cr2res_trace_cpl(science_ima,
+                CR2RES_DECKER_NONE, smooth, opening, degree, 
+                min_cluster)) == NULL) {
+            cpl_msg_warning(__func__, 
+                    "Cannot compute the trace - skip detector");
+            cpl_error_reset() ;
+            cpl_image_delete(science_ima) ;
+            cpl_msg_indent_less() ;
+            cpl_msg_indent_less() ;
+            continue ;
+        }
+        cpl_msg_indent_less() ;
+       
+        /* Debug Image */
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+            debug_ima = cr2res_trace_gen_image(traces[det_nr-1], 
+                    cpl_image_get_size_x(science_ima), 
+                    cpl_image_get_size_y(science_ima)) ;
+            cpl_image_save(debug_ima, "debug_trace_image.fits", 
+                    CPL_BPP_IEEE_FLOAT, NULL, CPL_IO_CREATE) ;
+            cpl_image_delete(debug_ima) ;
+        }
         cpl_image_delete(science_ima) ;
-        
         cpl_msg_indent_less() ;
     }
 
     /* Save the Products */
-    cr2res_io_save_XXX("cr2res_util_trace_xxx.fits", frameset, 
-            parlist, , NULL, RECIPE_STRING) ;
+    cr2res_io_save_TRACE_OPEN("cr2res_util_trace.fits", frameset, 
+            parlist, traces, NULL, RECIPE_STRING) ;
 
     /* Free and return */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        if (trace_polynomials[det_nr-1] != NULL)
-            cpl_polynomial_delete(trace_polynomials[det_nr-1]) ;
-    }
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) 
+        if (traces[det_nr-1] != NULL) 
+            cpl_table_delete(traces[det_nr-1]) ;
     return (int)cpl_error_get_code();
 }
 

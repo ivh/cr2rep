@@ -514,7 +514,6 @@ int cr2res_io_save_MASTER_FLAT(
             return -1 ;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Save a TRACE_OPEN
@@ -535,9 +534,10 @@ int cr2res_io_save_TRACE_OPEN(
         const cpl_propertylist  *   qc_list,
         const char              *   recipe)
 {
-            return -1 ;
+    return cr2res_io_save_table(filename, allframes, parlist, tables,
+            qc_list, recipe, CR2RES_TRACE_OPEN_PROCATG,
+            CR2RES_TRACE_OPEN_PROTYPE) ;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -923,13 +923,25 @@ static int cr2res_io_save_table(
     cpl_propertylist_append_string(ext_head, "EXTNAME", "CHIP1") ;
 
     /* Save the first extension */
-    if (cpl_dfs_save_table(allframes, NULL, parlist, allframes, NULL,
-                tab[0], ext_head, recipe, pro_list, NULL,
-                PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
-        cpl_msg_error(__func__, "Cannot save the first extension table") ;
-        cpl_propertylist_delete(ext_head) ;
-        cpl_propertylist_delete(pro_list) ;
-        return -1 ;
+    if (tab[0] != NULL) {
+        if (cpl_dfs_save_table(allframes, NULL, parlist, allframes, NULL,
+                    tab[0], ext_head, recipe, pro_list, NULL,
+                    PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
+            cpl_msg_error(__func__, "Cannot save the first extension table") ;
+            cpl_propertylist_delete(ext_head) ;
+            cpl_propertylist_delete(pro_list) ;
+            return -1 ;
+        }
+    } else {
+        if (cpl_dfs_save_propertylist(allframes, NULL, parlist,
+                    allframes, NULL, recipe, pro_list, NULL, PACKAGE "/"
+                    PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
+            cpl_msg_error(__func__, "Cannot save the empty HDU") ;
+            cpl_propertylist_delete(ext_head) ;
+            cpl_propertylist_delete(pro_list) ;
+            return -1 ;
+        }
+        cpl_propertylist_save(ext_head, filename, CPL_IO_EXTEND) ;
     }
     cpl_propertylist_delete(ext_head) ;
     cpl_propertylist_delete(pro_list) ;
@@ -939,7 +951,11 @@ static int cr2res_io_save_table(
         ext_head = cpl_propertylist_new() ;
         sprintf(sval, "CHIP%d", i+1) ;
         cpl_propertylist_prepend_string(ext_head, "EXTNAME", sval) ;
-        cpl_table_save(tab[i], NULL, ext_head, filename, CPL_IO_EXTEND) ;
+        if (tab[i] != NULL) {
+            cpl_table_save(tab[i], NULL, ext_head, filename, CPL_IO_EXTEND) ;
+        } else {
+            cpl_propertylist_save(ext_head, filename, CPL_IO_EXTEND) ;
+        }
         cpl_propertylist_delete(ext_head) ;
     }
     return 0 ;

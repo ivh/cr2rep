@@ -31,21 +31,45 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-cpl_polynomial ** cr2res_trace(cpl_image * ima, cr2res_decker decker, int * npolys);
+cpl_table * cr2res_trace_cpl(
+        cpl_image       *   ima,
+        cr2res_decker       decker,
+        double              smoothfactor,
+        int                 opening,
+        int                 degree,
+        int                 min_cluster) ;
 
-cpl_image * cr2res_trace_detect(cpl_image * ima, int min_cluster_size);
+cpl_table * cr2res_trace_nocpl(
+        cpl_image       *   ima,
+        cr2res_decker       decker,
+        double              smoothfactor,
+        int                 opening,
+        int                 degree,
+        int                 min_cluster) ;
 
-cpl_image * cr2res_trace_labelize(cpl_image * bin_ima);
+cpl_mask * cr2res_trace_detect(
+        cpl_image   *   ima,
+        double          smoothfactor,
+        int             opening,
+        int             min_cluster) ;
 
-cpl_polynomial ** cr2res_trace_fit(cpl_image * ima, int degree);
+cpl_image * cr2res_trace_labelize(cpl_mask * mask) ;
 
-cpl_vector * cr2res_trace_compare(cpl_table * trace1, cpl_table * trace2);
+cpl_table * cr2res_trace_fit(
+        cpl_image   *   labels,
+        int             degree) ;
 
-cpl_table * cr2res_trace_combine(cpl_table * td_13, cpl_table * td_24);
+cpl_vector * cr2res_trace_compare(
+        cpl_table   *   trace1,
+        cpl_table   *   trace2) ;
 
-cpl_image * cr2res_trace_gen_image(cpl_table * trace_open,
-                                   cpl_table * trace_decker_1_3,
-                                   cpl_table * trace_decker_2_4
-                               );
+cpl_table * cr2res_trace_combine(
+        cpl_table   *   td_13,
+        cpl_table   *   td_24) ;
+
+cpl_image * cr2res_trace_gen_image(
+        cpl_table   *   trace,
+        int             nx,
+        int             ny) ;
 
 #endif

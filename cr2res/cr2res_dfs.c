@@ -51,16 +51,21 @@
 /*----------------------------------------------------------------------------*/
 cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
 {
-    cpl_errorstate prestate = cpl_errorstate_get();
-    cpl_frame * frame = NULL;
-    int         i = 0;
 
-
+    cpl_frame   *   frame ;
+    const char  *   tag ; 
+    int             nframes, i ;
+    
+    /* Check entries */
+    if (set == NULL) return -1 ;
+    
+    /* Initialize */
+    nframes = cpl_frameset_get_size(set) ;
+    
     /* Loop on frames */
-    for (frame = cpl_frameset_get_first(set); frame != NULL;
-         frame = cpl_frameset_get_next(set), i++) {
-
-        const char * tag = cpl_frame_get_tag(frame);
+    for (i = 0 ; i < nframes ; i++) {
+        frame = cpl_frameset_get_position(set, i);
+        tag = cpl_frame_get_tag(frame);
 
         if (tag == NULL) {
             cpl_msg_warning(cpl_func, "Frame %d has no tag", i);
@@ -85,12 +90,6 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_CALIB);
         }
     }
-
-    if (!cpl_errorstate_is_equal(prestate)) {
-        return cpl_error_set_message(cpl_func, cpl_error_get_code(),
-                "Could not identify RAW and CALIB frames");
-    }
-
     return CPL_ERROR_NONE;
 }
 
