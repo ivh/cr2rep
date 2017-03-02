@@ -229,12 +229,14 @@ int cr2res_slitdec_vert(
             cpl_vector_set(spc, j,
                 cpl_vector_get(spec_sw,j-sw_start) + cpl_vector_get(spc, j) );
         }
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+            cpl_vector_save(spec_sw, "spc.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+            cpl_vector_save(slitfu_sw, "slitfu.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+        }
         cpl_vector_delete(spec_sw);
     } // End loop over swaths
     cpl_vector_delete(slitfu_sw);
 
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_vector_save(spc, "spc.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE); }
 
     // divide by nswaths to make the slitfu into the average over all swaths.
     cpl_vector_divide_scalar(slitfu,nswaths);
