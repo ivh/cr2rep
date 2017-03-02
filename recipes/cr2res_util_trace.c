@@ -184,7 +184,7 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "detector");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
- 
+
     return 0;
 }
 
@@ -242,8 +242,8 @@ static int cr2res_util_trace(
     const cpl_parameter *   param;
     int                     min_cluster, degree, cpl_lab, opening, reduce_det ;
     double                  smooth ;
-    const char          *   science_file ;
-    cpl_image           *   science_ima ;
+    const char          *   flat_file ;
+    cpl_image           *   flat_ima ;
     cpl_image           *   debug_ima ;
     int                     det_nr ;
     cpl_table           *   traces[CR2RES_NB_DETECTORS] ;
@@ -262,7 +262,7 @@ static int cr2res_util_trace(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.cpl_lab");
     cpl_lab = cpl_parameter_get_bool(param);
-    param = cpl_parameterlist_find_const(parlist, 
+    param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.opening");
     opening = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
@@ -280,8 +280,8 @@ static int cr2res_util_trace(
     }
 
     /* Get Inputs */
-    science_file = cr2res_extract_filename(frameset, CR2RES_SCI_1D_RAW) ;
-    if (science_file == NULL) {
+    flat_file = cr2res_extract_filename(frameset, CR2RES_FLAT_OPEN_RAW) ;
+    if (flat_file == NULL) {
         cpl_msg_error(__func__, "The utility needs a science file");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
@@ -301,54 +301,53 @@ static int cr2res_util_trace(
 
         /* Load the image in which the orders are to extract*/
         cpl_msg_info(__func__, "Load the Image") ;
-        if ((science_ima = cpl_image_load(science_file, CPL_TYPE_FLOAT,
+        if ((flat_ima = cpl_image_load(flat_file, CPL_TYPE_FLOAT,
                         0, det_nr)) == NULL) {
-            cpl_msg_warning(__func__, 
+            cpl_msg_warning(__func__,
                     "Cannot load the image - skip detector");
             cpl_error_reset() ;
             cpl_msg_indent_less() ;
             continue ;
         }
-       
+
         /* Get the traces */
         cpl_msg_info(__func__, "Compute the traces") ;
         cpl_msg_indent_more() ;
-        if ((traces[det_nr-1] = cr2res_trace_cpl(science_ima,
-                CR2RES_DECKER_NONE, smooth, opening, degree, 
+        if ((traces[det_nr-1] = cr2res_trace_cpl(flat_ima,
+                CR2RES_DECKER_NONE, smooth, opening, degree,
                 min_cluster)) == NULL) {
-            cpl_msg_warning(__func__, 
+            cpl_msg_warning(__func__,
                     "Cannot compute the trace - skip detector");
             cpl_error_reset() ;
-            cpl_image_delete(science_ima) ;
+            cpl_image_delete(flat_ima) ;
             cpl_msg_indent_less() ;
             cpl_msg_indent_less() ;
             continue ;
         }
         cpl_msg_indent_less() ;
-       
+
         /* Debug Image */
         if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-            debug_ima = cr2res_trace_gen_image(traces[det_nr-1], 
-                    cpl_image_get_size_x(science_ima), 
-                    cpl_image_get_size_y(science_ima)) ;
-            cpl_image_save(debug_ima, "debug_trace_image.fits", 
+            debug_ima = cr2res_trace_gen_image(traces[det_nr-1],
+                    cpl_image_get_size_x(flat_ima),
+                    cpl_image_get_size_y(flat_ima)) ;
+            cpl_image_save(debug_ima, "debug_trace_image.fits",
                     CPL_BPP_IEEE_FLOAT, NULL, CPL_IO_CREATE) ;
             cpl_image_delete(debug_ima) ;
         }
-        cpl_image_delete(science_ima) ;
+        cpl_image_delete(flat_ima) ;
         cpl_msg_indent_less() ;
     }
 
     /* Save the Products */
-    cr2res_io_save_TRACE_OPEN("cr2res_util_trace.fits", frameset, 
+    cr2res_io_save_TRACE_OPEN("cr2res_util_trace.fits", frameset,
             parlist, traces, NULL, RECIPE_STRING) ;
 
     /* Free and return */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) 
-        if (traces[det_nr-1] != NULL) 
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
+        if (traces[det_nr-1] != NULL)
             cpl_table_delete(traces[det_nr-1]) ;
     return (int)cpl_error_get_code();
 }
 
 /**@}*/
-
