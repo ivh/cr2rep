@@ -153,6 +153,9 @@ cpl_table * cr2res_trace_cpl(
   @param min_cluster  	An order must be bigger - discarde otherwise
   @return The newly allocated trace table or NULL in error case
   @see cr2res_trace_cpl()
+  
+  The returned table contains 1 line per order. Each line has 3
+  polynomials (All, Upper and Lower) and the order number.
 	For example with degree 1 :
                  All|               Upper|               Lower|  Order
   24.3593, 0.0161583|  34.6822, 0.0164165|  14.0261, 0.0159084|      1
@@ -323,6 +326,13 @@ cpl_image * cr2res_trace_labelize(cpl_mask * mask)
   @param degree The degree of the polynomial use for the fitting
   @return   A newly allocated table or NULL in error case
 
+  The function converts the label image in the proper cluster table in
+  order to call the orders fitting function.
+  The cluster table contains the label image information in the form of
+  a table. One column per pixel. The columns are xs (pixel x position),
+  ys (pixel y position) and cluster (label number).
+  The returned table contains 1 line per order. Each line has 3
+  polynomials (All, Upper and Lower) and the order number.
 
  */
 /*----------------------------------------------------------------------------*/
@@ -392,11 +402,14 @@ cpl_table * cr2res_trace_combine(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief Make an image out of the trace solution
-  @param trace_open (or NULL)
-  @param trace_decker_1_3 (or NULL)
-  @param trace_decker_2_4 (or NULL)
-  @return image for trace visualization
+  @brief    Make an image out of the trace solution
+  @param trace  The trace table  
+  @param nx     X size of the produced image
+  @param ny     Y size of the produced image
+  @return   A newly allocated image or NULL in error case
+  The returned INT image is of size nx x ny, is filled with 0. The
+  polynomials of the different order edges are drawn with the value of
+  the order.
  */
 /*----------------------------------------------------------------------------*/
 cpl_image * cr2res_trace_gen_image(
@@ -405,11 +418,13 @@ cpl_image * cr2res_trace_gen_image(
         int             ny)
 {
     cpl_image       *   out ;
-    const cpl_array *   coeffs ;
-    cpl_polynomial  *   poly ;
     int             *   pout ;
+    const cpl_array *   coeffs_upper ;
+    const cpl_array *   coeffs_lower ;
+    cpl_polynomial  *   poly_upper ;
+    cpl_polynomial  *   poly_lower ;
     int                 order, i ;
-    cpl_size            j, y_pos ;
+    cpl_size            j, k, y_pos_lower, y_pos_upper ;
 
     /* Check entries */
     if (trace == NULL) return NULL ;
@@ -425,32 +440,32 @@ cpl_image * cr2res_trace_gen_image(
         order = cpl_table_get(trace, "Order", i, NULL) ;
         
         /* Get the Upper polynomial*/
-        coeffs = cpl_table_get_array(trace, "Upper", i) ;
-        poly = cpl_polynomial_new(1) ;
-        for (j=0 ; j<cpl_array_get_size(coeffs) ; j++) 
-            cpl_polynomial_set_coeff(poly, &j, cpl_array_get(coeffs, j, NULL)) ;
-
-        /* Draw It  */
-        for (j=0 ; j<nx ; j++) {
-            y_pos = (cpl_size)cpl_polynomial_eval_1d(poly, (double)j+1, NULL) ;
-            if (y_pos-1 < ny && y_pos-1 >=0)
-                pout[j+(y_pos-1)*nx] = order ;
-        }
-        cpl_polynomial_delete(poly) ;
+        coeffs_upper = cpl_table_get_array(trace, "Upper", i) ;
+        poly_upper = cpl_polynomial_new(1) ;
+        for (j=0 ; j<cpl_array_get_size(coeffs_upper) ; j++) 
+            cpl_polynomial_set_coeff(poly_upper, &j, 
+                    cpl_array_get(coeffs_upper, j, NULL)) ;
 
         /* Get the Lower polynomial*/
-        coeffs = cpl_table_get_array(trace, "Lower", i) ;
-        poly = cpl_polynomial_new(1) ;
-        for (j=0 ; j<cpl_array_get_size(coeffs) ; j++) 
-            cpl_polynomial_set_coeff(poly, &j, cpl_array_get(coeffs, j, NULL)) ;
+        coeffs_lower = cpl_table_get_array(trace, "Lower", i) ;
+        poly_lower = cpl_polynomial_new(1) ;
+        for (j=0 ; j<cpl_array_get_size(coeffs_lower) ; j++) 
+            cpl_polynomial_set_coeff(poly_lower, &j, 
+                    cpl_array_get(coeffs_lower, j, NULL)) ;
 
         /* Draw It  */
         for (j=0 ; j<nx ; j++) {
-            y_pos = (cpl_size)cpl_polynomial_eval_1d(poly, (double)j+1, NULL) ;
-            if (y_pos-1 < ny && y_pos-1 >=0)
-                pout[j+(y_pos-1)*nx] = order ;
+            y_pos_lower = (cpl_size)cpl_polynomial_eval_1d(poly_lower, 
+                    (double)j+1, NULL) ;
+            y_pos_upper = (cpl_size)cpl_polynomial_eval_1d(poly_upper, 
+                    (double)j+1, NULL) ;
+            for (k = y_pos_lower-1 ; k < y_pos_upper ; k++) 
+                if (k < ny && k >=0) 
+                    pout[j+k*nx] = order ;
+            
         }
-        cpl_polynomial_delete(poly) ;
+        cpl_polynomial_delete(poly_upper) ;
+        cpl_polynomial_delete(poly_lower) ;
     }
     return out;
 }
@@ -517,6 +532,8 @@ static cpl_mask * cr2res_trace_signal_detect(
   @brief    Go through the orders and initiate the polynomial fit for each
   @param
   @return
+  The returned table contains 1 line per order. Each line has 3
+  polynomials (All, Upper and Lower) and the order number.
  */
 /*----------------------------------------------------------------------------*/
 static cpl_table * cr2res_trace_orders_fit(
@@ -681,6 +698,9 @@ static cpl_image * cr2res_trace_convert_cluster_to_labels(
   @brief    Convert Labels image to the cluster table
   @param
   @return
+  The cluster table contains the label image information in the form of
+  a table. One column per pixel. The columns are xs (pixel x position),
+  ys (pixel y position) and cluster (label number).
  */
 /*----------------------------------------------------------------------------*/
 static cpl_table * cr2res_trace_convert_labels_to_cluster(cpl_image * labels) 
