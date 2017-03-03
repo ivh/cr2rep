@@ -132,6 +132,11 @@ int cr2res_slitdec_vert(
     cpl_vector * slitfu;
     cpl_vector * weights_sw;
 
+
+    /* Check Entries */
+    if (height == 0) return -1 ;
+
+
     lenx = cpl_image_get_size_x(img_in);
     leny = cpl_image_get_size_y(img_in);
     ny_os = oversample*(height+1) +1; // number of rows after oversampling
