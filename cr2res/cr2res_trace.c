@@ -408,8 +408,8 @@ cpl_table * cr2res_trace_combine(
   @param ny     Y size of the produced image
   @return   A newly allocated image or NULL in error case
   The returned INT image is of size nx x ny, is filled with 0. The
-  polynomials of the different order edges are drawn with the value of
-  the order.
+  polynomials of the different order edges are used ito fill the orders with 
+  the value of the order.
  */
 /*----------------------------------------------------------------------------*/
 cpl_image * cr2res_trace_gen_image(
@@ -475,8 +475,17 @@ cpl_image * cr2res_trace_gen_image(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Detect the Orders signal
-  @param
-  @return
+  @param image          The input image with the traces 
+  @param ordersep       The approximate number of pixels between 2 traces
+  @param smoothfactor   Mult. factor for the low pass filter kernel size
+  @param thresh         The threshold used for detection
+  @return   A newly allocated mask or NULL in error case.
+  
+  The returned mask identifies the pixels belonging to an order.
+  The input image is smoothed, subtracted to the result, and a simple
+  thresholding is applied. The smoothing kernel size is
+  ordersep*smoothfactor x 1
+
  */
 /*----------------------------------------------------------------------------*/
 static cpl_mask * cr2res_trace_signal_detect(
@@ -529,9 +538,15 @@ static cpl_mask * cr2res_trace_signal_detect(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Go through the orders and initiate the polynomial fit for each
-  @param
-  @return
+  @brief    Fit a polynomial on the different orders (center and edges)
+  @param clustertable   The table holding the order pixels with their orders
+  @param degree         Fitting polynomial degree
+  @return   A newly allocated table or NULL in error case
+
+  the function loops over the order numbers. For each of them, it
+  identifies the upper and lower edges and fits a polynomial to them. It
+  also fits a polynomial using all the pixels of the order.
+
   The returned table contains 1 line per order. Each line has 3
   polynomials (All, Upper and Lower) and the order number.
  */
@@ -606,9 +621,14 @@ static cpl_table * cr2res_trace_orders_fit(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Fit a single order
-  @param
-  @return
+  @brief    Simple fitting
+  @param table  Table containing all the pixels to fit
+  @param degree Fitting polynomial degree
+  @return   A newly allocated array or NULL in error case
+
+  The pixels in the input table (columns are xs, ys, clusters) are all
+  used for the fitting of a polynomial of degree degree.
+  The polynomial coefficients are returned in an array.
  */
 /*----------------------------------------------------------------------------*/
 static cpl_array * cr2res_trace_order_fit(
@@ -667,8 +687,13 @@ static cpl_array * cr2res_trace_order_fit(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Convert cluster table to labels image
-  @param
-  @return
+  @param cluster    A cluster table (xs, ys, cluster)
+  @param nx         X size of the returned label image
+  @param ny         Y size of the returned label image
+  @return   A newly allocated INT image or NULL in error case
+
+  A new label image is created from the cluster table. Each entry in the
+  cluster table is used to set a pixel in the label image.
  */
 /*----------------------------------------------------------------------------*/
 static cpl_image * cr2res_trace_convert_cluster_to_labels(
@@ -696,8 +721,9 @@ static cpl_image * cr2res_trace_convert_cluster_to_labels(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Convert Labels image to the cluster table
-  @param
-  @return
+  @param labels     The label image
+  @return   A newly allocated cluster table or NULL in error case
+
   The cluster table contains the label image information in the form of
   a table. One column per pixel. The columns are xs (pixel x position),
   ys (pixel y position) and cluster (label number).
@@ -741,9 +767,10 @@ static cpl_table * cr2res_trace_convert_labels_to_cluster(cpl_image * labels)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
-  @param
-  @return
+  @brief    Cleans small size group of pixels from a mask 
+  @param mask           Input mask
+  @param min_cluster    Size of clusters under which they need to be removed
+  @return   A newly allocated mask or NULL in error case
  */
 /*----------------------------------------------------------------------------*/
 static cpl_mask * cr2res_trace_clean_blobs(
@@ -796,9 +823,14 @@ static cpl_mask * cr2res_trace_clean_blobs(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
-  @param
-  @return
+  @brief  Extracts pixels on the upper and lower edges of an order
+  @param pixels_table       Input cluster table with a single trace
+  @param edge_lower_table   [output] Lower edge pixels table
+  @param edge_upper_table   [output] Upper edge pixels table
+  @return   0 if ok, -1 otherwise
+
+  For each found x in the input cluster table, the min and max y are
+  used for adding an entry in the 2 output cluster tables.
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_trace_extract_edges(
