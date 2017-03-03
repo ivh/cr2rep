@@ -44,6 +44,7 @@
 #define CR2RES_EXTRACT_1D_PROCATG       "EXTRACT_1D"
 
 /* Define here the DO.CATG keywords */
+#define CR2RES_COMMAND_LINE             "COMMAND_LINE"
 #define CR2RES_DARK_RAW                 "DARK"
 #define CR2RES_FLAT_OPEN_RAW            "FLAT_OPEN"
 #define CR2RES_FLAT_DECKER_RAW          "FLAT_DECKER"

@@ -61,7 +61,7 @@ static int cr2res_util_trace(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_util_trace_description[] =
 "TODO : Descripe here the recipe in / out / params / basic algo\n"
-"science.fits " CR2RES_SCI_1D_RAW "\n"
+"science.fits " CR2RES_COMMAND_LINE "\n"
 " The recipe produces the following products:\n"
 "\n";
 
@@ -152,7 +152,7 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.min_cluster",
             CPL_TYPE_INT, "size in pixels of the smallest allowed cluster",
-            "cr2res.cr2res_util_trace", 40);
+            "cr2res.cr2res_util_trace", 400);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "min_cluster");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -173,7 +173,7 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.opening",
             CPL_TYPE_BOOL, "Use a morphological opening to rejoin clusters",
-            "cr2res.cr2res_util_trace", FALSE);
+            "cr2res.cr2res_util_trace", TRUE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "opening");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -280,7 +280,7 @@ static int cr2res_util_trace(
     }
 
     /* Get Inputs */
-    flat_file = cr2res_extract_filename(frameset, CR2RES_FLAT_OPEN_RAW) ;
+    flat_file = cr2res_extract_filename(frameset, CR2RES_COMMAND_LINE) ;
     if (flat_file == NULL) {
         cpl_msg_error(__func__, "The utility needs a science file");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -342,7 +342,7 @@ static int cr2res_util_trace(
     /* Save the Products */
     cr2res_io_save_TRACE_OPEN("cr2res_util_trace.fits", frameset,
             parlist, traces, NULL, RECIPE_STRING) ;
-
+    
     /* Free and return */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
         if (traces[det_nr-1] != NULL)
@@ -351,3 +351,6 @@ static int cr2res_util_trace(
 }
 
 /**@}*/
+
+
+

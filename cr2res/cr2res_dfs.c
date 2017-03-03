@@ -75,7 +75,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_SCI_1D_RAW) ||
                 !strcmp(tag, CR2RES_SCI_2D_RAW) ||
                 !strcmp(tag, CR2RES_SCI_POL_RAW) ||
-                !strcmp(tag, "COMMAND_LINE")) {
+                !strcmp(tag, CR2RES_COMMAND_LINE)) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
         } else if (!strcmp(tag, CR2RES_MASTER_BPM_PROCATG) ||

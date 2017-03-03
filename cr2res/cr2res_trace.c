@@ -73,9 +73,18 @@ static int cr2res_trace_extract_edges(
 /*----------------------------------------------------------------------------*/
 /**
   @brief  Main function for running all parts of the trace algorithm 
-  @param    ima     input image
-  @param    decker  slit layout
-  @return  
+  @param ima            input image
+  @param decker         slit layout
+  @param smoothfactor   Used for detection
+  @param opening		Used for cleaning the mask
+  @param degree			Fitted polynomial degree
+  @param min_cluster  	An order must be bigger - discarde otherwise
+  @return The newly allocated trace table or NULL in error case
+	For example with degree 1 :
+                 All|               Upper|               Lower|  Order
+  24.3593, 0.0161583|  34.6822, 0.0164165|  14.0261, 0.0159084|      1
+  225.479, 0.0167469|  236.604, 0.0168986|  214.342, 0.0166058|      2
+   436.94, 0.0173438|   448.436, 0.017493|   425.423, 0.017203|      3
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_cpl(
@@ -136,10 +145,19 @@ cpl_table * cr2res_trace_cpl(
 /*----------------------------------------------------------------------------*/
 /**
   @brief  Main function for running all parts of the trace algorithm 
-  @param    ima     input image
-  @param    decker  slit layout
-  @param    npolys  [out] the number of trace polynomials determined
-  @return   Set of trace polynomials that describe the orders
+  @param ima            input image
+  @param decker         slit layout
+  @param smoothfactor   Used for detection
+  @param opening		Used for cleaning the mask
+  @param degree			Fitted polynomial degree
+  @param min_cluster  	An order must be bigger - discarde otherwise
+  @return The newly allocated trace table or NULL in error case
+  @see cr2res_trace_cpl()
+	For example with degree 1 :
+                 All|               Upper|               Lower|  Order
+  24.3593, 0.0161583|  34.6822, 0.0164165|  14.0261, 0.0159084|      1
+  225.479, 0.0167469|  236.604, 0.0168986|  214.342, 0.0166058|      2
+   436.94, 0.0173438|   448.436, 0.017493|   425.423, 0.017203|      3
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_nocpl(
@@ -154,6 +172,8 @@ cpl_table * cr2res_trace_nocpl(
     cpl_table       *   clustertable ;
     cpl_image       *   labels ;
     cpl_table       *   trace_table ;
+
+    /* TODO */
 
     /* Check Entries */
     if (ima == NULL) return NULL ;
@@ -185,10 +205,13 @@ cpl_table * cr2res_trace_nocpl(
 /*----------------------------------------------------------------------------*/
 /**
   @brief  Determine which pixels belong to an order
-  @param    ima             input image
-  @param    smoothfactor    
-  @param    opening         Flag to apply opening to the orders
-  @return   mask for pixels in orders
+  @param ima            input image
+  @param smoothfactor   Used for detection
+  @param opening        Flag to apply opening filtering to the orders
+  @param min_cluster    Remove all clusters smaller than this
+  @return A newly allocated mask or NULL in error case
+
+  The returned mask identifies the order positions in the image.
  */
 /*----------------------------------------------------------------------------*/
 cpl_mask * cr2res_trace_detect(
@@ -209,7 +232,7 @@ cpl_mask * cr2res_trace_detect(
     /* TODO This needs to come from a static calibration, each band */
     int                     ordersep=80;
     /* TODO Set to read-noise later, also input-para */
-    double                  thresh=10;
+    double                  thresh=10.0;
 
     /* Apply detection */
     cpl_msg_info(__func__, "Detect the signal") ;
@@ -226,7 +249,7 @@ cpl_mask * cr2res_trace_detect(
         cpl_mask_not(mask_kernel);
         new_mask = cpl_mask_duplicate(mask) ;
         cpl_mask_filter(new_mask, mask, mask_kernel, CPL_FILTER_OPENING,
-                CPL_BORDER_NOP) ;
+                CPL_BORDER_COPY) ;
         cpl_mask_delete(mask_kernel) ;
 
         /* Compute the difference */
@@ -256,15 +279,18 @@ cpl_mask * cr2res_trace_detect(
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
         cpl_mask_save(clean_mask, "debug_mask.fits", NULL, CPL_IO_CREATE);
     }
-
     return clean_mask ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Find out which pixels belong to the same order, label orders
-  @param    bin_ima     input binary image
-  @return   image with labelled pixels.
+  @param mask   Mask identify the orders positions
+  @return   A newly allocated image or NULL in error case
+
+  The returned image is of type INT. Background value is 0. Each order
+  has an integer value from 1 to the number of orders detected.
+  All connected pixels belong to the same order.
  */
 /*----------------------------------------------------------------------------*/
 cpl_image * cr2res_trace_labelize(cpl_mask * mask)
@@ -293,9 +319,11 @@ cpl_image * cr2res_trace_labelize(cpl_mask * mask)
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Fit polynomials to pixel coordinates in each order
-  @param    
-  @param   
-  @return 
+  @param labels The labels image (1 int value for each order)
+  @param degree The degree of the polynomial use for the fitting
+  @return   A newly allocated table or NULL in error case
+
+
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_fit(
@@ -405,7 +433,8 @@ cpl_image * cr2res_trace_gen_image(
         /* Draw It  */
         for (j=0 ; j<nx ; j++) {
             y_pos = (cpl_size)cpl_polynomial_eval_1d(poly, (double)j+1, NULL) ;
-            pout[j+(y_pos-1)*nx] = order ;
+            if (y_pos-1 < ny && y_pos-1 >=0)
+                pout[j+(y_pos-1)*nx] = order ;
         }
         cpl_polynomial_delete(poly) ;
 
@@ -418,7 +447,8 @@ cpl_image * cr2res_trace_gen_image(
         /* Draw It  */
         for (j=0 ; j<nx ; j++) {
             y_pos = (cpl_size)cpl_polynomial_eval_1d(poly, (double)j+1, NULL) ;
-            pout[j+(y_pos-1)*nx] = order ;
+            if (y_pos-1 < ny && y_pos-1 >=0)
+                pout[j+(y_pos-1)*nx] = order ;
         }
         cpl_polynomial_delete(poly) ;
     }
@@ -466,9 +496,16 @@ static cpl_mask * cr2res_trace_signal_detect(
     }
     cpl_matrix_delete(kernel);
 
-    /* the pixels we want are the ones with values below -thresh */
+    /* The pixels we want are the ones with values below -thresh */
     cpl_image_subtract(smimage, image);
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_image_save(smimage, "debug_smimage.fits", CPL_TYPE_FLOAT, NULL,
+                CPL_IO_CREATE);
+    }
+
     mask=cpl_mask_new(cpl_image_get_size_x(image),cpl_image_get_size_y(image));
+    cpl_mask_not(mask) ;
     cpl_mask_threshold_image(mask,smimage,-1*thresh,DBL_MAX,CPL_BINARY_0);
     cpl_image_delete(smimage) ;
 
