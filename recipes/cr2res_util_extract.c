@@ -32,6 +32,7 @@
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
 #include "cr2res_io.h"
+#include "cr2res_trace.h"
 #include "cr2res_slitdec.h"
 
 /*-----------------------------------------------------------------------------
@@ -49,6 +50,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
 /*-----------------------------------------------------------------------------
                             Private function prototypes
  -----------------------------------------------------------------------------*/
+
 static cpl_table * cr2res_extract_tab_create(
         cpl_vector      **  spectrum,
         int             *   orders,
@@ -106,7 +108,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
                     "cr2res_util_extract",
-                    "Extraction utility",
+                    "Optimal Extraction utility",
                     cr2res_util_extract_description,
                     "Thomas Marquart, Yves Jung",
                     PACKAGE_BUGREPORT,
@@ -166,7 +168,8 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.smooth_slit",
-            CPL_TYPE_DOUBLE, "Smoothing along the slit (1 for high S/N, 5 for low)",
+            CPL_TYPE_DOUBLE, 
+            "Smoothing along the slit (1 for high S/N, 5 for low)",
             "cr2res.cr2res_util_extract", 1.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_slit");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
@@ -179,6 +182,19 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.detector",
+            CPL_TYPE_INT, "Only reduce the specified detector",
+            "cr2res.cr2res_util_extract", 0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "detector");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.order",
+            CPL_TYPE_INT, "Only reduce the specified order",
+            "cr2res.cr2res_util_extract", -1);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "order");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
     return 0;
 }
 
@@ -234,25 +250,24 @@ static int cr2res_util_extract(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param;
-    int                     oversample, swath_width, sum_only ;
-    int                     extr_height;
+    int                     oversample, swath_width, sum_only,
+                            reduce_det, reduce_order ;
     double                  smooth_slit ;
     const char          *   science_file ;
     const char          *   trace_file ;
-    cpl_table           *   trace_table ;
-    int                 *   orders ;
-    int                     nb_orders[CR2RES_NB_DETECTORS] ;
-    cpl_image           *   science_ima ;
-    cpl_polynomial      **  traces ;
-    cpl_vector          *   y_center ;
+    
     hdrl_image          *   model_master[CR2RES_NB_DETECTORS] ;
-    hdrl_image          *   model_tmp ;
-    cpl_vector          **  spectrum[CR2RES_NB_DETECTORS] ;
-    cpl_vector          **  spectrum_error[CR2RES_NB_DETECTORS] ;
-    cpl_vector          **  slit_func[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slit_func_tab[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extract_tab[CR2RES_NB_DETECTORS] ;
-    int                     det_nr, i ;
+    cpl_table           *   trace_table ;
+    int                 *   orders ;
+    cpl_image           *   science_ima ;
+    cpl_vector          **  spectrum ;
+    cpl_vector          **  slit_func ;
+    cpl_polynomial      **  traces ;
+    hdrl_image          *   model_tmp ;
+    cpl_vector          *   y_center ;
+    int                     det_nr, nb_orders, extr_height, i ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -267,6 +282,12 @@ static int cr2res_util_extract(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_extract.sum_only");
     sum_only = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_extract.detector");
+    reduce_det = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_extract.order");
+    reduce_order = cpl_parameter_get_int(param);
 
     /* Check Parameters */
     /* TODO */
@@ -289,39 +310,87 @@ static int cr2res_util_extract(
 
     /* Loop over the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+
+        /* Initialise */
+        model_master[det_nr-1] = NULL ;
+        slit_func_tab[det_nr-1] = NULL ;
+        extract_tab[det_nr-1] = NULL ;
+        nb_orders = 0 ;
+
+        /* Compute only one detector */
+        if (reduce_det != 0 && det_nr != reduce_det) continue ;
+
         cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
         cpl_msg_indent_more() ;
 
         /* Load the trace table of this detector */
-        trace_table = cr2res_io_load_TRACE_OPEN(trace_file, det_nr) ;
-        if (trace_table == NULL) {
-            cpl_msg_error(__func__, "Failed to get trace table for detector #%d", det_nr);
-            cpl_error_set(__func__, CPL_ERROR_CONTINUE) ;
+        cpl_msg_info(__func__, "Load the trace table") ;
+        if ((trace_table = cr2res_io_load_TRACE_OPEN(trace_file,
+                        det_nr)) == NULL) {
+            cpl_msg_error(__func__, 
+                    "Failed to get trace table - skip detector");
+            cpl_error_reset() ;
+            cpl_msg_indent_less() ;
             continue ;
         }
 
         /* Get the list of orders in the trace table */
-        orders = cr2res_trace_get_order_numbers(trace_table,
-                &(nb_orders[det_nr-1])) ;
+        if ((orders = cr2res_trace_get_order_numbers(trace_table,
+                        &nb_orders)) == NULL) {
+            cpl_table_delete(trace_table) ;
+            cpl_msg_error(__func__, 
+                    "Failed to get the orders numbers - skip detector");
+            cpl_error_reset() ;
+            cpl_msg_indent_less() ;
+            continue ;
+        }
 
         /* Load the image in which the orders are to extract*/
-        science_ima = cpl_image_load(science_file, CPL_TYPE_FLOAT, 0, det_nr) ;
+        if ((science_ima = cpl_image_load(science_file, CPL_TYPE_FLOAT,
+                        0, det_nr)) == NULL) {
+            cpl_free(orders) ;
+            cpl_table_delete(trace_table) ;
+            cpl_msg_error(__func__, 
+                    "Failed to load the image - skip detector");
+            cpl_error_reset() ;
+            cpl_msg_indent_less() ;
+            continue ;
+        }
 
         /* Allocate Data containers */
-        spectrum[det_nr-1] = cpl_malloc(nb_orders[det_nr-1] *
-                sizeof(cpl_vector *)) ;
-        slit_func[det_nr-1] = cpl_malloc(nb_orders[det_nr-1] *
-                sizeof(cpl_vector *)) ;
+        spectrum = cpl_malloc(nb_orders * sizeof(cpl_vector *)) ;
+        slit_func = cpl_malloc(nb_orders * sizeof(cpl_vector *)) ;
         model_master[det_nr-1] = hdrl_image_create(science_ima, NULL) ;
         hdrl_image_mul_scalar(model_master[det_nr-1], (hdrl_value){0.0, 0.0}) ;
 
         /* Loop over the orders and extract them */
-        for (i=0 ; i<nb_orders[det_nr-1] ; i++) {
+        for (i=0 ; i<nb_orders ; i++) {
             cpl_msg_info(__func__, "Process order number %d", orders[i]) ;
             cpl_msg_indent_more() ;
 
+            /* Initialise */
+            slit_func[i] = NULL ;
+            spectrum[i] = NULL ;
+            model_tmp = NULL ;
+
+            /* Check if this order needs to be skipped */
+            if (reduce_order > -1 && orders[i] != reduce_order) {
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+
             /* Get the 2 Traces for the current order */
-            traces = cr2es_trace_open_get_polynomials(trace_table, orders[i]) ;
+            if ((traces = cr2res_trace_open_get_polynomials(trace_table,
+                            orders[i])) == NULL) {
+                cpl_msg_warning(__func__, 
+                        "Failed to get the traces for order %d - skip order",
+                        orders[i]);
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+            cpl_polynomial_dump(traces[0], stdout) ;
+            cpl_polynomial_dump(traces[1], stdout) ;
 
             /* Get the values between the 2 traces and the height */
             y_center = cr2res_trace_compute_middle(traces[0], traces[1],
@@ -332,17 +401,20 @@ static int cr2res_util_extract(
             cpl_polynomial_delete(traces[1]) ;
             cpl_free(traces) ;
 
+            /* Call the SLIT DECOMPOSITION */
             if (cr2res_slitdec_vert(science_ima, y_center, extr_height,
                     swath_width, oversample, smooth_slit,
-                    &(slit_func[det_nr-1][i]),
-                    &(spectrum[det_nr-1][i]),
-                    &model_tmp) != 0) {
+                    &(slit_func[i]), &(spectrum[i]), &model_tmp) != 0) {
                 cpl_msg_error(__func__,
                         "Cannot extract order %d on detector %d",
                         orders[i], det_nr) ;
-                slit_func[det_nr-1][i] = NULL ;
-                spectrum[det_nr-1][i] = NULL ;
+                cpl_vector_delete(y_center) ;
+                slit_func[i] = NULL ;
+                spectrum[i] = NULL ;
                 model_tmp = NULL ;
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
             }
             cpl_vector_delete(y_center) ;
 
@@ -358,21 +430,19 @@ static int cr2res_util_extract(
 
         /* Create the slit_func_tab for the current detector */
         slit_func_tab[det_nr-1] = cr2res_slit_func_tab_create(
-                slit_func[det_nr-1], orders, nb_orders[det_nr-1]) ;
+                slit_func, orders, nb_orders) ;
 
         /* Create the extracted_tab for the current detector */
         extract_tab[det_nr-1] = cr2res_extract_tab_create(
-                spectrum[det_nr-1], orders, nb_orders[det_nr-1]) ;
+                spectrum, orders, nb_orders) ;
 
 		/* Deallocate Vectors */
-        for (i=0 ; i<nb_orders[det_nr-1] ; i++) {
-            if (slit_func[det_nr-1][i] != NULL)
-                cpl_vector_delete(slit_func[det_nr-1][i]) ;
-            if (spectrum[det_nr-1][i] != NULL)
-                cpl_vector_delete(spectrum[det_nr-1][i]) ;
+        for (i=0 ; i<nb_orders ; i++) {
+            if (slit_func[i] != NULL) cpl_vector_delete(slit_func[i]) ;
+            if (spectrum[i] != NULL) cpl_vector_delete(spectrum[i]) ;
         }
-        cpl_free(spectrum[det_nr-1]) ;
-        cpl_free(slit_func[det_nr-1]) ;
+        cpl_free(spectrum) ;
+        cpl_free(slit_func) ;
         cpl_free(orders) ;
         cpl_msg_indent_less() ;
     }

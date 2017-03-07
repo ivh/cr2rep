@@ -25,6 +25,9 @@
                                    Includes
  -----------------------------------------------------------------------------*/
 
+#include <math.h>
+#include <string.h>
+
 #include <cpl.h>
 #include "cr2res_trace.h"
 #include "cr2res_utils.h"
@@ -470,6 +473,193 @@ cpl_image * cr2res_trace_gen_image(
     return out;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Count and return the order numbers in a trace table
+  @param    trace       trace table
+  @param    nb_orders   [output] number of orders 
+  @return   newly allocated int array
+
+  The int array will need to be freed by the caller. Its size iѕ
+  nb_orders. It contains the list of orders found in the trace table.
+ */
+/*----------------------------------------------------------------------------*/
+int * cr2res_trace_get_order_numbers(
+        cpl_table   *   trace, 
+        int         *   nb_orders) 
+{
+    int     *   porders ;
+    int         nrows, count_orders, new_order ;
+    int     *   tmp_orders_list ;
+    int     *   out ;
+    int         i, j ;
+
+    /* Check entries */
+    if (trace == NULL || nb_orders == NULL) return NULL ;
+
+    /* Initialise */
+    nrows = cpl_table_get_nrow(trace) ;
+    porders = cpl_table_get_data_int(trace, "Order");
+
+    /* Allocate orders list */
+    tmp_orders_list = cpl_malloc(nrows * sizeof(int)) ;
+
+    /* Count the different orders */
+    count_orders = 0 ;
+    for (i=0 ; i<nrows ; i++) {
+        /* Is the current order a new one ? */
+        new_order = 1 ;
+        for (j=0 ; j<count_orders ; j++)
+            if (tmp_orders_list[j] == porders[i]) 
+                new_order = 0 ;
+
+        /* Current order not yet stored */
+        if (new_order) {
+            tmp_orders_list[count_orders] = porders[i] ;
+            count_orders ++ ;
+        }
+    }
+
+    /* Allocate and fill output array */
+    out = cpl_malloc(count_orders * sizeof(int)) ;
+    for (i=0 ; i<count_orders ; i++) out[i] = tmp_orders_list[i] ;
+
+    /* Free and return */
+    cpl_free(tmp_orders_list) ;
+    *nb_orders = count_orders ;
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Select the upper and lower polynomials for the given order
+  @param trace      TRACE table
+  @param order_nb   Wished order
+  @return   array of two polynomials or NULL in error case
+
+  The polynomials will need to be destroyed by the caller:
+  cpl_polynomial_delete(out[0]) ; -> Upper
+  cpl_polynomial_delete(out[1]) ; -> Lower
+  cpl_free(out) ;
+
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial ** cr2res_trace_open_get_polynomials(
+            cpl_table   *   trace,
+            cpl_size        order_nb) 
+{
+    cpl_polynomial  **  polys ;
+    const cpl_array *   coeffs ;
+    int             *   porders ;
+    int                 nrows, i, found  ;
+    cpl_size            j ;
+
+    /* Check Entries */
+    if (trace == NULL) return NULL ;
+
+    /* Initialise */
+    nrows = cpl_table_get_nrow(trace) ;
+    porders = cpl_table_get_data_int(trace, "Order");
+
+    /* Allocate the returned pointer */
+    polys = cpl_malloc(2 * sizeof(cpl_polynomial*)) ;
+
+    /* Loop on the orders */
+    for (i=0 ; i<nrows ; i++) {
+        /* If order found */
+        if (porders[i] == order_nb) {
+            /* Get the Upper polynomial*/
+            coeffs = cpl_table_get_array(trace, "Upper", i) ;
+            polys[0] = cpl_polynomial_new(1) ;
+            for (j=0 ; j<cpl_array_get_size(coeffs) ; j++)
+                cpl_polynomial_set_coeff(polys[0], &j,
+                        cpl_array_get(coeffs, j, NULL)) ;
+            /* Get the Lower polynomial*/
+            coeffs = cpl_table_get_array(trace, "Lower", i) ;
+            polys[1] = cpl_polynomial_new(1) ;
+            for (j=0 ; j<cpl_array_get_size(coeffs) ; j++)
+                cpl_polynomial_set_coeff(polys[1], &j,
+                        cpl_array_get(coeffs, j, NULL)) ;
+            return polys ;
+        }
+    }
+
+    /* Order not found */
+    cpl_free(polys) ;
+    return NULL ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the positions between 2 trace polynomials
+  @param    poly1   First trace
+  @param    poly2   Second trace
+  @param    size    Output vector size
+  @return
+  The returned vector contains the pixel positions of the middle of the
+  2 traces.
+  The nth vector value is trace1(n) + trace2(n) / 2
+  n=1 for the first value
+ */
+/*----------------------------------------------------------------------------*/
+cpl_vector * cr2res_trace_compute_middle(
+        cpl_polynomial  *   trace1,
+        cpl_polynomial  *   trace2,
+        int                 vector_size)
+{
+    cpl_vector  *   out ;
+    cpl_polynomial * tmp;
+
+    out = cpl_vector_new(vector_size) ;
+    tmp =  cpl_polynomial_new(1);
+    cpl_polynomial_add(tmp, trace1, trace2);
+    cpl_polynomial_multiply_scalar(tmp, tmp, 0.5);
+
+    cpl_vector_fill_polynomial(out, tmp, 1, 1);
+    cpl_polynomial_delete(tmp);
+
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes extraction height between 2 trace polynomials
+  @param trace1         First trace
+  @param trace2         Second trace
+  @param vector_size    detector x size
+  @return   The average height between 2 polynomials or -1 in error case
+
+  The returned int is the rounded-up mean difference between the two
+  input polynomials, evaluated on a vector from 1 to vector_size.
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_trace_compute_height(
+        cpl_polynomial  *   trace1,
+        cpl_polynomial  *   trace2,
+        int                 vector_size)
+{
+    cpl_polynomial  *   diff_poly;
+    cpl_vector      *   diff_vec ;
+    int                 height ;
+
+    /* Check Entries */
+    if (trace1 == NULL || trace2 == NULL) return -1 ;
+
+    diff_poly =  cpl_polynomial_new(1);
+    diff_vec =  cpl_vector_new(vector_size);
+    cpl_polynomial_subtract(diff_poly, trace2, trace1);
+    cpl_vector_fill_polynomial(diff_vec, diff_poly, 1, 1);
+    height = (int)ceil(fabs( cpl_vector_get_mean(diff_vec) ));
+    cpl_polynomial_delete(diff_poly) ;
+
+    if (cpl_vector_get_stdev(diff_vec) > 5){ // TODO: make this not hardcoded?
+        cpl_msg_warning(__func__, "Stdev of extraction height is large.");
+    }
+    cpl_vector_delete(diff_vec) ;
+
+    return height;
+}
+
 /**@}*/
 
 /*----------------------------------------------------------------------------*/
@@ -627,7 +817,10 @@ static cpl_table * cr2res_trace_orders_fit(
   @return   A newly allocated array or NULL in error case
 
   The pixels in the input table (columns are xs, ys, clusters) are all
-  used for the fitting of a polynomial of degree degree.
+  used for the fitting of a polynomial of degree degree. The clusters
+  column is IGNORED.
+  If the x range of pixels does not exceed 1500 pixels, a linear fit is
+  applied.
   The polynomial coefficients are returned in an array.
  */
 /*----------------------------------------------------------------------------*/
@@ -641,6 +834,7 @@ static cpl_array * cr2res_trace_order_fit(
     cpl_array       *   result ;
     int             *   xs;
     int             *   ys;
+    int                 x_min, x_max ;
     cpl_size            i, degree_local, n ;
 
     /* Check Entries */
@@ -649,6 +843,7 @@ static cpl_array * cr2res_trace_order_fit(
     /* Initialise */
     n = cpl_table_get_nrow(table) ;
     degree_local = (cpl_size)degree ;
+    x_min = x_max = -1 ;
 
     /* Create Objects */
     x = cpl_matrix_new(1, n) ;
@@ -659,9 +854,18 @@ static cpl_array * cr2res_trace_order_fit(
     xs = cpl_table_get_data_int(table,"xs");
     ys = cpl_table_get_data_int(table,"ys");
     for (i=0 ; i<n ; i++) {
+        /* Compute x_min and x_max */
+        if (x_min < 0 || xs[i] < x_min) x_min = xs[i] ;
+        if (x_max < 0 || xs[i] > x_max) x_max = xs[i] ;
+
+        /* Fill the objects used for fitting */
         cpl_matrix_set(x, 0, i, xs[i]) ;
         cpl_vector_set(y, i, (double)ys[i]) ;
     }
+
+    /* If the xs range is too small, reduce the degree  */
+    /* This case corresponds to the orders that appear on the image corner */
+    if (x_max - x_min < 1500) degree_local = 1 ;
 
     /* Apply the fit */
     if (cpl_polynomial_fit(poly1, x, NULL, y, NULL, CPL_FALSE, NULL, 
@@ -895,5 +1099,6 @@ static int cr2res_trace_extract_edges(
     cpl_table_delete(lower_sel) ;
 
     return CPL_ERROR_NONE ;
+
 }
 

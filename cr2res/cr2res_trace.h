@@ -72,4 +72,22 @@ cpl_image * cr2res_trace_gen_image(
         int             nx,
         int             ny) ;
 
+int * cr2res_trace_get_order_numbers(
+        cpl_table   *   trace, 
+        int         *   nb_orders) ;
+
+cpl_polynomial ** cr2res_trace_open_get_polynomials(
+            cpl_table   *   trace,
+            cpl_size        order_nb) ;
+
+/* TO BE REVIEWED */
+cpl_vector * cr2res_trace_compute_middle(
+        cpl_polynomial  *   trace1,
+        cpl_polynomial  *   trace2,
+        int                 vector_size) ;
+int cr2res_trace_compute_height(
+        cpl_polynomial  *   trace1,
+        cpl_polynomial  *   trace2,
+        int                 vector_size) ;
+
 #endif
