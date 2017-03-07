@@ -389,8 +389,6 @@ static int cr2res_util_extract(
                 cpl_msg_indent_less() ;
                 continue ;
             }
-            cpl_polynomial_dump(traces[0], stdout) ;
-            cpl_polynomial_dump(traces[1], stdout) ;
 
             /* Get the values between the 2 traces and the height */
             y_center = cr2res_trace_compute_middle(traces[0], traces[1],
