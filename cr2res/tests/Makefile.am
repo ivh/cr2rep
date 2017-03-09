@@ -34,10 +34,10 @@ AM_CPPFLAGS = $(all_includes)
 AM_LDFLAGS = $(CPL_LDFLAGS)
 LDADD = $(LIBCR2RES) $(LIBCPLDFS) $(LIBCPLUI) $(LIBCPLDRS) $(LIBCPLCORE)
 
-check_PROGRAMS = cr2res_dfs-test
+check_PROGRAMS = cr2res_trace-test
 
-cr2res_dfs_test_SOURCES = cr2res_dfs-test.c
-cr2res_dfs_test_DEPENDENCIES = $(LIBCR2RES)
+cr2res_trace_test_SOURCES = cr2res_trace-test.c
+cr2res_trace_test_DEPENDENCIES = $(LIBCR2RES)
 
 # Be sure to reexport important environment variables.
 TESTS_ENVIRONMENT = MAKE="$(MAKE)" CC="$(CC)" CFLAGS="$(CFLAGS)" \
