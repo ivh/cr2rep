@@ -34,6 +34,8 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static void test_cr2res_trace_cpl(void) ;
+
 /*----------------------------------------------------------------------------*/
 /**
  * @defgroup cr2res_trace-test    Unit test of cr2res_trace
@@ -53,9 +55,20 @@
 static void test_cr2res_trace_cpl(void)
 {
 
+    cpl_image   *   ima ;
+    cpl_table   *   out ;
 
-    cr2res_trace_cpl(NULL, CR2RES_DECKER_NONE, 1.0, 1, 6, 500) ;
-    cpl_test_error(CPL_ERROR_NULL_INPUT);
+    /* NULL Input */
+    ima = NULL ;
+    out = cr2res_trace_cpl(ima, CR2RES_DECKER_NONE, 1.0, 1, 6, 500) ;
+    cpl_test_null(out);
+
+    /* Empty Input */
+    ima = cpl_image_new(2048, 2048, CPL_TYPE_FLOAT) ;
+    /* out = cr2res_trace_cpl(ima, CR2RES_DECKER_NONE, 1.0, 1, 6, 500) ; */
+    /* cpl_test_null(out); */
+
+    cpl_image_delete(ima) ;
 
     return;
 }
@@ -67,25 +80,22 @@ static void test_cr2res_trace_cpl(void)
 /*----------------------------------------------------------------------------*/
 int main(void)
 {
-    cpl_image   *   test_image ;
-
-    cpl_init(CPL_INIT_DEFAULT);
+    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
 
     test_cr2res_trace_cpl() ;
-    test_cr2res_trace_nocpl() ;
-    test_cr2res_trace_detect() ;
-    test_cr2res_trace_labelize() ;
-    test_cr2res_trace_fit() ;
-    test_cr2res_trace_compare() ;
-    test_cr2res_trace_combine() ;
-    test_cr2res_trace_gen_image() ;
-    test_cr2res_trace_get_order_numbers() ;
-    test_cr2res_trace_open_get_polynomials() ;
-    test_cr2res_trace_compute_middle() ;
-    test_cr2res_trace_compute_height() ;
-
-    cpl_end();
-    exit(EXIT_SUCCESS);
+    /* test_cr2res_trace_nocpl() ; */
+    /* test_cr2res_trace_detect() ; */
+    /* test_cr2res_trace_labelize() ; */
+    /* test_cr2res_trace_fit() ; */
+    /* test_cr2res_trace_compare() ; */
+    /* test_cr2res_trace_combine() ; */
+    /* test_cr2res_trace_gen_image() ; */
+    /* test_cr2res_trace_get_order_numbers() ; */
+    /* test_cr2res_trace_open_get_polynomials() ; */
+    /* test_cr2res_trace_compute_middle() ; */
+    /* test_cr2res_trace_compute_height() ; */
+        
+    return cpl_test_end(0);
 }
 
 /**@}*/
