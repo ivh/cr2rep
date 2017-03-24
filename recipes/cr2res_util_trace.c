@@ -159,7 +159,7 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.smooth",
             CPL_TYPE_DOUBLE, "Length of the smoothing kernel",
-            "cr2res.cr2res_util_trace", 1.0);
+            "cr2res.cr2res_util_trace", 5.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -342,7 +342,7 @@ static int cr2res_util_trace(
     /* Save the Products */
     cr2res_io_save_TRACE_OPEN("cr2res_util_trace.fits", frameset,
             parlist, traces, NULL, RECIPE_STRING) ;
-    
+
     /* Free and return */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
         if (traces[det_nr-1] != NULL)
@@ -351,6 +351,3 @@ static int cr2res_util_trace(
 }
 
 /**@}*/
-
-
-
