@@ -167,8 +167,15 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.height",
+            CPL_TYPE_INT, "Extraction height",
+            "cr2res.cr2res_util_extract", -1);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "height");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.smooth_slit",
-            CPL_TYPE_DOUBLE, 
+            CPL_TYPE_DOUBLE,
             "Smoothing along the slit (1 for high S/N, 5 for low)",
             "cr2res.cr2res_util_extract", 1.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_slit");
@@ -255,7 +262,7 @@ static int cr2res_util_extract(
     double                  smooth_slit ;
     const char          *   science_file ;
     const char          *   trace_file ;
-    
+
     hdrl_image          *   model_master[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slit_func_tab[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extract_tab[CR2RES_NB_DETECTORS] ;
@@ -288,6 +295,9 @@ static int cr2res_util_extract(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_extract.order");
     reduce_order = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_extract.height");
+    extr_height = cpl_parameter_get_int(param);
 
     /* Check Parameters */
     /* TODO */
@@ -327,7 +337,7 @@ static int cr2res_util_extract(
         cpl_msg_info(__func__, "Load the trace table") ;
         if ((trace_table = cr2res_io_load_TRACE_OPEN(trace_file,
                         det_nr)) == NULL) {
-            cpl_msg_error(__func__, 
+            cpl_msg_error(__func__,
                     "Failed to get trace table - skip detector");
             cpl_error_reset() ;
             cpl_msg_indent_less() ;
@@ -338,7 +348,7 @@ static int cr2res_util_extract(
         if ((orders = cr2res_trace_get_order_numbers(trace_table,
                         &nb_orders)) == NULL) {
             cpl_table_delete(trace_table) ;
-            cpl_msg_error(__func__, 
+            cpl_msg_error(__func__,
                     "Failed to get the orders numbers - skip detector");
             cpl_error_reset() ;
             cpl_msg_indent_less() ;
@@ -350,7 +360,7 @@ static int cr2res_util_extract(
                         0, det_nr)) == NULL) {
             cpl_free(orders) ;
             cpl_table_delete(trace_table) ;
-            cpl_msg_error(__func__, 
+            cpl_msg_error(__func__,
                     "Failed to load the image - skip detector");
             cpl_error_reset() ;
             cpl_msg_indent_less() ;
@@ -382,7 +392,7 @@ static int cr2res_util_extract(
             /* Get the 2 Traces for the current order */
             if ((traces = cr2res_trace_open_get_polynomials(trace_table,
                             orders[i])) == NULL) {
-                cpl_msg_warning(__func__, 
+                cpl_msg_warning(__func__,
                         "Failed to get the traces for order %d - skip order",
                         orders[i]);
                 cpl_error_reset() ;
@@ -393,8 +403,11 @@ static int cr2res_util_extract(
             /* Get the values between the 2 traces and the height */
             y_center = cr2res_trace_compute_middle(traces[0], traces[1],
                     cpl_image_get_size_x(science_ima)) ;
-            extr_height = cr2res_trace_compute_height(traces[0], traces[1],
-                    cpl_image_get_size_x(science_ima)) ;
+            if ( extr_height == -1 ) {
+                /* Only overwrite when input parameter not set*/
+                extr_height = cr2res_trace_compute_height(traces[0], traces[1],
+                        cpl_image_get_size_x(science_ima)) ;
+                }
             cpl_polynomial_delete(traces[0]) ;
             cpl_polynomial_delete(traces[1]) ;
             cpl_free(traces) ;

@@ -76,7 +76,7 @@ static int cr2res_slitdec_adjust_swath(int sw, int nx);
   @param    slit_func   the returned slit function
   @param    spec        the returned spectrum
   @param    model       the returned model
-  @return   int 0 if ok, -1 otherwise
+  @return   0 if ok, -1 otherwise
 
   This func takes a single image (contining many orders), and a *single*
   order definition in the form of central y-corrds., plus the height.
@@ -177,7 +177,7 @@ int cr2res_slitdec_vert(
     cpl_vector_divide_scalar(weights_sw,i+1); // normalize such that max(w)=1
     //cpl_vector_dump(weights_sw,stdout);
 
-    for (i=0;i<nswaths;i++){
+    for (i=0;i<nswaths-1;i++){ // TODO: Treat last swath!
         sw_start = i*halfswath;
         sw_end = sw_start + swath;
         cpl_msg_debug(__func__,"Img: x:%d-%d y:%d-%d",
@@ -185,6 +185,9 @@ int cr2res_slitdec_vert(
             ycen_int[sw_start]-(height/2), ycen_int[sw_start]+(height/2));
         for(col=0; col<swath; col++){      // col is x-index in cut-out
             x = i*halfswath + col;          // coords in large image
+            if (x>=lenx) cpl_msg_error(__func__,
+                "Out of bounds: x=%d, must be <%d", x, lenx) ;
+
             for(row=0;row<height;row++){   // row is y-index in cut-out
                 y = ycen_int[x] - (height/2) + row;
                 pixval = cpl_image_get(img_in, x+1, y+1, &badpix);
@@ -241,6 +244,7 @@ int cr2res_slitdec_vert(
         cpl_vector_delete(spec_sw);
     } // End loop over swaths
     cpl_vector_delete(slitfu_sw);
+    cpl_vector_delete(weights_sw);
 
 
     // divide by nswaths to make the slitfu into the average over all swaths.
@@ -260,10 +264,7 @@ int cr2res_slitdec_vert(
     *slit_func = slitfu;
     *spec = spc;
     *model = hdrl_image_create(img_out, NULL);
-
-    // If I don't read hrdl wrong, hdrl_image_create() does not copy memory but wrap,
-    // so no delete needed here.
-    //cpl_image_delete(img_out) ;
+    cpl_image_delete(img_out);
 
     return 0;
 }
