@@ -55,16 +55,16 @@ class MyHandler(PatternMatchingEventHandler):
             path/to/observed/file
         """
         if event.src_path == FILE1:
-            with fits.open(event.src_path) as f:
+            with fits.open(FILE1) as f:
                 d = f[0].data
                 im1.set_data(d)
-                slitvar.set_data(*getflatimg(d,0))
-                specvar.set_data(*getflatimg(d,1))
-        elif event.src_path == FILE2:
-            with fits.open(event.src_path) as f:
+                d1 = getflatimg(d,0)
+                slitvar.set_data(*d1)
+                d1 = getflatimg(d,1)
+                specvar.set_data(*d1)
+            with fits.open(FILE2) as f:
                 spec.set_ydata(f[0].data)
-        elif event.src_path == FILE3:
-            with fits.open(event.src_path) as f:
+            with fits.open(FILE3) as f:
                 slitfu.set_ydata(f[0].data)
         else:
             return
@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
     try:
         while True:
-            plt.pause(0.001)
+            plt.pause(0.01)
     except KeyboardInterrupt:
         observer.stop()
 
