@@ -152,7 +152,7 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.min_cluster",
             CPL_TYPE_INT, "size in pixels of the smallest allowed cluster",
-            "cr2res.cr2res_util_trace", 400);
+            "cr2res.cr2res_util_trace", 10000);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "min_cluster");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -173,7 +173,7 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.opening",
             CPL_TYPE_BOOL, "Use a morphological opening to rejoin clusters",
-            "cr2res.cr2res_util_trace", TRUE);
+            "cr2res.cr2res_util_trace", FALSE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "opening");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
