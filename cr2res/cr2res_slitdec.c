@@ -196,8 +196,6 @@ int cr2res_slitdec_vert(
                 else mask_sw[row*swath+col] = 0;
             }
         }
-        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-            cpl_image_save(img_sw, "img_sw.fits", CPL_TYPE_FLOAT, NULL, CPL_IO_CREATE); }
 
         img_median = cpl_image_get_median(img_sw);
         for (j=0;j<ny_os;j++) cpl_vector_set(slitfu_sw,j,img_median);
@@ -224,6 +222,11 @@ int cr2res_slitdec_vert(
         if (i==0) cpl_vector_copy(slitfu,slitfu_sw);
         else cpl_vector_add(slitfu,slitfu_sw);
 
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+            cpl_vector_save(spec_sw, "debug_spc.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+            cpl_vector_save(slitfu_sw, "debug_slitfu.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+            cpl_image_save(img_sw, "debug_img_sw.fits", CPL_TYPE_FLOAT, NULL, CPL_IO_CREATE);
+        }
         /* Multiply by weights and add to output array */
         cpl_vector_multiply(spec_sw, weights_sw);
         if (i==0){ for (j=0;j<halfswath;j++) {
@@ -236,12 +239,7 @@ int cr2res_slitdec_vert(
         for (j=sw_start;j<sw_end;j++) {
             cpl_vector_set(spc, j,
                 cpl_vector_get(spec_sw,j-sw_start) + cpl_vector_get(spc, j) );
-        }
-        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-            cpl_vector_save(spec_sw, "spc.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-            cpl_vector_save(slitfu_sw, "slitfu.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-        }
-        cpl_vector_delete(spec_sw);
+        }        cpl_vector_delete(spec_sw);
     } // End loop over swaths
     cpl_vector_delete(slitfu_sw);
     cpl_vector_delete(weights_sw);
