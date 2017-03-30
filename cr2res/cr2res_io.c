@@ -142,14 +142,14 @@ cpl_image * cr2res_io_load_MASTER_FLAT(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load a table from a TRACE_OPEN
+  @brief    Load a table from a TRACE_WAVE
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
   @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
-cpl_table * cr2res_io_load_TRACE_OPEN(
+cpl_table * cr2res_io_load_TRACE_WAVE(
         const char  *   filename,
         int             detector)
 {
@@ -189,24 +189,6 @@ cpl_table * cr2res_io_load_TRACE_OPEN(
     if (wished_ext_nb < 0) return NULL ;
 
     return cpl_table_load(filename, wished_ext_nb, 1);
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Load a table from a TRACE_DECKER
-  @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
-  @param    decker_type [out] CR2RES_DECKER_1_3 or CR2RES_DECKER_2_4
-  @return   A table or NULL in error case. The returned object
-              needs to be deallocated
- */
-/*----------------------------------------------------------------------------*/
-cpl_table * cr2res_io_load_TRACE_DECKER(
-        const char  *   filename,
-        int             detector,
-        cr2res_decker * decker_type)
-{
-        return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -516,7 +498,7 @@ int cr2res_io_save_MASTER_FLAT(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Save a TRACE_OPEN
+  @brief    Save a TRACE_WAVE
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
@@ -526,7 +508,7 @@ int cr2res_io_save_MASTER_FLAT(
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_io_save_TRACE_OPEN(
+int cr2res_io_save_TRACE_WAVE(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
@@ -535,33 +517,9 @@ int cr2res_io_save_TRACE_OPEN(
         const char              *   recipe)
 {
     return cr2res_io_save_table(filename, allframes, parlist, tables,
-            qc_list, recipe, CR2RES_TRACE_OPEN_PROCATG,
-            CR2RES_TRACE_OPEN_PROTYPE) ;
+            qc_list, recipe, CR2RES_TRACE_WAVE_PROCATG,
+            CR2RES_TRACE_WAVE_PROTYPE) ;
 }
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Save a TRACE_DECKER
-  @param    filename    The FITS file name
-  @param    allframes   The recipe input frames
-  @param    parlist     The recipe input parameters
-  @param    tables      The tables to save (1 per detector)
-  @param    qc_list     The QC parameters
-  @param    recipe      The recipe name
-  @return   0 if ok, -1 in error case
- */
-/*----------------------------------------------------------------------------*/
-int cr2res_io_save_TRACE_DECKER(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        const cpl_parameterlist *   parlist,
-        cpl_table               **  tables,
-        const cpl_propertylist  *   qc_list,
-        const char              *   recipe)
-{
-            return -1 ;
-}
-
 
 /*----------------------------------------------------------------------------*/
 /**

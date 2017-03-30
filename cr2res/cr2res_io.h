@@ -51,14 +51,9 @@ cpl_image * cr2res_io_load_MASTER_FLAT(
         int             detector,
         int             data);
 
-cpl_table * cr2res_io_load_TRACE_OPEN(
+cpl_table * cr2res_io_load_TRACE_WAVE(
         const char  *   filename,
         int             detector);
-
-cpl_table * cr2res_io_load_TRACE_DECKER(
-        const char  *   filename,
-        int             detector,
-        cr2res_decker * decker_type);
 
 cpl_table * cr2res_io_load_BLAZE(
         const char  *   filename,
@@ -146,15 +141,7 @@ int cr2res_io_save_MASTER_FLAT(
         const cpl_propertylist  *   qc_list,
         const char              *   recipe);
 
-int cr2res_io_save_TRACE_OPEN(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        const cpl_parameterlist *   parlist,
-        cpl_table               **  tables,
-        const cpl_propertylist  *   qc_list,
-        const char              *   recipe);
-
-int cr2res_io_save_TRACE_DECKER(
+int cr2res_io_save_TRACE_WAVE(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
