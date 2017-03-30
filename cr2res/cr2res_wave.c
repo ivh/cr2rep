@@ -29,7 +29,7 @@
 #include <string.h>
 
 #include <cpl.h>
-#include "cr2res_wavecal.h"
+#include "cr2res_wave.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
@@ -42,7 +42,7 @@
 
 /*----------------------------------------------------------------------------*/
 /**
- * @defgroup cr2res_wavecal     Wavelength Calibration
+ * @defgroup cr2res_wave        Wavelength Calibration
  */
 /*----------------------------------------------------------------------------*/
 
@@ -76,7 +76,7 @@ cpl_table * cr2res_trace_cpl(
 
  */
 /*----------------------------------------------------------------------------*/
-static cpl_mask * cr2res_wavecal_(
+static cpl_mask * cr2res_wave_(
         const cpl_image *   image,
         int                 ordersep,
         double              smoothfactor,
