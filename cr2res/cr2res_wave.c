@@ -50,37 +50,101 @@
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief 
+  @brief   Top level 
   @param
   @return 
  */
 /*----------------------------------------------------------------------------*/
-cpl_table * cr2res_trace_cpl(
-        cpl_image       *   ima,
-        cr2res_decker       decker,
-        double              smoothfactor,
-        int                 opening,
-        int                 degree,
-        int                 min_cluster)
+cpl_polynomial * cr2res_wave(
+        cpl_vector      *   spectrum,
+        cpl_polynomial  *   initial_guess,
+        cpl_table       *   catalog,
+        cpl_bivector    *   template)
 {
     return NULL ;
 }
-
-/**@}*/
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief   
+  @brief  
   @param
   @return 
-
  */
 /*----------------------------------------------------------------------------*/
-static cpl_mask * cr2res_wave_(
-        const cpl_image *   image,
-        int                 ordersep,
-        double              smoothfactor,
-        double              thresh)
+cpl_polynomial * cr2res_wave_xcorr(
+        cpl_vector      *   spectrum,
+        cpl_polynomial  *   initial_guess,
+        cpl_bivector    *   template)
 {
     return NULL ;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  
+  @param
+  @return 
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_wave_line_fitting(
+        cpl_vector      *   spectrum,
+        cpl_polynomial  *   initial_guess,
+        cpl_table       *   catalog)
+{
+    return NULL ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  
+  @param
+  @return 
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_wave_etalon(
+        cpl_vector      *   spectrum,
+        cpl_polynomial  *   initial_guess) 
+{
+    return NULL ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  
+  @param
+  @return 
+ */
+/*----------------------------------------------------------------------------*/
+cpl_vector * cr2res_wave_line_detection(
+        cpl_vector      *   spectrum)
+{
+    return NULL ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  
+  @param
+  @return 
+ */
+/*----------------------------------------------------------------------------*/
+cpl_vector * cr2res_wave_gen_spectrum(
+        cpl_table       *   catalog,
+        cpl_polynomial  *   initial_guess)
+{
+    return NULL ;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**@}*/
+
