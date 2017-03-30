@@ -71,7 +71,7 @@ static int cr2res_util_extract(cpl_frameset *, const cpl_parameterlist *);
 static char cr2res_util_extract_description[] =
 "TODO : Descripe here the recipe in / out / params / basic algo\n"
 "science.fits " CR2RES_SCI_1D_RAW "\n"
-"trace.fits " CR2RES_TRACE_OPEN_PROCATG "\n"
+"trace.fits " CR2RES_TRACE_WAVE_PROCATG "\n"
 " The recipe produces the following products:\n"
 "\n";
 
@@ -311,7 +311,7 @@ static int cr2res_util_extract(
 
     /* Get Inputs */
     science_file = cr2res_extract_filename(frameset, CR2RES_SCI_1D_RAW) ;
-    trace_file = cr2res_extract_filename(frameset, CR2RES_TRACE_OPEN_PROCATG);
+    trace_file = cr2res_extract_filename(frameset, CR2RES_TRACE_WAVE_PROCATG);
     if (science_file == NULL || trace_file == NULL) {
         cpl_msg_error(__func__, "The utility needs a science file and a trace");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -335,7 +335,7 @@ static int cr2res_util_extract(
 
         /* Load the trace table of this detector */
         cpl_msg_info(__func__, "Load the trace table") ;
-        if ((trace_table = cr2res_io_load_TRACE_OPEN(trace_file,
+        if ((trace_table = cr2res_io_load_TRACE_WAVE(trace_file,
                         det_nr)) == NULL) {
             cpl_msg_error(__func__,
                     "Failed to get trace table - skip detector");
@@ -407,7 +407,7 @@ static int cr2res_util_extract(
                 /* Only overwrite when input parameter not set*/
                 extr_height = cr2res_trace_compute_height(traces[0], traces[1],
                         cpl_image_get_size_x(science_ima)) ;
-                }
+            }
             cpl_polynomial_delete(traces[0]) ;
             cpl_polynomial_delete(traces[1]) ;
             cpl_free(traces) ;

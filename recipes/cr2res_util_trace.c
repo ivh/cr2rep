@@ -340,7 +340,7 @@ static int cr2res_util_trace(
     }
 
     /* Save the Products */
-    cr2res_io_save_TRACE_OPEN("cr2res_util_trace.fits", frameset,
+    cr2res_io_save_TRACE_WAVE("cr2res_util_trace.fits", frameset,
             parlist, traces, NULL, RECIPE_STRING) ;
 
     /* Free and return */
