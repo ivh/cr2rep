@@ -9,15 +9,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 plt.ion()
-FIG = plt.figure(figsize=(12,3))
+FIG = plt.figure(figsize=(12,4))
 
-AX1 = FIG.add_subplot(131)
+AX1 = FIG.add_subplot(231)
 AX2 = FIG.add_subplot(132)
 AX3 = FIG.add_subplot(133)
+AX4 = FIG.add_subplot(234)
 
 FILE1 = './debug_img_sw.fits'
 FILE2 = './debug_spc.fits'
 FILE3 = './debug_slitfu.fits'
+FILE4 = './debug_model_sw.fits'
+FILE5 = './debug_ycen.fits'
 
 def getosidx(i,os):
     return os*(i+1)+1
@@ -27,7 +30,13 @@ def getflatimg(img,axis=0,os=1):
 def getspecvar(img):
     ny,nx=img.shape
     nimg = np.transpose(np.transpose(img) / img.sum(axis=1))
-    return getflatimg(nimg,1)
+    x = np.indices(img.shape)[1]
+    x = x.astype('f')
+    with fits.open(FILE5) as f:
+        xoff = f[0].data
+        for i in range(x.shape[0]):
+            x[i,:] += xoff
+    return x.flatten(), nimg.flat
 
 with fits.open(FILE1) as f:
     di = f[0].data
@@ -46,6 +55,10 @@ with fits.open(FILE3) as f:
     print('os: %s %s %s'%(os,ny_os,ny))
     slitvar, = AX3.plot(*getflatimg(di*nx,0,os),'.r',ms=2,alpha=0.6)
     slitfu, = AX3.plot(d,'-k',lw=3)
+with fits.open(FILE4) as f:
+    dm = f[0].data
+    dm /= dm.sum()
+    im2 = AX4.imshow(dm)
 
 FIG.tight_layout(pad=0.05)
 
@@ -76,6 +89,11 @@ class MyHandler(PatternMatchingEventHandler):
                 spec.set_ydata(d2)
             with fits.open(FILE3) as f:
                 slitfu.set_ydata(f[0].data)
+            with fits.open(FILE4) as f:
+                d = f[0].data
+                d /= d.sum()
+                im2.set_data(d)
+
         else:
             return
 
