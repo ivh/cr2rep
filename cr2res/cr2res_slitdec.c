@@ -124,13 +124,14 @@ int cr2res_slitdec_vert(
     int * mask_sw;
     cpl_size lenx, leny;
     cpl_image * img_sw;
-    cpl_image * tmp;
+    cpl_image * tmp_img;
     cpl_image * img_out;
     cpl_vector * spec_sw;
     cpl_vector * slitfu_sw;
     cpl_vector * spc;
     cpl_vector * slitfu;
     cpl_vector * weights_sw;
+    cpl_vector * tmp_vec;
 
 
     /* Check Entries */
@@ -200,9 +201,9 @@ int cr2res_slitdec_vert(
         img_median = cpl_image_get_median(img_sw);
         for (j=0;j<ny_os;j++) cpl_vector_set(slitfu_sw,j,img_median);
         img_sw_data = cpl_image_get_data_double(img_sw);
-        tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
-        spec_sw = cpl_vector_new_from_image_row(tmp,1);
-        cpl_image_delete(tmp);
+        tmp_img = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
+        spec_sw = cpl_vector_new_from_image_row(tmp_img,1);
+        cpl_image_delete(tmp_img);
         spec_sw_data = cpl_vector_get_data(spec_sw);
         for (j=sw_start;j<sw_end;j++) ycen_sw[j-sw_start] = ycen_rest[j];
 
@@ -224,7 +225,13 @@ int cr2res_slitdec_vert(
 
         if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
             cpl_vector_save(spec_sw, "debug_spc.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+            tmp_vec = cpl_vector_wrap(swath, ycen_sw);
+            cpl_vector_save(tmp_vec, "debug_ycen.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+            cpl_vector_unwrap(tmp_vec);
             cpl_vector_save(slitfu_sw, "debug_slitfu.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+            tmp_img = cpl_image_wrap_double(swath, height, model_sw);
+            cpl_image_save(tmp_img, "debug_model_sw.fits", CPL_TYPE_FLOAT, NULL, CPL_IO_CREATE);
+            cpl_image_unwrap(tmp_img);
             cpl_image_save(img_sw, "debug_img_sw.fits", CPL_TYPE_FLOAT, NULL, CPL_IO_CREATE);
         }
         /* Multiply by weights and add to output array */
