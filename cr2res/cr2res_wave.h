@@ -31,5 +31,30 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
+cpl_polynomial * cr2res_wave(
+        cpl_vector      *   spectrum,
+        cpl_polynomial  *   initial_guess,
+        cpl_table       *   catalog,
+        cpl_bivector    *   template) ;
+cpl_polynomial * cr2res_wave_xcorr(
+        cpl_vector      *   spectrum,
+        cpl_polynomial  *   initial_guess,
+        cpl_bivector    *   template) ;
+cpl_polynomial * cr2res_wave_line_fitting(
+        cpl_vector      *   spectrum,
+        cpl_polynomial  *   initial_guess,
+        cpl_table       *   catalog) ;
+cpl_polynomial * cr2res_wave_etalon(
+        cpl_vector      *   spectrum,
+        cpl_polynomial  *   initial_guess) ;
+cpl_vector * cr2res_wave_line_detection(
+        cpl_vector      *   spectrum) ;
+cpl_vector * cr2res_wave_gen_spectrum(
+        cpl_table       *   catalog,
+        cpl_polynomial  *   initial_guess) ;
+cpl_array * cr2res_wave_get_estimate(
+        const char  *   filename,
+        int             detector,
+        int             order) ;
 
 #endif

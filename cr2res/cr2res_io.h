@@ -33,6 +33,10 @@
                                    Functions prototypes
  -----------------------------------------------------------------------------*/
 
+int cr2res_io_get_ext_idx(
+        const char  *   filename,
+        int             detector) ;
+
 cpl_image * cr2res_io_load_MASTER_DARK(
         const char  *   filename,
         int             detector,

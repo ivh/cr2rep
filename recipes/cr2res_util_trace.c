@@ -33,6 +33,7 @@
 #include "cr2res_dfs.h"
 #include "cr2res_io.h"
 #include "cr2res_trace.h"
+#include "cr2res_wave.h"
 
 /*-----------------------------------------------------------------------------
                                 Define
@@ -238,7 +239,8 @@ static int cr2res_util_trace(
     const char          *   flat_file ;
     cpl_image           *   flat_ima ;
     cpl_image           *   debug_ima ;
-    int                     det_nr ;
+    int                     det_nr, order ;
+    cpl_array           *   wl_array ;
     cpl_table           *   traces[CR2RES_NB_DETECTORS] ;
     int                     i ;
 
@@ -315,6 +317,23 @@ static int cr2res_util_trace(
             continue ;
         }
         cpl_msg_indent_less() ;
+
+        /* Add The Wavelength column using the header */
+        cpl_table_new_column_array(traces[det_nr-1], "Wavelength", 
+                CPL_TYPE_DOUBLE, 2) ;
+
+        /* Loop on the traces */
+        for (i=0 ; i<cpl_table_get_nrow(traces[det_nr-1]) ; i++) {
+            /* Get the Order number */
+            order = cpl_table_get(traces[det_nr-1], "Order", i, NULL) ;
+            
+            /* Get the Wavelength estimates from the header */
+            wl_array = cr2res_wave_get_estimate(flat_file, det_nr, order) ;
+
+            /* Store the Wavelength in the table */
+            cpl_table_set_array(traces[det_nr-1], "Wavelength", i, wl_array);
+            cpl_array_delete(wl_array) ;
+        }
 
         /* Debug Image */
         if (cpl_msg_get_level() == CPL_MSG_DEBUG) {

@@ -67,6 +67,51 @@ static int cr2res_io_save_table(
 /**@{*/
 
 /*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the wished extension number for a detector 
+  @param    filename    The FITS file name
+  @param    detector    The wished detector (1 to 3)
+  @return   the Extension number or -1 in error case 
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_get_ext_idx(
+        const char  *   filename,
+        int             detector)
+{
+    const char          *   extname ;
+    char                *   wished_extname ;
+    int                     wished_ext_nb ;
+    cpl_propertylist    *   pl ;
+    int                     nb_ext, i ;
+
+    /* Check entries */
+    if (filename == NULL) return -1 ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return -1 ;
+
+
+    /* Create wished EXTNAME */
+    wished_extname = cpl_sprintf("CHIP%d", detector) ;
+
+    /* Get the number of extensions */
+    nb_ext = cpl_fits_count_extensions(filename) ;
+
+    /* Loop on the extensions */
+    for (i=1 ; i<=nb_ext ; i++) {
+        /* Get the header */
+        pl = cpl_propertylist_load(filename, i) ;
+        /* Read the ext EXTNAME */
+        extname = cpl_propertylist_get_string(pl, "EXTNAME");
+
+        /* Compare to the wished one */
+        if (strcmp(extname, wished_extname)==0) wished_ext_nb = i ;
+        cpl_propertylist_delete(pl) ;
+    }
+    cpl_free(wished_extname) ;
+
+    return wished_ext_nb ;
+}
+
+/*----------------------------------------------------------------------------*/
 /*--------------------       LOADING FUNCTIONS       -------------------------*/
 /*----------------------------------------------------------------------------*/
 
@@ -139,7 +184,7 @@ cpl_image * cr2res_io_load_MASTER_FLAT(
 {
         return NULL ;
 }
-
+    
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Load a table from a TRACE_WAVE
@@ -153,37 +198,14 @@ cpl_table * cr2res_io_load_TRACE_WAVE(
         const char  *   filename,
         int             detector)
 {
-    const char          *   extname ;
-    char                *   wished_extname ;
     int                     wished_ext_nb ;
-    cpl_propertylist    *   pl ;
-    int                     nb_ext, i ;
 
     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Initialise */
-    wished_ext_nb = -1 ;
-
-    /* Create wished EXTNAME */
-    wished_extname = cpl_sprintf("CHIP%d", detector) ;
-
-    /* Get the number of extensions */
-    nb_ext = cpl_fits_count_extensions(filename) ;
-
-    /* Loop on the extensions */
-    for (i=1 ; i<=nb_ext ; i++) {
-        /* Get the header */
-        pl = cpl_propertylist_load(filename, i) ;
-        /* Read the ext EXTNAME */
-        extname = cpl_propertylist_get_string(pl, "EXTNAME");
-
-        /* Compare to the wished one */
-        if (strcmp(extname, wished_extname)==0) wished_ext_nb = i ;
-        cpl_propertylist_delete(pl) ;
-    }
-    cpl_free(wished_extname) ;
+    /* Get the extension number for this detector */
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector) ;
 
     /* The wished extension was not found */
     if (wished_ext_nb < 0) return NULL ;

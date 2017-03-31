@@ -168,4 +168,46 @@ cpl_vector * cr2res_wave_gen_spectrum(
     return NULL ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Compute the wavelength polynomial from boundaries
+  @param    wmin    First pixel wavelength
+  @param    wmax    Last pixel wavelength
+  @return   the polynomial or NULL in error case
+
+  The returned polynomial must be deallocated with cpl_polynomial_delete()
+ */
+/*----------------------------------------------------------------------------*/
+cpl_array * cr2res_wave_get_estimate(
+        const char	*	filename,
+        int				detector,
+        int             order)
+{
+    double                  wmin, wmax ;
+    cpl_array           *   wl ;
+    cpl_propertylist    *   plist ;
+    int                     wished_ext_nb ;
+
+    /* Check Entries */
+    if (filename == NULL) return NULL ;
+    if (order < 0 || detector <= 0 || detector > CR2RES_NB_DETECTORS)
+        return NULL ;
+
+    /* Load the propertylist */
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector) ;
+    plist = cpl_propertylist_load(filename, wished_ext_nb) ;
+
+    /* Get the values for this order */
+    wmin = wmax = -1.0 ;
+
+    cpl_propertylist_delete(plist) ;
+
+    /* Create the array */
+    wl = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
+    cpl_array_set(wl, 0, wmin) ;
+    cpl_array_set(wl, 1, wmax) ;
+
+    return wl ;
+}
+
 /**@}*/
