@@ -22,21 +22,24 @@ FILE3 = './debug_slitfu.fits'
 FILE4 = './debug_model_sw.fits'
 FILE5 = './debug_ycen.fits'
 
-def getosidx(i,os):
-    return os*(i+1)+1
-def getflatimg(img,axis=0,os=1):
+def getflatimg(img,axis=0):
     idx = np.indices(img.shape)[axis]
-    return getosidx(idx.flatten(),os)-2, img.flat
+    return idx.flatten(), img.flat
+
 def getspecvar(img):
     ny,nx=img.shape
     nimg = np.transpose(np.transpose(img) / img.sum(axis=1))
     x = np.indices(img.shape)[1]
+    return x.flatten(), nimg.flat
+
+def getslitvar(img):
+    x = np.indices(img.shape)[0]
     x = x.astype('f')
     with fits.open(FILE5) as f:
         xoff = f[0].data
         for i in range(x.shape[0]):
-            x[i,:] += xoff
-    return x.flatten(), nimg.flat
+            x[i,:] -= xoff-1
+    return x.flatten(), img.flat
 
 with fits.open(FILE1) as f:
     di = f[0].data
@@ -52,9 +55,9 @@ with fits.open(FILE3) as f:
     d = f[0].data
     ny_os = len(d)
     os = (ny_os-1) / (ny+1)
-    print('os: %s %s %s'%(os,ny_os,ny))
-    slitvar, = AX3.plot(*getflatimg(di*nx,0,os),'.r',ms=2,alpha=0.6)
-    slitfu, = AX3.plot(d,'-k',lw=3)
+    slitvar, = AX3.plot(*getslitvar(di*nx), '.r',ms=2,alpha=0.6)
+    X = np.arange(len(d)) / len(d) * (ny)
+    slitfu, = AX3.plot(X, d,'-k',lw=3)
 with fits.open(FILE4) as f:
     dm = f[0].data
     dm /= dm.sum()
@@ -80,8 +83,7 @@ class MyHandler(PatternMatchingEventHandler):
                 d = f[0].data
                 d /= d.sum()
                 im1.set_data(d)
-                d1 = getflatimg(d*nx,0,os)
-                slitvar.set_data(*d1)
+                slitvar.set_data(*getslitvar(d*nx))
                 specvar.set_data(*getspecvar(d))
             with fits.open(FILE2) as f:
                 d2=f[0].data
