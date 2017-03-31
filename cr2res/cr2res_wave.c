@@ -50,9 +50,13 @@
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief   Top level 
-  @param
-  @return 
+  @brief   Top level function that takes spectrum, returns solution.
+  @param    spectrum        Input spectrum: arc lamp, etalon etc.
+  @param    initial_guess   Starting wavelength solution
+  @param    catalog         Line catalog, wavelengths, strengths
+  @param    template        Template spectrum (flux, wavelengths)
+  @return  Wavelength solution, i.e. polynomial that translates pixel
+            values to wavelength.
  */
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_wave(
@@ -66,9 +70,14 @@ cpl_polynomial * cr2res_wave(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
-  @param
-  @return 
+  @brief  Find solution by cross-correlating template spectrum
+  @param    spectrum        Input spectrum
+  @param    initial_guess   Starting wavelength solution
+  @param    template        Template spectrum (flux, wavelengths)
+  @return  Wavelength solution, i.e. polynomial that translates pixel
+            values to wavelength.
+
+    TODO: Summarize method
  */
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_wave_xcorr(
@@ -81,9 +90,13 @@ cpl_polynomial * cr2res_wave_xcorr(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
-  @param
-  @return 
+  @brief   Find solution by finding lines and fitting
+  @param    spectrum        Input spectrum
+  @param    initial_guess   Starting wavelength solution
+  @param    catalog         Line catalog, wavelengths, strengths
+  @param    template        Template spectrum (flux, wavelengths)
+  @return  Wavelength solution, i.e. polynomial that translates pixel
+            values to wavelength.
  */
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_wave_line_fitting(
@@ -96,23 +109,43 @@ cpl_polynomial * cr2res_wave_line_fitting(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
-  @param
-  @return 
+  @brief   Find solution from etalon
+  @param    spectrum        Input spectrum: etalon
+  @param    initial_guess   Starting wavelength solution
+  @return  Wavelength solution, i.e. polynomial that translates pixel
+            values to wavelength.
+
+    This function uses the intrinsic property of the etalon spectrum,
+    that the lines are *supposed* to be equi-spaced, to refine the wavelength
+    solution. The input solution needs to be good enough for the zero-point
+    since the etalon spectrum carries no information about the absolute
+    wavelength scale.
+
+    The method involves these steps:
+    * Identify lines (thresholding)
+    * Determine line centers (ceter of gravity or gauss fit, needs testing)
+    * Subtract x-coods from subsequent lines, i.e. measure d many times
+        d is the distance between fringes in pixels, assumed to be constant
+    * Determine mis-counts in fringes, by looking at outliers in d-distribution,
+        re-count with e.g. half-distance between two fringes, if one is missing.
+    * Fit the d-distibution to determine "true d"
+    * Use d to calculate new x-coodinates, use input-solution to translate to
+        wavelength
+    * Fit measured x-coords to new lamdas to get new solution.
  */
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_wave_etalon(
         cpl_vector      *   spectrum,
-        cpl_polynomial  *   initial_guess) 
+        cpl_polynomial  *   initial_guess)
 {
     return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
+  @brief
   @param
-  @return 
+  @return
  */
 /*----------------------------------------------------------------------------*/
 cpl_vector * cr2res_wave_line_detection(
@@ -123,9 +156,9 @@ cpl_vector * cr2res_wave_line_detection(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
+  @brief
   @param
-  @return 
+  @return
  */
 /*----------------------------------------------------------------------------*/
 cpl_vector * cr2res_wave_gen_spectrum(
@@ -147,4 +180,3 @@ cpl_vector * cr2res_wave_gen_spectrum(
 
 
 /**@}*/
-
