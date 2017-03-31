@@ -164,13 +164,6 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.cpl_lab",
-            CPL_TYPE_BOOL, "Use CPL labelization", "cr2res.cr2res_util_trace",
-            FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cpl_lab");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.opening",
             CPL_TYPE_BOOL, "Use a morphological opening to rejoin clusters",
             "cr2res.cr2res_util_trace", FALSE);
@@ -240,7 +233,7 @@ static int cr2res_util_trace(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param;
-    int                     min_cluster, degree, cpl_lab, opening, reduce_det ;
+    int                     min_cluster, degree, opening, reduce_det ;
     double                  smooth ;
     const char          *   flat_file ;
     cpl_image           *   flat_ima ;
@@ -259,9 +252,6 @@ static int cr2res_util_trace(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.smooth");
     smooth = cpl_parameter_get_double(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_trace.cpl_lab");
-    cpl_lab = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.opening");
     opening = cpl_parameter_get_bool(param);
@@ -313,7 +303,7 @@ static int cr2res_util_trace(
         /* Get the traces */
         cpl_msg_info(__func__, "Compute the traces") ;
         cpl_msg_indent_more() ;
-        if ((traces[det_nr-1] = cr2res_trace_cpl(flat_ima,
+        if ((traces[det_nr-1] = cr2res_trace(flat_ima,
                 CR2RES_DECKER_NONE, smooth, opening, degree,
                 min_cluster)) == NULL) {
             cpl_msg_warning(__func__,

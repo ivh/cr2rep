@@ -168,15 +168,4 @@ cpl_vector * cr2res_wave_gen_spectrum(
     return NULL ;
 }
 
-
-
-
-
-
-
-
-
-
-
-
 /**@}*/

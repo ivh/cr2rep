@@ -90,7 +90,7 @@ static int cr2res_trace_extract_edges(
    436.94, 0.0173438|   448.436, 0.017493|   425.423, 0.017203|      3
  */
 /*----------------------------------------------------------------------------*/
-cpl_table * cr2res_trace_cpl(
+cpl_table * cr2res_trace(
         cpl_image       *   ima,
         cr2res_decker       decker,
         double              smoothfactor,
@@ -155,7 +155,7 @@ cpl_table * cr2res_trace_cpl(
   @param degree			Fitted polynomial degree
   @param min_cluster  	An order must be bigger - discarde otherwise
   @return The newly allocated trace table or NULL in error case
-  @see cr2res_trace_cpl()
+  @see cr2res_trace()
 
   The returned table contains 1 line per order. Each line has 3
   polynomials (All, Upper and Lower) and the order number.

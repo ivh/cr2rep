@@ -31,7 +31,7 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-cpl_table * cr2res_trace_cpl(
+cpl_table * cr2res_trace(
         cpl_image       *   ima,
         cr2res_decker       decker,
         double              smoothfactor,
