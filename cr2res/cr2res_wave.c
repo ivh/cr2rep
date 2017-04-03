@@ -30,6 +30,8 @@
 
 #include <cpl.h>
 #include "cr2res_wave.h"
+#include "cr2res_io.h"
+#include "cr2res_pfits.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
@@ -198,9 +200,13 @@ cpl_array * cr2res_wave_get_estimate(
     plist = cpl_propertylist_load(filename, wished_ext_nb) ;
 
     /* Get the values for this order */
-    wmin = wmax = -1.0 ;
-
+    wmin = kmos_pfits_get_wmin(plist, order) ;
+    wmax = kmos_pfits_get_wmax(plist, order) ;
     cpl_propertylist_delete(plist) ;
+    if (cpl_error_get_code() != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Cannot Get the WMIN/WMAX from the header") ;
+        return NULL ;
+    }
 
     /* Create the array */
     wl = cpl_array_new(2, CPL_TYPE_DOUBLE) ;

@@ -328,7 +328,14 @@ static int cr2res_util_trace(
             order = cpl_table_get(traces[det_nr-1], "Order", i, NULL) ;
             
             /* Get the Wavelength estimates from the header */
-            wl_array = cr2res_wave_get_estimate(flat_file, det_nr, order) ;
+            if ((wl_array = cr2res_wave_get_estimate(flat_file, det_nr,
+                            order)) == NULL) {
+                cpl_msg_warning(__func__, "No WAVE Header information") ;
+                cpl_error_reset() ;
+                wl_array = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
+                cpl_array_set(wl_array, 0, -1.0) ;
+                cpl_array_set(wl_array, 1, -1.0) ;
+            }
 
             /* Store the Wavelength in the table */
             cpl_table_set_array(traces[det_nr-1], "Wavelength", i, wl_array);
