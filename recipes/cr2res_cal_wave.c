@@ -39,7 +39,7 @@
                                 Define
  -----------------------------------------------------------------------------*/
 
-#define RECIPE_STRING "cr2res_util_extract"
+#define RECIPE_STRING "cr2res_cal_wave"
 
 /*-----------------------------------------------------------------------------
                              Plugin registration
@@ -59,16 +59,16 @@ static cpl_table * cr2res_slit_func_tab_create(
         cpl_vector      **  slit_func,
         int             *   orders,
         int                 nborders) ;
-static int cr2res_util_extract_create(cpl_plugin *);
-static int cr2res_util_extract_exec(cpl_plugin *);
-static int cr2res_util_extract_destroy(cpl_plugin *);
-static int cr2res_util_extract(cpl_frameset *, const cpl_parameterlist *);
+static int cr2res_cal_wave_create(cpl_plugin *);
+static int cr2res_cal_wave_exec(cpl_plugin *);
+static int cr2res_cal_wave_destroy(cpl_plugin *);
+static int cr2res_cal_wave(cpl_frameset *, const cpl_parameterlist *);
 
 /*-----------------------------------------------------------------------------
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_extract_description[] =
+static char cr2res_cal_wave_description[] =
 "TODO : Descripe here the recipe in / out / params / basic algo\n"
 "science.fits " CR2RES_SCI_1D_RAW "\n"
 "trace.fits " CR2RES_TRACE_WAVE_PROCATG "\n"
@@ -81,7 +81,7 @@ static char cr2res_util_extract_description[] =
 
 /*----------------------------------------------------------------------------*/
 /**
-  @defgroup cr2res_util_extract 	Optimal Extraction Utility
+  @defgroup cr2res_cal_wave     Wavelength Calibration 
  */
 /*----------------------------------------------------------------------------*/
 
@@ -107,15 +107,15 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CPL_PLUGIN_API,
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
-                    "cr2res_util_extract",
-                    "Optimal Extraction utility",
-                    cr2res_util_extract_description,
+                    "cr2res_cal_wave",
+                    "Wavelength Calibration",
+                    cr2res_cal_wave_description,
                     "Thomas Marquart, Yves Jung",
                     PACKAGE_BUGREPORT,
                     cr2res_get_license(),
-                    cr2res_util_extract_create,
-                    cr2res_util_extract_exec,
-                    cr2res_util_extract_destroy)) {
+                    cr2res_cal_wave_create,
+                    cr2res_cal_wave_exec,
+                    cr2res_cal_wave_destroy)) {
         cpl_msg_error(cpl_func, "Plugin initialization failed");
         (void)cpl_error_set_where(cpl_func);
         return 1;
@@ -139,7 +139,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
   Defining the command-line/configuration parameters for the recipe.
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_extract_create(cpl_plugin * plugin)
+static int cr2res_cal_wave_create(cpl_plugin * plugin)
 {
     cpl_recipe    * recipe;
     cpl_parameter * p;
@@ -154,51 +154,51 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
-    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.oversample",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
-            "cr2res.cr2res_util_extract", 10);
+            "cr2res.cr2res_cal_wave", 10);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "oversample");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.swath_width",
-            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_util_extract", 64);
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.swath_width",
+            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_cal_wave", 64);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "swath_width");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.height",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.height",
             CPL_TYPE_INT, "Extraction height",
-            "cr2res.cr2res_util_extract", -1);
+            "cr2res.cr2res_cal_wave", -1);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "height");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.smooth_slit",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.smooth_slit",
             CPL_TYPE_DOUBLE,
             "Smoothing along the slit (1 for high S/N, 5 for low)",
-            "cr2res.cr2res_util_extract", 1.0);
+            "cr2res.cr2res_cal_wave", 1.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_slit");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.sum_only",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.sum_only",
             CPL_TYPE_BOOL, "Flag to only sum along detector",
-            "cr2res.cr2res_util_extract", FALSE);
+            "cr2res.cr2res_cal_wave", FALSE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "sum_only");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.detector",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
-            "cr2res.cr2res_util_extract", 0);
+            "cr2res.cr2res_cal_wave", 0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "detector");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.order",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.order",
             CPL_TYPE_INT, "Only reduce the specified order",
-            "cr2res.cr2res_util_extract", -1);
+            "cr2res.cr2res_cal_wave", -1);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "order");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -212,7 +212,7 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_extract_exec(cpl_plugin * plugin)
+static int cr2res_cal_wave_exec(cpl_plugin * plugin)
 {
     cpl_recipe  *recipe;
 
@@ -221,7 +221,7 @@ static int cr2res_util_extract_exec(cpl_plugin * plugin)
         recipe = (cpl_recipe *)plugin;
     else return -1;
 
-    return cr2res_util_extract(recipe->frames, recipe->parameters);
+    return cr2res_cal_wave(recipe->frames, recipe->parameters);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -231,7 +231,7 @@ static int cr2res_util_extract_exec(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_extract_destroy(cpl_plugin * plugin)
+static int cr2res_cal_wave_destroy(cpl_plugin * plugin)
 {
     cpl_recipe *recipe;
 
@@ -252,7 +252,7 @@ static int cr2res_util_extract_destroy(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_extract(
+static int cr2res_cal_wave(
         cpl_frameset            *   frameset,
         const cpl_parameterlist *   parlist)
 {
@@ -278,25 +278,25 @@ static int cr2res_util_extract(
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.oversample");
+            "cr2res.cr2res_cal_wave.oversample");
     oversample = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.swath_width");
+            "cr2res.cr2res_cal_wave.swath_width");
     swath_width = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.smooth_slit");
+            "cr2res.cr2res_cal_wave.smooth_slit");
     smooth_slit = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.sum_only");
+            "cr2res.cr2res_cal_wave.sum_only");
     sum_only = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.detector");
+            "cr2res.cr2res_cal_wave.detector");
     reduce_det = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.order");
+            "cr2res.cr2res_cal_wave.order");
     reduce_order = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.height");
+            "cr2res.cr2res_cal_wave.height");
     extr_height = cpl_parameter_get_int(param);
 
     /* Check Parameters */
@@ -460,11 +460,11 @@ static int cr2res_util_extract(
     }
 
     /* Save the Products */
-    cr2res_io_save_SLIT_MODEL("cr2res_util_extract_model.fits", frameset,
+    cr2res_io_save_SLIT_MODEL("cr2res_cal_wave_model.fits", frameset,
             parlist, model_master, NULL, RECIPE_STRING) ;
-    cr2res_io_save_SLIT_FUNC("cr2res_util_extract_slit_func.fits", frameset,
+    cr2res_io_save_SLIT_FUNC("cr2res_cal_wave_slit_func.fits", frameset,
             parlist, slit_func_tab, NULL, RECIPE_STRING) ;
-    cr2res_io_save_EXTRACT_1D("cr2res_util_extract_extract_1D.fits", frameset,
+    cr2res_io_save_EXTRACT_1D("cr2res_cal_wave_extract_1D.fits", frameset,
             parlist, extract_tab, NULL, RECIPE_STRING) ;
 
     /* Free and return */
