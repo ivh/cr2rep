@@ -77,24 +77,22 @@ static int cr2res_trace_extract_edges(
 /**
   @brief  Main function for running all parts of the trace algorithm
   @param ima            input image
-  @param decker         slit layout
   @param smoothfactor   Used for detection
   @param opening		Used for cleaning the mask
   @param degree			Fitted polynomial degree
   @param min_cluster  	A trace must be bigger - discarded otherwise
   @return The newly allocated trace table or NULL in error case
   The returned table contains 1 line per trace. Each line has 3
-  polynomials (All, Upper and Lower) and the order number.
+  polynomials (All, Upper and Lower).
 	For example with degree 1 :
-                 All|               Upper|               Lower|  Order
-  24.3593, 0.0161583|  34.6822, 0.0164165|  14.0261, 0.0159084|      1
-  225.479, 0.0167469|  236.604, 0.0168986|  214.342, 0.0166058|      2
-   436.94, 0.0173438|   448.436, 0.017493|   425.423, 0.017203|      3
+                 All|               Upper|               Lower| 
+  24.3593, 0.0161583|  34.6822, 0.0164165|  14.0261, 0.0159084|      
+  225.479, 0.0167469|  236.604, 0.0168986|  214.342, 0.0166058|  
+   436.94, 0.0173438|   448.436, 0.017493|   425.423, 0.017203| 
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace(
         cpl_image       *   ima,
-        cr2res_decker       decker,
         double              smoothfactor,
         int                 opening,
         int                 degree,
@@ -151,7 +149,6 @@ cpl_table * cr2res_trace(
 /**
   @brief  Main function for running all parts of the trace algorithm
   @param ima            input image
-  @param decker         slit layout
   @param smoothfactor   Used for detection
   @param opening		Used for cleaning the mask
   @param degree			Fitted polynomial degree
@@ -160,17 +157,16 @@ cpl_table * cr2res_trace(
   @see cr2res_trace()
 
   The returned table contains 1 line per trace. Each line has 3
-  polynomials (All, Upper and Lower) and the order number.
+  polynomials (All, Upper and Lower).
 	For example with degree 1 :
-                 All|               Upper|               Lower|  Order
-  24.3593, 0.0161583|  34.6822, 0.0164165|  14.0261, 0.0159084|      1
-  225.479, 0.0167469|  236.604, 0.0168986|  214.342, 0.0166058|      2
-   436.94, 0.0173438|   448.436, 0.017493|   425.423, 0.017203|      3
+                 All|               Upper|               Lower| 
+  24.3593, 0.0161583|  34.6822, 0.0164165|  14.0261, 0.0159084| 
+  225.479, 0.0167469|  236.604, 0.0168986|  214.342, 0.0166058| 
+   436.94, 0.0173438|   448.436, 0.017493|   425.423, 0.017203| 
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_nocpl(
         cpl_image       *   ima,
-        cr2res_decker       decker,
         double              smoothfactor,
         int                 opening,
         int                 degree,
@@ -337,7 +333,7 @@ cpl_image * cr2res_trace_labelize(cpl_mask * mask)
   a table. One column per pixel. The columns are xs (pixel x position),
   ys (pixel y position) and cluster (label number).
   The returned table contains 1 line per trace. Each line has 3
-  polynomials (All, Upper and Lower) and the order number.
+  polynomials (All, Upper and Lower).
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_fit(
@@ -385,21 +381,6 @@ cpl_table * cr2res_trace_fit(
 cpl_vector * cr2res_trace_compare(
         cpl_table   *   trace1,
         cpl_table   *   trace2)
-{
-    return NULL;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Combine two decker traces into an open trace
-  @param    td_13   1-3-decker trace
-  @param    td_24   2-4-decker trace
-  @return   open trace
- */
-/*----------------------------------------------------------------------------*/
-cpl_table * cr2res_trace_combine(
-        cpl_table   *   td_13,
-        cpl_table   *   td_24)
 {
     return NULL;
 }
@@ -664,6 +645,41 @@ int cr2res_trace_compute_height(
     return height;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Compute the y position of the trace
+  @param traces     The traces table
+  @param idx        The index of the trace row
+  @return   The y position of the center of the trace
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_trace_get_trace_ypos(
+        cpl_table   *   traces,
+        int             idx)
+{
+    const cpl_array *   coeffs ;
+    cpl_polynomial  *   poly ;
+    double              ypos ;
+    cpl_size            i ;
+
+    /* Check Entries */
+    if (traces == NULL) return -1.0 ;
+    if (idx < 0) return -1.0 ;
+    if (idx >= cpl_table_get_nrow(traces)) return -1.0 ;
+
+	/* Get the trace polynomial*/
+	coeffs = cpl_table_get_array(traces, "All", idx) ;
+	poly = cpl_polynomial_new(1) ;
+	for (i=0 ; i<cpl_array_get_size(coeffs) ; i++)
+		cpl_polynomial_set_coeff(poly, &i, cpl_array_get(coeffs, i, NULL)) ;
+
+    /* Evaluate the central pixel */
+    ypos = cpl_polynomial_eval_1d(poly, 1024, NULL) ;
+    cpl_polynomial_delete(poly) ;
+
+    return ypos ;
+}
+
 /**@}*/
 
 /*----------------------------------------------------------------------------*/
@@ -679,7 +695,6 @@ int cr2res_trace_compute_height(
   The input image is smoothed, subtracted to the result, and a simple
   thresholding is applied. The smoothing kernel size is
   trace_sep*smoothfactor x 1
-
  */
 /*----------------------------------------------------------------------------*/
 static cpl_mask * cr2res_trace_signal_detect(
@@ -742,7 +757,7 @@ static cpl_mask * cr2res_trace_signal_detect(
   also fits a polynomial using all the pixels of the trace.
 
   The returned table contains 1 line per trace. Each line has 3 polynomials 
-  (All, Upper and Lower) and the order number.
+  (All, Upper and Lower).
  */
 /*----------------------------------------------------------------------------*/
 static cpl_table * cr2res_trace_fit_traces(
@@ -757,7 +772,7 @@ static cpl_table * cr2res_trace_fit_traces(
     cpl_table   *    edge_upper_table;
     cpl_table   *    edge_lower_table;
     cpl_size         nclusters_cur;
-    int              i, nclusters, order;
+    int              i, nclusters;
 
     /* Check entries */
     if (clustertable == NULL) return NULL ;
@@ -768,7 +783,6 @@ static cpl_table * cr2res_trace_fit_traces(
     cpl_table_new_column_array(traces_table, "All", CPL_TYPE_DOUBLE,degree+1) ;
     cpl_table_new_column_array(traces_table, "Upper",CPL_TYPE_DOUBLE,degree+1) ;
     cpl_table_new_column_array(traces_table, "Lower",CPL_TYPE_DOUBLE,degree+1) ;
-    cpl_table_new_column(traces_table, "Order", CPL_TYPE_INT) ;
 
     /* Loop on the clusters */
     for (i=1 ; i<=nclusters ; i++) {
@@ -806,12 +820,7 @@ static cpl_table * cr2res_trace_fit_traces(
 
         /* Reset the selection */
         cpl_table_select_all(clustertable);
-        
-        /* TODO */
-        /* Get the real order number */
-        cpl_table_set(traces_table, "Order", i-1, i);
     }
-
     return traces_table;
 }
 

@@ -33,7 +33,6 @@
 
 cpl_table * cr2res_trace(
         cpl_image       *   ima,
-        cr2res_decker       decker,
         double              smoothfactor,
         int                 opening,
         int                 degree,
@@ -41,7 +40,6 @@ cpl_table * cr2res_trace(
 
 cpl_table * cr2res_trace_nocpl(
         cpl_image       *   ima,
-        cr2res_decker       decker,
         double              smoothfactor,
         int                 opening,
         int                 degree,
@@ -62,10 +60,6 @@ cpl_table * cr2res_trace_fit(
 cpl_vector * cr2res_trace_compare(
         cpl_table   *   trace1,
         cpl_table   *   trace2) ;
-
-cpl_table * cr2res_trace_combine(
-        cpl_table   *   td_13,
-        cpl_table   *   td_24) ;
 
 cpl_image * cr2res_trace_gen_image(
         cpl_table   *   trace,
@@ -89,5 +83,9 @@ int cr2res_trace_compute_height(
         cpl_polynomial  *   trace1,
         cpl_polynomial  *   trace2,
         int                 vector_size) ;
+
+double cr2res_trace_get_trace_ypos(
+        cpl_table   *   traces,
+        int             idx) ;
 
 #endif

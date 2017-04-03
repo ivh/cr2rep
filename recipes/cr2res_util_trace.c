@@ -235,13 +235,14 @@ static int cr2res_util_trace(
 {
     const cpl_parameter *   param;
     int                     min_cluster, degree, opening, reduce_det ;
-    double                  smooth ;
+    double                  smooth, y_pos ;
     const char          *   flat_file ;
     cpl_image           *   flat_ima ;
     cpl_image           *   debug_ima ;
     int                     det_nr, order ;
     cpl_array           *   wl_array ;
     cpl_table           *   traces[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   plist ;
     int                     i ;
 
     /* RETRIEVE INPUT PARAMETERS */
@@ -306,8 +307,7 @@ static int cr2res_util_trace(
         cpl_msg_info(__func__, "Compute the traces") ;
         cpl_msg_indent_more() ;
         if ((traces[det_nr-1] = cr2res_trace(flat_ima,
-                CR2RES_DECKER_NONE, smooth, opening, degree,
-                min_cluster)) == NULL) {
+                smooth, opening, degree, min_cluster)) == NULL) {
             cpl_msg_warning(__func__,
                     "Cannot compute the trace - skip detector");
             cpl_error_reset() ;
@@ -319,6 +319,25 @@ static int cr2res_util_trace(
         cpl_msg_indent_less() ;
 
         /* Add The Wavelength column using the header */
+        cpl_table_new_column(traces[det_nr-1], "Order", CPL_TYPE_INT) ;
+
+        /* Loop on the traces */
+        for (i=0 ; i<cpl_table_get_nrow(traces[det_nr-1]) ; i++) {
+            /* Get the current trace Y position */
+            y_pos = cr2res_trace_get_trace_ypos(traces[det_nr-1], i) ;
+
+            /* Load the Header  */
+            plist = cpl_propertylist_load(flat_file, det_nr) ;
+
+            /* Compute the trace order from the header */
+            order = kmos_pfits_get_order(plist, y_pos) ;
+            cpl_propertylist_delete(plist) ;
+            
+            /* Store the Order in the table */
+            cpl_table_set(traces[det_nr-1], "Order", i, order);
+        }
+
+        /* Add The Order column using the header */
         cpl_table_new_column_array(traces[det_nr-1], "Wavelength", 
                 CPL_TYPE_DOUBLE, 2) ;
 

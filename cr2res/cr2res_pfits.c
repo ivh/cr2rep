@@ -45,28 +45,20 @@
 /* TODO */
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the Min wavelength for an order
+  @brief    find out the order number closest to the passed y position
   @param    plist       property list to read from
+  @param    yposition   Y position
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
-int kmos_pfits_get_order(const cpl_propertylist * plist, int order)
+int kmos_pfits_get_order(const cpl_propertylist * plist, double yposition)
 {
-    char    *   key_name ;
-    double      val  ;
-
     /* Check entries */
-    if (plist == NULL) return -1.0 ;
-    if (order < 0) return -1.0 ;
+    if (plist == NULL) return -1 ;
+    if (yposition < 1) return -1 ;
 
-    /* Create key name */
-    key_name = cpl_sprintf("ESO WMIN_%02d", order) ;
-
-    /* Get the value */
-    val = cpl_propertylist_get_double(plist, key_name) ;
-
-    cpl_free(key_name) ;
-    return val ;
+    /* TODO */
+    return 50 ;
 }
 
 /*----------------------------------------------------------------------------*/

@@ -34,5 +34,7 @@ const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
 double kmos_pfits_get_wmin(const cpl_propertylist * plist, int order) ;
 double kmos_pfits_get_wmax(const cpl_propertylist * plist, int order) ;
 double kmos_pfits_get_ypos(const cpl_propertylist * plist, int order) ;
+int kmos_pfits_get_order(const cpl_propertylist * plist, double yposition) ;
+
 
 #endif

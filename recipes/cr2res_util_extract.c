@@ -389,6 +389,7 @@ static int cr2res_util_extract(
                 continue ;
             }
 
+/* TODO : Enhance to support multiple traces per order */
             /* Get the 2 Traces for the current order */
             if ((traces = cr2res_trace_open_get_polynomials(trace_table,
                             orders[i])) == NULL) {
