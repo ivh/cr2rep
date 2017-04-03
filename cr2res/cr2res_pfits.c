@@ -44,6 +44,84 @@
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    find out the Min wavelength for an order
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double kmos_pfits_get_wmin(const cpl_propertylist * plist, int order)
+{
+    char    *   key_name ;
+    double      val  ;
+
+    /* Check entries */
+    if (plist == NULL) return -1.0 ;
+    if (order < 0) return -1.0 ;
+
+    /* Create key name */
+    key_name = cpl_sprintf("ESO WMIN_%02d", order) ;
+
+    /* Get the value */
+    val = cpl_propertylist_get_double(plist, key_name) ;
+
+    cpl_free(key_name) ;
+    return val ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the Max wavelength for an order
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double kmos_pfits_get_wmax(const cpl_propertylist * plist, int order)
+{
+    char    *   key_name ;
+    double      val  ;
+
+    /* Check entries */
+    if (plist == NULL) return -1.0 ;
+    if (order < 0) return -1.0 ;
+
+    /* Create key name */
+    key_name = cpl_sprintf("ESO WMAX_%02d", order) ;
+
+    /* Get the value */
+    val = cpl_propertylist_get_double(plist, key_name) ;
+
+    cpl_free(key_name) ;
+    return val ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the Y pos of an order
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double kmos_pfits_get_ypos(const cpl_propertylist * plist, int order)
+{
+    char    *   key_name ;
+    double      val  ;
+
+    /* Check entries */
+    if (plist == NULL) return -1.0 ;
+    if (order < 0) return -1.0 ;
+
+    /* Create key name */
+    key_name = cpl_sprintf("ESO YPOS_%02d", order) ;
+
+    /* Get the value */
+    val = cpl_propertylist_get_double(plist, key_name) ;
+
+    cpl_free(key_name) ;
+    return val ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    find out the arcfile   
   @param    plist       property list to read from
   @return   pointer to statically allocated character string
@@ -51,30 +129,9 @@
 /*----------------------------------------------------------------------------*/
 const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
 {
-    const char * value = cpl_propertylist_get_string(plist, "ARCFILE");
-
-    cpl_ensure(value != NULL, cpl_error_get_code(), NULL);
-
-    return value;
+    return (const char *) cpl_propertylist_get_string(plist, "ARCFILE");
 }
 
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    find out the DIT value 
-  @param    plist       property list to read from
-  @return   the requested value
- */
-/*----------------------------------------------------------------------------*/
-double cr2res_pfits_get_dit(const cpl_propertylist * plist)
-{
-    cpl_errorstate prestate = cpl_errorstate_get();
-    const double value = cpl_propertylist_get_double(plist, "ESO DET DIT");
 
-    /* Check for a change in the CPL error state */
-    /* - if it did change then propagate the error and return */
-    cpl_ensure(cpl_errorstate_is_equal(prestate), cpl_error_get_code(), 0.0);
-
-    return value;
-}
 
 /**@}*/
