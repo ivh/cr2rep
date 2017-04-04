@@ -96,6 +96,7 @@ class MyHandler(PatternMatchingEventHandler):
                 d /= d.sum()
                 im2.set_data(d)
 
+            plt.savefig('anim_%s.png'%time.time(),dpi=50)
         else:
             return
 

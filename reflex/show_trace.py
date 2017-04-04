@@ -27,7 +27,7 @@ for i in [1,2,3]:
     if tdata is None:
         print('No data for CHIP%s, skipping.'%i)
         continue
-    for alla, upper, lower, order in tdata:
+    for alla, upper, lower, order, wave in tdata:
         pol = np.polyval(upper[::-1],X)
         ax.plot(X, pol, ':w')
 
