@@ -364,9 +364,20 @@ cpl_table * cr2res_io_load_EXTRACT_1D(
         const char  *   filename,
         int             detector)
 {
-        return NULL ;
-}
+    int                     wished_ext_nb ;
 
+    /* Check entries */
+    if (filename == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector) ;
+
+    /* The wished extension was not found */
+    if (wished_ext_nb < 0) return NULL ;
+
+    return cpl_table_load(filename, wished_ext_nb, 1);
+}
 
 /*----------------------------------------------------------------------------*/
 /**
