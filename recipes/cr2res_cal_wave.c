@@ -392,7 +392,7 @@ static int cr2res_cal_wave(
 /* TODO : Enhance to support multiple traces per order */
             /* Get the 2 Traces for the current order */
             if ((traces = cr2res_trace_open_get_polynomials(trace_table,
-                            orders[i])) == NULL) {
+                            1,2)) == NULL) {
                 cpl_msg_warning(__func__,
                         "Failed to get the traces for order %d - skip order",
                         orders[i]);

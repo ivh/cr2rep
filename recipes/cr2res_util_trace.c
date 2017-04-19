@@ -236,6 +236,7 @@ static int cr2res_util_trace(
     const cpl_parameter *   param;
     int                     min_cluster, degree, opening, reduce_det ;
     double                  smooth, y_pos ;
+    int                 *   orders ;
     const char          *   flat_file ;
     cpl_image           *   flat_ima ;
     cpl_image           *   debug_ima ;
@@ -243,7 +244,7 @@ static int cr2res_util_trace(
     cpl_array           *   wl_array ;
     cpl_table           *   traces[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   plist ;
-    int                     i ;
+    int                     i, j, nb_orders, trace_nb ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -318,7 +319,7 @@ static int cr2res_util_trace(
         }
         cpl_msg_indent_less() ;
 
-        /* Add The Wavelength column using the header */
+        /* Add The Order column using the header */
         cpl_table_new_column(traces[det_nr-1], "Order", CPL_TYPE_INT) ;
 
         /* Loop on the traces */
@@ -337,7 +338,25 @@ static int cr2res_util_trace(
             cpl_table_set(traces[det_nr-1], "Order", i, order);
         }
 
-        /* Add The Order column using the header */
+
+        /* Add The TraceNb column */
+        cpl_table_new_column(traces[det_nr-1], "TraceNb", CPL_TYPE_INT) ;
+
+        orders = cr2res_trace_get_order_numbers(traces[det_nr-1], &nb_orders) ;
+        for (i=0 ; i<nb_orders ; i++) {
+            /* Initialise */
+            trace_nb = 1 ;
+            /* Loop on the traces */
+            for (j=0 ; j<cpl_table_get_nrow(traces[det_nr-1]) ; j++) {
+                if (cpl_table_get(traces[det_nr-1],"Order",j,NULL)==orders[i]) {
+                    cpl_table_set(traces[det_nr-1], "TraceNb", j, trace_nb);
+                    trace_nb ++ ;
+                }
+            }
+        }
+        cpl_free(orders) ;
+
+        /* Add The Wavelength column using the header */
         cpl_table_new_column_array(traces[det_nr-1], "Wavelength", 
                 CPL_TYPE_DOUBLE, 2) ;
 

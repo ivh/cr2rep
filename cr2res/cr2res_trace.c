@@ -517,9 +517,10 @@ int * cr2res_trace_get_order_numbers(
 /* TODO : WHAT IF SEVERAL TRACES PER ORDER */
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Select the upper and lower polynomials for the given order
+  @brief    Select the upper and lower polynomials for the given order/trace
   @param trace      TRACE table
   @param order_nb   Wished order
+  @param trace_nb   Wished trace
   @return   array of two polynomials or NULL in error case
 
   The polynomials will need to be destroyed by the caller:
@@ -531,11 +532,13 @@ int * cr2res_trace_get_order_numbers(
 /*----------------------------------------------------------------------------*/
 cpl_polynomial ** cr2res_trace_open_get_polynomials(
             cpl_table   *   trace,
-            cpl_size        order_nb)
+            cpl_size        order_nb,
+            cpl_size        trace_nb)
 {
     cpl_polynomial  **  polys ;
     const cpl_array *   coeffs ;
     int             *   porders ;
+    int             *   ptraces ;
     int                 nrows, i, found  ;
     cpl_size            j ;
 
@@ -545,6 +548,7 @@ cpl_polynomial ** cr2res_trace_open_get_polynomials(
     /* Initialise */
     nrows = cpl_table_get_nrow(trace) ;
     porders = cpl_table_get_data_int(trace, "Order");
+    ptraces = cpl_table_get_data_int(trace, "TraceNb");
 
     /* Allocate the returned pointer */
     polys = cpl_malloc(2 * sizeof(cpl_polynomial*)) ;
@@ -552,7 +556,7 @@ cpl_polynomial ** cr2res_trace_open_get_polynomials(
     /* Loop on the orders */
     for (i=0 ; i<nrows ; i++) {
         /* If order found */
-        if (porders[i] == order_nb) {
+        if (porders[i] == order_nb && ptraces[i] == trace_nb) {
             /* Get the Upper polynomial*/
             coeffs = cpl_table_get_array(trace, "Upper", i) ;
             polys[0] = cpl_polynomial_new(1) ;
@@ -569,7 +573,7 @@ cpl_polynomial ** cr2res_trace_open_get_polynomials(
         }
     }
 
-    /* Order not found */
+    /* Order/trace not found */
     cpl_free(polys) ;
     return NULL ;
 }

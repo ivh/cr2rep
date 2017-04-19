@@ -72,7 +72,8 @@ int * cr2res_trace_get_order_numbers(
 
 cpl_polynomial ** cr2res_trace_open_get_polynomials(
         cpl_table   *   trace,
-        cpl_size        order_nb) ;
+        cpl_size        order_nb,
+        cpl_size        trace_nb) ;
 
 cpl_vector * cr2res_trace_compute_middle(
         cpl_polynomial  *   trace1,
