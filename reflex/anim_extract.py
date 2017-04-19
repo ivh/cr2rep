@@ -6,9 +6,13 @@ from watchdog.events import PatternMatchingEventHandler
 
 from astropy.io import fits
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib
+#matplotlib.use('Agg')
+#plt.ion()
+# convert -delay 200 -loop 0 anim_*.png ani.gif
+# gifsicle --optimize=3 --colors 64 --resize 840x_ < ani.gif > ani2.gif
 
-plt.ion()
+import matplotlib.pyplot as plt
 FIG = plt.figure(figsize=(12,4))
 
 AX1 = FIG.add_subplot(231)
@@ -96,7 +100,7 @@ class MyHandler(PatternMatchingEventHandler):
                 d /= d.sum()
                 im2.set_data(d)
 
-            plt.savefig('anim_%s.png'%time.time(),dpi=50)
+            #plt.savefig('anim_%s.png'%time.time(),dpi=150)
         else:
             return
 
