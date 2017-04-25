@@ -57,10 +57,6 @@ cpl_table * cr2res_trace_fit(
         cpl_image   *   labels,
         int             degree) ;
 
-cpl_vector * cr2res_trace_compare(
-        cpl_table   *   trace1,
-        cpl_table   *   trace2) ;
-
 cpl_image * cr2res_trace_gen_image(
         cpl_table   *   trace,
         int             nx,
@@ -70,7 +66,7 @@ int * cr2res_trace_get_order_numbers(
         cpl_table   *   trace, 
         int         *   nb_orders) ;
 
-cpl_polynomial ** cr2res_trace_open_get_polynomials(
+cpl_polynomial ** cr2res_trace_wave_get_polynomials(
         cpl_table   *   trace,
         cpl_size        order_nb,
         cpl_size        trace_nb) ;

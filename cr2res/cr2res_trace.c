@@ -372,21 +372,6 @@ cpl_table * cr2res_trace_fit(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Compare two traces
-  @param    trace1  first trace
-  @param    trace2  second trace
-  @return   sqrt(sum(distances along x-axis ^2))
- */
-/*----------------------------------------------------------------------------*/
-cpl_vector * cr2res_trace_compare(
-        cpl_table   *   trace1,
-        cpl_table   *   trace2)
-{
-    return NULL;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Make an image out of the trace solution
   @param trace  The trace table
   @param nx     X size of the produced image
@@ -426,18 +411,12 @@ cpl_image * cr2res_trace_gen_image(
 
         /* Get the Upper polynomial*/
         coeffs_upper = cpl_table_get_array(trace, "Upper", i) ;
-        poly_upper = cpl_polynomial_new(1) ;
-        for (j=0 ; j<cpl_array_get_size(coeffs_upper) ; j++)
-            cpl_polynomial_set_coeff(poly_upper, &j,
-                    cpl_array_get(coeffs_upper, j, NULL)) ;
+        poly_upper = cr2res_convert_array_to_poly(coeffs_upper) ;
 
         /* Get the Lower polynomial*/
         coeffs_lower = cpl_table_get_array(trace, "Lower", i) ;
-        poly_lower = cpl_polynomial_new(1) ;
-        for (j=0 ; j<cpl_array_get_size(coeffs_lower) ; j++)
-            cpl_polynomial_set_coeff(poly_lower, &j,
-                    cpl_array_get(coeffs_lower, j, NULL)) ;
-
+        poly_lower = cr2res_convert_array_to_poly(coeffs_lower) ;
+            
         /* Draw It  */
         for (j=0 ; j<nx ; j++) {
             y_pos_lower = (cpl_size)cpl_polynomial_eval_1d(poly_lower,
@@ -512,9 +491,6 @@ int * cr2res_trace_get_order_numbers(
     return out ;
 }
 
-
-
-/* TODO : WHAT IF SEVERAL TRACES PER ORDER */
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Select the upper and lower polynomials for the given order/trace
@@ -530,7 +506,7 @@ int * cr2res_trace_get_order_numbers(
 
  */
 /*----------------------------------------------------------------------------*/
-cpl_polynomial ** cr2res_trace_open_get_polynomials(
+cpl_polynomial ** cr2res_trace_wave_get_polynomials(
             cpl_table   *   trace,
             cpl_size        order_nb,
             cpl_size        trace_nb)
@@ -559,16 +535,10 @@ cpl_polynomial ** cr2res_trace_open_get_polynomials(
         if (porders[i] == order_nb && ptraces[i] == trace_nb) {
             /* Get the Upper polynomial*/
             coeffs = cpl_table_get_array(trace, "Upper", i) ;
-            polys[0] = cpl_polynomial_new(1) ;
-            for (j=0 ; j<cpl_array_get_size(coeffs) ; j++)
-                cpl_polynomial_set_coeff(polys[0], &j,
-                        cpl_array_get(coeffs, j, NULL)) ;
+            polys[0] = cr2res_convert_array_to_poly(coeffs) ;
             /* Get the Lower polynomial*/
             coeffs = cpl_table_get_array(trace, "Lower", i) ;
-            polys[1] = cpl_polynomial_new(1) ;
-            for (j=0 ; j<cpl_array_get_size(coeffs) ; j++)
-                cpl_polynomial_set_coeff(polys[1], &j,
-                        cpl_array_get(coeffs, j, NULL)) ;
+            polys[1] = cr2res_convert_array_to_poly(coeffs) ;
             return polys ;
         }
     }
@@ -673,9 +643,7 @@ double cr2res_trace_get_trace_ypos(
 
 	/* Get the trace polynomial*/
 	coeffs = cpl_table_get_array(traces, "All", idx) ;
-	poly = cpl_polynomial_new(1) ;
-	for (i=0 ; i<cpl_array_get_size(coeffs) ; i++)
-		cpl_polynomial_set_coeff(poly, &i, cpl_array_get(coeffs, i, NULL)) ;
+    poly = cr2res_convert_array_to_poly(coeffs) ;
 
     /* Evaluate the central pixel */
     ypos = cpl_polynomial_eval_1d(poly, 1024, NULL) ;
@@ -867,8 +835,6 @@ static cpl_array * cr2res_trace_fit_trace(
     /* Create Objects */
     x = cpl_matrix_new(1, n) ;
     y = cpl_vector_new(n) ;
-    poly1 = cpl_polynomial_new(1) ;
-    result = cpl_array_new(degree_local+1, CPL_TYPE_DOUBLE) ;
 
     xs = cpl_table_get_data_int(table,"xs");
     ys = cpl_table_get_data_int(table,"ys");
@@ -887,22 +853,20 @@ static cpl_array * cr2res_trace_fit_trace(
     if (x_max - x_min < 1500) degree_local = 1 ;
 
     /* Apply the fit */
+    poly1 = cpl_polynomial_new(1) ;
     if (cpl_polynomial_fit(poly1, x, NULL, y, NULL, CPL_FALSE, NULL,
                 &degree_local) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot fit the data") ;
         cpl_matrix_delete(x);
         cpl_vector_delete(y);
         cpl_polynomial_delete(poly1);
-        cpl_array_delete(result);
         return NULL;
     }
     cpl_matrix_delete(x);
     cpl_vector_delete(y);
 
     /* Store the result */
-    for (i=0 ; i<=degree_local ; i++) {
-        cpl_array_set(result, i, cpl_polynomial_get_coeff(poly1, &i)) ;
-    }
+    result = cr2res_convert_poly_to_array(poly1) ;
     cpl_polynomial_delete(poly1);
     return result;
 }

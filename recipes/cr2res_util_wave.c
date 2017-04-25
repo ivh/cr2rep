@@ -33,6 +33,7 @@
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
 #include "cr2res_io.h"
+#include "cr2res_slitdec.h"
 #include "cr2res_wave.h"
 
 /*-----------------------------------------------------------------------------
@@ -62,6 +63,7 @@ static int cr2res_util_wave(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_util_wave_description[] =
 "TODO : Descripe here the recipe in / out / params / basic algo\n"
+"trace_wave.fits " CR2RES_COMMAND_LINE "\n"
 "extracted.fits " CR2RES_COMMAND_LINE "\n"
 "catalog.fits " CR2RES_COMMAND_LINE "\n"
 " The recipe produces the following products:\n"
@@ -224,16 +226,19 @@ static int cr2res_util_wave(
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace ;
     cpl_frame           *   fr ;
+    const char          *   trace_wave_file ;
     const char          *   extracted_file ;
     const char          *   catalog_file ;
 
+    cpl_table           *   trace_wave_table ;
     cpl_table           *   extracted_table ;
     cpl_table           *   catalog_table ;
     cpl_vector          *   extracted_vec ;
     cpl_bivector        *   template ;
     cpl_polynomial      *   init_guess ;
+    const cpl_array     *   init_guess_arr ;
     cpl_polynomial      *   wave_sol ;
-    int                     det_nr, nb_extracted, trace_id, order, i ;
+    int                     det_nr, nb_traces, trace_id, order, i ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -258,11 +263,13 @@ static int cr2res_util_wave(
 
     /* Get Inputs */
     fr = cpl_frameset_get_position(frameset, 0);
-    extracted_file = cpl_frame_get_filename(fr) ;
+    trace_wave_file = cpl_frame_get_filename(fr) ;
     fr = cpl_frameset_get_position(frameset, 1);
+    extracted_file = cpl_frame_get_filename(fr) ;
+    fr = cpl_frameset_get_position(frameset, 2);
     catalog_file = cpl_frame_get_filename(fr) ;
-    if (extracted_file == NULL || catalog_file == NULL) {
-        cpl_msg_error(__func__, "The utility needs 2 files");
+    if (trace_wave_file==NULL || extracted_file==NULL || catalog_file==NULL) {
+        cpl_msg_error(__func__, "The utility needs 3 files");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
@@ -278,28 +285,36 @@ static int cr2res_util_wave(
         cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
         cpl_msg_indent_more() ;
 
-        /* Load the extraced table of this detector */
-        cpl_msg_info(__func__, "Load the extracted table") ;
-        if ((extracted_table = cr2res_io_load_EXTRACT_1D(extracted_file,
+        /* Load the TRACE_WAVE table of this detector */
+        cpl_msg_info(__func__, "Load the TRACE_WAVE table") ;
+        if ((trace_wave_table = cr2res_io_load_TRACE_WAVE(trace_wave_file,
                         det_nr)) == NULL) {
-            cpl_msg_error(__func__,
-                    "Failed to get trace table - skip detector");
+            cpl_msg_error(__func__,"Failed to load table - skip detector");
             cpl_error_reset() ;
             cpl_msg_indent_less() ;
             continue ;
         }
-        nb_extracted = cpl_table_get_ncol(extracted_table) ;
+        nb_traces = cpl_table_get_nrow(trace_wave_table) ;
 
+        /* Load the EXTRACT1D table of this detector */
+        cpl_msg_info(__func__, "Load the EXTRACT1D table") ;
+        if ((extracted_table = cr2res_io_load_EXTRACT_1D(extracted_file,
+                        det_nr)) == NULL) {
+            cpl_msg_error(__func__,"Failed to load table - skip detector");
+            cpl_error_reset() ;
+            cpl_msg_indent_less() ;
+            continue ;
+        }
+ 
         /* Allocate Data containers */
 
-        /* Loop over the extracted spectra */
-        for (i=0 ; i<nb_extracted ; i++) {
+        /* Loop over the traces spectra */
+        for (i=0 ; i<nb_traces ; i++) {
             /* Initialise */
 
-            /* Get Order and trace id From column name */
-
-            order = 1 ;
-            trace_id = 1 ;
+            /* Get Order and trace id */
+            order = cpl_table_get(trace_wave_table, "Order", i, NULL) ;
+            trace_id = cpl_table_get(trace_wave_table, "TraceNb", i, NULL) ;
 
             /* Check if this order needs to be skipped */
             if (reduce_order > -1 && order != reduce_order) {
@@ -317,25 +332,36 @@ static int cr2res_util_wave(
             cpl_msg_indent_more() ;
 
             /* Get the extracted spectrum */
-            extracted_vec = NULL ;
+            if ((extracted_vec = cr2res_extract_EXTRACT1D_get_spectrum(
+                    extracted_table, order, trace_id)) == NULL) {
+                cpl_msg_error(__func__, "Cannot get the extracted spectrum") ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
 
             /* Get the initial guess */
-            init_guess = NULL ;
+            init_guess_arr = cpl_table_get_array(trace_wave_table, 
+                    "Wavelength", i) ;
+            init_guess = cr2res_convert_array_to_poly(init_guess_arr) ;
 
             /* Call the Wavelength Calibration */
             if ((wave_sol = cr2res_wave(extracted_vec, init_guess,
                             catalog_table, template)) == NULL) {
                 cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
+                cpl_polynomial_delete(init_guess) ;
+                cpl_vector_delete(extracted_vec) ;
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
                 continue ;
             }
+            cpl_vector_delete(extracted_vec) ;
+            cpl_polynomial_delete(init_guess) ;
             cpl_msg_indent_less() ;
         }
-
+        cpl_table_delete(trace_wave_table) ;
         cpl_table_delete(extracted_table) ;
 
-		/* Deallocate */
+        /* Deallocate */
         cpl_msg_indent_less() ;
     }
 

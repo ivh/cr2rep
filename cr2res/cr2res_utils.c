@@ -102,6 +102,59 @@ cpl_frameset * cr2res_extract_frameset(
     return out ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+   @brief   Convert an array to polynomial
+   @param  	arr		An array
+   @return  The newly created polynomial or NULL
+   The returned object must be de allocated with cpl_polynomial_delete()
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_convert_array_to_poly(const cpl_array * arr)
+{
+    cpl_polynomial  *   out ;
+    cpl_size            i ;
+
+    /* Test entries */
+    if (arr == NULL) return NULL ;
+
+    /* Create Output poly */
+	out = cpl_polynomial_new(1) ;
+
+    /* Fill it  */
+	for (i=0 ; i<cpl_array_get_size(arr) ; i++)
+		cpl_polynomial_set_coeff(out, &i, cpl_array_get(arr, i, NULL)) ;
+
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+   @brief   Convert a  polynomial to array
+   @param  	poly    A polynomial
+   @return  The newly created array or NULL
+   The returned object must be de allocated with cpl_array_delete()
+ */
+/*----------------------------------------------------------------------------*/
+cpl_array * cr2res_convert_poly_to_array(const cpl_polynomial * poly)
+{
+    cpl_array   *   out ;
+    cpl_size        degree, i ;
+
+    /* Test entries */
+    if (poly == NULL) return NULL ;
+
+    /* Create Output array */
+    degree = cpl_polynomial_get_degree(poly) ;
+	out = cpl_array_new(degree+1, CPL_TYPE_DOUBLE) ;
+
+    /* Fill it  */
+    for (i=0 ; i<=degree ; i++) {
+        cpl_array_set(out, i, cpl_polynomial_get_coeff(poly, &i)) ;
+    }   
+    return out ;
+}
+
 /* This function is copied from HDRLDEMO -> should not be changed */
 /* It could be added in HDRL */
 /*----------------------------------------------------------------------------*/

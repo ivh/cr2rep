@@ -51,12 +51,6 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
-static cpl_table * cr2res_extract_tab_create(
-        cpl_vector      **  spectrum,
-        cpl_table       *   trace_table) ;
-static cpl_table * cr2res_slit_func_tab_create(
-        cpl_vector      **  slit_func,
-        cpl_table       *   trace_table) ;
 static int cr2res_util_extract_create(cpl_plugin *);
 static int cr2res_util_extract_exec(cpl_plugin *);
 static int cr2res_util_extract_destroy(cpl_plugin *);
@@ -399,7 +393,7 @@ static int cr2res_util_extract(
             cpl_msg_indent_more() ;
 
             /* Get the 2 Edges for the current trace */
-            if ((traces = cr2res_trace_open_get_polynomials(trace_table,
+            if ((traces = cr2res_trace_wave_get_polynomials(trace_table,
                             order, trace_id)) == NULL) {
                 cpl_msg_warning(__func__, "Failed to get the traces");
                 cpl_error_reset() ;
@@ -444,11 +438,11 @@ static int cr2res_util_extract(
         cpl_image_delete(science_ima) ;
 
         /* Create the slit_func_tab for the current detector */
-        slit_func_tab[det_nr-1] = cr2res_slit_func_tab_create(
+        slit_func_tab[det_nr-1] = cr2res_extract_SLITFUNC_create(
                 slit_func, trace_table) ;
 
         /* Create the extracted_tab for the current detector */
-        extract_tab[det_nr-1] = cr2res_extract_tab_create(
+        extract_tab[det_nr-1] = cr2res_extract_EXTRACT1D_create(
                 spectrum, trace_table) ;
         cpl_table_delete(trace_table) ;
 
@@ -481,123 +475,3 @@ static int cr2res_util_extract(
 
 /**@}*/
 
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Create the extract 1D table to be saved
-  @param    spectrum   	The extracted spectra of the different orders
-  @param    trace_table The trace table
-  @return   the extract_1D table or NULL
- */
-/*----------------------------------------------------------------------------*/
-static cpl_table * cr2res_extract_tab_create(
-        cpl_vector      **  spectrum,
-        cpl_table       *   trace_table)
-{
-    cpl_table       *   out ;
-    char            *   col_name ;
-    const double    *   pspec ;
-    int                 nrows, all_null, i, order, trace_id, nb_traces ;
-
-    /* Check entries */
-    if (spectrum == NULL || trace_table == NULL) return NULL ;
-
-    /* Initialise */
-    nb_traces = cpl_table_get_nrow(trace_table) ;
-
-    /* Check if all vectorѕ are not null */
-    all_null = 1 ;
-    for (i=0 ; i<nb_traces ; i++)
-        if (spectrum[i] != NULL) {
-            nrows = cpl_vector_get_size(spectrum[i]) ;
-            all_null = 0 ;
-        }
-    if (all_null == 1) return NULL ;
-
-    /* Check the sizes */
-    for (i=0 ; i<nb_traces ; i++)
-        if (spectrum[i] != NULL && cpl_vector_get_size(spectrum[i]) != nrows)
-            return NULL ;
-
-    /* Create the table */
-    out = cpl_table_new(nrows);
-    for (i=0 ; i<nb_traces ; i++) {
-		order = cpl_table_get(trace_table, "Order", i, NULL) ;
-		trace_id = cpl_table_get(trace_table, "TraceNb", i, NULL) ;
-        col_name = cpl_sprintf("%02d_%02d_SPEC", order, trace_id) ;
-        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
-        cpl_free(col_name) ;
-    }
-
-    /* Fill the table */
-    for (i=0 ; i<nb_traces ; i++) {
-        if (spectrum[i] != NULL) {
-            order = cpl_table_get(trace_table, "Order", i, NULL) ;
-            trace_id = cpl_table_get(trace_table, "TraceNb", i, NULL) ;
-            pspec = cpl_vector_get_data_const(spectrum[i]) ;
-            col_name = cpl_sprintf("%02d_%02d_SPEC", order, trace_id) ;
-            cpl_table_copy_data_double(out, col_name, pspec) ;
-            cpl_free(col_name) ;
-        }
-    }
-    return out ;
-}
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Create the slit functions table to be saved
-  @param    slit_func   The slit functions of the different orders
-  @param    trace_table The trace table
-  @return   the slit_func table or NULL
- */
-/*----------------------------------------------------------------------------*/
-static cpl_table * cr2res_slit_func_tab_create(
-        cpl_vector      **  slit_func,
-        cpl_table       *   trace_table)
-{
-    cpl_table       *   out ;
-    char            *   col_name ;
-    const double    *   pslit ;
-    int                 nrows, all_null, i, order, trace_id, nb_traces ;
-
-    /* Check entries */
-    if (slit_func == NULL || trace_table == NULL) return NULL ;
-
-    /* Initialise */
-    nb_traces = cpl_table_get_nrow(trace_table) ;
-
-    /* Check the all vectorѕ are not null */
-    all_null = 1 ;
-    for (i=0 ; i<nb_traces ; i++)
-        if (slit_func[i] != NULL) {
-            nrows = cpl_vector_get_size(slit_func[i]) ;
-            all_null = 0 ;
-        }
-    if (all_null == 1) return NULL ;
-
-    /* Check the sizes */
-    for (i=0 ; i<nb_traces ; i++)
-        if (slit_func[i] != NULL && cpl_vector_get_size(slit_func[i]) != nrows)
-            return NULL ;
-
-    /* Create the table */
-    out = cpl_table_new(nrows);
-    for (i=0 ; i<nb_traces ; i++) {
-		order = cpl_table_get(trace_table, "Order", i, NULL) ;
-		trace_id = cpl_table_get(trace_table, "TraceNb", i, NULL) ;
-        col_name = cpl_sprintf("%02d_%02d_SLIT_FUNC", order, trace_id) ;
-        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
-        cpl_free(col_name) ;
-    }
-
-    /* Fill the table */
-    for (i=0 ; i<nb_traces ; i++) {
-        if (slit_func[i] != NULL) {
-            order = cpl_table_get(trace_table, "Order", i, NULL) ;
-            trace_id = cpl_table_get(trace_table, "TraceNb", i, NULL) ;
-            pslit = cpl_vector_get_data_const(slit_func[i]) ;
-            col_name = cpl_sprintf("%02d_%02d_SLIT_FUNC", order, trace_id) ;
-            cpl_table_copy_data_double(out, col_name, pslit) ;
-            cpl_free(col_name) ;
-        }
-    }
-    return out ;
-}

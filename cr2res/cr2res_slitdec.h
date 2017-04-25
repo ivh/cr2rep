@@ -44,4 +44,17 @@ int cr2res_slitdec_vert(
         cpl_vector  **  spec,
         hdrl_image  **  model) ;
 
+cpl_table * cr2res_extract_SLITFUNC_create(
+        cpl_vector      **  slit_func,
+        cpl_table       *   trace_table) ;
+
+cpl_table * cr2res_extract_EXTRACT1D_create(
+        cpl_vector      **  spectrum,
+        cpl_table       *   trace_table) ;
+
+cpl_vector * cr2res_extract_EXTRACT1D_get_spectrum(
+        cpl_table   *   tab,
+        int             order,
+        int             trace_nb) ;
+
 #endif

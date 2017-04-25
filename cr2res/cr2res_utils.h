@@ -47,6 +47,10 @@ const char * cr2res_get_license(void) ;
 const char * cr2res_extract_filename(const cpl_frameset *, const char *) ;
 cpl_frameset * cr2res_extract_frameset(const cpl_frameset *, const char *) ;
 
+cpl_polynomial * cr2res_convert_array_to_poly(const cpl_array * arr) ;
+cpl_array * cr2res_convert_poly_to_array(const cpl_polynomial * poly) ;
+
+
 cpl_error_code cr2res_detector_shotnoise_model(
         const cpl_image *   ima_data,
         const double        gain,
