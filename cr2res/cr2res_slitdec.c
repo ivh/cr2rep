@@ -417,14 +417,34 @@ cpl_vector * cr2res_extract_EXTRACT1D_get_spectrum(
         int             order,
         int             trace_nb)
 {
+    cpl_vector  *   out ;
+    char        *   col_name ;
+    double      *   pcol ;
+    double      *   pout ;
+    int             i, tab_size ;
 
     /* Check entries */
     if (tab == NULL) return NULL ;
 
-    /* Initialise */
+    /* Col name */
+    col_name = cpl_sprintf("%02d_%02d_SPEC", order, trace_nb) ;
 
+    /* Get the column */
+    if ((pcol = cpl_table_get_data_double(tab, col_name)) == NULL) {
+        cpl_msg_error(__func__, "Cannot find the extracted spectrum") ;
+        cpl_free(col_name) ;
+        return NULL ;
+    }
+    cpl_free(col_name) ;
 
-    return NULL ;
+    /* Create the output vector */
+    tab_size = cpl_table_get_nrow(tab) ;
+    out = cpl_vector_new(tab_size) ;
+    pout = cpl_vector_get_data(out) ;
+    for (i=-0 ; i<tab_size ; i++)   
+        pout[i] = pcol[i] ;
+
+    return out ;
 }
 
 /** @} */

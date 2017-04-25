@@ -52,7 +52,7 @@
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief   Top level function that takes spectrum, returns solution.
+  @brief    Top level function that takes spectrum, returns solution.
   @param    spectrum        Input spectrum: arc lamp, etalon etc.
   @param    initial_guess   Starting wavelength solution
   @param    catalog         Line catalog, wavelengths, strengths
@@ -67,6 +67,11 @@ cpl_polynomial * cr2res_wave(
         cpl_table       *   catalog,
         cpl_bivector    *   template)
 {
+
+
+    cpl_polynomial_dump(initial_guess, stdout) ;
+    cpl_plot_vector("", "w lines", "", spectrum) ;
+
     return NULL ;
 }
 
@@ -181,8 +186,8 @@ cpl_vector * cr2res_wave_gen_spectrum(
  */
 /*----------------------------------------------------------------------------*/
 cpl_array * cr2res_wave_get_estimate(
-        const char	*	filename,
-        int				detector,
+        const char  *   filename,
+        int             detector,
         int             order)
 {
     double                  wmin, wmax ;
