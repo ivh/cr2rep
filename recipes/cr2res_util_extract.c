@@ -33,7 +33,7 @@
 #include "cr2res_dfs.h"
 #include "cr2res_io.h"
 #include "cr2res_trace.h"
-#include "cr2res_slitdec.h"
+#include "cr2res_extract.h"
 
 /*-----------------------------------------------------------------------------
                                 Define
@@ -271,9 +271,7 @@ static int cr2res_util_extract(
     cpl_image           *   science_ima ;
     cpl_vector          **  spectrum ;
     cpl_vector          **  slit_func ;
-    cpl_polynomial      **  traces ;
     hdrl_image          *   model_tmp ;
-    cpl_vector          *   y_center ;
     int                     det_nr, extr_height, nb_traces, trace_id,
                             order, i ;
 
@@ -392,33 +390,12 @@ static int cr2res_util_extract(
             cpl_msg_info(__func__, "Process Order %d/Trace %d",order,trace_id) ;
             cpl_msg_indent_more() ;
 
-            /* Get the 2 Edges for the current trace */
-            if ((traces = cr2res_trace_wave_get_polynomials(trace_table,
-                            order, trace_id)) == NULL) {
-                cpl_msg_warning(__func__, "Failed to get the traces");
-                cpl_error_reset() ;
-                cpl_msg_indent_less() ;
-                continue ;
-            }
-
-            /* Get the values between the 2 traces and the height */
-            y_center = cr2res_trace_compute_middle(traces[0], traces[1],
-                    cpl_image_get_size_x(science_ima)) ;
-            if (extr_height == -1) {
-                /* Only overwrite when input parameter not set*/
-                extr_height = cr2res_trace_compute_height(traces[0], traces[1],
-                        cpl_image_get_size_x(science_ima)) ;
-            }
-            cpl_polynomial_delete(traces[0]) ;
-            cpl_polynomial_delete(traces[1]) ;
-            cpl_free(traces) ;
-
             /* Call the SLIT DECOMPOSITION */
-            if (cr2res_slitdec_vert(science_ima, y_center, extr_height,
-                    swath_width, oversample, smooth_slit,
-                    &(slit_func[i]), &(spectrum[i]), &model_tmp) != 0) {
+            if (cr2res_extract_slitdec_vert(science_ima, trace_table, order, 
+                        trace_id, extr_height, swath_width, oversample, 
+                        smooth_slit, &(slit_func[i]), &(spectrum[i]), 
+                        &model_tmp) != 0) {
                 cpl_msg_error(__func__, "Cannot extract the trace") ;
-                cpl_vector_delete(y_center) ;
                 slit_func[i] = NULL ;
                 spectrum[i] = NULL ;
                 model_tmp = NULL ;
@@ -426,7 +403,6 @@ static int cr2res_util_extract(
                 cpl_msg_indent_less() ;
                 continue ;
             }
-            cpl_vector_delete(y_center) ;
 
             /* Update the model global image */
             if (model_tmp != NULL) {

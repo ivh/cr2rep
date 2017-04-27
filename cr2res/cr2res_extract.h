@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-#ifndef CR2RES_SLITDEC_H
-#define CR2RES_SLITDEC_H
+#ifndef CR2RES_EXTRACT_H
+#define CR2RES_EXTRACT_H
 
 /*-----------------------------------------------------------------------------
                                    Includes
@@ -33,9 +33,11 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-int cr2res_slitdec_vert(
+int cr2res_extract_slitdec_vert(
         cpl_image   *   img_in,
-        cpl_vector  *   ycen,
+        cpl_table   *   trace_tab,
+        int             order,
+        int             trace_id,
         int             height,
         int             swath,
         int             oversample,

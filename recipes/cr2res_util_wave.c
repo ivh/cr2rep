@@ -33,7 +33,7 @@
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
 #include "cr2res_io.h"
-#include "cr2res_slitdec.h"
+#include "cr2res_extract.h"
 #include "cr2res_wave.h"
 
 /*-----------------------------------------------------------------------------

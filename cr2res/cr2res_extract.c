@@ -26,7 +26,8 @@
  -----------------------------------------------------------------------------*/
 #include <math.h>
 #include <cpl.h>
-#include "cr2res_slitdec.h"
+#include "cr2res_trace.h"
+#include "cr2res_extract.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
@@ -39,7 +40,7 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static int slit_func_vert(
+static int cr2res_extract_slit_func_vert(
          int         ncols,
          int         nrows,
          int         osample,
@@ -53,12 +54,12 @@ static int slit_func_vert(
          double      lambda_sL,
          double      sP_stop,
          int         maxiter) ;
-static int bandsol(double *, double *, int, int) ;
-static int cr2res_slitdec_adjust_swath(int sw, int nx);
+static int cr2res_extract_slitdec_bandsol(double *, double *, int, int) ;
+static int cr2res_extract_slitdec_adjust_swath(int sw, int nx);
 
 /*----------------------------------------------------------------------------*/
 /**
- * @defgroup cr2res_slitdec     Slit Decomposition
+  @defgroup cr2res_slitdec  Extraction routines (Slit Decomposition,...) 
  */
 /*----------------------------------------------------------------------------*/
 
@@ -68,8 +69,10 @@ static int cr2res_slitdec_adjust_swath(int sw, int nx);
 /**
   @brief   Main slit decomposition function
   @param    img_in	    full detector image
-  @param    ycen        current order mid-line y-coord
-  @param    height      number of pix above and below mid-line
+  @param    trace_tab   The traces table
+  @param    order       The order to extract
+  @param    trace_id    The Trace to extract
+  @param    height      number of pix above and below mid-line or -1
   @param    swath       width per swath
   @param    oversample  factor for oversampling
   @param    smooth_slit
@@ -90,7 +93,7 @@ static int cr2res_slitdec_adjust_swath(int sw, int nx);
     -loop over swaths, in half-steps
     -derive a good starting guess for the spectrum, by median-filter
         average along slit, beware of cosmics
-    -run slit_func_vert()
+    -run cr2res_extract_slit_func_vert()
     -merge overlapping swath results by linear weights from swath-width to edge.
     -return re-assembled model image, slit-fu, spectrum, new mask.
     -calculate the errors and return them. This is done by comparing the
@@ -98,9 +101,11 @@ static int cr2res_slitdec_adjust_swath(int sw, int nx);
 
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_slitdec_vert(
+int cr2res_extract_slitdec_vert(
         cpl_image   *   img_in,
-        cpl_vector  *   ycen,
+        cpl_table   *   trace_tab,
+        int             order,
+        int             trace_id,
         int             height,
         int             swath,
         int             oversample,
@@ -109,46 +114,66 @@ int cr2res_slitdec_vert(
         cpl_vector  **  spec,
         hdrl_image  **  model)
 {
-    int i, j, nswaths, halfswath;
-    int row, col, x, y, ny_os;
-    int sw_start, sw_end;
-    double pixval, img_median;
-    int * ycen_int;
-    int badpix;
-    double * ycen_rest;
-    double * ycen_sw;
-    double * img_sw_data;
-    double * spec_sw_data;
-    double * slitfu_sw_data;
-    double * model_sw;
-    int * mask_sw;
-    cpl_size lenx, leny;
-    cpl_image * img_sw;
-    cpl_image * tmp_img;
-    cpl_image * img_out;
-    cpl_vector * spec_sw;
-    cpl_vector * slitfu_sw;
-    cpl_vector * spc;
-    cpl_vector * slitfu;
-    cpl_vector * weights_sw;
-    cpl_vector * tmp_vec;
-
+    cpl_polynomial  **  traces ;
+    int             *   ycen_int;
+    double          *   ycen_rest;
+    double          *   ycen_sw;
+    double          *   img_sw_data;
+    double          *   spec_sw_data;
+    double          *   slitfu_sw_data;
+    double          *   model_sw;
+    int             *   mask_sw;
+    cpl_image       *   img_sw;
+    cpl_vector      *   ycen ;
+    cpl_image       *   tmp_img;
+    cpl_image       *   img_out;
+    cpl_vector      *   spec_sw;
+    cpl_vector      *   slitfu_sw;
+    cpl_vector      *   spc;
+    cpl_vector      *   slitfu;
+    cpl_vector      *   weights_sw;
+    cpl_vector      *   tmp_vec;
+    cpl_size            lenx, leny;
+    double              pixval, img_median;
+    int                 i, j, nswaths, halfswath, row, col, x, y, ny_os, 
+                        sw_start, sw_end, badpix, height_loc;
 
     /* Check Entries */
-    if (height == 0) return -1 ;
+    if (img_in == NULL || trace_tab == NULL) return -1 ;
 
+    /* Create ycen */
+    if ((traces = cr2res_trace_wave_get_polynomials(trace_tab, order,
+                    trace_id)) == NULL) {
+        return -1 ;
+    }
+    ycen = cr2res_trace_compute_middle(traces[0], traces[1],
+            cpl_image_get_size_x(img_in)) ;
+    
+    /* Compute height_loc */
+    if (height <= 0) {
+        height_loc = cr2res_trace_compute_height(traces[0], traces[1],
+                cpl_image_get_size_x(img_in)) ;
+    } else {
+        height_loc = height ;
+    }
+	cpl_polynomial_delete(traces[0]) ;
+	cpl_polynomial_delete(traces[1]) ;
+	cpl_free(traces) ;
 
+    /* Initialise */
     lenx = cpl_image_get_size_x(img_in);
     leny = cpl_image_get_size_y(img_in);
-    ny_os = oversample*(height+1) +1; // number of rows after oversampling
-    swath = cr2res_slitdec_adjust_swath(swath, lenx);
+    /* Number of rows after oversampling */
+    ny_os = oversample*(height_loc+1) +1; 
+    swath = cr2res_extract_slitdec_adjust_swath(swath, lenx);
     halfswath = swath/2;
     nswaths = (lenx / swath) *2; // *2 because we step in half swaths!
     if (lenx%swath >= halfswath) nswaths +=1;
 
-    mask_sw = cpl_malloc(height*swath*sizeof(int));
-    model_sw = cpl_malloc(height*swath*sizeof(double));
-    img_sw = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
+    /* Allocate */
+    mask_sw = cpl_malloc(height_loc*swath*sizeof(int));
+    model_sw = cpl_malloc(height_loc*swath*sizeof(double));
+    img_sw = cpl_image_new(swath, height_loc, CPL_TYPE_DOUBLE);
     ycen_int = cpl_malloc(lenx*sizeof(int));
     ycen_rest = cpl_malloc(lenx*sizeof(double));
     ycen_sw = cpl_malloc(swath*sizeof(double));
@@ -170,6 +195,7 @@ int cr2res_slitdec_vert(
         cpl_vector_set(spc, i, 0.0);
         for(j=0;j<leny;j++) cpl_image_set(img_out,i,j,0.0);
     }
+    cpl_vector_delete(ycen) ;
     /* Pre-calculate the weights for overlapping swaths*/
     for (i=0;i<halfswath;i++) {
          cpl_vector_set(weights_sw,i,i+1);
@@ -183,14 +209,15 @@ int cr2res_slitdec_vert(
         sw_end = sw_start + swath;
         cpl_msg_debug(__func__,"Img: x:%d-%d y:%d-%d",
             sw_start+1, sw_end,
-            ycen_int[sw_start]-(height/2), ycen_int[sw_start]+(height/2));
+            ycen_int[sw_start]-(height_loc/2),
+            ycen_int[sw_start]+(height_loc/2));
         for(col=0; col<swath; col++){      // col is x-index in cut-out
             x = i*halfswath + col;          // coords in large image
             if (x>=lenx) cpl_msg_error(__func__,
                 "Out of bounds: x=%d, must be <%"CPL_SIZE_FORMAT, x, lenx) ;
 
-            for(row=0;row<height;row++){   // row is y-index in cut-out
-                y = ycen_int[x] - (height/2) + row;
+            for(row=0;row<height_loc;row++){   // row is y-index in cut-out
+                y = ycen_int[x] - (height_loc/2) + row;
                 pixval = cpl_image_get(img_in, x+1, y+1, &badpix);
                 cpl_image_set(img_sw, col+1, row+1, pixval);
                 if (badpix ==0) mask_sw[row*swath+col] = 1;
@@ -208,14 +235,14 @@ int cr2res_slitdec_vert(
         for (j=sw_start;j<sw_end;j++) ycen_sw[j-sw_start] = ycen_rest[j];
 
         /* Finally ready to call the slit-decomp */
-        slit_func_vert(swath, height, oversample, img_sw_data, mask_sw,
-                        ycen_sw, slitfu_sw_data, spec_sw_data, model_sw,
-                        0.0, smooth_slit, 1.0e-5, 20);
+        cr2res_extract_slit_func_vert(swath, height_loc, oversample, img_sw_data, 
+                mask_sw, ycen_sw, slitfu_sw_data, spec_sw_data, model_sw,
+                0.0, smooth_slit, 1.0e-5, 20);
 
         for(col=0; col<swath; col++){      // col is x-index in cut-out
-            for(row=0;row<height;row++){   // row is y-index in cut-out
+            for(row=0;row<height_loc;row++){   // row is y-index in cut-out
                 x = i*halfswath + col;          // coords in large image
-                y = ycen_int[x] - (height/2) + row;
+                y = ycen_int[x] - (height_loc/2) + row;
                 cpl_image_set(img_out,x+1,y+1, model_sw[row*swath+col]);
             }
         }
@@ -232,7 +259,7 @@ int cr2res_slitdec_vert(
             cpl_vector_unwrap(tmp_vec);
             cpl_vector_save(slitfu_sw, "debug_slitfu.fits", CPL_TYPE_DOUBLE, 
                     NULL, CPL_IO_CREATE);
-            tmp_img = cpl_image_wrap_double(swath, height, model_sw);
+            tmp_img = cpl_image_wrap_double(swath, height_loc, model_sw);
             cpl_image_save(tmp_img, "debug_model_sw.fits", CPL_TYPE_FLOAT, 
                     NULL, CPL_IO_CREATE);
             cpl_image_unwrap(tmp_img);
@@ -469,7 +496,7 @@ cpl_vector * cr2res_extract_EXTRACT1D_get_spectrum(
   @return
  */
 /*----------------------------------------------------------------------------*/
-static int slit_func_vert(
+static int cr2res_extract_slit_func_vert(
         int         ncols,
         int         nrows,
         int         osample,
@@ -587,7 +614,7 @@ static int slit_func_vert(
         Aij[ny-1+ny*osample]    +=lambda;      /* Main diagonal  */
 
         /* Solve the system of equations */
-        info=bandsol(Aij, bj, ny, nd);
+        info=cr2res_extract_slitdec_bandsol(Aij, bj, ny, nd);
         if(info) printf("info(sL)=%d\n", info);
 
         /* Normalize the slit function */
@@ -640,7 +667,7 @@ static int slit_func_vert(
             Adiag[ncols*2-1+ncols]+= lambda;
             Adiag[ncols*3-1+ncols] = 0.e0;
 
-            info=bandsol(Adiag, E, ncols, 3);
+            info=cr2res_extract_slitdec_bandsol(Adiag, E, ncols, 3);
             for(x=0; x<ncols; x++) sP[x]=E[x];
         }
         else
@@ -712,35 +739,32 @@ static int slit_func_vert(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief   solve a sparse system of linear equations
-  @param    a
-  @param    r
-  @param    n
-  @param    nd
-  @return
-   bandsol solve a sparse system of linear equations with band-diagonal matrix.
-   Band is assumed to be symmetrix relative to the main diaginal.
-   Parameters are:
-         a is 2D array [n,nd] where n - is the number of equations and nd
-           is the width of the band (3 for tri-diagonal system).
-           nd must be an odd number. The main diagonal should be in a(*,nd/2)
-           The first lower subdiagonal should be in a(1:n-1,nd/2-1), the first
-           upper subdiagonal is in a(0:n-2,nd/2+1) etc. For example:
-                  / 0 0 X X X \
-                  | 0 X X X X |
-                  | X X X X X |
-                  | X X X X X |
-              A = | X X X X X |
-                  | X X X X X |
-                  | X X X X X |
-                  | X X X X 0 |
-                  \ X X X 0 0 /
-         r is the array of RHS of size n.
-   bandsol returns 0 on success, -1 on incorrect size of "a" and -4 on
-   degenerate matrix.
+  @brief    Solve a sparse system of linear equations
+  @param    a   2D array [n,nd]i
+  @param    r   array of RHS of size n
+  @param    n   number of equations
+  @param    nd  width of the band (3 for tri-diagonal system)
+  @return   0 on success, -1 on incorrect size of "a" and -4 on
+            degenerate matrix
+  
+  Solve a sparse system of linear equations with band-diagonal matrix.
+  Band is assumed to be symmetrix relative to the main diaginal.
+
+  nd must be an odd number. The main diagonal should be in a(*,nd/2)
+  The first lower subdiagonal should be in a(1:n-1,nd/2-1), the first
+  upper subdiagonal is in a(0:n-2,nd/2+1) etc. For example:
+                    / 0 0 X X X \
+                    | 0 X X X X |
+                    | X X X X X |
+                    | X X X X X |
+              A =   | X X X X X |
+                    | X X X X X |
+                    | X X X X X |
+                    | X X X X 0 |
+                    \ X X X 0 0 /
  */
 /*----------------------------------------------------------------------------*/
-static int bandsol(
+static int cr2res_extract_slitdec_bandsol(
         double  *   a,
         double  *   r,
         int         n,
@@ -792,7 +816,7 @@ static int bandsol(
 
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_slitdec_adjust_swath(int sw, int nx)
+static int cr2res_extract_slitdec_adjust_swath(int sw, int nx)
 {
     if (sw%2 != 0) sw+=1;
     return sw;
