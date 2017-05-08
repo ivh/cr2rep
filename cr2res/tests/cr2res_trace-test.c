@@ -34,7 +34,7 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static void test_cr2res_trace_cpl(void) ;
+static void test_cr2res_trace(void) ;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -52,7 +52,7 @@ static void test_cr2res_trace_cpl(void) ;
   @return
  */
 /*----------------------------------------------------------------------------*/
-static void test_cr2res_trace_cpl(void)
+static void test_cr2res_trace(void)
 {
     cpl_table   *   traces ;
 	int				poly_order, norders ;
@@ -68,7 +68,7 @@ static void test_cr2res_trace_cpl(void)
 
     /* NULL Input */
     ima = NULL ;
-    out = cr2res_trace_cpl(ima, CR2RES_DECKER_NONE, 1.0, 1, 6, 500) ;
+    out = cr2res_trace(ima, 1.0, 1, 6, 500) ;
     cpl_test_null(out);
 
     /* Create a label image with 9 orders */
@@ -121,7 +121,7 @@ static void test_cr2res_trace_cpl(void)
 
     cpl_image_save(trace_ima, "TEST.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
 
-    out = cr2res_trace_cpl(trace_ima, CR2RES_DECKER_NONE, 1.0, 1, 6, 500) ;
+    out = cr2res_trace(trace_ima, 1.0, 1, 6, 500) ;
     
     cpl_table_save(out, NULL, NULL, "TEST2.fits", CPL_IO_CREATE);
     cpl_table_delete(out) ;
@@ -141,7 +141,7 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
 
-    test_cr2res_trace_cpl() ;
+    /* test_cr2res_trace() ; */
     /* test_cr2res_trace_nocpl() ; */
     /* test_cr2res_trace_detect() ; */
     /* test_cr2res_trace_labelize() ; */
