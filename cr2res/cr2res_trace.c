@@ -995,6 +995,7 @@ static cpl_mask * cr2res_trace_clean_blobs(
         /* Count ocurences of current label */
         for (i=0 ; i<npix ; i++)
             if (plabels[i] == curr_label) pix_count++ ;
+            if (pix_count >= min_cluster) break;
 
         /* Blob big enough ? */
         if (pix_count >= min_cluster) {
