@@ -238,6 +238,7 @@ static int cr2res_util_trace(
     double                  smooth, y_pos ;
     int                 *   orders ;
     const char          *   flat_file ;
+    char                *   out_file;
     cpl_image           *   flat_ima ;
     cpl_image           *   debug_ima ;
     int                     det_nr, order ;
@@ -394,13 +395,17 @@ static int cr2res_util_trace(
     }
 
     /* Save the Products */
-    cr2res_io_save_TRACE_WAVE("cr2res_util_trace.fits", frameset,
+    out_file = cpl_sprintf("%s_trace.fits",flat_file);
+    cpl_msg_debug(__func__, "Writing to %s",out_file);
+    cr2res_io_save_TRACE_WAVE(out_file, frameset,
             parlist, traces, NULL, RECIPE_STRING) ;
 
     /* Free and return */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
         if (traces[det_nr-1] != NULL)
             cpl_table_delete(traces[det_nr-1]) ;
+
+    cpl_free(out_file);
     return (int)cpl_error_get_code();
 }
 
