@@ -399,13 +399,13 @@ static int cr2res_util_trace(
     cpl_msg_debug(__func__, "Writing to %s",out_file);
     cr2res_io_save_TRACE_WAVE(out_file, frameset,
             parlist, traces, NULL, RECIPE_STRING) ;
+    cpl_free(out_file);
 
     /* Free and return */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
         if (traces[det_nr-1] != NULL)
             cpl_table_delete(traces[det_nr-1]) ;
 
-    cpl_free(out_file);
     return (int)cpl_error_get_code();
 }
 
