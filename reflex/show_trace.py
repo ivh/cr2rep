@@ -27,7 +27,7 @@ for i in [1,2,3]:
     if tdata is None:
         print('No data for CHIP%s, skipping.'%i)
         continue
-    for alla, upper, lower, order, wave in tdata:
+    for alla, upper, lower, order, tracenb, wave in tdata:
         pol = np.polyval(upper[::-1],X)
         ax.plot(X, pol, ':w')
 
@@ -37,9 +37,9 @@ for i in [1,2,3]:
         pol = np.polyval(alla[::-1],X)
         ax.plot(X, pol, '--w')
         if np.isnan(pol[1024]): continue
-        ax.text(1024,pol[1024] ,'%s'%order,color='w',horizontalalignment='center',
+        ax.text(1024,pol[1024] ,'%s'%(9-tracenb),color='w',horizontalalignment='center',
             verticalalignment='center', size=18)
-        print('order: %s, y: %s'%(order,pol[1024]))
+        print('order: %s, y: %s'%(9-tracenb,pol[1024]))
 
     plt.axis(axi)
 
