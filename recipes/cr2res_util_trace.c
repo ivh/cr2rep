@@ -395,7 +395,7 @@ static int cr2res_util_trace(
     }
 
     /* Save the Products */
-    out_file = cpl_sprintf("%s_trace.fits",flat_file);
+    out_file = cpl_sprintf("%s_trace.fits", cr2res_get_root_name(flat_file));
     cpl_msg_debug(__func__, "Writing to %s",out_file);
     cr2res_io_save_TRACE_WAVE(out_file, frameset,
             parlist, traces, NULL, RECIPE_STRING) ;

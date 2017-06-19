@@ -44,6 +44,9 @@ typedef enum {
 
 const char * cr2res_get_license(void) ;
 
+char * cr2res_get_base_name(const char * filename) ;
+char * cr2res_get_root_name(const char * filename) ;
+
 const char * cr2res_extract_filename(const cpl_frameset *, const char *) ;
 cpl_frameset * cr2res_extract_frameset(const cpl_frameset *, const char *) ;
 

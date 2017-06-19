@@ -41,6 +41,48 @@
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Find out the base name of a file (i.e. without prefix path)
+  @param    filename    Full path name to scan.
+  @return   Pointer to char within the input string.
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_get_base_name(const char *filename)
+{
+    char *p ;
+    p = strrchr (filename, '/');
+    return p ? p + 1 : (char *) filename;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Find out the root part of a basename (name without extension).
+  @param    filename    File name to scan.
+  @return   Pointer to statically allocated string.
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_get_root_name(const char * filename)
+{
+    static char path[4096+1];
+    char * lastdot ;
+
+    if (strlen(filename)>4096) return NULL ;
+    memset(path, 4096, 0);
+    strcpy(path, filename);
+    lastdot = strrchr(path, '.');
+    if (lastdot == NULL) return path ;
+    if ((!strcmp(lastdot, ".fits")) || (!strcmp(lastdot, ".FITS")) ||
+        (!strcmp(lastdot, ".dat")) || (!strcmp(lastdot, ".DAT")) ||
+        (!strcmp(lastdot, ".paf")) || (!strcmp(lastdot, ".PAF")) ||
+        (!strcmp(lastdot, ".txt")) || (!strcmp(lastdot, ".TXT")) ||
+        (!strcmp(lastdot, ".ascii")) || (!strcmp(lastdot, ".ASCII")))
+    {
+        lastdot[0] = (char)0;
+    }
+    return path ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
    @brief   Extract the filename for the first frame of the given tag
    @param   in      A non-empty frameset
    @param   tag     The tag of the requested file
