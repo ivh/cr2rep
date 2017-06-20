@@ -234,9 +234,9 @@ cpl_mask * cr2res_trace_detect(
     if (ima == NULL) return NULL ;
 
     /* TODO This needs to come from a static calibration, each band */
-    int                     trace_sep=70;
+    int                     trace_sep=80;
     /* TODO Set to read-noise later, also input-para */
-    double                  thresh=10.0;
+    double                  thresh=-300.0;
 
     /* Apply detection */
     cpl_msg_info(__func__, "Detect the signal") ;
@@ -977,6 +977,10 @@ static cpl_mask * cr2res_trace_clean_blobs(
     /* Labelise */
     if ((labels = cpl_image_labelise_mask_create(mask, &nlabels)) == NULL) {
         cpl_msg_error(__func__, "Failed to labelise") ;
+        return NULL ;
+    }
+    if (nlabels > 1000) {
+        cpl_msg_error(__func__, "Too many labels resulting from mask!") ;
         return NULL ;
     }
     plabels = cpl_image_get_data_int_const(labels) ;
