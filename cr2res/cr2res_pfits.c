@@ -1,4 +1,4 @@
-/* 
+/*
  * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
@@ -48,17 +48,35 @@
   @brief    find out the order number closest to the passed y position
   @param    plist       property list to read from
   @param    yposition   Y position
+  @param    detector    Detector number 1-3
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
-int kmos_pfits_get_order(const cpl_propertylist * plist, double yposition)
+int cr2res_pfits_get_order(
+            const cpl_propertylist * plist,
+            double yposition,
+            int det)
 {
     /* Check entries */
     if (plist == NULL) return -1 ;
     if (yposition < 1) return -1 ;
 
-    /* TODO */
-    return 50 ;
+    char    *   key_name ;
+    int         i, best_number;
+    double      curr_diff;
+    double      best_diff = 2048.0;
+
+    for (i=0; i<9; i++) { // NOTE: There are never more than 9 orders!
+        key_name = cpl_sprintf("ESO INS WLEN CENY%d%d",det,i);
+        curr_diff = fabs(yposition - cpl_propertylist_get_double(plist, key_name));
+        if (curr_diff < best_diff){
+               best_diff = curr_diff;
+               best_number = i;
+        }
+    }
+
+    cpl_free(key_name) ;
+    return best_number ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -68,7 +86,7 @@ int kmos_pfits_get_order(const cpl_propertylist * plist, double yposition)
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
-double kmos_pfits_get_wmin(const cpl_propertylist * plist, int order)
+double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order, int det)
 {
     char    *   key_name ;
     double      val  ;
@@ -78,7 +96,7 @@ double kmos_pfits_get_wmin(const cpl_propertylist * plist, int order)
     if (order < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO WMIN_%02d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN STRT%d%d", det, order) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -94,7 +112,7 @@ double kmos_pfits_get_wmin(const cpl_propertylist * plist, int order)
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
-double kmos_pfits_get_wmax(const cpl_propertylist * plist, int order)
+double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order, int det)
 {
     char    *   key_name ;
     double      val  ;
@@ -104,7 +122,7 @@ double kmos_pfits_get_wmax(const cpl_propertylist * plist, int order)
     if (order < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO WMAX_%02d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN END%d%d", det, order) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -120,7 +138,7 @@ double kmos_pfits_get_wmax(const cpl_propertylist * plist, int order)
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
-double kmos_pfits_get_ypos(const cpl_propertylist * plist, int order)
+double cr2res_pfits_get_ypos(const cpl_propertylist * plist, int order, int det)
 {
     char    *   key_name ;
     double      val  ;
@@ -130,7 +148,7 @@ double kmos_pfits_get_ypos(const cpl_propertylist * plist, int order)
     if (order < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO YPOS_%02d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN CENY%d%d", det, order) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -141,7 +159,7 @@ double kmos_pfits_get_ypos(const cpl_propertylist * plist, int order)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the arcfile   
+  @brief    find out the arcfile
   @param    plist       property list to read from
   @return   pointer to statically allocated character string
  */
