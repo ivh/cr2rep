@@ -41,6 +41,31 @@
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Find the regions with over-average values in a vector
+  @param    invector    The vector to be analyzed
+  @param    smooth      The size of the boxcar smoothing kernel
+  @return   Vector derived as (invector-smoothed_vector - thresh),
+            meaning that positive values are at least thresh larger than
+            the smoothed vector.
+            The returned vector needs to be deallocated by the caller.
+ */
+/*----------------------------------------------------------------------------*/
+cpl_vector * cr2res_threshold_spec(
+        const cpl_vector * invector,
+        int smooth, 
+        double thresh)
+{
+    cpl_vector * smoothed;
+    smoothed = cpl_vector_filter_median_create(invector, (smooth/2)+1);
+    cpl_vector_subtract(smoothed, invector);
+    cpl_vector_add_scalar(smoothed, thresh);
+    cpl_vector_multiply_scalar(smoothed, -1.0);
+    return smoothed;
+
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Find out the base name of a file (i.e. without prefix path)
   @param    filename    Full path name to scan.
   @return   Pointer to char within the input string.

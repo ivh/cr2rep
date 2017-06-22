@@ -42,7 +42,8 @@ typedef enum {
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-const char * cr2res_get_license(void) ;
+cpl_vector * cr2res_threshold_spec(const cpl_vector * invector, int smooth, 
+                                double thresh) ;
 
 char * cr2res_get_base_name(const char * filename) ;
 char * cr2res_get_root_name(const char * filename) ;
@@ -59,5 +60,7 @@ cpl_error_code cr2res_detector_shotnoise_model(
         const double        gain,
         const double        ron,
         cpl_image       **  ima_errs) ;
+
+const char * cr2res_get_license(void) ;
 
 #endif
