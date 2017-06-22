@@ -145,11 +145,11 @@ cpl_polynomial * cr2res_wave_etalon(
         cpl_vector      *   spectrum,
         cpl_polynomial  *   initial_guess)
 {
-    cpl_vector  *   Ds;
+    cpl_array  *   Ds;
 
     Ds = cr2res_wave_etalon_measure_Ds(spectrum);
 
-    cpl_vector_delete(Ds);
+    cpl_array_delete(Ds);
     return NULL ;
 }
 
@@ -161,10 +161,10 @@ cpl_polynomial * cr2res_wave_etalon(
  */
 /*----------------------------------------------------------------------------*/
 
-cpl_vector * cr2res_wave_etalon_measure_Ds(
+cpl_array * cr2res_wave_etalon_measure_Ds(
             cpl_vector * spectrum)
 {
-    cpl_vector  *   D_vec;
+    cpl_array   *   Ds;
     cpl_vector  *   spec_thresh;
     cpl_vector  *   cur_peak;
     cpl_vector  *   X;
@@ -189,6 +189,9 @@ cpl_vector * cr2res_wave_etalon_measure_Ds(
     X = cpl_vector_new(256);
     for (i=0;i<256;i++) cpl_vector_set(X, i, (double)i ) ;
 
+    /*Output array, values are invalid until set.*/
+    Ds = cpl_array_new(256, CPL_TYPE_DOUBLE);
+
     i = 0;
     while (i < nx){
         j = 0;
@@ -206,13 +209,17 @@ cpl_vector * cr2res_wave_etalon_measure_Ds(
                                 x0, sigma, area, offset,
                                 NULL,NULL,NULL);
         cpl_msg_debug(__func__,"Fit: %.2f, %.2f, %.2f, %.2f",x0, sigma, area, offset);
+
+        if ((k = 256-cpl_array_count_invalid(Ds)) <1)
+            cpl_msg_error(__func__,"Output array overflow!");
+        cpl_array_set_double(Ds, k, *x0);
+
         cpl_vector_delete(cur_peak);
         cpl_vector_delete(X);
     }
 
     cpl_vector_delete(spec_thresh);
-    D_vec = cpl_vector_new(1);
-    return D_vec;
+    return Ds;
 }
 
 /*----------------------------------------------------------------------------*/
