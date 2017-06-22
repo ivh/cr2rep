@@ -332,9 +332,9 @@ static int cr2res_util_trace(
             plist = cpl_propertylist_load(flat_file, det_nr) ;
 
             /* Compute the trace order from the header */
-            order = kmos_pfits_get_order(plist, y_pos) ;
+            order = cr2res_pfits_get_order(plist, y_pos, det_nr) ;
             cpl_propertylist_delete(plist) ;
-            
+
             /* Store the Order in the table */
             cpl_table_set(traces[det_nr-1], "Order", i, order);
         }
@@ -358,14 +358,14 @@ static int cr2res_util_trace(
         cpl_free(orders) ;
 
         /* Add The Wavelength column using the header */
-        cpl_table_new_column_array(traces[det_nr-1], "Wavelength", 
+        cpl_table_new_column_array(traces[det_nr-1], "Wavelength",
                 CPL_TYPE_DOUBLE, 2) ;
 
         /* Loop on the traces */
         for (i=0 ; i<cpl_table_get_nrow(traces[det_nr-1]) ; i++) {
             /* Get the Order number */
             order = cpl_table_get(traces[det_nr-1], "Order", i, NULL) ;
-            
+
             /* Get the Wavelength estimates from the header */
             if ((wl_array = cr2res_wave_get_estimate(flat_file, det_nr,
                             order)) == NULL) {
