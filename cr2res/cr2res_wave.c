@@ -145,7 +145,74 @@ cpl_polynomial * cr2res_wave_etalon(
         cpl_vector      *   spectrum,
         cpl_polynomial  *   initial_guess)
 {
+    cpl_vector  *   Ds;
+
+    Ds = cr2res_wave_etalon_measure_Ds(spectrum);
+
+    cpl_vector_delete(Ds);
     return NULL ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Measure the distances between etalon lines
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+
+cpl_vector * cr2res_wave_etalon_measure_Ds(
+            cpl_vector * spectrum)
+{
+    cpl_vector  *   D_vec;
+    cpl_vector  *   spec_thresh;
+    cpl_vector  *   cur_peak;
+    cpl_vector  *   X;
+    int             numD = 0 ;
+    int             smooth = 70 ;   // TODO: make free parameter?
+                                    // interfringe ~30 in Y, ~70 in K
+    int             thresh = 10 ;
+    int             i, j, k ;
+    cpl_size        nx ;
+    double          spec_i;
+    double      *   x0, *sigma, *area, *offset;
+
+    nx = cpl_vector_get_size(spectrum) ;
+    spec_thresh = cr2res_threshold_spec(spectrum, smooth, thresh) ;
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_vector_save(spec_thresh, "debug_thresh.fits", CPL_TYPE_DOUBLE, NULL,
+                CPL_IO_CREATE);
+    }
+
+    cur_peak = cpl_vector_new(256);
+    X = cpl_vector_new(256);
+    for (i=0;i<256;i++) cpl_vector_set(X, i, (double)i ) ;
+
+    i = 0;
+    while (i < nx){
+        j = 0;
+        while ( (spec_i = cpl_vector_get(spec_thresh, i)) > 0 ) {
+            i++;
+            j++;
+        }
+        cur_peak = cpl_vector_new(j);
+        X = cpl_vector_new(j);
+        for (k=0; k<i-j; k++){
+            cpl_vector_set(cur_peak, k, cpl_vector_get(spec_thresh, k+(i-j) ));
+            cpl_vector_set(X, k, (double)k );
+        }
+        cpl_vector_fit_gaussian(X, NULL, cur_peak, NULL, CPL_FIT_ALL,
+                                x0, sigma, area, offset,
+                                NULL,NULL,NULL);
+        cpl_msg_debug(__func__,"Fit: %.2f, %.2f, %.2f, %.2f",x0, sigma, area, offset);
+        cpl_vector_delete(cur_peak);
+        cpl_vector_delete(X);
+    }
+
+    cpl_vector_delete(spec_thresh);
+    D_vec = cpl_vector_new(1);
+    return D_vec;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -205,8 +272,8 @@ cpl_array * cr2res_wave_get_estimate(
     plist = cpl_propertylist_load(filename, wished_ext_nb) ;
 
     /* Get the values for this order */
-    wmin = kmos_pfits_get_wmin(plist, order) ;
-    wmax = kmos_pfits_get_wmax(plist, order) ;
+    wmin = cr2res_pfits_get_wmin(plist, order, detector) ;
+    wmax = cr2res_pfits_get_wmax(plist, order, detector) ;
     cpl_propertylist_delete(plist) ;
     if (cpl_error_get_code() != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot Get the WMIN/WMAX from the header") ;
