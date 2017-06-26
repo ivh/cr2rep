@@ -31,10 +31,10 @@
  -----------------------------------------------------------------------------*/
 
 const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
-double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order, int det) ;
-double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order, int det) ;
-double cr2res_pfits_get_ypos(const cpl_propertylist * plist, int order, int det) ;
-int cr2res_pfits_get_order(const cpl_propertylist * plist, double yposition, int det) ;
+double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order) ;
+double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order) ;
+double cr2res_pfits_get_ypos(const cpl_propertylist * plist, int order) ;
+int cr2res_pfits_get_order(const cpl_propertylist * plist, double yposition) ;
 
 
 #endif

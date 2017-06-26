@@ -145,11 +145,11 @@ cpl_polynomial * cr2res_wave_etalon(
         cpl_vector      *   spectrum,
         cpl_polynomial  *   initial_guess)
 {
-    cpl_array  *   Ds;
+    cpl_vector  *   Ds;
 
     Ds = cr2res_wave_etalon_measure_Ds(spectrum);
 
-    cpl_array_delete(Ds);
+    cpl_vector_delete(Ds);
     return NULL ;
 }
 
@@ -194,7 +194,7 @@ cpl_vector * cr2res_wave_etalon_measure_Ds(
     peaks = cpl_array_new(max_num_peaks, CPL_TYPE_DOUBLE);
 
     /* X-axis to cut out from for each peak */
-    X_all = cpl_array_new(max_len_peak, CPL_TYPE_DOUBLE);
+    X_all = cpl_vector_new(max_len_peak);
     for (i=0; i<max_len_peak; i++) cpl_vector_set(X_all, i, (double)i) ;
 
     i = 0;
@@ -232,6 +232,7 @@ cpl_vector * cr2res_wave_etalon_measure_Ds(
             cpl_array_get(peaks, 0, NULL) - prev_peak ) ;
 
     cpl_vector_delete(spec_thresh) ;
+    cpl_vector_delete(X_all) ;
     cpl_array_delete(peaks) ;
     return Ds;
 }
@@ -293,8 +294,8 @@ cpl_array * cr2res_wave_get_estimate(
     plist = cpl_propertylist_load(filename, wished_ext_nb) ;
 
     /* Get the values for this order */
-    wmin = cr2res_pfits_get_wmin(plist, order, detector) ;
-    wmax = cr2res_pfits_get_wmax(plist, order, detector) ;
+    wmin = cr2res_pfits_get_wmin(plist, order) ;
+    wmax = cr2res_pfits_get_wmax(plist, order) ;
     cpl_propertylist_delete(plist) ;
     if (cpl_error_get_code() != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot Get the WMIN/WMAX from the header") ;

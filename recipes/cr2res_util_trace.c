@@ -332,7 +332,7 @@ static int cr2res_util_trace(
             plist = cpl_propertylist_load(flat_file, det_nr) ;
 
             /* Compute the trace order from the header */
-            order = cr2res_pfits_get_order(plist, y_pos, det_nr) ;
+            order = cr2res_pfits_get_order(plist, y_pos) ;
             cpl_propertylist_delete(plist) ;
 
             /* Store the Order in the table */

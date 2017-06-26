@@ -54,8 +54,7 @@
 /*----------------------------------------------------------------------------*/
 int cr2res_pfits_get_order(
             const cpl_propertylist * plist,
-            double yposition,
-            int det)
+            double yposition)
 {
     /* Check entries */
     if (plist == NULL) return -1 ;
@@ -67,8 +66,9 @@ int cr2res_pfits_get_order(
     double      best_diff = 2048.0;
 
     for (i=0; i<9; i++) { // NOTE: There are never more than 9 orders!
-        key_name = cpl_sprintf("ESO INS WLEN CENY%d%d",det,i);
-        curr_diff = fabs(yposition - cpl_propertylist_get_double(plist, key_name));
+        key_name = cpl_sprintf("ESO INS WLEN CENY%d",i);
+        curr_diff = fabs(yposition -
+                        cpl_propertylist_get_double(plist, key_name));
         if (curr_diff < best_diff){
                best_diff = curr_diff;
                best_number = i;
@@ -86,7 +86,7 @@ int cr2res_pfits_get_order(
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
-double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order, int det)
+double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order)
 {
     char    *   key_name ;
     double      val  ;
@@ -96,7 +96,7 @@ double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order, int det)
     if (order < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN STRT%d%d", det, order) ;
+    key_name = cpl_sprintf("ESO INS WLEN STRT%d", order) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -112,7 +112,7 @@ double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order, int det)
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
-double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order, int det)
+double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order)
 {
     char    *   key_name ;
     double      val  ;
@@ -122,7 +122,7 @@ double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order, int det)
     if (order < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN END%d%d", det, order) ;
+    key_name = cpl_sprintf("ESO INS WLEN END%d", order) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -138,7 +138,7 @@ double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order, int det)
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
-double cr2res_pfits_get_ypos(const cpl_propertylist * plist, int order, int det)
+double cr2res_pfits_get_ypos(const cpl_propertylist * plist, int order)
 {
     char    *   key_name ;
     double      val  ;
@@ -148,7 +148,7 @@ double cr2res_pfits_get_ypos(const cpl_propertylist * plist, int order, int det)
     if (order < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN CENY%d%d", det, order) ;
+    key_name = cpl_sprintf("ESO INS WLEN CENY%d", order) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
