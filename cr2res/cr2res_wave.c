@@ -199,6 +199,7 @@ cpl_array * cr2res_wave_etalon_measure_Ds(
             i++;
             j++;
         }
+        if (j < 5) continue; // skip small peaks, TODO: tweak or make parameter?
         cur_peak = cpl_vector_new(j);
         X = cpl_vector_new(j);
         for (k=0; k<i-j; k++){
