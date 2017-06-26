@@ -161,36 +161,41 @@ cpl_polynomial * cr2res_wave_etalon(
  */
 /*----------------------------------------------------------------------------*/
 
-cpl_array * cr2res_wave_etalon_measure_Ds(
+cpl_vector * cr2res_wave_etalon_measure_Ds(
             cpl_vector * spectrum)
 {
-    cpl_array   *   Ds;
+    cpl_array   *   peaks;
+    cpl_vector  *   Ds;
     cpl_vector  *   spec_thresh;
     cpl_vector  *   cur_peak;
-    cpl_vector  *   X;
+    cpl_vector  *   X_all, *X_peak;
+    int             i, j, k ;
     int             numD = 0 ;
     int             smooth = 70 ;   // TODO: make free parameter?
                                     // interfringe ~30 in Y, ~70 in K
-    int             thresh = 10 ;
-    int             i, j, k ;
+    int             thresh = 10 ;   // TODO: derive from read-out noise
+    int             max_num_peaks = 256 ;
+    int             max_len_peak = 256 ;
+    int             min_len_peak = 5 ; //TODO: tweak or make parameter?;
     cpl_size        nx ;
     double          spec_i;
+    double          prev_peak;
     double      *   x0, *sigma, *area, *offset;
 
     nx = cpl_vector_get_size(spectrum) ;
     spec_thresh = cr2res_threshold_spec(spectrum, smooth, thresh) ;
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_vector_save(spec_thresh, "debug_thresh.fits", CPL_TYPE_DOUBLE, NULL,
-                CPL_IO_CREATE);
+        cpl_vector_save(spec_thresh, "debug_thresh.fits", CPL_TYPE_DOUBLE,
+                NULL, CPL_IO_CREATE);
     }
 
-    cur_peak = cpl_vector_new(256);
-    X = cpl_vector_new(256);
-    for (i=0;i<256;i++) cpl_vector_set(X, i, (double)i ) ;
-
     /*Output array, values are invalid until set.*/
-    Ds = cpl_array_new(256, CPL_TYPE_DOUBLE);
+    peaks = cpl_array_new(max_num_peaks, CPL_TYPE_DOUBLE);
+
+    /* X-axis to cut out from for each peak */
+    X_all = cpl_array_new(max_len_peak, CPL_TYPE_DOUBLE);
+    for (i=0; i<max_len_peak; i++) cpl_vector_set(X_all, i, (double)i) ;
 
     i = 0;
     while (i < nx){
@@ -199,27 +204,35 @@ cpl_array * cr2res_wave_etalon_measure_Ds(
             i++;
             j++;
         }
-        if (j < 5) continue; // skip small peaks, TODO: tweak or make parameter?
+        if (j < min_len_peak) continue;
+        cur_peak = cpl_vector_extract(spec_thresh, i-j, i, 1) ;
+        X_peak = cpl_vector_extract(X_all, 0, j, 1) ;
         cur_peak = cpl_vector_new(j);
-        X = cpl_vector_new(j);
-        for (k=0; k<i-j; k++){
-            cpl_vector_set(cur_peak, k, cpl_vector_get(spec_thresh, k+(i-j) ));
-            cpl_vector_set(X, k, (double)k );
-        }
-        cpl_vector_fit_gaussian(X, NULL, cur_peak, NULL, CPL_FIT_ALL,
+        cpl_vector_fit_gaussian(X_peak, NULL, cur_peak, NULL, CPL_FIT_ALL,
                                 x0, sigma, area, offset,
                                 NULL,NULL,NULL);
-        cpl_msg_debug(__func__,"Fit: %.2f, %.2f, %.2f, %.2f",x0, sigma, area, offset);
+        cpl_msg_debug(__func__,"Fit: %.2f, %.2f, %.2f, %.2f",
+                                    x0, sigma, area, offset);
 
-        if ((k = 256-cpl_array_count_invalid(Ds)) <1)
+        if ((k = cpl_array_count_invalid(peaks)) <1)
             cpl_msg_error(__func__,"Output array overflow!");
-        cpl_array_set_double(Ds, k, *x0);
+        cpl_array_set_double(peaks, max_num_peaks - k, *x0);
 
         cpl_vector_delete(cur_peak);
-        cpl_vector_delete(X);
+        cpl_vector_delete(X_peak);
     }
 
-    cpl_vector_delete(spec_thresh);
+    /* Copy into output array, treating first element outside the loop */
+    k = max_num_peaks - cpl_array_count_invalid(peaks) ;
+    Ds = cpl_vector_new(k) ;
+    prev_peak = cpl_array_get(peaks, 0, NULL) ;
+    cpl_vector_set(Ds, 0, prev_peak) ;
+    for (i=1; i<k; i++)
+        cpl_vector_set(Ds, i,
+            cpl_array_get(peaks, 0, NULL) - prev_peak ) ;
+
+    cpl_vector_delete(spec_thresh) ;
+    cpl_array_delete(peaks) ;
     return Ds;
 }
 
