@@ -77,7 +77,7 @@ static char cr2res_util_wave_description[] =
 "ETALON data is reduced with the ETALON method, and does not require any\n"
 "static calibration file.\n"
 "The option --line_fitting can be used to replace the Cross-Correlation\n"
-"method with a lines identification and fitting algorithm. This is only\n" 
+"method with a lines identification and fitting algorithm. This is only\n"
 "applicable for the LAMP data type.\n"
 "The recipe produces the following products:\n"
 "   *\n"
@@ -193,7 +193,7 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.line_fitting", 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.line_fitting",
             CPL_TYPE_BOOL, "Use Lines Fitting (only for LAMP)",
             "cr2res.cr2res_util_wave", FALSE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "line_fitting");
@@ -262,6 +262,7 @@ static int cr2res_util_wave(
     const char          *   trace_wave_file ;
     const char          *   extracted_file ;
     const char          *   static_calib_file ;
+    char                *   out_file;
 
     cpl_table           *   trace_wave_table ;
     cpl_table           *   extracted_table ;
@@ -288,7 +289,7 @@ static int cr2res_util_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.trace_nb");
     reduce_trace = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist, 
+    param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.data_type");
     sval = cpl_parameter_get_string(param) ;
     if (!strcmp(sval, ""))              wavecal_type = CR2RES_UNSPECIFIED ;
@@ -300,7 +301,7 @@ static int cr2res_util_wave(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1;
     }
-    param = cpl_parameterlist_find_const(parlist, 
+    param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.line_fitting");
     line_fitting = cpl_parameter_get_bool(param) ;
 
@@ -339,12 +340,12 @@ static int cr2res_util_wave(
     }
     if ((wavecal_type == CR2RES_LAMP || wavecal_type == CR2RES_GAS) &&
             static_calib_file == NULL) {
-        cpl_msg_error(__func__, 
+        cpl_msg_error(__func__,
                 "The static calibration file is needed for LAMP or GAS");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
-        
+
     /* Loop over the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
@@ -376,7 +377,7 @@ static int cr2res_util_wave(
             cpl_msg_indent_less() ;
             continue ;
         }
- 
+
         /* Allocate Data containers */
 
         /* Loop over the traces spectra */
@@ -386,7 +387,7 @@ static int cr2res_util_wave(
             /* Get Order and trace id */
             order = cpl_table_get(trace_wave_table, "Order", i, NULL) ;
             trace_id = cpl_table_get(trace_wave_table, "TraceNb", i, NULL) ;
-            cpl_msg_debug(__func__, "Evaluate Order %d / Trace nb %d", 
+            cpl_msg_debug(__func__, "Evaluate Order %d / Trace nb %d",
                     order, trace_id) ;
 
             /* Check if this order needs to be skipped */
@@ -411,7 +412,7 @@ static int cr2res_util_wave(
             }
 
             /* Get the initial guess */
-            init_guess_arr = cpl_table_get_array(trace_wave_table, 
+            init_guess_arr = cpl_table_get_array(trace_wave_table,
                     "Wavelength", i) ;
             init_guess = cr2res_convert_array_to_poly(init_guess_arr) ;
 
@@ -427,6 +428,8 @@ static int cr2res_util_wave(
             }
             cpl_vector_delete(extracted_vec) ;
             cpl_polynomial_delete(init_guess) ;
+            cpl_polynomial_dump(wave_sol,stdout) ;
+            cpl_polynomial_delete(wave_sol);
             cpl_msg_indent_less() ;
         }
         cpl_table_delete(trace_wave_table) ;
@@ -437,6 +440,14 @@ static int cr2res_util_wave(
     }
 
     /* Save the Products */
+    out_file = cpl_sprintf("%s_wave.fits",
+                    cr2res_get_root_name(extracted_file));
+
+    /* TODO: After assembling all solutions do it like this: */
+    /* cr2res_io_save_TRACE_WAVE(out_file, frameset,
+            parlist, wave_sol, NULL, RECIPE_STRING) ;*/
+
+    cpl_free(out_file);
 
     /* Free and return */
     return (int)cpl_error_get_code();

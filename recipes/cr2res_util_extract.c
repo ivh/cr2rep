@@ -201,7 +201,7 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_nb");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
- 
+
     return 0;
 }
 
@@ -263,6 +263,7 @@ static int cr2res_util_extract(
     cpl_frame           *   fr ;
     const char          *   science_file ;
     const char          *   trace_file ;
+    char                *   out_file;
 
     hdrl_image          *   model_master[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slit_func_tab[CR2RES_NB_DETECTORS] ;
@@ -391,9 +392,9 @@ static int cr2res_util_extract(
             cpl_msg_indent_more() ;
 
             /* Call the SLIT DECOMPOSITION */
-            if (cr2res_extract_slitdec_vert(science_ima, trace_table, order, 
-                        trace_id, extr_height, swath_width, oversample, 
-                        smooth_slit, &(slit_func[i]), &(spectrum[i]), 
+            if (cr2res_extract_slitdec_vert(science_ima, trace_table, order,
+                        trace_id, extr_height, swath_width, oversample,
+                        smooth_slit, &(slit_func[i]), &(spectrum[i]),
                         &model_tmp) != 0) {
                 cpl_msg_error(__func__, "Cannot extract the trace") ;
                 slit_func[i] = NULL ;
@@ -433,12 +434,21 @@ static int cr2res_util_extract(
     }
 
     /* Save the Products */
-    cr2res_io_save_SLIT_MODEL("cr2res_util_extract_model.fits", frameset,
+    out_file = cpl_sprintf("%s_extrModel.fits",
+                    cr2res_get_root_name(science_file));
+    cr2res_io_save_SLIT_MODEL(out_file, frameset,
             parlist, model_master, NULL, RECIPE_STRING) ;
-    cr2res_io_save_SLIT_FUNC("cr2res_util_extract_slit_func.fits", frameset,
+    cpl_free(out_file);
+    out_file = cpl_sprintf("%s_extrSlitFu.fits",
+                    cr2res_get_root_name(science_file));
+    cr2res_io_save_SLIT_FUNC(out_file, frameset,
             parlist, slit_func_tab, NULL, RECIPE_STRING) ;
-    cr2res_io_save_EXTRACT_1D("cr2res_util_extract_extract_1D.fits", frameset,
+    cpl_free(out_file);
+    out_file = cpl_sprintf("%s_extr1D.fits",
+                    cr2res_get_root_name(science_file));
+    cr2res_io_save_EXTRACT_1D(out_file, frameset,
             parlist, extract_tab, NULL, RECIPE_STRING) ;
+    cpl_free(out_file);
 
     /* Free and return */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
