@@ -49,7 +49,6 @@
   @brief    find out the order number closest to the passed y position
   @param    plist       property list to read from
   @param    yposition   Y position
-  @param    detector    Detector number 1-3
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
@@ -59,7 +58,8 @@ int cr2res_pfits_get_order(
 {
 
     char    *   key_name ;
-    int         i, best_number;
+    int         i;
+    int         best_number = -1;
     int         maxnum_orders = 9;
     double      ycen, curr_diff;
     double      best_diff = CR2RES_DETECTOR_SIZE;
@@ -72,13 +72,17 @@ int cr2res_pfits_get_order(
         cpl_msg_error(__func__, "Cannot get order with when previous error"
                                 " is set, since this function will use "
                                 "cpl_error_reset()") ;
-        return NULL ;
+        return -1 ;
     }
 
     for (i=0; i<maxnum_orders; i++) {
         key_name = cpl_sprintf("ESO INS WLEN CENY%d",i);
         ycen = cpl_propertylist_get_double(plist, key_name);
-
+        if (ycen < 0) continue;
+        if (cpl_error_get_code() != CPL_ERROR_NONE) {
+            cpl_error_reset();
+            continue;
+        }
         curr_diff = fabs(yposition - ycen );
         if (curr_diff < best_diff){
                best_diff = curr_diff;
@@ -89,6 +93,9 @@ int cr2res_pfits_get_order(
         cpl_msg_warning(__func__,"Order %d identified with large difference "
                                  "of %.1f pix",  best_number, best_diff);
     cpl_free(key_name) ;
+
+    /* best_number is initialized as -1, indicating the error */
+    /* that no order was found in the loop above. */
     return best_number ;
 }
 
