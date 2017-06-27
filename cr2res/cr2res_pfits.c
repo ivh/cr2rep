@@ -75,8 +75,9 @@ int cr2res_pfits_get_order(
         }
     }
     if (best_diff > 50.0)
-        cpl_msg_warn(__func__,"Order %d identified with large difference "
-                              "of %.1f pix",  best_number, best_diff);
+        cpl_msg_warning(__func__,
+                "Order %d identified with large difference of %.1f pix",  
+                best_number, best_diff);
     cpl_free(key_name) ;
     return best_number ;
 }
