@@ -28,6 +28,7 @@
 #include <cpl.h>
 #include <math.h>
 #include "cr2res_pfits.h"
+#include "cr2res_utils.h"
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -56,28 +57,37 @@ int cr2res_pfits_get_order(
             const cpl_propertylist * plist,
             double yposition)
 {
+
+    char    *   key_name ;
+    int         i, best_number;
+    int         maxnum_orders = 9;
+    double      ycen, curr_diff;
+    double      best_diff = CR2RES_DETECTOR_SIZE;
+
     /* Check entries */
     if (plist == NULL) return -1 ;
     if (yposition < 1) return -1 ;
 
-    char    *   key_name ;
-    int         i, best_number;
-    double      curr_diff;
-    double      best_diff = 2048.0;
+    if (cpl_error_get_code() != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Cannot get order with when previous error"
+                                " is set, since this function will use "
+                                "cpl_error_reset()") ;
+        return NULL ;
+    }
 
-    for (i=0; i<9; i++) { // NOTE: There are never more than 9 orders!
+    for (i=0; i<maxnum_orders; i++) {
         key_name = cpl_sprintf("ESO INS WLEN CENY%d",i);
-        curr_diff = fabs(yposition -
-                        cpl_propertylist_get_double(plist, key_name));
+        ycen = cpl_propertylist_get_double(plist, key_name);
+
+        curr_diff = fabs(yposition - ycen );
         if (curr_diff < best_diff){
                best_diff = curr_diff;
                best_number = i;
         }
     }
-    if (best_diff > 50.0)
-        cpl_msg_warning(__func__,
-                "Order %d identified with large difference of %.1f pix",  
-                best_number, best_diff);
+    if (best_diff > 20.0)
+        cpl_msg_warning(__func__,"Order %d identified with large difference "
+                                 "of %.1f pix",  best_number, best_diff);
     cpl_free(key_name) ;
     return best_number ;
 }

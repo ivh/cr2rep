@@ -31,6 +31,7 @@
  -----------------------------------------------------------------------------*/
 
 #define CR2RES_NB_DETECTORS     3
+#define CR2RES_DETECTOR_SIZE    2048
 
 typedef enum {
     CR2RES_DECKER_NONE,

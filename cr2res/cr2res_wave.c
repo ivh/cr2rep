@@ -32,6 +32,7 @@
 #include "cr2res_wave.h"
 #include "cr2res_io.h"
 #include "cr2res_pfits.h"
+#include "cr2res_utils.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
@@ -269,9 +270,9 @@ cpl_vector * cr2res_wave_gen_spectrum(
   @brief    Compute the wavelength polynomial from boundaries
   @param    wmin    First pixel wavelength
   @param    wmax    Last pixel wavelength
-  @return   the polynomial or NULL in error case
+  @return   the array with two polynomial coeffs, or NULL in error case
 
-  The returned polynomial must be deallocated with cpl_polynomial_delete()
+  The returned array must be deallocated with cpl_array_delete()
  */
 /*----------------------------------------------------------------------------*/
 cpl_array * cr2res_wave_get_estimate(
@@ -305,8 +306,7 @@ cpl_array * cr2res_wave_get_estimate(
     /* Create the array */
     wl = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
     cpl_array_set(wl, 0, wmin) ;
-    cpl_array_set(wl, 1, wmax) ;
-
+    cpl_array_set(wl, 1, (wmax-wmin) / CR2RES_DETECTOR_SIZE ) ; // linear slope
     return wl ;
 }
 
