@@ -32,10 +32,11 @@
  -----------------------------------------------------------------------------*/
 
 cpl_polynomial * cr2res_wave(
-        cpl_vector      *   spectrum,
-        cpl_polynomial  *   initial_guess,
-        cpl_table       *   catalog,
-        cpl_bivector    *   template) ;
+        cpl_vector          *   spectrum,
+        cpl_polynomial      *   initial_guess,
+        cr2res_wavecal_type     wavecal_type,
+        int                     line_fitting,
+        const char          *   static_file) ;
 cpl_polynomial * cr2res_wave_xcorr(
         cpl_vector      *   spectrum,
         cpl_polynomial  *   initial_guess,

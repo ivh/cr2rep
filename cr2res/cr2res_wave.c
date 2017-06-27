@@ -63,17 +63,36 @@
  */
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_wave(
-        cpl_vector      *   spectrum,
-        cpl_polynomial  *   initial_guess,
-        cpl_table       *   catalog,
-        cpl_bivector    *   template)
+        cpl_vector          *   spectrum,
+        cpl_polynomial      *   initial_guess,
+        cr2res_wavecal_type     wavecal_type,
+        int                     line_fitting,
+        const char          *   static_file)
 {
+    cpl_polynomial  *   solution ;
 
+    /* Initialise */
+    solution = NULL ;
 
-    cpl_polynomial_dump(initial_guess, stdout) ;
     cpl_plot_vector("", "w lines", "", spectrum) ;
+    cpl_polynomial_dump(initial_guess, stdout) ;
 
-    return NULL ;
+    /* Switch on the possible methods */
+    if (wavecal_type == CR2RES_LAMP) {
+        if (line_fitting) {
+            solution = cr2res_wave_line_fitting(spectrum, initial_guess,
+                    NULL) ;
+        } else {
+            solution = cr2res_wave_xcorr(spectrum, initial_guess, NULL) ;
+        }
+
+    } else if (wavecal_type == CR2RES_GAS) {
+        solution = cr2res_wave_xcorr(spectrum, initial_guess, NULL) ;
+    } else if (wavecal_type == CR2RES_ETALON) {
+        solution = cr2res_wave_etalon(spectrum, initial_guess) ;
+    }
+    if (solution != NULL) cpl_polynomial_dump(solution, stdout) ;
+    return solution ;
 }
 
 /*----------------------------------------------------------------------------*/

@@ -26,6 +26,9 @@
                                 Includes
  -----------------------------------------------------------------------------*/
 
+#include <locale.h>
+#include <string.h>
+
 #include <cpl.h>
 #include "hdrl.h"
 
@@ -62,11 +65,25 @@ static int cr2res_util_wave(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_util_wave_description[] =
-"TODO : Descripe here the recipe in / out / params / basic algo\n"
-"trace_wave.fits " CR2RES_COMMAND_LINE "\n"
-"extracted.fits " CR2RES_COMMAND_LINE "\n"
-"catalog.fits " CR2RES_COMMAND_LINE "\n"
-" The recipe produces the following products:\n"
+"The utility expects 3 files as input:\n"
+"   * extracted.fits " CR2RES_COMMAND_LINE "\n"
+"   * trace_wave.fits " CR2RES_COMMAND_LINE "\n"
+"   * static_calib.fits (optional) " CR2RES_COMMAND_LINE "\n"
+"The extracted.fits (e.g. created by cr2res_util_extract) header is used \n"
+"to determine the kind of data we are to calibrate: LAMP, GAS or ETALON. \n"
+"This kind can be overwritten with the option --data_type.\n"
+"LAMP data is reduced with Cross Correlation with a emission lines catalog.\n"
+"GAS data is reduced with Cross Correlation with a template spectrum.\n"
+"ETALON data is reduced with the ETALON method, and does not require any\n"
+"static calibration file.\n"
+"The option --line_fitting can be used to replace the Cross-Correlation\n"
+"method with a lines identification and fitting algorithm. This is only\n" 
+"applicable for the LAMP data type.\n"
+"The recipe produces the following products:\n"
+"   *\n"
+"   *\n"
+"   *\n"
+"   *\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -168,7 +185,20 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_nb");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
- 
+
+    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.data_type",
+            CPL_TYPE_STRING, "Data Type (LAMP / GAS / ETALON)",
+            "cr2res.cr2res_util_wave", "");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "data_type");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.line_fitting", 
+            CPL_TYPE_BOOL, "Use Lines Fitting (only for LAMP)",
+            "cr2res.cr2res_util_wave", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "line_fitting");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
     return 0;
 }
 
@@ -224,21 +254,29 @@ static int cr2res_util_wave(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param;
-    int                     reduce_det, reduce_order, reduce_trace ;
+    int                     reduce_det, reduce_order, reduce_trace,
+                            line_fitting ;
     cpl_frame           *   fr ;
+    const char          *   sval ;
+    cr2res_wavecal_type     wavecal_type ;
     const char          *   trace_wave_file ;
     const char          *   extracted_file ;
-    const char          *   catalog_file ;
+    const char          *   static_calib_file ;
 
     cpl_table           *   trace_wave_table ;
     cpl_table           *   extracted_table ;
-    cpl_table           *   catalog_table ;
     cpl_vector          *   extracted_vec ;
-    cpl_bivector        *   template ;
     cpl_polynomial      *   init_guess ;
     const cpl_array     *   init_guess_arr ;
     cpl_polynomial      *   wave_sol ;
     int                     det_nr, nb_traces, trace_id, order, i ;
+
+    /* Needed for sscanf() */
+    setlocale(LC_NUMERIC, "C");
+
+    /* Initialise */
+    wavecal_type = CR2RES_UNSPECIFIED ;
+
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -250,6 +288,21 @@ static int cr2res_util_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.trace_nb");
     reduce_trace = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist, 
+            "cr2res.cr2res_util_wave.data_type");
+    sval = cpl_parameter_get_string(param) ;
+    if (!strcmp(sval, ""))              wavecal_type = CR2RES_UNSPECIFIED ;
+    else if (!strcmp(sval, "LAMP"))     wavecal_type = CR2RES_LAMP ;
+    else if (!strcmp(sval, "GAS"))      wavecal_type = CR2RES_GAS ;
+    else if (!strcmp(sval, "ETALON"))   wavecal_type = CR2RES_ETALON ;
+    else {
+        cpl_msg_error(__func__, "Invalid Data Type specified");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1;
+    }
+    param = cpl_parameterlist_find_const(parlist, 
+            "cr2res.cr2res_util_wave.line_fitting");
+    line_fitting = cpl_parameter_get_bool(param) ;
 
     /* Check Parameters */
     /* TODO */
@@ -263,17 +316,35 @@ static int cr2res_util_wave(
 
     /* Get Inputs */
     fr = cpl_frameset_get_position(frameset, 0);
-    trace_wave_file = cpl_frame_get_filename(fr) ;
-    fr = cpl_frameset_get_position(frameset, 1);
     extracted_file = cpl_frame_get_filename(fr) ;
-    fr = cpl_frameset_get_position(frameset, 2);
-    catalog_file = cpl_frame_get_filename(fr) ;
-    if (trace_wave_file==NULL || extracted_file==NULL || catalog_file==NULL) {
-        cpl_msg_error(__func__, "The utility needs 3 files");
+    fr = cpl_frameset_get_position(frameset, 1);
+    trace_wave_file = cpl_frame_get_filename(fr) ;
+    if (cpl_frameset_get_size(frameset) > 2) {
+        fr = cpl_frameset_get_position(frameset, 2);
+        static_calib_file = cpl_frame_get_filename(fr) ;
+    } else {
+        static_calib_file = NULL ;
+    }
+    if (trace_wave_file==NULL || extracted_file==NULL) {
+        cpl_msg_error(__func__, "The utility needs iat least 2 files as input");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
 
+    /* Get Data Type */
+    if (wavecal_type == CR2RES_UNSPECIFIED) {
+        /* TODO  */
+        /* Get the wavecal_type from the input extracted spectrum possible */
+        return -1 ;
+    }
+    if ((wavecal_type == CR2RES_LAMP || wavecal_type == CR2RES_GAS) &&
+            static_calib_file == NULL) {
+        cpl_msg_error(__func__, 
+                "The static calibration file is needed for LAMP or GAS");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
+        
     /* Loop over the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
@@ -315,6 +386,8 @@ static int cr2res_util_wave(
             /* Get Order and trace id */
             order = cpl_table_get(trace_wave_table, "Order", i, NULL) ;
             trace_id = cpl_table_get(trace_wave_table, "TraceNb", i, NULL) ;
+            cpl_msg_debug(__func__, "Evaluate Order %d / Trace nb %d", 
+                    order, trace_id) ;
 
             /* Check if this order needs to be skipped */
             if (reduce_order > -1 && order != reduce_order) {
@@ -343,8 +416,8 @@ static int cr2res_util_wave(
             init_guess = cr2res_convert_array_to_poly(init_guess_arr) ;
 
             /* Call the Wavelength Calibration */
-            if ((wave_sol = cr2res_wave(extracted_vec, init_guess,
-                            catalog_table, template)) == NULL) {
+            if ((wave_sol = cr2res_wave(extracted_vec, init_guess, wavecal_type,
+                            line_fitting, static_calib_file)) == NULL) {
                 cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
                 cpl_polynomial_delete(init_guess) ;
                 cpl_vector_delete(extracted_vec) ;
