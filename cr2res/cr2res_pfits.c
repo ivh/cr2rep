@@ -78,6 +78,7 @@ int cr2res_pfits_get_order(
     for (i=0; i<maxnum_orders; i++) {
         key_name = cpl_sprintf("ESO INS WLEN CENY%d",i);
         ycen = cpl_propertylist_get_double(plist, key_name);
+        cpl_free(key_name) ;
         if (ycen < 0) continue;
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
             cpl_error_reset();
@@ -92,8 +93,6 @@ int cr2res_pfits_get_order(
     if (best_diff > 20.0)
         cpl_msg_warning(__func__,"Order %d identified with large difference "
                                  "of %.1f pix",  best_number, best_diff);
-    cpl_free(key_name) ;
-
     /* best_number is initialized as -1, indicating the error */
     /* that no order was found in the loop above. */
     return best_number ;
