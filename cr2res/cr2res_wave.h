@@ -25,6 +25,7 @@
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
+#include "hdrl.h"
 #include "cr2res_utils.h"
 
 /*-----------------------------------------------------------------------------
@@ -59,5 +60,7 @@ cpl_array * cr2res_wave_get_estimate(
         const char  *   filename,
         int             detector,
         int             order) ;
+hdrl_image * cr2res_wave_gen_wave_map(
+        const cpl_table *   trace_wave) ;
 
 #endif

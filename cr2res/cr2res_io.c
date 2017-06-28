@@ -668,11 +668,12 @@ int cr2res_io_save_WAVE_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
+        hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
         const char              *   recipe)
 {
-            return -1 ;
+    return cr2res_io_save_image(filename, allframes, parlist,
+            data, qc_list, recipe, CR2RES_WAVE_MAP_PROCATG, "") ;
 }
 
 

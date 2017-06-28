@@ -189,7 +189,7 @@ int cr2res_io_save_WAVE_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
+        hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
         const char              *   recipe);
 

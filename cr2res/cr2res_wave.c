@@ -330,4 +330,23 @@ cpl_array * cr2res_wave_get_estimate(
     return wl ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Compute the wavelength map from the trace_wave table
+  @param    trace_wave      The trace wave table
+  @return   the wave_map image or NULL in error case
+
+  The returned image must be deallocated with hdrl_image_delete()
+ */
+/*----------------------------------------------------------------------------*/
+hdrl_image * cr2res_wave_gen_wave_map(
+        const cpl_table *   trace_wave)
+{
+
+    /* Check Entries */
+    if (trace_wave == NULL) return NULL ;
+
+    /* TODO */
+    return NULL ;
+}
 /**@}*/

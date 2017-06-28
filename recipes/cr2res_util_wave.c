@@ -80,10 +80,8 @@ static char cr2res_util_wave_description[] =
 "method with a lines identification and fitting algorithm. This is only\n"
 "applicable for the LAMP data type.\n"
 "The recipe produces the following products:\n"
-"   *\n"
-"   *\n"
-"   *\n"
-"   *\n"
+"   * TRACE_WAVE\n"
+"   * WAVE_MAP\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -265,6 +263,7 @@ static int cr2res_util_wave(
     char                *   out_file;
     cpl_array           *   wl_array ;
     cpl_table           *   out_trace_wave[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_wave_table ;
     cpl_table           *   extracted_table ;
     cpl_vector          *   extracted_vec ;
@@ -352,6 +351,7 @@ static int cr2res_util_wave(
 
         /* Initialise */
         out_trace_wave[det_nr-1] = NULL ;
+        out_wave_map[det_nr-1] = NULL ;
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -455,21 +455,37 @@ static int cr2res_util_wave(
         cpl_table_delete(trace_wave_table) ;
         cpl_table_delete(extracted_table) ;
 
+        /* Generate the Wave Map */
+        out_wave_map[det_nr-1] = 
+            cr2res_wave_gen_wave_map(out_trace_wave[det_nr-1]) ;
+
         /* Deallocate */
         cpl_msg_indent_less() ;
     }
 
-    /* Save the Products */
-    out_file = cpl_sprintf("%s_wave.fits",cr2res_get_root_name(extracted_file));
-    cpl_msg_debug(__func__, "Writing to %s", out_file);
+    /* Save the new trace_wave table */
+    out_file = cpl_sprintf("%s_wave.fits", 
+            cr2res_get_root_name(extracted_file));
     cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, out_trace_wave, 
             NULL, RECIPE_STRING) ;
+    cpl_free(out_file);
+
+    /* Save the Wave Map */
+    out_file = cpl_sprintf("%s_wave_map.fits",
+            cr2res_get_root_name(extracted_file));
+    cr2res_io_save_WAVE_MAP(out_file, frameset, parlist, out_wave_map,
+            NULL, RECIPE_STRING) ;
+    cpl_free(out_file);
 
     /* Free and return */
-    cpl_free(out_file);
-    for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) 
+    for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
         if (out_trace_wave[i] != NULL) 
             cpl_table_delete(out_trace_wave[i]) ;
+        if (out_wave_map[i] != NULL) {
+            hdrl_image_delete(out_wave_map[i]) ;
+        }
+    }
+
     return (int)cpl_error_get_code();
 }
 
