@@ -36,7 +36,8 @@ noinst_HEADERS =
 plugin_LTLIBRARIES = cr2res_cal_dark.la \
                      cr2res_util_wave.la \
                      cr2res_util_trace.la \
-                     cr2res_util_extract.la
+                     cr2res_util_extract.la \
+                     cr2res_util_genlines.la
 
 cr2res_cal_dark_la_SOURCES = cr2res_cal_dark.c
 cr2res_cal_dark_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
@@ -57,3 +58,8 @@ cr2res_util_extract_la_SOURCES = cr2res_util_extract.c
 cr2res_util_extract_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
 cr2res_util_extract_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
 cr2res_util_extract_la_DEPENDENCIES = $(LIBCR2RES)
+
+cr2res_util_genlines_la_SOURCES = cr2res_util_genlines.c
+cr2res_util_genlines_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
+cr2res_util_genlines_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
+cr2res_util_genlines_la_DEPENDENCIES = $(LIBCR2RES)
