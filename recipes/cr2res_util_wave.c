@@ -263,7 +263,8 @@ static int cr2res_util_wave(
     const char          *   extracted_file ;
     const char          *   static_calib_file ;
     char                *   out_file;
-
+    cpl_array           *   wl_array ;
+    cpl_table           *   out_trace_wave[CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_wave_table ;
     cpl_table           *   extracted_table ;
     cpl_vector          *   extracted_vec ;
@@ -350,6 +351,7 @@ static int cr2res_util_wave(
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
         /* Initialise */
+        out_trace_wave[det_nr-1] = NULL ;
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -378,7 +380,18 @@ static int cr2res_util_wave(
             continue ;
         }
 
-        /* Allocate Data containers */
+        /* Create Output table for this detector */
+        out_trace_wave[det_nr-1] = cpl_table_duplicate(trace_wave_table) ;
+
+        /* Clear the Wavelength column */
+        for (i=0 ; i<nb_traces ; i++) {
+            wl_array = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
+            cpl_array_set(wl_array, 0, -1.0) ;
+            cpl_array_set(wl_array, 1, -1.0) ;
+            cpl_table_set_array(out_trace_wave[det_nr-1], "Wavelength", i, 
+                    wl_array);
+            cpl_array_delete(wl_array) ;
+        }
 
         /* Loop over the traces spectra */
         for (i=0 ; i<nb_traces ; i++) {
@@ -429,7 +442,14 @@ static int cr2res_util_wave(
             cpl_vector_delete(extracted_vec) ;
             cpl_polynomial_delete(init_guess) ;
             cpl_polynomial_dump(wave_sol,stdout) ;
+
+            /* Store the Solution in the table */
+            wl_array = cr2res_convert_poly_to_array(wave_sol) ;
             cpl_polynomial_delete(wave_sol);
+            cpl_table_set_array(out_trace_wave[det_nr-1], "Wavelength", i,
+                    wl_array);
+            cpl_array_delete(wl_array) ;
+
             cpl_msg_indent_less() ;
         }
         cpl_table_delete(trace_wave_table) ;
@@ -440,16 +460,16 @@ static int cr2res_util_wave(
     }
 
     /* Save the Products */
-    out_file = cpl_sprintf("%s_wave.fits",
-                    cr2res_get_root_name(extracted_file));
-
-    /* TODO: After assembling all solutions do it like this: */
-    /* cr2res_io_save_TRACE_WAVE(out_file, frameset,
-            parlist, wave_sol, NULL, RECIPE_STRING) ;*/
-
-    cpl_free(out_file);
+    out_file = cpl_sprintf("%s_wave.fits",cr2res_get_root_name(extracted_file));
+    cpl_msg_debug(__func__, "Writing to %s", out_file);
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, out_trace_wave, 
+            NULL, RECIPE_STRING) ;
 
     /* Free and return */
+    cpl_free(out_file);
+    for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) 
+        if (out_trace_wave[i] != NULL) 
+            cpl_table_delete(out_trace_wave[i]) ;
     return (int)cpl_error_get_code();
 }
 
