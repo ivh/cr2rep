@@ -278,7 +278,6 @@ static int cr2res_util_wave(
     /* Initialise */
     wavecal_type = CR2RES_UNSPECIFIED ;
 
-
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.detector");
@@ -336,6 +335,7 @@ static int cr2res_util_wave(
     if (wavecal_type == CR2RES_UNSPECIFIED) {
         /* TODO  */
         /* Get the wavecal_type from the input extracted spectrum possible */
+        cpl_msg_error(__func__, "Please use the --data_type option") ;
         return -1 ;
     }
     if ((wavecal_type == CR2RES_LAMP || wavecal_type == CR2RES_GAS) &&
