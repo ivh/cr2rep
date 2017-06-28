@@ -165,11 +165,41 @@ cpl_polynomial * cr2res_wave_etalon(
         cpl_polynomial  *   initial_guess)
 {
     cpl_vector  *   peaks;
+	double			trueD;
 
     peaks = cr2res_wave_etalon_measure_fringes(spectrum);
-    cpl_vector_dump(peaks, stdout);
+	cr2res_wave_etalon_fringe_stats(peaks);
     cpl_vector_delete(peaks);
     return NULL ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Find the true D from fringe statistics
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+
+double cr2res_wave_etalon_fringe_stats(
+            cpl_vector * peaks)
+{
+	int				i;
+	cpl_size		num_peaks;
+    double      	trueD=-1.0;
+	cpl_vector	*	diffs;
+
+	num_peaks = cpl_vector_get_size(peaks);
+	diffs = cpl_vector_new(num_peaks-1);
+	for (i=1; i<num_peaks; i++){
+		cpl_vector_set(diffs,i-1,
+			cpl_vector_get(peaks,i) - cpl_vector_get(peaks,i-1) );
+	}
+
+	cpl_vector_dump(diffs, stdout);
+
+	cpl_vector_delete(diffs);
+    return trueD;
 }
 
 /*----------------------------------------------------------------------------*/

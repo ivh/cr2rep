@@ -50,7 +50,7 @@ cpl_polynomial * cr2res_wave_etalon(
         cpl_vector      *   spectrum,
         cpl_polynomial  *   initial_guess) ;
 cpl_vector * cr2res_wave_etalon_measure_fringes(cpl_vector * spectrum);
-
+double cr2res_wave_etalon_fringe_stats(cpl_vector * peaks);
 cpl_vector * cr2res_wave_line_detection(
         cpl_vector      *   spectrum) ;
 cpl_vector * cr2res_wave_gen_spectrum(
