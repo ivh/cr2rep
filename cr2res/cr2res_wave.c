@@ -42,7 +42,6 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-
 /*----------------------------------------------------------------------------*/
 /**
  * @defgroup cr2res_wave        Wavelength Calibration
@@ -58,6 +57,7 @@
   @param    initial_guess   Starting wavelength solution
   @param    catalog         Line catalog, wavelengths, strengths
   @param    template        Template spectrum (flux, wavelengths)
+  @param    display         Flag to display results
   @return  Wavelength solution, i.e. polynomial that translates pixel
             values to wavelength.
  */
@@ -67,30 +67,32 @@ cpl_polynomial * cr2res_wave(
         cpl_polynomial      *   initial_guess,
         cr2res_wavecal_type     wavecal_type,
         int                     line_fitting,
-        const char          *   static_file)
+        const char          *   static_file,
+        int                     display)
 {
     cpl_polynomial  *   solution ;
+    cpl_bivector    *   ref_spectrum ;
 
     /* Initialise */
     solution = NULL ;
 
-    cpl_polynomial_dump(initial_guess, stdout) ;
-
     /* Switch on the possible methods */
     if (wavecal_type == CR2RES_LAMP) {
         if (line_fitting) {
-            solution = cr2res_wave_line_fitting(spectrum, initial_guess,
-                    NULL) ;
+            solution = cr2res_wave_line_fitting(spectrum, initial_guess, NULL) ;
         } else {
-            solution = cr2res_wave_xcorr(spectrum, initial_guess, NULL) ;
+            /* Create the lines spectrum from the lines list */
+            ref_spectrum = cr2res_wave_gen_lines_spectrum(static_file,
+                    initial_guess) ;
+            solution = cr2res_wave_xcorr(spectrum, initial_guess,
+                    ref_spectrum, display) ;
+            cpl_bivector_delete(ref_spectrum) ;
         }
-
     } else if (wavecal_type == CR2RES_GAS) {
-        solution = cr2res_wave_xcorr(spectrum, initial_guess, NULL) ;
+        solution = cr2res_wave_xcorr(spectrum, initial_guess, NULL, display) ;
     } else if (wavecal_type == CR2RES_ETALON) {
         solution = cr2res_wave_etalon(spectrum, initial_guess) ;
     }
-    if (solution != NULL) cpl_polynomial_dump(solution, stdout) ;
     return solution ;
 }
 
@@ -99,7 +101,8 @@ cpl_polynomial * cr2res_wave(
   @brief  Find solution by cross-correlating template spectrum
   @param    spectrum        Input spectrum
   @param    initial_guess   Starting wavelength solution
-  @param    template        Template spectrum (flux, wavelengths)
+  @param    lines_list      Lines List (flux, wavelengths)
+  @param    display         Flag to display results
   @return  Wavelength solution, i.e. polynomial that translates pixel
             values to wavelength.
 
@@ -109,8 +112,20 @@ cpl_polynomial * cr2res_wave(
 cpl_polynomial * cr2res_wave_xcorr(
         cpl_vector      *   spectrum,
         cpl_polynomial  *   initial_guess,
-        cpl_bivector    *   template)
+        cpl_bivector    *   lines_list,
+        int                 display)
 {
+    /* Check Entries */
+    if (spectrum == NULL || initial_guess == NULL || lines_list == NULL)
+        return NULL ;
+
+
+    if (display) {
+        /* Plot Reference Spectrum */
+
+        /* Plot Extracted Spectrum */
+    }
+
     return NULL ;
 }
 
@@ -312,10 +327,19 @@ cpl_vector * cr2res_wave_line_detection(
   @return
  */
 /*----------------------------------------------------------------------------*/
-cpl_vector * cr2res_wave_gen_spectrum(
-        cpl_table       *   catalog,
+cpl_bivector * cr2res_wave_gen_lines_spectrum(
+        const char      *   catalog,
         cpl_polynomial  *   initial_guess)
 {
+
+
+
+
+
+
+
+
+
     return NULL ;
 }
 
@@ -326,6 +350,9 @@ cpl_vector * cr2res_wave_gen_spectrum(
   @param    wmax    Last pixel wavelength
   @return   the array with two polynomial coeffs, or NULL in error case
 
+  wmin = poly(1)
+  wmax = poly((CR2RES_DETECTOR_SIZE) 
+
   The returned array must be deallocated with cpl_array_delete()
  */
 /*----------------------------------------------------------------------------*/
@@ -334,7 +361,7 @@ cpl_array * cr2res_wave_get_estimate(
         int             detector,
         int             order)
 {
-    double                  wmin, wmax ;
+    double                  wmin, wmax, a, b ;
     cpl_array           *   wl ;
     cpl_propertylist    *   plist ;
     int                     wished_ext_nb ;
@@ -358,10 +385,14 @@ cpl_array * cr2res_wave_get_estimate(
         return NULL ;
     }
 
+    /* Compute polynomial coefficients */
+    b = (wmax - wmin) / (CR2RES_DETECTOR_SIZE-1) ;
+    a = wmin - b ;
+
     /* Create the array */
     wl = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
-    cpl_array_set(wl, 0, wmin) ;
-    cpl_array_set(wl, 1, (wmax-wmin) / CR2RES_DETECTOR_SIZE ) ; // linear slope
+    cpl_array_set(wl, 0, a) ;
+    cpl_array_set(wl, 1, b) ;
     return wl ;
 }
 

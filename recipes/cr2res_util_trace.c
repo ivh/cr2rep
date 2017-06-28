@@ -371,14 +371,12 @@ static int cr2res_util_trace(
                             order)) == NULL) {
                 cpl_msg_warning(__func__, "No WAVE Header information") ;
                 cpl_error_reset() ;
-                wl_array = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
-                cpl_array_set(wl_array, 0, -1.0) ;
-                cpl_array_set(wl_array, 1, -1.0) ;
+                cpl_table_set_array(traces[det_nr-1], "Wavelength", i, NULL);
+            } else {
+                /* Store the Wavelength in the table */
+                cpl_table_set_array(traces[det_nr-1], "Wavelength", i,wl_array);
+                cpl_array_delete(wl_array) ;
             }
-
-            /* Store the Wavelength in the table */
-            cpl_table_set_array(traces[det_nr-1], "Wavelength", i, wl_array);
-            cpl_array_delete(wl_array) ;
         }
 
         /* Debug Image */

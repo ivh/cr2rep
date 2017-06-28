@@ -197,6 +197,13 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "line_fitting");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.display",
+            CPL_TYPE_BOOL, "Flag for display",
+            "cr2res.cr2res_util_wave", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
     return 0;
 }
 
@@ -253,7 +260,7 @@ static int cr2res_util_wave(
 {
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
-                            line_fitting ;
+                            line_fitting, display ;
     cpl_frame           *   fr ;
     const char          *   sval ;
     cr2res_wavecal_type     wavecal_type ;
@@ -303,7 +310,10 @@ static int cr2res_util_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.line_fitting");
     line_fitting = cpl_parameter_get_bool(param) ;
-
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_wave.display");
+    display = cpl_parameter_get_bool(param) ;
+ 
     /* Check Parameters */
     /* TODO */
 
@@ -385,12 +395,7 @@ static int cr2res_util_wave(
 
         /* Clear the Wavelength column */
         for (i=0 ; i<nb_traces ; i++) {
-            wl_array = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
-            cpl_array_set(wl_array, 0, -1.0) ;
-            cpl_array_set(wl_array, 1, -1.0) ;
-            cpl_table_set_array(out_trace_wave[det_nr-1], "Wavelength", i, 
-                    wl_array);
-            cpl_array_delete(wl_array) ;
+            cpl_table_set_array(out_trace_wave[det_nr-1],"Wavelength",i,NULL);
         }
 
         /* Loop over the traces spectra */
@@ -400,8 +405,6 @@ static int cr2res_util_wave(
             /* Get Order and trace id */
             order = cpl_table_get(trace_wave_table, "Order", i, NULL) ;
             trace_id = cpl_table_get(trace_wave_table, "TraceNb", i, NULL) ;
-            cpl_msg_debug(__func__, "Evaluate Order %d / Trace nb %d",
-                    order, trace_id) ;
 
             /* Check if this order needs to be skipped */
             if (reduce_order > -1 && order != reduce_order) {
@@ -431,7 +434,7 @@ static int cr2res_util_wave(
 
             /* Call the Wavelength Calibration */
             if ((wave_sol = cr2res_wave(extracted_vec, init_guess, wavecal_type,
-                            line_fitting, static_calib_file)) == NULL) {
+                            line_fitting, static_calib_file, display))==NULL) {
                 cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
                 cpl_polynomial_delete(init_guess) ;
                 cpl_vector_delete(extracted_vec) ;

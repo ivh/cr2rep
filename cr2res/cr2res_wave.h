@@ -37,11 +37,13 @@ cpl_polynomial * cr2res_wave(
         cpl_polynomial      *   initial_guess,
         cr2res_wavecal_type     wavecal_type,
         int                     line_fitting,
-        const char          *   static_file) ;
+        const char          *   static_file,
+        int                 	display) ;
 cpl_polynomial * cr2res_wave_xcorr(
         cpl_vector      *   spectrum,
         cpl_polynomial  *   initial_guess,
-        cpl_bivector    *   template) ;
+        cpl_bivector    *   lines_list,
+        int                 display) ;
 cpl_polynomial * cr2res_wave_line_fitting(
         cpl_vector      *   spectrum,
         cpl_polynomial  *   initial_guess,
@@ -53,13 +55,16 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(cpl_vector * spectrum);
 double cr2res_wave_etalon_fringe_stats(cpl_vector * peaks);
 cpl_vector * cr2res_wave_line_detection(
         cpl_vector      *   spectrum) ;
-cpl_vector * cr2res_wave_gen_spectrum(
-        cpl_table       *   catalog,
+
+cpl_bivector * cr2res_wave_gen_lines_spectrum(
+        const char      *   catalog,
         cpl_polynomial  *   initial_guess) ;
+
 cpl_array * cr2res_wave_get_estimate(
         const char  *   filename,
         int             detector,
         int             order) ;
+
 hdrl_image * cr2res_wave_gen_wave_map(
         const cpl_table *   trace_wave) ;
 
