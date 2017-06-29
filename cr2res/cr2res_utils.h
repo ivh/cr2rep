@@ -51,6 +51,10 @@ typedef enum {
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
+cpl_vector * cr2res_polynomial_eval_vector(
+        const cpl_polynomial * poly,
+        const cpl_vector     * vec);
+
 cpl_vector * cr2res_threshold_spec(const cpl_vector * invector, int smooth, 
                                 double thresh) ;
 

@@ -41,6 +41,32 @@
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Evaluate a polynomial on a vector
+  @param    poly
+  @param    vec
+  @return   Vector with evaluation result.
+            Caller needs to deallocate.
+ */
+/*----------------------------------------------------------------------------*/
+cpl_vector * cr2res_polynomial_eval_vector(
+        const cpl_polynomial * poly,
+        const cpl_vector     * vec)
+{
+    int i;
+    cpl_size nx;
+    cpl_vector * outvec;
+
+    nx = cpl_vector_get_size(vec);
+    outvec = cpl_vector_new(nx);
+    for (i=0; i<nx; i++){
+        cpl_vector_set(outvec, i,
+            cpl_polynomial_eval_1d(poly, cpl_vector_get(vec,i), NULL));
+    }
+    return outvec;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Find the regions with over-average values in a vector
   @param    invector    The vector to be analyzed
   @param    smooth      The size of the boxcar smoothing kernel
@@ -52,7 +78,7 @@
 /*----------------------------------------------------------------------------*/
 cpl_vector * cr2res_threshold_spec(
         const cpl_vector * invector,
-        int smooth, 
+        int smooth,
         double thresh)
 {
     cpl_vector * smoothed;
@@ -218,7 +244,7 @@ cpl_array * cr2res_convert_poly_to_array(const cpl_polynomial * poly)
     /* Fill it  */
     for (i=0 ; i<=degree ; i++) {
         cpl_array_set(out, i, cpl_polynomial_get_coeff(poly, &i)) ;
-    }   
+    }
     return out ;
 }
 
