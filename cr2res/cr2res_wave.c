@@ -183,7 +183,7 @@ cpl_polynomial * cr2res_wave_etalon(
 	double			trueD;
 
     peaks = cr2res_wave_etalon_measure_fringes(spectrum);
-	cr2res_wave_etalon_fringe_stats(peaks);
+	trueD = cr2res_wave_etalon_fringe_stats(peaks, initial_guess);
     cpl_vector_delete(peaks);
     return NULL ;
 }
@@ -197,23 +197,39 @@ cpl_polynomial * cr2res_wave_etalon(
 /*----------------------------------------------------------------------------*/
 
 double cr2res_wave_etalon_fringe_stats(
-            cpl_vector * peaks)
+            cpl_vector      * peaks,
+            cpl_polynomial  * initial_guess)
 {
 	int				i;
 	cpl_size		num_peaks;
     double      	trueD=-1.0;
 	cpl_vector	*	diffs;
+	cpl_vector	*	waves;
 
 	num_peaks = cpl_vector_get_size(peaks);
+    waves = cr2res_polynomial_eval_vector(initial_guess, peaks);
 	diffs = cpl_vector_new(num_peaks-1);
 	for (i=1; i<num_peaks; i++){
 		cpl_vector_set(diffs,i-1,
-			cpl_vector_get(peaks,i) - cpl_vector_get(peaks,i-1) );
+			cpl_vector_get(waves,i) - cpl_vector_get(waves,i-1) );
 	}
 
-	cpl_vector_dump(diffs, stdout);
-
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+        cpl_table   *   tab;
+        tab = cpl_table_new(num_peaks-1);
+        cpl_table_new_column(tab, "wavediff", CPL_TYPE_DOUBLE) ;
+        for(i=0; i<num_peaks-1; i++) {
+            cpl_table_set_double(tab, "wavediff", i, cpl_vector_get(diffs, i));
+        }
+        if ( cpl_table_save(tab, NULL, NULL, "debug_wavediffs.fits",
+                CPL_IO_EXTEND) == CPL_ERROR_FILE_NOT_FOUND)
+                    i=cpl_table_save(tab, NULL, NULL, "debug_wavediffs.fits",
+                                CPL_IO_CREATE);
+        cpl_table_delete(tab);
+    }
+    cpl_msg_debug(__func__,"foo %d %d", cpl_error_get_code(),i);
 	cpl_vector_delete(diffs);
+	cpl_vector_delete(waves);
     return trueD;
 }
 
@@ -351,7 +367,7 @@ cpl_bivector * cr2res_wave_gen_lines_spectrum(
   @return   the array with two polynomial coeffs, or NULL in error case
 
   wmin = poly(1)
-  wmax = poly((CR2RES_DETECTOR_SIZE) 
+  wmax = poly((CR2RES_DETECTOR_SIZE)
 
   The returned array must be deallocated with cpl_array_delete()
  */
