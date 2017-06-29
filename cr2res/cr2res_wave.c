@@ -206,6 +206,10 @@ double cr2res_wave_etalon_fringe_stats(
 	cpl_vector	*	diffs;
 	cpl_vector	*	waves;
 
+
+    /* cpl_plot_vector("", "w lines", "", peaks) ; */
+
+
 	num_peaks = cpl_vector_get_size(peaks);
     waves = cr2res_polynomial_eval_vector(initial_guess, peaks);
 	diffs = cpl_vector_new(num_peaks-1);
@@ -221,13 +225,15 @@ double cr2res_wave_etalon_fringe_stats(
         for(i=0; i<num_peaks-1; i++) {
             cpl_table_set_double(tab, "wavediff", i, cpl_vector_get(diffs, i));
         }
+
         if ( cpl_table_save(tab, NULL, NULL, "debug_wavediffs.fits",
-                CPL_IO_EXTEND) == CPL_ERROR_FILE_NOT_FOUND)
-                    i=cpl_table_save(tab, NULL, NULL, "debug_wavediffs.fits",
+                CPL_IO_EXTEND) == CPL_ERROR_FILE_NOT_FOUND) {
+            cpl_error_reset() ;
+            cpl_table_save(tab, NULL, NULL, "debug_wavediffs.fits",
                                 CPL_IO_CREATE);
+        }
         cpl_table_delete(tab);
     }
-    cpl_msg_debug(__func__,"foo %d %d", cpl_error_get_code(),i);
 	cpl_vector_delete(diffs);
 	cpl_vector_delete(waves);
     return trueD;
@@ -238,6 +244,9 @@ double cr2res_wave_etalon_fringe_stats(
   @brief Identify and fit etalon lines
   @param spectrum The input spectrum vector
   @return Vector with the fitted peak positions, in pixels.
+
+  The peak positions start with 1 for the first pixel !!
+    TODO : Add unit test with an atificial vector
  */
 /*----------------------------------------------------------------------------*/
 
@@ -276,7 +285,7 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
 
     /* X-axis to cut out from for each peak */
     X_all = cpl_vector_new(max_len_peak);
-    for (i=0; i<max_len_peak; i++) cpl_vector_set(X_all, i, (double)i) ;
+    for (i=0; i<max_len_peak; i++) cpl_vector_set(X_all, i, (double)i+1) ;
 
     for (i=0; i < nx; i++){
         j = 0;
