@@ -275,7 +275,6 @@ static int cr2res_util_wave(
     cpl_table           *   extracted_table ;
     cpl_vector          *   extracted_vec ;
     cpl_polynomial      *   init_guess ;
-    const cpl_array     *   init_guess_arr ;
     cpl_polynomial      *   wave_sol ;
     int                     det_nr, nb_traces, trace_id, order, i ;
 
@@ -395,7 +394,8 @@ static int cr2res_util_wave(
 
         /* Clear the Wavelength column */
         for (i=0 ; i<nb_traces ; i++) {
-            cpl_table_set_array(out_trace_wave[det_nr-1],"Wavelength",i,NULL);
+            cpl_table_set_array(out_trace_wave[det_nr-1],
+                    CR2RES_COL_WAVELENGTH, i, NULL) ;
         }
 
         /* Loop over the traces spectra */
@@ -403,8 +403,9 @@ static int cr2res_util_wave(
             /* Initialise */
 
             /* Get Order and trace id */
-            order = cpl_table_get(trace_wave_table, "Order", i, NULL) ;
-            trace_id = cpl_table_get(trace_wave_table, "TraceNb", i, NULL) ;
+            order = cpl_table_get(trace_wave_table, CR2RES_COL_ORDER, i, NULL) ;
+            trace_id = cpl_table_get(trace_wave_table, CR2RES_COL_TRACENB, i, 
+                    NULL) ;
 
             /* Check if this order needs to be skipped */
             if (reduce_order > -1 && order != reduce_order) {
@@ -428,9 +429,12 @@ static int cr2res_util_wave(
             }
 
             /* Get the initial guess */
-            init_guess_arr = cpl_table_get_array(trace_wave_table,
-                    "Wavelength", i) ;
-            init_guess = cr2res_convert_array_to_poly(init_guess_arr) ;
+            if ((init_guess=cr2res_get_wavelength_poly(trace_wave_table,
+                            order, trace_id)) == NULL) {
+                cpl_msg_error(__func__, "Cannot get the initial guess") ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
 
             /* Call the Wavelength Calibration */
             if ((wave_sol = cr2res_wave(extracted_vec, init_guess, wavecal_type,
@@ -444,13 +448,12 @@ static int cr2res_util_wave(
             }
             cpl_vector_delete(extracted_vec) ;
             cpl_polynomial_delete(init_guess) ;
-            cpl_polynomial_dump(wave_sol,stdout) ;
 
             /* Store the Solution in the table */
             wl_array = cr2res_convert_poly_to_array(wave_sol) ;
             cpl_polynomial_delete(wave_sol);
-            cpl_table_set_array(out_trace_wave[det_nr-1], "Wavelength", i,
-                    wl_array);
+            cpl_table_set_array(out_trace_wave[det_nr-1], 
+                    CR2RES_COL_WAVELENGTH, i, wl_array);
             cpl_array_delete(wl_array) ;
 
             cpl_msg_indent_less() ;

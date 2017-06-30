@@ -30,6 +30,7 @@
 #include <cpl.h>
 
 #include "cr2res_utils.h"
+#include "cr2res_dfs.h"
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -193,6 +194,69 @@ cpl_frameset * cr2res_extract_frameset(
         }
     }
     return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+   @brief   Get the index in a TRACE_WAVE table
+   @param   tab         A TRACE_WAVE table
+   @param   order       the order number
+   @param   trace_nb    the trace number
+   @return  the row index or -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+cpl_size cr2res_get_trace_table_index(
+        const cpl_table     *   trace_wave,
+        int                     order,
+        int                     trace_nb)
+{
+    cpl_size        nrows, i ;
+
+    /* Check Entries */
+    if (trace_wave == NULL) return -1 ;
+
+    /* Initialise */
+    nrows = cpl_table_get_nrow(trace_wave) ;
+
+    /* Loop on the table rows */
+    for (i=0 ; i<nrows ; i++) {
+        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER,i,NULL)==order &&
+                cpl_table_get(trace_wave, CR2RES_COL_TRACENB,i,NULL)==trace_nb) 
+            return i ;
+    }
+    return -1 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+   @brief   Get the Wavelength polynomial from a TRACE_WAVE table
+   @param   tab     A TRACE_WAVE table
+   @return  The newly created polynomial or NULL in error case
+   The returned object must be de allocated with cpl_polynomial_delete()
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_get_wavelength_poly(
+        const cpl_table     *   trace_wave,
+        int                     order,
+        int                     trace_nb)
+{
+    const cpl_array     *   wave_arr ;
+    cpl_polynomial      *   wave_poly ;
+    cpl_size                index ;
+
+    /* Check Entries */
+    if (trace_wave == NULL) return NULL ;
+
+    /* Get Table index from order and trace */
+    index = cr2res_get_trace_table_index(trace_wave, order, trace_nb) ;
+
+    /* Read the Table */
+    wave_arr = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, index) ;
+
+    /* Convert to Polynomial */
+	wave_poly = cr2res_convert_array_to_poly(wave_arr) ;
+ 
+    return wave_poly ;
 }
 
 /*----------------------------------------------------------------------------*/

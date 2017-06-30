@@ -49,8 +49,6 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
-static int cr2res_util_genlines_save(cpl_table *, const cpl_parameterlist *,
-                cpl_frameset *);
 static int cr2res_util_genlines_create(cpl_plugin *);
 static int cr2res_util_genlines_exec(cpl_plugin *);
 static int cr2res_util_genlines_destroy(cpl_plugin *);
@@ -72,7 +70,7 @@ static char cr2res_util_genlines_description[] =
 "This recipe produces 1 file:\n"
 "First product:     the table with the lines.\n"
 "                   (PRO TYPE = "CR2RES_PROTYPE_CATALOG")\n" 
-"                   (PRO CATG = "CR2RES_EMMISION_LINES_PROCATG")\n" ;
+"                   (PRO CATG = "CR2RES_EMISSION_LINES_PROCATG")\n" ;
 
 /*-----------------------------------------------------------------------------
                                 Function code
@@ -269,7 +267,8 @@ static int cr2res_util_genlines(
 
     /* Save the table */
     cpl_msg_info(__func__, "Saving the table with %d rows", nvals) ;
-    if (cr2res_util_genlines_save(tab, parlist, frameset) == -1) {
+    if (cr2res_io_save_EMISSION_LINES(tab, parlist, frameset,
+                "cr2res_util_genlines") == -1) {
         cpl_msg_error(__func__, "Cannot write the table") ;
         cpl_bivector_delete(bivec) ;
         cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
@@ -284,39 +283,4 @@ static int cr2res_util_genlines(
     return 0 ;
 }
 
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Save the product of the recipe
-  @param    out_table   the table 
-  @param    parlist     the input list of parameters
-  @param    set         the input frame set
-  @return   0 if everything is ok, -1 otherwise
- */
-/*----------------------------------------------------------------------------*/
-static int cr2res_util_genlines_save(
-        cpl_table               *   out_table,
-        const cpl_parameterlist *   parlist,
-        cpl_frameset            *   set)
-{
-    cpl_propertylist    *   plist ;
-
-    plist = cpl_propertylist_new();
-    cpl_propertylist_append_string(plist, "INSTRUME", "CR2RES") ;
-    cpl_propertylist_append_string(plist, CPL_DFS_PRO_CATG, 
-            CR2RES_EMMISION_LINES_PROCATG) ;
-    cpl_propertylist_append_string(plist, CPL_DFS_PRO_TYPE,
-            CR2RES_PROTYPE_CATALOG) ;
-
-    if (cpl_dfs_save_table(set, NULL, parlist, set, NULL, out_table,
-                NULL, "cr2res_util_genlines", plist, NULL,
-                PACKAGE "/" PACKAGE_VERSION,
-                "cr2res_util_genlines.fits") != CPL_ERROR_NONE) {
-        cpl_msg_error(__func__, "Cannot save the table") ;
-        return -1 ;
-    }
-    cpl_propertylist_delete(plist) ;
-
-    /* Return */
-    return 0 ;
-}
 

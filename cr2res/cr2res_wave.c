@@ -29,6 +29,9 @@
 #include <string.h>
 
 #include <cpl.h>
+
+#include "irplib_wlxcorr.h"
+
 #include "cr2res_wave.h"
 #include "cr2res_io.h"
 #include "cr2res_pfits.h"
@@ -72,9 +75,11 @@ cpl_polynomial * cr2res_wave(
 {
     cpl_polynomial  *   solution ;
     cpl_bivector    *   ref_spectrum ;
+    int                 wl_error ;
 
     /* Initialise */
     solution = NULL ;
+    wl_error = 50 ;
 
     /* Switch on the possible methods */
     if (wavecal_type == CR2RES_LAMP) {
@@ -82,14 +87,18 @@ cpl_polynomial * cr2res_wave(
             solution = cr2res_wave_line_fitting(spectrum, initial_guess, NULL) ;
         } else {
             /* Create the lines spectrum from the lines list */
-            ref_spectrum = cr2res_wave_gen_lines_spectrum(static_file,
-                    initial_guess) ;
+            if ((ref_spectrum = cr2res_wave_gen_lines_spectrum(static_file,
+                    initial_guess, wl_error)) == NULL) {
+                cpl_msg_error(__func__, "Cannot generate catalog spectrum");
+                return NULL ;
+            }
             solution = cr2res_wave_xcorr(spectrum, initial_guess,
-                    ref_spectrum, display) ;
+                    wl_error, ref_spectrum, display) ;
             cpl_bivector_delete(ref_spectrum) ;
         }
     } else if (wavecal_type == CR2RES_GAS) {
-        solution = cr2res_wave_xcorr(spectrum, initial_guess, NULL, display) ;
+        solution = cr2res_wave_xcorr(spectrum, initial_guess, wl_error, NULL, 
+                display) ;
     } else if (wavecal_type == CR2RES_ETALON) {
         solution = cr2res_wave_etalon(spectrum, initial_guess) ;
     }
@@ -101,6 +110,7 @@ cpl_polynomial * cr2res_wave(
   @brief  Find solution by cross-correlating template spectrum
   @param    spectrum        Input spectrum
   @param    initial_guess   Starting wavelength solution
+  @param    wl_error        Max error in pixels of the initial guess
   @param    lines_list      Lines List (flux, wavelengths)
   @param    display         Flag to display results
   @return  Wavelength solution, i.e. polynomial that translates pixel
@@ -112,21 +122,131 @@ cpl_polynomial * cr2res_wave(
 cpl_polynomial * cr2res_wave_xcorr(
         cpl_vector      *   spectrum,
         cpl_polynomial  *   initial_guess,
+        int                 wl_error,
         cpl_bivector    *   lines_list,
         int                 display)
 {
+    cpl_vector          *   wl_errors ;
+    cpl_polynomial      *   sol ;
+    cpl_vector          *   spec_clean ;
+    double              *   pspec_clean ;
+    cpl_vector          *   filtered ;
+    cpl_vector          *   xcorrs ;
+    cpl_table           *   spc_table ;
+    double                  wl_min, wl_max, wl_error_wl ;
+    double                  xc, slit_width, fwhm ;
+    int                     i, nsamples, clean_spec, filt_size ;
+
     /* Check Entries */
     if (spectrum == NULL || initial_guess == NULL || lines_list == NULL)
         return NULL ;
 
+    /* Initialise */
+    nsamples = 100 ;
+    clean_spec = 1 ;
+    slit_width = 2.0 ;
+    fwhm = 2.0 ;
+    filt_size = 9 ;
 
-    if (display) {
-        /* Plot Reference Spectrum */
-
-        /* Plot Extracted Spectrum */
+    /* Compute wl boundaries */
+    wl_min = cpl_polynomial_eval_1d(initial_guess, 1, NULL);
+    wl_max = cpl_polynomial_eval_1d(initial_guess, CR2RES_DETECTOR_SIZE, NULL);
+    wl_error_wl = (wl_max-wl_min)*wl_error/CR2RES_DETECTOR_SIZE ;
+    
+    /* Clean the spectrum from the low frequency signal if requested */
+    if (clean_spec) {
+        cpl_msg_info(__func__, "Low Frequency removal from spectrum") ;
+        cpl_msg_indent_more() ;
+        /* Subrtract the low frequency part */
+        if ((filtered=cpl_vector_filter_median_create(spectrum, 
+                        filt_size))==NULL){
+            cpl_msg_error(__func__, "Cannot filter the spectrum") ;
+            spec_clean = cpl_vector_duplicate(spectrum) ;
+        } else {
+            spec_clean = cpl_vector_duplicate(spectrum) ;
+            cpl_vector_subtract(spec_clean, filtered) ;
+            cpl_vector_delete(filtered) ;
+        }
+        cpl_msg_indent_less() ;
+    } else {
+        spec_clean = cpl_vector_duplicate(spectrum) ;
     }
 
-    return NULL ;
+    /* Remove Negative values */
+    pspec_clean = cpl_vector_get_data(spec_clean) ;
+    for (i=0 ; i<cpl_vector_get_size(spec_clean) ; i++) 
+        if (pspec_clean[i] < 0.0) pspec_clean[i] = 0 ;
+
+    /* Display */
+    if (display) {
+        /* Plot Reference Spectrum */
+        cpl_plot_bivector(
+                "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Emission';",
+                "t 'Catalog Spectrum' w impulses", "", lines_list);
+        /* Plot Extracted Spectrum */
+        cpl_plot_vector(
+    "set grid;set xlabel 'Position (Pixel)';set ylabel 'Intensity (ADU/sec)';",
+                "t 'Extracted spectrum' w lines", "", spectrum);
+        /* Plot Extracted Spectrum */
+        cpl_plot_vector(
+    "set grid;set xlabel 'Position (Pixel)';set ylabel 'Intensity (ADU/sec)';",
+                "t 'Cleaned Extracted spectrum' w lines", "", spec_clean);
+    }
+
+    /* First solution */
+    cpl_msg_info(__func__, "Find the best linear solution") ;
+    cpl_msg_indent_more() ;
+    wl_errors = cpl_vector_new(2) ;
+    cpl_vector_fill(wl_errors, wl_error_wl) ;
+    cpl_msg_info(__func__, "    Wl error: %g nm (%d pix)",
+            wl_error_wl, wl_error) ;
+    cpl_msg_info(__func__, "    Nb of samples: %d", nsamples) ;
+    cpl_msg_info(__func__, "    Nb of candidates: %g", pow(nsamples, 2)) ;
+    if ((sol=irplib_wlxcorr_best_poly(spec_clean, lines_list, 1,
+                    initial_guess, wl_errors, nsamples, slit_width, fwhm, &xc,
+                    NULL, &xcorrs)) == NULL) {
+        cpl_msg_error(__func__, "Cannot calibrate") ;
+        cpl_msg_indent_less() ;
+        cpl_vector_delete(wl_errors) ;
+        cpl_vector_delete(spec_clean) ;
+        if (xcorrs != NULL) cpl_vector_delete(xcorrs) ;
+        cpl_error_reset() ;
+        return NULL ;
+    }
+    cpl_vector_delete(wl_errors) ;
+    cpl_msg_info(__func__, "Cross-Correlation factor: %g", xc) ;
+    cpl_msg_indent_less() ;
+
+    /* Second Iteration */
+    /* Third Iteration */
+
+    /* Plot the first correlation values */
+    if (display) {
+        cpl_plot_vector("set grid;",
+                "t 'Correlation values for the linear solution search' w lines",
+                "", xcorrs) ;
+    }
+    if (xcorrs != NULL) cpl_vector_delete(xcorrs) ;
+
+
+
+    /* Plot results table */
+    if (display) {
+        /* Create the spc_table  */
+        if ((spc_table = irplib_wlxcorr_gen_spc_table(spec_clean, lines_list,
+                        slit_width, fwhm, initial_guess, sol)) == NULL) {
+            cpl_msg_error(cpl_func, "Cannot generate infos table") ;
+        } else {
+			/* Plot */
+			irplib_wlxcorr_plot_spc_table(spc_table, "XC", 1, 3) ;
+			cpl_table_delete(spc_table) ;
+        }
+    }
+    cpl_vector_delete(spec_clean) ;
+
+
+
+    return sol ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -206,10 +326,7 @@ double cr2res_wave_etalon_fringe_stats(
 	cpl_vector	*	diffs;
 	cpl_vector	*	waves;
 
-
     /* cpl_plot_vector("", "w lines", "", peaks) ; */
-
-
 	num_peaks = cpl_vector_get_size(peaks);
     waves = cr2res_polynomial_eval_vector(initial_guess, peaks);
 	diffs = cpl_vector_new(num_peaks-1);
@@ -249,7 +366,6 @@ double cr2res_wave_etalon_fringe_stats(
     TODO : Add unit test with an atificial vector
  */
 /*----------------------------------------------------------------------------*/
-
 cpl_vector * cr2res_wave_etalon_measure_fringes(
             cpl_vector * spectrum)
 {
@@ -313,7 +429,7 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
                                     x0, sigma, area, offset);
         if ((k = cpl_array_count_invalid(peaks)) <1)
             cpl_msg_error(__func__,"Output array overflow!");
-        cpl_msg_debug(__func__,"k=%d, x0=%d",k,x0);
+        cpl_msg_debug(__func__,"k=%d, x0=%g",k,x0);
         cpl_array_set_double(peaks, max_num_peaks - k, x0);
 
         cpl_vector_delete(cur_peak);
@@ -347,25 +463,51 @@ cpl_vector * cr2res_wave_line_detection(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief
-  @param
-  @return
+  @brief    Load the emission lines in a bivector
+  @param    catalog         The catalog file
+  @param    initial_guess   The wavelength polynomial
+  @param    wl_error        Max error in pixels of the initial guess
+  @return   The lines spectrum 
  */
 /*----------------------------------------------------------------------------*/
 cpl_bivector * cr2res_wave_gen_lines_spectrum(
         const char      *   catalog,
-        cpl_polynomial  *   initial_guess)
+        cpl_polynomial  *   initial_guess,
+        int                 wl_error)
 {
+    cpl_bivector    *   lines ;
+    cpl_bivector    *   lines_sub ;
+    double          *   lines_sub_wl ;
+    double          *   lines_sub_intens ;
+    double              wl_error_wl, wl_min, wl_max ;
+    int                 i ;
+ 
+    /* Check Entries */
+    if (catalog == NULL || initial_guess == NULL) return NULL ;
 
+    /* Load the lines */
+    lines = cr2res_io_load_EMISSION_LINES(catalog) ;
 
+    /* Extract the needed spectrum */
+    wl_min = cpl_polynomial_eval_1d(initial_guess, 1, NULL);
+    wl_max = cpl_polynomial_eval_1d(initial_guess, CR2RES_DETECTOR_SIZE, NULL);
+    wl_error_wl = (wl_max-wl_min)*wl_error/CR2RES_DETECTOR_SIZE ;
+    lines_sub = irplib_wlxcorr_cat_extract(lines, wl_min-wl_error_wl,
+            wl_max+wl_error_wl) ;
 
+	/* Zero the beginning and the end */
+    lines_sub_wl = cpl_bivector_get_x_data(lines_sub) ;
+    lines_sub_intens = cpl_bivector_get_y_data(lines_sub) ;
+    for (i=0 ; i<cpl_bivector_get_size(lines_sub) ; i++) {
+        if (wl_min > 0) 
+            if (lines_sub_wl[i] < wl_min) lines_sub_intens[i] = 0.0 ;
+        if (wl_max > 0) 
+            if (lines_sub_wl[i] > wl_max) lines_sub_intens[i] = 0.0 ;
+    }
 
-
-
-
-
-
-    return NULL ;
+    /* Free and return */
+    cpl_bivector_delete(lines) ;
+    return lines_sub ;
 }
 
 /*----------------------------------------------------------------------------*/

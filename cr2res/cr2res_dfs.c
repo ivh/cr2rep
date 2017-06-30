@@ -84,6 +84,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_DARK_BPM_PROCATG)||
                 !strcmp(tag, CR2RES_TRACE_WAVE_PROCATG) ||
                 !strcmp(tag, CR2RES_WAVE_COEFFS_PROCATG) ||
+                !strcmp(tag, CR2RES_EMISSION_LINES_PROCATG) ||
                 !strcmp(tag, CR2RES_TILT_COEFFS_PROCATG)) {
             /* CALIB frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_CALIB);

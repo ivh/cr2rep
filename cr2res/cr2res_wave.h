@@ -42,6 +42,7 @@ cpl_polynomial * cr2res_wave(
 cpl_polynomial * cr2res_wave_xcorr(
         cpl_vector      *   spectrum,
         cpl_polynomial  *   initial_guess,
+        int                 wl_error,
         cpl_bivector    *   lines_list,
         int                 display) ;
 cpl_polynomial * cr2res_wave_line_fitting(
@@ -62,7 +63,8 @@ cpl_vector * cr2res_wave_line_detection(
 
 cpl_bivector * cr2res_wave_gen_lines_spectrum(
         const char      *   catalog,
-        cpl_polynomial  *   initial_guess) ;
+        cpl_polynomial  *   initial_guess,
+        int                 wl_error) ;
 
 cpl_array * cr2res_wave_get_estimate(
         const char  *   filename,

@@ -30,6 +30,8 @@
 
 #include <cpl.h>
 
+#include "irplib_wlxcorr.h"
+
 #include "cr2res_io.h"
 #include "cr2res_dfs.h"
 
@@ -117,6 +119,48 @@ int cr2res_io_get_ext_idx(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Load an EMISSION_LINES bivector
+  @param    filename    The FITS file name
+  @return   The returned object needs to be deallocated
+ */
+/*----------------------------------------------------------------------------*/
+cpl_bivector * cr2res_io_load_EMISSION_LINES(
+        const char  *   filename)
+{
+    cpl_bivector    *   lines ;
+    double          *   lines_x ;
+    double          *   lines_y ;
+    cpl_table       *   lines_tab ;
+    double              val ;
+    int                 i, tab_size, log_flag ;
+
+    /* Check Entries */
+    if (filename == NULL) return NULL ;
+
+    /* Initialise */
+    log_flag = 0 ;
+
+    /* Load the file in a table */
+    lines_tab = cpl_table_load(filename, 1, 1) ;
+    tab_size = cpl_table_get_nrow(lines_tab) ;
+
+    /* Create the bivector */
+    lines = cpl_bivector_new(tab_size) ;
+    lines_x = cpl_bivector_get_x_data(lines) ;
+    lines_y = cpl_bivector_get_y_data(lines) ;
+    for (i=0 ; i<tab_size ; i++) {
+        lines_x[i] = cpl_table_get(lines_tab, CR2RES_COL_WAVELENGTH, i, NULL) ;
+        val = cpl_table_get(lines_tab, CR2RES_COL_EMISSION, i, NULL) ;
+        if (log_flag && val > 0)    lines_y[i] = log10(val) ;
+        else                        lines_y[i] = val ;
+    }
+
+    /* Free and return */
+    cpl_table_delete(lines_tab) ;
+    return lines ;
+}
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Load an image from a MASTER_DARK
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
@@ -165,7 +209,6 @@ cpl_imagelist * cr2res_io_load_DETLIN_COEFFS(
 {
         return NULL ;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -229,7 +272,6 @@ cpl_table * cr2res_io_load_BLAZE(
         return NULL ;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Load an image from a BLAZE_IMAGE
@@ -245,7 +287,6 @@ cpl_image * cr2res_io_load_BLAZE_IMAGE(
 {
         return NULL ;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -265,7 +306,6 @@ cpl_image * cr2res_io_load_SLIT_MODEL(
         return NULL ;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Load an image from a WAVE_MAP
@@ -281,7 +321,6 @@ cpl_image * cr2res_io_load_WAVE_MAP(
 {
         return NULL ;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -299,7 +338,6 @@ cpl_table * cr2res_io_load_WAVE_SUB_ORDER(
         return NULL ;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Load an image from a SLITPOS_MAP
@@ -315,7 +353,6 @@ cpl_image * cr2res_io_load_SLITPOS_MAP(
 {
         return NULL ;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -333,7 +370,6 @@ cpl_image * cr2res_io_load_TILT_MAP(
         return NULL ;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Load a table from a TILT_POLY
@@ -349,7 +385,6 @@ cpl_table * cr2res_io_load_TILT_POLY(
 {
         return NULL ;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -395,7 +430,6 @@ cpl_table * cr2res_io_load_SPLICED_1D(
         return NULL ;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Load a table from a EXTRACT_2D
@@ -409,7 +443,6 @@ cpl_table * cr2res_io_load_EXTRACT_2D(
 {
         return NULL ;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -433,9 +466,50 @@ cpl_table * cr2res_io_load_EXTRACT_POL(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Save EMISSION_LINES file
+  @param   	table		The table to save
+  @param    parlist     The recipe input parameters
+  @param    set         The recipe input frames
+  @param    recipe      The recipe name
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_EMISSION_LINES(
+        cpl_table               *   out_table,
+        const cpl_parameterlist *   parlist,
+        cpl_frameset            *   set,
+        const char              *   recipe)
+{
+    cpl_propertylist    *   plist ;
+    char                *   fname ;
+
+    plist = cpl_propertylist_new();
+    cpl_propertylist_append_string(plist, "INSTRUME", "CR2RES") ;
+    cpl_propertylist_append_string(plist, CPL_DFS_PRO_CATG,
+            CR2RES_EMISSION_LINES_PROCATG) ;
+    cpl_propertylist_append_string(plist, CPL_DFS_PRO_TYPE,
+            CR2RES_PROTYPE_CATALOG) ;
+
+    fname = cpl_sprintf("%s.fits", recipe) ;
+    if (cpl_dfs_save_table(set, NULL, parlist, set, NULL, out_table,
+                NULL, recipe, plist, NULL,
+                PACKAGE "/" PACKAGE_VERSION, fname) != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Cannot save the table") ;
+        cpl_free(fname);
+        return -1 ;
+    }
+    cpl_free(fname);
+    cpl_propertylist_delete(plist) ;
+
+    /* Return */
+    return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Save a MASTER_DARK
-  @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    filename    The FITS file name
   @param    parlist     The recipe input parameters
   @param    master_darks  The data/error master darks (1 per detector)
   @param    qc_list     The QC parameters

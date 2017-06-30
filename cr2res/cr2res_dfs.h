@@ -28,6 +28,9 @@
 /* DEFINE HERE THE DIFFERENT COLUMN NAMES */
 #define CR2RES_COL_EMISSION         "Emission"          /* No Unit */
 #define CR2RES_COL_WAVELENGTH       "Wavelength"        /* In Nanometers */
+#define CR2RES_COL_ORDER            "Order"
+#define CR2RES_COL_TRACENB          "TraceNb"
+
 
 /* Define here the PRO.TYPE keywords */
 #define CR2RES_SLIT_FUNC_PROTYPE        "SLIT_FUNC"
@@ -49,7 +52,7 @@
 #define CR2RES_SLIT_MODEL_PROCATG       "SLIT_MODEL"
 #define CR2RES_EXTRACT_1D_PROCATG       "EXTRACT_1D"
 
-#define CR2RES_EMMISION_LINES_PROCATG   "EMMISION_LINES"
+#define CR2RES_EMISSION_LINES_PROCATG   "EMISSION_LINES"
 
 /* Define here the DO.CATG keywords */
 #define CR2RES_COMMAND_LINE             "COMMAND_LINE"

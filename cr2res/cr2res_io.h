@@ -37,6 +37,9 @@ int cr2res_io_get_ext_idx(
         const char  *   filename,
         int             detector) ;
 
+cpl_bivector * cr2res_io_load_EMISSION_LINES(
+        const char  *   filename) ;
+
 cpl_image * cr2res_io_load_MASTER_DARK(
         const char  *   filename,
         int             detector,
@@ -110,6 +113,12 @@ cpl_table * cr2res_io_load_EXTRACT_2D(
 cpl_table * cr2res_io_load_EXTRACT_POL(
         const char  *   filename,
         int             detector);
+
+int cr2res_io_save_EMISSION_LINES(
+        cpl_table               *   out_table,
+        const cpl_parameterlist *   parlist,
+        cpl_frameset            *   set,
+        const char              *   recipe) ;
 
 int cr2res_io_save_MASTER_DARK(
         cpl_frameset            *   allframes,
