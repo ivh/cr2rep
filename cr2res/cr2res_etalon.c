@@ -57,7 +57,7 @@ static cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector *) ;
 cpl_image * cr2res_etalon_computation(const cpl_image * in)
 {
     cpl_mask        *   mask ;
-    int                 nlabels ;
+    cpl_size            nlabels ;
     cpl_image       *   labels ;
     cpl_apertures   *   aperts ;
 
@@ -78,7 +78,7 @@ cpl_image * cr2res_etalon_computation(const cpl_image * in)
     }
     cpl_mask_delete(mask) ;
 
-    cpl_msg_debug(__func__, "Number of Apertures: %d", nlabels) ;
+    cpl_msg_debug(__func__, "Number of Apertures: %"CPL_SIZE_FORMAT, nlabels) ;
 
     /* Create the detected apertures list */
     if ((aperts = cpl_apertures_new_from_image(in, labels)) == NULL) {
@@ -197,17 +197,16 @@ static cpl_mask * cr2res_etalon_binary_image(const cpl_image * in)
 /*----------------------------------------------------------------------------*/
 static cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector * in)
 {
-    double      *   pin ;
-    cpl_vector  *   maxima_pos ;
-    double      *   pmax ;
-    int             nb_max ;
-    int             i ;
+    const double    *   pin ;
+    cpl_vector      *   maxima_pos ;
+    double          *   pmax ;
+    int                 i, nb_max ;
 
     /* Check Entries */
     if (in==NULL) return NULL ;
 
     /* Initialise */
-    pin = cpl_vector_get_data(in) ;
+    pin = cpl_vector_get_data_const(in) ;
 
     /* Count the number of Max positions */
     nb_max = 0 ;
