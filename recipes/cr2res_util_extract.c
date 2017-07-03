@@ -373,8 +373,8 @@ static int cr2res_util_extract(
             model_tmp = NULL ;
 
             /* Get Order and trace id */
-            order = cpl_table_get(trace_table, "Order", i, NULL) ;
-            trace_id = cpl_table_get(trace_table, "TraceNb", i, NULL) ;
+            order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
+            trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
 
             /* Check if this order needs to be skipped */
             if (reduce_order > -1 && order != reduce_order) {
@@ -410,6 +410,7 @@ static int cr2res_util_extract(
                 hdrl_image_add_image(model_master[det_nr-1], model_tmp) ;
                 hdrl_image_delete(model_tmp) ;
             }
+
             cpl_msg_indent_less() ;
         }
         cpl_image_delete(science_ima) ;

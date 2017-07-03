@@ -1052,6 +1052,7 @@ static int cr2res_io_save_image(
         const char              *   protype)
 {
     cpl_propertylist    *   qclist_loc ;
+    cpl_image           *   to_save ;
     char          		*   sval ;
     int                     ext ;
 
@@ -1081,8 +1082,10 @@ static int cr2res_io_save_image(
         qclist_loc = cpl_propertylist_new() ;
         sval = cpl_sprintf("CHIP%d", ext) ;
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", sval) ;
-        cpl_image_save(hdrl_image_get_image(data[ext-1]),
-                filename, CPL_BPP_IEEE_FLOAT, qclist_loc, CPL_IO_EXTEND) ;
+        if (data[ext-1] == NULL)    to_save = NULL ;
+        else                        to_save = hdrl_image_get_image(data[ext-1]);
+        cpl_image_save(to_save, filename, CPL_BPP_IEEE_FLOAT, qclist_loc, 
+                CPL_IO_EXTEND) ;
         cpl_propertylist_delete(qclist_loc) ;
         cpl_free(sval) ;
 
@@ -1090,8 +1093,10 @@ static int cr2res_io_save_image(
         qclist_loc = cpl_propertylist_new() ;
         sval = cpl_sprintf("CHIP%dERR", ext) ;
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", sval) ;
-        cpl_image_save(hdrl_image_get_error(data[ext-1]),
-                filename, CPL_BPP_IEEE_FLOAT, qclist_loc, CPL_IO_EXTEND) ;
+        if (data[ext-1] == NULL)    to_save = NULL ;
+        else                        to_save = hdrl_image_get_error(data[ext-1]);
+        cpl_image_save(to_save, filename, CPL_BPP_IEEE_FLOAT, qclist_loc, 
+                CPL_IO_EXTEND) ;
         cpl_propertylist_delete(qclist_loc) ;
         cpl_free(sval) ;
     }

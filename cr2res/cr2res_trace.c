@@ -29,6 +29,7 @@
 #include <string.h>
 
 #include <cpl.h>
+#include "cr2res_dfs.h"
 #include "cr2res_trace.h"
 #include "cr2res_utils.h"
 #include "cr2res_cluster.h"
@@ -407,14 +408,14 @@ cpl_image * cr2res_trace_gen_image(
     /* Loop on the traces */
     for (i=0 ; i<cpl_table_get_nrow(trace) ; i++) {
         /* Get the Order */
-        order = cpl_table_get(trace, "Order", i, NULL) ;
+        order = cpl_table_get(trace, CR2RES_COL_ORDER, i, NULL) ;
 
         /* Get the Upper polynomial*/
-        coeffs_upper = cpl_table_get_array(trace, "Upper", i) ;
+        coeffs_upper = cpl_table_get_array(trace, CR2RES_COL_UPPER, i) ;
         poly_upper = cr2res_convert_array_to_poly(coeffs_upper) ;
 
         /* Get the Lower polynomial*/
-        coeffs_lower = cpl_table_get_array(trace, "Lower", i) ;
+        coeffs_lower = cpl_table_get_array(trace, CR2RES_COL_LOWER, i) ;
         poly_lower = cr2res_convert_array_to_poly(coeffs_lower) ;
             
         /* Draw It  */
@@ -460,7 +461,7 @@ int * cr2res_trace_get_order_numbers(
 
     /* Initialise */
     nrows = cpl_table_get_nrow(trace) ;
-    porders = cpl_table_get_data_int(trace, "Order");
+    porders = cpl_table_get_data_int(trace, CR2RES_COL_ORDER);
 
     /* Allocate orders list */
     tmp_orders_list = cpl_malloc(nrows * sizeof(int)) ;
@@ -523,8 +524,8 @@ cpl_polynomial ** cr2res_trace_wave_get_polynomials(
 
     /* Initialise */
     nrows = cpl_table_get_nrow(trace) ;
-    porders = cpl_table_get_data_int(trace, "Order");
-    ptraces = cpl_table_get_data_int(trace, "TraceNb");
+    porders = cpl_table_get_data_int(trace, CR2RES_COL_ORDER);
+    ptraces = cpl_table_get_data_int(trace, CR2RES_COL_TRACENB);
 
     /* Allocate the returned pointer */
     polys = cpl_malloc(2 * sizeof(cpl_polynomial*)) ;
@@ -534,10 +535,10 @@ cpl_polynomial ** cr2res_trace_wave_get_polynomials(
         /* If order found */
         if (porders[i] == order_nb && ptraces[i] == trace_nb) {
             /* Get the Upper polynomial*/
-            coeffs = cpl_table_get_array(trace, "Upper", i) ;
+            coeffs = cpl_table_get_array(trace, CR2RES_COL_UPPER, i) ;
             polys[0] = cr2res_convert_array_to_poly(coeffs) ;
             /* Get the Lower polynomial*/
-            coeffs = cpl_table_get_array(trace, "Lower", i) ;
+            coeffs = cpl_table_get_array(trace, CR2RES_COL_LOWER, i) ;
             polys[1] = cr2res_convert_array_to_poly(coeffs) ;
             return polys ;
         }
@@ -642,7 +643,7 @@ double cr2res_trace_get_trace_ypos(
     if (idx >= cpl_table_get_nrow(traces)) return -1.0 ;
 
 	/* Get the trace polynomial*/
-	coeffs = cpl_table_get_array(traces, "All", idx) ;
+	coeffs = cpl_table_get_array(traces, CR2RES_COL_ALL, idx) ;
     poly = cr2res_convert_array_to_poly(coeffs) ;
 
     /* Evaluate the central pixel */
@@ -750,17 +751,20 @@ static cpl_table * cr2res_trace_fit_traces(
     if (clustertable == NULL) return NULL ;
 
     /* Create the output table */
-    nclusters = cpl_table_get_column_max(clustertable, "clusters");
+    nclusters = cpl_table_get_column_max(clustertable, CR2RES_COL_CLUSTERS);
     traces_table = cpl_table_new(nclusters);
-    cpl_table_new_column_array(traces_table, "All", CPL_TYPE_DOUBLE,degree+1) ;
-    cpl_table_new_column_array(traces_table, "Upper",CPL_TYPE_DOUBLE,degree+1) ;
-    cpl_table_new_column_array(traces_table, "Lower",CPL_TYPE_DOUBLE,degree+1) ;
+    cpl_table_new_column_array(traces_table, CR2RES_COL_ALL, CPL_TYPE_DOUBLE, 
+            degree+1) ;
+    cpl_table_new_column_array(traces_table, CR2RES_COL_UPPER, CPL_TYPE_DOUBLE,
+            degree+1) ;
+    cpl_table_new_column_array(traces_table, CR2RES_COL_LOWER, CPL_TYPE_DOUBLE,
+            degree+1) ;
 
     /* Loop on the clusters */
     for (i=1 ; i<=nclusters ; i++) {
         /* Select the pixels of the current cluster */
-        nclusters_cur = cpl_table_and_selected_int(clustertable, "clusters",
-                CPL_EQUAL_TO, i);
+        nclusters_cur = cpl_table_and_selected_int(clustertable,
+                CR2RES_COL_CLUSTERS, CPL_EQUAL_TO, i);
         cpl_msg_debug(__func__, "Cluster %d has %"CPL_SIZE_FORMAT" pixels",
                 i, nclusters_cur);
 
@@ -779,13 +783,15 @@ static cpl_table * cr2res_trace_fit_traces(
         /* Fit the upper edge of the current trace */
         fitparams_upper = cr2res_trace_fit_trace(edge_upper_table, degree);
         cpl_table_delete(edge_upper_table);
-        cpl_table_set_array(traces_table, "Upper", i-1, fitparams_upper);
+        cpl_table_set_array(traces_table, CR2RES_COL_UPPER, i-1, 
+                fitparams_upper);
         cpl_array_delete(fitparams_upper);
 
         /* Fit the lower edge of the current trace */
         fitparams_lower = cr2res_trace_fit_trace(edge_lower_table, degree);
         cpl_table_delete(edge_lower_table);
-        cpl_table_set_array(traces_table, "Lower", i-1, fitparams_lower);
+        cpl_table_set_array(traces_table, CR2RES_COL_LOWER, i-1, 
+                fitparams_lower);
         cpl_array_delete(fitparams_lower);
 
         cpl_table_delete(trace_table);
@@ -836,8 +842,8 @@ static cpl_array * cr2res_trace_fit_trace(
     x = cpl_matrix_new(1, n) ;
     y = cpl_vector_new(n) ;
 
-    xs = cpl_table_get_data_int(table,"xs");
-    ys = cpl_table_get_data_int(table,"ys");
+    xs = cpl_table_get_data_int(table, CR2RES_COL_XS);
+    ys = cpl_table_get_data_int(table, CR2RES_COL_YS);
     for (i=0 ; i<n ; i++) {
         /* Compute x_min and x_max */
         if (x_min < 0 || xs[i] < x_min) x_min = xs[i] ;
@@ -896,12 +902,11 @@ static cpl_image * cr2res_trace_convert_cluster_to_labels(
 
     /* Create labels image  */
     labels = cpl_image_new(nx, ny, CPL_TYPE_INT);
-    pxs = cpl_table_get_data_int_const(cluster, "xs") ;
-    pys = cpl_table_get_data_int_const(cluster, "ys") ;
-    pclusters = cpl_table_get_data_int_const(cluster, "clusters") ;
+    pxs = cpl_table_get_data_int_const(cluster, CR2RES_COL_XS) ;
+    pys = cpl_table_get_data_int_const(cluster, CR2RES_COL_YS) ;
+    pclusters = cpl_table_get_data_int_const(cluster, CR2RES_COL_CLUSTERS) ;
     for (i=0 ; i<cpl_table_get_nrow(cluster) ; i++)
         cpl_image_set(labels, pxs[i], pys[i], pclusters[i]);
-
     return labels ;
 }
 
@@ -934,17 +939,19 @@ static cpl_table * cr2res_trace_convert_labels_to_cluster(cpl_image * labels)
 
     /* Create the output table */
     clustertable = cpl_table_new(nb_table_entries);
-    cpl_table_new_column(clustertable, "xs", CPL_TYPE_INT) ;
-    cpl_table_new_column(clustertable, "ys", CPL_TYPE_INT) ;
-    cpl_table_new_column(clustertable, "clusters", CPL_TYPE_INT) ;
+    cpl_table_new_column(clustertable, CR2RES_COL_XS, CPL_TYPE_INT) ;
+    cpl_table_new_column(clustertable, CR2RES_COL_YS, CPL_TYPE_INT) ;
+    cpl_table_new_column(clustertable, CR2RES_COL_CLUSTERS, CPL_TYPE_INT) ;
     nb_table_entries = 0 ;
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
             if (plabels[i+j*nx] > 0.5) {
-                cpl_table_set_int(clustertable, "xs", nb_table_entries, i+1) ;
-                cpl_table_set_int(clustertable, "ys", nb_table_entries, j+1) ;
-                cpl_table_set_int(clustertable, "clusters", nb_table_entries,
-                        plabels[i+j*nx]) ;
+                cpl_table_set_int(clustertable, CR2RES_COL_XS, nb_table_entries,
+                        i+1) ;
+                cpl_table_set_int(clustertable, CR2RES_COL_YS, nb_table_entries,
+                        j+1) ;
+                cpl_table_set_int(clustertable, CR2RES_COL_CLUSTERS, 
+                        nb_table_entries, plabels[i+j*nx]) ;
                 nb_table_entries ++ ;
             }
         }
@@ -1044,11 +1051,11 @@ static int cr2res_trace_extract_edges(
             edge_upper_table == NULL) return -1 ;
 
     /* Initialise */
-    pxs = cpl_table_get_data_int_const(pixels_table, "xs") ;
-    pys = cpl_table_get_data_int_const(pixels_table, "ys") ;
+    pxs = cpl_table_get_data_int_const(pixels_table, CR2RES_COL_XS) ;
+    pys = cpl_table_get_data_int_const(pixels_table, CR2RES_COL_YS) ;
 
     /* Get the maximum x position */
-    max_x = (int)cpl_table_get_column_max(pixels_table, "xs") ;
+    max_x = (int)cpl_table_get_column_max(pixels_table, CR2RES_COL_XS) ;
 
     /* Allocate  */
     min_y = cpl_malloc(max_x * sizeof(int)) ;
@@ -1066,8 +1073,8 @@ static int cr2res_trace_extract_edges(
     /* Upper Edge extraction */
     upper_sel = cpl_table_duplicate(pixels_table) ;
     cpl_table_unselect_all(upper_sel) ;
-    pxs = cpl_table_get_data_int_const(upper_sel, "xs") ;
-    pys = cpl_table_get_data_int_const(upper_sel, "ys") ;
+    pxs = cpl_table_get_data_int_const(upper_sel, CR2RES_COL_XS) ;
+    pys = cpl_table_get_data_int_const(upper_sel, CR2RES_COL_YS) ;
     for (i=0 ; i<cpl_table_get_nrow(upper_sel) ; i++)
         if (max_y[pxs[i]-1] == pys[i])
             cpl_table_select_row(upper_sel, i) ;
@@ -1078,8 +1085,8 @@ static int cr2res_trace_extract_edges(
     /* Lower Edge extraction */
     lower_sel = cpl_table_duplicate(pixels_table) ;
     cpl_table_unselect_all(lower_sel) ;
-    pxs = cpl_table_get_data_int_const(lower_sel, "xs") ;
-    pys = cpl_table_get_data_int_const(lower_sel, "ys") ;
+    pxs = cpl_table_get_data_int_const(lower_sel, CR2RES_COL_XS) ;
+    pys = cpl_table_get_data_int_const(lower_sel, CR2RES_COL_YS) ;
     for (i=0 ; i<cpl_table_get_nrow(lower_sel) ; i++)
         if (min_y[pxs[i]-1] == pys[i])
             cpl_table_select_row(lower_sel, i) ;

@@ -547,8 +547,9 @@ cpl_array * cr2res_wave_get_estimate(
     wmax = cr2res_pfits_get_wmax(plist, order) ;
     cpl_propertylist_delete(plist) ;
     if (cpl_error_get_code() != CPL_ERROR_NONE) {
-        cpl_msg_error(__func__, "Cannot get WMIN/WMAX from header, order "
-                            "%d, detector %d", order, detector) ;
+        cpl_msg_error(__func__, 
+                "Cannot get WMIN/WMAX from header for Detector %d / Order %d", 
+                detector, order) ;
         return NULL ;
     }
 

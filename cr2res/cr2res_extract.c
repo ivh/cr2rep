@@ -26,6 +26,7 @@
  -----------------------------------------------------------------------------*/
 #include <math.h>
 #include <cpl.h>
+#include "cr2res_dfs.h"
 #include "cr2res_trace.h"
 #include "cr2res_extract.h"
 
@@ -193,7 +194,7 @@ int cr2res_extract_slitdec_vert(
         ycen_int[i] = (int)cpl_vector_get(ycen,i) ;
         ycen_rest[i] = fmod(cpl_vector_get(ycen,i), 1.0) ;
         cpl_vector_set(spc, i, 0.0);
-        for(j=0;j<leny;j++) cpl_image_set(img_out,i,j,0.0);
+        for(j=0;j<leny;j++) cpl_image_set(img_out, i+1, j+1, 0.0);
     }
     cpl_vector_delete(ycen) ;
     /* Pre-calculate the weights for overlapping swaths*/
@@ -348,8 +349,8 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
     /* Create the table */
     out = cpl_table_new(nrows);
     for (i=0 ; i<nb_traces ; i++) {
-        order = cpl_table_get(trace_table, "Order", i, NULL) ;
-        trace_id = cpl_table_get(trace_table, "TraceNb", i, NULL) ;
+        order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
+        trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
         col_name = cpl_sprintf("%02d_%02d_SPEC", order, trace_id) ;
         cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
         cpl_free(col_name) ;
@@ -358,8 +359,8 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
     /* Fill the table */
     for (i=0 ; i<nb_traces ; i++) {
         if (spectrum[i] != NULL) {
-            order = cpl_table_get(trace_table, "Order", i, NULL) ;
-            trace_id = cpl_table_get(trace_table, "TraceNb", i, NULL) ;
+            order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
+            trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
             pspec = cpl_vector_get_data_const(spectrum[i]) ;
             col_name = cpl_sprintf("%02d_%02d_SPEC", order, trace_id) ;
             cpl_table_copy_data_double(out, col_name, pspec) ;
@@ -409,8 +410,8 @@ cpl_table * cr2res_extract_SLITFUNC_create(
     /* Create the table */
     out = cpl_table_new(nrows);
     for (i=0 ; i<nb_traces ; i++) {
-        order = cpl_table_get(trace_table, "Order", i, NULL) ;
-        trace_id = cpl_table_get(trace_table, "TraceNb", i, NULL) ;
+        order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
+        trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
         col_name = cpl_sprintf("%02d_%02d_SLIT_FUNC", order, trace_id) ;
         cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
         cpl_free(col_name) ;
@@ -419,8 +420,8 @@ cpl_table * cr2res_extract_SLITFUNC_create(
     /* Fill the table */
     for (i=0 ; i<nb_traces ; i++) {
         if (slit_func[i] != NULL) {
-            order = cpl_table_get(trace_table, "Order", i, NULL) ;
-            trace_id = cpl_table_get(trace_table, "TraceNb", i, NULL) ;
+            order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
+            trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
             pslit = cpl_vector_get_data_const(slit_func[i]) ;
             col_name = cpl_sprintf("%02d_%02d_SLIT_FUNC", order, trace_id) ;
             cpl_table_copy_data_double(out, col_name, pslit) ;

@@ -26,6 +26,7 @@
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
+#include "cr2res_dfs.h"
 #include "cr2res_cluster.h"
 
 /*-----------------------------------------------------------------------------
@@ -417,9 +418,9 @@ cpl_table * cr2res_cluster_detect(
 
     /* Put result into a table*/
     table = cpl_table_new(npix);
-    cpl_table_wrap_int(table,xs,"xs");
-    cpl_table_wrap_int(table,ys,"ys");
-    cpl_table_wrap_int(table,clusters,"clusters");
+    cpl_table_wrap_int(table, xs, CR2RES_COL_XS);
+    cpl_table_wrap_int(table, ys, CR2RES_COL_YS);
+    cpl_table_wrap_int(table, clusters, CR2RES_COL_CLUSTERS);
 
     return table;
 }

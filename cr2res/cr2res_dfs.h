@@ -30,7 +30,12 @@
 #define CR2RES_COL_WAVELENGTH       "Wavelength"        /* In Nanometers */
 #define CR2RES_COL_ORDER            "Order"
 #define CR2RES_COL_TRACENB          "TraceNb"
-
+#define CR2RES_COL_UPPER            "Upper"
+#define CR2RES_COL_LOWER            "Lower"
+#define CR2RES_COL_ALL              "All"
+#define CR2RES_COL_XS               "xs"
+#define CR2RES_COL_YS               "ys"
+#define CR2RES_COL_CLUSTERS         "clusterѕ"
 
 /* Define here the PRO.TYPE keywords */
 #define CR2RES_SLIT_FUNC_PROTYPE        "SLIT_FUNC"

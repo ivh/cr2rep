@@ -245,7 +245,7 @@ static int cr2res_util_trace(
     cpl_array           *   wl_array ;
     cpl_table           *   traces[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   plist ;
-    int                     i, j, nb_orders, trace_nb ;
+    int                     i, j, nb_orders, trace_nb, trace_id ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -321,7 +321,7 @@ static int cr2res_util_trace(
         cpl_msg_indent_less() ;
 
         /* Add The Order column using the header */
-        cpl_table_new_column(traces[det_nr-1], "Order", CPL_TYPE_INT) ;
+        cpl_table_new_column(traces[det_nr-1], CR2RES_COL_ORDER, CPL_TYPE_INT) ;
 
         /* Loop on the traces */
         for (i=0 ; i<cpl_table_get_nrow(traces[det_nr-1]) ; i++) {
@@ -336,12 +336,12 @@ static int cr2res_util_trace(
             cpl_propertylist_delete(plist) ;
 
             /* Store the Order in the table */
-            cpl_table_set(traces[det_nr-1], "Order", i, order);
+            cpl_table_set(traces[det_nr-1], CR2RES_COL_ORDER, i, order);
         }
 
 
         /* Add The TraceNb column */
-        cpl_table_new_column(traces[det_nr-1], "TraceNb", CPL_TYPE_INT) ;
+        cpl_table_new_column(traces[det_nr-1], CR2RES_COL_TRACENB,CPL_TYPE_INT);
 
         orders = cr2res_trace_get_order_numbers(traces[det_nr-1], &nb_orders) ;
         for (i=0 ; i<nb_orders ; i++) {
@@ -349,8 +349,10 @@ static int cr2res_util_trace(
             trace_nb = 1 ;
             /* Loop on the traces */
             for (j=0 ; j<cpl_table_get_nrow(traces[det_nr-1]) ; j++) {
-                if (cpl_table_get(traces[det_nr-1],"Order",j,NULL)==orders[i]) {
-                    cpl_table_set(traces[det_nr-1], "TraceNb", j, trace_nb);
+                if (cpl_table_get(traces[det_nr-1], CR2RES_COL_ORDER, j, 
+                            NULL) == orders[i]) {
+                    cpl_table_set(traces[det_nr-1], CR2RES_COL_TRACENB, j, 
+                            trace_nb);
                     trace_nb ++ ;
                 }
             }
@@ -358,23 +360,29 @@ static int cr2res_util_trace(
         cpl_free(orders) ;
 
         /* Add The Wavelength column using the header */
-        cpl_table_new_column_array(traces[det_nr-1], "Wavelength",
+        cpl_table_new_column_array(traces[det_nr-1], CR2RES_COL_WAVELENGTH,
                 CPL_TYPE_DOUBLE, 2) ;
 
         /* Loop on the traces */
         for (i=0 ; i<cpl_table_get_nrow(traces[det_nr-1]) ; i++) {
             /* Get the Order number */
-            order = cpl_table_get(traces[det_nr-1], "Order", i, NULL) ;
+            order = cpl_table_get(traces[det_nr-1], CR2RES_COL_ORDER, i, NULL) ;
+            trace_id = cpl_table_get(traces[det_nr-1], CR2RES_COL_TRACENB, i, 
+                    NULL) ;
 
             /* Get the Wavelength estimates from the header */
             if ((wl_array = cr2res_wave_get_estimate(flat_file, det_nr,
                             order)) == NULL) {
-                cpl_msg_warning(__func__, "No WAVE Header information") ;
+                cpl_msg_warning(__func__, 
+                        "No Wavelength estimate for Detector %d / order %d",
+                        det_nr, order) ;
                 cpl_error_reset() ;
-                cpl_table_set_array(traces[det_nr-1], "Wavelength", i, NULL);
+                cpl_table_set_array(traces[det_nr-1], CR2RES_COL_WAVELENGTH, i,
+                        NULL);
             } else {
                 /* Store the Wavelength in the table */
-                cpl_table_set_array(traces[det_nr-1], "Wavelength", i,wl_array);
+                cpl_table_set_array(traces[det_nr-1], CR2RES_COL_WAVELENGTH, i,
+                        wl_array);
                 cpl_array_delete(wl_array) ;
             }
         }
