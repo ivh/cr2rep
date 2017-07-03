@@ -202,14 +202,6 @@ int cr2res_io_save_WAVE_MAP(
         const cpl_propertylist  *   qc_list,
         const char              *   recipe);
 
-int cr2res_io_save_WAVE_SUB_ORDER(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        const cpl_parameterlist *   parlist,
-        cpl_table               **  tables,
-        const cpl_propertylist  *   qc_list,
-        const char              *   recipe);
-
 int cr2res_io_save_SLITPOS_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,

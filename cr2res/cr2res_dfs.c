@@ -93,4 +93,32 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
     return CPL_ERROR_NONE;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the SPEC table column name for a given order/trace
+  @param    order       The order number (1->) 
+  @param    trace       The trace number (1->)
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_SPEC_colname(int order, int trace)
+{
+    return cpl_sprintf("%02d_%02d_%s", order, trace, CR2RES_COL_SPEC_SUFFIX);
+}
+ 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the SLIT_FUNC table column name for a given order/trace
+  @param    order       The order number (1->)
+  @param    trace       The trace number (1->)
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_SLIT_FUNC_colname(int order, int trace)
+{
+    return cpl_sprintf("%02d_%02d_%s", order,trace,CR2RES_COL_SLIT_FUNC_SUFFIX);
+}
+ 
 /**@}*/

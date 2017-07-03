@@ -26,16 +26,31 @@
 
 /******************************************/
 /* DEFINE HERE THE DIFFERENT COLUMN NAMES */
-#define CR2RES_COL_EMISSION         "Emission"          /* No Unit */
-#define CR2RES_COL_WAVELENGTH       "Wavelength"        /* In Nanometers */
-#define CR2RES_COL_ORDER            "Order"
-#define CR2RES_COL_TRACENB          "TraceNb"
-#define CR2RES_COL_UPPER            "Upper"
-#define CR2RES_COL_LOWER            "Lower"
-#define CR2RES_COL_ALL              "All"
-#define CR2RES_COL_XS               "xs"
-#define CR2RES_COL_YS               "ys"
-#define CR2RES_COL_CLUSTERS         "clusterѕ"
+/*** EMISSION_LINES Table ***/
+#define CR2RES_COL_EMISSION         "Emission"      /* No Unit */
+#define CR2RES_COL_WAVELENGTH       "Wavelength"    /* In Nanometers */
+/*** TRACE_WAVE Table ***/
+#define CR2RES_COL_UPPER            "Upper"         /* pixel position */
+#define CR2RES_COL_LOWER            "Lower"         /* pixel position */
+#define CR2RES_COL_ALL              "All"           /* pixel position */
+#define CR2RES_COL_ORDER            "Order"         /* 1 .. nborders */
+#define CR2RES_COL_TRACENB          "TraceNb"       /* 1 .. traces */
+/*** Clusters Table ***/
+#define CR2RES_COL_XS               "xs"            /* pixel position */
+#define CR2RES_COL_YS               "ys"            /* pixel position */
+#define CR2RES_COL_CLUSTERS         "clusterѕ"      /* cluster label */
+
+/* SLIT_FUNC Table */
+#define CR2RES_COL_SLIT_FUNC_SUFFIX "SLIT_FUNC"     /* Intensity */
+
+/* EXTRACT_1D Table */
+#define CR2RES_COL_SPEC_SUFFIX      "SPEC"          /* Intensity */
+
+/* BLAZE Table */
+/* TILT_POLY Table */
+/* SPLICED_1D Table */
+/* EXTRACT_2D Table */
+/* EXTRACT_POL Table */
 
 /* Define here the PRO.TYPE keywords */
 #define CR2RES_SLIT_FUNC_PROTYPE        "SLIT_FUNC"
@@ -73,5 +88,7 @@
  -----------------------------------------------------------------------------*/
 
 cpl_error_code cr2res_dfs_set_groups(cpl_frameset *);
+char * cr2res_dfs_SPEC_colname(int, int) ;
+char * cr2res_dfs_SLIT_FUNC_colname(int, int) ;
 
 #endif

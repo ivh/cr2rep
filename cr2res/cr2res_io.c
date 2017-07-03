@@ -324,22 +324,6 @@ cpl_image * cr2res_io_load_WAVE_MAP(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load a table from a WAVE_SUB_ORDER
-  @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
-  @return   A table or NULL in error case. The returned object
-              needs to be deallocated
- */
-/*----------------------------------------------------------------------------*/
-cpl_table * cr2res_io_load_WAVE_SUB_ORDER(
-        const char  *   filename,
-        int             detector)
-{
-        return NULL ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Load an image from a SLITPOS_MAP
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)

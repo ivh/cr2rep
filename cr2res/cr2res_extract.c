@@ -351,7 +351,7 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
     for (i=0 ; i<nb_traces ; i++) {
         order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
         trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
-        col_name = cpl_sprintf("%02d_%02d_SPEC", order, trace_id) ;
+        col_name = cr2res_dfs_SPEC_colname(order, trace_id) ;
         cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
         cpl_free(col_name) ;
     }
@@ -362,7 +362,7 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
             order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
             trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
             pspec = cpl_vector_get_data_const(spectrum[i]) ;
-            col_name = cpl_sprintf("%02d_%02d_SPEC", order, trace_id) ;
+            col_name = cr2res_dfs_SPEC_colname(order, trace_id) ;
             cpl_table_copy_data_double(out, col_name, pspec) ;
             cpl_free(col_name) ;
         }
@@ -412,7 +412,7 @@ cpl_table * cr2res_extract_SLITFUNC_create(
     for (i=0 ; i<nb_traces ; i++) {
         order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
         trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
-        col_name = cpl_sprintf("%02d_%02d_SLIT_FUNC", order, trace_id) ;
+        col_name = cr2res_dfs_SLIT_FUNC_colname(order, trace_id) ;
         cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
         cpl_free(col_name) ;
     }
@@ -423,7 +423,7 @@ cpl_table * cr2res_extract_SLITFUNC_create(
             order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
             trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
             pslit = cpl_vector_get_data_const(slit_func[i]) ;
-            col_name = cpl_sprintf("%02d_%02d_SLIT_FUNC", order, trace_id) ;
+            col_name = cr2res_dfs_SLIT_FUNC_colname(order, trace_id) ;
             cpl_table_copy_data_double(out, col_name, pslit) ;
             cpl_free(col_name) ;
         }
@@ -455,7 +455,7 @@ cpl_vector * cr2res_extract_EXTRACT1D_get_spectrum(
     if (tab == NULL) return NULL ;
 
     /* Col name */
-    col_name = cpl_sprintf("%02d_%02d_SPEC", order, trace_nb) ;
+    col_name = cr2res_dfs_SPEC_colname(order, trace_nb) ;
 
     /* Get the column */
     if ((pcol = cpl_table_get_data_double(tab, col_name)) == NULL) {

@@ -433,6 +433,7 @@ static int cr2res_util_wave(
                             order, trace_id)) == NULL) {
                 cpl_msg_error(__func__, "Cannot get the initial guess") ;
                 cpl_msg_indent_less() ;
+                cpl_vector_delete(extracted_vec) ;
                 continue ;
             }
 
