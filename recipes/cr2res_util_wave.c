@@ -198,6 +198,13 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.degree",
+            CPL_TYPE_INT, "Wavelegth Polynomial degree",
+            "cr2res.cr2res_util_wave", 3);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "degree");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.display",
             CPL_TYPE_BOOL, "Flag for display",
             "cr2res.cr2res_util_wave", FALSE);
@@ -260,7 +267,7 @@ static int cr2res_util_wave(
 {
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
-                            line_fitting, display ;
+                            line_fitting, degree, display ;
     cpl_frame           *   fr ;
     const char          *   sval ;
     cr2res_wavecal_type     wavecal_type ;
@@ -285,6 +292,9 @@ static int cr2res_util_wave(
     wavecal_type = CR2RES_UNSPECIFIED ;
 
     /* RETRIEVE INPUT PARAMETERS */
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_wave.degree");
+    degree = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -315,6 +325,11 @@ static int cr2res_util_wave(
  
     /* Check Parameters */
     /* TODO */
+    if (degree < 0) {
+        cpl_msg_error(__func__, "The degree needs to be >= 0");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset) != CPL_ERROR_NONE) {
@@ -393,10 +408,9 @@ static int cr2res_util_wave(
         out_trace_wave[det_nr-1] = cpl_table_duplicate(trace_wave_table) ;
 
         /* Clear the Wavelength column */
-        for (i=0 ; i<nb_traces ; i++) {
-            cpl_table_set_array(out_trace_wave[det_nr-1],
-                    CR2RES_COL_WAVELENGTH, i, NULL) ;
-        }
+        cpl_table_erase_column(out_trace_wave[det_nr-1], CR2RES_COL_WAVELENGTH);
+        cpl_table_new_column_array(out_trace_wave[det_nr-1], 
+                CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, degree+1) ;
 
         /* Loop over the traces spectra */
         for (i=0 ; i<nb_traces ; i++) {
@@ -439,7 +453,8 @@ static int cr2res_util_wave(
 
             /* Call the Wavelength Calibration */
             if ((wave_sol = cr2res_wave(extracted_vec, init_guess, wavecal_type,
-                            line_fitting, static_calib_file, display))==NULL) {
+                            line_fitting, static_calib_file, degree, 
+                            display))==NULL) {
                 cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
                 cpl_polynomial_delete(init_guess) ;
                 cpl_vector_delete(extracted_vec) ;
@@ -451,12 +466,13 @@ static int cr2res_util_wave(
             cpl_polynomial_delete(init_guess) ;
 
             /* Store the Solution in the table */
-            wl_array = cr2res_convert_poly_to_array(wave_sol) ;
+            wl_array = cr2res_convert_poly_to_array(wave_sol, degree+1) ;
             cpl_polynomial_delete(wave_sol);
-            cpl_table_set_array(out_trace_wave[det_nr-1], 
-                    CR2RES_COL_WAVELENGTH, i, wl_array);
-            cpl_array_delete(wl_array) ;
-
+            if (wl_array != NULL) {
+                cpl_table_set_array(out_trace_wave[det_nr-1], 
+                        CR2RES_COL_WAVELENGTH, i, wl_array);
+                cpl_array_delete(wl_array) ;
+            }
             cpl_msg_indent_less() ;
         }
         cpl_table_delete(trace_wave_table) ;

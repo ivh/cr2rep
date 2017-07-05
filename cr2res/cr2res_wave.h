@@ -38,12 +38,14 @@ cpl_polynomial * cr2res_wave(
         cr2res_wavecal_type     wavecal_type,
         int                     line_fitting,
         const char          *   static_file,
+        int                     degree,
         int                 	display) ;
 cpl_polynomial * cr2res_wave_xcorr(
         cpl_vector      *   spectrum,
         cpl_polynomial  *   initial_guess,
         int                 wl_error,
         cpl_bivector    *   lines_list,
+        int                 degree,
         int                 display) ;
 cpl_polynomial * cr2res_wave_line_fitting(
         cpl_vector      *   spectrum,

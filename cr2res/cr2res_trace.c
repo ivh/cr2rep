@@ -872,7 +872,7 @@ static cpl_array * cr2res_trace_fit_trace(
     cpl_vector_delete(y);
 
     /* Store the result */
-    result = cr2res_convert_poly_to_array(poly1) ;
+    result = cr2res_convert_poly_to_array(poly1, degree+1) ;
     cpl_polynomial_delete(poly1);
     return result;
 }

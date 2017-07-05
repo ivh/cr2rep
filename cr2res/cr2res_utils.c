@@ -289,11 +289,14 @@ cpl_polynomial * cr2res_convert_array_to_poly(const cpl_array * arr)
 /**
    @brief   Convert a  polynomial to array
    @param  	poly    A polynomial
+   @param   size    The requested array size
    @return  The newly created array or NULL
    The returned object must be de allocated with cpl_array_delete()
  */
 /*----------------------------------------------------------------------------*/
-cpl_array * cr2res_convert_poly_to_array(const cpl_polynomial * poly)
+cpl_array * cr2res_convert_poly_to_array(
+        const cpl_polynomial    *   poly,
+        int                         size)
 {
     cpl_array   *   out ;
     cpl_size        degree, i ;
@@ -301,9 +304,18 @@ cpl_array * cr2res_convert_poly_to_array(const cpl_polynomial * poly)
     /* Test entries */
     if (poly == NULL) return NULL ;
 
-    /* Create Output array */
+    /* Initialise */
     degree = cpl_polynomial_get_degree(poly) ;
-	out = cpl_array_new(degree+1, CPL_TYPE_DOUBLE) ;
+
+    /* Check */
+    if (size < degree+1) {
+        cpl_msg_error(__func__, 
+                "The requested array size is too small for the polynomial") ;
+        return NULL ;
+    }
+
+    /* Create Output array */
+	out = cpl_array_new(size, CPL_TYPE_DOUBLE) ;
 
     /* Fill it  */
     for (i=0 ; i<=degree ; i++) {

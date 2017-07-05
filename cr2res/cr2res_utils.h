@@ -74,7 +74,9 @@ cpl_size cr2res_get_trace_table_index(
         int                     order,
         int                     trace_nb) ;
 cpl_polynomial * cr2res_convert_array_to_poly(const cpl_array * arr) ;
-cpl_array * cr2res_convert_poly_to_array(const cpl_polynomial * poly) ;
+cpl_array * cr2res_convert_poly_to_array(
+        const cpl_polynomial    *   poly,
+        int                         size) ;
 
 
 cpl_error_code cr2res_detector_shotnoise_model(
