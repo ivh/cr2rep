@@ -32,6 +32,7 @@
 
 #include "irplib_wlxcorr.h"
 
+#include "cr2res_dfs.h"
 #include "cr2res_wave.h"
 #include "cr2res_io.h"
 #include "cr2res_pfits.h"
@@ -616,11 +617,67 @@ cpl_array * cr2res_wave_get_estimate(
 hdrl_image * cr2res_wave_gen_wave_map(
         const cpl_table *   trace_wave)
 {
+    hdrl_image      *   out ;
+    cpl_image       *   out_ima ;
+    double          *   pout_ima ;
+    const cpl_array *   tmp_array ;
+    cpl_polynomial  *   wave_poly ;
+    cpl_polynomial  *   upper_poly ;
+    cpl_polynomial  *   lower_poly ;
+    double              upper_pos, lower_pos, wavelength ;
+    cpl_size            i, j, k, nrows, nx, ny ;
 
     /* Check Entries */
     if (trace_wave == NULL) return NULL ;
 
-    /* TODO */
-    return NULL ;
+    /* Initialise */
+    nrows = cpl_table_get_nrow(trace_wave) ;
+
+    /* Create the image */
+    out = hdrl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE) ;
+    out_ima = hdrl_image_get_image(out) ;
+    nx = cpl_image_get_size_x(out_ima) ;
+    ny = cpl_image_get_size_y(out_ima) ;
+    pout_ima = cpl_image_get_data_double(out_ima) ;
+
+    /* Loop on the traces */
+    for (k=0 ; k<nrows ; k++) {
+        /* Check if there is a Wavelength Polynomial available */
+        tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, k) ;
+        wave_poly = cr2res_convert_array_to_poly(tmp_array) ;
+        if (wave_poly != NULL) {
+            /* Get the Upper Polynomial */
+            tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_UPPER, k) ;
+            upper_poly = cr2res_convert_array_to_poly(tmp_array) ;
+
+            /* Get the Lower Polynomial */
+            tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_LOWER, k) ;
+            lower_poly = cr2res_convert_array_to_poly(tmp_array) ;
+            
+            /* Check if all Polynomials are available */
+            if (upper_poly == NULL || lower_poly == NULL) {
+                if (upper_poly != NULL) cpl_polynomial_delete(upper_poly) ; 
+                if (lower_poly != NULL) cpl_polynomial_delete(lower_poly) ; 
+                cpl_msg_warning(__func__, "Cannot get UPPER/LOWER information");
+                cpl_polynomial_delete(wave_poly) ;
+                continue ;
+            }
+            
+            /* Set the Pixels in the trace */
+            for (i=0 ; i<nx ; i++) {
+                upper_pos = cpl_polynomial_eval_1d(upper_poly, i+1, NULL) ;
+                lower_pos = cpl_polynomial_eval_1d(lower_poly, i+1, NULL) ;
+                wavelength = cpl_polynomial_eval_1d(wave_poly, i+1, NULL) ;
+                for (j=0 ; j<ny ; j++) {
+                    if (j+1 >= lower_pos && j+1 <= upper_pos)
+                        pout_ima[i+j*nx] = wavelength ;
+                }
+            }
+            cpl_polynomial_delete(wave_poly) ;
+            cpl_polynomial_delete(upper_poly) ;
+            cpl_polynomial_delete(lower_poly) ;
+        }
+    }
+    return out ;
 }
 /**@}*/

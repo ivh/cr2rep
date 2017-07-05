@@ -79,13 +79,13 @@ static int cr2res_trace_extract_edges(
   @brief  Main function for running all parts of the trace algorithm
   @param ima            input image
   @param smoothfactor   Used for detection
-  @param opening		Used for cleaning the mask
-  @param degree			Fitted polynomial degree
-  @param min_cluster  	A trace must be bigger - discarded otherwise
+  @param opening        Used for cleaning the mask
+  @param degree            Fitted polynomial degree
+  @param min_cluster      A trace must be bigger - discarded otherwise
   @return The newly allocated trace table or NULL in error case
   The returned table contains 1 line per trace. Each line has 3
   polynomials (All, Upper and Lower).
-	For example with degree 1 :
+    For example with degree 1 :
                  All|               Upper|               Lower| 
   24.3593, 0.0161583|  34.6822, 0.0164165|  14.0261, 0.0159084|      
   225.479, 0.0167469|  236.604, 0.0168986|  214.342, 0.0166058|  
@@ -151,15 +151,15 @@ cpl_table * cr2res_trace(
   @brief  Main function for running all parts of the trace algorithm
   @param ima            input image
   @param smoothfactor   Used for detection
-  @param opening		Used for cleaning the mask
-  @param degree			Fitted polynomial degree
-  @param min_cluster  	A trace must be bigger - discarded otherwise
+  @param opening        Used for cleaning the mask
+  @param degree            Fitted polynomial degree
+  @param min_cluster      A trace must be bigger - discarded otherwise
   @return The newly allocated trace table or NULL in error case
   @see cr2res_trace()
 
   The returned table contains 1 line per trace. Each line has 3
   polynomials (All, Upper and Lower).
-	For example with degree 1 :
+    For example with degree 1 :
                  All|               Upper|               Lower| 
   24.3593, 0.0161583|  34.6822, 0.0164165|  14.0261, 0.0159084| 
   225.479, 0.0167469|  236.604, 0.0168986|  214.342, 0.0166058| 
@@ -642,8 +642,8 @@ double cr2res_trace_get_trace_ypos(
     if (idx < 0) return -1.0 ;
     if (idx >= cpl_table_get_nrow(traces)) return -1.0 ;
 
-	/* Get the trace polynomial*/
-	coeffs = cpl_table_get_array(traces, CR2RES_COL_ALL, idx) ;
+    /* Get the trace polynomial*/
+    coeffs = cpl_table_get_array(traces, CR2RES_COL_ALL, idx) ;
     poly = cr2res_convert_array_to_poly(coeffs) ;
 
     /* Evaluate the central pixel */
