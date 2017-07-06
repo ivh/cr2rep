@@ -77,7 +77,9 @@ cpl_polynomial * cr2res_convert_array_to_poly(const cpl_array * arr) ;
 cpl_array * cr2res_convert_poly_to_array(
         const cpl_polynomial    *   poly,
         int                         size) ;
-
+int * cr2res_get_trace_table_orders(
+        const cpl_table     *   trace_wave,
+        int                 *   nb_orders) ;
 
 cpl_error_code cr2res_detector_shotnoise_model(
         const cpl_image *   ima_data,

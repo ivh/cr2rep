@@ -198,6 +198,62 @@ cpl_frameset * cr2res_extract_frameset(
 
 /*----------------------------------------------------------------------------*/
 /**
+   @brief   Get the TRACE_WAVE table orders list
+   @param   tab         A TRACE_WAVE table
+   @param   nb_orders   The output array size
+   @return  the array of orders or NULL in error case
+    Needs to be deallocated with cpl_free()
+ */
+/*----------------------------------------------------------------------------*/
+int * cr2res_get_trace_table_orders(
+        const cpl_table     *   trace_wave,
+        int                 *   nb_orders)
+{
+    int         *   orders_big ;
+    int         *   orders ;
+    int             nb_orders_loc, nb_orders_max, new_order ;
+    cpl_size        nrows, i, j ;
+        
+
+    /* Check Entries */
+    if (trace_wave == NULL) return NULL ;
+
+    /* Initialise */
+    nrows = cpl_table_get_nrow(trace_wave) ;
+    nb_orders_max = 100 ;
+
+    /* Allocate the orders_big array */
+    orders_big = cpl_malloc(nb_orders_max * sizeof(int)) ;
+
+    /* Loop on the table rows */
+    nb_orders_loc = 0 ; 
+    for (i=0 ; i<nrows ; i++) {
+        cur_order = cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL) ;
+        
+        /* Is this order already there ? */
+        new_order = 1 ;
+        for (j=0 ; j<nb_orders_loc ; j++) 
+            if (cur_order == orders_big[j]) 
+                new_order = 0 ;
+
+        /* Store the new order */
+        if (new_order) {
+            orders_big[nb_orders_loc] = cur_order ;
+            nb_orders_loc ++ ;
+        }
+    }
+
+    /* Resize */
+    orders = cpl_malloc(nb_orders_loc * sizeof(int)) ;
+    for (i=0 ; i<nb_orders_loc ; i++) orders[i] = orders_big[i] ;
+    cpl_free(orders_big) ;
+
+    /* Return */
+    *nb_orders = nb_orders_loc ;
+    return orders ;
+}
+/*----------------------------------------------------------------------------*/
+/**
    @brief   Get the index in a TRACE_WAVE table
    @param   tab         A TRACE_WAVE table
    @param   order       the order number
