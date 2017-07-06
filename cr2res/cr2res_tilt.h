@@ -32,5 +32,9 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
+cpl_polynomial ** cr2res_tilt(
+        cpl_table           *   trace_wave,
+        int                     order,
+        int                     display) ;
 
 #endif

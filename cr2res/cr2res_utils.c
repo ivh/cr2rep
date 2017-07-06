@@ -211,7 +211,7 @@ int * cr2res_get_trace_table_orders(
 {
     int         *   orders_big ;
     int         *   orders ;
-    int             nb_orders_loc, nb_orders_max, new_order ;
+    int             nb_orders_loc, nb_orders_max, new_order, cur_order ;
     cpl_size        nrows, i, j ;
         
 
