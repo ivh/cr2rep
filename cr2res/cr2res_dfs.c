@@ -95,6 +95,19 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get the TILT table column name for a given order
+  @param    order       The order number (1->) 
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_TILT_colname(int order)
+{
+    return cpl_sprintf("%02d_%s", order, CR2RES_COL_TILT_SUFFIX);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get the SPEC table column name for a given order/trace
   @param    order       The order number (1->) 
   @param    trace       The trace number (1->)

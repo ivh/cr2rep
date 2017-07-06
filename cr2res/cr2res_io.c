@@ -805,7 +805,6 @@ int cr2res_io_save_TILT_MAP(
             return -1 ;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Save a TILT_POLY
@@ -826,7 +825,9 @@ int cr2res_io_save_TILT_POLY(
         const cpl_propertylist  *   qc_list,
         const char              *   recipe)
 {
-            return -1 ;
+    return cr2res_io_save_table(filename, allframes, parlist, tables,
+            qc_list, recipe, CR2RES_TILT_COEFFS_PROCATG,
+            CR2RES_TILT_COEFFS_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/

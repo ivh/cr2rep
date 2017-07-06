@@ -230,10 +230,15 @@ static int cr2res_util_tilt(
     cpl_table           *   trace_wave_table ;
     cpl_table           *   out_tilt[CR2RES_NB_DETECTORS] ;
     int                 *   orders ;
-    int                     det_nr, nb_orders ;
+    int                     det_nr, nb_orders, tilt_degree ;
     cpl_polynomial      **  order_tilts ;
     char                *   out_file;
+    char                *   col_name ;
+    cpl_array           *   tilt_array ;
     int                     i, j ;
+
+    /* Initialise */
+    tilt_degree = 4 ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -309,13 +314,30 @@ static int cr2res_util_tilt(
                 continue ;
             }
 
+            /* Create the output table if necessary */
+            if (out_tilt[det_nr-1] == NULL) 
+                out_tilt[det_nr-1] = cpl_table_new(CR2RES_DETECTOR_SIZE) ;
+
             /* Store the Solution in the table */
-            /* TODO */
+            col_name = cr2res_dfs_TILT_colname(orders[i]) ;
+            cpl_table_new_column_array(out_tilt[det_nr-1], col_name, 
+                    CPL_TYPE_DOUBLE, tilt_degree) ; 
 
-
-            for (j=0 ; j<CR2RES_DETECTOR_SIZE ; j++) 
-                if (order_tilts[j] != NULL)
+            /* Loop on the Column rows */
+            for (j=0 ; j<CR2RES_DETECTOR_SIZE ; j++) {
+                if (order_tilts[j] != NULL) {
+                    /* Ѕtore the polynomial in the table */
+                    tilt_array=cr2res_convert_poly_to_array(order_tilts[j],
+                            tilt_degree) ;
                     cpl_polynomial_delete(order_tilts[j]) ;
+                    if (tilt_array != NULL) {
+                        cpl_table_set_array(out_tilt[det_nr-1], col_name, j, 
+                                tilt_array) ;
+                        cpl_array_delete(tilt_array) ;
+                    }
+                }
+            }
+            cpl_free(col_name) ;
             cpl_free(order_tilts) ; 
 
             cpl_msg_indent_less() ;

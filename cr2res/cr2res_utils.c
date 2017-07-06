@@ -287,12 +287,15 @@ cpl_size cr2res_get_trace_table_index(
 /**
    @brief   Get the Wavelength polynomial from a TRACE_WAVE table
    @param   tab     A TRACE_WAVE table
+   @param   poly_column CR2RES_COL_WAVELENGTH, CR2RES_COL_UPPER,
+                        CR2RES_COL_LOWER or CR2RES_COL_ALL
    @return  The newly created polynomial or NULL in error case
    The returned object must be de allocated with cpl_polynomial_delete()
  */
 /*----------------------------------------------------------------------------*/
-cpl_polynomial * cr2res_get_wavelength_poly(
+cpl_polynomial * cr2res_get_trace_wave_poly(
         const cpl_table     *   trace_wave,
+        const char          *   poly_column,
         int                     order,
         int                     trace_nb)
 {
@@ -302,12 +305,16 @@ cpl_polynomial * cr2res_get_wavelength_poly(
 
     /* Check Entries */
     if (trace_wave == NULL) return NULL ;
+    if (strcmp(poly_column, CR2RES_COL_WAVELENGTH) &&
+            strcmp(poly_column, CR2RES_COL_UPPER) &&
+            strcmp(poly_column, CR2RES_COL_LOWER) &&
+            strcmp(poly_column, CR2RES_COL_ALL)) return NULL ;
 
     /* Get Table index from order and trace */
     index = cr2res_get_trace_table_index(trace_wave, order, trace_nb) ;
 
     /* Read the Table */
-    wave_arr = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, index) ;
+    wave_arr = cpl_table_get_array(trace_wave, poly_column, index) ;
 
     /* Convert to Polynomial */
 	wave_poly = cr2res_convert_array_to_poly(wave_arr) ;

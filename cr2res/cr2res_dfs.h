@@ -28,6 +28,7 @@
 /* DEFINE HERE THE DIFFERENT COLUMN NAMES */
 /*** EMISSION_LINES Table ***/
 #define CR2RES_COL_EMISSION         "Emission"      /* No Unit */
+/*** EMISSION_LINES and TRACE_WAVE Table ***/
 #define CR2RES_COL_WAVELENGTH       "Wavelength"    /* In Nanometers */
 /*** TRACE_WAVE Table ***/
 #define CR2RES_COL_UPPER            "Upper"         /* pixel position */
@@ -46,8 +47,10 @@
 /* EXTRACT_1D Table */
 #define CR2RES_COL_SPEC_SUFFIX      "SPEC"          /* Intensity */
 
-/* BLAZE Table */
 /* TILT_POLY Table */
+#define CR2RES_COL_TILT_SUFFIX      "TILT"          /* Polynomial */
+
+/* BLAZE Table */
 /* SPLICED_1D Table */
 /* EXTRACT_2D Table */
 /* EXTRACT_POL Table */
@@ -58,6 +61,7 @@
 #define CR2RES_EXTRACT_1D_PROTYPE       "EXTRACT_1D"
 #define CR2RES_TRACE_WAVE_PROTYPE       "TRACE_WAVE"
 #define CR2RES_PROTYPE_CATALOG          "CATALOG"
+#define CR2RES_TILT_COEFFS_PROTYPE      "TILT_COEFFS"
 
 /* Define here the PRO.CATG keywords */
 #define CR2RES_DETLIN_BPM_PROCATG       "DETLIN_BPM"
@@ -90,5 +94,6 @@
 cpl_error_code cr2res_dfs_set_groups(cpl_frameset *);
 char * cr2res_dfs_SPEC_colname(int, int) ;
 char * cr2res_dfs_SLIT_FUNC_colname(int, int) ;
+char * cr2res_dfs_TILT_colname(int) ;
 
 #endif

@@ -443,8 +443,8 @@ static int cr2res_util_wave(
             }
 
             /* Get the initial guess */
-            if ((init_guess=cr2res_get_wavelength_poly(trace_wave_table,
-                            order, trace_id)) == NULL) {
+            if ((init_guess=cr2res_get_trace_wave_poly(trace_wave_table,
+                            CR2RES_COL_WAVELENGTH, order, trace_id)) == NULL) {
                 cpl_msg_error(__func__, "Cannot get the initial guess") ;
                 cpl_msg_indent_less() ;
                 cpl_vector_delete(extracted_vec) ;
