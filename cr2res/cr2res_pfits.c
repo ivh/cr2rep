@@ -171,7 +171,7 @@ double cr2res_pfits_get_ypos(const cpl_propertylist * plist, int order)
     if (order < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN CENY%d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN CWLEN%d", order) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;

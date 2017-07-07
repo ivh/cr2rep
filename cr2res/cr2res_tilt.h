@@ -35,6 +35,7 @@
 cpl_polynomial ** cr2res_tilt(
         cpl_table           *   trace_wave,
         int                     order,
+        double                  slit_cen_y,
         int                     display) ;
 
 #endif

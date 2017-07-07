@@ -226,10 +226,12 @@ static int cr2res_util_tilt(
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, display ;
     cpl_frame           *   fr ;
+    cpl_propertylist    *   plist ;
     const char          *   trace_wave_file ;
     cpl_table           *   trace_wave_table ;
     cpl_table           *   out_tilt[CR2RES_NB_DETECTORS] ;
     int                 *   orders ;
+    double                  slit_cen_y ;
     int                     det_nr, nb_orders, tilt_degree ;
     cpl_polynomial      **  order_tilts ;
     char                *   out_file;
@@ -238,7 +240,7 @@ static int cr2res_util_tilt(
     int                     i, j ;
 
     /* Initialise */
-    tilt_degree = 4 ;
+    tilt_degree = 2 ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -269,6 +271,9 @@ static int cr2res_util_tilt(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
+
+    /* Get the Main Header */
+    plist = cpl_propertylist_load(trace_wave_file, 0) ;
 
     /* Loop over the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
@@ -305,9 +310,12 @@ static int cr2res_util_tilt(
             cpl_msg_info(__func__, "Process Order %d", orders[i]) ;
             cpl_msg_indent_more() ;
 
+            /* Get the Slit center Position */
+            slit_cen_y = cr2res_pfits_get_ypos(plist, orders[i]) ;
+
             /* Call the Tilt Computation */
             if ((order_tilts = cr2res_tilt(trace_wave_table, orders[i],
-                            display))==NULL) {
+                            slit_cen_y, display))==NULL) {
                 cpl_msg_error(__func__, "Cannot Compute Tilt") ;
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
@@ -347,6 +355,7 @@ static int cr2res_util_tilt(
 
         cpl_msg_indent_less() ;
     }
+    cpl_propertylist_delete(plist) ;
 
     /* Save the new SLIT_TILT table */
     out_file=cpl_sprintf("%s_tilt.fits", cr2res_get_root_name(trace_wave_file));
