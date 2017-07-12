@@ -43,7 +43,6 @@
                               Function codes
  -----------------------------------------------------------------------------*/
 
-/* TODO */
 /*----------------------------------------------------------------------------*/
 /**
   @brief    find out the order number closest to the passed y position
@@ -96,9 +95,7 @@ int cr2res_pfits_get_order(
     /* best_number is initialized as -1, indicating the error */
     /* that no order was found in the loop above. */
 
-    /* TODO TMP - Simulate Decker */
-    return (int)(best_number/2.0) ;
-    /* return best_number ; */
+    return best_number ;
 
 }
 
