@@ -358,7 +358,8 @@ static int cr2res_util_tilt(
     cpl_propertylist_delete(plist) ;
 
     /* Save the new SLIT_TILT table */
-    out_file=cpl_sprintf("%s_tilt.fits", cr2res_get_root_name(trace_wave_file));
+    out_file=cpl_sprintf("%s_tilt.fits", 
+            cr2res_get_base_name(cr2res_get_root_name(trace_wave_file)));
     cr2res_io_save_TILT_POLY(out_file, frameset, parlist, out_tilt, NULL, 
             RECIPE_STRING) ;
     cpl_free(out_file);
