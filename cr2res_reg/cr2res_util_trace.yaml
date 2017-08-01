@@ -1,0 +1,51 @@
+TestEnv:
+  ESOREX_SUPPRESS_PREFIX: "TRUE"
+  ESOREX_TIME: "TRUE"
+
+# log default parameters
+PreExec:
+    - "esorex --man cr2res_util_trace"
+
+Defaults:
+# defaults that apply to all EsorexTests
+  EsorexTests:
+    recipe: cr2res_util_trace
+
+# Naming convention: xx_yy_zz - anchor xx_recipe_yy
+#   xx: Identifies data period (01 for pre-PAE, 02 for Comm1, ...)
+#   yy: Identifies the data set ID
+#   zz: Identifies the test case ID
+
+EsorexTests:
+  - '01_01_01': &01_cr2res_util_trace_01
+      description: "Simulation data - cr2res_util_trace - set #1"
+      sof:
+        - ["cr2res/raw/CRIFORS_H14_F_uniform.fits", "COMMAND_LINE"]
+      parameters: &cr2res_util_trace_default_par
+        degree:                 5
+        min_cluster:            10000
+        smooth:                 5.0
+        opening:                FALSE
+        detector:               0
+
+  - '01_01_02':
+      <<: *01_cr2res_util_trace_01
+      parameters:
+        <<: *cr2res_util_trace_default_par
+        smooth:                 3.0
+
+  - '01_02_01': &01_cr2res_util_trace_01
+      description: "Simulation data - cr2res_util_trace - set #2"
+      sof:
+        - ["cr2res/raw/CRIFORS_H14_F_decker1.fits", "COMMAND_LINE"]
+      parameters: &cr2res_util_trace_default_par
+        <<: *cr2res_util_trace_default_par
+
+  - '01_03_01': &01_cr2res_util_trace_01
+      description: "Simulation data - cr2res_util_trace - set #3"
+      sof:
+        - ["cr2res/raw/CRIFORS_H14_F_decker2.fits", "COMMAND_LINE"]
+      parameters: &cr2res_util_trace_default_par
+        <<: *cr2res_util_trace_default_par
+
+
