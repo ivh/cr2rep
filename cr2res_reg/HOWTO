@@ -1,0 +1,23 @@
+
+###
+### H14
+###
+
+cd $PC2/cr2res_reg/
+usec2
+eso-testgen.py --flatten *.yaml
+cd sof
+rm *basic*
+
+esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_trace.01_01_01.cr2res_util_trace.rc cr2res_util_trace cr2res_util_trace.01_01_01.cr2res_util_trace.sof
+esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_trace.01_01_02.cr2res_util_trace.rc cr2res_util_trace cr2res_util_trace.01_01_02.cr2res_util_trace.sof
+esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_trace.01_02_01.cr2res_util_trace.rc cr2res_util_trace cr2res_util_trace.01_02_01.cr2res_util_trace.sof
+esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_trace.01_03_01.cr2res_util_trace.rc cr2res_util_trace cr2res_util_trace.01_03_01.cr2res_util_trace.sof
+
+esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_extract.01_01_01.cr2res_util_extract.rc cr2res_util_extract cr2res_util_extract.01_01_01.cr2res_util_extract.sof
+esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_extract.01_01_02.cr2res_util_extract.rc cr2res_util_extract cr2res_util_extract.01_01_02.cr2res_util_extract.sof
+esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_extract.01_02_01.cr2res_util_extract.rc cr2res_util_extract cr2res_util_extract.01_02_01.cr2res_util_extract.sof
+esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_extract.01_03_01.cr2res_util_extract.rc cr2res_util_extract cr2res_util_extract.01_03_01.cr2res_util_extract.sof
+
+
+
