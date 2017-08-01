@@ -4,12 +4,12 @@ TestEnv:
 
 # log default parameters
 PreExec:
-    - "esorex --man cr2res_util_wave"
+    - "esorex --man cr2res_util_tilt"
 
 Defaults:
 # defaults that apply to all EsorexTests
   EsorexTests:
-    recipe: cr2res_util_wave
+    recipe: cr2res_util_tilt
 
 # Naming convention: xx_yy_zz - anchor xx_recipe_yy
 #   xx: Identifies data period (01 for pre-PAE, 02 for Comm1, ...)
@@ -17,43 +17,33 @@ Defaults:
 #   zz: Identifies the test case ID
 
 EsorexTests:
-  - '01_01_01': &01_cr2res_util_wave_01
-      description: "Simulation data - cr2res_util_wave - set #1"
+  - '01_01_01': &01_cr2res_util_tilt_01
+      description: "Simulation data - cr2res_util_tilt - set #1"
       sof:
-        - ["cr2res/intermediate/CRIFORS_H14_T_uniform_extr1D.fits", "COMMAND_LINE"]
-        - ["cr2res/intermediate/CRIFORS_H14_F_uniform_trace.fits", "COMMAND_LINE"]
-        - ["cr2res/static/lines_thar.fits", "COMMAND_LINE"]
-      parameters: &cr2res_util_wave_default_par
+        - ["cr2res/intermediate/CRIFORS_H14_T_uniform_extr1D_wave.fits", "COMMAND_LINE"]
+      parameters: &cr2res_util_tilt_default_par
         detector:       0
         order:          -1  
-        trace_nb:       -1
-        data_type:      "LAMP"
-        line_fitting:   FALSE
-        degree:         3
         display:        FALSE
 
   - '01_01_02':
-      <<: *01_cr2res_util_wave_01
+      <<: *01_cr2res_util_tilt_01
       parameters:
-        <<: *cr2res_util_wave_default_par
-        line_fitting:   TRUE
+        <<: *cr2res_util_tilt_default_par
+        detector:       2
 
   - '01_02_01':
-      description: "Simulation data - cr2res_util_wave - set #2"
+      description: "Simulation data - cr2res_util_tilt - set #2"
       sof:
-        - ["cr2res/intermediate/CRIFORS_H14_T_decker1_extr1D.fits", "COMMAND_LINE"]
-        - ["cr2res/intermediate/CRIFORS_H14_F_decker1_trace.fits", "COMMAND_LINE"]
-        - ["cr2res/static/lines_thar.fits", "COMMAND_LINE"]
+        - ["cr2res/intermediate/CRIFORS_H14_T_decker1_extr1D_wave.fits", "COMMAND_LINE"]
       parameters:
-        <<: *cr2res_util_wave_default_par
+        <<: *cr2res_util_tilt_default_par
 
   - '01_03_01':
-      description: "Simulation data - cr2res_util_wave - set #3"
+      description: "Simulation data - cr2res_util_tilt - set #3"
       sof:
-        - ["cr2res/raw/CRIFORS_H14_F_decker2.fits", "COMMAND_LINE"]
-        - ["cr2res/intermediate/CRIFORS_H14_T_decker2_extr1D.fits", "COMMAND_LINE"]
-        - ["cr2res/intermediate/CRIFORS_H14_F_decker2_trace.fits", "COMMAND_LINE"]
+        - ["cr2res/intermediate/CRIFORS_H14_T_decker2_extr1D_wave.fits", "COMMAND_LINE"]
       parameters:
-        <<: *cr2res_util_wave_default_par
+        <<: *cr2res_util_tilt_default_par
 
 
