@@ -19,5 +19,11 @@ esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-conf
 esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_extract.01_02_01.cr2res_util_extract.rc cr2res_util_extract cr2res_util_extract.01_02_01.cr2res_util_extract.sof
 esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_extract.01_03_01.cr2res_util_extract.rc cr2res_util_extract cr2res_util_extract.01_03_01.cr2res_util_extract.sof
 
+esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_wave.01_01_01.cr2res_util_wave.rc cr2res_util_wave cr2res_util_wave.01_01_01.cr2res_util_wave.sof
+esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_wave.01_01_02.cr2res_util_wave.rc cr2res_util_wave cr2res_util_wave.01_01_02.cr2res_util_wave.sof
+esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_wave.01_02_01.cr2res_util_wave.rc cr2res_util_wave cr2res_util_wave.01_02_01.cr2res_util_wave.sof
+esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_wave.01_03_01.cr2res_util_wave.rc cr2res_util_wave cr2res_util_wave.01_03_01.cr2res_util_wave.sof
+
+
 
 
