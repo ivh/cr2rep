@@ -70,10 +70,10 @@ static int cr2res_io_save_table(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Get the wished extension number for a detector 
+  @brief    Get the wished extension number for a detector
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
-  @return   the Extension number or -1 in error case 
+  @return   the Extension number or -1 in error case
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_io_get_ext_idx(
@@ -227,7 +227,7 @@ cpl_image * cr2res_io_load_MASTER_FLAT(
 {
         return NULL ;
 }
-    
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Load a table from a TRACE_WAVE
@@ -447,6 +447,7 @@ cpl_table * cr2res_io_load_EXTRACT_POL(
 /*----------------------------------------------------------------------------*/
 /*---------------------       SAVING FUNCTIONS       -------------------------*/
 /*----------------------------------------------------------------------------*/
+/* TODO ? set frame levels to mark temp, intermediate and final frames?       */
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -1068,7 +1069,7 @@ static int cr2res_io_save_image(
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", sval) ;
         if (data[ext-1] == NULL)    to_save = NULL ;
         else                        to_save = hdrl_image_get_image(data[ext-1]);
-        cpl_image_save(to_save, filename, CPL_BPP_IEEE_FLOAT, qclist_loc, 
+        cpl_image_save(to_save, filename, CPL_BPP_IEEE_FLOAT, qclist_loc,
                 CPL_IO_EXTEND) ;
         cpl_propertylist_delete(qclist_loc) ;
         cpl_free(sval) ;
@@ -1079,7 +1080,7 @@ static int cr2res_io_save_image(
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", sval) ;
         if (data[ext-1] == NULL)    to_save = NULL ;
         else                        to_save = hdrl_image_get_error(data[ext-1]);
-        cpl_image_save(to_save, filename, CPL_BPP_IEEE_FLOAT, qclist_loc, 
+        cpl_image_save(to_save, filename, CPL_BPP_IEEE_FLOAT, qclist_loc,
                 CPL_IO_EXTEND) ;
         cpl_propertylist_delete(qclist_loc) ;
         cpl_free(sval) ;
