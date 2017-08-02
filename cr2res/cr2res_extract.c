@@ -189,7 +189,7 @@ int cr2res_extract_slitdec_vert(
     slitfu_sw_data = cpl_vector_get_data(slitfu_sw);
     weights_sw = cpl_vector_new(swath);
 
-    /* Some things need to be initialized before starting the actuial work*/
+    /* Some things need to be initialized before starting the actual work*/
     for (i=0;i<lenx;i++){
         ycen_int[i] = (int)cpl_vector_get(ycen,i) ;
         ycen_rest[i] = fmod(cpl_vector_get(ycen,i), 1.0) ;
