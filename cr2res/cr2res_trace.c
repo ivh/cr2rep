@@ -378,7 +378,7 @@ cpl_table * cr2res_trace_fit(
   @param nx     X size of the produced image
   @param ny     Y size of the produced image
   @return   A newly allocated image or NULL in error case
-  The returned INT image is of size nx x ny, is filled with 0. The
+  The returned INT image is of size nx x ny, is filled with -1. The
   polynomials of the different trace edges are used to fill the traces with
   the value of the order.
  */
@@ -403,6 +403,7 @@ cpl_image * cr2res_trace_gen_image(
 
     /* Create the empty image */
     out = cpl_image_new(nx, ny, CPL_TYPE_INT) ;
+    cpl_image_add_scalar(out, -1.0) ;
     pout = cpl_image_get_data_int(out) ;
 
     /* Loop on the traces */
