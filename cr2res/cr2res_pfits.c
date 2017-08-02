@@ -89,7 +89,7 @@ int cr2res_pfits_get_order(
                best_number = i;
         }
     }
-    if (best_diff > 20.0)
+    if (best_diff > 100.0)
         cpl_msg_warning(__func__,"Order %d identified with large difference "
                                  "of %.1f pix",  best_number, best_diff);
     /* best_number is initialized as -1, indicating the error */
