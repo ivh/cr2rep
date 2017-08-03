@@ -311,7 +311,7 @@ static int cr2res_util_tilt(
             cpl_msg_indent_more() ;
 
             /* Get the Slit center Position */
-            slit_cen_y = cr2res_pfits_get_ypos(plist, orders[i]) ;
+            slit_cen_y = cr2res_pfits_get_ceny(plist, orders[i]) ;
 
             /* Call the Tilt Computation */
             if ((order_tilts = cr2res_tilt(trace_wave_table, orders[i],

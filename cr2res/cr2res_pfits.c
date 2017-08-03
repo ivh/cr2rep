@@ -45,6 +45,148 @@
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    find out the arcfile
+  @param    plist       property list to read from
+  @return   pointer to statically allocated character string
+ */
+/*----------------------------------------------------------------------------*/
+const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
+{
+    return (const char *) cpl_propertylist_get_string(plist, "ARCFILE");
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the Min wavelength for an order (all detectors)
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order)
+{
+    char    *   key_name ;
+    double      val  ;
+
+    /* Check entries */
+    if (plist == NULL) return -1.0 ;
+    if (order < 0) return -1.0 ;
+
+    /* Create key name */
+    key_name = cpl_sprintf("ESO INS WLEN MIN%d", order) ;
+
+    /* Get the value */
+    val = cpl_propertylist_get_double(plist, key_name) ;
+
+    cpl_free(key_name) ;
+    return val ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the Max wavelength for an order (all detectors)
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order)
+{
+    char    *   key_name ;
+    double      val  ;
+
+    /* Check entries */
+    if (plist == NULL) return -1.0 ;
+    if (order < 0) return -1.0 ;
+
+    /* Create key name */
+    key_name = cpl_sprintf("ESO INS WLEN MAX%d", order) ;
+
+    /* Get the value */
+    val = cpl_propertylist_get_double(plist, key_name) ;
+
+    cpl_free(key_name) ;
+    return val ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the Min wavelength for an order (current detector)
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order)
+{
+    char    *   key_name ;
+    double      val  ;
+
+    /* Check entries */
+    if (plist == NULL) return -1.0 ;
+    if (order < 0) return -1.0 ;
+
+    /* Create key name */
+    key_name = cpl_sprintf("ESO INS WLEN STRT%d", order) ;
+
+    /* Get the value */
+    val = cpl_propertylist_get_double(plist, key_name) ;
+
+    cpl_free(key_name) ;
+    return val ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the Max wavelength for an order (current detector)
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order)
+{
+    char    *   key_name ;
+    double      val  ;
+
+    /* Check entries */
+    if (plist == NULL) return -1.0 ;
+    if (order < 0) return -1.0 ;
+
+    /* Create key name */
+    key_name = cpl_sprintf("ESO INS WLEN END%d", order) ;
+
+    /* Get the value */
+    val = cpl_propertylist_get_double(plist, key_name) ;
+
+    cpl_free(key_name) ;
+    return val ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the Y pos of an order
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_pfits_get_ceny(const cpl_propertylist * plist, int order)
+{
+    char    *   key_name ;
+    double      val  ;
+
+    /* Check entries */
+    if (plist == NULL) return -1.0 ;
+    if (order < 0) return -1.0 ;
+
+    /* Create key name */
+    key_name = cpl_sprintf("ESO INS WLEN CENY%d", order) ;
+
+    /* Get the value */
+    val = cpl_propertylist_get_double(plist, key_name) ;
+
+    cpl_free(key_name) ;
+    return val ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    find out the order number closest to the passed y position
   @param    plist       property list to read from
   @param    yposition   Y position
@@ -55,7 +197,6 @@ int cr2res_pfits_get_order(
             const cpl_propertylist * plist,
             double yposition)
 {
-
     char    *   key_name ;
     int         i;
     int         best_number = -1;
@@ -94,101 +235,7 @@ int cr2res_pfits_get_order(
                                  "of %.1f pix",  best_number, best_diff);
     /* best_number is initialized as -1, indicating the error */
     /* that no order was found in the loop above. */
-
     return best_number ;
-
 }
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    find out the Min wavelength for an order
-  @param    plist       property list to read from
-  @return   the requested value
- */
-/*----------------------------------------------------------------------------*/
-double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order)
-{
-    char    *   key_name ;
-    double      val  ;
-
-    /* Check entries */
-    if (plist == NULL) return -1.0 ;
-    if (order < 0) return -1.0 ;
-
-    /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN STRT%d", order) ;
-
-    /* Get the value */
-    val = cpl_propertylist_get_double(plist, key_name) ;
-
-    cpl_free(key_name) ;
-    return val ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    find out the Max wavelength for an order
-  @param    plist       property list to read from
-  @return   the requested value
- */
-/*----------------------------------------------------------------------------*/
-double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order)
-{
-    char    *   key_name ;
-    double      val  ;
-
-    /* Check entries */
-    if (plist == NULL) return -1.0 ;
-    if (order < 0) return -1.0 ;
-
-    /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN END%d", order) ;
-
-    /* Get the value */
-    val = cpl_propertylist_get_double(plist, key_name) ;
-
-    cpl_free(key_name) ;
-    return val ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    find out the Y pos of an order
-  @param    plist       property list to read from
-  @return   the requested value
- */
-/*----------------------------------------------------------------------------*/
-double cr2res_pfits_get_ypos(const cpl_propertylist * plist, int order)
-{
-    char    *   key_name ;
-    double      val  ;
-
-    /* Check entries */
-    if (plist == NULL) return -1.0 ;
-    if (order < 0) return -1.0 ;
-
-    /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN CENY%d", order) ;
-
-    /* Get the value */
-    val = cpl_propertylist_get_double(plist, key_name) ;
-
-    cpl_free(key_name) ;
-    return val ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    find out the arcfile
-  @param    plist       property list to read from
-  @return   pointer to statically allocated character string
- */
-/*----------------------------------------------------------------------------*/
-const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
-{
-    return (const char *) cpl_propertylist_get_string(plist, "ARCFILE");
-}
-
-
 
 /**@}*/
