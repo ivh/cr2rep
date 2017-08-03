@@ -278,6 +278,7 @@ static int cr2res_util_wave(
     cpl_array           *   wl_array ;
     cpl_table           *   out_trace_wave[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_wave_table ;
     cpl_table           *   extracted_table ;
     cpl_vector          *   extracted_vec ;
@@ -376,6 +377,11 @@ static int cr2res_util_wave(
         /* Initialise */
         out_trace_wave[det_nr-1] = NULL ;
         out_wave_map[det_nr-1] = NULL ;
+        ext_plist[det_nr-1] = NULL ;
+
+        /* Store the extenѕion header for product saving */
+        ext_plist[det_nr-1] = cpl_propertylist_load(extracted_file,
+                cr2res_io_get_ext_idx(extracted_file, det_nr)) ;
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -490,7 +496,7 @@ static int cr2res_util_wave(
     out_file = cpl_sprintf("%s_wave.fits", 
             cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
     cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, out_trace_wave, 
-            NULL, RECIPE_STRING) ;
+            NULL, ext_plist, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Save the Wave Map */
@@ -502,6 +508,8 @@ static int cr2res_util_wave(
 
     /* Free and return */
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
+        if (ext_plist[i] != NULL)
+            cpl_propertylist_delete(ext_plist[i]) ;
         if (out_trace_wave[i] != NULL) 
             cpl_table_delete(out_trace_wave[i]) ;
         if (out_wave_map[i] != NULL) {

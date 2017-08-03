@@ -160,6 +160,7 @@ int cr2res_io_save_TRACE_WAVE(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_BLAZE(
@@ -192,6 +193,7 @@ int cr2res_io_save_SLIT_FUNC(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_WAVE_MAP(
@@ -224,6 +226,7 @@ int cr2res_io_save_TILT_POLY(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_EXTRACT_1D(
@@ -232,6 +235,7 @@ int cr2res_io_save_EXTRACT_1D(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_SPLICED_1D(

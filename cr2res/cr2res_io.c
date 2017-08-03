@@ -54,6 +54,7 @@ static int cr2res_io_save_table(
         const cpl_parameterlist *   parlist,
         cpl_table               **  slit_func,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe,
         const char              *   procatg,
         const char              *   protype) ;
@@ -596,6 +597,7 @@ int cr2res_io_save_MASTER_FLAT(
   @param    parlist     The recipe input parameters
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -606,10 +608,11 @@ int cr2res_io_save_TRACE_WAVE(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
     return cr2res_io_save_table(filename, allframes, parlist, tables,
-            qc_list, recipe, CR2RES_TRACE_WAVE_PROCATG,
+            qc_list, ext_plist, recipe, CR2RES_TRACE_WAVE_PROCATG,
             CR2RES_TRACE_WAVE_PROTYPE) ;
 }
 
@@ -668,6 +671,7 @@ int cr2res_io_save_BLAZE_IMAGE(
   @param    parlist     The recipe input parameters
   @param    data        The tables to save (1 per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -678,10 +682,11 @@ int cr2res_io_save_SLIT_FUNC(
         const cpl_parameterlist *   parlist,
         cpl_table               **  slit_func,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
     return cr2res_io_save_table(filename, allframes, parlist, slit_func,
-            qc_list, recipe, CR2RES_SLIT_FUNC_PROCATG,
+            qc_list, ext_plist, recipe, CR2RES_SLIT_FUNC_PROCATG,
             CR2RES_SLIT_FUNC_PROTYPE) ;
 }
 
@@ -814,6 +819,7 @@ int cr2res_io_save_TILT_MAP(
   @param    parlist     The recipe input parameters
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -824,10 +830,11 @@ int cr2res_io_save_TILT_POLY(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
     return cr2res_io_save_table(filename, allframes, parlist, tables,
-            qc_list, recipe, CR2RES_TILT_COEFFS_PROCATG,
+            qc_list, ext_plist, recipe, CR2RES_TILT_COEFFS_PROCATG,
             CR2RES_TILT_COEFFS_PROTYPE) ;
 }
 
@@ -839,6 +846,7 @@ int cr2res_io_save_TILT_POLY(
   @param    parlist     The recipe input parameters
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -849,10 +857,11 @@ int cr2res_io_save_EXTRACT_1D(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
     return cr2res_io_save_table(filename, allframes, parlist, tables,
-            qc_list, recipe, CR2RES_EXTRACT_1D_PROCATG,
+            qc_list, ext_plist, recipe, CR2RES_EXTRACT_1D_PROCATG,
             CR2RES_EXTRACT_1D_PROTYPE) ;
 }
 
@@ -902,7 +911,6 @@ int cr2res_io_save_EXTRACT_2D(
             return -1 ;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Save a EXTRACT_POL
@@ -926,7 +934,6 @@ int cr2res_io_save_EXTRACT_POL(
     return -1 ;
 }
 
-
 /**@}*/
 
 /*----------------------------------------------------------------------------*/
@@ -937,6 +944,7 @@ int cr2res_io_save_EXTRACT_POL(
   @param    parlist     The recipe input parameters
   @param    tab         The tables to save (1 per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @param    procatg     PRO.CATG
   @param    protype     PRO.TYPE
@@ -949,6 +957,7 @@ static int cr2res_io_save_table(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tab,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe,
         const char              *   procatg,
         const char              *   protype)
@@ -959,7 +968,7 @@ static int cr2res_io_save_table(
     int                     i ;
 
     /* Test entries */
-    if (allframes == NULL || filename == NULL) return -1 ;
+    if (allframes == NULL || filename == NULL || ext_plist == NULL) return -1 ;
 
     /* Add the PRO keys */
     if (qc_list != NULL) pro_list = cpl_propertylist_duplicate(qc_list) ;
@@ -970,8 +979,9 @@ static int cr2res_io_save_table(
     cpl_propertylist_append_string(pro_list, CPL_DFS_PRO_TYPE, protype) ;
 
     /* Create the first extension header */
-    ext_head = cpl_propertylist_new() ;
-    cpl_propertylist_append_string(ext_head, "EXTNAME", "CHIP1") ;
+    if (ext_plist[0]==NULL) ext_head = cpl_propertylist_new() ;
+    else                    ext_head = cpl_propertylist_duplicate(ext_plist[0]) ;
+    cpl_propertylist_update_string(ext_head, "EXTNAME", "CHIP1") ;
 
     /* Save the first extension */
     if (tab[0] != NULL) {
@@ -984,7 +994,7 @@ static int cr2res_io_save_table(
             return -1 ;
         }
     } else {
-        if (cpl_dfs_save_propertylist(allframes, NULL, parlist,
+        if (cpl_dfs_save_propertylist(allframes, ext_head, parlist,
                     allframes, NULL, recipe, pro_list, NULL, PACKAGE "/"
                     PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Cannot save the empty HDU") ;
@@ -999,9 +1009,13 @@ static int cr2res_io_save_table(
 
     /* Save the extensions */
     for (i=1 ; i<CR2RES_NB_DETECTORS ; i++) {
-        ext_head = cpl_propertylist_new() ;
+
+
+        /* Create the first extension header */
+        if (ext_plist[1] == NULL) ext_head = cpl_propertylist_new() ;
+        else                ext_head = cpl_propertylist_duplicate(ext_plist[1]) ;
         sprintf(sval, "CHIP%d", i+1) ;
-        cpl_propertylist_prepend_string(ext_head, "EXTNAME", sval) ;
+        cpl_propertylist_update_string(ext_head, "EXTNAME", sval) ;
         if (tab[i] != NULL) {
             cpl_table_save(tab[i], NULL, ext_head, filename, CPL_IO_EXTEND) ;
         } else {

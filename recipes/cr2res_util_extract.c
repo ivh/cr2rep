@@ -268,6 +268,7 @@ static int cr2res_util_extract(
     hdrl_image          *   model_master[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slit_func_tab[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extract_tab[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_table ;
     cpl_image           *   science_ima ;
     cpl_vector          **  spectrum ;
@@ -330,6 +331,11 @@ static int cr2res_util_extract(
         model_master[det_nr-1] = NULL ;
         slit_func_tab[det_nr-1] = NULL ;
         extract_tab[det_nr-1] = NULL ;
+        ext_plist[det_nr-1] = NULL ;
+
+        /* Store the extenѕion header for product saving */
+        ext_plist[det_nr-1] = cpl_propertylist_load(science_file,
+                cr2res_io_get_ext_idx(science_file, det_nr)) ;
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -443,16 +449,18 @@ static int cr2res_util_extract(
     out_file = cpl_sprintf("%s_extrSlitFu.fits",
                     cr2res_get_base_name(cr2res_get_root_name(science_file)));
     cr2res_io_save_SLIT_FUNC(out_file, frameset,
-            parlist, slit_func_tab, NULL, RECIPE_STRING) ;
+            parlist, slit_func_tab, NULL, ext_plist, RECIPE_STRING) ;
     cpl_free(out_file);
     out_file = cpl_sprintf("%s_extr1D.fits",
                     cr2res_get_base_name(cr2res_get_root_name(science_file)));
     cr2res_io_save_EXTRACT_1D(out_file, frameset,
-            parlist, extract_tab, NULL, RECIPE_STRING) ;
+            parlist, extract_tab, NULL, ext_plist, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free and return */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        if (ext_plist[det_nr-1] != NULL)
+            cpl_propertylist_delete(ext_plist[det_nr-1]) ;
         cpl_table_delete(slit_func_tab[det_nr-1]) ;
         cpl_table_delete(extract_tab[det_nr-1]) ;
         hdrl_image_delete(model_master[det_nr-1]) ;

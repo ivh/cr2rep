@@ -230,6 +230,7 @@ static int cr2res_util_tilt(
     const char          *   trace_wave_file ;
     cpl_table           *   trace_wave_table ;
     cpl_table           *   out_tilt[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     int                 *   orders ;
     double                  slit_cen_y ;
     int                     det_nr, nb_orders, tilt_degree ;
@@ -272,14 +273,16 @@ static int cr2res_util_tilt(
         return -1 ;
     }
 
-    /* Get the Main Header */
-    plist = cpl_propertylist_load(trace_wave_file, 0) ;
-
     /* Loop over the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
         /* Initialise */
         out_tilt[det_nr-1] = NULL ;
+        ext_plist[det_nr-1] = NULL ;
+
+        /* Store the extenѕion header for product saving */
+        ext_plist[det_nr-1] = cpl_propertylist_load(trace_wave_file,
+                cr2res_io_get_ext_idx(trace_wave_file, det_nr)) ;
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -299,6 +302,10 @@ static int cr2res_util_tilt(
 
         /* Get the list of orders  */
         orders = cr2res_get_trace_table_orders(trace_wave_table, &nb_orders) ;
+
+        /* Get the extension header */
+        plist = cpl_propertylist_load(trace_wave_file, 
+                cr2res_io_get_ext_idx(trace_wave_file, det_nr)) ;
 
         /* Loop over the Orders */
         for (i=0 ; i<nb_orders ; i++) {
@@ -350,23 +357,27 @@ static int cr2res_util_tilt(
 
             cpl_msg_indent_less() ;
         }
+        cpl_propertylist_delete(plist) ;
         cpl_free(orders) ;
         cpl_table_delete(trace_wave_table) ;
 
         cpl_msg_indent_less() ;
     }
-    cpl_propertylist_delete(plist) ;
 
     /* Save the new SLIT_TILT table */
     out_file=cpl_sprintf("%s_tilt.fits", 
             cr2res_get_base_name(cr2res_get_root_name(trace_wave_file)));
     cr2res_io_save_TILT_POLY(out_file, frameset, parlist, out_tilt, NULL, 
-            RECIPE_STRING) ;
+            ext_plist, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free and return */
-    for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) 
+    for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
         if (out_tilt[i] != NULL) cpl_table_delete(out_tilt[i]) ;
+        if (ext_plist[i] != NULL)
+            cpl_propertylist_delete(ext_plist[i]) ;
+    }
+
     return (int)cpl_error_get_code();
 }
 

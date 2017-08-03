@@ -244,7 +244,7 @@ static int cr2res_util_trace(
     int                     det_nr, order ;
     cpl_array           *   wl_array ;
     cpl_table           *   traces[CR2RES_NB_DETECTORS] ;
-    cpl_propertylist    *   plist ;
+    cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     int                     i, j, nb_orders, trace_nb, trace_id ;
 
     /* RETRIEVE INPUT PARAMETERS */
@@ -287,6 +287,11 @@ static int cr2res_util_trace(
 
         /* Initialise */
         traces[det_nr-1] = NULL ;
+        ext_plist[det_nr-1] = NULL ;
+
+        /* Store the extenѕion header for product saving */
+        ext_plist[det_nr-1] = cpl_propertylist_load(flat_file,
+                cr2res_io_get_ext_idx(flat_file, det_nr)) ;
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -296,8 +301,8 @@ static int cr2res_util_trace(
 
         /* Load the image in which the orders are to extract*/
         cpl_msg_info(__func__, "Load the Image") ;
-        if ((flat_ima = cpl_image_load(flat_file, CPL_TYPE_FLOAT,
-                        0, det_nr)) == NULL) {
+        if ((flat_ima = cpl_image_load(flat_file, CPL_TYPE_FLOAT, 0, 
+                        cr2res_io_get_ext_idx(flat_file, det_nr))) == NULL) {
             cpl_msg_warning(__func__,
                     "Cannot load the image - skip detector");
             cpl_error_reset() ;
@@ -328,17 +333,12 @@ static int cr2res_util_trace(
             /* Get the current trace Y position */
             y_pos = cr2res_trace_get_trace_ypos(traces[det_nr-1], i) ;
 
-            /* Load the Header  */
-            plist = cpl_propertylist_load(flat_file, det_nr) ;
-
             /* Compute the trace order from the header */
-            order = cr2res_pfits_get_order(plist, y_pos) ;
-            cpl_propertylist_delete(plist) ;
+            order = cr2res_pfits_get_order(ext_plist[det_nr-1], y_pos) ;
 
             /* Store the Order in the table */
             cpl_table_set(traces[det_nr-1], CR2RES_COL_ORDER, i, order);
         }
-
 
         /* Add The TraceNb column */
         cpl_table_new_column(traces[det_nr-1], CR2RES_COL_TRACENB,CPL_TYPE_INT);
@@ -405,13 +405,16 @@ static int cr2res_util_trace(
             cr2res_get_base_name(cr2res_get_root_name(flat_file)));
     cpl_msg_debug(__func__, "Writing to %s",out_file);
     cr2res_io_save_TRACE_WAVE(out_file, frameset,
-            parlist, traces, NULL, RECIPE_STRING) ;
+            parlist, traces, NULL, ext_plist, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free and return */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        if (ext_plist[det_nr-1] != NULL)
+            cpl_propertylist_delete(ext_plist[det_nr-1]) ;
         if (traces[det_nr-1] != NULL)
             cpl_table_delete(traces[det_nr-1]) ;
+    }
 
     return (int)cpl_error_get_code();
 }
