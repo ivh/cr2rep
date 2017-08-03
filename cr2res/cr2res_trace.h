@@ -36,14 +36,16 @@ cpl_table * cr2res_trace(
         double              smoothfactor,
         int                 opening,
         int                 degree,
-        int                 min_cluster) ;
+        int                 min_cluster,
+        int                 split_single_trace_orders) ;
 
 cpl_table * cr2res_trace_nocpl(
         cpl_image       *   ima,
         double              smoothfactor,
         int                 opening,
         int                 degree,
-        int                 min_cluster) ;
+        int                 min_cluster,
+        int                 split_single_trace_orders) ;
 
 cpl_mask * cr2res_trace_detect(
         cpl_image   *   ima,
@@ -55,7 +57,8 @@ cpl_image * cr2res_trace_labelize(cpl_mask * mask) ;
 
 cpl_table * cr2res_trace_fit(
         cpl_image   *   labels,
-        int             degree) ;
+        int             degree, 
+        int             split_single_trace_orders) ;
 
 cpl_image * cr2res_trace_gen_image(
         cpl_table   *   trace,

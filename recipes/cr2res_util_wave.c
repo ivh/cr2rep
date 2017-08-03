@@ -503,7 +503,7 @@ static int cr2res_util_wave(
     out_file = cpl_sprintf("%s_wave_map.fits",
             cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
     cr2res_io_save_WAVE_MAP(out_file, frameset, parlist, out_wave_map,
-            NULL, RECIPE_STRING) ;
+            NULL, ext_plist, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free and return */

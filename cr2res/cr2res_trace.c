@@ -42,6 +42,9 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static cpl_image * cr2res_trace_split_traces(
+        cpl_image   *   labels,
+        cpl_table   *   trace_table) ;
 static cpl_mask * cr2res_trace_signal_detect(
         const cpl_image *   image,
         int                 trace_sep,
@@ -82,6 +85,7 @@ static int cr2res_trace_extract_edges(
   @param opening        Used for cleaning the mask
   @param degree            Fitted polynomial degree
   @param min_cluster      A trace must be bigger - discarded otherwise
+  @param    split_single_trace_orders   Flag to split traces
   @return The newly allocated trace table or NULL in error case
   The returned table contains 1 line per trace. Each line has 3
   polynomials (All, Upper and Lower).
@@ -97,7 +101,8 @@ cpl_table * cr2res_trace(
         double              smoothfactor,
         int                 opening,
         int                 degree,
-        int                 min_cluster)
+        int                 min_cluster,
+        int                 split_single_trace_orders)
 {
     cpl_mask        *   mask ;
     cpl_image       *   labels ;
@@ -136,7 +141,8 @@ cpl_table * cr2res_trace(
 
     /* Fit Labels Edges */
     cpl_msg_info(__func__, "Fit the trace edges") ;
-    if ((trace_table = cr2res_trace_fit(labels, degree)) == NULL) {
+    if ((trace_table = cr2res_trace_fit(labels, degree,
+                    split_single_trace_orders)) == NULL) {
         cpl_msg_error(__func__, "Cannot fit the trace edges") ;
         cpl_image_delete(labels) ;
         return NULL ;
@@ -154,6 +160,7 @@ cpl_table * cr2res_trace(
   @param opening        Used for cleaning the mask
   @param degree            Fitted polynomial degree
   @param min_cluster      A trace must be bigger - discarded otherwise
+  @param    split_single_trace_orders   Flag to split traces
   @return The newly allocated trace table or NULL in error case
   @see cr2res_trace()
 
@@ -171,7 +178,8 @@ cpl_table * cr2res_trace_nocpl(
         double              smoothfactor,
         int                 opening,
         int                 degree,
-        int                 min_cluster)
+        int                 min_cluster,
+        int                 split_single_trace_orders)
 {
     cpl_mask        *   mask ;
     cpl_table       *   clustertable ;
@@ -197,7 +205,8 @@ cpl_table * cr2res_trace_nocpl(
     cpl_table_delete(clustertable);
 
     /* Fit Labels Edges */
-    if ((trace_table = cr2res_trace_fit(labels, degree)) == NULL) {
+    if ((trace_table = cr2res_trace_fit(labels, degree,
+                    split_single_trace_orders)) == NULL) {
         cpl_msg_error(__func__, "Fit the trace edges") ;
         cpl_image_delete(labels) ;
         return NULL ;
@@ -324,8 +333,9 @@ cpl_image * cr2res_trace_labelize(cpl_mask * mask)
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Fit polynomials to pixel coordinates in each trace
-  @param labels The labels image (1 int value for each trace)
-  @param degree The degree of the polynomial use for the fitting
+  @param    labels  The labels image (1 int value for each trace)
+  @param    degree  The degree of the polynomial use for the fitting
+  @param    split_single_trace_orders   Flag to split traces
   @return   A newly allocated table or NULL in error case
 
   The function converts the label image in the proper cluster table in
@@ -339,10 +349,12 @@ cpl_image * cr2res_trace_labelize(cpl_mask * mask)
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_fit(
         cpl_image   *   labels,
-        int             degree)
+        int             degree,
+        int             split_single_trace_orders)
 {
     cpl_table       *   clustertable ;
     cpl_table       *   trace_table ;
+    cpl_image       *   labels_split ;
 
     /* Create cluster table needed for fitting */
     clustertable = cr2res_trace_convert_labels_to_cluster(labels) ;
@@ -360,6 +372,34 @@ cpl_table * cr2res_trace_fit(
         return NULL ;
     }
     cpl_table_delete(clustertable);
+
+    /* Split Single trace orders */
+    if (split_single_trace_orders) {
+        /* Create a new label image */
+        labels_split = cr2res_trace_split_traces(labels, trace_table) ;
+        cpl_table_delete(trace_table) ;
+        
+         /* Create cluster table needed for fitting */
+        clustertable = cr2res_trace_convert_labels_to_cluster(labels_split) ;
+ 
+        /* Debug Saving */
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+            cpl_image_save(labels_split, "debug_labels_split.fits", 
+                    CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+            cpl_table_save(clustertable, NULL, NULL, 
+                    "debug_cluster_table_split.fits", CPL_IO_CREATE);
+        }
+        cpl_image_delete(labels_split) ; 
+
+        /* Fit the traces */
+        if ((trace_table = cr2res_trace_fit_traces(clustertable, 
+                        degree)) == NULL) {
+            cpl_msg_error(__func__, "Failed to Fit") ;
+            cpl_table_delete(clustertable);
+            return NULL ;
+        }
+        cpl_table_delete(clustertable);
+    }
 
     /* Debug Saving */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
@@ -655,6 +695,26 @@ double cr2res_trace_get_trace_ypos(
 }
 
 /**@}*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief 
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_image * cr2res_trace_split_traces(
+        cpl_image   *   labels,
+        cpl_table   *   trace_table)
+{
+
+    /* Check entries */
+    if (labels == NULL || trace_table == NULL) return NULL ;
+
+
+ 
+    return cpl_image_duplicate(labels) ;
+}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -1096,5 +1156,4 @@ static int cr2res_trace_extract_edges(
     cpl_table_delete(lower_sel) ;
 
     return CPL_ERROR_NONE ;
-
 }

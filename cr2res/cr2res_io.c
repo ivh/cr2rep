@@ -45,6 +45,7 @@ static int cr2res_io_save_image(
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe,
         const char              *   procatg,
         const char              *   protype) ;
@@ -270,7 +271,7 @@ cpl_table * cr2res_io_load_BLAZE(
         const char  *   filename,
         int             detector)
 {
-        return NULL ;
+    return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -286,7 +287,7 @@ cpl_image * cr2res_io_load_BLAZE_IMAGE(
         const char  *   filename,
         int             detector)
 {
-        return NULL ;
+    return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -304,7 +305,7 @@ cpl_image * cr2res_io_load_SLIT_MODEL(
         int             detector,
         int             data)
 {
-        return NULL ;
+    return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -320,7 +321,7 @@ cpl_image * cr2res_io_load_WAVE_MAP(
         const char  *   filename,
         int             detector)
 {
-        return NULL ;
+    return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -336,7 +337,7 @@ cpl_image * cr2res_io_load_SLITPOS_MAP(
         const char  *   filename,
         int             detector)
 {
-        return NULL ;
+    return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -352,7 +353,7 @@ cpl_image * cr2res_io_load_TILT_MAP(
         const char  *   filename,
         int             detector)
 {
-        return NULL ;
+    return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -368,7 +369,7 @@ cpl_table * cr2res_io_load_TILT_POLY(
         const char  *   filename,
         int             detector)
 {
-        return NULL ;
+    return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -412,7 +413,7 @@ cpl_table * cr2res_io_load_SPLICED_1D(
         const char  *   filename,
         int             detector)
 {
-        return NULL ;
+    return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -426,7 +427,7 @@ cpl_table * cr2res_io_load_SPLICED_1D(
 cpl_table * cr2res_io_load_EXTRACT_2D(
         const char  *   filename)
 {
-        return NULL ;
+    return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -442,7 +443,7 @@ cpl_table * cr2res_io_load_EXTRACT_POL(
         const char  *   filename,
         int             detector)
 {
-        return NULL ;
+    return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -499,6 +500,7 @@ int cr2res_io_save_EMISSION_LINES(
   @param    parlist     The recipe input parameters
   @param    master_darks  The data/error master darks (1 per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -510,10 +512,12 @@ int cr2res_io_save_MASTER_DARK(
         const cpl_parameterlist *   parlist,
         hdrl_image              **  master_darks,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            master_darks, qc_list, recipe, CR2RES_MASTER_DARK_PROCATG, "") ;
+            master_darks, qc_list, ext_plist, recipe, 
+            CR2RES_MASTER_DARK_PROCATG, "") ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -522,8 +526,9 @@ int cr2res_io_save_MASTER_DARK(
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
-  @param    data        The data images to save (1 per detector)
+  @param    master_bpms  The data/error BPMs (1 per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -532,13 +537,13 @@ int cr2res_io_save_MASTER_BPM(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
+        hdrl_image              **  master_bpms,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
-            return -1 ;
+    return -1 ;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -546,8 +551,9 @@ int cr2res_io_save_MASTER_BPM(
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
-  @param    data        The data imagelists to save (1 per detector)
+  @param    detlin_coeffs  The data/error detlin coeffs (1 per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -556,13 +562,13 @@ int cr2res_io_save_DETLIN_COEFFS(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           **  data,
+        hdrl_imagelist          **  detlin_coeffs,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
-            return -1 ;
+    return -1 ;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -570,9 +576,9 @@ int cr2res_io_save_DETLIN_COEFFS(
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
-  @param    data        The data images to save (1 per detector)
-  @param    errors      The error images to save (1 per detector)
+  @param    master_flats The data/error FLATs (1 per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -581,12 +587,12 @@ int cr2res_io_save_MASTER_FLAT(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
-        cpl_imagelist           *   errors,
+        hdrl_image              **  master_flats,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
-            return -1 ;
+    return -1 ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -624,6 +630,7 @@ int cr2res_io_save_TRACE_WAVE(
   @param    parlist     The recipe input parameters
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -634,11 +641,11 @@ int cr2res_io_save_BLAZE(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
-            return -1 ;
+    return -1 ;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -646,8 +653,9 @@ int cr2res_io_save_BLAZE(
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
-  @param    data        The data images to save (1 per detector)
+  @param    blaze       The data/error BLAZE images (1 per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -656,11 +664,12 @@ int cr2res_io_save_BLAZE_IMAGE(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
+        hdrl_image              **  blaze,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
-            return -1 ;
+    return -1 ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -698,6 +707,7 @@ int cr2res_io_save_SLIT_FUNC(
   @param    parlist     The recipe input parameters
   @param    data        The data images to save (DATA and ERROR per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -708,10 +718,11 @@ int cr2res_io_save_SLIT_MODEL(
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            data, qc_list, recipe, CR2RES_SLIT_MODEL_PROCATG,
+            data, qc_list, ext_plist, recipe, CR2RES_SLIT_MODEL_PROCATG,
             CR2RES_SLIT_MODEL_PROTYPE) ;
 }
 
@@ -721,8 +732,9 @@ int cr2res_io_save_SLIT_MODEL(
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
-  @param    data        The data images to save (1 per detector)
+  @param    data        The data images to save (DATA and ERROR per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -733,36 +745,12 @@ int cr2res_io_save_WAVE_MAP(
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            data, qc_list, recipe, CR2RES_WAVE_MAP_PROCATG, "") ;
+            data, qc_list, ext_plist, recipe, CR2RES_WAVE_MAP_PROCATG, "") ;
 }
-
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Save a WAVE_SUB_ORDER
-  @param    filename    The FITS file name
-  @param    allframes   The recipe input frames
-  @param    parlist     The recipe input parameters
-  @param    tables      The tables to save (1 per detector)
-  @param    qc_list     The QC parameters
-  @param    recipe      The recipe name
-  @return   0 if ok, -1 in error case
- */
-/*----------------------------------------------------------------------------*/
-int cr2res_io_save_WAVE_SUB_ORDER(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        const cpl_parameterlist *   parlist,
-        cpl_table               **  tables,
-        const cpl_propertylist  *   qc_list,
-        const char              *   recipe)
-{
-            return -1 ;
-}
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -770,8 +758,9 @@ int cr2res_io_save_WAVE_SUB_ORDER(
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
-  @param    data        The data images to save (1 per detector)
+  @param    data        The data images to save (DATA and ERROR per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -780,13 +769,13 @@ int cr2res_io_save_SLITPOS_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
+        hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
-            return -1 ;
+    return -1 ;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -794,8 +783,9 @@ int cr2res_io_save_SLITPOS_MAP(
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
-  @param    data        The data images to save (1 per detector)
+  @param    data        The data images to save (DATA and ERROR per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -804,11 +794,12 @@ int cr2res_io_save_TILT_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
+        hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
-            return -1 ;
+    return -1 ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -873,6 +864,7 @@ int cr2res_io_save_EXTRACT_1D(
   @param    parlist     The recipe input parameters
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -883,9 +875,10 @@ int cr2res_io_save_SPLICED_1D(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
-            return -1 ;
+    return -1 ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -908,7 +901,7 @@ int cr2res_io_save_EXTRACT_2D(
         const cpl_propertylist  *   qc_list,
         const char              *   recipe)
 {
-            return -1 ;
+    return -1 ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -919,6 +912,7 @@ int cr2res_io_save_EXTRACT_2D(
   @param    parlist     The recipe input parameters
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -929,6 +923,7 @@ int cr2res_io_save_EXTRACT_POL(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
     return -1 ;
@@ -1009,11 +1004,9 @@ static int cr2res_io_save_table(
 
     /* Save the extensions */
     for (i=1 ; i<CR2RES_NB_DETECTORS ; i++) {
-
-
         /* Create the first extension header */
-        if (ext_plist[1] == NULL) ext_head = cpl_propertylist_new() ;
-        else                ext_head = cpl_propertylist_duplicate(ext_plist[1]) ;
+        if (ext_plist[i] == NULL) ext_head = cpl_propertylist_new() ;
+        else                ext_head = cpl_propertylist_duplicate(ext_plist[i]) ;
         sprintf(sval, "CHIP%d", i+1) ;
         cpl_propertylist_update_string(ext_head, "EXTNAME", sval) ;
         if (tab[i] != NULL) {
@@ -1034,6 +1027,7 @@ static int cr2res_io_save_table(
   @param    parlist     The recipe input parameters
   @param    data        The images to save (data and error per detector)
   @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
   @param    procatg     PRO.CATG
   @param    protype     PRO.TYPE
@@ -1046,6 +1040,7 @@ static int cr2res_io_save_image(
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe,
         const char              *   procatg,
         const char              *   protype)

@@ -223,6 +223,7 @@ static int cr2res_cal_dark(
     cpl_image           *   ima_data ;
     cpl_image           *   ima_err ;
     hdrl_image 			*   master_darks[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     hdrl_image 			* 	hdrl_ima ;
     hdrl_image 			* 	master;
     cpl_image 			*	contrib_map;
@@ -258,6 +259,10 @@ static int cr2res_cal_dark(
     for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
         cpl_msg_info(__func__, "Process Detector nb %i", ext) ;
         cpl_msg_indent_more() ;
+
+        /* Initialise */
+        master_darks[ext-1] = NULL ;
+        ext_plist[ext-1] = NULL ;
 
         /* Loop on the frames */
         dark_cube = hdrl_imagelist_new();
@@ -320,11 +325,14 @@ static int cr2res_cal_dark(
 
 	/* Save the results */
 	if (cr2res_io_save_MASTER_DARK(frameset, "cr2res_cal_dark_master.fits", 
-                rawframes, parlist, master_darks, NULL, RECIPE_STRING) != 0) {
+                rawframes, parlist, master_darks, NULL, ext_plist, 
+                RECIPE_STRING) != 0) {
         cpl_frameset_delete(rawframes) ;
         for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
             if (master_darks[ext-1] != NULL) 
                 hdrl_image_delete(master_darks[ext-1]);
+            if (ext_plist[ext-1] != NULL) 
+                cpl_propertylist_delete(ext_plist[ext-1]);
         }
         cpl_msg_error(__func__, "Cannot save the MASTER DARK") ;
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -335,6 +343,7 @@ static int cr2res_cal_dark(
     cpl_frameset_delete(rawframes) ;
     for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
         if (master_darks[ext-1] != NULL) hdrl_image_delete(master_darks[ext-1]);
+        if (ext_plist[ext-1] != NULL) cpl_propertylist_delete(ext_plist[ext-1]);
     }
 
     return (int)cpl_error_get_code();

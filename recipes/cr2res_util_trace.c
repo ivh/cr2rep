@@ -172,6 +172,13 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.split_traces",
+            CPL_TYPE_BOOL, "Split the traces when only 1 per order",
+            "cr2res.cr2res_util_trace", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "split_traces");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
             "cr2res.cr2res_util_trace", 0);
@@ -234,7 +241,8 @@ static int cr2res_util_trace(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param;
-    int                     min_cluster, degree, opening, reduce_det ;
+    int                     min_cluster, degree, opening, reduce_det,
+                            split_traces ;
     double                  smooth, y_pos ;
     int                 *   orders ;
     const char          *   flat_file ;
@@ -260,6 +268,9 @@ static int cr2res_util_trace(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.opening");
     opening = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_trace.split_traces");
+    split_traces = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -313,8 +324,8 @@ static int cr2res_util_trace(
         /* Get the traces */
         cpl_msg_info(__func__, "Compute the traces") ;
         cpl_msg_indent_more() ;
-        if ((traces[det_nr-1] = cr2res_trace(flat_ima,
-                smooth, opening, degree, min_cluster)) == NULL) {
+        if ((traces[det_nr-1] = cr2res_trace(flat_ima, smooth, opening, degree,
+                        min_cluster, split_traces)) == NULL) {
             cpl_msg_warning(__func__,
                     "Cannot compute the trace - skip detector");
             cpl_error_reset() ;

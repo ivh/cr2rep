@@ -83,10 +83,6 @@ cpl_image * cr2res_io_load_WAVE_MAP(
         const char  *   filename,
         int             detector);
 
-cpl_table * cr2res_io_load_WAVE_SUB_ORDER(
-        const char  *   filename,
-        int             detector);
-
 cpl_image * cr2res_io_load_SLITPOS_MAP(
         const char  *   filename,
         int             detector);
@@ -127,31 +123,34 @@ int cr2res_io_save_MASTER_DARK(
         const cpl_parameterlist *   parlist,
         hdrl_image              **  master_darks,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe) ;
 
 int cr2res_io_save_MASTER_BPM(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
+        hdrl_image              **  master_bpms,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_DETLIN_COEFFS(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           **  data,
+        hdrl_imagelist          **  detlin_coeffs,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_MASTER_FLAT(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
-        cpl_imagelist           *   errors,
+        hdrl_image              **  master_flats,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_TRACE_WAVE(
@@ -169,14 +168,16 @@ int cr2res_io_save_BLAZE(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_BLAZE_IMAGE(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
+        hdrl_image              **  blaze,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_SLIT_MODEL(
@@ -185,6 +186,7 @@ int cr2res_io_save_SLIT_MODEL(
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_SLIT_FUNC(
@@ -202,22 +204,25 @@ int cr2res_io_save_WAVE_MAP(
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_SLITPOS_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
+        hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_TILT_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           *   data,
+        hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_TILT_POLY(
@@ -244,6 +249,7 @@ int cr2res_io_save_SPLICED_1D(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
 int cr2res_io_save_EXTRACT_2D(
@@ -260,6 +266,7 @@ int cr2res_io_save_EXTRACT_POL(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
         const char              *   recipe) ;
 
 #endif
