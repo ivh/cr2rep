@@ -53,8 +53,6 @@ cpl_mask * cr2res_trace_detect(
         int             opening,
         int             min_cluster) ;
 
-cpl_image * cr2res_trace_labelize(cpl_mask * mask) ;
-
 cpl_table * cr2res_trace_fit(
         cpl_image   *   labels,
         int             degree, 

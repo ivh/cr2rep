@@ -42,8 +42,8 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static cpl_image * cr2res_trace_split_traces(
-        cpl_image   *   labels,
+static cpl_mask * cr2res_trace_split_traces(
+        cpl_mask    *   mask,
         cpl_table   *   trace_table) ;
 static cpl_mask * cr2res_trace_signal_detect(
         const cpl_image *   image,
@@ -80,15 +80,22 @@ static int cr2res_trace_extract_edges(
 /*----------------------------------------------------------------------------*/
 /**
   @brief  Main function for running all parts of the trace algorithm
-  @param ima            input image
-  @param smoothfactor   Used for detection
-  @param opening        Used for cleaning the mask
-  @param degree            Fitted polynomial degree
-  @param min_cluster      A trace must be bigger - discarded otherwise
+  @param    ima             input image
+  @param    smoothfactor    Used for detection
+  @param    opening         Used for cleaning the mask
+  @param    degree          Fitted polynomial degree
+  @param    min_cluster     A trace must be bigger - discarded otherwise
   @param    split_single_trace_orders   Flag to split traces
   @return The newly allocated trace table or NULL in error case
-  The returned table contains 1 line per trace. Each line has 3
-  polynomials (All, Upper and Lower).
+
+  A detection is applied to create a mask. This one is labelised.
+  The function converts the label image in the proper cluster table in
+  trace to call the traces fitting function.
+  The cluster table contains the label image information in the form of
+  a table. One column per pixel. The columns are xs (pixel x position),
+  ys (pixel y position) and cluster (label number).
+  The returned table contains 1 line per trace. Each line has 3 polynomials 
+  (All, Upper and Lower).
     For example with degree 1 :
                  All|               Upper|               Lower| 
   24.3593, 0.0161583|  34.6822, 0.0164165|  14.0261, 0.0159084|      
@@ -105,10 +112,12 @@ cpl_table * cr2res_trace(
         int                 split_single_trace_orders)
 {
     cpl_mask        *   mask ;
+    cpl_mask        *   mask_split ;
     cpl_image       *   labels ;
     cpl_apertures   *   aperts ;
     cpl_table       *   clustertable ;
     cpl_table       *   trace_table ;
+    cpl_size            nlabels ;
 
     /* Check Entries */
     if (ima == NULL) return NULL ;
@@ -125,12 +134,11 @@ cpl_table * cr2res_trace(
 
     /* Labelization */
     cpl_msg_info(__func__, "Labelise the traces") ;
-    if ((labels = cr2res_trace_labelize(mask)) == NULL) {
+    if ((labels = cpl_image_labelise_mask_create(mask, &nlabels)) == NULL) {
         cpl_msg_error(__func__, "Cannot labelise") ;
         cpl_mask_delete(mask);
         return NULL ;
     }
-    cpl_mask_delete(mask);
 
     /* Analyse and dump traces */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
@@ -139,38 +147,106 @@ cpl_table * cr2res_trace(
         cpl_apertures_delete(aperts) ;
     }
 
-    /* Fit Labels Edges */
-    cpl_msg_info(__func__, "Fit the trace edges") ;
-    if ((trace_table = cr2res_trace_fit(labels, degree,
-                    split_single_trace_orders)) == NULL) {
-        cpl_msg_error(__func__, "Cannot fit the trace edges") ;
-        cpl_image_delete(labels) ;
-        return NULL ;
+    /* Create cluster table needed for fitting */
+    clustertable = cr2res_trace_convert_labels_to_cluster(labels) ;
+
+    /* Debug Saving */
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+		cpl_image_save(labels, "debug_labels.fits", 
+				CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+        cpl_table_save(clustertable, NULL, NULL, "debug_cluster_table.fits",
+                CPL_IO_CREATE);
     }
     cpl_image_delete(labels) ;
+
+    /* Fit the traces */
+    cpl_msg_info(__func__, "Fit the trace edges") ;
+    if ((trace_table = cr2res_trace_fit_traces(clustertable, degree)) == NULL) {
+        cpl_msg_error(__func__, "Failed to Fit") ;
+        cpl_table_delete(clustertable);
+        cpl_mask_delete(mask);
+        return NULL ;
+    }
+    cpl_table_delete(clustertable);
+
+    /* Split Single trace orders */
+    if (split_single_trace_orders) {
+        /* Create a new label image */
+        mask_split = cr2res_trace_split_traces(mask, trace_table) ;
+        cpl_table_delete(trace_table) ;
+         
+        /* Labelization */
+        cpl_msg_info(__func__, "Labelise the traces") ;
+        if ((labels = cpl_image_labelise_mask_create(mask_split, 
+                        &nlabels)) == NULL) {
+            cpl_msg_error(__func__, "Cannot labelise the splitted mask") ;
+            cpl_mask_delete(mask_split);
+            cpl_mask_delete(mask);
+            return NULL ;
+        }
+        cpl_mask_delete(mask_split);
+        
+        /* Analyse and dump traces */
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+            aperts = cpl_apertures_new_from_image(ima, labels);
+            cpl_apertures_dump(aperts, stdout) ;
+            cpl_apertures_delete(aperts) ;
+        }
+
+         /* Create cluster table needed for fitting */
+        clustertable = cr2res_trace_convert_labels_to_cluster(labels) ;
+ 
+        /* Debug Saving */
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+            cpl_image_save(labels, "debug_labels_split.fits", 
+                    CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+            cpl_table_save(clustertable, NULL, NULL, 
+                    "debug_cluster_table_split.fits", CPL_IO_CREATE);
+        }
+        cpl_image_delete(labels) ;
+
+        /* Fit the traces */
+        if ((trace_table = cr2res_trace_fit_traces(clustertable, 
+                        degree)) == NULL) {
+            cpl_msg_error(__func__, "Failed to Fit") ;
+            cpl_table_delete(clustertable);
+            return NULL ;
+        }
+        cpl_table_delete(clustertable);
+    }
+    cpl_mask_delete(mask);
+
+    /* Debug Saving */
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_table_save(trace_table, NULL, NULL, "debug_trace_table.fits",
+                CPL_IO_CREATE);
+    }
 
     return trace_table ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  Main function for running all parts of the trace algorithm
-  @param ima            input image
-  @param smoothfactor   Used for detection
-  @param opening        Used for cleaning the mask
-  @param degree            Fitted polynomial degree
-  @param min_cluster      A trace must be bigger - discarded otherwise
+  @brief    Fit polynomials to pixel coordinates in each trace
+  @param    labels  The labels image (1 int value for each trace)
+  @param    degree  The degree of the polynomial use for the fitting
   @param    split_single_trace_orders   Flag to split traces
-  @return The newly allocated trace table or NULL in error case
-  @see cr2res_trace()
+  @return   A newly allocated table or NULL in error case
 
+  The function converts the label image in the proper cluster table in
+  trace to call the traces fitting function.
+  The cluster table contains the label image information in the form of
+  a table. One column per pixel. The columns are xs (pixel x position),
+  ys (pixel y position) and cluster (label number).
   The returned table contains 1 line per trace. Each line has 3
   polynomials (All, Upper and Lower).
-    For example with degree 1 :
-                 All|               Upper|               Lower| 
-  24.3593, 0.0161583|  34.6822, 0.0164165|  14.0261, 0.0159084| 
-  225.479, 0.0167469|  236.604, 0.0168986|  214.342, 0.0166058| 
-   436.94, 0.0173438|   448.436, 0.017493|   425.423, 0.017203| 
+ */
+/*----------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  Version of cr2res_trace() using cr2res_cluster_detect()
+    TODO : Integrate in cr2res_trace() with a NOCPL boolean
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_nocpl(
@@ -205,12 +281,14 @@ cpl_table * cr2res_trace_nocpl(
     cpl_table_delete(clustertable);
 
     /* Fit Labels Edges */
+    /*
     if ((trace_table = cr2res_trace_fit(labels, degree,
                     split_single_trace_orders)) == NULL) {
         cpl_msg_error(__func__, "Fit the trace edges") ;
         cpl_image_delete(labels) ;
         return NULL ;
     }
+    */
     cpl_image_delete(labels) ;
 
     return trace_table ;
@@ -294,121 +372,6 @@ cpl_mask * cr2res_trace_detect(
         cpl_mask_save(clean_mask, "debug_mask.fits", NULL, CPL_IO_CREATE);
     }
     return clean_mask ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Find out which pixels belong to the same trace, label traces
-  @param mask   Mask identify the traces positions
-  @return   A newly allocated image or NULL in error case
-
-  The returned image is of type INT. Background value is 0. Each trace
-  has an integer value from 1 to the number of traces detected.
-  All connected pixels belong to the same trace.
- */
-/*----------------------------------------------------------------------------*/
-cpl_image * cr2res_trace_labelize(cpl_mask * mask)
-{
-    cpl_image   *   labels ;
-    cpl_size        nlabels ;
-
-    /* Check entries */
-    if (mask == NULL) return NULL ;
-
-    /* Call CPL function to labelise */
-    if ((labels = cpl_image_labelise_mask_create(mask, &nlabels)) == NULL) {
-        cpl_msg_error(__func__, "Failed to labelise") ;
-        return NULL ;
-    }
-
-    /* Debug Saving */
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        /* Analyse and dump traces */
-        cpl_image_save(labels, "debug_labels.fits", CPL_TYPE_INT, NULL,
-                CPL_IO_CREATE);
-    }
-    return labels ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Fit polynomials to pixel coordinates in each trace
-  @param    labels  The labels image (1 int value for each trace)
-  @param    degree  The degree of the polynomial use for the fitting
-  @param    split_single_trace_orders   Flag to split traces
-  @return   A newly allocated table or NULL in error case
-
-  The function converts the label image in the proper cluster table in
-  trace to call the traces fitting function.
-  The cluster table contains the label image information in the form of
-  a table. One column per pixel. The columns are xs (pixel x position),
-  ys (pixel y position) and cluster (label number).
-  The returned table contains 1 line per trace. Each line has 3
-  polynomials (All, Upper and Lower).
- */
-/*----------------------------------------------------------------------------*/
-cpl_table * cr2res_trace_fit(
-        cpl_image   *   labels,
-        int             degree,
-        int             split_single_trace_orders)
-{
-    cpl_table       *   clustertable ;
-    cpl_table       *   trace_table ;
-    cpl_image       *   labels_split ;
-
-    /* Create cluster table needed for fitting */
-    clustertable = cr2res_trace_convert_labels_to_cluster(labels) ;
-
-    /* Debug Saving */
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_table_save(clustertable, NULL, NULL, "debug_cluster_table.fits",
-                CPL_IO_CREATE);
-    }
-
-    /* Fit the traces */
-    if ((trace_table = cr2res_trace_fit_traces(clustertable, degree)) == NULL) {
-        cpl_msg_error(__func__, "Failed to Fit") ;
-        cpl_table_delete(clustertable);
-        return NULL ;
-    }
-    cpl_table_delete(clustertable);
-
-    /* Split Single trace orders */
-    if (split_single_trace_orders) {
-        /* Create a new label image */
-        labels_split = cr2res_trace_split_traces(labels, trace_table) ;
-        cpl_table_delete(trace_table) ;
-        
-         /* Create cluster table needed for fitting */
-        clustertable = cr2res_trace_convert_labels_to_cluster(labels_split) ;
- 
-        /* Debug Saving */
-        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-            cpl_image_save(labels_split, "debug_labels_split.fits", 
-                    CPL_TYPE_INT, NULL, CPL_IO_CREATE);
-            cpl_table_save(clustertable, NULL, NULL, 
-                    "debug_cluster_table_split.fits", CPL_IO_CREATE);
-        }
-        cpl_image_delete(labels_split) ; 
-
-        /* Fit the traces */
-        if ((trace_table = cr2res_trace_fit_traces(clustertable, 
-                        degree)) == NULL) {
-            cpl_msg_error(__func__, "Failed to Fit") ;
-            cpl_table_delete(clustertable);
-            return NULL ;
-        }
-        cpl_table_delete(clustertable);
-    }
-
-    /* Debug Saving */
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_table_save(trace_table, NULL, NULL, "debug_trace_table.fits",
-                CPL_IO_CREATE);
-    }
-
-    /* Free and return */
-    return trace_table ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -703,17 +666,56 @@ double cr2res_trace_get_trace_ypos(
   @return
  */
 /*----------------------------------------------------------------------------*/
-static cpl_image * cr2res_trace_split_traces(
-        cpl_image   *   labels,
+static cpl_mask * cr2res_trace_split_traces(
+        cpl_mask    *   mask,
         cpl_table   *   trace_table)
 {
+    cpl_mask   		*   out ;
+    cpl_binary      *   pout ;
+    cpl_polynomial  *   poly_all ;
+    cpl_polynomial  *   poly_upper ;
+    cpl_polynomial  *   poly_lower ;
+    int                 i, j, upper_y, lower_y, center_y, start_y, stop_y ;
+    cpl_size            nx, ny, k, l;
 
     /* Check entries */
-    if (labels == NULL || trace_table == NULL) return NULL ;
+    if (mask == NULL || trace_table == NULL) return NULL ;
 
+    /* Create out label image */
+    out = cpl_mask_duplicate(mask) ;
+    nx = cpl_mask_get_size_x(out) ;
+    ny = cpl_mask_get_size_y(out) ;
+    pout = cpl_mask_get_data(out) ;
 
- 
-    return cpl_image_duplicate(labels) ;
+    /* Loop on the traces */
+    for (i=0 ; i<cpl_table_get_nrow(trace_table) ; i++) {
+        poly_all = cr2res_convert_array_to_poly(cpl_table_get_array(
+                    trace_table, CR2RES_COL_ALL, i)) ;
+        poly_upper = cr2res_convert_array_to_poly(cpl_table_get_array(
+                    trace_table, CR2RES_COL_UPPER, i)) ;
+        poly_lower = cr2res_convert_array_to_poly(cpl_table_get_array(
+                    trace_table, CR2RES_COL_LOWER, i)) ;
+
+        /* For each x */
+        for (k=0 ; k<nx ; k++) {
+            lower_y = cpl_polynomial_eval_1d(poly_lower, k+1, NULL) ;
+            upper_y = cpl_polynomial_eval_1d(poly_upper, k+1, NULL) ;
+            center_y = cpl_polynomial_eval_1d(poly_all, k+1, NULL) ;
+
+            start_y = (int)(center_y - (upper_y-lower_y)/3.0) ; 
+            stop_y = (int)(center_y + (upper_y-lower_y)/3.0) ; 
+
+            if (start_y < 1) start_y = 1 ;
+            if (stop_y > ny) stop_y = ny ; 
+
+            for (l=start_y-1 ; l<stop_y ; l++) pout[k+l*nx] = CPL_BINARY_0 ;
+        }
+        cpl_polynomial_delete(poly_all) ;
+        cpl_polynomial_delete(poly_upper) ;
+        cpl_polynomial_delete(poly_lower) ;
+
+    }
+    return out ; ;
 }
 
 /*----------------------------------------------------------------------------*/
