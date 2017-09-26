@@ -1,27 +1,32 @@
 #!/usr/bin/env python3
 import os, sys
+import matplotlib.pyplot as plt
+plt.style.use('seaborn-talk')
+import numpy as np
 from astropy.io import fits as F
-from pylab import *
 
 filename = sys.argv[1]
 Tab = F.open(filename)
-all_diffs = [array(ext.data).astype('f') for ext in Tab[1:]]
+all_diffs = [np.array(ext.data).astype('f') for ext in Tab[1:]]
 
 stds = [diff.std() for diff in all_diffs]
-meds = [median(diff) for diff in all_diffs]
+meds = [np.median(diff) for diff in all_diffs]
 
 for i,diff in enumerate(all_diffs):
-    med = median(diff)
+    med = np.median(diff)
     std = diff.std()
-    bins=linspace(med/3,med*2.2,100)
+    bins=np.linspace(med/2,med*1.5,100)
     bins.sort()
-    clf()
-    hist(diff,bins=bins)
-    axvline(med,ls='--',color='k')
-    axvline(med/2,ls='--',color='k')
-    axvline(med*2,ls='--',color='k')
-    axvline(diff.mean(),ls='-',color='k')
-    axvline(med-std,ls='-',color='k')
-    axvline(med+std,ls='-',color='k')
-    savefig('hist_%s.png'%i,dpi=100)
+    plt.clf()
+    plt.hist(diff,bins=bins)
+    plt.axvline(med,ls='--',color='k')
+    plt.axvline(med/2,ls='--',color='k')
+    plt.axvline(med*2,ls='--',color='k')
+    plt.axvline(diff.mean(),ls='-',color='k')
+    plt.axvline(med-std,ls='-',color='k')
+    plt.axvline(med+std,ls='-',color='k')
+    plt.xlabel('Δλ')
+    plt.ylabel('N')
+    plt.title('Detector %d, order #%s'%(i//9+1,i%9))
+    plt.savefig('hist_%02d.png'%i,dpi=60)
 

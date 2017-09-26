@@ -38,7 +38,7 @@ for i in [1,2,3]:
         ax.plot(X, pol, '--w')
         if np.isnan(pol[1024]): continue
         ax.text(1024,pol[1024] ,'%s-%s'%(order,tracenb),color='w',horizontalalignment='center',
-            verticalalignment='center', size=19)
+            verticalalignment='center', size=13)
         print('order: %s, y: %s'%(tracenb,pol[1024]))
 
     plt.axis(axi)
