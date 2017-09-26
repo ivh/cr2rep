@@ -109,7 +109,7 @@ double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the Min wavelength for an order (current detector)
+  @brief    find out the Start wavelength for an order (current detector)
   @param    plist       property list to read from
   @return   the requested value
  */
@@ -124,7 +124,7 @@ double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order)
     if (order < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN STRT%d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN STRT%02d", order) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -135,7 +135,7 @@ double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the Max wavelength for an order (current detector)
+  @brief    find out the End wavelength for an order (current detector)
   @param    plist       property list to read from
   @return   the requested value
  */
@@ -150,7 +150,7 @@ double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order)
     if (order < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN END%d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN END%02d", order) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -176,7 +176,7 @@ double cr2res_pfits_get_ceny(const cpl_propertylist * plist, int order)
     if (order < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN CENY%d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN CENY%02d", order) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -200,7 +200,8 @@ int cr2res_pfits_get_order(
     char    *   key_name ;
     int         i;
     int         best_number = -1;
-    int         maxnum_orders = 9;
+    int         minnum_orders = 0;
+    int         maxnum_orders = 10;
     double      ycen, curr_diff;
     double      best_diff = CR2RES_DETECTOR_SIZE;
 
@@ -215,8 +216,8 @@ int cr2res_pfits_get_order(
         return -1 ;
     }
 
-    for (i=0; i<maxnum_orders; i++) {
-        key_name = cpl_sprintf("ESO INS WLEN CENY%d",i);
+    for (i=minnum_orders; i<maxnum_orders; i++) {
+        key_name = cpl_sprintf("ESO INS WLEN CENY%02d",i);
         ycen = cpl_propertylist_get_double(plist, key_name);
         cpl_free(key_name) ;
         if (ycen < 0) continue;
