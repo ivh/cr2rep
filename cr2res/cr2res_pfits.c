@@ -216,7 +216,7 @@ int cr2res_pfits_get_order(
         return -1 ;
     }
 
-    for (i=minnum_orders; i<maxnum_orders; i++) {
+    for (i=minnum_orders; i <= maxnum_orders; i++) {
         key_name = cpl_sprintf("ESO INS WLEN CENY%02d",i);
         ycen = cpl_propertylist_get_double(plist, key_name);
         cpl_free(key_name) ;
