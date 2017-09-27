@@ -46,6 +46,16 @@ int cr2res_extract_slitdec_vert(
         cpl_vector  **  spec,
         hdrl_image  **  model) ;
 
+int cr2res_extract_sum_vert(
+        cpl_image   *   img_in,
+        cpl_table   *   trace_tab,
+        int             order,
+        int             trace_id,
+        int             height,
+        cpl_vector  **  slit_func,
+        cpl_vector  **  spec,
+        hdrl_image  **  model) ;
+
 cpl_table * cr2res_extract_SLITFUNC_create(
         cpl_vector      **  slit_func,
         cpl_table       *   trace_table) ;

@@ -308,6 +308,38 @@ int cr2res_extract_slitdec_vert(
 
     return 0;
 }
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Simple extraction function
+  @param    img_in	    full detector image
+  @param    trace_tab   The traces table
+  @param    order       The order to extract
+  @param    trace_id    The Trace to extract
+  @param    height      number of pix above and below mid-line or -1
+  @param    slit_func   the returned slit function
+  @param    spec        the returned spectrum
+  @param    model       the returned model
+  @return   0 if ok, -1 otherwise
+
+  This func takes a single image (contining many orders), and a *single*
+  order definition in the form of central y-corrds., plus the height.
+
+  The task of this function then is to:
+  TODO
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_extract_sum_vert(
+        cpl_image   *   img_in,
+        cpl_table   *   trace_tab,
+        int             order,
+        int             trace_id,
+        int             height,
+        cpl_vector  **  slit_func,
+        cpl_vector  **  spec,
+        hdrl_image  **  model)
+{
+    return -1;
+}
 
 /*----------------------------------------------------------------------------*/
 /**

@@ -397,18 +397,35 @@ static int cr2res_util_extract(
             cpl_msg_info(__func__, "Process Order %d/Trace %d",order,trace_id) ;
             cpl_msg_indent_more() ;
 
-            /* Call the SLIT DECOMPOSITION */
-            if (cr2res_extract_slitdec_vert(science_ima, trace_table, order,
-                        trace_id, extr_height, swath_width, oversample,
-                        smooth_slit, &(slit_func[i]), &(spectrum[i]),
-                        &model_tmp) != 0) {
-                cpl_msg_error(__func__, "Cannot extract the trace") ;
-                slit_func[i] = NULL ;
-                spectrum[i] = NULL ;
-                model_tmp = NULL ;
-                cpl_error_reset() ;
-                cpl_msg_indent_less() ;
-                continue ;
+            /* Call the Extraction */
+            if (sum_only) {
+                /* Call the SUM ONLY extraction */
+                if (cr2res_extract_sum_vert(science_ima, trace_table, order,
+                            trace_id, extr_height, &(slit_func[i]), 
+                            &(spectrum[i]), &model_tmp) != 0) {
+                    cpl_msg_error(__func__, "Cannot (sum-)extract the trace") ;
+                    slit_func[i] = NULL ;
+                    spectrum[i] = NULL ;
+                    model_tmp = NULL ;
+                    cpl_error_reset() ;
+                    cpl_msg_indent_less() ;
+                    continue ;
+                }
+            } else {
+                /* Call the SLIT DECOMPOSITION */
+                if (cr2res_extract_slitdec_vert(science_ima, trace_table, order,
+                            trace_id, extr_height, swath_width, oversample,
+                            smooth_slit, &(slit_func[i]), &(spectrum[i]),
+                            &model_tmp) != 0) {
+                    cpl_msg_error(__func__, 
+                            "Cannot (slitdec-) extract the trace") ;
+                    slit_func[i] = NULL ;
+                    spectrum[i] = NULL ;
+                    model_tmp = NULL ;
+                    cpl_error_reset() ;
+                    cpl_msg_indent_less() ;
+                    continue ;
+                }
             }
 
             /* Update the model global image */
