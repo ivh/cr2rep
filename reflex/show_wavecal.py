@@ -17,8 +17,13 @@ trace = fits.open(fname_trace)
 detstyle=('-k','-b','-g')
 
 for i in [1,2,3]:
-    sdata = spec['CHIP%d'%i].data
-    tdata = trace['CHIP%d'%i].data
+    try:
+        sdata = spec['CHIP%d'%i].data
+        tdata = trace['CHIP%d'%i].data
+    except KeyError:
+        print('Skipping CHIP%d'%i)
+        continue
+
     if tdata is None or sdata is None:
         print('No data for CHIP%d, skipping.'%i)
         continue
