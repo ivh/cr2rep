@@ -60,7 +60,7 @@ static int cr2res_extract_slitdec_adjust_swath(int sw, int nx);
 
 /*----------------------------------------------------------------------------*/
 /**
-  @defgroup cr2res_slitdec  Extraction routines (Slit Decomposition,...) 
+  @defgroup cr2res_slitdec  Extraction routines (Slit Decomposition,...)
  */
 /*----------------------------------------------------------------------------*/
 
@@ -136,7 +136,7 @@ int cr2res_extract_slitdec_vert(
     cpl_vector      *   tmp_vec;
     cpl_size            lenx, leny;
     double              pixval, img_median;
-    int                 i, j, nswaths, halfswath, row, col, x, y, ny_os, 
+    int                 i, j, nswaths, halfswath, row, col, x, y, ny_os,
                         sw_start, sw_end, badpix, height_loc;
 
     /* Check Entries */
@@ -149,7 +149,7 @@ int cr2res_extract_slitdec_vert(
     }
     ycen = cr2res_trace_compute_middle(traces[0], traces[1],
             cpl_image_get_size_x(img_in)) ;
-    
+
     /* Compute height_loc */
     if (height <= 0) {
         height_loc = cr2res_trace_compute_height(traces[0], traces[1],
@@ -165,7 +165,7 @@ int cr2res_extract_slitdec_vert(
     lenx = cpl_image_get_size_x(img_in);
     leny = cpl_image_get_size_y(img_in);
     /* Number of rows after oversampling */
-    ny_os = oversample*(height_loc+1) +1; 
+    ny_os = oversample*(height_loc+1) +1;
     swath = cr2res_extract_slitdec_adjust_swath(swath, lenx);
     halfswath = swath/2;
     nswaths = (lenx / swath) *2; // *2 because we step in half swaths!
@@ -236,7 +236,7 @@ int cr2res_extract_slitdec_vert(
         for (j=sw_start;j<sw_end;j++) ycen_sw[j-sw_start] = ycen_rest[j];
 
         /* Finally ready to call the slit-decomp */
-        cr2res_extract_slit_func_vert(swath, height_loc, oversample, img_sw_data, 
+        cr2res_extract_slit_func_vert(swath, height_loc, oversample, img_sw_data,
                 mask_sw, ycen_sw, slitfu_sw_data, spec_sw_data, model_sw,
                 0.0, smooth_slit, 1.0e-5, 20);
 
@@ -252,29 +252,29 @@ int cr2res_extract_slitdec_vert(
         else cpl_vector_add(slitfu,slitfu_sw);
 
         if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-            cpl_vector_save(spec_sw, "debug_spc.fits", CPL_TYPE_DOUBLE, NULL, 
+            cpl_vector_save(spec_sw, "debug_spc.fits", CPL_TYPE_DOUBLE, NULL,
                     CPL_IO_CREATE);
             tmp_vec = cpl_vector_wrap(swath, ycen_sw);
-            cpl_vector_save(tmp_vec, "debug_ycen.fits", CPL_TYPE_DOUBLE, NULL, 
+            cpl_vector_save(tmp_vec, "debug_ycen.fits", CPL_TYPE_DOUBLE, NULL,
                     CPL_IO_CREATE);
             cpl_vector_unwrap(tmp_vec);
-            cpl_vector_save(slitfu_sw, "debug_slitfu.fits", CPL_TYPE_DOUBLE, 
+            cpl_vector_save(slitfu_sw, "debug_slitfu.fits", CPL_TYPE_DOUBLE,
                     NULL, CPL_IO_CREATE);
             tmp_img = cpl_image_wrap_double(swath, height_loc, model_sw);
-            cpl_image_save(tmp_img, "debug_model_sw.fits", CPL_TYPE_FLOAT, 
+            cpl_image_save(tmp_img, "debug_model_sw.fits", CPL_TYPE_FLOAT,
                     NULL, CPL_IO_CREATE);
             cpl_image_unwrap(tmp_img);
-            cpl_image_save(img_sw, "debug_img_sw.fits", CPL_TYPE_FLOAT, NULL, 
+            cpl_image_save(img_sw, "debug_img_sw.fits", CPL_TYPE_FLOAT, NULL,
                     CPL_IO_CREATE);
         }
         /* Multiply by weights and add to output array */
         cpl_vector_multiply(spec_sw, weights_sw);
         if (i==0){ for (j=0;j<halfswath;j++) {
-            cpl_vector_set(spec_sw,j, 
+            cpl_vector_set(spec_sw,j,
                     cpl_vector_get(spec_sw,j)/cpl_vector_get(weights_sw,j));
         }}
         if (i==nswaths-1) { for (j=halfswath;j<swath;j++) {
-            cpl_vector_set(spec_sw,j, 
+            cpl_vector_set(spec_sw,j,
                     cpl_vector_get(spec_sw,j)/cpl_vector_get(weights_sw,j));
         }}
 
@@ -316,9 +316,9 @@ int cr2res_extract_slitdec_vert(
   @param    order       The order to extract
   @param    trace_id    The Trace to extract
   @param    height      number of pix above and below mid-line or -1
-  @param    slit_func   the returned slit function
-  @param    spec        the returned spectrum
-  @param    model       the returned model
+  @param    slit_func   the returned slit function, normalized to sum=1
+  @param    spec        the returned spectrum, sum of rows
+  @param    model       the reconstructed image
   @return   0 if ok, -1 otherwise
 
   This func takes a single image (contining many orders), and a *single*
@@ -338,7 +338,80 @@ int cr2res_extract_sum_vert(
         cpl_vector  **  spec,
         hdrl_image  **  model)
 {
-    return -1;
+    cpl_polynomial  **  traces ;
+    int             *   ycen_int;
+    cpl_vector      *   ycen ;
+    cpl_image       *   img_tmp;
+    cpl_image       *   img_1d;
+    cpl_vector      *   spc;
+    cpl_vector      *   slitfu;
+    cpl_size            lenx, leny;
+    int                 i, j;
+
+    /* Check Entries */
+    if (img_in == NULL || trace_tab == NULL) return -1 ;
+
+    /* Create ycen */
+    if ((traces = cr2res_trace_wave_get_polynomials(trace_tab, order,
+                    trace_id)) == NULL) {
+        return -1 ;
+    }
+    ycen = cr2res_trace_compute_middle(traces[0], traces[1],
+            cpl_image_get_size_x(img_in)) ;
+
+    /* set up integer version of ycen */
+    lenx = cpl_image_get_size_x(img_in);
+    leny = cpl_image_get_size_y(img_in);
+    ycen_int = cpl_malloc(lenx*sizeof(int));
+    for (i=0;i<lenx;i++){
+        ycen_int[i] = (int)cpl_vector_get(ycen,i) ;
+    }
+
+    /* Compute height if not given */
+    if (height <= 0) {
+        height = cr2res_trace_compute_height(traces[0], traces[1],
+                cpl_image_get_size_x(img_in)) ;
+    }
+
+    /* no longer need traces */
+	cpl_polynomial_delete(traces[0]) ;
+	cpl_polynomial_delete(traces[1]) ;
+	cpl_free(traces) ;
+
+
+    /* rectified order, image size: lenx * height */
+    img_tmp = cpl_image_new(lenx, height, CPL_TYPE_DOUBLE);
+
+    for (i=1;i<=lenx;i++){ // All image indx start at 1!
+        img_1d = cpl_image_extract(img_in,i,ycen_int[i]-(height/2),
+                                    i,ycen_int[i]+(height/2)+height%2);
+        cpl_image_copy(img_tmp, img_1d, i, 1);
+    }
+
+    img_1d = cpl_image_collapse_create(img_tmp, 0); // sum of rows
+    spc = cpl_vector_new_from_image_row(img_1d, 1);
+    cpl_image_delete(img_1d);
+
+    img_1d = cpl_image_collapse_create(img_tmp, 1); // sum of columns
+    slitfu = cpl_vector_new_from_image_column(img_1d, 1);
+    cpl_vector_divide_scalar(slitfu, cpl_vector_get_sum(slitfu));
+    cpl_image_delete(img_1d);
+
+    for (i=0;i<lenx;i++){
+        for (j=0;j<height;j++){
+            cpl_image_set(img_tmp, i, j,
+                cpl_vector_get(spc,i)*cpl_vector_get(slitfu,j) );
+        }
+    }
+    cpl_vector_delete(ycen);
+    cpl_free(ycen_int);
+
+    *slit_func = slitfu;
+    *spec = spc;
+    *model = hdrl_image_create(img_tmp, NULL);
+    cpl_image_delete(img_tmp);
+
+    return 0;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -501,7 +574,7 @@ cpl_vector * cr2res_extract_EXTRACT1D_get_spectrum(
     tab_size = cpl_table_get_nrow(tab) ;
     out = cpl_vector_new(tab_size) ;
     pout = cpl_vector_get_data(out) ;
-    for (i=-0 ; i<tab_size ; i++)   
+    for (i=-0 ; i<tab_size ; i++)
         pout[i] = pcol[i] ;
 
     return out ;
@@ -622,7 +695,7 @@ static int cr2res_extract_slit_func_vert(
             for(x=0; x<ncols; x++)
            	{
            		sum=0.e0;
-                for(y=0; y<nrows; y++) 
+                for(y=0; y<nrows; y++)
                     sum+=omega[iy+(y*ny)+(x*ny*nrows)]*
                         mask[y*ncols+x]*im[y*ncols+x];
                 bj[iy]+=sum*sP[x];
@@ -718,7 +791,7 @@ static int cr2res_extract_slit_func_vert(
             for(x=0; x<ncols; x++)
             {
         	    sum=0.e0;
-        	    for(iy=0; iy<ny; iy++) 
+        	    for(iy=0; iy<ny; iy++)
                     sum+=omega[iy+(y*ny)+(x*ny*nrows)]*sL[iy];
         	    model[y*ncols+x]=sum*sP[x];
             }
@@ -779,7 +852,7 @@ static int cr2res_extract_slit_func_vert(
   @param    nd  width of the band (3 for tri-diagonal system)
   @return   0 on success, -1 on incorrect size of "a" and -4 on
             degenerate matrix
-  
+
   Solve a sparse system of linear equations with band-diagonal matrix.
   Band is assumed to be symmetrix relative to the main diaginal.
 
