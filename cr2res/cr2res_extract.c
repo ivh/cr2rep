@@ -347,9 +347,13 @@ int cr2res_extract_sum_vert(
     cpl_vector      *   slitfu;
     cpl_size            lenx, leny;
     int                 i, j;
+    cpl_type            imtyp;
 
     /* Check Entries */
     if (img_in == NULL || trace_tab == NULL) return -1 ;
+
+    /* use the same type as input for temp images below */
+    imtyp = cpl_image_get_type(img_in);
 
     /* Create ycen */
     if ((traces = cr2res_trace_wave_get_polynomials(trace_tab, order,
@@ -379,15 +383,29 @@ int cr2res_extract_sum_vert(
 	cpl_free(traces) ;
 
 
-    /* rectified order, image size: lenx * height */
-    img_tmp = cpl_image_new(lenx, height, CPL_TYPE_DOUBLE);
+    /* will hold rectified order, image size: lenx * height */
+    img_tmp = cpl_image_new(lenx, height, imtyp);
 
+    /* Loop over columns, cut out around ycen, insert into img_tmp*/
     for (i=1;i<=lenx;i++){ // All image indx start at 1!
-        img_1d = cpl_image_extract(img_in,i,ycen_int[i]-(height/2),
-                                    i,ycen_int[i]+(height/2)+height%2);
-        cpl_image_copy(img_tmp, img_1d, i, 1);
+        img_1d = cpl_image_extract(img_in,i,ycen_int[i-1]-(height/2),
+                                    i,ycen_int[i-1]+(height/2)+height%2);
+        if (cpl_error_get_code() != CPL_ERROR_NONE) {
+            cpl_msg_debug(__func__,"Skipping column %d",i);
+            cpl_error_reset();
+            cpl_image_delete(img_1d);
+            continue;
+        }
+        if (cpl_image_copy(img_tmp, img_1d, i, 1) != CPL_ERROR_NONE){
+            cpl_msg_warning(__func__,"Error writing column %d",i);
+        }
+        cpl_image_delete(img_1d);
     }
 
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_image_save(img_tmp, "debug_rectorder.fits", imtyp,
+                NULL, CPL_IO_CREATE);
+    }
     img_1d = cpl_image_collapse_create(img_tmp, 0); // sum of rows
     spc = cpl_vector_new_from_image_row(img_1d, 1);
     cpl_image_delete(img_1d);
@@ -397,14 +415,23 @@ int cr2res_extract_sum_vert(
     cpl_vector_divide_scalar(slitfu, cpl_vector_get_sum(slitfu));
     cpl_image_delete(img_1d);
 
-    for (i=0;i<lenx;i++){
-        for (j=0;j<height;j++){
-            cpl_image_set(img_tmp, i, j,
-                cpl_vector_get(spc,i)*cpl_vector_get(slitfu,j) );
+    cpl_image_delete(img_tmp);
+    img_tmp = cpl_image_new(lenx, leny, imtyp);
+
+    for (i=1;i<=lenx;i++){
+        for (j=1;j<=height;j++){
+            cpl_image_set(img_tmp, i, ycen_int[i-1]-(height/2)+j,
+                cpl_vector_get(spc,i-1)*cpl_vector_get(slitfu,j-1)*100 );
         }
     }
     cpl_vector_delete(ycen);
     cpl_free(ycen_int);
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_image_save(img_tmp, "debug_model.fits", imtyp,
+                NULL, CPL_IO_CREATE);
+    }
+
 
     *slit_func = slitfu;
     *spec = spc;
