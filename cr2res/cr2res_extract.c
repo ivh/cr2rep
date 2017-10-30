@@ -321,11 +321,15 @@ int cr2res_extract_slitdec_vert(
   @param    model       the reconstructed image
   @return   0 if ok, -1 otherwise
 
-  This func takes a single image (contining many orders), and a *single*
-  order definition in the form of central y-corrds., plus the height.
+  This func takes a single image (containing many orders), a trace table,
+  the order and trace numbers to extract (one each), and the extraction
+  height.
+  It uses the trace to shift the image columns by integer values,
+  thereby straightening the order. The output spectra and slit
+  function are then the collapsed image in x and y, respectively.
+  Also returned is the "model", i.e. an image reconstruction from
+  the two extracted vectors.
 
-  The task of this function then is to:
-  TODO
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_extract_sum_vert(
@@ -338,7 +342,6 @@ int cr2res_extract_sum_vert(
         cpl_vector  **  spec,
         hdrl_image  **  model)
 {
-    cpl_polynomial  **  traces ;
     int             *   ycen_int;
     cpl_vector      *   ycen ;
     cpl_image       *   img_tmp;
@@ -354,18 +357,16 @@ int cr2res_extract_sum_vert(
 
     /* use the same type as input for temp images below */
     imtyp = cpl_image_get_type(img_in);
-
-    /* Create ycen */
-    if ((traces = cr2res_trace_wave_get_polynomials(trace_tab, order,
-                    trace_id)) == NULL) {
-        return -1 ;
-    }
-    ycen = cr2res_trace_compute_middle(traces[0], traces[1],
-            cpl_image_get_size_x(img_in)) ;
-
-    /* set up integer version of ycen */
     lenx = cpl_image_get_size_x(img_in);
     leny = cpl_image_get_size_y(img_in);
+
+    /* Get ycen */
+    if ((ycen = cr2res_trace_get_ycen(trace_tab, order,
+                    trace_id, lenx)) == NULL) {
+        return -1 ;
+    }
+
+    /* set up integer version of ycen */
     ycen_int = cpl_malloc(lenx*sizeof(int));
     for (i=0;i<lenx;i++){
         ycen_int[i] = (int)cpl_vector_get(ycen,i) ;
@@ -373,14 +374,12 @@ int cr2res_extract_sum_vert(
 
     /* Compute height if not given */
     if (height <= 0) {
-        height = cr2res_trace_compute_height(traces[0], traces[1],
-                cpl_image_get_size_x(img_in)) ;
+        height = cr2res_trace_get_height(trace_tab, order, trace_id);
+        if (height <= 0) {
+            cpl_msg_warning(__func__, "Computing extraction height failed!");
+            return -1;
+        }
     }
-
-    /* no longer need traces */
-	cpl_polynomial_delete(traces[0]) ;
-	cpl_polynomial_delete(traces[1]) ;
-	cpl_free(traces) ;
 
 
     /* will hold rectified order, image size: lenx * height */
