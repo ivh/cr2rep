@@ -100,7 +100,7 @@ cpl_polynomial * cr2res_wave(
             cpl_bivector_delete(ref_spectrum) ;
         }
     } else if (wavecal_type == CR2RES_GAS) {
-        solution = cr2res_wave_xcorr(spectrum, initial_guess, wl_error, NULL, 
+        solution = cr2res_wave_xcorr(spectrum, initial_guess, wl_error, NULL,
                 degree, display) ;
     } else if (wavecal_type == CR2RES_ETALON) {
         solution = cr2res_wave_etalon(spectrum, initial_guess) ;
@@ -156,13 +156,13 @@ cpl_polynomial * cr2res_wave_xcorr(
     /* Compute wl boundaries */
     wl_min = cpl_polynomial_eval_1d(initial_guess, 1, NULL);
     wl_max = cpl_polynomial_eval_1d(initial_guess, CR2RES_DETECTOR_SIZE, NULL);
-    
+
     /* Clean the spectrum from the low frequency signal if requested */
     if (clean_spec) {
         cpl_msg_info(__func__, "Low Frequency removal from spectrum") ;
         cpl_msg_indent_more() ;
         /* Subrtract the low frequency part */
-        if ((filtered=cpl_vector_filter_median_create(spectrum, 
+        if ((filtered=cpl_vector_filter_median_create(spectrum,
                         filt_size))==NULL){
             cpl_msg_error(__func__, "Cannot filter the spectrum") ;
             spec_clean = cpl_vector_duplicate(spectrum) ;
@@ -178,7 +178,7 @@ cpl_polynomial * cr2res_wave_xcorr(
 
     /* Remove Negative values */
     pspec_clean = cpl_vector_get_data(spec_clean) ;
-    for (i=0 ; i<cpl_vector_get_size(spec_clean) ; i++) 
+    for (i=0 ; i<cpl_vector_get_size(spec_clean) ; i++)
         if (pspec_clean[i] < 0.0) pspec_clean[i] = 0 ;
 
     /* Display */
@@ -204,12 +204,12 @@ cpl_polynomial * cr2res_wave_xcorr(
     nsamples = 100 ;
     wl_error_pix = wl_error ;
     sol_guess = initial_guess ;
-    
+
     wl_error_wl = (wl_max-wl_min)*wl_error_pix/CR2RES_DETECTOR_SIZE ;
     wl_errors = cpl_vector_new(degree_loc+1) ;
     cpl_vector_fill(wl_errors, wl_error_wl) ;
-    cpl_msg_info(__func__, 
-    "Pass #1 : Degree %d / Error %g nm (%g pix) / %d samples -> %g Polys", 
+    cpl_msg_info(__func__,
+    "Pass #1 : Degree %d / Error %g nm (%g pix) / %d samples -> %g Polys",
             degree_loc,wl_error_wl,wl_error_pix,nsamples,pow(nsamples,
                 degree_loc+1)) ;
     cpl_msg_indent_more() ;
@@ -244,8 +244,8 @@ cpl_polynomial * cr2res_wave_xcorr(
     wl_error_wl = (wl_max-wl_min)*wl_error_pix/CR2RES_DETECTOR_SIZE ;
     wl_errors = cpl_vector_new(degree_loc+1) ;
     cpl_vector_fill(wl_errors, wl_error_wl) ;
-    cpl_msg_info(__func__, 
-    "Pass #2 : Degree %d / Error %g nm (%g pix) / %d samples -> %g Polys", 
+    cpl_msg_info(__func__,
+    "Pass #2 : Degree %d / Error %g nm (%g pix) / %d samples -> %g Polys",
             degree_loc,wl_error_wl,wl_error_pix,nsamples,
             pow(nsamples,degree_loc+1)) ;
     cpl_msg_indent_more() ;
@@ -341,11 +341,28 @@ cpl_polynomial * cr2res_wave_etalon(
         cpl_polynomial  *   initial_guess)
 {
     cpl_vector  *   peaks;
-	double			trueD;
+    cpl_vector  *   peaks_shouldbe;
+	double			trueD, x_0;
+    int             npeaks, i;
 
     peaks = cr2res_wave_etalon_measure_fringes(spectrum);
+    npeaks=cpl_vector_get_size(peaks);
+    x_0 = cpl_vector_get(peaks,0);
+
 	trueD = cr2res_wave_etalon_fringe_stats(peaks, initial_guess);
+
+    peaks_shouldbe = cpl_vector_new(npeaks);
+    for (i=0; i<npeaks; i++) {
+        cpl_vector_set(peaks_shouldbe, i, x_0 + (trueD*i));
+    }
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+        cpl_vector_dump(peaks, stdout);
+        cpl_vector_dump(peaks_shouldbe, stdout);
+    }
+
     cpl_vector_delete(peaks);
+    cpl_vector_delete(peaks_shouldbe);
     return NULL ;
 }
 
@@ -367,7 +384,6 @@ double cr2res_wave_etalon_fringe_stats(
 	cpl_vector	*	diffs;
 	cpl_vector	*	waves;
 
-    /* cpl_plot_vector("", "w lines", "", peaks) ; */
 	num_peaks = cpl_vector_get_size(peaks);
     waves = cr2res_polynomial_eval_vector(initial_guess, peaks);
 	diffs = cpl_vector_new(num_peaks-1);
@@ -392,6 +408,8 @@ double cr2res_wave_etalon_fringe_stats(
         }
         cpl_table_delete(tab);
     }
+
+    trueD = cpl_vector_get_median(diffs);
 	cpl_vector_delete(diffs);
 	cpl_vector_delete(waves);
     return trueD;
@@ -508,7 +526,7 @@ cpl_vector * cr2res_wave_line_detection(
   @param    catalog         The catalog file
   @param    initial_guess   The wavelength polynomial
   @param    wl_error        Max error in pixels of the initial guess
-  @return   The lines spectrum 
+  @return   The lines spectrum
  */
 /*----------------------------------------------------------------------------*/
 cpl_bivector * cr2res_wave_gen_lines_spectrum(
@@ -522,7 +540,7 @@ cpl_bivector * cr2res_wave_gen_lines_spectrum(
     double          *   lines_sub_intens ;
     double              wl_error_wl, wl_min, wl_max ;
     int                 i ;
- 
+
     /* Check Entries */
     if (catalog == NULL || initial_guess == NULL) return NULL ;
 
@@ -540,9 +558,9 @@ cpl_bivector * cr2res_wave_gen_lines_spectrum(
     lines_sub_wl = cpl_bivector_get_x_data(lines_sub) ;
     lines_sub_intens = cpl_bivector_get_y_data(lines_sub) ;
     for (i=0 ; i<cpl_bivector_get_size(lines_sub) ; i++) {
-        if (wl_min > 0) 
+        if (wl_min > 0)
             if (lines_sub_wl[i] < wl_min) lines_sub_intens[i] = 0.0 ;
-        if (wl_max > 0) 
+        if (wl_max > 0)
             if (lines_sub_wl[i] > wl_max) lines_sub_intens[i] = 0.0 ;
     }
 
@@ -588,8 +606,8 @@ cpl_array * cr2res_wave_get_estimate(
     wmax = cr2res_pfits_get_wend(plist, order) ;
     cpl_propertylist_delete(plist) ;
     if (cpl_error_get_code() != CPL_ERROR_NONE) {
-        cpl_msg_error(__func__, 
-                "Cannot get WSTRT/WEND from header for Detector %d / Order %d", 
+        cpl_msg_error(__func__,
+                "Cannot get WSTRT/WEND from header for Detector %d / Order %d",
                 detector, order) ;
         return NULL ;
     }
@@ -653,16 +671,16 @@ hdrl_image * cr2res_wave_gen_wave_map(
             /* Get the Lower Polynomial */
             tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_LOWER, k) ;
             lower_poly = cr2res_convert_array_to_poly(tmp_array) ;
-            
+
             /* Check if all Polynomials are available */
             if (upper_poly == NULL || lower_poly == NULL) {
-                if (upper_poly != NULL) cpl_polynomial_delete(upper_poly) ; 
-                if (lower_poly != NULL) cpl_polynomial_delete(lower_poly) ; 
+                if (upper_poly != NULL) cpl_polynomial_delete(upper_poly) ;
+                if (lower_poly != NULL) cpl_polynomial_delete(lower_poly) ;
                 cpl_msg_warning(__func__, "Cannot get UPPER/LOWER information");
                 cpl_polynomial_delete(wave_poly) ;
                 continue ;
             }
-            
+
             /* Set the Pixels in the trace */
             for (i=0 ; i<nx ; i++) {
                 upper_pos = cpl_polynomial_eval_1d(upper_poly, i+1, NULL) ;
