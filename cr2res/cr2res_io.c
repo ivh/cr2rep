@@ -105,10 +105,12 @@ int cr2res_io_get_ext_idx(
         pl = cpl_propertylist_load(filename, i) ;
         /* Read the ext EXTNAME */
         extname = cpl_propertylist_get_string(pl, "EXTNAME");
+        cpl_propertylist_delete(pl) ;
+        if (cpl_error_get_code() == CPL_ERROR_DATA_NOT_FOUND)
+            continue; // an extension not being present is fine.
 
         /* Compare to the wished one */
         if (strcmp(extname, wished_extname)==0) wished_ext_nb = i ;
-        cpl_propertylist_delete(pl) ;
     }
     cpl_free(wished_extname) ;
 
@@ -516,7 +518,7 @@ int cr2res_io_save_MASTER_DARK(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            master_darks, qc_list, ext_plist, recipe, 
+            master_darks, qc_list, ext_plist, recipe,
             CR2RES_MASTER_DARK_PROCATG, "") ;
 }
 
