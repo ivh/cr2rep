@@ -191,6 +191,13 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.wl_est",
+            CPL_TYPE_STRING, "Estimated wavelength start and end",
+            "cr2res.cr2res_util_wave", "-1.0, -1.0");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_est");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.line_fitting",
             CPL_TYPE_BOOL, "Use Lines Fitting (only for LAMP)",
             "cr2res.cr2res_util_wave", FALSE);
@@ -284,6 +291,7 @@ static int cr2res_util_wave(
     cpl_vector          *   extracted_vec ;
     cpl_polynomial      *   init_guess ;
     cpl_polynomial      *   wave_sol ;
+    double                  wstart, wend ;
     int                     det_nr, nb_traces, trace_id, order, i ;
 
     /* Needed for sscanf() */
@@ -291,6 +299,7 @@ static int cr2res_util_wave(
 
     /* Initialise */
     wavecal_type = CR2RES_UNSPECIFIED ;
+    wstart = wend = -1.0 ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -317,6 +326,14 @@ static int cr2res_util_wave(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1;
     }
+
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_wave.wl_est");
+    sval = cpl_parameter_get_string(param) ;
+     if (sscanf(sval, "%lg,%lg", &wstart, &wend) != 2) {
+        return -1 ;
+    }
+
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.line_fitting");
     line_fitting = cpl_parameter_get_bool(param) ;
@@ -449,7 +466,9 @@ static int cr2res_util_wave(
             }
 
             /* Get the initial guess */
-            if ((init_guess=cr2res_get_trace_wave_poly(trace_wave_table,
+            if (wstart > 0.0 && wend > 0.0) {
+                init_guess = cr2res_wlestimate_compute(wstart, wend) ;
+            } else if ((init_guess=cr2res_get_trace_wave_poly(trace_wave_table,
                             CR2RES_COL_WAVELENGTH, order, trace_id)) == NULL) {
                 cpl_msg_error(__func__, "Cannot get the initial guess") ;
                 cpl_msg_indent_less() ;

@@ -219,6 +219,7 @@ int cr2res_extract_slitdec_vert(
 
             for(row=0;row<height_loc;row++){   // row is y-index in cut-out
                 y = ycen_int[x] - (height_loc/2) + row;
+                /* TODO This line generates an out of bound error */
                 pixval = cpl_image_get(img_in, x+1, y+1, &badpix);
                 cpl_image_set(img_sw, col+1, row+1, pixval);
                 if (badpix ==0) mask_sw[row*swath+col] = 1;

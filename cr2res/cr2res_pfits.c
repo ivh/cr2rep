@@ -59,6 +59,7 @@ const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
 /**
   @brief    find out the Min wavelength for an order (all detectors)
   @param    plist       property list to read from
+  @param    order       Order INDEX (0 to ?)
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
@@ -85,6 +86,7 @@ double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order)
 /**
   @brief    find out the Max wavelength for an order (all detectors)
   @param    plist       property list to read from
+  @param    order       Order INDEX (0 to ?)
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
@@ -111,6 +113,7 @@ double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order)
 /**
   @brief    find out the Start wavelength for an order (current detector)
   @param    plist       property list to read from
+  @param    order       Order INDEX (0 to ?)
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
@@ -124,7 +127,7 @@ double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order)
     if (order < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN STRT%02d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN STRT%d", order) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -150,7 +153,7 @@ double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order)
     if (order < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN END%02d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN END%d", order) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -176,7 +179,7 @@ double cr2res_pfits_get_ceny(const cpl_propertylist * plist, int order)
     if (order < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN CENY%02d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN CENY%d", order) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -217,7 +220,7 @@ int cr2res_pfits_get_order(
     }
 
     for (i=minnum_orders; i <= maxnum_orders; i++) {
-        key_name = cpl_sprintf("ESO INS WLEN CENY%02d",i);
+        key_name = cpl_sprintf("ESO INS WLEN CENY%d",i);
         ycen = cpl_propertylist_get_double(plist, key_name);
         cpl_free(key_name) ;
         if (ycen < 0) continue;
