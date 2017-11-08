@@ -30,13 +30,17 @@
 #include "cr2res_pfits.h"
 #include "cr2res_utils.h"
 
+/*-----------------------------------------------------------------------------
+                                Functions prototypes
+ -----------------------------------------------------------------------------*/
+static int cr2res_pfits_convert_order_to_idx(int order) ;
+
 /*----------------------------------------------------------------------------*/
 /**
  * @defgroup cr2res_pfits     FITS header protected access
  *
  */
 /*----------------------------------------------------------------------------*/
-
 /**@{*/
 
 /*-----------------------------------------------------------------------------
@@ -59,21 +63,24 @@ const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
 /**
   @brief    find out the Min wavelength for an order (all detectors)
   @param    plist       property list to read from
-  @param    order       Order INDEX (0 to ?)
+  @param    order       Order
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
 double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order)
 {
     char    *   key_name ;
+    int         order_loc ;
     double      val  ;
 
     /* Check entries */
     if (plist == NULL) return -1.0 ;
-    if (order < 0) return -1.0 ;
+    
+    /* Conversion order <-> keyword Index */
+    if ((order_loc = cr2res_pfits_convert_order_to_idx(order)) < 0) return -1.0 ; 
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN MIN%d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN MIN%02d", order_loc) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -86,21 +93,24 @@ double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order)
 /**
   @brief    find out the Max wavelength for an order (all detectors)
   @param    plist       property list to read from
-  @param    order       Order INDEX (0 to ?)
+  @param    order       Order INDEX
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
 double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order)
 {
     char    *   key_name ;
+    int         order_loc ;
     double      val  ;
 
     /* Check entries */
     if (plist == NULL) return -1.0 ;
-    if (order < 0) return -1.0 ;
+
+    /* Conversion order <-> keyword Index */
+    if ((order_loc = cr2res_pfits_convert_order_to_idx(order)) < 0) return -1.0 ; 
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN MAX%d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN MAX%02d", order_loc) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -113,21 +123,24 @@ double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order)
 /**
   @brief    find out the Start wavelength for an order (current detector)
   @param    plist       property list to read from
-  @param    order       Order INDEX (0 to ?)
+  @param    order       Order INDEX
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
 double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order)
 {
     char    *   key_name ;
+    int         order_loc ;
     double      val  ;
 
     /* Check entries */
     if (plist == NULL) return -1.0 ;
-    if (order < 0) return -1.0 ;
+
+    /* Conversion order <-> keyword Index */
+    if ((order_loc = cr2res_pfits_convert_order_to_idx(order)) < 0) return -1.0 ; 
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN STRT%d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN STRT%02d", order_loc) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -140,20 +153,24 @@ double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order)
 /**
   @brief    find out the End wavelength for an order (current detector)
   @param    plist       property list to read from
+  @param    order       Order INDEX
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
 double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order)
 {
     char    *   key_name ;
+    int         order_loc ;
     double      val  ;
 
     /* Check entries */
     if (plist == NULL) return -1.0 ;
-    if (order < 0) return -1.0 ;
+
+    /* Conversion order <-> keyword Index */
+    if ((order_loc = cr2res_pfits_convert_order_to_idx(order)) < 0) return -1.0 ; 
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN END%d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN END%02d", order_loc) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -166,20 +183,24 @@ double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order)
 /**
   @brief    find out the Y pos of an order
   @param    plist       property list to read from
+  @param    order       Order INDEX
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
 double cr2res_pfits_get_ceny(const cpl_propertylist * plist, int order)
 {
     char    *   key_name ;
+    int         order_loc ;
     double      val  ;
 
     /* Check entries */
     if (plist == NULL) return -1.0 ;
-    if (order < 0) return -1.0 ;
+
+    /* Conversion order <-> keyword Index */
+    if ((order_loc = cr2res_pfits_convert_order_to_idx(order)) < 0) return -1.0 ; 
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN CENY%d", order) ;
+    key_name = cpl_sprintf("ESO INS WLEN CENY%02d", order_loc) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -201,26 +222,25 @@ int cr2res_pfits_get_order(
             double yposition)
 {
     char    *   key_name ;
-    int         i;
+    int         i, order_idx;
     int         best_number = -1;
-    int         minnum_orders = 0;
-    int         maxnum_orders = 10;
+    int         min_order = -49 ;
+    int         max_order =  50 ;
     double      ycen, curr_diff;
     double      best_diff = CR2RES_DETECTOR_SIZE;
 
     /* Check entries */
     if (plist == NULL) return -1 ;
     if (yposition < 1) return -1 ;
-
     if (cpl_error_get_code() != CPL_ERROR_NONE) {
-        cpl_msg_error(__func__, "Cannot get order with when previous error"
-                                " is set, since this function will use "
-                                "cpl_error_reset()") ;
+        cpl_msg_error(__func__, "Error already set - abort") ;
         return -1 ;
     }
 
-    for (i=minnum_orders; i <= maxnum_orders; i++) {
-        key_name = cpl_sprintf("ESO INS WLEN CENY%d",i);
+    for (i=min_order ; i <= max_order ; i++) {
+
+        order_idx = cr2res_pfits_convert_order_to_idx(i);
+        key_name = cpl_sprintf("ESO INS WLEN CENY%02d", order_idx) ;
         ycen = cpl_propertylist_get_double(plist, key_name);
         cpl_free(key_name) ;
         if (ycen < 0) continue;
@@ -235,11 +255,45 @@ int cr2res_pfits_get_order(
         }
     }
     if (best_diff > 100.0)
-        cpl_msg_warning(__func__,"Order %d identified with large difference "
-                                 "of %.1f pix",  best_number, best_diff);
-    /* best_number is initialized as -1, indicating the error */
-    /* that no order was found in the loop above. */
+        cpl_msg_warning(__func__,
+                "Order %d identified with large difference of %.1f pix",  
+                best_number, best_diff);
     return best_number ;
 }
 
 /**@}*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Convert the order to the keyword index
+  @param    order   Order (-49 to 50)
+  @return   the order index or a negative value in error case
+            (00 to 99)
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_pfits_convert_order_to_idx(int order)
+{
+    /* Check entries */
+    if (order < -49 || order > 50) return -1 ;
+
+    /* Conversion order <-> keyword Index */
+    if (order < 0)  return order + 100 ;
+    else            return order ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Convert the keyword index to the order
+  @param    order_idx   the order index (00 to 99)
+  @return   Order (-50 to 50)
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_pfits_convert_idx_to_order(int order_idx)
+{
+    /* Check entries */
+    if (order_idx < 0 || order_idx > 99) return -1 ;
+
+    /* Conversion order <-> keyword Index */
+    if (order_idx > 50) return order_idx - 100 ;
+    else                return order_idx ;
+}
