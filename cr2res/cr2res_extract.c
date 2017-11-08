@@ -351,6 +351,8 @@ int cr2res_extract_sum_vert(
     cpl_vector      *   slitfu;
     cpl_size            lenx, leny;
     int                 i, j;
+    int                 ymin, ymax;
+    int                 empty_bottom = 0;
     cpl_type            imtyp;
 
     /* Check Entries */
@@ -377,10 +379,7 @@ int cr2res_extract_sum_vert(
     if (height <= 0) {
         height = cr2res_trace_get_height(trace_tab, order, trace_id);
         if (height <= 0) {
-            /* YVES : Message should contain cause, not consequence */
-            /*cpl_msg_warning(__func__, "Computing extraction height failed");*/
             cpl_msg_error(__func__, "Cannot compute height");
-            /* YVES : Missing de-allocation of ycen/ycen_int */
             cpl_vector_delete(ycen);
             cpl_free(ycen_int);
             return -1;
@@ -393,22 +392,25 @@ int cr2res_extract_sum_vert(
     /* Loop over columns, cut out around ycen, insert into img_tmp*/
     for (i=1;i<=lenx;i++){ // All image indx start at 1!
 
-        /* YVES: test the validity of the extraction zone here, and take */
-         /* action when they ar out of bounds */
-         /* Do not call the _extract when you know it is going to fail */
-
-        img_1d = cpl_image_extract(img_in,i,ycen_int[i-1]-(height/2),
-                                    i,ycen_int[i-1]+(height/2)+height%2);
-        if (cpl_error_get_code() != CPL_ERROR_NONE) {
-            cpl_msg_debug(__func__,"Skipping column %d",i);
-            cpl_error_reset();
-            /* YVES : img_1d is probably NULL here */
-            cpl_image_delete(img_1d);
-            /* YVES : In this scenario, img_tmp is not set */
-            /* Is that what you want ? */
-            continue;
+        /* treat edge cases, summing over shorter column where needed*/
+        ymin = ycen_int[i-1]-(height/2);
+        ymax = ycen_int[i-1]+(height/2) + height%2 ;
+        if (ymin < 1) {
+            empty_bottom = 1 - ymin; // save for later insertion
+            ymin = 1;
         }
-        if (cpl_image_copy(img_tmp, img_1d, i, 1) != CPL_ERROR_NONE){
+        if (ymax > leny)
+            ymax = leny;
+
+        if ((img_1d = cpl_image_extract(img_in,i,ymin, i, ymax)) == NULL) {
+            cpl_msg_error(__func__,"Cannot extract column %d",i);
+            cpl_vector_delete(ycen);
+            cpl_free(ycen_int);
+            cpl_image_delete(img_tmp);
+            return -1;
+        }
+        if (cpl_image_copy(img_tmp, img_1d, i, 1+empty_bottom)
+                                                != CPL_ERROR_NONE){
             cpl_msg_warning(__func__,"Error writing column %d",i);
         }
         cpl_image_delete(img_1d);
