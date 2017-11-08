@@ -369,7 +369,7 @@ int cr2res_extract_sum_vert(
 
     /* set up integer version of ycen */
     ycen_int = cpl_malloc(lenx*sizeof(int));
-    for (i=0;i<lenx;i++){
+    for (i=0 ; i<lenx ; i++){
         ycen_int[i] = (int)cpl_vector_get(ycen,i) ;
     }
 
@@ -377,23 +377,35 @@ int cr2res_extract_sum_vert(
     if (height <= 0) {
         height = cr2res_trace_get_height(trace_tab, order, trace_id);
         if (height <= 0) {
-            cpl_msg_warning(__func__, "Computing extraction height failed!");
+            /* YVES : Message should contain cause, not consequence */
+            /*cpl_msg_warning(__func__, "Computing extraction height failed");*/
+            cpl_msg_error(__func__, "Cannot compute height");
+            /* YVES : Missing de-allocation of ycen/ycen_int */
+            cpl_vector_delete(ycen);
+            cpl_free(ycen_int);
             return -1;
         }
     }
-
 
     /* will hold rectified order, image size: lenx * height */
     img_tmp = cpl_image_new(lenx, height, imtyp);
 
     /* Loop over columns, cut out around ycen, insert into img_tmp*/
     for (i=1;i<=lenx;i++){ // All image indx start at 1!
+
+        /* YVES: test the validity of the extraction zone here, and take */
+         /* action when they ar out of bounds */
+         /* Do not call the _extract when you know it is going to fail */
+
         img_1d = cpl_image_extract(img_in,i,ycen_int[i-1]-(height/2),
                                     i,ycen_int[i-1]+(height/2)+height%2);
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
             cpl_msg_debug(__func__,"Skipping column %d",i);
             cpl_error_reset();
+            /* YVES : img_1d is probably NULL here */
             cpl_image_delete(img_1d);
+            /* YVES : In this scenario, img_tmp is not set */
+            /* Is that what you want ? */
             continue;
         }
         if (cpl_image_copy(img_tmp, img_1d, i, 1) != CPL_ERROR_NONE){
