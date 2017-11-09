@@ -411,6 +411,14 @@ int cr2res_extract_sum_vert(
         }
         if (cpl_image_copy(img_tmp, img_1d, i, 1+empty_bottom)
                                                 != CPL_ERROR_NONE){
+/* YVES : Here an error is set .. what do you do ? 
+   Usually you either decide to fail and return an error or 
+   try to recover and continue.
+   The 2nd case is more rare because the error is set in cases that are
+   not anticipated....
+   In any case if you continue (like here) the error needs to be reset !
+   In general, I think that you should stop and return an error.
+ */
             cpl_msg_warning(__func__,"Error writing column %d",i);
         }
         cpl_image_delete(img_1d);
