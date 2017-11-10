@@ -402,25 +402,19 @@ int cr2res_extract_sum_vert(
         if (ymax > leny)
             ymax = leny;
 
-        if ((img_1d = cpl_image_extract(img_in,i,ymin, i, ymax)) == NULL) {
-            cpl_msg_error(__func__,"Cannot extract column %d",i);
+        /* Cut out and insert */
+
+        img_1d = cpl_image_extract(img_in,i,ymin, i, ymax);
+        cpl_image_copy(img_tmp, img_2d, i, 1+empty_bottom);
+        if (cpl_error_get_code() == NULL) {
+            cpl_msg_error(__func__,"Cannot extract and copy column %d",i);
             cpl_vector_delete(ycen);
             cpl_free(ycen_int);
             cpl_image_delete(img_tmp);
+            if (img_1d != NULL) cpl_image_delete(img_1d);
             return -1;
         }
-        if (cpl_image_copy(img_tmp, img_1d, i, 1+empty_bottom)
-                                                != CPL_ERROR_NONE){
-/* YVES : Here an error is set .. what do you do ? 
-   Usually you either decide to fail and return an error or 
-   try to recover and continue.
-   The 2nd case is more rare because the error is set in cases that are
-   not anticipated....
-   In any case if you continue (like here) the error needs to be reset !
-   In general, I think that you should stop and return an error.
- */
-            cpl_msg_warning(__func__,"Error writing column %d",i);
-        }
+
         cpl_image_delete(img_1d);
     }
 
