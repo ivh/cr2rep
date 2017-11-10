@@ -405,8 +405,8 @@ int cr2res_extract_sum_vert(
         /* Cut out and insert */
 
         img_1d = cpl_image_extract(img_in,i,ymin, i, ymax);
-        cpl_image_copy(img_tmp, img_2d, i, 1+empty_bottom);
-        if (cpl_error_get_code() == NULL) {
+        cpl_image_copy(img_tmp, img_1d, i, 1+empty_bottom);
+        if (cpl_error_get_code() != CPL_ERROR_NONE) {
             cpl_msg_error(__func__,"Cannot extract and copy column %d",i);
             cpl_vector_delete(ycen);
             cpl_free(ycen_int);
