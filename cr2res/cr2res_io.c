@@ -92,7 +92,6 @@ int cr2res_io_get_ext_idx(
     if (filename == NULL) return -1 ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return -1 ;
 
-
     /* Create wished EXTNAME */
     wished_extname = cpl_sprintf("CHIP%d", detector) ;
 
@@ -989,7 +988,7 @@ static int cr2res_io_save_table(
             return -1 ;
         }
     } else {
-        if (cpl_dfs_save_propertylist(allframes, ext_head, parlist,
+        if (cpl_dfs_save_propertylist(allframes, NULL, parlist,
                     allframes, NULL, recipe, pro_list, NULL, PACKAGE "/"
                     PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Cannot save the empty HDU") ;

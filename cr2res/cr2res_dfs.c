@@ -103,7 +103,9 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
 /*----------------------------------------------------------------------------*/
 char * cr2res_dfs_TILT_colname(int order)
 {
-    return cpl_sprintf("%02d_%s", order, CR2RES_COL_TILT_SUFFIX);
+    int         order_loc ;
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_TILT_SUFFIX);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -117,7 +119,9 @@ char * cr2res_dfs_TILT_colname(int order)
 /*----------------------------------------------------------------------------*/
 char * cr2res_dfs_SPEC_colname(int order, int trace)
 {
-    return cpl_sprintf("%02d_%02d_%s", order, trace, CR2RES_COL_SPEC_SUFFIX);
+    int         order_loc ;
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_loc, trace,CR2RES_COL_SPEC_SUFFIX);
 }
  
 /*----------------------------------------------------------------------------*/
@@ -131,7 +135,10 @@ char * cr2res_dfs_SPEC_colname(int order, int trace)
 /*----------------------------------------------------------------------------*/
 char * cr2res_dfs_SLIT_FUNC_colname(int order, int trace)
 {
-    return cpl_sprintf("%02d_%02d_%s", order,trace,CR2RES_COL_SLIT_FUNC_SUFFIX);
+    int         order_loc ;
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_loc,trace,
+            CR2RES_COL_SLIT_FUNC_SUFFIX);
 }
  
 /**@}*/

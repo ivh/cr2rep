@@ -30,11 +30,6 @@
 #include "cr2res_pfits.h"
 #include "cr2res_utils.h"
 
-/*-----------------------------------------------------------------------------
-                                Functions prototypes
- -----------------------------------------------------------------------------*/
-static int cr2res_pfits_convert_order_to_idx(int order) ;
-
 /*----------------------------------------------------------------------------*/
 /**
  * @defgroup cr2res_pfits     FITS header protected access
@@ -77,7 +72,7 @@ double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order)
     if (plist == NULL) return -1.0 ;
     
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_pfits_convert_order_to_idx(order)) < 0) return -1.0 ; 
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ; 
 
     /* Create key name */
     key_name = cpl_sprintf("ESO INS WLEN MIN%02d", order_loc) ;
@@ -107,7 +102,7 @@ double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order)
     if (plist == NULL) return -1.0 ;
 
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_pfits_convert_order_to_idx(order)) < 0) return -1.0 ; 
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ; 
 
     /* Create key name */
     key_name = cpl_sprintf("ESO INS WLEN MAX%02d", order_loc) ;
@@ -137,7 +132,7 @@ double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order)
     if (plist == NULL) return -1.0 ;
 
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_pfits_convert_order_to_idx(order)) < 0) return -1.0 ; 
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ; 
 
     /* Create key name */
     key_name = cpl_sprintf("ESO INS WLEN STRT%02d", order_loc) ;
@@ -167,7 +162,7 @@ double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order)
     if (plist == NULL) return -1.0 ;
 
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_pfits_convert_order_to_idx(order)) < 0) return -1.0 ; 
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ; 
 
     /* Create key name */
     key_name = cpl_sprintf("ESO INS WLEN END%02d", order_loc) ;
@@ -197,7 +192,7 @@ double cr2res_pfits_get_ceny(const cpl_propertylist * plist, int order)
     if (plist == NULL) return -1.0 ;
 
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_pfits_convert_order_to_idx(order)) < 0) return -1.0 ; 
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ; 
 
     /* Create key name */
     key_name = cpl_sprintf("ESO INS WLEN CENY%02d", order_loc) ;
@@ -239,7 +234,7 @@ int cr2res_pfits_get_order(
 
     for (i=min_order ; i <= max_order ; i++) {
 
-        order_idx = cr2res_pfits_convert_order_to_idx(i);
+        order_idx = cr2res_convert_order_to_idx(i);
         key_name = cpl_sprintf("ESO INS WLEN CENY%02d", order_idx) ;
         ycen = cpl_propertylist_get_double(plist, key_name);
         cpl_free(key_name) ;
@@ -262,38 +257,3 @@ int cr2res_pfits_get_order(
 }
 
 /**@}*/
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Convert the order to the keyword index
-  @param    order   Order (-49 to 50)
-  @return   the order index or a negative value in error case
-            (00 to 99)
- */
-/*----------------------------------------------------------------------------*/
-static int cr2res_pfits_convert_order_to_idx(int order)
-{
-    /* Check entries */
-    if (order < -49 || order > 50) return -1 ;
-
-    /* Conversion order <-> keyword Index */
-    if (order < 0)  return order + 100 ;
-    else            return order ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Convert the keyword index to the order
-  @param    order_idx   the order index (00 to 99)
-  @return   Order (-50 to 50)
- */
-/*----------------------------------------------------------------------------*/
-static int cr2res_pfits_convert_idx_to_order(int order_idx)
-{
-    /* Check entries */
-    if (order_idx < 0 || order_idx > 99) return -1 ;
-
-    /* Conversion order <-> keyword Index */
-    if (order_idx > 50) return order_idx - 100 ;
-    else                return order_idx ;
-}

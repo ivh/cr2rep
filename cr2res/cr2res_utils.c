@@ -360,6 +360,41 @@ cpl_polynomial * cr2res_wlestimate_compute(
     return poly ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Convert the order to the keyword index
+  @param    order   Order (-49 to 50)
+  @return   the order index or a negative value in error case
+            (00 to 99)
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_convert_order_to_idx(int order)
+{
+    /* Check entries */
+    if (order < -49 || order > 50) return -1 ;
+
+    /* Conversion order <-> keyword Index */
+    if (order < 0)  return order + 100 ;
+    else            return order ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Convert the keyword index to the order
+  @param    order_idx   the order index (00 to 99)
+  @return   Order (-50 to 50)
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_convert_idx_to_order(int order_idx)
+{
+    /* Check entries */
+    if (order_idx < 0 || order_idx > 99) return -1 ;
+
+    /* Conversion order <-> keyword Index */
+    if (order_idx > 50) return order_idx - 100 ;
+    else                return order_idx ;
+}
+
 
 /*----------------------------------------------------------------------------*/
 /**

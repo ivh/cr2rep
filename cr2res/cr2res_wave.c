@@ -82,7 +82,7 @@ cpl_polynomial * cr2res_wave(
 
     /* Initialise */
     solution = NULL ;
-    wl_error = 50 ;
+    wl_error = 100 ;
 
     /* Switch on the possible methods */
     if (wavecal_type == CR2RES_LAMP) {
@@ -156,6 +156,8 @@ cpl_polynomial * cr2res_wave_xcorr(
     /* Compute wl boundaries */
     wl_min = cpl_polynomial_eval_1d(initial_guess, 1, NULL);
     wl_max = cpl_polynomial_eval_1d(initial_guess, CR2RES_DETECTOR_SIZE, NULL);
+
+    cpl_msg_info(__func__, "Wl Range Input : %g - %g", wl_min, wl_max) ;
 
     /* Clean the spectrum from the low frequency signal if requested */
     if (clean_spec) {
@@ -238,7 +240,7 @@ cpl_polynomial * cr2res_wave_xcorr(
     /* Pass #2 */
     degree_loc = degree ;
     nsamples = 10 ;
-    wl_error_pix = wl_error/2.0 ;
+    wl_error_pix = wl_error ;
     sol_guess = sol ;
 
     wl_error_wl = (wl_max-wl_min)*wl_error_pix/CR2RES_DETECTOR_SIZE ;
@@ -562,6 +564,9 @@ cpl_bivector * cr2res_wave_gen_lines_spectrum(
             if (lines_sub_wl[i] < wl_min) lines_sub_intens[i] = 0.0 ;
         if (wl_max > 0)
             if (lines_sub_wl[i] > wl_max) lines_sub_intens[i] = 0.0 ;
+        /* TODO */
+        if (lines_sub_intens[i] > 5000) lines_sub_intens[i] = 0.0 ;
+
     }
 
     /* Free and return */

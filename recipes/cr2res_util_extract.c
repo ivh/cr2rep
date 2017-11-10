@@ -356,6 +356,7 @@ static int cr2res_util_extract(
         nb_traces = cpl_table_get_nrow(trace_table) ;
 
         /* Load the image in which the traces are to extract */
+        cpl_msg_info(__func__, "Load the Image") ;
         if ((science_ima = cpl_image_load(science_file, CPL_TYPE_FLOAT,
                         0, det_nr)) == NULL) {
             cpl_table_delete(trace_table) ;
