@@ -30,6 +30,7 @@
 #include <string.h>
 
 #include <cpl.h>
+#include <math.h>
 #include "hdrl.h"
 
 #include "cr2res_utils.h"
@@ -349,7 +350,7 @@ static int cr2res_util_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.display");
     display = cpl_parameter_get_bool(param) ;
- 
+
     /* Check Parameters */
     /* TODO */
     if (degree < 0) {
@@ -441,7 +442,7 @@ static int cr2res_util_wave(
 
         /* Clear the Wavelength column */
         cpl_table_erase_column(out_trace_wave[det_nr-1], CR2RES_COL_WAVELENGTH);
-        cpl_table_new_column_array(out_trace_wave[det_nr-1], 
+        cpl_table_new_column_array(out_trace_wave[det_nr-1],
                 CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, degree+1) ;
 
         /* Loop over the traces spectra */
@@ -450,7 +451,7 @@ static int cr2res_util_wave(
 
             /* Get Order and trace id */
             order = cpl_table_get(trace_wave_table, CR2RES_COL_ORDER, i, NULL) ;
-            trace_id = cpl_table_get(trace_wave_table, CR2RES_COL_TRACENB, i, 
+            trace_id = cpl_table_get(trace_wave_table, CR2RES_COL_TRACENB, i,
                     NULL) ;
 
             /* Check if this order needs to be skipped */
@@ -494,7 +495,7 @@ static int cr2res_util_wave(
 
             /* Call the Wavelength Calibration */
             if ((wave_sol = cr2res_wave(extracted_vec, init_guess, wavecal_type,
-                            line_fitting, static_calib_file, degree, 
+                            line_fitting, static_calib_file, degree,
                             display))==NULL) {
                 cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
                 cpl_polynomial_delete(init_guess) ;
@@ -510,7 +511,7 @@ static int cr2res_util_wave(
             wl_array = cr2res_convert_poly_to_array(wave_sol, degree+1) ;
             cpl_polynomial_delete(wave_sol);
             if (wl_array != NULL) {
-                cpl_table_set_array(out_trace_wave[det_nr-1], 
+                cpl_table_set_array(out_trace_wave[det_nr-1],
                         CR2RES_COL_WAVELENGTH, i, wl_array);
                 cpl_array_delete(wl_array) ;
             }
@@ -520,7 +521,7 @@ static int cr2res_util_wave(
         cpl_table_delete(extracted_table) ;
 
         /* Generate the Wave Map */
-        out_wave_map[det_nr-1] = 
+        out_wave_map[det_nr-1] =
             cr2res_wave_gen_wave_map(out_trace_wave[det_nr-1]) ;
 
         /* Deallocate */
@@ -528,9 +529,9 @@ static int cr2res_util_wave(
     }
 
     /* Save the new trace_wave table */
-    out_file = cpl_sprintf("%s_wave.fits", 
+    out_file = cpl_sprintf("%s_wave.fits",
             cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
-    cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, out_trace_wave, 
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, out_trace_wave,
             NULL, ext_plist, RECIPE_STRING) ;
     cpl_free(out_file);
 
@@ -545,7 +546,7 @@ static int cr2res_util_wave(
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
         if (ext_plist[i] != NULL)
             cpl_propertylist_delete(ext_plist[i]) ;
-        if (out_trace_wave[i] != NULL) 
+        if (out_trace_wave[i] != NULL)
             cpl_table_delete(out_trace_wave[i]) ;
         if (out_wave_map[i] != NULL) {
             hdrl_image_delete(out_wave_map[i]) ;
