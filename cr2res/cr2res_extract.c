@@ -143,32 +143,41 @@ int cr2res_extract_slitdec_vert(
     /* Check Entries */
     if (img_in == NULL || trace_tab == NULL) return -1 ;
 
-    /* Create ycen */
-    if ((traces = cr2res_trace_wave_get_polynomials(trace_tab, order,
-                    trace_id)) == NULL) {
-        return -1 ;
-    }
-    ycen = cr2res_trace_compute_middle(traces[0], traces[1],
-            cpl_image_get_size_x(img_in)) ;
-
     /* Compute height if not given */
     if (height <= 0) {
-        height = cr2res_trace_compute_height(traces[0], traces[1],
-                cpl_image_get_size_x(img_in)) ;
+        height = cr2res_trace_get_height(trace_tab, order, trace_id);
+        if (height <= 0) {
+            cpl_msg_error(__func__, "Cannot compute height");
+            return -1;
+        }
     }
-	cpl_polynomial_delete(traces[0]) ;
-	cpl_polynomial_delete(traces[1]) ;
-	cpl_free(traces) ;
-
     /* Initialise */
     lenx = cpl_image_get_size_x(img_in);
     leny = cpl_image_get_size_y(img_in);
+    /* Get ycen */
+    if ((ycen = cr2res_trace_get_ycen(trace_tab, order,
+                    trace_id, lenx)) == NULL) {
+        cpl_msg_error(__func__, "Cannot get ycen");
+        return -1 ;
+    }
+
     /* Number of rows after oversampling */
     ny_os = oversample*(height+1) +1;
     swath = cr2res_extract_slitdec_adjust_swath(swath, lenx);
     halfswath = swath/2;
     nswaths = (lenx / swath) *2; // *2 because we step in half swaths!
     if (lenx%swath >= halfswath) nswaths +=1;
+
+    // Get cut-out rectified order
+    img_rect = cr2res_image_cut_rectify(img_in, ycen, height);
+    if (img_rect == NULL){
+        cpl_msg_error(__func__, "Cannot rectify order");
+        cpl_vector_delete(ycen);
+        return -1;
+    }
+
+    ycen_rest = cr2res_vector_get_rest(ycen);
+    cpl_vector_delete(ycen);
 
     /* Allocate */
     mask_sw = cpl_malloc(height*swath*sizeof(int));
@@ -180,18 +189,15 @@ int cr2res_extract_slitdec_vert(
     slitfu = cpl_vector_new(ny_os);
     spc = cpl_vector_new(lenx);
     img_out = cpl_image_new(lenx, leny, CPL_TYPE_DOUBLE);
+    for (i=0;i<lenx;i++){ // TODO: check if these are necessary.
+        cpl_vector_set(spc, i, 0.0);
+        for(j=0;j<leny;j++) cpl_image_set(img_out, i+1, j+1, 0.0);
+    }
 
     // Work vectors
     slitfu_sw = cpl_vector_new(ny_os);
     slitfu_sw_data = cpl_vector_get_data(slitfu_sw);
     weights_sw = cpl_vector_new(swath);
-
-    // Inits
-    ycen_rest = cr2res_vector_get_rest(ycen);
-    for (i=0;i<lenx;i++){ // TODO: check if these are necessary.
-        cpl_vector_set(spc, i, 0.0);
-        for(j=0;j<leny;j++) cpl_image_set(img_out, i+1, j+1, 0.0);
-    }
 
     /* Pre-calculate the weights for overlapping swaths*/
     for (i=0;i<halfswath;i++) {
@@ -200,9 +206,6 @@ int cr2res_extract_slitdec_vert(
     }
     cpl_vector_divide_scalar(weights_sw,i+1); // normalize such that max(w)=1
 
-    // Get cut-out rectified order
-    img_rect = cr2res_image_cut_rectify(img_in, ycen, height);
-    cpl_free(ycen);
 
     for (i=0;i<nswaths-1;i++){ // TODO: Treat last swath!
         sw_start = i*halfswath;
@@ -235,11 +238,11 @@ int cr2res_extract_slitdec_vert(
                 mask_sw, ycen_sw, slitfu_sw_data, spec_sw_data, model_sw,
                 0.0, smooth_slit, 1.0e-5, 20);
 
-        for(col=0; col<swath; col++){      // col is x-index in cut-out
-            for(row=0;row<height;row++){   // row is y-index in cut-out
-                x = i*halfswath + col;          // coords in large image
-                y = ycen_int[x] - (height/2) + row;
-                cpl_image_set(img_out,x+1,y+1, model_sw[row*swath+col]);
+        for(col=1; col<=swath; col++){      // col is x-index in cut-out
+            x = i*halfswath + col;          // coords in large image
+            for(y=1;y<=height;y++){
+                j = (y-1)*swath + (col-1) ; // raw index for mask, start with 0!
+                cpl_image_set(img_out,x,y, model_sw[j]);
             }
         }
 
@@ -368,6 +371,7 @@ int cr2res_extract_sum_vert(
     /* Get ycen */
     if ((ycen = cr2res_trace_get_ycen(trace_tab, order,
                     trace_id, lenx)) == NULL) {
+        cpl_msg_error(__func__, "Cannot get ycen");
         return -1 ;
     }
 
