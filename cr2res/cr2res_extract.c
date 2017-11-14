@@ -125,8 +125,9 @@ int cr2res_extract_slitdec_vert(
     double          *   model_sw;
     int             *   mask_sw;
     cpl_image       *   img_sw;
+    cpl_image       *   img_rect;
     cpl_vector      *   ycen ;
-    cpl_image       *   tmp_img;
+    cpl_image       *   img_tmp;
     cpl_image       *   img_out;
     cpl_vector      *   spec_sw;
     cpl_vector      *   slitfu_sw;
@@ -137,7 +138,7 @@ int cr2res_extract_slitdec_vert(
     cpl_size            lenx, leny;
     double              pixval, img_median;
     int                 i, j, nswaths, halfswath, row, col, x, y, ny_os,
-                        sw_start, sw_end, badpix, height_loc;
+                        sw_start, sw_end, badpix;
 
     /* Check Entries */
     if (img_in == NULL || trace_tab == NULL) return -1 ;
@@ -150,12 +151,10 @@ int cr2res_extract_slitdec_vert(
     ycen = cr2res_trace_compute_middle(traces[0], traces[1],
             cpl_image_get_size_x(img_in)) ;
 
-    /* Compute height_loc */
+    /* Compute height if not given */
     if (height <= 0) {
-        height_loc = cr2res_trace_compute_height(traces[0], traces[1],
+        height = cr2res_trace_compute_height(traces[0], traces[1],
                 cpl_image_get_size_x(img_in)) ;
-    } else {
-        height_loc = height ;
     }
 	cpl_polynomial_delete(traces[0]) ;
 	cpl_polynomial_delete(traces[1]) ;
@@ -165,18 +164,16 @@ int cr2res_extract_slitdec_vert(
     lenx = cpl_image_get_size_x(img_in);
     leny = cpl_image_get_size_y(img_in);
     /* Number of rows after oversampling */
-    ny_os = oversample*(height_loc+1) +1;
+    ny_os = oversample*(height+1) +1;
     swath = cr2res_extract_slitdec_adjust_swath(swath, lenx);
     halfswath = swath/2;
     nswaths = (lenx / swath) *2; // *2 because we step in half swaths!
     if (lenx%swath >= halfswath) nswaths +=1;
 
     /* Allocate */
-    mask_sw = cpl_malloc(height_loc*swath*sizeof(int));
-    model_sw = cpl_malloc(height_loc*swath*sizeof(double));
-    img_sw = cpl_image_new(swath, height_loc, CPL_TYPE_DOUBLE);
-    ycen_int = cpl_malloc(lenx*sizeof(int));
-    ycen_rest = cpl_malloc(lenx*sizeof(double));
+    mask_sw = cpl_malloc(height*swath*sizeof(int));
+    model_sw = cpl_malloc(height*swath*sizeof(double));
+    img_sw = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
     ycen_sw = cpl_malloc(swath*sizeof(double));
 
     // Local versions of return data
@@ -189,62 +186,59 @@ int cr2res_extract_slitdec_vert(
     slitfu_sw_data = cpl_vector_get_data(slitfu_sw);
     weights_sw = cpl_vector_new(swath);
 
-    /* Some things need to be initialized before starting the actual work*/
-    for (i=0;i<lenx;i++){
-        ycen_int[i] = (int)cpl_vector_get(ycen,i) ;
-        ycen_rest[i] = fmod(cpl_vector_get(ycen,i), 1.0) ;
+    // Inits
+    ycen_rest = cr2res_vector_get_rest(ycen);
+    for (i=0;i<lenx;i++){ // TODO: check if these are necessary.
         cpl_vector_set(spc, i, 0.0);
         for(j=0;j<leny;j++) cpl_image_set(img_out, i+1, j+1, 0.0);
     }
-    cpl_vector_delete(ycen) ;
+
     /* Pre-calculate the weights for overlapping swaths*/
     for (i=0;i<halfswath;i++) {
          cpl_vector_set(weights_sw,i,i+1);
          cpl_vector_set(weights_sw,swath-i-1,i+1);
     }
     cpl_vector_divide_scalar(weights_sw,i+1); // normalize such that max(w)=1
-    //cpl_vector_dump(weights_sw,stdout);
+
+    // Get cut-out rectified order
+    img_rect = cr2res_image_cut_rectify(img_in, ycen, height);
+    cpl_free(ycen);
 
     for (i=0;i<nswaths-1;i++){ // TODO: Treat last swath!
         sw_start = i*halfswath;
         sw_end = sw_start + swath;
-        cpl_msg_debug(__func__,"Img: x:%d-%d y:%d-%d",
-            sw_start+1, sw_end,
-            ycen_int[sw_start]-(height_loc/2),
-            ycen_int[sw_start]+(height_loc/2));
-        for(col=0; col<swath; col++){      // col is x-index in cut-out
+        for(col=1; col<=swath; col++){      // col is x-index in swath
             x = i*halfswath + col;          // coords in large image
-            if (x>=lenx) cpl_msg_error(__func__,
-                "Out of bounds: x=%d, must be <%"CPL_SIZE_FORMAT, x, lenx) ;
-
-            for(row=0;row<height_loc;row++){   // row is y-index in cut-out
-                y = ycen_int[x] - (height_loc/2) + row;
+            for(y=1;y<=height;y++){
                 /* TODO This line generates an out of bound error */
-                pixval = cpl_image_get(img_in, x+1, y+1, &badpix);
-                cpl_image_set(img_sw, col+1, row+1, pixval);
-                if (badpix ==0) mask_sw[row*swath+col] = 1;
-                else mask_sw[row*swath+col] = 0;
+                pixval = cpl_image_get(img_in, x, y, &badpix);
+                if(cpl_error_get_code() != CPL_ERROR_NONE)
+                    cpl_msg_error(__func__, "%d %d %s", x, y, cpl_error_get_where());
+                cpl_image_set(img_sw, col, y, pixval);
+                j = (y-1)*swath + (col-1) ; // raw index for mask, start with 0!
+                if (badpix ==0) mask_sw[j] = 1;
+                else mask_sw[j] = 0;
             }
         }
 
         img_median = cpl_image_get_median(img_sw);
         for (j=0;j<ny_os;j++) cpl_vector_set(slitfu_sw,j,img_median);
         img_sw_data = cpl_image_get_data_double(img_sw);
-        tmp_img = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
-        spec_sw = cpl_vector_new_from_image_row(tmp_img,1);
-        cpl_image_delete(tmp_img);
+        img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
+        spec_sw = cpl_vector_new_from_image_row(img_tmp,1);
+        cpl_image_delete(img_tmp);
         spec_sw_data = cpl_vector_get_data(spec_sw);
         for (j=sw_start;j<sw_end;j++) ycen_sw[j-sw_start] = ycen_rest[j];
 
         /* Finally ready to call the slit-decomp */
-        cr2res_extract_slit_func_vert(swath, height_loc, oversample, img_sw_data,
+        cr2res_extract_slit_func_vert(swath, height, oversample, img_sw_data,
                 mask_sw, ycen_sw, slitfu_sw_data, spec_sw_data, model_sw,
                 0.0, smooth_slit, 1.0e-5, 20);
 
         for(col=0; col<swath; col++){      // col is x-index in cut-out
-            for(row=0;row<height_loc;row++){   // row is y-index in cut-out
+            for(row=0;row<height;row++){   // row is y-index in cut-out
                 x = i*halfswath + col;          // coords in large image
-                y = ycen_int[x] - (height_loc/2) + row;
+                y = ycen_int[x] - (height/2) + row;
                 cpl_image_set(img_out,x+1,y+1, model_sw[row*swath+col]);
             }
         }
@@ -261,10 +255,10 @@ int cr2res_extract_slitdec_vert(
             cpl_vector_unwrap(tmp_vec);
             cpl_vector_save(slitfu_sw, "debug_slitfu.fits", CPL_TYPE_DOUBLE,
                     NULL, CPL_IO_CREATE);
-            tmp_img = cpl_image_wrap_double(swath, height_loc, model_sw);
-            cpl_image_save(tmp_img, "debug_model_sw.fits", CPL_TYPE_FLOAT,
+            img_tmp = cpl_image_wrap_double(swath, height, model_sw);
+            cpl_image_save(img_tmp, "debug_model_sw.fits", CPL_TYPE_FLOAT,
                     NULL, CPL_IO_CREATE);
-            cpl_image_unwrap(tmp_img);
+            cpl_image_unwrap(img_tmp);
             cpl_image_save(img_sw, "debug_img_sw.fits", CPL_TYPE_FLOAT, NULL,
                     CPL_IO_CREATE);
         }
@@ -295,10 +289,10 @@ int cr2res_extract_slitdec_vert(
     // TODO: Calculate error and return it.
 
     // TODO: Deallocate return arrays in case of error, return -1
+    cpl_image_delete(img_rect);
     cpl_image_delete(img_sw);
     cpl_free(mask_sw) ;
     cpl_free(model_sw) ;
-    cpl_free(ycen_int) ;
     cpl_free(ycen_rest);
     cpl_free(ycen_sw);
 
@@ -363,59 +357,25 @@ int cr2res_extract_sum_vert(
     lenx = cpl_image_get_size_x(img_in);
     leny = cpl_image_get_size_y(img_in);
 
+    /* Compute height if not given */
+    if (height <= 0) {
+        height = cr2res_trace_get_height(trace_tab, order, trace_id);
+        if (height <= 0) {
+            cpl_msg_error(__func__, "Cannot compute height");
+            return -1;
+        }
+    }
     /* Get ycen */
     if ((ycen = cr2res_trace_get_ycen(trace_tab, order,
                     trace_id, lenx)) == NULL) {
         return -1 ;
     }
 
-    /* set up integer version of ycen */
-    ycen_int = cpl_malloc(lenx*sizeof(int));
-    for (i=0 ; i<lenx ; i++){
-        ycen_int[i] = (int)cpl_vector_get(ycen,i) ;
-    }
-
-    /* Compute height if not given */
-    if (height <= 0) {
-        height = cr2res_trace_get_height(trace_tab, order, trace_id);
-        if (height <= 0) {
-            cpl_msg_error(__func__, "Cannot compute height");
-            cpl_vector_delete(ycen);
-            cpl_free(ycen_int);
-            return -1;
-        }
-    }
-
-    /* will hold rectified order, image size: lenx * height */
-    img_tmp = cpl_image_new(lenx, height, imtyp);
-
-    /* Loop over columns, cut out around ycen, insert into img_tmp*/
-    for (i=1;i<=lenx;i++){ // All image indx start at 1!
-
-        /* treat edge cases, summing over shorter column where needed*/
-        ymin = ycen_int[i-1]-(height/2);
-        ymax = ycen_int[i-1]+(height/2) + height%2 ;
-        if (ymin < 1) {
-            empty_bottom = 1 - ymin; // save for later insertion
-            ymin = 1;
-        }
-        if (ymax > leny)
-            ymax = leny;
-
-        /* Cut out and insert */
-
-        img_1d = cpl_image_extract(img_in,i,ymin, i, ymax);
-        cpl_image_copy(img_tmp, img_1d, i, 1+empty_bottom);
-        if (cpl_error_get_code() != CPL_ERROR_NONE) {
-            cpl_msg_error(__func__,"Cannot extract and copy column %d",i);
-            cpl_vector_delete(ycen);
-            cpl_free(ycen_int);
-            cpl_image_delete(img_tmp);
-            if (img_1d != NULL) cpl_image_delete(img_1d);
-            return -1;
-        }
-
-        cpl_image_delete(img_1d);
+    img_tmp = cr2res_image_cut_rectify(img_in, ycen, height);
+    if (img_tmp == NULL) {
+        cpl_msg_error(__func__, "Cannot rectify order");
+        cpl_vector_delete(ycen);
+        return -1;
     }
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
@@ -430,14 +390,15 @@ int cr2res_extract_sum_vert(
     slitfu = cpl_vector_new_from_image_column(img_1d, 1);
     cpl_vector_divide_scalar(slitfu, cpl_vector_get_sum(slitfu));
     cpl_image_delete(img_1d);
-
     cpl_image_delete(img_tmp);
-    img_tmp = cpl_image_new(lenx, leny, imtyp);
 
+    // reconstruct the 2d image with the "model"
+    img_tmp = cpl_image_new(lenx, leny, imtyp);
+    ycen_int = cr2res_vector_get_int(ycen);
     for (i=1;i<=lenx;i++){
         for (j=1;j<=height;j++){
             cpl_image_set(img_tmp, i, ycen_int[i-1]-(height/2)+j,
-                cpl_vector_get(spc,i-1)*cpl_vector_get(slitfu,j-1)*100 );
+                cpl_vector_get(spc,i-1)*cpl_vector_get(slitfu,j-1) );
         }
     }
     cpl_vector_delete(ycen);

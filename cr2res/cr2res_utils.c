@@ -40,6 +40,118 @@
 
 /**@{*/
 
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief
+  @param    ycen
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+int * cr2res_vector_get_int(
+    const cpl_vector    * ycen)
+{
+    int         * ycen_int;
+    int         i, lenx;
+
+    lenx = cpl_vector_get_size(ycen);
+    ycen_int = cpl_malloc(lenx*sizeof(int));
+    for (i=0 ; i<lenx ; i++){
+        ycen_int[i] = (int)cpl_vector_get(ycen,i);
+    }
+
+   return ycen_int;
+
+}
+/*----------------------------------------------------------------------------*/
+/**
+  @brief
+  @param    ycen
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+double * cr2res_vector_get_rest(
+    const cpl_vector    * ycen)
+{
+    double      * ycen_rest;
+    int         i, lenx, val;
+
+    lenx = cpl_vector_get_size(ycen);
+    ycen_rest = cpl_malloc(lenx*sizeof(double));
+    for (i=0 ; i<lenx ; i++){
+         ycen_rest[i] = fmod( cpl_vector_get(ycen,i), 1.0) ;
+    }
+
+   return ycen_rest;
+
+}
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Cut a bent order into a rectangle, shifting columns
+  @param    img_in
+  @param    ycen
+  @param    height
+  @param    yecen_int
+  @return   img_out
+ */
+/*----------------------------------------------------------------------------*/
+cpl_image * cr2res_image_cut_rectify(
+        const cpl_image     * img_in,
+        const cpl_vector    * ycen,
+        int                   height)
+{
+    cpl_image       * img_out;
+    cpl_image       * img_1d;
+    cpl_type        imtyp;
+    cpl_size        lenx, leny;
+    int             * ycen_int;
+    int             i, ymin, ymax;
+    int             empty_bottom = 0;
+
+    imtyp = cpl_image_get_type(img_in);
+    lenx = cpl_image_get_size_x(img_in);
+    leny = cpl_image_get_size_y(img_in);
+    ycen_int = cr2res_vector_get_int(ycen);
+    img_out = cpl_image_new(lenx, height, imtyp);
+
+    /* Loop over columns, cut out around ycen, insert into img_out*/
+    for (i=1;i<=lenx;i++){ // All image indx start at 1!
+
+        /* treat edge cases, summing over shorter column where needed*/
+        ymin = ycen_int[i-1]-(height/2);
+        ymax = ycen_int[i-1]+(height/2) + height%2 ;
+        if (ymin < 1) {
+            empty_bottom = 1 - ymin; // save for later insertion
+            ymin = 1;
+        }
+        if (ymax > leny)
+            ymax = leny; // Simply stop when we reach the top.
+        if (ymax <= ymin) {
+            cpl_msg_error(__func__,"Unreasonable borders in column %i",i);
+            cpl_free(ycen_int);
+            cpl_image_delete(img_out);
+            return NULL;
+        }
+
+        /* Cut out and insert */
+        img_1d = cpl_image_extract(img_in,i,ymin, i, ymax);
+        cpl_image_copy(img_out, img_1d, i, 1+empty_bottom);
+        if (cpl_error_get_code() != CPL_ERROR_NONE) {
+            cpl_msg_error(__func__,"Cannot extract and copy column %d, %d %d, %s",
+                            i, ymin, ymax, cpl_error_get_where());
+            cpl_free(ycen_int);
+            cpl_image_delete(img_out);
+            if (img_1d != NULL) cpl_image_delete(img_1d);
+            return NULL;
+        }
+
+        cpl_image_delete(img_1d);
+    }
+    cpl_free(ycen_int);
+    return img_out;
+
+}
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Evaluate a polynomial on a vector
@@ -213,7 +325,7 @@ int * cr2res_get_trace_table_orders(
     int         *   orders ;
     int             nb_orders_loc, nb_orders_max, new_order, cur_order ;
     cpl_size        nrows, i, j ;
-        
+
 
     /* Check Entries */
     if (trace_wave == NULL) return NULL ;
@@ -226,14 +338,14 @@ int * cr2res_get_trace_table_orders(
     orders_big = cpl_malloc(nb_orders_max * sizeof(int)) ;
 
     /* Loop on the table rows */
-    nb_orders_loc = 0 ; 
+    nb_orders_loc = 0 ;
     for (i=0 ; i<nrows ; i++) {
         cur_order = cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL) ;
-        
+
         /* Is this order already there ? */
         new_order = 1 ;
-        for (j=0 ; j<nb_orders_loc ; j++) 
-            if (cur_order == orders_big[j]) 
+        for (j=0 ; j<nb_orders_loc ; j++)
+            if (cur_order == orders_big[j])
                 new_order = 0 ;
 
         /* Store the new order */
@@ -277,7 +389,7 @@ cpl_size cr2res_get_trace_table_index(
     /* Loop on the table rows */
     for (i=0 ; i<nrows ; i++) {
         if (cpl_table_get(trace_wave, CR2RES_COL_ORDER,i,NULL)==order &&
-                cpl_table_get(trace_wave, CR2RES_COL_TRACENB,i,NULL)==trace_nb) 
+                cpl_table_get(trace_wave, CR2RES_COL_TRACENB,i,NULL)==trace_nb)
             return i ;
     }
     return -1 ;
@@ -318,7 +430,7 @@ cpl_polynomial * cr2res_get_trace_wave_poly(
 
     /* Convert to Polynomial */
 	wave_poly = cr2res_convert_array_to_poly(wave_arr) ;
- 
+
     return wave_poly ;
 }
 
@@ -446,7 +558,7 @@ cpl_array * cr2res_convert_poly_to_array(
 
     /* Check */
     if (size < degree+1) {
-        cpl_msg_error(__func__, 
+        cpl_msg_error(__func__,
                 "The requested array size is too small for the polynomial") ;
         return NULL ;
     }

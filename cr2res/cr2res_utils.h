@@ -50,7 +50,15 @@ typedef enum {
 /*-----------------------------------------------------------------------------
                                        Prototypes
  -----------------------------------------------------------------------------*/
+double * cr2res_vector_get_rest(
+    const cpl_vector    * ycen);
+int * cr2res_vector_get_int(
+    const cpl_vector    * ycen);
 
+cpl_image * cr2res_image_cut_rectify(
+        const cpl_image     * img_in,
+        const cpl_vector    * ycen,
+        int                   height);
 cpl_vector * cr2res_polynomial_eval_vector(
         const cpl_polynomial * poly,
         const cpl_vector     * vec);
