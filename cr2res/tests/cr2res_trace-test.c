@@ -142,8 +142,7 @@ int main(void)
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
 
     /* test_cr2res_trace() ; */
-    /* test_cr2res_trace_nocpl() ; */
-    /* test_cr2res_trace_detect() ; */
+    /* test_cr2res_trace_clean() ; */
     /* test_cr2res_trace_labelize() ; */
     /* test_cr2res_trace_fit() ; */
     /* test_cr2res_trace_compare() ; */
