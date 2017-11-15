@@ -112,6 +112,7 @@ cpl_table * cr2res_trace(
         int                 split_single_trace_orders)
 {
     cpl_mask        *   mask ;
+    cpl_mask        *   mask_clean ;
     cpl_mask        *   mask_split ;
     cpl_image       *   labels ;
     cpl_apertures   *   aperts ;
@@ -124,19 +125,33 @@ cpl_table * cr2res_trace(
 
     /* Initialise */
 
-    /* Detect the traces in the image */
-    cpl_msg_info(__func__, "Traces detection") ;
-    if ((mask = cr2res_trace_detect(ima, smoothfactor, opening,
-                    min_cluster)) == NULL) {
-        cpl_msg_error(__func__, "Cannot detect the traces") ;
+    /* TODO This needs to come from a static calibration, each band */
+    int                     trace_sep=80;
+    /* TODO Set to read-noise later, also input-para */
+    double                  thresh=-300.0;
+
+    /* Apply detection */
+    cpl_msg_info(__func__, "Detect the signal") ;
+    if ((mask = cr2res_trace_signal_detect(ima, trace_sep, smoothfactor,
+                    thresh)) == NULL) {
+        cpl_msg_error(__func__, "Detection failed") ;
         return NULL ;
     }
 
+    /* Clean the traces in the image */
+    cpl_msg_info(__func__, "Traces cleaning") ;
+    if ((mask_clean = cr2res_trace_clean(mask, opening, min_cluster)) == NULL) {
+        cpl_msg_error(__func__, "Cannot clean the traces") ;
+        cpl_mask_delete(mask) ;
+        return NULL ;
+    }
+    cpl_mask_delete(mask) ;
+
     /* Labelization */
     cpl_msg_info(__func__, "Labelise the traces") ;
-    if ((labels = cpl_image_labelise_mask_create(mask, &nlabels)) == NULL) {
+    if ((labels=cpl_image_labelise_mask_create(mask_clean, &nlabels)) == NULL) {
         cpl_msg_error(__func__, "Cannot labelise") ;
-        cpl_mask_delete(mask);
+        cpl_mask_delete(mask_clean);
         return NULL ;
     }
 
@@ -159,12 +174,19 @@ cpl_table * cr2res_trace(
     }
     cpl_image_delete(labels) ;
 
+    /* Alternative with cr2res_cluster_detect() */
+    /*
+    clustertable = cr2res_cluster_detect(mask, min_cluster) ;
+    labels = cr2res_trace_convert_cluster_to_labels(clustertable,
+            cpl_image_get_size_x(ima), cpl_image_get_size_y(ima)) ;
+    */
+
     /* Fit the traces */
     cpl_msg_info(__func__, "Fit the trace edges") ;
     if ((trace_table = cr2res_trace_fit_traces(clustertable, degree)) == NULL) {
         cpl_msg_error(__func__, "Failed to Fit") ;
         cpl_table_delete(clustertable);
-        cpl_mask_delete(mask);
+        cpl_mask_delete(mask_clean);
         return NULL ;
     }
     cpl_table_delete(clustertable);
@@ -172,19 +194,28 @@ cpl_table * cr2res_trace(
     /* Split Single trace orders */
     if (split_single_trace_orders) {
         /* Create a new label image */
-        mask_split = cr2res_trace_split_traces(mask, trace_table) ;
+        mask_split = cr2res_trace_split_traces(mask_clean, trace_table) ;
         cpl_table_delete(trace_table) ;
+
+        /* Clean the traces in the image */
+        cpl_msg_info(__func__, "Splitted Traces cleaning") ;
+        cpl_mask_delete(mask_clean);
+        if ((mask_clean = cr2res_trace_clean(mask_split, opening, 
+                        min_cluster)) == NULL) {
+            cpl_msg_error(__func__, "Cannot clean the splitted traces") ;
+            cpl_mask_delete(mask_split) ;
+            return NULL ;
+        }
+        cpl_mask_delete(mask_split) ;
 
         /* Labelization */
         cpl_msg_info(__func__, "Labelise the traces") ;
-        if ((labels = cpl_image_labelise_mask_create(mask_split,
+        if ((labels = cpl_image_labelise_mask_create(mask_clean,
                         &nlabels)) == NULL) {
             cpl_msg_error(__func__, "Cannot labelise the splitted mask") ;
-            cpl_mask_delete(mask_split);
-            cpl_mask_delete(mask);
+            cpl_mask_delete(mask_clean);
             return NULL ;
         }
-        cpl_mask_delete(mask_split);
 
         /* Analyse and dump traces */
         if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
@@ -214,125 +245,37 @@ cpl_table * cr2res_trace(
         }
         cpl_table_delete(clustertable);
     }
-    cpl_mask_delete(mask);
+    cpl_mask_delete(mask_clean);
 
     /* Debug Saving */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
         cpl_table_save(trace_table, NULL, NULL, "debug_trace_table.fits",
                 CPL_IO_CREATE);
     }
-
     return trace_table ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Fit polynomials to pixel coordinates in each trace
-  @param    labels  The labels image (1 int value for each trace)
-  @param    degree  The degree of the polynomial use for the fitting
-  @param    split_single_trace_orders   Flag to split traces
-  @return   A newly allocated table or NULL in error case
-
-  The function converts the label image in the proper cluster table in
-  trace to call the traces fitting function.
-  The cluster table contains the label image information in the form of
-  a table. One column per pixel. The columns are xs (pixel x position),
-  ys (pixel y position) and cluster (label number).
-  The returned table contains 1 line per trace. Each line has 3
-  polynomials (All, Upper and Lower).
- */
-/*----------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief  Version of cr2res_trace() using cr2res_cluster_detect()
-    TODO : Integrate in cr2res_trace() with a NOCPL boolean
- */
-/*----------------------------------------------------------------------------*/
-cpl_table * cr2res_trace_nocpl(
-        cpl_image       *   ima,
-        double              smoothfactor,
-        int                 opening,
-        int                 degree,
-        int                 min_cluster,
-        int                 split_single_trace_orders)
-{
-    cpl_mask        *   mask ;
-    cpl_table       *   clustertable ;
-    cpl_image       *   labels ;
-    cpl_table       *   trace_table ;
-
-    /* TODO */
-
-    /* Check Entries */
-    if (ima == NULL) return NULL ;
-
-    /* Initialise */
-
-    /* Detect the traces in the image */
-    mask = cr2res_trace_detect(ima, smoothfactor, opening, min_cluster) ;
-
-    /* Detect the clusters */
-    clustertable = cr2res_cluster_detect(mask, min_cluster) ;
-
-    /* Create the labels image */
-    labels = cr2res_trace_convert_cluster_to_labels(clustertable,
-            cpl_image_get_size_x(ima), cpl_image_get_size_y(ima)) ;
-    cpl_table_delete(clustertable);
-
-    /* Fit Labels Edges */
-    /*
-    if ((trace_table = cr2res_trace_fit(labels, degree,
-                    split_single_trace_orders)) == NULL) {
-        cpl_msg_error(__func__, "Fit the trace edges") ;
-        cpl_image_delete(labels) ;
-        return NULL ;
-    }
-    */
-    cpl_image_delete(labels) ;
-
-    return trace_table ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief  Determine which pixels belong to a trace
-  @param ima            input image
-  @param smoothfactor   Used for detection
-  @param opening        Flag to apply opening filtering to the traces
-  @param min_cluster    Remove all clusters smaller than this
+  @brief    Clean small blobs
+  @param    mask        input mask with small blobs
+  @param    opening     Flag to apply opening filtering to the traces
+  @param    min_cluster Remove all clusters smaller than this
   @return A newly allocated mask or NULL in error case
-
-  The returned mask identifies the traces positions in the image.
  */
 /*----------------------------------------------------------------------------*/
-cpl_mask * cr2res_trace_detect(
-        cpl_image   *   ima,
-        double          smoothfactor,
+cpl_mask * cr2res_trace_clean(
+        cpl_mask    *   mask,
         int             opening,
         int             min_cluster)
 {
-    cpl_mask    *   mask ;
     cpl_mask    *   mask_kernel ;
     cpl_mask    *   new_mask ;
     cpl_mask    *   diff_mask ;
     cpl_mask    *   clean_mask ;
 
     /* Check entries */
-    if (ima == NULL) return NULL ;
-
-    /* TODO This needs to come from a static calibration, each band */
-    int                     trace_sep=80;
-    /* TODO Set to read-noise later, also input-para */
-    double                  thresh=-300.0;
-
-    /* Apply detection */
-    cpl_msg_info(__func__, "Detect the signal") ;
-    if ((mask = cr2res_trace_signal_detect(ima, trace_sep, smoothfactor,
-                    thresh)) == NULL) {
-        cpl_msg_error(__func__, "Detection failed") ;
-        return NULL ;
-    }
+    if (mask == NULL) return NULL ;
 
     /* Apply a opening to join horizontally the close clusters */
     if (opening) {
@@ -352,20 +295,19 @@ cpl_mask * cr2res_trace_detect(
                     CPL_IO_CREATE);
         }
         cpl_mask_delete(diff_mask) ;
-
-        cpl_mask_delete(mask) ;
-        mask = new_mask ;
+    } else {
+        new_mask = cpl_mask_duplicate(mask) ;
     }
 
     /* Clean the small blobs */
     cpl_msg_info(__func__, "Remove the small blobs (<= %d pixels)",
             min_cluster) ;
-    if ((clean_mask = cr2res_trace_clean_blobs(mask, min_cluster)) == NULL) {
+    if ((clean_mask = cr2res_trace_clean_blobs(new_mask, min_cluster)) == NULL) {
         cpl_msg_error(__func__, "Cannot clean the blobs") ;
-        cpl_mask_delete(mask) ;
+        cpl_mask_delete(new_mask) ;
         return NULL ;
     }
-    cpl_mask_delete(mask) ;
+    cpl_mask_delete(new_mask) ;
 
     /* Debug Saving */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
@@ -791,7 +733,6 @@ static cpl_mask * cr2res_trace_split_traces(
         cpl_polynomial_delete(poly_all) ;
         cpl_polynomial_delete(poly_upper) ;
         cpl_polynomial_delete(poly_lower) ;
-
     }
     return out ; ;
 }
