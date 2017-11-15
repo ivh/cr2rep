@@ -34,9 +34,12 @@ AM_CPPFLAGS = $(all_includes)
 AM_LDFLAGS = $(CPL_LDFLAGS)
 LDADD = $(LIBCR2RES) $(LIBCPLDFS) $(LIBCPLUI) $(LIBCPLDRS) $(LIBCPLCORE)
 
-check_PROGRAMS = cr2res_trace-test
+check_PROGRAMS = cr2res_trace-test \
+                 cr2res_utils-test
 
-cr2res_trace_test_SOURCES = cr2res_trace-test.c
+cr2res_trace_test_SOURCES = cr2res_trace-test.c \
+                            cr2res_utils-test.c
+
 cr2res_trace_test_DEPENDENCIES = $(LIBCR2RES)
 
 # Be sure to reexport important environment variables.
