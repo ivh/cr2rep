@@ -87,7 +87,7 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
 
-    /* test_cr2res_vector_get_rest() ; */
+    test_cr2res_vector_get_rest() ;
 
     return cpl_test_end(0);
 }
