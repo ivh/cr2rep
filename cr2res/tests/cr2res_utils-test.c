@@ -114,6 +114,60 @@ static void test_cr2res_vector_get_rest(void)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_image_cut_rectify(void)
+{
+    return; // TODO: implement
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_polynomial_eval_vector(void)
+{
+    int i;
+    double p0=1.1, p1=2.2, p2=3.3;
+    double d, val;
+    int n=1000;
+    cpl_vector * in = cpl_vector_new(n);
+    cpl_vector * out = cpl_vector_new(n);
+    cpl_vector * res;
+    cpl_polynomial * poly = cpl_polynomial_new(1);
+
+    i=0; cpl_polynomial_set_coeff(poly, (cpl_size *)&i, p0 );
+    i=1; cpl_polynomial_set_coeff(poly, (cpl_size *)&i, p1 );
+    i=2; cpl_polynomial_set_coeff(poly, (cpl_size *)&i, p2 );
+
+    for (i=0;i<n;i++) {
+        d = (double)i ;
+        val = d + (d/(n+1));
+        cpl_vector_set(in, i, d);
+        val = (p2*d*d)+(p1*d)+p0;
+        cpl_vector_set(out, i, val);
+    }
+
+    cpl_test( res= cr2res_polynomial_eval_vector(poly, in));
+
+    cpl_test_vector_abs(res, out, DBL_EPSILON * n * n * 10);
+
+    cpl_vector_delete(in);
+    cpl_vector_delete(out);
+    cpl_vector_delete(res);
+    cpl_polynomial_delete(poly);
+
+    return;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Run the Unit tests
  */
 /*----------------------------------------------------------------------------*/
@@ -123,6 +177,7 @@ int main(void)
 
     test_cr2res_vector_get_rest() ;
     test_cr2res_vector_get_int() ;
+    test_cr2res_polynomial_eval_vector();
 
     return cpl_test_end(0);
 }
