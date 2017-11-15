@@ -35,6 +35,7 @@
  -----------------------------------------------------------------------------*/
 
 static void test_cr2res_vector_get_rest(void) ;
+static void test_cr2res_vector_get_int(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -44,6 +45,39 @@ static void test_cr2res_vector_get_rest(void) ;
 /*----------------------------------------------------------------------------*/
 
 /**@{*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_vector_get_int(void)
+{
+    int i;
+    double d;
+    int n=1000;
+    cpl_vector * in = cpl_vector_new(n);
+    int * res;
+
+    for (i=0;i<n;i++) {
+        d = (double)i ;
+        cpl_vector_set(in, i, d + (d/(n+1)));
+    }
+
+    cpl_test( res = cr2res_vector_get_int(in) );
+
+    for (i=0;i<n;i++) {
+        cpl_test_eq(i, res[i]);
+    }
+
+
+    cpl_vector_delete(in);
+    cpl_free(res);
+
+    return;
+}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -70,7 +104,7 @@ static void test_cr2res_vector_get_rest(void)
     cpl_test( res = cr2res_vector_get_rest(in) );
     cpl_vector_delete(in);
     in = cpl_vector_wrap(n, res);
-    cpl_test_vector_abs(in, out, DBL_EPSILON);
+    cpl_test_vector_abs(in, out, DBL_EPSILON * n );
 
     cpl_vector_delete(in);
     cpl_vector_delete(out);
@@ -88,6 +122,7 @@ int main(void)
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
 
     test_cr2res_vector_get_rest() ;
+    test_cr2res_vector_get_int() ;
 
     return cpl_test_end(0);
 }
