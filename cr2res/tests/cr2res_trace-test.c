@@ -47,7 +47,7 @@ static void test_cr2res_trace(void) ;
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief 
+  @brief
   @param
   @return
  */
@@ -68,7 +68,7 @@ static void test_cr2res_trace(void)
 
     /* NULL Input */
     ima = NULL ;
-    out = cr2res_trace(ima, 1.0, 1, 6, 500) ;
+    out = cr2res_trace(ima, 1.0, 1, 6, 500, 0) ;
     cpl_test_null(out);
 
     /* Create a label image with 9 orders */
@@ -121,8 +121,8 @@ static void test_cr2res_trace(void)
 
     cpl_image_save(trace_ima, "TEST.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
 
-    out = cr2res_trace(trace_ima, 1.0, 1, 6, 500) ;
-    
+    out = cr2res_trace(trace_ima, 1.0, 1, 6, 500, 0) ;
+
     cpl_table_save(out, NULL, NULL, "TEST2.fits", CPL_IO_CREATE);
     cpl_table_delete(out) ;
     /* cpl_test_null(out); */
@@ -153,7 +153,7 @@ int main(void)
     /* test_cr2res_trace_open_get_polynomials() ; */
     /* test_cr2res_trace_compute_middle() ; */
     /* test_cr2res_trace_compute_height() ; */
-        
+
     return cpl_test_end(0);
 }
 
