@@ -238,7 +238,6 @@ int cr2res_pfits_get_order(
         key_name = cpl_sprintf("ESO INS WLEN CENY%02d", order_idx) ;
         ycen = cpl_propertylist_get_double(plist, key_name);
         cpl_free(key_name) ;
-        if (ycen < 0) continue;
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
             cpl_error_reset();
             continue;
