@@ -36,6 +36,8 @@
 
 static void test_cr2res_vector_get_rest(void) ;
 static void test_cr2res_vector_get_int(void);
+static void test_cr2res_image_cut_rectify(void);
+static void test_cr2res_polynomial_eval_vector(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -109,11 +111,6 @@ static void test_cr2res_vector_get_rest(void)
     cpl_vector_delete(in);
     cpl_vector_delete(out);
 
-
-    cpl_test(1) ;
-
-
-
     return;
 }
 
@@ -126,7 +123,25 @@ static void test_cr2res_vector_get_rest(void)
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_image_cut_rectify(void)
 {
-    return; // TODO: implement
+
+    cpl_image * res;
+
+    int imdata[] = {1,2,3,2,1,
+                    1,2,9,2,9,
+                    1,9,3,9,1,
+                    9,2,3,2,1} ;
+    cpl_image * img = cpl_image_wrap_int(5,4, imdata);
+
+    //double ydata[] = {1.9, 2.1, 3.5, 2.8, 3.99};
+    //cpl_vector * ycen = cpl_vector_wrap(5, ydata);
+
+    //cpl_test( res=cr2res_image_cut_rectify(img, ycen, 1) );
+
+    cpl_image_unwrap(img);
+    //cpl_vector_unwrap(ycen);
+    //cpl_image_delete(res);
+
+    return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -181,8 +196,9 @@ int main(void)
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
 
     test_cr2res_vector_get_rest() ;
-    /* test_cr2res_vector_get_int() ; */
-    /* test_cr2res_polynomial_eval_vector(); */
+    test_cr2res_vector_get_int() ;
+    test_cr2res_polynomial_eval_vector();
+    test_cr2res_image_cut_rectify();
 
     return cpl_test_end(0);
 }
