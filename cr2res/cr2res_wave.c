@@ -342,32 +342,69 @@ cpl_polynomial * cr2res_wave_etalon(
         cpl_vector      *   spectrum,
         cpl_polynomial  *   initial_guess)
 {
-    cpl_vector  *   peaks;
-    cpl_vector  *   peaks_shouldbe;
+    cpl_bivector *  is_should;
+    cpl_vector  *   peaks_found;
+    cpl_vector  *   peaks_should;
 	double			trueD, x_0;
     int             npeaks, i;
 
-    peaks = cr2res_wave_etalon_measure_fringes(spectrum);
-    npeaks=cpl_vector_get_size(peaks);
-    x_0 = cpl_vector_get(peaks,0);
+    peaks_found = cr2res_wave_etalon_measure_fringes(spectrum);
+    npeaks=cpl_vector_get_size(peaks_found);
+    x_0 = cpl_vector_get(peaks_found,0);
 
-	trueD = cr2res_wave_etalon_fringe_stats(peaks, initial_guess);
+	trueD = cr2res_wave_etalon_fringe_stats(peaks_found, initial_guess);
 
-    peaks_shouldbe = cpl_vector_new(npeaks);
+    peaks_should = cpl_vector_new(npeaks);
     for (i=0; i<npeaks; i++) {
-        cpl_vector_set(peaks_shouldbe, i, x_0 + (trueD*i));
+        cpl_vector_set(peaks_should, i, x_0 + (trueD*i));
     }
+
+    is_should = cr2res_wave_etalon_assign_fringes(peaks_found, peaks_should);
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
-        cpl_vector_dump(peaks, stdout);
-        cpl_vector_dump(peaks_shouldbe, stdout);
+        cpl_bivector_dump(is_should, stdout);
     }
 
-    cpl_vector_delete(peaks);
-    cpl_vector_delete(peaks_shouldbe);
+    cpl_bivector_delete(is_should);
+    cpl_vector_delete(peaks_found);
+    cpl_vector_delete(peaks_should);
     return NULL ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Associate found fringes with the best "should"-value
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+
+cpl_bivector * cr2res_wave_etalon_assign_fringes(
+            const cpl_vector      * peaks_found,
+            const cpl_vector      * peaks_should)
+{
+    int i, j, len_f;
+    int * best_idx;
+    double x,y;
+    cpl_bivector * is_should;
+    cpl_vector * is;
+    cpl_vector * should;
+
+    len_f = cpl_vector_get_size(peaks_found);
+    best_idx = (int *)cpl_malloc(len_f*sizeof(int));
+    is_should = cpl_bivector_new(len_f);
+    is = cpl_bivector_get_x(is_should);
+    should = cpl_bivector_get_y(is_should);
+    for (i=0; i<len_f; i++) {
+        x = cpl_vector_get(peaks_found,i);
+        j = cpl_vector_find(peaks_should, x);
+        best_idx[i] = j;
+        cpl_vector_set(is,i,x);
+        cpl_vector_set(should,i,j);
+    }
+    cpl_free(best_idx);
+    return is_should;
+}
 /*----------------------------------------------------------------------------*/
 /**
   @brief Find the true D from fringe statistics
@@ -471,7 +508,7 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
             i++;
         }
         if (j < min_len_peak) continue;
-        cpl_msg_debug(__func__, "Peak length j=%d at i=%d",j,i);
+        //cpl_msg_debug(__func__, "Peak length j=%d at i=%d",j,i);
         cur_peak = cpl_vector_extract(spec_thresh, i-j, i, 1) ;
         X_peak = cpl_vector_extract(X_all, 0, j, 1) ;
 
@@ -486,11 +523,11 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
 
         // Shift x0 to absolute position
         x0 += i-j ;
-        cpl_msg_debug(__func__,"Fit: %.2f, %.2f, %.2f, %.2f",
-                                    x0, sigma, area, offset);
+        //cpl_msg_debug(__func__,"Fit: %.2f, %.2f, %.2f, %.2f",
+        //                            x0, sigma, area, offset);
         if ((k = cpl_array_count_invalid(peaks)) <1)
             cpl_msg_error(__func__,"Output array overflow!");
-        cpl_msg_debug(__func__,"k=%d, x0=%g",k,x0);
+        //cpl_msg_debug(__func__,"k=%d, x0=%g",k,x0);
         cpl_array_set_double(peaks, max_num_peaks - k, x0);
 
         cpl_vector_delete(cur_peak);
