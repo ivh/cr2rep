@@ -128,7 +128,7 @@ cpl_table * cr2res_trace(
     /* TODO This needs to come from a static calibration, each band */
     int                     trace_sep=80;
     /* TODO Set to read-noise later, also input-para */
-    double                  thresh=-300.0;
+    double                  thresh=100.0;
 
     /* Apply detection */
     cpl_msg_info(__func__, "Detect the signal") ;
@@ -200,7 +200,7 @@ cpl_table * cr2res_trace(
         /* Clean the traces in the image */
         cpl_msg_info(__func__, "Splitted Traces cleaning") ;
         cpl_mask_delete(mask_clean);
-        if ((mask_clean = cr2res_trace_clean(mask_split, opening, 
+        if ((mask_clean = cr2res_trace_clean(mask_split, opening,
                         min_cluster)) == NULL) {
             cpl_msg_error(__func__, "Cannot clean the splitted traces") ;
             cpl_mask_delete(mask_split) ;
