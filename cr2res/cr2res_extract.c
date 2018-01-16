@@ -136,6 +136,7 @@ int cr2res_extract_slitdec_vert(
     cpl_vector      *   weights_sw;
     cpl_vector      *   tmp_vec;
     cpl_size            lenx, leny;
+    cpl_type            imtyp;
     double              pixval, img_median;
     int                 i, j, nswaths, halfswath, row, col, x, y, ny_os,
                         sw_start, sw_end, badpix;
@@ -152,6 +153,7 @@ int cr2res_extract_slitdec_vert(
         }
     }
     /* Initialise */
+    imtyp = cpl_image_get_type(img_in);
     lenx = cpl_image_get_size_x(img_in);
     leny = cpl_image_get_size_y(img_in);
     /* Get ycen */
@@ -174,6 +176,10 @@ int cr2res_extract_slitdec_vert(
         cpl_msg_error(__func__, "Cannot rectify order");
         cpl_vector_delete(ycen);
         return -1;
+    }
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_image_save(img_rect, "debug_rectorder.fits", imtyp,
+                NULL, CPL_IO_CREATE);
     }
 
     ycen_rest = cr2res_vector_get_rest(ycen);
@@ -213,8 +219,7 @@ int cr2res_extract_slitdec_vert(
         for(col=1; col<=swath; col++){      // col is x-index in swath
             x = i*halfswath + col;          // coords in large image
             for(y=1;y<=height;y++){
-                /* TODO This line generates an out of bound error */
-                pixval = cpl_image_get(img_in, x, y, &badpix);
+                pixval = cpl_image_get(img_rect, x, y, &badpix);
                 if(cpl_error_get_code() != CPL_ERROR_NONE)
                     cpl_msg_error(__func__, "%d %d %s", x, y, cpl_error_get_where());
                 cpl_image_set(img_sw, col, y, pixval);
