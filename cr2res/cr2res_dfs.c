@@ -80,8 +80,13 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
         } else if (!strcmp(tag, CR2RES_MASTER_BPM_PROCATG) ||
                 !strcmp(tag, CR2RES_DETLIN_BPM_PROCATG) ||
+                !strcmp(tag, CR2RES_DETLIN_COEFFS_PROCATG) ||
                 !strcmp(tag, CR2RES_MASTER_DARK_PROCATG) ||
-                !strcmp(tag, CR2RES_DARK_BPM_PROCATG)||
+                !strcmp(tag, CR2RES_MASTER_FLAT_PROCATG) ||
+                !strcmp(tag, CR2RES_SLIT_FUNC_PROCATG) ||
+                !strcmp(tag, CR2RES_SLIT_MODEL_PROCATG) ||
+                !strcmp(tag, CR2RES_BLAZE_PROCATG) ||
+                !strcmp(tag, CR2RES_BLAZE_IMAGE_PROCATG) ||
                 !strcmp(tag, CR2RES_TRACE_WAVE_PROCATG) ||
                 !strcmp(tag, CR2RES_WAVE_COEFFS_PROCATG) ||
                 !strcmp(tag, CR2RES_EMISSION_LINES_PROCATG) ||
