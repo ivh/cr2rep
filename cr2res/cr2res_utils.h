@@ -59,6 +59,10 @@ cpl_image * cr2res_image_cut_rectify(
         const cpl_image     * img_in,
         const cpl_vector    * ycen,
         int                   height);
+cpl_image * cr2res_image_insert_rect(
+        const cpl_image     * rect_in,
+        const cpl_vector    * ycen,
+        cpl_image           * img_out  );
 cpl_vector * cr2res_polynomial_eval_vector(
         const cpl_polynomial * poly,
         const cpl_vector     * vec);

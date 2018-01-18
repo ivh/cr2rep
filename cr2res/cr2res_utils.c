@@ -85,13 +85,13 @@ double * cr2res_vector_get_rest(
    return ycen_rest;
 
 }
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Cut a bent order into a rectangle, shifting columns
   @param    img_in
   @param    ycen
   @param    height
-  @param    yecen_int
   @return   img_out
  */
 /*----------------------------------------------------------------------------*/
@@ -138,6 +138,67 @@ cpl_image * cr2res_image_cut_rectify(
         cpl_image_copy(img_out, img_1d, i, 1+empty_bottom);
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
             cpl_msg_error(__func__,"Cannot extract and copy column %d, %d %d, %s",
+                            i, ymin, ymax, cpl_error_get_where());
+            cpl_free(ycen_int);
+            cpl_image_delete(img_out);
+            if (img_1d != NULL) cpl_image_delete(img_1d);
+            return NULL;
+        }
+
+        cpl_image_delete(img_1d);
+    }
+    cpl_free(ycen_int);
+    return img_out;
+
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Re-insert a rectangular cut-out of an order into the full frame
+  @param    rect_in
+  @param    ycen
+  @return   img_out
+ */
+/*----------------------------------------------------------------------------*/
+cpl_image * cr2res_image_insert_rect(
+        const cpl_image     * rect_in,
+        const cpl_vector    * ycen,
+        cpl_image           * img_out  )
+{
+    cpl_image       * img_1d;
+    cpl_size        lenx, leny, height;
+    int             * ycen_int;
+    int             i, ymin, ymax;
+    int             empty_bottom = 0;
+
+    lenx = cpl_image_get_size_x(rect_in);
+    leny = cpl_image_get_size_y(rect_in);
+    height = cpl_image_get_size_y(rect_in);
+    ycen_int = cr2res_vector_get_int(ycen);
+
+    /* Loop over columns, cut out around ycen, insert into img_out*/
+    for (i=1;i<=lenx;i++){ // All image indx start at 1!
+
+        /* treat edge cases, summing over shorter column where needed*/
+        ymin = ycen_int[i-1]-(height/2);
+        ymax = ycen_int[i-1]+(height/2) + height%2 ;
+        if (ymin < 1) {
+            empty_bottom = 1 - ymin; // save for later insertion
+            ymin = 1;
+        }
+        if (ymax > leny)
+            ymax = leny; // Simply stop when we reach the top.
+        if (ymax <= ymin) {
+            cpl_msg_error(__func__,"Unreasonable borders in column %i",i);
+            cpl_free(ycen_int);
+            cpl_image_delete(img_out);
+            return NULL;
+        }
+
+        img_1d = cpl_image_extract(rect_in,i, empty_bottom+1, i, ymax-ymin+1);
+        cpl_image_copy(img_out, img_1d, i, ymin);
+        if (cpl_error_get_code() != CPL_ERROR_NONE) {
+            cpl_msg_error(__func__,"Cannot re-insert conumn %d, %d %d, %s",
                             i, ymin, ymax, cpl_error_get_where());
             cpl_free(ycen_int);
             cpl_image_delete(img_out);

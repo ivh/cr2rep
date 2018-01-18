@@ -126,6 +126,7 @@ int cr2res_extract_slitdec_vert(
     int             *   mask_sw;
     cpl_image       *   img_sw;
     cpl_image       *   img_rect;
+    cpl_image       *   model_rect;
     cpl_vector      *   ycen ;
     cpl_image       *   img_tmp;
     cpl_image       *   img_out;
@@ -181,9 +182,7 @@ int cr2res_extract_slitdec_vert(
         cpl_image_save(img_rect, "debug_rectorder.fits", imtyp,
                 NULL, CPL_IO_CREATE);
     }
-
     ycen_rest = cr2res_vector_get_rest(ycen);
-    cpl_vector_delete(ycen);
 
     /* Allocate */
     mask_sw = cpl_malloc(height*swath*sizeof(int));
@@ -195,10 +194,7 @@ int cr2res_extract_slitdec_vert(
     slitfu = cpl_vector_new(ny_os);
     spc = cpl_vector_new(lenx);
     img_out = cpl_image_new(lenx, leny, CPL_TYPE_DOUBLE);
-    for (i=0;i<lenx;i++){ // TODO: check if these are necessary.
-        cpl_vector_set(spc, i, 0.0);
-        for(j=0;j<leny;j++) cpl_image_set(img_out, i+1, j+1, 0.0);
-    }
+    model_rect = cpl_image_new(lenx, height, CPL_TYPE_DOUBLE);
 
     // Work vectors
     slitfu_sw = cpl_vector_new(ny_os);
@@ -247,10 +243,11 @@ int cr2res_extract_slitdec_vert(
             x = i*halfswath + col;          // coords in large image
             for(y=1;y<=height;y++){
                 j = (y-1)*swath + (col-1) ; // raw index for mask, start with 0!
-                cpl_image_set(img_out,x,y, model_sw[j]);
+                cpl_image_set(model_rect,x,y, model_sw[j]);
             }
         }
 
+        // add up slit-functions, divide by nswaths below to get average
         if (i==0) cpl_vector_copy(slitfu,slitfu_sw);
         else cpl_vector_add(slitfu,slitfu_sw);
 
@@ -289,6 +286,8 @@ int cr2res_extract_slitdec_vert(
     cpl_vector_delete(slitfu_sw);
     cpl_vector_delete(weights_sw);
 
+    // insert model_rect into large frame
+    cr2res_image_insert_rect(model_rect, ycen, img_out);
 
     // divide by nswaths to make the slitfu into the average over all swaths.
     cpl_vector_divide_scalar(slitfu,nswaths);
@@ -297,7 +296,9 @@ int cr2res_extract_slitdec_vert(
     // TODO: Calculate error and return it.
 
     // TODO: Deallocate return arrays in case of error, return -1
+    cpl_vector_delete(ycen);
     cpl_image_delete(img_rect);
+    cpl_image_delete(model_rect);
     cpl_image_delete(img_sw);
     cpl_free(mask_sw) ;
     cpl_free(model_sw) ;
