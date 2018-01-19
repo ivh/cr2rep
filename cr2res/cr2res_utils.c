@@ -199,7 +199,7 @@ int cr2res_image_insert_rect(
             return -1;
         }
 
-        img_1d = cpl_image_extract(rect_in,i, empty_bottom+1, i, ymax-ymin+1);
+        img_1d = cpl_image_extract(rect_in,i, empty_bottom+1, i, ymax-ymin);
         cpl_image_copy(img_out, img_1d, i, ymin);
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
             cpl_msg_error(__func__,"Cannot re-insert conumn %d, %d %d, %s",
