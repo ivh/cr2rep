@@ -171,9 +171,14 @@ cpl_image * cr2res_image_insert_rect(
     int             i, ymin, ymax;
     int             empty_bottom = 0;
 
-    lenx = cpl_image_get_size_x(rect_in);
-    leny = cpl_image_get_size_y(rect_in);
+    lenx = cpl_image_get_size_x(img_out);
+    leny = cpl_image_get_size_y(img_out);
     height = cpl_image_get_size_y(rect_in);
+    if (cpl_image_get_size_x(rect_in) != lenx) {
+        cpl_mgs_error(__func__, "Length of rect and img need to be the same");
+        return NULL;
+    }
+
     ycen_int = cr2res_vector_get_int(ycen);
 
     /* Loop over columns, cut out around ycen, insert into img_out*/
