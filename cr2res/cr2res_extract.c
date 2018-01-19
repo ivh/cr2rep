@@ -296,12 +296,12 @@ int cr2res_extract_slitdec_vert(
     // TODO: Calculate error and return it.
 
     // TODO: Deallocate return arrays in case of error, return -1
-    cpl_vector_delete(ycen);
     cpl_image_delete(img_rect);
     cpl_image_delete(model_rect);
     cpl_image_delete(img_sw);
     cpl_free(mask_sw) ;
     cpl_free(model_sw) ;
+    cpl_vector_delete(ycen);
     cpl_free(ycen_rest);
     cpl_free(ycen_sw);
 

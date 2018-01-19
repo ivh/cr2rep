@@ -59,7 +59,7 @@ cpl_image * cr2res_image_cut_rectify(
         const cpl_image     * img_in,
         const cpl_vector    * ycen,
         int                   height);
-cpl_image * cr2res_image_insert_rect(
+int cr2res_image_insert_rect(
         const cpl_image     * rect_in,
         const cpl_vector    * ycen,
         cpl_image           * img_out  );

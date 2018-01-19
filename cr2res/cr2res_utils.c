@@ -160,7 +160,7 @@ cpl_image * cr2res_image_cut_rectify(
   @return   img_out
  */
 /*----------------------------------------------------------------------------*/
-cpl_image * cr2res_image_insert_rect(
+int cr2res_image_insert_rect(
         const cpl_image     * rect_in,
         const cpl_vector    * ycen,
         cpl_image           * img_out  )
@@ -175,8 +175,8 @@ cpl_image * cr2res_image_insert_rect(
     leny = cpl_image_get_size_y(img_out);
     height = cpl_image_get_size_y(rect_in);
     if (cpl_image_get_size_x(rect_in) != lenx) {
-        cpl_mgs_error(__func__, "Length of rect and img need to be the same");
-        return NULL;
+        cpl_msg_error(__func__, "Length of rect and img need to be the same");
+        return -1;
     }
 
     ycen_int = cr2res_vector_get_int(ycen);
@@ -196,8 +196,7 @@ cpl_image * cr2res_image_insert_rect(
         if (ymax <= ymin) {
             cpl_msg_error(__func__,"Unreasonable borders in column %i",i);
             cpl_free(ycen_int);
-            cpl_image_delete(img_out);
-            return NULL;
+            return -1;
         }
 
         img_1d = cpl_image_extract(rect_in,i, empty_bottom+1, i, ymax-ymin+1);
@@ -206,15 +205,14 @@ cpl_image * cr2res_image_insert_rect(
             cpl_msg_error(__func__,"Cannot re-insert conumn %d, %d %d, %s",
                             i, ymin, ymax, cpl_error_get_where());
             cpl_free(ycen_int);
-            cpl_image_delete(img_out);
             if (img_1d != NULL) cpl_image_delete(img_1d);
-            return NULL;
+            return -1;
         }
 
         cpl_image_delete(img_1d);
     }
     cpl_free(ycen_int);
-    return img_out;
+    return 0;
 
 }
 
