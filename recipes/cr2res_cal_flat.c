@@ -48,6 +48,22 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_cal_flat_reduce(
+        const cpl_frameset  *   rawframes,
+        const cpl_frame     *   detlin_frame,
+        const cpl_frame     *   master_dark_frame,
+        const cpl_frame     *   master_bpm_frame,
+        int                     trace_degree,
+        int                     trace_min_cluster,
+        double                  trace_smooth,
+        int                     trace_opening,
+        int                     trace_split,
+        int                     extract_oversample,
+        int                     extract_swath_width,
+        int                     extract_height,
+        double                  extract_smooth,
+        int                     reduce_det,
+        hdrl_image          **  master_flat) ;
 static int cr2res_cal_flat_create(cpl_plugin *);
 static int cr2res_cal_flat_exec(cpl_plugin *);
 static int cr2res_cal_flat_destroy(cpl_plugin *);
@@ -64,14 +80,13 @@ static char cr2res_cal_flat_description[] =
 "detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG "\n"
 "master_dark.fits " CR2RES_MASTER_DARK_PROCATG "\n"
 "master_bpm.fits " CR2RES_MASTER_BPM_PROCATG "\n"
-"detlin_coeffs.fits " CR2RES_DETLIN_COEFFS_PROCATG "\n"
 " The recipe produces the following products:\n"
 "cr2res_cal_flat_trace.fits " CR2RES_TRACE_WAVE_PROCATG "\n"
 "cr2res_cal_flat_master.fits " CR2RES_MASTER_FLAT_PROCATG  "\n"
-"cr2res_cal_flat_slit_model.fits " CR2RES_SLIT_MODEL_PROCATG "\n"
-"cr2res_cal_flat_slit_func.fits " CR2RES_SLIT_FUNC_PROCATG "\n"
-"cr2res_cal_flat_blaze_image.fits " CR2RES_BLAZE_IMAGE_PROCATG "\n"
 "cr2res_cal_flat_blaze.fits " CR2RES_BLAZE_PROCATG "\n"
+"cr2res_cal_flat_blaze_image.fits " CR2RES_BLAZE_IMAGE_PROCATG "\n"
+"cr2res_cal_flat_slit_func.fits " CR2RES_SLIT_FUNC_PROCATG "\n"
+"cr2res_cal_flat_bpm.fits " CR2RES_MASTER_BPM_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -145,66 +160,66 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.degree",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_degree",
             CPL_TYPE_INT, "polynomial degree for the fit to the orders",
             "cr2res.cr2res_cal_flat", 5);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "degree");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_degree");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.min_cluster",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_min_cluster",
             CPL_TYPE_INT, "size in pixels of the smallest allowed cluster",
             "cr2res.cr2res_cal_flat", 10000);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "min_cluster");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_min_cluster");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.smooth_trace",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_smooth",
             CPL_TYPE_DOUBLE, "Length of the smoothing kernel",
             "cr2res.cr2res_cal_flat", 5.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_trace");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_smooth");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.opening",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_opening",
             CPL_TYPE_BOOL, "Use a morphological opening to rejoin clusters",
             "cr2res.cr2res_cal_flat", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "opening");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_opening");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.split_traces",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_split",
             CPL_TYPE_BOOL, "Split the traces when only 1 per order",
             "cr2res.cr2res_cal_flat", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "split_traces");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_split");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.oversample",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
             "cr2res.cr2res_cal_flat", 10);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "oversample");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_oversample");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.swath_width",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_swath_width",
             CPL_TYPE_INT, "The swath width", "cr2res.cr2res_cal_flat", 64);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "swath_width");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_swath_width");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.height",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_height",
             CPL_TYPE_INT, "Extraction height",
             "cr2res.cr2res_cal_flat", -1);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "height");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_height");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.smooth_extr",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_smooth",
             CPL_TYPE_DOUBLE,
             "Smoothing along the slit (1 for high S/N, 5 for low)",
             "cr2res.cr2res_cal_flat", 1.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_extr");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -270,42 +285,48 @@ static int cr2res_cal_flat(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     min_cluster, degree, opening, reduce_det,
-                            split_traces, swath_width, oversample, height ;
-    double                  smooth_extr, smooth_trace, y_pos ;
-        
-    cpl_frameset        *   rawframes ;
-    int                     ext ;
-
+    int                     trace_degree, trace_min_cluster,
+                            trace_opening, trace_split,
+                            extract_oversample, extract_swath_width,
+                            extract_height, reduce_det ;
+    double                  trace_smooth, extract_smooth ;
+    cpl_frameset        *   raw_open_frames ;
+    cpl_frameset        *   raw_decker1_frames ;
+    cpl_frameset        *   raw_decker2_frames ;
+    cpl_frame           *   detlin_frame ;
+    cpl_frame           *   master_dark_frame ;
+    cpl_frame           *   master_bpm_frame ;
+    hdrl_image          *   open_master_flat[CR2RES_NB_DETECTORS] ;
+    int                     det_nr; 
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_flat.degree");
-    degree = cpl_parameter_get_int(param);
+            "cr2res.cr2res_cal_flat.trace_degree");
+    trace_degree = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_flat.min_cluster");
-    min_cluster = cpl_parameter_get_int(param);
+            "cr2res.cr2res_cal_flat.trace_min_cluster");
+    trace_min_cluster = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_flat.smooth_trace");
-    smooth_trace = cpl_parameter_get_double(param);
+            "cr2res.cr2res_cal_flat.trace_smooth");
+    trace_smooth = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_flat.opening");
-    opening = cpl_parameter_get_bool(param);
+            "cr2res.cr2res_cal_flat.trace_opening");
+    trace_opening = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_flat.split_traces");
-    split_traces = cpl_parameter_get_bool(param);
+            "cr2res.cr2res_cal_flat.trace_split");
+    trace_split = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_flat.oversample");
-    oversample = cpl_parameter_get_int(param);
+            "cr2res.cr2res_cal_flat.extract_oversample");
+    extract_oversample = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_flat.swath_width");
-    swath_width = cpl_parameter_get_int(param);
+            "cr2res.cr2res_cal_flat.extract_swath_width");
+    extract_swath_width = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.height");
-    height = cpl_parameter_get_int(param);
+            "cr2res.cr2res_cal_flat.extract_height");
+    extract_height = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_flat.smooth_extr");
-    smooth_extr = cpl_parameter_get_double(param);
+            "cr2res.cr2res_cal_flat.extract_smooth");
+    extract_smooth = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -318,25 +339,119 @@ static int cr2res_cal_flat(
     }
 	
     /* Extract RAW frames */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_DARK_RAW) ;
-    if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
-        cpl_msg_error(__func__, "Cannot find any RAW file") ;
-        cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
-        return -1 ;
-    }
+    raw_open_frames = cr2res_extract_frameset(frameset, CR2RES_FLAT_OPEN_RAW) ;
 
-	/* Loop on the extensions */
-    for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
-        cpl_msg_info(__func__, "Process Detector nb %i", ext) ;
-        cpl_msg_indent_more() ;
+    /* Get Calibration frames */
+    detlin_frame = master_dark_frame = master_bpm_frame = NULL ;
 
+    /*
+    cpl_frameset        *   raw_decker1_frames ;
+    cpl_frameset        *   raw_decker2_frames ;
+    cpl_frame           *   detlin_frame ;
+    cpl_frame           *   master_dark_frame ;
+    cpl_frame           *   master_bpm_frame ;
+    */
+
+    /* Loop on the detectors */
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         /* Initialise */
+        open_master_flat[det_nr-1] = NULL ;
+                
+        /* Compute only one detector */
+        if (reduce_det != 0 && det_nr != reduce_det) continue ;
 
-        /* Loop on the frames */
-        cpl_msg_indent_less() ;
+        /* Reduce Open */
+        if (raw_open_frames != NULL) {
+            cpl_msg_info(__func__, "Process OPEN detector number %d", det_nr) ;
+            cpl_msg_indent_more() ;
+            if (cr2res_cal_flat_reduce(raw_open_frames, detlin_frame, 
+                        master_dark_frame, master_bpm_frame, trace_degree, 
+                        trace_min_cluster, trace_smooth, trace_opening, 
+                        trace_split, extract_oversample, extract_swath_width, 
+                        extract_height, extract_smooth, det_nr, 
+                        &(open_master_flat[det_nr-1])) == -1) {
+                cpl_msg_warning(__func__, 
+                        "Failed to reduce the OPEN frames on detector %d", 
+                        det_nr);
+            }
+            cpl_msg_indent_less() ;
+        }
+
+        /* Reduce Decker1 */
+    
+        /* Reduce Decker2 */
+
+
     }
 
-	/* Save the results */
+    if (raw_open_frames != NULL) cpl_frameset_delete(raw_open_frames) ;
+
+    /* Ѕave Products */
+
 
     return (int)cpl_error_get_code();
 }
+
+
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  
+  @param 
+  @return  
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_cal_flat_reduce(
+        const cpl_frameset  *   rawframes,
+        const cpl_frame     *   detlin_frame,
+        const cpl_frame     *   master_dark_frame,
+        const cpl_frame     *   master_bpm_frame,
+        int                     trace_degree,
+        int                     trace_min_cluster,
+        double                  trace_smooth,
+        int                     trace_opening,
+        int                     trace_split,
+        int                     extract_oversample,
+        int                     extract_swath_width,
+        int                     extract_height,
+        double                  extract_smooth,
+        int                     reduce_det,
+        hdrl_image          **  master_flat) 
+{
+    const char          *   first_file ;
+    cpl_imagelist       *   imlist ;
+    int                     ext_nr ;
+    
+    /* Check Inputs */
+    if (rawframes == NULL) return -1 ;
+
+    /* Get the Extension number */
+    first_file=cpl_frame_get_filename(
+            cpl_frameset_get_position_const(rawframes, 0)) ;
+    ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det) ;
+
+    /* Load the image list */
+    imlist = cpl_imagelist_load_frameset(rawframes, CPL_TYPE_FLOAT, 1, ext_nr) ;
+
+    /* Calibrate */
+
+
+
+    /* Average */
+
+
+    /* Compute traces */
+
+
+    /* Extract */
+
+
+    /* Compute BPM */
+
+
+    cpl_imagelist_delete(imlist) ;
+
+
+    return 0 ;
+}
+
