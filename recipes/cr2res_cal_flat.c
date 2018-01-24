@@ -437,7 +437,8 @@ static int cr2res_cal_flat_reduce(
 
 
 
-    /* Average */
+    /* Averagggge */
+
 
 
     /* Compute traces */
