@@ -190,20 +190,21 @@ int cr2res_image_insert_rect(
         if (ymin < 1) {
             empty_bottom = 1 - ymin; // save for later insertion
             ymin = 1;
+            ymax = height + 1;
         }
         if (ymax > leny)
             ymax = leny; // Simply stop when we reach the top.
         if (ymax <= ymin) {
-            cpl_msg_error(__func__,"Unreasonable borders in column %i",i);
+            cpl_msg_error(__func__, "Unreasonable borders in column %i", i);
             cpl_free(ycen_int);
             return -1;
         }
-
-        img_1d = cpl_image_extract(rect_in,i, empty_bottom+1, i, ymax-ymin);
+        
+        img_1d = cpl_image_extract(rect_in, i, empty_bottom+1, i, ymax-ymin);
         cpl_image_copy(img_out, img_1d, i, ymin);
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
-            cpl_msg_error(__func__,"Cannot re-insert conumn %d, %d %d, %s",
-                            i, ymin, ymax, cpl_error_get_where());
+            cpl_msg_error(__func__, "Cannot re-insert column %d, %d %d %d, %s",
+                            i, ymin, ymax, empty_bottom, cpl_error_get_where());
             cpl_free(ycen_int);
             if (img_1d != NULL) cpl_image_delete(img_1d);
             return -1;
