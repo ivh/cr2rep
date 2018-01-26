@@ -152,14 +152,14 @@ static void test_cr2res_image_cut_rectify(void)
                     9, 2, 3, 2, 1};
     cpl_image *img = cpl_image_wrap_int(5, 4, imdata);
 
-    //double ydata[] = {1.9, 2.1, 3.5, 2.8, 3.99};
-    //cpl_vector * ycen = cpl_vector_wrap(5, ydata);
+    double ydata[] = {1.9, 2.1, 3.5, 2.8, 3.99};
+    cpl_vector * ycen = cpl_vector_wrap(5, ydata);
 
-    //cpl_test( res=cr2res_image_cut_rectify(img, ycen, 1) );
+    cpl_test( res=cr2res_image_cut_rectify(img, ycen, 1) );
 
     cpl_image_unwrap(img);
-    //cpl_vector_unwrap(ycen);
-    //cpl_image_delete(res);
+    cpl_vector_unwrap(ycen);
+    cpl_image_delete(res);
 
     return;
 }
@@ -173,12 +173,12 @@ static void test_cr2res_image_cut_rectify(void)
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_image_insert_rect(void)
 {
-    int imdata[] = {1, 2, 3, 2, 1,
+    int recdata[] = {1, 2, 3, 2, 1,
                     1, 2, 9, 2, 9,
                     1, 9, 3, 9, 1,
                     9, 2, 3, 2, 1};
-    cpl_image *rect_in = cpl_image_wrap_int(5, 4, imdata);
-    double ydata[] = {0, 1, 6, 11, 12};
+    cpl_image *rect_in = cpl_image_wrap_int(5, 4, recdata);
+    double ydata[] = {0.5, 1.1, 6.7, 11.9, 12.1};
     cpl_vector *ycen = cpl_vector_wrap(5, ydata);
     cpl_image *img_out = cpl_image_new(5, 12, CPL_TYPE_INT);
     int cmpdata[] = {0, 0, 0, 2, 9,
@@ -194,16 +194,17 @@ static void test_cr2res_image_insert_rect(void)
                      0, 2, 0, 0, 0,
                      1, 2, 0, 0, 0};
     cpl_image *compare = cpl_image_wrap_int(5, 12, cmpdata);
-    int res;
 
-    cpl_test(res = cr2res_image_insert_rect(rect_in, ycen, img_out));
+    cpl_test_zero(cr2res_image_insert_rect(rect_in, ycen, img_out));
+
+    cpl_image_dump_window(img_out, 1, 1, 5, 12, stdout);
 
     //img_out != compare
-    cpl_test_eq(res, 0);
     cpl_test_image_abs(img_out, compare, 0);
 
-    cpl_image_delete(rect_in);
-    cpl_vector_delete(ycen);
+    cpl_image_unwrap(rect_in);
+    cpl_image_unwrap(compare);
+    cpl_vector_unwrap(ycen);
     cpl_image_delete(img_out);
 
     return;
@@ -338,7 +339,7 @@ static void test_cr2res_extract_filename(void)
     //define input
     cpl_frameset *in;
     char *tag;
-    char *res;
+    const char *res;
 
     //run test
     cpl_test(res = cr2res_extract_filename(in, tag));
@@ -602,7 +603,7 @@ static void test_cr2res_detector_shotnoise_model(void)
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_get_license(void)
 {
-    char *license;
+    const char *license;
     cpl_test(license = cr2res_get_license());
     return;
 }
@@ -616,25 +617,25 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
 
-    test_cr2res_vector_get_rest();
-    test_cr2res_vector_get_int();
-    test_cr2res_polynomial_eval_vector();
-    test_cr2res_image_cut_rectify();
+    //test_cr2res_vector_get_rest();
+    //test_cr2res_vector_get_int();
+    //test_cr2res_polynomial_eval_vector();
+    //test_cr2res_image_cut_rectify();
     test_cr2res_image_insert_rect();
-    test_cr2res_threshold_spec();
-    test_cr2res_get_base_name();
-    test_cr2res_get_root_name();
-    test_cr2res_extract_frameset();
-    test_cr2res_get_trace_table_orders();
-    test_cr2res_get_trace_table_index();
-    test_cr2res_get_trace_wave_poly();
-    test_cr2res_wlestimate_compute();
-    test_cr2res_convert_order_to_idx();
-    test_cr2res_convert_idx_to_order();
-    test_cr2res_convert_array_to_poly();
-    test_cr2res_convert_poly_to_array();
-    test_cr2res_detector_shotnoise_model();
-    test_cr2res_get_license();
+    //test_cr2res_threshold_spec();
+    //test_cr2res_get_base_name();
+    //test_cr2res_get_root_name();
+    //test_cr2res_extract_frameset();
+    //test_cr2res_get_trace_table_orders();
+    //test_cr2res_get_trace_table_index();
+    //test_cr2res_get_trace_wave_poly();
+    //test_cr2res_wlestimate_compute();
+    //test_cr2res_convert_order_to_idx();
+    //test_cr2res_convert_idx_to_order();
+    //test_cr2res_convert_array_to_poly();
+    //test_cr2res_convert_poly_to_array();
+    //test_cr2res_detector_shotnoise_model();
+    //test_cr2res_get_license();
 
     return cpl_test_end(0);
 }

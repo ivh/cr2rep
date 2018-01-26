@@ -181,16 +181,14 @@ int cr2res_image_insert_rect(
 
     ycen_int = cr2res_vector_get_int(ycen);
 
-    /* Loop over columns, cut out around ycen, insert into img_out*/
     for (i=1;i<=lenx;i++){ // All image indx start at 1!
 
-        /* treat edge cases, summing over shorter column where needed*/
+        /* treat edge cases, shorten column where needed*/
         ymin = ycen_int[i-1]-(height/2);
         ymax = ycen_int[i-1]+(height/2) + height%2 ;
         if (ymin < 1) {
             empty_bottom = 1 - ymin; // save for later insertion
             ymin = 1;
-            ymax = height + 1;
         }
         if (ymax > leny)
             ymax = leny; // Simply stop when we reach the top.
@@ -199,8 +197,8 @@ int cr2res_image_insert_rect(
             cpl_free(ycen_int);
             return -1;
         }
-        
-        img_1d = cpl_image_extract(rect_in, i, empty_bottom+1, i, ymax-ymin);
+
+        img_1d = cpl_image_extract(rect_in, i, empty_bottom+1, i, height);
         cpl_image_copy(img_out, img_1d, i, ymin);
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Cannot re-insert column %d, %d %d %d, %s",
