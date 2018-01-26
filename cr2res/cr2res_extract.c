@@ -269,15 +269,18 @@ int cr2res_extract_slitdec_vert(
         }
         /* Multiply by weights and add to output array */
         cpl_vector_multiply(spec_sw, weights_sw);
-        if (i==0){ for (j=0;j<halfswath;j++) {
-            cpl_vector_set(spec_sw,j,
+        if (i==0){
+            for (j=0;j<halfswath;j++) {
+                cpl_vector_set(spec_sw, j,
                     cpl_vector_get(spec_sw,j)/cpl_vector_get(weights_sw,j));
-        }}
-        if (i==nswaths-1) { for (j=halfswath;j<swath;j++) {
-            cpl_vector_set(spec_sw,j,
+            }
+        }
+        if (i==nswaths-1) {
+            for (j=halfswath;j<swath;j++) {
+                cpl_vector_set(spec_sw, j,
                     cpl_vector_get(spec_sw,j)/cpl_vector_get(weights_sw,j));
-        }}
-
+            }
+        }
         for (j=sw_start;j<sw_end;j++) {
             cpl_vector_set(spc, j,
                 cpl_vector_get(spec_sw,j-sw_start) + cpl_vector_get(spc, j) );
