@@ -143,21 +143,31 @@ static void test_cr2res_vector_get_rest(void)
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_image_cut_rectify(void)
 {
-
     cpl_image *res;
+    cpl_image *cmp;
 
     int imdata[] = {1, 2, 3, 2, 1,
                     1, 2, 9, 2, 9,
                     1, 9, 3, 9, 1,
                     9, 2, 3, 2, 1};
     cpl_image *img = cpl_image_wrap_int(5, 4, imdata);
+    cpl_image_flip(img, 0); // so that the image looks as formatted above.
 
     double ydata[] = {1.9, 2.1, 3.5, 2.8, 3.99};
     cpl_vector * ycen = cpl_vector_wrap(5, ydata);
 
+    // Run the main function to be tested
     cpl_test( res=cr2res_image_cut_rectify(img, ycen, 1) );
 
+    // What result should be
+    int cmpdata[] = {9,9,9,9,9};
+    cmp = cpl_image_wrap_int(5, 1, cmpdata);
+
+    // Compare the two
+    cpl_test_image_abs(res, cmp, 0);
+
     cpl_image_unwrap(img);
+    cpl_image_unwrap(cmp);
     cpl_vector_unwrap(ycen);
     cpl_image_delete(res);
 
@@ -178,6 +188,8 @@ static void test_cr2res_image_insert_rect(void)
                     1, 9, 3, 9, 1,
                     9, 2, 3, 2, 1};
     cpl_image *rect_in = cpl_image_wrap_int(5, 4, recdata);
+    cpl_image_flip(rect_in,0);
+
     double ydata[] = {0.5, 1.1, 6.7, 11.9, 12.1};
     cpl_vector *ycen = cpl_vector_wrap(5, ydata);
     cpl_image *img_out = cpl_image_new(5, 12, CPL_TYPE_INT);
@@ -194,12 +206,16 @@ static void test_cr2res_image_insert_rect(void)
                      0, 2, 0, 0, 0,
                      1, 2, 0, 0, 0};
     cpl_image *compare = cpl_image_wrap_int(5, 12, cmpdata);
+    cpl_image_flip(compare,0);
 
     cpl_test_zero(cr2res_image_insert_rect(rect_in, ycen, img_out));
 
-    cpl_image_dump_window(img_out, 1, 1, 5, 12, stdout);
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+        cpl_image_save(img_out, "out.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+        cpl_image_save(compare, "cmp.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+    }
 
-    //img_out != compare
+    // img_out == compare ?
     cpl_test_image_abs(img_out, compare, 0);
 
     cpl_image_unwrap(rect_in);
@@ -615,7 +631,7 @@ static void test_cr2res_get_license(void)
 /*----------------------------------------------------------------------------*/
 int main(void)
 {
-    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
+    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
     //test_cr2res_vector_get_rest();
     //test_cr2res_vector_get_int();

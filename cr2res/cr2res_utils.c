@@ -137,8 +137,8 @@ cpl_image * cr2res_image_cut_rectify(
         img_1d = cpl_image_extract(img_in,i,ymin, i, ymax);
         cpl_image_copy(img_out, img_1d, i, 1+empty_bottom);
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
-            cpl_msg_error(__func__,"Cannot extract and copy column %d, %d %d, %s",
-                            i, ymin, ymax, cpl_error_get_where());
+            cpl_msg_error(__func__,"Cannot extract and copy column %d, %d %d %d, %s",
+                            i, ymin, ymax, empty_bottom, cpl_error_get_where());
             cpl_free(ycen_int);
             cpl_image_delete(img_out);
             if (img_1d != NULL) cpl_image_delete(img_1d);
@@ -169,7 +169,7 @@ int cr2res_image_insert_rect(
     cpl_size        lenx, leny, height;
     int             * ycen_int;
     int             i, ymin, ymax;
-    int             empty_bottom = 0;
+    int             empty_bottom;
 
     lenx = cpl_image_get_size_x(img_out);
     leny = cpl_image_get_size_y(img_out);
@@ -182,7 +182,7 @@ int cr2res_image_insert_rect(
     ycen_int = cr2res_vector_get_int(ycen);
 
     for (i=1;i<=lenx;i++){ // All image indx start at 1!
-
+        empty_bottom = 0;
         /* treat edge cases, shorten column where needed*/
         ymin = ycen_int[i-1]-(height/2);
         ymax = ycen_int[i-1]+(height/2) + height%2 ;
