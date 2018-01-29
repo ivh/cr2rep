@@ -274,26 +274,38 @@ static void test_cr2res_polynomial_eval_vector(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief
-  @param
-  @return
+  @brief    Find the regions with over-average values in a vector
+  @param    invector    The vector to be analyzed
+  @param    smooth      The size of the boxcar smoothing kernel
+  @return   Vector derived as (invector-smoothed_vector - thresh),
+            meaning that positive values are at least thresh larger than
+            the smoothed vector.
+            The returned vector needs to be deallocated by the caller.
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_threshold_spec(void)
 {
     //define input
-    int n = 1000;
-    cpl_vector *invector = cpl_vector_new(n);
-    int smooth = 10;
-    double thresh = 20;
+    int n = 10;
+    double data[] = {1,2,1,5,2,1,15,1,0,1};
+    cpl_vector *invector = cpl_vector_wrap(n, data);
+    //expected data ?
+    double outdata[] = {-2.5, -1.5, -1.5, 0, 0.5, -1.5, 5, 5, -2.5, -2.5};
+    cpl_vector *outvector = cpl_vector_wrap(n, outdata);
+
+    int smooth = 2;
+    double thresh = 3;
     //define output
     cpl_vector *res;
 
     //run test
     cpl_test(res = cr2res_threshold_spec(invector, smooth, thresh));
+
     //check output
+    cpl_test_vector_abs(outvector, res, DBL_EPSILON * n * n * 10);
 
     //deallocate memory
+    cpl_vector_delete(outvector);
     cpl_vector_delete(invector);
     cpl_vector_delete(res);
 
@@ -353,15 +365,29 @@ static void test_cr2res_get_root_name(void)
 static void test_cr2res_extract_filename(void)
 {
     //define input
-    cpl_frameset *in;
-    char *tag;
+    cpl_frame *frame = cpl_frame_new();
+    cpl_frame_set_filename(frame, "cr2res_trace-test.log");
+    cpl_frame_set_tag(frame, "test_correct");
+
+
+    cpl_frame *other = cpl_frame_new();
+    cpl_frame_set_filename(other, "cr2res_asdhsladh-test.log");
+    cpl_frame_set_tag(other, "test_wrong");
+
+    cpl_frameset *in = cpl_frameset_new();
+    cpl_frameset_insert(in, frame);
+    cpl_frameset_insert(in, other);
+
+    char *tag = "test_correct";
     const char *res;
 
     //run test
     cpl_test(res = cr2res_extract_filename(in, tag));
     //test output
-
+    cpl_test_assert(res == "cr2res_trace-test.log");
+    
     //deallocate memory
+    cpl_frameset_delete(in); //this should also delete the frames
 }
 
 /*----------------------------------------------------------------------------*/
@@ -377,15 +403,29 @@ static void test_cr2res_extract_filename(void)
 static void test_cr2res_extract_frameset(void)
 {
     //define input
-    cpl_frameset *in;
-    char *tag;
+    cpl_frame *frame = cpl_frame_new();
+    cpl_frame_set_filename(frame, "cr2res_trace-test.log");
+    cpl_frame_set_tag(frame, "test_correct");
+
+
+    cpl_frame *other = cpl_frame_new();
+    cpl_frame_set_filename(other, "cr2res_asdhsladh-test.log");
+    cpl_frame_set_tag(other, "test_wrong");
+
+    cpl_frameset *in = cpl_frameset_new();
+    cpl_frameset_insert(in, frame);
+    cpl_frameset_insert(in, other);
+
+    char *tag = "test_correct";
     cpl_frameset *res;
 
     //run test
     cpl_test(res = cr2res_extract_frameset(in, tag));
     //test output
+    cpl_test_assert(res == frame); //Is that the right comparison?
 
     //deallocate memory
+    cpl_frameset_delete(in); //this should also delete the frames
 }
 
 /*----------------------------------------------------------------------------*/
@@ -400,15 +440,20 @@ static void test_cr2res_extract_frameset(void)
 static void test_cr2res_get_trace_table_orders(void)
 {
     //define input
-    cpl_table *trace_wave;
-    int *nb_orders;
+    int n = 10;
+    double data[] = {1, 2, 32, 324, 242, 34, 132, 9.23, 1.3, 0.7};
+    cpl_table *trace_wave = cpl_table_new(n);
+    cpl_table_wrap_double(trace_wave, data, "WAVE"); //what table do we need ?
+    int *nb_orders = 10;
     int *res;
 
     //run test
     cpl_test(res = cr2res_get_trace_table_orders(trace_wave, nb_orders));
     //test output
+    cpl_test_array_abs(res, data, DBL_EPSILON * n * n * 10);
 
     //deallocate memory
+    cpl_table_unwrap(trace_wave, "WAVE");
 }
 
 /*----------------------------------------------------------------------------*/
@@ -474,15 +519,17 @@ static void test_cr2res_get_trace_wave_poly(void)
 static void test_cr2res_wlestimate_compute(void)
 {
     //define input
-    double wmin;
-    double wmax;
+    double wmin = 3000; //???
+    double wmax = 5000;
     cpl_polynomial *res;
 
     //run test
     cpl_test(res = cr2res_wlestimate_compute(wmin, wmax));
     //test output
+    //which coefficients should it then have???
 
     //deallocate memory
+    cpl_polynomial_delete(res);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -496,12 +543,13 @@ static void test_cr2res_wlestimate_compute(void)
 static void test_cr2res_convert_order_to_idx(void)
 {
     //define input
-    int order;
+    int order = 20;
     int res;
 
     //run test
     cpl_test(res = cr2res_convert_order_to_idx(order));
     //test output
+    cpl_test_assert(res == 69); // ????
 
     //deallocate memory
 }
@@ -516,12 +564,13 @@ static void test_cr2res_convert_order_to_idx(void)
 static void test_cr2res_convert_idx_to_order(void)
 {
     //define input
-    int order_idx;
+    int order_idx = 50;
     int res;
 
     //run test
     cpl_test(res = cr2res_convert_idx_to_order(order_idx));
     //test output
+    cpl_test_assert(res == 1);
 
     //deallocate memory
 }
@@ -537,14 +586,20 @@ static void test_cr2res_convert_idx_to_order(void)
 static void test_cr2res_convert_array_to_poly(void)
 {
     //define input
-    cpl_array *arr;
+    int n = 10;
+    double data[] = {0.9, 1.5, 219.1, 123.8, 18, 123.3, 0.623, 0., 0.9, 1};
+    cpl_array *arr = cpl_array_wrap_double(data, n);
     cpl_polynomial *res;
 
     //run test
     cpl_test(res = cr2res_convert_array_to_poly(arr));
     //test output
 
+    //???
+
     //deallocate memory
+    cpl_polynomial_delete(res);
+    cpl_array_unwrap(arr);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -633,25 +688,25 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    //test_cr2res_vector_get_rest();
-    //test_cr2res_vector_get_int();
-    //test_cr2res_polynomial_eval_vector();
-    //test_cr2res_image_cut_rectify();
+    test_cr2res_vector_get_rest();
+    test_cr2res_vector_get_int();
+    test_cr2res_polynomial_eval_vector();
+    test_cr2res_image_cut_rectify();
     test_cr2res_image_insert_rect();
-    //test_cr2res_threshold_spec();
-    //test_cr2res_get_base_name();
-    //test_cr2res_get_root_name();
-    //test_cr2res_extract_frameset();
-    //test_cr2res_get_trace_table_orders();
-    //test_cr2res_get_trace_table_index();
-    //test_cr2res_get_trace_wave_poly();
-    //test_cr2res_wlestimate_compute();
-    //test_cr2res_convert_order_to_idx();
-    //test_cr2res_convert_idx_to_order();
-    //test_cr2res_convert_array_to_poly();
-    //test_cr2res_convert_poly_to_array();
-    //test_cr2res_detector_shotnoise_model();
-    //test_cr2res_get_license();
+    test_cr2res_threshold_spec();
+    test_cr2res_get_base_name();
+    test_cr2res_get_root_name();
+    test_cr2res_extract_frameset();
+    test_cr2res_get_trace_table_orders();
+    test_cr2res_get_trace_table_index();
+    test_cr2res_get_trace_wave_poly();
+    test_cr2res_wlestimate_compute();
+    test_cr2res_convert_order_to_idx();
+    test_cr2res_convert_idx_to_order();
+    test_cr2res_convert_array_to_poly();
+    test_cr2res_convert_poly_to_array();
+    test_cr2res_detector_shotnoise_model();
+    test_cr2res_get_license();
 
     return cpl_test_end(0);
 }
