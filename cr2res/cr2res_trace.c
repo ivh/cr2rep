@@ -705,7 +705,7 @@ int cr2res_trace_add_order_trace_wavelength_columns(
 
     /* Load the Plist */
     plist_order_pos = cpl_propertylist_load(file_for_wl, 
-            cr2res_io_get_ext_idx(file_for_wl, det_nr)) ;
+            cr2res_io_get_ext_idx(file_for_wl, det_nr, 1)) ;
  
     /* Loop on the traces */
     for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {

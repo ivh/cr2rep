@@ -41,6 +41,90 @@
 
 /**@{*/
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Apply the detector linearity correction
+  @param    ilist   the input image list
+  @param    detlin      the detlin coeffs
+  @return   0 if everything is ok, -1 otherwise
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_detlin_correct(
+        cpl_imagelist       *   ilist,
+        const cpl_imagelist *   detlin_coeffs)
+{
+    const cpl_image     *   ima ;
+    const cpl_image     *   imb ;
+    const cpl_image     *   imc ;
+    const float         *   pima ;
+    const float         *   pimb ;
+    const float         *   pimc ;
+    float               *   pdata ;
+    int                     nx, ny, ni ;
+    float                   val, val2, val3 ;
+    int                     i, j ;
+
+    /* Test entries */
+    if (!ilist || !detlin_coeffs) return -1 ;
+
+    /* Load the 3 coeffs images */
+    ima = cpl_imagelist_get_const(detlin_coeffs, 0) ;
+    imb = cpl_imagelist_get_const(detlin_coeffs, 1) ;
+    imc = cpl_imagelist_get_const(detlin_coeffs, 2) ;
+    if (!ima || !imb || !imc) {
+        cpl_msg_error(cpl_func, "Cannot access the detlin images") ;
+        return -1 ;
+    }
+    pima = cpl_image_get_data_float_const(ima) ;
+    pimb = cpl_image_get_data_float_const(imb) ;
+    pimc = cpl_image_get_data_float_const(imc) ;
+    
+    /* Test sizes */
+    nx = cpl_image_get_size_x(cpl_imagelist_get(ilist, 0)) ;
+    ny = cpl_image_get_size_y(cpl_imagelist_get(ilist, 0)) ;
+    ni = cpl_imagelist_get_size(ilist) ;
+    if ((cpl_image_get_size_x(ima) != nx) ||
+            (cpl_image_get_size_x(imb) != nx) ||
+            (cpl_image_get_size_x(imc) != nx) ||
+            (cpl_image_get_size_y(ima) != ny) ||
+            (cpl_image_get_size_y(imb) != ny) ||
+            (cpl_image_get_size_y(imc) != ny)) {
+        cpl_msg_error(cpl_func, "Incompatible sizes") ;
+        return -1 ;
+    }
+    
+    /* Loop on pixels */
+    for (i=0 ; i<nx*ny ; i++) {
+        if (fabs(pimc[i]) < 1e-5) {
+            /* Correct this pixel in each plane */
+            for (j=0 ; j<ni ; j++) {
+                pdata = cpl_image_get_data_float(cpl_imagelist_get(ilist, j)) ;
+                val = pdata[i] ;
+                pdata[i] = val-pima[i] ;
+            }
+        } else if (fabs(pimb[i]) < 1e-3) {
+            for (j=0 ; j<ni ; j++) {
+                pdata = cpl_image_get_data_float(cpl_imagelist_get(ilist, j)) ;
+                pdata[i] = 0.0 ;
+            }
+        } else {
+            val2 = 2 * pimc[i] / (pimb[i] * pimb[i]) ;
+            /* Correct this pixel in each plane */
+            for (j=0 ; j<ni ; j++) {
+                pdata = cpl_image_get_data_float(cpl_imagelist_get(ilist, j)) ;
+                val = pdata[i] ;
+                val3 = 1-2*val2*(pima[i]-val) ;
+                if (val3 < 0.0) {
+                    pdata[i] = val-pima[i] ;
+                } else {
+                    pdata[i]=((float)sqrt(val3)-1) / val2 ;
+                }
+            }
+        }
+    }
+    /* return */
+    return 0 ;
+}
 
 /*----------------------------------------------------------------------------*/
 /**

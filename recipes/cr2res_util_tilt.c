@@ -282,7 +282,7 @@ static int cr2res_util_tilt(
 
         /* Store the extenѕion header for product saving */
         ext_plist[det_nr-1] = cpl_propertylist_load(trace_wave_file,
-                cr2res_io_get_ext_idx(trace_wave_file, det_nr)) ;
+                cr2res_io_get_ext_idx(trace_wave_file, det_nr, 1)) ;
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -305,7 +305,7 @@ static int cr2res_util_tilt(
 
         /* Get the extension header */
         plist = cpl_propertylist_load(trace_wave_file, 
-                cr2res_io_get_ext_idx(trace_wave_file, det_nr)) ;
+                cr2res_io_get_ext_idx(trace_wave_file, det_nr, 1)) ;
 
         /* Loop over the Orders */
         for (i=0 ; i<nb_orders ; i++) {

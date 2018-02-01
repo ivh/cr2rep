@@ -35,7 +35,12 @@
 
 int cr2res_io_get_ext_idx(
         const char  *   filename,
-        int             detector) ;
+        int             detector,
+        int             data) ;
+
+char * cr2res_io_create_extname(
+        int             detector,
+        int             data) ;
 
 cpl_bivector * cr2res_io_load_EMISSION_LINES(
         const char  *   filename) ;

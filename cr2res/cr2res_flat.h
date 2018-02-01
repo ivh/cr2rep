@@ -33,4 +33,9 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
+hdrl_image * cr2res_flat(
+        const cpl_imagelist *   imlist,
+        const cpl_image     *   master_dark,
+        const cpl_imagelist *   detlin_coeffs) ;
+
 #endif

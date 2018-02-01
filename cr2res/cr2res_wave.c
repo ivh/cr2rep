@@ -671,7 +671,7 @@ cpl_array * cr2res_wave_get_estimate(
         return NULL ;
 
     /* Load the propertylist */
-    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector) ;
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
     plist = cpl_propertylist_load(filename, wished_ext_nb) ;
 
     /* Get the values for this order */

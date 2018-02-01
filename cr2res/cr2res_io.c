@@ -72,15 +72,41 @@ static int cr2res_io_save_table(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Create Extname
+  @param    detector    The wished detector (1 to 3)
+  @param    data        1 for the data image, 0 for the error
+  @return   the newly allocated string with the EXTNAME
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_io_create_extname(
+        int             detector,
+        int             data)
+{
+    char                *   wished_extname ;
+
+    /* Check entries */
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Create wished EXTNAME */
+    if (data)   wished_extname = cpl_sprintf("CHIP%d", detector) ;
+    else        wished_extname = cpl_sprintf("CHIP%dERR", detector) ;
+    
+    return wished_extname ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get the wished extension number for a detector
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
+  @param    data        1 for the data image, 0 for the error
   @return   the Extension number or -1 in error case
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_io_get_ext_idx(
         const char  *   filename,
-        int             detector)
+        int             detector,
+        int             data)
 {
     const char          *   extname ;
     char                *   wished_extname ;
@@ -93,7 +119,7 @@ int cr2res_io_get_ext_idx(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return -1 ;
 
     /* Create wished EXTNAME */
-    wished_extname = cpl_sprintf("CHIP%d", detector) ;
+    wished_extname = cr2res_io_create_extname(detector, data) ;
 
     /* Get the number of extensions */
     nb_ext = cpl_fits_count_extensions(filename) ;
@@ -175,7 +201,19 @@ cpl_image * cr2res_io_load_MASTER_DARK(
         int             detector,
         int             data)
 {
-    return NULL ;
+    int     wished_ext_nb ;
+
+    /* Check entries */
+    if (filename == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, data) ;
+
+    /* The wished extension was not found */
+    if (wished_ext_nb < 0) return NULL ;
+
+    return cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -191,7 +229,19 @@ cpl_image * cr2res_io_load_MASTER_BPM(
         const char  *   filename,
         int             detector)
 {
-    return NULL ;
+    int     wished_ext_nb ;
+
+    /* Check entries */
+    if (filename == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
+
+    /* The wished extension was not found */
+    if (wished_ext_nb < 0) return NULL ;
+
+    return cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -208,7 +258,21 @@ cpl_imagelist * cr2res_io_load_DETLIN_COEFFS(
         const char  *   filename,
         int             detector)
 {
-        return NULL ;
+    int     wished_ext_nb ;
+
+    /* Check entries */
+    if (filename == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    /* TODO : 
+       Check with the DETLIN data format which detector in which * extension */
+    wished_ext_nb = detector ;
+
+    /* The wished extension was not found */
+    if (wished_ext_nb < 0) return NULL ;
+
+    return cpl_imagelist_load(filename, CPL_TYPE_FLOAT, wished_ext_nb);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -249,7 +313,7 @@ cpl_table * cr2res_io_load_TRACE_WAVE(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Get the extension number for this detector */
-    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector) ;
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
 
     /* The wished extension was not found */
     if (wished_ext_nb < 0) return NULL ;
@@ -391,7 +455,7 @@ cpl_table * cr2res_io_load_EXTRACT_1D(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Get the extension number for this detector */
-    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector) ;
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
 
     /* The wished extension was not found */
     if (wished_ext_nb < 0) return NULL ;
@@ -991,7 +1055,7 @@ static int cr2res_io_save_table(
 {
     cpl_propertylist    *   pro_list ;
     cpl_propertylist    *   ext_head ;
-    char                    sval[16] ;
+    char                *   wished_extname ;
     int                     i ;
 
     /* Test entries */
@@ -1007,8 +1071,10 @@ static int cr2res_io_save_table(
 
     /* Create the first extension header */
     if (ext_plist[0]==NULL) ext_head = cpl_propertylist_new() ;
-    else                    ext_head = cpl_propertylist_duplicate(ext_plist[0]) ;
-    cpl_propertylist_update_string(ext_head, "EXTNAME", "CHIP1") ;
+    else                    ext_head = cpl_propertylist_duplicate(ext_plist[0]);
+    wished_extname = cr2res_io_create_extname(1, 1) ;
+    cpl_propertylist_update_string(ext_head, "EXTNAME", wished_extname) ;
+    cpl_free(wished_extname) ;
 
     /* Save the first extension */
     if (tab[0] != NULL) {
@@ -1038,9 +1104,11 @@ static int cr2res_io_save_table(
     for (i=1 ; i<CR2RES_NB_DETECTORS ; i++) {
         /* Create the first extension header */
         if (ext_plist[i] == NULL) ext_head = cpl_propertylist_new() ;
-        else                ext_head = cpl_propertylist_duplicate(ext_plist[i]) ;
-        sprintf(sval, "CHIP%d", i+1) ;
-        cpl_propertylist_update_string(ext_head, "EXTNAME", sval) ;
+        else                ext_head = cpl_propertylist_duplicate(ext_plist[i]);
+        wished_extname = cr2res_io_create_extname(i+1, 1) ;
+        cpl_propertylist_update_string(ext_head, "EXTNAME", wished_extname) ;
+        cpl_free(wished_extname) ;
+
         if (tab[i] != NULL) {
             cpl_table_save(tab[i], NULL, ext_head, filename, CPL_IO_EXTEND) ;
         } else {
@@ -1079,7 +1147,7 @@ static int cr2res_io_save_image(
 {
     cpl_propertylist    *   qclist_loc ;
     cpl_image           *   to_save ;
-    char          		*   sval ;
+    char          		*   wished_extname ;
     int                     ext ;
 
     /* Create a local QC list and add the PRO.CATG */
@@ -1106,25 +1174,26 @@ static int cr2res_io_save_image(
     for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
         /* Save the DATA */
         qclist_loc = cpl_propertylist_new() ;
-        sval = cpl_sprintf("CHIP%d", ext) ;
-        cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", sval) ;
+
+        wished_extname = cr2res_io_create_extname(ext, 1) ;
+        cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", wished_extname) ;
         if (data[ext-1] == NULL)    to_save = NULL ;
         else                        to_save = hdrl_image_get_image(data[ext-1]);
         cpl_image_save(to_save, filename, CPL_BPP_IEEE_FLOAT, qclist_loc,
                 CPL_IO_EXTEND) ;
         cpl_propertylist_delete(qclist_loc) ;
-        cpl_free(sval) ;
+        cpl_free(wished_extname) ;
 
         /* Save the NOISE */
         qclist_loc = cpl_propertylist_new() ;
-        sval = cpl_sprintf("CHIP%dERR", ext) ;
-        cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", sval) ;
+        wished_extname = cr2res_io_create_extname(ext, 0) ;
+        cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", wished_extname) ;
         if (data[ext-1] == NULL)    to_save = NULL ;
         else                        to_save = hdrl_image_get_error(data[ext-1]);
         cpl_image_save(to_save, filename, CPL_BPP_IEEE_FLOAT, qclist_loc,
                 CPL_IO_EXTEND) ;
         cpl_propertylist_delete(qclist_loc) ;
-        cpl_free(sval) ;
+        cpl_free(wished_extname) ;
     }
 
 	return 0 ;

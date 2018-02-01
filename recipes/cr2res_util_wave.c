@@ -408,7 +408,7 @@ static int cr2res_util_wave(
 
         /* Store the extenѕion header for product saving */
         ext_plist[det_nr-1] = cpl_propertylist_load(extracted_file,
-                cr2res_io_get_ext_idx(extracted_file, det_nr)) ;
+                cr2res_io_get_ext_idx(extracted_file, det_nr, 1)) ;
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) continue ;

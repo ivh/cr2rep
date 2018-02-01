@@ -299,7 +299,7 @@ static int cr2res_util_trace(
 
         /* Store the extenѕion header for product saving */
         ext_plist[det_nr-1] = cpl_propertylist_load(flat_file,
-                cr2res_io_get_ext_idx(flat_file, det_nr)) ;
+                cr2res_io_get_ext_idx(flat_file, det_nr, 1)) ;
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -310,7 +310,7 @@ static int cr2res_util_trace(
         /* Load the image in which the orders are to extract*/
         cpl_msg_info(__func__, "Load the Image") ;
         if ((flat_ima = cpl_image_load(flat_file, CPL_TYPE_FLOAT, 0, 
-                        cr2res_io_get_ext_idx(flat_file, det_nr))) == NULL) {
+                        cr2res_io_get_ext_idx(flat_file, det_nr, 1))) == NULL) {
             cpl_msg_warning(__func__,
                     "Cannot load the image - skip detector");
             cpl_error_reset() ;

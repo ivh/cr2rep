@@ -30,6 +30,7 @@
 #include "cr2res_utils.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
+#include "cr2res_flat.h"
 #include "cr2res_trace.h"
 #include "cr2res_extract.h"
 #include "cr2res_io.h"
@@ -315,9 +316,9 @@ static int cr2res_cal_flat(
                             reduce_trace ;
     double                  trace_smooth, extract_smooth ;
     cpl_frameset        *   rawframes ;
-    cpl_frame           *   detlin_frame ;
-    cpl_frame           *   master_dark_frame ;
-    cpl_frame           *   master_bpm_frame ;
+    const cpl_frame     *   detlin_frame ;
+    const cpl_frame     *   master_dark_frame ;
+    const cpl_frame     *   master_bpm_frame ;
     hdrl_image          *   master_flat[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slit_illum[CR2RES_NB_DETECTORS] ;
     cpl_table           *   blaze[CR2RES_NB_DETECTORS] ;
@@ -379,9 +380,12 @@ static int cr2res_cal_flat(
     }
 	
     /* Get Calibration frames */
-    detlin_frame = NULL ;
-    master_dark_frame = NULL ; 
-    master_bpm_frame = NULL ;
+    detlin_frame = cpl_frameset_find_const(frameset,
+            CR2RES_DETLIN_COEFFS_PROCATG);
+    master_dark_frame = cpl_frameset_find_const(frameset,
+            CR2RES_MASTER_DARK_PROCATG) ; 
+    master_bpm_frame = cpl_frameset_find_const(frameset,
+            CR2RES_MASTER_BPM_PROCATG) ;
 
     /* Loop on the decker positions */
     for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
@@ -516,8 +520,10 @@ static int cr2res_cal_flat_reduce(
         cpl_propertylist    **  ext_plist)
 {
     const char          *   first_file ;
+    cpl_imagelist       *   detlin_coeffs ;
+    cpl_image           *   master_dark ;
     cpl_imagelist       *   imlist ;
-    cpl_image           *   collapsed ;
+    hdrl_image          *   master_flat_loc ;
     cpl_table           *   traces ;
     cpl_vector          **  spectrum ;
     cpl_vector          **  slit_func ;
@@ -534,7 +540,7 @@ static int cr2res_cal_flat_reduce(
     /* Get the Extension number */
     first_file = cpl_frame_get_filename(
             cpl_frameset_get_position_const(rawframes, 0)) ;
-    ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det) ;
+    ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
 
     /* Load the extension header for saving */
     plist = cpl_propertylist_load(first_file, ext_nr) ;
@@ -548,19 +554,49 @@ static int cr2res_cal_flat_reduce(
         return -1 ;
     }
 
-    /* Calibrate DETLIN / DARK */
-    /* TODO */
+    /* Load MASTER DARK */
+    if (master_dark_frame != NULL) {
+        if ((master_dark = cr2res_io_load_MASTER_DARK(
+                        cpl_frame_get_filename(master_dark_frame), 
+                        reduce_det, 1)) == NULL) {
+            cpl_msg_warning(__func__, "Failed to Load the Master Dark") ;
+        }
+    } else {
+        master_dark = NULL ;
+    }
 
-    /* Average */
-    collapsed = cpl_imagelist_collapse_create(imlist) ;
+    /* Load DETLIN */
+    if (detlin_frame != NULL) {
+        if ((detlin_coeffs = cr2res_io_load_DETLIN_COEFFS(
+                        cpl_frame_get_filename(detlin_frame), 
+                        reduce_det)) == NULL) {
+            cpl_msg_warning(__func__, "Failed to Load the Detlin Coeffs") ;
+        }
+    } else {
+        detlin_coeffs = NULL ;
+    }
+
+    /* Compute the Master flat */
+    if ((master_flat_loc = cr2res_flat(imlist, master_dark, 
+                    detlin_coeffs)) == NULL) {
+        cpl_msg_error(__func__, "Failed to Compute the master flat") ;
+        cpl_propertylist_delete(plist);
+        cpl_imagelist_delete(imlist) ;
+        if (detlin_coeffs != NULL) cpl_imagelist_delete(detlin_coeffs) ;
+        if (master_dark != NULL) cpl_image_delete(master_dark) ;
+        return -1 ;
+    }
+    if (detlin_coeffs != NULL) cpl_imagelist_delete(detlin_coeffs) ;
+    if (master_dark != NULL) cpl_image_delete(master_dark) ;
     cpl_imagelist_delete(imlist) ;
 
     /* Compute traces */
-    if ((traces = cr2res_trace(collapsed, trace_smooth, trace_opening,
-            trace_degree, trace_min_cluster, trace_split)) == NULL) {
+    if ((traces = cr2res_trace(hdrl_image_get_image(master_flat_loc), 
+                    trace_smooth, trace_opening, trace_degree, 
+                    trace_min_cluster, trace_split)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the traces") ;
         cpl_propertylist_delete(plist);
-        cpl_image_delete(collapsed) ;
+        hdrl_image_delete(master_flat_loc) ;
         return -1 ;
     }
 
@@ -572,7 +608,7 @@ static int cr2res_cal_flat_reduce(
     nb_traces = cpl_table_get_nrow(traces) ;
 	spectrum = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
 	slit_func = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
-	model_master = hdrl_image_create(collapsed, NULL) ;
+	model_master = hdrl_image_duplicate(master_flat_loc) ;
 	hdrl_image_mul_scalar(model_master, (hdrl_value){0.0, 0.0}) ;
 
 	/* Loop over the traces and extract them */
@@ -604,9 +640,9 @@ static int cr2res_cal_flat_reduce(
 		/* Call the Extraction */
 		if (extract_sum_only) {
 			/* Call the SUM ONLY extraction */
-			if (cr2res_extract_sum_vert(collapsed, traces, order,
-						trace_id, extract_height, &(slit_func[i]),
-						&(spectrum[i]), &model_tmp) != 0) {
+			if (cr2res_extract_sum_vert(hdrl_image_get_image(master_flat_loc), 
+                        traces, order, trace_id, extract_height, 
+                        &(slit_func[i]), &(spectrum[i]), &model_tmp) != 0) {
 				cpl_msg_error(__func__, "Cannot (sum-)extract the trace") ;
 				slit_func[i] = NULL ;
 				spectrum[i] = NULL ;
@@ -617,10 +653,12 @@ static int cr2res_cal_flat_reduce(
 			}
 		} else {
 			/* Call the SLIT DECOMPOSITION */
-			if (cr2res_extract_slitdec_vert(collapsed, traces, order,
-						trace_id, extract_height, extract_swath_width, 
-                        extract_oversample, extract_smooth, 
-                        &(slit_func[i]), &(spectrum[i]), &model_tmp) != 0) {
+			if (cr2res_extract_slitdec_vert(
+                        hdrl_image_get_image(master_flat_loc), 
+                        traces, order, trace_id, extract_height, 
+                        extract_swath_width, extract_oversample, 
+                        extract_smooth, &(slit_func[i]), &(spectrum[i]), 
+                        &model_tmp) != 0) {
 				cpl_msg_error(__func__, "Cannot (slitdec-) extract the trace") ;
 				slit_func[i] = NULL ;
 				spectrum[i] = NULL ;
@@ -663,10 +701,9 @@ static int cr2res_cal_flat_reduce(
     *slit_illum = slit_func_tab ;
     *blaze = extract_tab ;
     *blaze_image = model_master ;
-    *master_flat = hdrl_image_create(collapsed, NULL) ;
+    *master_flat = master_flat_loc ;
     *bpm = NULL ;
     *ext_plist = plist ;
-    cpl_image_delete(collapsed) ;
     return 0 ;
 }
 
