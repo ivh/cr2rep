@@ -198,6 +198,15 @@ int cr2res_io_save_SLIT_FUNC(
         cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
+int cr2res_io_save_SLIT_ILLUM(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  slit_func,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        const char              *   recipe) ;
+
 int cr2res_io_save_WAVE_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,

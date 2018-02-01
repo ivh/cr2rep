@@ -76,6 +76,7 @@
 #define CR2RES_WAVE_MAP_PROCATG         "WAVE_MAP"
 #define CR2RES_TILT_COEFFS_PROCATG      "TILT_COEFFS"
 #define CR2RES_SLIT_FUNC_PROCATG        "SLIT_FUNC"
+#define CR2RES_SLIT_ILLUM_PROCATG       "SLIT_ILLUM"
 #define CR2RES_SLIT_MODEL_PROCATG       "SLIT_MODEL"
 #define CR2RES_EXTRACT_1D_PROCATG       "EXTRACT_1D"
 
@@ -84,8 +85,7 @@
 /* Define here the DO.CATG keywords */
 #define CR2RES_COMMAND_LINE             "COMMAND_LINE"
 #define CR2RES_DARK_RAW                 "DARK"
-#define CR2RES_FLAT_OPEN_RAW            "FLAT_OPEN"
-#define CR2RES_FLAT_DECKER_RAW          "FLAT_DECKER"
+#define CR2RES_FLAT_RAW                 "FLAT"
 #define CR2RES_SCI_1D_RAW               "OBS_1D"
 #define CR2RES_SCI_2D_RAW               "OBS_2D"
 #define CR2RES_SCI_POL_RAW              "OBS_POL"

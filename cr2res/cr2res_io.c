@@ -591,7 +591,9 @@ int cr2res_io_save_MASTER_FLAT(
         cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
-    return -1 ;
+    return cr2res_io_save_image(filename, allframes, parlist,
+            master_flats, qc_list, ext_plist, recipe, 
+            CR2RES_MASTER_FLAT_PROCATG, "") ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -643,7 +645,9 @@ int cr2res_io_save_BLAZE(
         cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
-    return -1 ;
+    return cr2res_io_save_table(filename, allframes, parlist, tables,
+            qc_list, ext_plist, recipe, CR2RES_BLAZE_PROCATG,
+            CR2RES_EXTRACT_1D_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -668,7 +672,36 @@ int cr2res_io_save_BLAZE_IMAGE(
         cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
-    return -1 ;
+    return cr2res_io_save_image(filename, allframes, parlist,
+            blaze, qc_list, ext_plist, recipe, CR2RES_BLAZE_IMAGE_PROCATG,
+            CR2RES_SLIT_MODEL_PROTYPE) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a SLIT_ILLUM
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    data        The tables to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
+  @param    recipe      The recipe name
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_SLIT_ILLUM(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  slit_func,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        const char              *   recipe)
+{
+    return cr2res_io_save_table(filename, allframes, parlist, slit_func,
+            qc_list, ext_plist, recipe, CR2RES_SLIT_ILLUM_PROCATG,
+            CR2RES_SLIT_FUNC_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/

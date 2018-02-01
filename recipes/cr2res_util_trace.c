@@ -243,17 +243,14 @@ static int cr2res_util_trace(
     const cpl_parameter *   param;
     int                     min_cluster, degree, opening, reduce_det,
                             split_traces ;
-    double                  smooth, y_pos ;
-    int                 *   orders ;
+    double                  smooth ;
     const char          *   flat_file ;
     char                *   out_file;
     cpl_image           *   flat_ima ;
     cpl_image           *   debug_ima ;
-    int                     det_nr, order ;
-    cpl_array           *   wl_array ;
+    int                     det_nr ;
     cpl_table           *   traces[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
-    int                     i, j, nb_orders, trace_nb, trace_id ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -336,66 +333,17 @@ static int cr2res_util_trace(
         }
         cpl_msg_indent_less() ;
 
-        /* Add The Order column using the header */
-        cpl_table_new_column(traces[det_nr-1], CR2RES_COL_ORDER, CPL_TYPE_INT) ;
-
-        /* Loop on the traces */
-        for (i=0 ; i<cpl_table_get_nrow(traces[det_nr-1]) ; i++) {
-            /* Get the current trace Y position */
-            y_pos = cr2res_trace_get_trace_ypos(traces[det_nr-1], i) ;
-
-            /* Compute the trace order from the header */
-            order = cr2res_pfits_get_order(ext_plist[det_nr-1], y_pos) ;
-
-            /* Store the Order in the table */
-            cpl_table_set(traces[det_nr-1], CR2RES_COL_ORDER, i, order);
-        }
-
-        /* Add The TraceNb column */
-        cpl_table_new_column(traces[det_nr-1], CR2RES_COL_TRACENB,CPL_TYPE_INT);
-
-        orders = cr2res_trace_get_order_numbers(traces[det_nr-1], &nb_orders) ;
-        for (i=0 ; i<nb_orders ; i++) {
-            /* Initialise */
-            trace_nb = 1 ;
-            /* Loop on the traces */
-            for (j=0 ; j<cpl_table_get_nrow(traces[det_nr-1]) ; j++) {
-                if (cpl_table_get(traces[det_nr-1], CR2RES_COL_ORDER, j, 
-                            NULL) == orders[i]) {
-                    cpl_table_set(traces[det_nr-1], CR2RES_COL_TRACENB, j, 
-                            trace_nb);
-                    trace_nb ++ ;
-                }
-            }
-        }
-        cpl_free(orders) ;
-
-        /* Add The Wavelength column using the header */
-        cpl_table_new_column_array(traces[det_nr-1], CR2RES_COL_WAVELENGTH,
-                CPL_TYPE_DOUBLE, 2) ;
-
-        /* Loop on the traces */
-        for (i=0 ; i<cpl_table_get_nrow(traces[det_nr-1]) ; i++) {
-            /* Get the Order number */
-            order = cpl_table_get(traces[det_nr-1], CR2RES_COL_ORDER, i, NULL) ;
-            trace_id = cpl_table_get(traces[det_nr-1], CR2RES_COL_TRACENB, i, 
-                    NULL) ;
-
-            /* Get the Wavelength estimates from the header */
-            if ((wl_array = cr2res_wave_get_estimate(flat_file, det_nr,
-                            order)) == NULL) {
-                cpl_msg_warning(__func__, 
-                        "No Wavelength estimate for Detector %d / order %d",
-                        det_nr, order) ;
-                cpl_error_reset() ;
-                cpl_table_set_array(traces[det_nr-1], CR2RES_COL_WAVELENGTH, i,
-                        NULL);
-            } else {
-                /* Store the Wavelength in the table */
-                cpl_table_set_array(traces[det_nr-1], CR2RES_COL_WAVELENGTH, i,
-                        wl_array);
-                cpl_array_delete(wl_array) ;
-            }
+        /* Add The remaining Columns to the trace table */
+        if (cr2res_trace_add_order_trace_wavelength_columns(traces[det_nr-1],
+                flat_file, det_nr) != 0) {
+            cpl_msg_warning(__func__, 
+                    "Cannot complete the trace table - skip detector");
+            cpl_error_reset() ;
+            cpl_image_delete(flat_ima) ;
+            cpl_table_delete(traces[det_nr-1]) ;
+            traces[det_nr-1] = NULL ;
+            cpl_msg_indent_less() ;
+            continue ;
         }
 
         /* Debug Image */

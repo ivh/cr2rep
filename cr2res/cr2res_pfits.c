@@ -255,4 +255,27 @@ int cr2res_pfits_get_order(
     return best_number ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the decker position
+  @param    plist       property list to read from
+  @return   0, 1 or 2 or -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+cr2res_decker cr2res_pfits_get_decker_position(const cpl_propertylist * plist)
+{
+    /* TODO : ESO INS SLIT2 DECKER should be INTEGER - Currently '1   ' */
+    int         decker_value_2 ;
+    const char *    decker_value ;
+    decker_value = cpl_propertylist_get_string(plist, "ESO INS SLIT2 DECKER");
+    if (cpl_error_get_code() != CPL_ERROR_NONE) {
+        cpl_error_reset();
+        return CR2RES_DECKER_INVALID ;
+    }
+    if (decker_value[0] == '0') return CR2RES_DECKER_NONE ;
+    if (decker_value[0] == '1') return CR2RES_DECKER_1_3 ;
+    if (decker_value[0] == '2') return CR2RES_DECKER_2_4 ;
+    return CR2RES_DECKER_INVALID ;
+}
+
 /**@}*/

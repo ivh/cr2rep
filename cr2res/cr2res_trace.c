@@ -31,6 +31,9 @@
 #include <cpl.h>
 #include "cr2res_dfs.h"
 #include "cr2res_trace.h"
+#include "cr2res_pfits.h"
+#include "cr2res_io.h"
+#include "cr2res_wave.h"
 #include "cr2res_utils.h"
 #include "cr2res_cluster.h"
 
@@ -675,6 +678,89 @@ double cr2res_trace_get_trace_ypos(
     cpl_polynomial_delete(poly) ;
 
     return ypos ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief   Add ORDER, TRACE, WAVELENGTH columns to the plain trace table
+  @param    traces          The plain traces table
+  @param    file_for_wl     File used for WL information
+  @param    det_nr          Detector 
+  @return   0 if ok
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_trace_add_order_trace_wavelength_columns(
+        cpl_table           *   traces,
+        const char          *   file_for_wl,
+        int                     det_nr)
+{
+    cpl_propertylist    *   plist_order_pos ;
+    int                 *   orders ;
+    cpl_array           *   wl_array ;
+    double                  y_pos ;
+    int                     order, trace_nb, nb_orders, trace_id, i, j ;
+
+    /* Add The Order column using the header */
+    cpl_table_new_column(traces, CR2RES_COL_ORDER, CPL_TYPE_INT) ;
+
+    /* Load the Plist */
+    plist_order_pos = cpl_propertylist_load(file_for_wl, 
+            cr2res_io_get_ext_idx(file_for_wl, det_nr)) ;
+ 
+    /* Loop on the traces */
+    for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
+        /* Get the current trace Y position */
+        y_pos = cr2res_trace_get_trace_ypos(traces, i) ;
+
+        /* Compute the trace order from the header */
+        order = cr2res_pfits_get_order(plist_order_pos, y_pos) ;
+
+        /* Store the Order in the table */
+        cpl_table_set(traces, CR2RES_COL_ORDER, i, order);
+    }
+    cpl_propertylist_delete(plist_order_pos) ;
+
+    /* Add The TraceNb column */
+    cpl_table_new_column(traces, CR2RES_COL_TRACENB, CPL_TYPE_INT);
+
+    orders = cr2res_trace_get_order_numbers(traces, &nb_orders) ;
+    for (i=0 ; i<nb_orders ; i++) {
+        /* Initialise */
+        trace_nb = 1 ;
+        /* Loop on the traces */
+        for (j=0 ; j<cpl_table_get_nrow(traces) ; j++) {
+            if (cpl_table_get(traces, CR2RES_COL_ORDER, j, NULL) == orders[i]) {
+                cpl_table_set(traces, CR2RES_COL_TRACENB, j, trace_nb);
+                trace_nb ++ ;
+            }
+        }
+    }
+    cpl_free(orders) ;
+
+    /* Add The Wavelength column using the header */
+    cpl_table_new_column_array(traces, CR2RES_COL_WAVELENGTH,CPL_TYPE_DOUBLE,2);
+
+    /* Loop on the traces */
+    for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
+        /* Get the Order number */
+        order = cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) ;
+        trace_id = cpl_table_get(traces, CR2RES_COL_TRACENB, i, NULL) ;
+
+        /* Get the Wavelength estimates from the header */
+        if ((wl_array = cr2res_wave_get_estimate(file_for_wl, det_nr,
+                        order)) == NULL) {
+            cpl_msg_warning(__func__,
+                    "No Wavelength estimate for Detector %d / order %d",
+                    det_nr, order) ;
+            cpl_error_reset() ;
+            cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH, i, NULL);
+        } else {
+            /* Store the Wavelength in the table */
+            cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH, i, wl_array);
+            cpl_array_delete(wl_array) ;
+        }
+    }
+    return 0 ;
 }
 
 /**@}*/

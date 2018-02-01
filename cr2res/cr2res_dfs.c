@@ -70,8 +70,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
         if (tag == NULL) {
             cpl_msg_warning(cpl_func, "Frame %d has no tag", i);
         } else if (!strcmp(tag, CR2RES_DARK_RAW) ||
-                !strcmp(tag, CR2RES_FLAT_OPEN_RAW) ||
-                !strcmp(tag, CR2RES_FLAT_DECKER_RAW) ||
+                !strcmp(tag, CR2RES_FLAT_RAW) ||
                 !strcmp(tag, CR2RES_SCI_1D_RAW) ||
                 !strcmp(tag, CR2RES_SCI_2D_RAW) ||
                 !strcmp(tag, CR2RES_SCI_POL_RAW) ||
@@ -145,5 +144,5 @@ char * cr2res_dfs_SLIT_FUNC_colname(int order, int trace)
     return cpl_sprintf("%02d_%02d_%s", order_loc,trace,
             CR2RES_COL_SLIT_FUNC_SUFFIX);
 }
- 
+
 /**@}*/

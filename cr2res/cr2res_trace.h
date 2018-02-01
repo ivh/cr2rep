@@ -88,4 +88,9 @@ double cr2res_trace_get_trace_ypos(
         cpl_table   *   traces,
         int             idx) ;
 
+int cr2res_trace_add_order_trace_wavelength_columns(
+        cpl_table           *   traces,
+        const char          *   file_for_wl,
+        int                     det_nr_for_wl) ;
+
 #endif

@@ -264,7 +264,6 @@ static int cr2res_util_extract(
     const char          *   science_file ;
     const char          *   trace_file ;
     char                *   out_file;
-
     hdrl_image          *   model_master[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slit_func_tab[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extract_tab[CR2RES_NB_DETECTORS] ;
