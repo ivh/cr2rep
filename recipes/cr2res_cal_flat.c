@@ -389,7 +389,7 @@ static int cr2res_cal_flat(
         rawframes = cr2res_extract_decker_frameset(frameset,
                 CR2RES_FLAT_RAW, decker_values[i]) ;
         if (rawframes == NULL) continue ;
-        cpl_msg_info(__func__, "Reduce %s", decker_desc[i]) ;
+        cpl_msg_info(__func__, "Reduce %s Frames", decker_desc[i]) ;
         cpl_msg_indent_more() ;
 
         /* Loop on the detectors */
@@ -422,8 +422,8 @@ static int cr2res_cal_flat(
                         &(bpm[det_nr-1]),
                         &(ext_plist[det_nr-1])) == -1) {
                 cpl_msg_warning(__func__, 
-                        "Failed to reduce the OPEN frames on detector %d", 
-                        det_nr);
+                        "Failed to reduce detector %d of %s Frames", 
+                        det_nr, decker_desc[i]);
             }
             cpl_msg_indent_less() ;
         }
@@ -538,9 +538,15 @@ static int cr2res_cal_flat_reduce(
 
     /* Load the extension header for saving */
     plist = cpl_propertylist_load(first_file, ext_nr) ;
+    if (plist == NULL) return -1 ;
 
     /* Load the image list */
     imlist = cpl_imagelist_load_frameset(rawframes, CPL_TYPE_FLOAT, 1, ext_nr) ;
+    if (imlist == NULL) {
+        cpl_msg_error(__func__, "Failed to Load the images") ;
+        cpl_propertylist_delete(plist);
+        return -1 ;
+    }
 
     /* Calibrate DETLIN / DARK */
     /* TODO */
@@ -550,8 +556,13 @@ static int cr2res_cal_flat_reduce(
     cpl_imagelist_delete(imlist) ;
 
     /* Compute traces */
-    traces = cr2res_trace(collapsed, trace_smooth, trace_opening,
-            trace_degree, trace_min_cluster, trace_split) ;
+    if ((traces = cr2res_trace(collapsed, trace_smooth, trace_opening,
+            trace_degree, trace_min_cluster, trace_split)) == NULL) {
+        cpl_msg_error(__func__, "Failed compute the traces") ;
+        cpl_propertylist_delete(plist);
+        cpl_image_delete(collapsed) ;
+        return -1 ;
+    }
 
     /* Add The remaining Columns to the trace table */
     cr2res_trace_add_order_trace_wavelength_columns(traces,

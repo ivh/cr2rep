@@ -305,7 +305,7 @@ cpl_mask * cr2res_trace_clean(
     /* Clean the small blobs */
     cpl_msg_info(__func__, "Remove the small blobs (<= %d pixels)",
             min_cluster) ;
-    if ((clean_mask = cr2res_trace_clean_blobs(new_mask, min_cluster)) == NULL) {
+    if ((clean_mask = cr2res_trace_clean_blobs(new_mask, min_cluster)) == NULL){
         cpl_msg_error(__func__, "Cannot clean the blobs") ;
         cpl_mask_delete(new_mask) ;
         return NULL ;
@@ -1155,7 +1155,8 @@ static cpl_mask * cr2res_trace_clean_blobs(
         return NULL ;
     }
     if (nlabels > 1000) {
-        cpl_msg_error(__func__, "Too many labels resulting from mask!") ;
+        cpl_msg_error(__func__, "Too many labels resulting from mask") ;
+        cpl_image_delete(labels) ;
         return NULL ;
     }
     plabels = cpl_image_get_data_int_const(labels) ;
