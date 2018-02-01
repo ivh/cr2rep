@@ -30,6 +30,7 @@
 #include <cpl.h>
 
 #include "cr2res_utils.h"
+#include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
 
 /*----------------------------------------------------------------------------*/
@@ -367,6 +368,65 @@ cpl_frameset * cr2res_extract_frameset(
             loc_frame = cpl_frame_duplicate(cur_frame) ;
             cpl_frameset_insert(out, loc_frame) ;
         }
+    }
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+   @brief   Extract the frames with the given tag and Decker position
+   @param   in      A non-empty frameset
+   @param   tag     The tag of the requested frames
+   @param   decker  CR2RES_DECKER_NONE,CR2RES_DECKER_1_3 or CR2RES_DECKER_2_4
+   @return  The newly created frameset or NULL on error
+
+   The returned frameset must be de allocated with cpl_frameset_delete()
+ */
+/*----------------------------------------------------------------------------*/
+cpl_frameset * cr2res_extract_decker_frameset(
+        const cpl_frameset  *   in,
+        const char          *   tag,
+        cr2res_decker           decker)
+{
+    cpl_frameset        *   out ;
+    const cpl_frame     *   cur_frame ;
+    cpl_frame           *   loc_frame ;
+    int                     nbframes;
+    cpl_propertylist    *   plist ;
+    int                     i ;
+
+    /* Test entries */
+    if (in == NULL) return NULL ;
+    if (tag == NULL) return NULL ;
+    if (decker != 0 && decker != 1 && decker != 2)  return NULL ;
+
+    /* Initialise */
+    nbframes = cpl_frameset_get_size(in) ;
+
+    /* Count the frames with the tag */
+    if ((cpl_frameset_count_tags(in, tag)) == 0) return NULL ;
+
+    /* Create the output frameset */
+    out = cpl_frameset_new() ;
+
+    /* Loop on the requested frames and store them in out */
+    for (i=0 ; i<nbframes ; i++) {
+        cur_frame = cpl_frameset_get_position_const(in, i) ;
+        if (!strcmp(cpl_frame_get_tag(cur_frame), tag)) {
+            /* Get the propertylist */
+            plist = cpl_propertylist_load(cpl_frame_get_filename(cur_frame), 0);
+            if (cr2res_pfits_get_decker_position(plist) == decker) {
+                loc_frame = cpl_frame_duplicate(cur_frame) ;
+                cpl_frameset_insert(out, loc_frame) ;
+            }
+            cpl_propertylist_delete(plist) ;
+        }
+    }
+
+    /* No matching frame found */
+    if (cpl_frameset_get_size(out) == 0){
+        cpl_frameset_delete(out) ;
+        return NULL ;
     }
     return out ;
 }
