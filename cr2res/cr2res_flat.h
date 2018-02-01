@@ -38,4 +38,10 @@ hdrl_image * cr2res_flat(
         const cpl_image     *   master_dark,
         const cpl_imagelist *   detlin_coeffs) ;
 
+cpl_image * cr2res_bpm_from_master_flat(
+        const hdrl_image    *   master_flat,
+        double                  low,
+        double                  high,
+        double                  bad_per_line_limit) ;
+
 #endif

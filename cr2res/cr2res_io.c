@@ -605,7 +605,9 @@ int cr2res_io_save_MASTER_BPM(
         cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
-    return -1 ;
+    return cr2res_io_save_image(filename, allframes, parlist,
+            master_bpms, qc_list, ext_plist, recipe, 
+            CR2RES_MASTER_BPM_PROCATG, "") ;
 }
 
 /*----------------------------------------------------------------------------*/

@@ -51,13 +51,13 @@
 /*----------------------------------------------------------------------------*/
 hdrl_image * cr2res_flat(
         const cpl_imagelist *   imlist,
-		const cpl_image		*	master_dark,
-		const cpl_imagelist	*	detlin_coeffs)
+        const cpl_image        *    master_dark,
+        const cpl_imagelist    *    detlin_coeffs)
 {
     cpl_imagelist   *   imlist_loc ;
     hdrl_image      *   master_flat ;
     cpl_image       *   collapsed ;
-	
+    
     /* Check Entries */
     if (imlist == NULL) return NULL ;
 
@@ -91,6 +91,62 @@ hdrl_image * cr2res_flat(
     master_flat = hdrl_image_create(collapsed, NULL) ;
     cpl_image_delete(collapsed) ;
     return master_flat ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the BPM from the master flat
+  @param    master_flat The master flat image
+  @return The newly allocated BPM
+ */
+/*----------------------------------------------------------------------------*/
+cpl_image * cr2res_bpm_from_master_flat(
+        const hdrl_image    *   master_flat,
+        double                  low,
+        double                  high,
+        double                  bad_per_line_limit)
+{
+    cpl_image       *   bpm ;
+    cpl_mask        *   mask ;
+    cpl_binary      *   pmask ;
+    int                 nx, ny, cur_bp_nb ;
+    int                 j, k ;
+
+    /* Test entries */
+    if (master_flat == NULL) return NULL ;
+        
+    /* Threshold to get the BPMs */
+    if ((mask = cpl_mask_threshold_image_create(
+                    hdrl_image_get_image_const(master_flat), low, high))==NULL){
+        cpl_msg_error(__func__, "Cannot create bad pixels map") ;
+        return NULL ;
+    }
+    cpl_mask_not(mask) ;
+
+    /*
+        Post processing : Big zones of bad pixels are not considered as
+        bad pixels. Each line containing more than
+        100*bad_per_line_limit percent bad pixels is reset to contain
+        anly good pixels.
+    */
+    nx = cpl_mask_get_size_x(mask) ;
+    ny = cpl_mask_get_size_y(mask) ;
+    pmask = cpl_mask_get_data(mask) ;
+    for (j=0 ; j<ny ; j++) {
+        cur_bp_nb = cpl_mask_count_window(mask, 1, j+1, nx, j+1) ;
+        /* Check if the line has too many bad pixels */
+        if (cur_bp_nb > bad_per_line_limit * nx) {
+            /* Reset the bad pixels on the current line */
+            for (k=0 ; k<nx ; k++) pmask[k+j*nx] = CPL_BINARY_0 ;
+        }
+    }
+
+    /* Convert mask to image */
+    bpm = cpl_image_new_from_mask(mask) ;
+    cpl_mask_delete(mask) ;
+    cpl_image_save(bpm, "a.fits", CPL_TYPE_FLOAT, NULL, CPL_IO_CREATE) ;
+
+    return bpm ;
 }
 
 /**@}*/

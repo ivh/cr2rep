@@ -73,7 +73,7 @@ static int cr2res_cal_flat_reduce(
         cpl_table           **  slit_illum,
         cpl_table           **  blaze,
         hdrl_image          **  blaze_image,
-        cpl_image           **  bpm,
+        hdrl_image          **  bpm,
         cpl_propertylist    **  plist) ;
 static int cr2res_cal_flat_create(cpl_plugin *);
 static int cr2res_cal_flat_exec(cpl_plugin *);
@@ -323,7 +323,7 @@ static int cr2res_cal_flat(
     cpl_table           *   slit_illum[CR2RES_NB_DETECTORS] ;
     cpl_table           *   blaze[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   blaze_image[CR2RES_NB_DETECTORS] ;
-    cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   bpm[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
     int                     i, det_nr; 
@@ -464,7 +464,11 @@ static int cr2res_cal_flat(
 		cpl_free(out_file);
 
         /* BPM */
-        /* TODO */
+        out_file = cpl_sprintf("%s_%s_master_bpm.fits", RECIPE_STRING,
+                decker_desc[i]) ;
+        cr2res_io_save_MASTER_BPM(out_file, frameset, parlist,
+                bpm, NULL, ext_plist, RECIPE_STRING) ;
+        cpl_free(out_file);
 
         /* Free */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
@@ -477,7 +481,7 @@ static int cr2res_cal_flat(
             if (blaze_image[det_nr-1] != NULL) 
                 hdrl_image_delete(blaze_image[det_nr-1]) ;
             if (bpm[det_nr-1] != NULL) 
-                cpl_image_delete(bpm[det_nr-1]) ;
+                hdrl_image_delete(bpm[det_nr-1]) ;
             if (ext_plist[det_nr-1] != NULL) 
                 cpl_propertylist_delete(ext_plist[det_nr-1]) ;
         }
@@ -516,7 +520,7 @@ static int cr2res_cal_flat_reduce(
         cpl_table           **  slit_illum,
         cpl_table           **  blaze,
         hdrl_image          **  blaze_image,
-        cpl_image           **  bpm,
+        hdrl_image          **  bpm,
         cpl_propertylist    **  ext_plist)
 {
     const char          *   first_file ;
@@ -524,6 +528,8 @@ static int cr2res_cal_flat_reduce(
     cpl_image           *   master_dark ;
     cpl_imagelist       *   imlist ;
     hdrl_image          *   master_flat_loc ;
+    cpl_image           *   bpm_in ;
+    cpl_image           *   bpm_loc ;
     cpl_table           *   traces ;
     cpl_vector          **  spectrum ;
     cpl_vector          **  slit_func ;
@@ -693,17 +699,38 @@ static int cr2res_cal_flat_reduce(
 	cpl_free(slit_func) ;
 
     /* Compute BPM */
-    /* TODO */
-
-
+    if ((bpm_loc = cr2res_bpm_from_master_flat(master_flat_loc,
+                    0.5, 2.0, 0.5)) == NULL) {
+        cpl_msg_warning(__func__, "Failed to Compute the BPM") ;
+    } else {
+        /* Merge BPM with the input one */
+        if (master_bpm_frame != NULL) {
+            if ((bpm_in = cr2res_io_load_MASTER_BPM(
+                            cpl_frame_get_filename(master_bpm_frame),
+                            reduce_det)) == NULL) {
+                cpl_msg_warning(__func__, "Failed to Load the Master BPM") ;
+            }
+        } else {
+            bpm_in = NULL ;
+        }
+        /* Combine the 2 BPMs */
+        /* TODO */
+        if (bpm_in != NULL)
+            cpl_image_add(bpm_loc, bpm_in) ;
+    }
 
     /* Return the results */
     *slit_illum = slit_func_tab ;
     *blaze = extract_tab ;
     *blaze_image = model_master ;
     *master_flat = master_flat_loc ;
-    *bpm = NULL ;
     *ext_plist = plist ;
+    if (bpm_loc != NULL) {
+        *bpm = hdrl_image_create(bpm_loc, NULL) ;
+        cpl_image_delete(bpm_loc) ;
+    } else {
+        *bpm = NULL ;
+    }
     return 0 ;
 }
 

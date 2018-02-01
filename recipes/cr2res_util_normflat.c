@@ -56,24 +56,9 @@ static int cr2res_util_normflat_reduce(
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_bpm_frame,
-        int                     trace_degree,
-        int                     trace_min_cluster,
-        double                  trace_smooth,
-        int                     trace_opening,
-        int                     trace_split,
-        int                     extract_oversample,
-        int                     extract_swath_width,
-        int                     extract_height,
-        double                  extract_smooth,
-        int                     extract_sum_only,
         int                     reduce_det,
-        int                     reduce_order,
-        int                     reduce_trace,
         hdrl_image          **  master_flat,
-        cpl_table           **  slit_illum,
-        cpl_table           **  blaze,
-        hdrl_image          **  blaze_image,
-        cpl_image           **  bpm,
+        hdrl_image          **  bpm,
         cpl_propertylist    **  plist) ;
 static int cr2res_util_normflat_create(cpl_plugin *);
 static int cr2res_util_normflat_exec(cpl_plugin *);
@@ -91,11 +76,7 @@ static char cr2res_util_normflat_description[] =
 "master_dark.fits " CR2RES_MASTER_DARK_PROCATG "\n"
 "master_bpm.fits " CR2RES_MASTER_BPM_PROCATG "\n"
 " The recipe produces the following products:\n"
-"cr2res_util_normflat_trace.fits " CR2RES_TRACE_WAVE_PROCATG "\n"
 "cr2res_util_normflat_master.fits " CR2RES_MASTER_FLAT_PROCATG  "\n"
-"cr2res_util_normflat_blaze.fits " CR2RES_BLAZE_PROCATG "\n"
-"cr2res_util_normflat_blaze_image.fits " CR2RES_BLAZE_IMAGE_PROCATG "\n"
-"cr2res_util_normflat_slit_func.fits " CR2RES_SLIT_FUNC_PROCATG "\n"
 "cr2res_util_normflat_bpm.fits " CR2RES_MASTER_BPM_PROCATG "\n"
 "\n";
 
@@ -124,7 +105,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
                     "cr2res_util_normflat",
-                    "Flat recipe",
+                    "Flat utility",
                     cr2res_util_normflat_description,
                     "Thomas Marquart, Yves Jung",
                     PACKAGE_BUGREPORT,
@@ -170,87 +151,10 @@ static int cr2res_util_normflat_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
-    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.trace_degree",
-            CPL_TYPE_INT, "polynomial degree for the fit to the orders",
-            "cr2res.cr2res_util_normflat", 5);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_degree");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.trace_min_cluster",
-            CPL_TYPE_INT, "size in pixels of the smallest allowed cluster",
-            "cr2res.cr2res_util_normflat", 10000);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_min_cluster");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.trace_smooth",
-            CPL_TYPE_DOUBLE, "Length of the smoothing kernel",
-            "cr2res.cr2res_util_normflat", 5.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_smooth");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.trace_opening",
-            CPL_TYPE_BOOL, "Use a morphological opening to rejoin clusters",
-            "cr2res.cr2res_util_normflat", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_opening");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.trace_split",
-            CPL_TYPE_BOOL, "Split the traces when only 1 per order",
-            "cr2res.cr2res_util_normflat", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_split");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.extract_oversample",
-            CPL_TYPE_INT, "factor by which to oversample the extraction",
-            "cr2res.cr2res_util_normflat", 10);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_oversample");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.extract_swath_width",
-            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_util_normflat", 64);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_swath_width");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.extract_height",
-            CPL_TYPE_INT, "Extraction height",
-            "cr2res.cr2res_util_normflat", -1);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_height");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.extract_smooth",
-            CPL_TYPE_DOUBLE,
-            "Smoothing along the slit (1 for high S/N, 5 for low)",
-            "cr2res.cr2res_util_normflat", 1.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
     p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
             "cr2res.cr2res_util_normflat", 0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "detector");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.order",
-            CPL_TYPE_INT, "Only reduce the specified order",
-            "cr2res.cr2res_util_normflat", -1);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "order");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.trace_nb",
-            CPL_TYPE_INT, "Only reduce the specified trace number",
-            "cr2res.cr2res_util_normflat", -1);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_nb");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -309,21 +213,13 @@ static int cr2res_util_normflat(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     trace_degree, trace_min_cluster,
-                            trace_opening, trace_split,
-                            extract_oversample, extract_swath_width,
-                            extract_height, reduce_det, reduce_order, 
-                            reduce_trace ;
-    double                  trace_smooth, extract_smooth ;
+    int                     reduce_det ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   master_bpm_frame ;
     hdrl_image          *   master_flat[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   slit_illum[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   blaze[CR2RES_NB_DETECTORS] ;
-    hdrl_image          *   blaze_image[CR2RES_NB_DETECTORS] ;
-    cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   bpm[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
     int                     i, det_nr; 
@@ -336,41 +232,8 @@ static int cr2res_util_normflat(
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_normflat.trace_degree");
-    trace_degree = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_normflat.trace_min_cluster");
-    trace_min_cluster = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_normflat.trace_smooth");
-    trace_smooth = cpl_parameter_get_double(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_normflat.trace_opening");
-    trace_opening = cpl_parameter_get_bool(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_normflat.trace_split");
-    trace_split = cpl_parameter_get_bool(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_normflat.extract_oversample");
-    extract_oversample = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_normflat.extract_swath_width");
-    extract_swath_width = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_normflat.extract_height");
-    extract_height = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_normflat.extract_smooth");
-    extract_smooth = cpl_parameter_get_double(param);
-    param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_normflat.detector");
     reduce_det = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_normflat.order");
-    reduce_order = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_normflat.trace_nb");
-    reduce_trace = cpl_parameter_get_int(param);
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
@@ -400,9 +263,6 @@ static int cr2res_util_normflat(
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             /* Initialise */
             master_flat[det_nr-1] = NULL ;
-            slit_illum[det_nr-1] = NULL ;
-            blaze[det_nr-1] = NULL ;
-            blaze_image[det_nr-1] = NULL ;
             bpm[det_nr-1] = NULL ;
             ext_plist[det_nr-1] = NULL ;
 
@@ -414,15 +274,8 @@ static int cr2res_util_normflat(
 
             /* Call the reduction function */
             if (cr2res_util_normflat_reduce(rawframes, detlin_frame, 
-                        master_dark_frame, master_bpm_frame, trace_degree, 
-                        trace_min_cluster, trace_smooth, trace_opening, 
-                        trace_split, extract_oversample, extract_swath_width, 
-                        extract_height, extract_smooth, 0, det_nr,
-                        reduce_order, reduce_trace,
+                        master_dark_frame, master_bpm_frame, det_nr,
                         &(master_flat[det_nr-1]),
-                        &(slit_illum[det_nr-1]),
-                        &(blaze[det_nr-1]),
-                        &(blaze_image[det_nr-1]),
                         &(bpm[det_nr-1]),
                         &(ext_plist[det_nr-1])) == -1) {
                 cpl_msg_warning(__func__, 
@@ -435,20 +288,6 @@ static int cr2res_util_normflat(
 
         /* Ѕave Products */
 
-        /* BLAZE_IMAGE */
-		out_file = cpl_sprintf("%s_%s_blaze_image.fits", RECIPE_STRING,
-                decker_desc[i]) ;
-		cr2res_io_save_BLAZE_IMAGE(out_file, frameset, parlist, blaze_image, 
-                NULL, ext_plist, RECIPE_STRING) ;
-		cpl_free(out_file);
-
-        /* BLAZE */
-		out_file = cpl_sprintf("%s_%s_blaze.fits", RECIPE_STRING,
-                decker_desc[i]) ;
-		cr2res_io_save_BLAZE(out_file, frameset, parlist, blaze, NULL, 
-                ext_plist, RECIPE_STRING) ;
-		cpl_free(out_file);
-
         /* MASTER_FLAT */
 		out_file = cpl_sprintf("%s_%s_master_flat.fits", RECIPE_STRING,
                 decker_desc[i]) ;
@@ -456,32 +295,22 @@ static int cr2res_util_normflat(
                 master_flat, NULL, ext_plist, RECIPE_STRING) ;
 		cpl_free(out_file);
 
-        /* SLIT_ILLUM */
-		out_file = cpl_sprintf("%s_%s_slit_illum.fits", RECIPE_STRING,
-                decker_desc[i]) ;
-		cr2res_io_save_SLIT_ILLUM(out_file, frameset,
-				parlist, slit_illum, NULL, ext_plist, RECIPE_STRING) ;
-		cpl_free(out_file);
-
         /* BPM */
-        /* TODO */
+		out_file = cpl_sprintf("%s_%s_master_bpm.fits", RECIPE_STRING,
+                decker_desc[i]) ;
+        cr2res_io_save_MASTER_BPM(out_file, frameset, parlist,
+                bpm, NULL, ext_plist, RECIPE_STRING) ;
+		cpl_free(out_file);
 
         /* Free */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             if (master_flat[det_nr-1] != NULL)
                 hdrl_image_delete(master_flat[det_nr-1]) ;
-            if (slit_illum[det_nr-1] != NULL) 
-                cpl_table_delete(slit_illum[det_nr-1]) ;
-            if (blaze[det_nr-1] != NULL)
-                cpl_table_delete(blaze[det_nr-1]) ;
-            if (blaze_image[det_nr-1] != NULL) 
-                hdrl_image_delete(blaze_image[det_nr-1]) ;
             if (bpm[det_nr-1] != NULL) 
-                cpl_image_delete(bpm[det_nr-1]) ;
+                hdrl_image_delete(bpm[det_nr-1]) ;
             if (ext_plist[det_nr-1] != NULL) 
                 cpl_propertylist_delete(ext_plist[det_nr-1]) ;
         }
-
         cpl_msg_indent_less() ;
     }
     return (int)cpl_error_get_code();
@@ -499,24 +328,9 @@ static int cr2res_util_normflat_reduce(
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_bpm_frame,
-        int                     trace_degree,
-        int                     trace_min_cluster,
-        double                  trace_smooth,
-        int                     trace_opening,
-        int                     trace_split,
-        int                     extract_oversample,
-        int                     extract_swath_width,
-        int                     extract_height,
-        double                  extract_smooth,
-        int                     extract_sum_only,
         int                     reduce_det,
-        int                     reduce_order,
-        int                     reduce_trace,
         hdrl_image          **  master_flat,
-        cpl_table           **  slit_illum,
-        cpl_table           **  blaze,
-        hdrl_image          **  blaze_image,
-        cpl_image           **  bpm,
+        hdrl_image          **  bpm,
         cpl_propertylist    **  ext_plist)
 {
     const char          *   first_file ;
@@ -524,6 +338,8 @@ static int cr2res_util_normflat_reduce(
     cpl_image           *   master_dark ;
     cpl_imagelist       *   imlist ;
     hdrl_image          *   master_flat_loc ;
+    cpl_image           *   bpm_in ;
+    cpl_image           *   bpm_loc ;
     cpl_table           *   traces ;
     cpl_vector          **  spectrum ;
     cpl_vector          **  slit_func ;
@@ -590,119 +406,35 @@ static int cr2res_util_normflat_reduce(
     if (master_dark != NULL) cpl_image_delete(master_dark) ;
     cpl_imagelist_delete(imlist) ;
 
-    /* Compute traces */
-    if ((traces = cr2res_trace(hdrl_image_get_image(master_flat_loc), 
-                    trace_smooth, trace_opening, trace_degree, 
-                    trace_min_cluster, trace_split)) == NULL) {
-        cpl_msg_error(__func__, "Failed compute the traces") ;
-        cpl_propertylist_delete(plist);
-        hdrl_image_delete(master_flat_loc) ;
-        return -1 ;
+    /* Compute BPM */
+    if ((bpm_loc = cr2res_bpm_from_master_flat(master_flat_loc,
+                    0.5, 2.0, 0.5)) == NULL) {
+        cpl_msg_warning(__func__, "Failed to Compute the BPM") ;
+    } else {
+        /* Merge BPM with the input one */
+        if (master_bpm_frame != NULL) {
+            if ((bpm_in = cr2res_io_load_MASTER_BPM(
+                            cpl_frame_get_filename(master_bpm_frame), 
+                            reduce_det)) == NULL) {
+                cpl_msg_warning(__func__, "Failed to Load the Master BPM") ;
+            }
+        } else {
+            bpm_in = NULL ;
+        }
+        /* Combine the 2 BPMs */
+        /* TODO */
+        if (bpm_in != NULL) 
+            cpl_image_add(bpm_loc, bpm_in) ;
     }
 
-    /* Add The remaining Columns to the trace table */
-    cr2res_trace_add_order_trace_wavelength_columns(traces,
-            first_file, reduce_det) ;
-
-    /* Extract */
-    nb_traces = cpl_table_get_nrow(traces) ;
-	spectrum = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
-	slit_func = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
-	model_master = hdrl_image_duplicate(master_flat_loc) ;
-	hdrl_image_mul_scalar(model_master, (hdrl_value){0.0, 0.0}) ;
-
-	/* Loop over the traces and extract them */
-	for (i=0 ; i<nb_traces ; i++) {
-		/* Initialise */
-		slit_func[i] = NULL ;
-		spectrum[i] = NULL ;
-		model_tmp = NULL ;
-
-		/* Get Order and trace id */
-		order = cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) ;
-		trace_id = cpl_table_get(traces, CR2RES_COL_TRACENB, i, NULL) ;
-
-		/* Check if this order needs to be skipped */
-		if (reduce_order > -1 && order != reduce_order) {
-			cpl_msg_indent_less() ;
-			continue ;
-		}
-
-		/* Check if this trace needs to be skipped */
-		if (reduce_trace > -1 && trace_id != reduce_trace) {
-			cpl_msg_indent_less() ;
-			continue ;
-		}
-
-		cpl_msg_info(__func__, "Process Order %d/Trace %d", order, trace_id) ;
-		cpl_msg_indent_more() ;
- 
-		/* Call the Extraction */
-		if (extract_sum_only) {
-			/* Call the SUM ONLY extraction */
-			if (cr2res_extract_sum_vert(hdrl_image_get_image(master_flat_loc), 
-                        traces, order, trace_id, extract_height, 
-                        &(slit_func[i]), &(spectrum[i]), &model_tmp) != 0) {
-				cpl_msg_error(__func__, "Cannot (sum-)extract the trace") ;
-				slit_func[i] = NULL ;
-				spectrum[i] = NULL ;
-				model_tmp = NULL ;
-				cpl_error_reset() ;
-				cpl_msg_indent_less() ;
-				continue ;
-			}
-		} else {
-			/* Call the SLIT DECOMPOSITION */
-			if (cr2res_extract_slitdec_vert(
-                        hdrl_image_get_image(master_flat_loc), 
-                        traces, order, trace_id, extract_height, 
-                        extract_swath_width, extract_oversample, 
-                        extract_smooth, &(slit_func[i]), &(spectrum[i]), 
-                        &model_tmp) != 0) {
-				cpl_msg_error(__func__, "Cannot (slitdec-) extract the trace") ;
-				slit_func[i] = NULL ;
-				spectrum[i] = NULL ;
-				model_tmp = NULL ;
-				cpl_error_reset() ;
-				cpl_msg_indent_less() ;
-				continue ;
-			}
-		}
-
-		/* Update the model global image */
-		if (model_tmp != NULL) {
-			hdrl_image_add_image(model_master, model_tmp) ;
-			hdrl_image_delete(model_tmp) ;
-		}
-		cpl_msg_indent_less() ;
-	}
-
-	/* Create the slit_func_tab for the current detector */
-	slit_func_tab = cr2res_extract_SLITFUNC_create(slit_func, traces) ;
-
-	/* Create the extracted_tab for the current detector */
-	extract_tab = cr2res_extract_EXTRACT1D_create(spectrum, traces) ;
-	cpl_table_delete(traces) ;
-
-	/* Deallocate Vectors */
-	for (i=0 ; i<nb_traces ; i++) {
-		if (slit_func[i] != NULL) cpl_vector_delete(slit_func[i]) ;
-		if (spectrum[i] != NULL) cpl_vector_delete(spectrum[i]) ;
-	}
-	cpl_free(spectrum) ;
-	cpl_free(slit_func) ;
-
-    /* Compute BPM */
-    /* TODO */
-
-
-
     /* Return the results */
-    *slit_illum = slit_func_tab ;
-    *blaze = extract_tab ;
-    *blaze_image = model_master ;
     *master_flat = master_flat_loc ;
-    *bpm = NULL ;
+    if (bpm_loc != NULL) {
+        *bpm = hdrl_image_create(bpm_loc, NULL) ;
+        cpl_image_delete(bpm_loc) ;
+    } else {
+        *bpm = NULL ;
+    }
     *ext_plist = plist ;
     return 0 ;
 }
