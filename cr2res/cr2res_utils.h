@@ -30,8 +30,9 @@
                                    Define
  -----------------------------------------------------------------------------*/
 
-#define CR2RES_NB_DETECTORS     3
-#define CR2RES_DETECTOR_SIZE    2048
+#define CR2RES_NB_DETECTORS             3
+#define CR2RES_NB_DECKER_POSITIONS      3
+#define CR2RES_DETECTOR_SIZE            2048
 
 typedef enum {
     CR2RES_LAMP,
@@ -40,8 +41,8 @@ typedef enum {
     CR2RES_UNSPECIFIED
 } cr2res_wavecal_type ;
 
-
 typedef enum {
+    CR2RES_DECKER_INVALID,
     CR2RES_DECKER_NONE,
     CR2RES_DECKER_1_3,
     CR2RES_DECKER_2_4
@@ -75,6 +76,10 @@ char * cr2res_get_root_name(const char * filename) ;
 
 const char * cr2res_extract_filename(const cpl_frameset *, const char *) ;
 cpl_frameset * cr2res_extract_frameset(const cpl_frameset *, const char *) ;
+cpl_frameset * cr2res_extract_decker_frameset(
+        const cpl_frameset  *   in,
+        const char          *   tag,
+        cr2res_decker          	decker) ;
 
 cpl_polynomial * cr2res_wlestimate_compute(
         double          wmin,
