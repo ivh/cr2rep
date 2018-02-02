@@ -634,16 +634,18 @@ int cr2res_trace_compute_height(
 
     diff_poly =  cpl_polynomial_new(1);
     diff_vec =  cpl_vector_new(vector_size);
-    cpl_polynomial_subtract(diff_poly, trace2, trace1);
+    cpl_polynomial_subtract(diff_poly, trace1, trace2);
     cpl_vector_fill_polynomial(diff_vec, diff_poly, 1, 1);
     height = (int)ceil(fabs( cpl_vector_get_mean(diff_vec) ));
     cpl_polynomial_delete(diff_poly) ;
 
-    if (cpl_vector_get_stdev(diff_vec) > 5){ // TODO: make this not hardcoded?
-        cpl_msg_warning(__func__, "Stdev of extraction height is large.");
+    if (cpl_vector_get_stdev(diff_vec) > 10){ // TODO: make this not hardcoded?
+        cpl_msg_warning(__func__, "Stdev of extraction height is large: %.1f",
+                    cpl_vector_get_stdev(diff_vec));
     }
     cpl_vector_delete(diff_vec) ;
 
+    cpl_msg_debug(__func__, "Computed height is %d pix.", height);
     return height;
 }
 
@@ -685,7 +687,7 @@ double cr2res_trace_get_trace_ypos(
   @brief   Add ORDER, TRACE, WAVELENGTH columns to the plain trace table
   @param    traces          The plain traces table
   @param    file_for_wl     File used for WL information
-  @param    det_nr          Detector 
+  @param    det_nr          Detector
   @return   0 if ok
  */
 /*----------------------------------------------------------------------------*/
@@ -704,9 +706,9 @@ int cr2res_trace_add_order_trace_wavelength_columns(
     cpl_table_new_column(traces, CR2RES_COL_ORDER, CPL_TYPE_INT) ;
 
     /* Load the Plist */
-    plist_order_pos = cpl_propertylist_load(file_for_wl, 
+    plist_order_pos = cpl_propertylist_load(file_for_wl,
             cr2res_io_get_ext_idx(file_for_wl, det_nr, 1)) ;
- 
+
     /* Loop on the traces */
     for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
         /* Get the current trace Y position */

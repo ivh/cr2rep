@@ -635,9 +635,9 @@ int main(void)
 
     //test_cr2res_vector_get_rest();
     //test_cr2res_vector_get_int();
-    //test_cr2res_polynomial_eval_vector();
-    //test_cr2res_image_cut_rectify();
-    test_cr2res_image_insert_rect();
+    test_cr2res_polynomial_eval_vector();
+    test_cr2res_image_cut_rectify();
+    //test_cr2res_image_insert_rect();
     //test_cr2res_threshold_spec();
     //test_cr2res_get_base_name();
     //test_cr2res_get_root_name();
