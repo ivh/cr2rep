@@ -32,6 +32,11 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static cpl_mask * cr2res_bpm_from_master_flat(
+        const hdrl_image    *   master_flat,
+        double                  low,
+        double                  high,
+        double                  bad_per_line_limit) ;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -43,19 +48,20 @@
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  Main function for the flat computation
+  @brief    Calibrate and Collapse
   @param    imlist      input image list 
   @param  
-  @return The newly allocated master flat
+  @return The newly allocated calibrated image
  */
 /*----------------------------------------------------------------------------*/
-hdrl_image * cr2res_flat(
-        const cpl_imagelist *   imlist,
-        const cpl_image        *    master_dark,
-        const cpl_imagelist    *    detlin_coeffs)
+hdrl_image * cr2res_calib_collapse(
+        const cpl_imagelist     *   imlist,
+        const cpl_image         *   master_dark,
+        const cpl_imagelist     *   detlin_coeffs,
+        int                         cosmics_corr)
 {
     cpl_imagelist   *   imlist_loc ;
-    hdrl_image      *   master_flat ;
+    hdrl_image      *   out ;
     cpl_image       *   collapsed ;
     
     /* Check Entries */
@@ -63,6 +69,12 @@ hdrl_image * cr2res_flat(
 
     /* Duplicate the input list - Not optimal but more readable */
     imlist_loc = cpl_imagelist_duplicate(imlist) ;
+
+    /* Correct the Cosmics */
+    if (cosmics_corr) {
+        cpl_msg_info(__func__, "Correct the COSMICS") ;
+        /* TODO */
+    }
 
     /* Correct the DETLIN */
     if (detlin_coeffs != NULL) {
@@ -85,13 +97,63 @@ hdrl_image * cr2res_flat(
         }
     }
     
-    /* Compute the MASTER FLAT */
-    collapsed = cpl_imagelist_collapse_create(imlist_loc) ;
+    /* Collapse the calibrated frames */
+    cpl_msg_info(__func__, "Collapse the calibrated frames") ;
+    if ((collapsed = cpl_imagelist_collapse_create(imlist_loc)) == NULL) {
+        cpl_msg_error(__func__, "Failed to collapse") ;
+        cpl_imagelist_delete(imlist_loc) ;
+        return NULL ;
+    }
     cpl_imagelist_delete(imlist_loc) ;
-    master_flat = hdrl_image_create(collapsed, NULL) ;
+    out = hdrl_image_create(collapsed, NULL) ;
     cpl_image_delete(collapsed) ;
-    return master_flat ;
+    return out ;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Compute the Master Flat
+  @param    imlist      input image list 
+  @param  
+  @return The newly allocated calibrated image
+ */
+/*----------------------------------------------------------------------------*/
+hdrl_image * cr2res_master_flat(
+        const hdrl_image    *   collapsed,
+        const hdrl_image    *   model_master,
+        double                  low,
+        double                  high,
+        double                  bad_per_line_limit,
+        cpl_mask            **  bpm)
+{
+    hdrl_image      *   master_flat ;
+    cpl_mask        *   bpm_loc ;
+    
+    /* Check Entries */
+    if (collapsed == NULL) return NULL ;
+    if (model_master == NULL) return NULL ;
+
+    /* Compute the master flat */
+    if ((master_flat = hdrl_image_div_image_create(collapsed, 
+                    model_master)) == NULL) {
+        cpl_msg_error(__func__, "Failed to divide by the model") ;
+        return NULL ;
+    }
+
+    /* Compute BPM */
+    if ((bpm_loc = cr2res_bpm_from_master_flat(master_flat, low, high,
+                    bad_per_line_limit)) == NULL) {
+
+        cpl_msg_error(__func__, "Failed to compute the BPM") ;
+        hdrl_image_delete(master_flat) ;
+        return NULL ;
+    }
+
+    *bpm = bpm_loc ;
+    return master_flat ;
+} 
+
+/**@}*/
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -100,13 +162,12 @@ hdrl_image * cr2res_flat(
   @return The newly allocated BPM
  */
 /*----------------------------------------------------------------------------*/
-cpl_image * cr2res_bpm_from_master_flat(
+static cpl_mask * cr2res_bpm_from_master_flat(
         const hdrl_image    *   master_flat,
         double                  low,
         double                  high,
         double                  bad_per_line_limit)
 {
-    cpl_image       *   bpm ;
     cpl_mask        *   mask ;
     cpl_binary      *   pmask ;
     int                 nx, ny, cur_bp_nb ;
@@ -141,13 +202,6 @@ cpl_image * cr2res_bpm_from_master_flat(
         }
     }
 
-    /* Convert mask to image */
-    bpm = cpl_image_new_from_mask(mask) ;
-    cpl_mask_delete(mask) ;
-    cpl_image_save(bpm, "a.fits", CPL_TYPE_FLOAT, NULL, CPL_IO_CREATE) ;
-
-    return bpm ;
+    return mask ;
 }
-
-/**@}*/
 

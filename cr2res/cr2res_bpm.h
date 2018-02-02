@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-#ifndef CR2RES_FLAT_H
-#define CR2RES_FLAT_H
+#ifndef CR2RES_BPM_H
+#define CR2RES_BPM_H
 
 /*-----------------------------------------------------------------------------
                                    Includes
@@ -27,24 +27,26 @@
 #include <cpl.h>
 #include "hdrl.h"
 
-#include "cr2res_utils.h"
-
 /*-----------------------------------------------------------------------------
-                                       Prototypes
+                                    Define
  -----------------------------------------------------------------------------*/
 
-hdrl_image * cr2res_calib_collapse(
-        const cpl_imagelist     *   imlist,
-        const cpl_image         *   master_dark,
-        const cpl_imagelist     *   detlin_coeffs,
-        int                         cosmics_corr) ;
+typedef enum _cr2res_bpm_type_ {
+    CR2RES_BPM_DARK  	= 1 << 0,
+    CR2RES_BPM_FLAT     = 1 << 1
+} cr2res_bpm_type ;
 
-hdrl_image * cr2res_master_flat(
-        const hdrl_image    *   collapsed,
-        const hdrl_image    *   model_master,
-        double                  low,
-        double                  high,
-        double                  bad_per_line_limit,
-        cpl_mask            **  bpm) ;
+/*-----------------------------------------------------------------------------
+                                Prototypes
+ -----------------------------------------------------------------------------*/
+
+cpl_mask * cr2res_bpm_extract_mask(
+        const cpl_image     *   bpm_ima,
+        cr2res_bpm_type         bpm_type) ;
+
+int cr2res_bpm_add_mask(
+        cpl_image   *   bpm_ima,
+        cpl_mask    *   bpm,
+        int             bpm_code) ;
 
 #endif

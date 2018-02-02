@@ -46,6 +46,7 @@ static int cr2res_io_save_image(
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
+        cpl_type                    type,
         const char              *   recipe,
         const char              *   procatg,
         const char              *   protype) ;
@@ -241,7 +242,7 @@ cpl_image * cr2res_io_load_MASTER_BPM(
     /* The wished extension was not found */
     if (wished_ext_nb < 0) return NULL ;
 
-    return cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb);
+    return cpl_image_load(filename, CPL_TYPE_INT, 0, wished_ext_nb);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -579,7 +580,7 @@ int cr2res_io_save_MASTER_DARK(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            master_darks, qc_list, ext_plist, recipe, 
+            master_darks, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, 
             CR2RES_MASTER_DARK_PROCATG, "") ;
 }
 
@@ -606,7 +607,7 @@ int cr2res_io_save_MASTER_BPM(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            master_bpms, qc_list, ext_plist, recipe, 
+            master_bpms, qc_list, ext_plist, CPL_TYPE_INT, recipe, 
             CR2RES_MASTER_BPM_PROCATG, "") ;
 }
 
@@ -658,7 +659,7 @@ int cr2res_io_save_MASTER_FLAT(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            master_flats, qc_list, ext_plist, recipe, 
+            master_flats, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, 
             CR2RES_MASTER_FLAT_PROCATG, "") ;
 }
 
@@ -739,8 +740,8 @@ int cr2res_io_save_BLAZE_IMAGE(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            blaze, qc_list, ext_plist, recipe, CR2RES_BLAZE_IMAGE_PROCATG,
-            CR2RES_SLIT_MODEL_PROTYPE) ;
+            blaze, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, 
+            CR2RES_BLAZE_IMAGE_PROCATG, CR2RES_SLIT_MODEL_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -820,8 +821,8 @@ int cr2res_io_save_SLIT_MODEL(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            data, qc_list, ext_plist, recipe, CR2RES_SLIT_MODEL_PROCATG,
-            CR2RES_SLIT_MODEL_PROTYPE) ;
+            data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, 
+            CR2RES_SLIT_MODEL_PROCATG, CR2RES_SLIT_MODEL_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -847,7 +848,8 @@ int cr2res_io_save_WAVE_MAP(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            data, qc_list, ext_plist, recipe, CR2RES_WAVE_MAP_PROCATG, "") ;
+            data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, 
+            CR2RES_WAVE_MAP_PROCATG, "") ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1130,6 +1132,7 @@ static int cr2res_io_save_table(
   @param    data        The images to save (data and error per detector)
   @param    qc_list     The QC parameters
   @param    ext_plist   The extensions property lists
+  @param    type        CPL_TYPE_FLOAT, CPL_TYPE_INT,...
   @param    recipe      The recipe name
   @param    procatg     PRO.CATG
   @param    protype     PRO.TYPE
@@ -1143,6 +1146,7 @@ static int cr2res_io_save_image(
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
+        cpl_type                    type,
         const char              *   recipe,
         const char              *   procatg,
         const char              *   protype)
@@ -1163,7 +1167,7 @@ static int cr2res_io_save_image(
 
     /* Create the Primary Data Unit without data */
     if (cpl_dfs_save_image(allframes, NULL, parlist, allframes, NULL, NULL,
-                CPL_BPP_IEEE_FLOAT, recipe, qclist_loc, NULL,
+                type, recipe, qclist_loc, NULL,
                 PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot save the empty primary HDU") ;
         cpl_propertylist_delete(qclist_loc) ;
@@ -1181,7 +1185,7 @@ static int cr2res_io_save_image(
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", wished_extname) ;
         if (data[ext-1] == NULL)    to_save = NULL ;
         else                        to_save = hdrl_image_get_image(data[ext-1]);
-        cpl_image_save(to_save, filename, CPL_BPP_IEEE_FLOAT, qclist_loc,
+        cpl_image_save(to_save, filename, type, qclist_loc,
                 CPL_IO_EXTEND) ;
         cpl_propertylist_delete(qclist_loc) ;
         cpl_free(wished_extname) ;
@@ -1192,7 +1196,7 @@ static int cr2res_io_save_image(
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", wished_extname) ;
         if (data[ext-1] == NULL)    to_save = NULL ;
         else                        to_save = hdrl_image_get_error(data[ext-1]);
-        cpl_image_save(to_save, filename, CPL_BPP_IEEE_FLOAT, qclist_loc,
+        cpl_image_save(to_save, filename, type, qclist_loc,
                 CPL_IO_EXTEND) ;
         cpl_propertylist_delete(qclist_loc) ;
         cpl_free(wished_extname) ;
