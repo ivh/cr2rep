@@ -35,7 +35,7 @@ noinst_HEADERS =
 
 plugin_LTLIBRARIES = cr2res_cal_dark.la \
                      cr2res_cal_flat.la \
-                     cr2res_util_normflat.la \
+                     cr2res_util_calib.la \
                      cr2res_util_wave.la \
                      cr2res_util_trace.la \
                      cr2res_util_tilt.la \
@@ -52,10 +52,10 @@ cr2res_cal_flat_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
 cr2res_cal_flat_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
 cr2res_cal_flat_la_DEPENDENCIES = $(LIBCR2RES)
 
-cr2res_util_normflat_la_SOURCES = cr2res_util_normflat.c
-cr2res_util_normflat_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
-cr2res_util_normflat_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
-cr2res_util_normflat_la_DEPENDENCIES = $(LIBCR2RES)
+cr2res_util_calib_la_SOURCES = cr2res_util_calib.c
+cr2res_util_calib_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
+cr2res_util_calib_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
+cr2res_util_calib_la_DEPENDENCIES = $(LIBCR2RES)
 
 cr2res_util_wave_la_SOURCES = cr2res_util_wave.c
 cr2res_util_wave_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
