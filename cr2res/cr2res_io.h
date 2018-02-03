@@ -50,7 +50,7 @@ cpl_image * cr2res_io_load_MASTER_DARK(
         int             detector,
         int             data);
 
-cpl_image * cr2res_io_load_MASTER_BPM(
+cpl_image * cr2res_io_load_BPM(
         const char  *   filename,
         int             detector);
 
@@ -67,22 +67,10 @@ cpl_table * cr2res_io_load_TRACE_WAVE(
         const char  *   filename,
         int             detector);
 
-cpl_table * cr2res_io_load_BLAZE(
-        const char  *   filename,
-        int             detector);
-
-cpl_image * cr2res_io_load_BLAZE_IMAGE(
-        const char  *   filename,
-        int             detector);
-
 cpl_image * cr2res_io_load_SLIT_MODEL(
         const char  *   filename,
         int             detector,
         int             data);
-
-cpl_table * cr2res_io_load_SLIT_FUNC(
-        const char  *   filename,
-        int             detector) ;
 
 cpl_image * cr2res_io_load_WAVE_MAP(
         const char  *   filename,
@@ -131,7 +119,7 @@ int cr2res_io_save_MASTER_DARK(
         cpl_propertylist        **  ext_plist,
         const char              *   recipe) ;
 
-int cr2res_io_save_MASTER_BPM(
+int cr2res_io_save_FLAT_BPM(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
@@ -174,7 +162,7 @@ int cr2res_io_save_BLAZE(
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
+        const char              *   recipe) ;
 
 int cr2res_io_save_BLAZE_IMAGE(
         const char              *   filename,
@@ -183,25 +171,7 @@ int cr2res_io_save_BLAZE_IMAGE(
         hdrl_image              **  blaze,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
-
-int cr2res_io_save_SLIT_MODEL(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        const cpl_parameterlist *   parlist,
-        hdrl_image              **  data,
-        const cpl_propertylist  *   qc_list,
-        cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
-
-int cr2res_io_save_SLIT_FUNC(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        const cpl_parameterlist *   parlist,
-        cpl_table               **  tables,
-        const cpl_propertylist  *   qc_list,
-        cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
+        const char              *   recipe) ;
 
 int cr2res_io_save_SLIT_ILLUM(
         const char              *   filename,
@@ -211,6 +181,24 @@ int cr2res_io_save_SLIT_ILLUM(
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
         const char              *   recipe) ;
+
+int cr2res_io_save_SLIT_FUNC(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  slit_func,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        const char              *   recipe) ;
+
+int cr2res_io_save_SLIT_MODEL(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        hdrl_image              **  data,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        const char              *   recipe);
 
 int cr2res_io_save_WAVE_MAP(
         const char              *   filename,

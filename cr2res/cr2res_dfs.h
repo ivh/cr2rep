@@ -54,41 +54,91 @@
 /* SPLICED_1D Table */
 /* EXTRACT_2D Table */
 /* EXTRACT_POL Table */
+/******************************************/
 
+/*************************************/
 /* Define here the PRO.TYPE keywords */
-#define CR2RES_SLIT_FUNC_PROTYPE        "SLIT_FUNC"
+
+/* For  CR2RES_BLAZE_IMAGE_PROCATG */
+/*      CR2RES_SLIT_MODEL_PROCATG */
 #define CR2RES_SLIT_MODEL_PROTYPE       "SLIT_MODEL"
+
+/* For  CR2RES_BLAZE_PROCATG */
+/*      CR2RES_EXTRACT_1D_PROCATG */
+/* Table with columns cr2res_dfs_SPEC_colname() */
 #define CR2RES_EXTRACT_1D_PROTYPE       "EXTRACT_1D"
-#define CR2RES_TRACE_WAVE_PROTYPE       "TRACE_WAVE"
+
+/* For CR2RES_MASTER_FLAT_PROCATG */
+/* Master Flat image with values around 1 */
+#define CR2RES_MASTER_FLAT_PROTYPE      "MASTER_FLAT"
+
+/* For  CR2RES_SLIT_ILLUM_PROCATG */
+/*      CR2RES_SLIT_FUNC_PROCATG */
+/* Table with columns from cr2res_dfs_SLIT_FUNC_colname() */
+#define CR2RES_SLIT_FUNC_PROTYPE        "SLIT_FUNC"
+
+/* For  CR2RES_FLAT_BPM_PROCATG */
+/* BPM Image with values CR2RES_BPM_DARK / CR2RES_BPM_FLAT... */
+#define CR2RES_BPM_PROTYPE              "BPM"
+
+/* For  CR2RES_EMISSION_LINES_PROCATG */
+/* Table with columns CR2RES_COL_EMISSION / CR2RES_COL_WAVELENGTH */
 #define CR2RES_PROTYPE_CATALOG          "CATALOG"
+
+/* For  CR2RES_TILT_COEFFS_PROCATG  */
+/* Table with columns from cr2res_dfs_TILT_colname() */
 #define CR2RES_TILT_COEFFS_PROTYPE      "TILT_COEFFS"
 
+/* For CR2RES_DETLIN_COEFFS_PROCATG */
+#define CR2RES_DETLIN_COEFFS_PROTYPE    "DETLIN_COEFFS"
+
+
+/* TODO */
+#define CR2RES_TRACE_WAVE_PROTYPE       "TRACE_WAVE"
+
+/*************************************/
 /* Define here the PRO.CATG keywords */
+/*************************************/
+/* Produced by cr2res_cal_detlin */
 #define CR2RES_DETLIN_BPM_PROCATG       "DETLIN_BPM"
 #define CR2RES_DETLIN_COEFFS_PROCATG    "DETLIN_COEFFS"
+
+/* Produced by cr2res_cal_dark */
 #define CR2RES_MASTER_DARK_PROCATG      "MASTER_DARK"
-#define CR2RES_MASTER_BPM_PROCATG       "MASTER_BPM"
-#define CR2RES_MASTER_FLAT_PROCATG      "MASTER_FLAT"
-#define CR2RES_BLAZE_PROCATG            "BLAZE"
+#define CR2RES_DARK_BPM_PROCATG         "DARK_BPM"
+
+/* Produced by cr2res_cal_flat */
 #define CR2RES_BLAZE_IMAGE_PROCATG      "BLAZE_IMAGE"
+#define CR2RES_BLAZE_PROCATG            "BLAZE"
+#define CR2RES_MASTER_FLAT_PROCATG      "MASTER_FLAT"
+#define CR2RES_SLIT_ILLUM_PROCATG       "SLIT_ILLUM"
+#define CR2RES_FLAT_BPM_PROCATG         "FLAT_BPM"
+
+/* Produced by cr2res_util_genlines */
+#define CR2RES_EMISSION_LINES_PROCATG   "EMISSION_LINES"
+
+/* Produced by cr2res_util_tilt */
+#define CR2RES_TILT_COEFFS_PROCATG      "TILT_COEFFS"
+
+/* TODO */
+/* Produced by cr2res_util_extract */
+/* Produced by cr2res_util_normflat */
+/* Produced by cr2res_util_trace */
+/* Produced by cr2res_util_wave */
+
+/* TODO */
 #define CR2RES_TRACE_WAVE_PROCATG       "TRACE_WAVE"
 #define CR2RES_WAVE_COEFFS_PROCATG      "WAVE_COEFFS"
 #define CR2RES_WAVE_MAP_PROCATG         "WAVE_MAP"
-#define CR2RES_TILT_COEFFS_PROCATG      "TILT_COEFFS"
 #define CR2RES_SLIT_FUNC_PROCATG        "SLIT_FUNC"
-#define CR2RES_SLIT_ILLUM_PROCATG       "SLIT_ILLUM"
 #define CR2RES_SLIT_MODEL_PROCATG       "SLIT_MODEL"
 #define CR2RES_EXTRACT_1D_PROCATG       "EXTRACT_1D"
 
-#define CR2RES_EMISSION_LINES_PROCATG   "EMISSION_LINES"
-
 /* Define here the DO.CATG keywords */
 #define CR2RES_COMMAND_LINE             "COMMAND_LINE"
+#define CR2RES_DETLIN_RAW               "DETLIN"
 #define CR2RES_DARK_RAW                 "DARK"
 #define CR2RES_FLAT_RAW                 "FLAT"
-#define CR2RES_SCI_1D_RAW               "OBS_1D"
-#define CR2RES_SCI_2D_RAW               "OBS_2D"
-#define CR2RES_SCI_POL_RAW              "OBS_POL"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes

@@ -219,14 +219,14 @@ cpl_image * cr2res_io_load_MASTER_DARK(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load an image from a MASTER_BPM
+  @brief    Load an image from a BPM
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
   @return   An integer type image or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
-cpl_image * cr2res_io_load_MASTER_BPM(
+cpl_image * cr2res_io_load_BPM(
         const char  *   filename,
         int             detector)
 {
@@ -324,42 +324,9 @@ cpl_table * cr2res_io_load_TRACE_WAVE(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load a table from a BLAZE
+  @brief    Load an image from a SLIT MODEL
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to 3)
-  @return   A table or NULL in error case. The returned object
-              needs to be deallocated
- */
-/*----------------------------------------------------------------------------*/
-cpl_table * cr2res_io_load_BLAZE(
-        const char  *   filename,
-        int             detector)
-{
-    return NULL ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Load an image from a BLAZE_IMAGE
-  @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
-  @return   A float image or NULL in error case. The returned object
-              needs to be deallocated
- */
-/*----------------------------------------------------------------------------*/
-cpl_image * cr2res_io_load_BLAZE_IMAGE(
-        const char  *   filename,
-        int             detector)
-{
-    return NULL ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Load an image from a SLIT_MODEL
-  @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
-  @param    data        1 for the data image, 0 for the error
   @return   A float image or NULL in error case. The returned object
               needs to be deallocated
  */
@@ -586,7 +553,7 @@ int cr2res_io_save_MASTER_DARK(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Save a MASTER_BPM
+  @brief    Save a FLAT_BPM
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
@@ -597,7 +564,7 @@ int cr2res_io_save_MASTER_DARK(
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_io_save_MASTER_BPM(
+int cr2res_io_save_FLAT_BPM(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
@@ -608,7 +575,7 @@ int cr2res_io_save_MASTER_BPM(
 {
     return cr2res_io_save_image(filename, allframes, parlist,
             master_bpms, qc_list, ext_plist, CPL_TYPE_INT, recipe, 
-            CR2RES_MASTER_BPM_PROCATG, "") ;
+            CR2RES_FLAT_BPM_PROCATG, CR2RES_BPM_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -633,6 +600,7 @@ int cr2res_io_save_DETLIN_COEFFS(
         cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
+    /* TODO */
     return -1 ;
 }
 
@@ -660,7 +628,7 @@ int cr2res_io_save_MASTER_FLAT(
 {
     return cr2res_io_save_image(filename, allframes, parlist,
             master_flats, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, 
-            CR2RES_MASTER_FLAT_PROCATG, "") ;
+            CR2RES_MASTER_FLAT_PROCATG, CR2RES_MASTER_FLAT_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/

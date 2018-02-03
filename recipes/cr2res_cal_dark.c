@@ -64,7 +64,7 @@ static char cr2res_cal_dark_description[] =
 "detlin.fits " CR2RES_DETLIN_BPM_PROCATG "\n"
 " The recipe produces the following products:\n"
 "cr2res_cal_dark_master.fits " CR2RES_MASTER_DARK_PROCATG "\n"
-"cr2res_cal_dark_bpm.fits " CR2RES_MASTER_BPM_PROCATG "\n"
+"cr2res_cal_dark_bpm.fits " CR2RES_DARK_BPM_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------

@@ -94,14 +94,14 @@ static char cr2res_cal_flat_description[] =
 "raw-file.fits " CR2RES_FLAT_RAW "\n"
 "detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG "\n"
 "master_dark.fits " CR2RES_MASTER_DARK_PROCATG "\n"
-"master_bpm.fits " CR2RES_MASTER_BPM_PROCATG "\n"
+"bpm.fits " CR2RES_DARK_BPM_PROCATG "\n"
 " The recipe produces the following products:\n"
 "cr2res_cal_flat_trace.fits " CR2RES_TRACE_WAVE_PROCATG "\n"
 "cr2res_cal_flat_master.fits " CR2RES_MASTER_FLAT_PROCATG  "\n"
 "cr2res_cal_flat_blaze.fits " CR2RES_BLAZE_PROCATG "\n"
 "cr2res_cal_flat_blaze_image.fits " CR2RES_BLAZE_IMAGE_PROCATG "\n"
 "cr2res_cal_flat_slit_func.fits " CR2RES_SLIT_FUNC_PROCATG "\n"
-"cr2res_cal_flat_bpm.fits " CR2RES_MASTER_BPM_PROCATG "\n"
+"cr2res_cal_flat_bpm.fits " CR2RES_FLAT_BPM_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -431,7 +431,7 @@ static int cr2res_cal_flat(
     master_dark_frame = cpl_frameset_find_const(frameset,
             CR2RES_MASTER_DARK_PROCATG) ; 
     master_bpm_frame = cpl_frameset_find_const(frameset,
-            CR2RES_MASTER_BPM_PROCATG) ;
+            CR2RES_DARK_BPM_PROCATG) ;
 
     /* Loop on the decker positions */
     for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
@@ -513,7 +513,7 @@ static int cr2res_cal_flat(
         /* BPM */
         out_file = cpl_sprintf("%s_%s_master_bpm.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-        cr2res_io_save_MASTER_BPM(out_file, frameset, parlist,
+        cr2res_io_save_FLAT_BPM(out_file, frameset, parlist,
                 bpm, NULL, ext_plist, RECIPE_STRING) ;
         cpl_free(out_file);
 
@@ -782,7 +782,7 @@ static int cr2res_cal_flat_reduce(
     /* Create BPM image */
     bpm_im = NULL ;
     if (master_bpm_frame != NULL) {
-        if ((bpm_im = cr2res_io_load_MASTER_BPM(
+        if ((bpm_im = cr2res_io_load_BPM(
                         cpl_frame_get_filename(master_bpm_frame),
                         reduce_det)) == NULL) {
             cpl_msg_warning(__func__, "Failed to Load the Master BPM") ;
