@@ -92,6 +92,8 @@
 /* For CR2RES_DETLIN_COEFFS_PROCATG */
 #define CR2RES_DETLIN_COEFFS_PROTYPE    "DETLIN_COEFFS"
 
+/* For  CR2RES_CALIB_COLLAPSED_PROCATG */
+#define CR2RES_CALIB_COLLAPSED_PROTYPE  "CALIB_COLLAPSED"
 
 /* TODO */
 #define CR2RES_TRACE_WAVE_PROTYPE       "TRACE_WAVE"
@@ -119,6 +121,10 @@
 
 /* Produced by cr2res_util_tilt */
 #define CR2RES_TILT_COEFFS_PROCATG      "TILT_COEFFS"
+
+/* Produced by cr2res_util_calib */
+#define CR2RES_CALIB_COLLAPSED_PROCATG  "CALIB_COLLAPSED"
+
 
 /* TODO */
 /* Produced by cr2res_util_extract */

@@ -146,6 +146,15 @@ int cr2res_io_save_MASTER_FLAT(
         cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
+int cr2res_io_save_CALIB_COLLAPSED(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        hdrl_image              **  calib_collapsed,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        const char              *   recipe) ;
+
 int cr2res_io_save_TRACE_WAVE(
         const char              *   filename,
         cpl_frameset            *   allframes,

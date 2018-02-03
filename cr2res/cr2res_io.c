@@ -557,7 +557,7 @@ int cr2res_io_save_MASTER_DARK(
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
-  @param    master_bpms  The data/error BPMs (1 per detector)
+  @param    flat_bpms   The data/error BPMs (1 per detector)
   @param    qc_list     The QC parameters
   @param    ext_plist   The extensions property lists
   @param    recipe      The recipe name
@@ -568,13 +568,13 @@ int cr2res_io_save_FLAT_BPM(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        hdrl_image              **  master_bpms,
+        hdrl_image              **  flat_bpms,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            master_bpms, qc_list, ext_plist, CPL_TYPE_INT, recipe, 
+            flat_bpms, qc_list, ext_plist, CPL_TYPE_INT, recipe, 
             CR2RES_FLAT_BPM_PROCATG, CR2RES_BPM_PROTYPE) ;
 }
 
@@ -603,6 +603,34 @@ int cr2res_io_save_DETLIN_COEFFS(
     /* TODO */
     return -1 ;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a CALIB_COLLAPSED
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    calib_collapsed The data/error (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
+  @param    recipe      The recipe name
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_CALIB_COLLAPSED(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        hdrl_image              **  calib_collapsed,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        const char              *   recipe)
+{
+    return cr2res_io_save_image(filename, allframes, parlist,
+            calib_collapsed, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, 
+            CR2RES_CALIB_COLLAPSED_PROCATG, CR2RES_CALIB_COLLAPSED_PROTYPE) ;
+}
+
 
 /*----------------------------------------------------------------------------*/
 /**

@@ -39,7 +39,7 @@
                                 Define
  -----------------------------------------------------------------------------*/
 
-#define RECIPE_STRING "cr2res_util_normflat"
+#define RECIPE_STRING "cr2res_util_calib"
 
 /*-----------------------------------------------------------------------------
                              Plugin registration
@@ -51,33 +51,32 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
-static int cr2res_util_normflat_reduce(
+static int cr2res_util_calib_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
-        const cpl_frame     *   master_bpm_frame,
+        const cpl_frame     *   bpm_frame,
         int                     reduce_det,
-        hdrl_image          **  master_flat,
-        hdrl_image          **  bpm,
-        cpl_propertylist    **  plist) ;
-static int cr2res_util_normflat_create(cpl_plugin *);
-static int cr2res_util_normflat_exec(cpl_plugin *);
-static int cr2res_util_normflat_destroy(cpl_plugin *);
-static int cr2res_util_normflat(cpl_frameset *, const cpl_parameterlist *);
+        hdrl_image          **  calib_collapsed,
+        cpl_propertylist    **  ext_plist) ;
+
+static int cr2res_util_calib_create(cpl_plugin *);
+static int cr2res_util_calib_exec(cpl_plugin *);
+static int cr2res_util_calib_destroy(cpl_plugin *);
+static int cr2res_util_calib(cpl_frameset *, const cpl_parameterlist *);
 
 /*-----------------------------------------------------------------------------
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_normflat_description[] =
+static char cr2res_util_calib_description[] =
 "TODO : Descripe here the recipe in / out / params / basic algo\n"
-"in.fits " CR2RES_FLAT_RAW "\n"
+"raw.fits " CR2RES_FLAT_RAW "or TODO""\n"
 "detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG "\n"
 "master_dark.fits " CR2RES_MASTER_DARK_PROCATG "\n"
-"master_bpm.fits " CR2RES_DARK_BPM_PROCATG "\n"
+"dark_bpm.fits " CR2RES_DARK_BPM_PROCATG "\n"
 " The recipe produces the following products:\n"
-"cr2res_util_normflat_master.fits " CR2RES_MASTER_FLAT_PROCATG  "\n"
-"cr2res_util_normflat_bpm.fits " CR2RES_FLAT_BPM_PROCATG "\n"
+"cr2res_util_calib.fits " CR2RES_CALIB_COLLAPSED_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -104,15 +103,15 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CPL_PLUGIN_API,
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
-                    "cr2res_util_normflat",
-                    "Flat utility",
-                    cr2res_util_normflat_description,
+                    "cr2res_util_calib",
+                    "Calibration utility",
+                    cr2res_util_calib_description,
                     "Thomas Marquart, Yves Jung",
                     PACKAGE_BUGREPORT,
                     cr2res_get_license(),
-                    cr2res_util_normflat_create,
-                    cr2res_util_normflat_exec,
-                    cr2res_util_normflat_destroy)) {    
+                    cr2res_util_calib_create,
+                    cr2res_util_calib_exec,
+                    cr2res_util_calib_destroy)) {    
         cpl_msg_error(cpl_func, "Plugin initialization failed");
         (void)cpl_error_set_where(cpl_func);                          
         return 1;                                               
@@ -136,7 +135,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
   Defining the command-line/configuration parameters for the recipe.
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_normflat_create(cpl_plugin * plugin)
+static int cr2res_util_calib_create(cpl_plugin * plugin)
 {
     cpl_recipe          *   recipe ;
     cpl_parameter       *   p ;
@@ -151,9 +150,9 @@ static int cr2res_util_normflat_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
-    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.detector",
+    p = cpl_parameter_new_value("cr2res.cr2res_util_calib.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
-            "cr2res.cr2res_util_normflat", 0);
+            "cr2res.cr2res_util_calib", 0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "detector");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -168,7 +167,7 @@ static int cr2res_util_normflat_create(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_normflat_exec(cpl_plugin * plugin)
+static int cr2res_util_calib_exec(cpl_plugin * plugin)
 {
     cpl_recipe  *recipe;
 
@@ -177,7 +176,7 @@ static int cr2res_util_normflat_exec(cpl_plugin * plugin)
         recipe = (cpl_recipe *)plugin;
     else return -1;
 
-    return cr2res_util_normflat(recipe->frames, recipe->parameters);
+    return cr2res_util_calib(recipe->frames, recipe->parameters);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -187,7 +186,7 @@ static int cr2res_util_normflat_exec(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_normflat_destroy(cpl_plugin * plugin)
+static int cr2res_util_calib_destroy(cpl_plugin * plugin)
 {
     cpl_recipe *recipe;
 
@@ -208,7 +207,7 @@ static int cr2res_util_normflat_destroy(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_normflat(
+static int cr2res_util_calib(
         cpl_frameset            *   frameset,
         const cpl_parameterlist *   parlist)
 {
@@ -217,9 +216,8 @@ static int cr2res_util_normflat(
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
-    const cpl_frame     *   master_bpm_frame ;
-    hdrl_image          *   master_flat[CR2RES_NB_DETECTORS] ;
-    hdrl_image          *   bpm[CR2RES_NB_DETECTORS] ;
+    const cpl_frame     *   dark_bpm_frame ;
+    hdrl_image          *   calib_collapsed[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
     int                     i, det_nr; 
@@ -232,7 +230,7 @@ static int cr2res_util_normflat(
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_normflat.detector");
+            "cr2res.cr2res_util_calib.detector");
     reduce_det = cpl_parameter_get_int(param);
 
     /* Identify the RAW and CALIB frames in the input frameset */
@@ -247,7 +245,7 @@ static int cr2res_util_normflat(
             CR2RES_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
             CR2RES_MASTER_DARK_PROCATG) ; 
-    master_bpm_frame = cpl_frameset_find_const(frameset,
+    dark_bpm_frame = cpl_frameset_find_const(frameset,
             CR2RES_DARK_BPM_PROCATG) ;
 
     /* Loop on the decker positions */
@@ -262,8 +260,7 @@ static int cr2res_util_normflat(
         /* Loop on the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             /* Initialise */
-            master_flat[det_nr-1] = NULL ;
-            bpm[det_nr-1] = NULL ;
+            calib_collapsed[det_nr-1] = NULL ;
             ext_plist[det_nr-1] = NULL ;
 
             /* Compute only one detector */
@@ -273,10 +270,9 @@ static int cr2res_util_normflat(
             cpl_msg_indent_more() ;
 
             /* Call the reduction function */
-            if (cr2res_util_normflat_reduce(rawframes, detlin_frame, 
-                        master_dark_frame, master_bpm_frame, det_nr,
-                        &(master_flat[det_nr-1]),
-                        &(bpm[det_nr-1]),
+            if (cr2res_util_calib_reduce(rawframes, detlin_frame, 
+                        master_dark_frame, dark_bpm_frame, det_nr,
+                        &(calib_collapsed[det_nr-1]),
                         &(ext_plist[det_nr-1])) == -1) {
                 cpl_msg_warning(__func__, 
                         "Failed to reduce detector %d of %s Frames", 
@@ -288,26 +284,17 @@ static int cr2res_util_normflat(
 
         /* Ѕave Products */
 
-        /* MASTER_FLAT */
-		out_file = cpl_sprintf("%s_%s_master_flat.fits", RECIPE_STRING,
+        /* CALIB_COLLAPSED */
+		out_file = cpl_sprintf("%s_%s.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-        cr2res_io_save_MASTER_FLAT(out_file, frameset, parlist,
-                master_flat, NULL, ext_plist, RECIPE_STRING) ;
-		cpl_free(out_file);
-
-        /* BPM */
-		out_file = cpl_sprintf("%s_%s_master_bpm.fits", RECIPE_STRING,
-                decker_desc[i]) ;
-        cr2res_io_save_FLAT_BPM(out_file, frameset, parlist,
-                bpm, NULL, ext_plist, RECIPE_STRING) ;
+        cr2res_io_save_CALIB_COLLAPSED(out_file, frameset, parlist,
+                calib_collapsed, NULL, ext_plist, RECIPE_STRING) ;
 		cpl_free(out_file);
 
         /* Free */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-            if (master_flat[det_nr-1] != NULL)
-                hdrl_image_delete(master_flat[det_nr-1]) ;
-            if (bpm[det_nr-1] != NULL) 
-                hdrl_image_delete(bpm[det_nr-1]) ;
+            if (calib_collapsed[det_nr-1] != NULL)
+                hdrl_image_delete(calib_collapsed[det_nr-1]) ;
             if (ext_plist[det_nr-1] != NULL) 
                 cpl_propertylist_delete(ext_plist[det_nr-1]) ;
         }
@@ -323,32 +310,22 @@ static int cr2res_util_normflat(
   @return  
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_normflat_reduce(
+static int cr2res_util_calib_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
-        const cpl_frame     *   master_bpm_frame,
+        const cpl_frame     *   bpm_frame,
         int                     reduce_det,
-        hdrl_image          **  master_flat,
-        hdrl_image          **  bpm,
+        hdrl_image          **  calib_collapsed,
         cpl_propertylist    **  ext_plist)
 {
     const char          *   first_file ;
     cpl_imagelist       *   detlin_coeffs ;
     cpl_image           *   master_dark ;
     cpl_imagelist       *   imlist ;
-    hdrl_image          *   master_flat_loc ;
-    cpl_image           *   bpm_in ;
-    cpl_image           *   bpm_loc ;
-    cpl_table           *   traces ;
-    cpl_vector          **  spectrum ;
-    cpl_vector          **  slit_func ;
-    hdrl_image          *   model_master;
-    cpl_table           *   slit_func_tab ;
-    cpl_table           *   extract_tab ;
-    hdrl_image          *   model_tmp ;
+    hdrl_image          *   calib_collapsed_loc ;
     cpl_propertylist    *   plist ;
-    int                     i, ext_nr, nb_traces, order, trace_id ;
+    int                     i, ext_nr ;
     
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
@@ -392,10 +369,10 @@ static int cr2res_util_normflat_reduce(
         detlin_coeffs = NULL ;
     }
 
-    /* Compute the Master flat */
-    if ((master_flat_loc = cr2res_flat(imlist, master_dark, 
-                    detlin_coeffs)) == NULL) {
-        cpl_msg_error(__func__, "Failed to Compute the master flat") ;
+    /* Compute the Calib */
+    if ((calib_collapsed_loc = cr2res_calib_collapse(imlist, master_dark, 
+                    detlin_coeffs, 0)) == NULL) {
+        cpl_msg_error(__func__, "Failed to Calibrate/Collapse") ;
         cpl_propertylist_delete(plist);
         cpl_imagelist_delete(imlist) ;
         if (detlin_coeffs != NULL) cpl_imagelist_delete(detlin_coeffs) ;
@@ -406,35 +383,8 @@ static int cr2res_util_normflat_reduce(
     if (master_dark != NULL) cpl_image_delete(master_dark) ;
     cpl_imagelist_delete(imlist) ;
 
-    /* Compute BPM */
-    if ((bpm_loc = cr2res_bpm_from_master_flat(master_flat_loc,
-                    0.5, 2.0, 0.5)) == NULL) {
-        cpl_msg_warning(__func__, "Failed to Compute the BPM") ;
-    } else {
-        /* Merge BPM with the input one */
-        if (master_bpm_frame != NULL) {
-            if ((bpm_in = cr2res_io_load_BPM(
-                            cpl_frame_get_filename(master_bpm_frame), 
-                            reduce_det)) == NULL) {
-                cpl_msg_warning(__func__, "Failed to Load the Master BPM") ;
-            }
-        } else {
-            bpm_in = NULL ;
-        }
-        /* Combine the 2 BPMs */
-        /* TODO */
-        if (bpm_in != NULL) 
-            cpl_image_add(bpm_loc, bpm_in) ;
-    }
-
     /* Return the results */
-    *master_flat = master_flat_loc ;
-    if (bpm_loc != NULL) {
-        *bpm = hdrl_image_create(bpm_loc, NULL) ;
-        cpl_image_delete(bpm_loc) ;
-    } else {
-        *bpm = NULL ;
-    }
+    *calib_collapsed = calib_collapsed_loc ;
     *ext_plist = plist ;
     return 0 ;
 }
