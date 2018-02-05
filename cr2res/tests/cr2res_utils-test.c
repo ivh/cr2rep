@@ -470,6 +470,7 @@ static void test_cr2res_get_trace_table_orders(void)
 
     //deallocate memory
     cpl_table_unwrap(trace_wave, "Order");
+    cpl_table_delete(trace_wave);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -484,16 +485,42 @@ static void test_cr2res_get_trace_table_orders(void)
 static void test_cr2res_get_trace_table_index(void)
 {
     //define input
-    cpl_table *trace_wave;
-    int order;
-    int trace_nb;
+    int n = 10;
+    int data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    int data2[] = {1, 1, 1, 1, 1, 1, 2, 1, 1, 1};
+    cpl_table *trace_wave = cpl_table_new(n);
+    cpl_table_wrap_int(trace_wave, data, "Order"); //what table do we need ?
+    cpl_table_wrap_int(trace_wave, data2, "TraceNb");
+
+    int order = 5;
+    int trace_nb = 1;
     cpl_size res;
 
     //run test
     cpl_test(res = cr2res_get_trace_table_index(trace_wave, order, trace_nb));
     //test output
+    cpl_test_eq(res, 4);
+
+
+    order = 7;
+    // trace would be 2, but we just look for 1
+    //run test
+    cpl_test(res = cr2res_get_trace_table_index(trace_wave, order, trace_nb));
+    //test output
+    cpl_test_eq(res, -1);
+
+    order = -10;
+    // order does not exist
+    //run test
+    cpl_test(res = cr2res_get_trace_table_index(trace_wave, order, trace_nb));
+    //test output
+    cpl_test_eq(res, -1);
+
 
     //deallocate memory
+    cpl_table_unwrap(trace_wave, "Order");
+    cpl_table_unwrap(trace_wave, "TraceNb");
+    cpl_table_delete(trace_wave);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -509,7 +536,12 @@ static void test_cr2res_get_trace_table_index(void)
 static void test_cr2res_get_trace_wave_poly(void)
 {
     //define input
-    cpl_table *trace_wave;
+    int n = 10;
+    int data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    int data2[] = {1, 1, 1, 1, 1, 1, 2, 1, 1, 1};
+    cpl_table *trace_wave = cpl_table_new(n);
+    cpl_table_wrap_int(trace_wave, data, "Order"); //what table do we need ?
+    cpl_table_wrap_int(trace_wave, data2, "TraceNb");
     char *poly_column;
     int order;
     int trace_nb;
@@ -520,6 +552,9 @@ static void test_cr2res_get_trace_wave_poly(void)
     //test output
 
     //deallocate memory
+    cpl_table_unwrap(trace_wave, "Order");
+    cpl_table_unwrap(trace_wave, "TraceNb");
+    cpl_table_delete(trace_wave);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -714,9 +749,9 @@ int main(void)
     test_cr2res_get_root_name();
     test_cr2res_extract_filename();
     test_cr2res_extract_frameset();
-    test_cr2res_get_trace_table_orders();
-    // test_cr2res_get_trace_table_index();
-    // test_cr2res_get_trace_wave_poly();
+    // test_cr2res_get_trace_table_orders();
+    test_cr2res_get_trace_table_index();
+    test_cr2res_get_trace_wave_poly();
     // test_cr2res_wlestimate_compute();
     // test_cr2res_convert_order_to_idx();
     // test_cr2res_convert_idx_to_order();
