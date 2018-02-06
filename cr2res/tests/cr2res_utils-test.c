@@ -368,25 +368,25 @@ static void test_cr2res_extract_filename(void)
 {
     //define input
     cpl_frame *frame = cpl_frame_new();
-    cpl_frame_set_filename(frame, "cr2res_trace-test.log");
+    cpl_frame_set_filename(frame, "bla-test.log");
     cpl_frame_set_tag(frame, "test_correct");
 
 
     cpl_frame *other = cpl_frame_new();
-    cpl_frame_set_filename(other, "cr2res_asdhsladh-test.log");
+    cpl_frame_set_filename(other, "blub-test.log");
     cpl_frame_set_tag(other, "test_wrong");
 
     cpl_frameset *in = cpl_frameset_new();
     cpl_frameset_insert(in, other);
     cpl_frameset_insert(in, frame);
-
+    
     char *tag = "test_correct";
     const char *res;
 
     //run test
     cpl_test(res = cr2res_extract_filename(in, tag));
     //test output
-    cpl_test_eq_string(res, "cr2res_trace-test.log");
+    cpl_test_eq_string(res, "bla-test.log");
 
     //deallocate memory
     cpl_frameset_delete(in); //this should also delete the frames
@@ -406,12 +406,12 @@ static void test_cr2res_extract_frameset(void)
 {
     //define input
     cpl_frame *frame = cpl_frame_new();
-    cpl_frame_set_filename(frame, "cr2res_trace-test.log");
+    cpl_frame_set_filename(frame, "bla-test.log");
     cpl_frame_set_tag(frame, "test_correct");
 
 
     cpl_frame *other = cpl_frame_new();
-    cpl_frame_set_filename(other, "cr2res_asdhsladh-test.log");
+    cpl_frame_set_filename(other, "blub-test.log");
     cpl_frame_set_tag(other, "test_wrong");
 
     cpl_frameset *in = cpl_frameset_new();
@@ -427,7 +427,7 @@ static void test_cr2res_extract_frameset(void)
     //test size
     cpl_test_eq(1, cpl_frameset_get_size(res));
     //check if filenames fit
-    const char *fname1 = "cr2res_trace-test.log";
+    const char *fname1 = "bla-test.log";
     const char *fname2 = cpl_frame_get_filename(cpl_frameset_get_position(res, 0));
     cpl_test_eq_string(fname1, fname2); //Is that the right comparison?
     //check that the reference was copied as it is supposed to
@@ -460,7 +460,7 @@ static void test_cr2res_get_trace_table_orders(void)
 
     cpl_test_eq(cur_order, 6);
 
-    int nb_orders;
+    int nb_orders = 10;
     int *res;
 
     //run test
@@ -493,8 +493,8 @@ static void test_cr2res_get_trace_table_index(void)
     int data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     int data2[] = {1, 1, 1, 1, 1, 1, 2, 1, 1, 1};
     cpl_table *trace_wave = cpl_table_new(n);
-    cpl_table_wrap_int(trace_wave, data, "Order"); //what table do we need ?
-    cpl_table_wrap_int(trace_wave, data2, "TraceNb");
+    cpl_table_wrap_int(trace_wave, data, CR2RES_COL_ORDER); //what table do we need ?
+    cpl_table_wrap_int(trace_wave, data2, CR2RES_COL_TRACENB);
 
     int order = 5;
     int trace_nb = 1;
@@ -522,8 +522,8 @@ static void test_cr2res_get_trace_table_index(void)
 
 
     //deallocate memory
-    cpl_table_unwrap(trace_wave, "Order");
-    cpl_table_unwrap(trace_wave, "TraceNb");
+    cpl_table_unwrap(trace_wave, CR2RES_COL_ORDER);
+    cpl_table_unwrap(trace_wave, CR2RES_COL_TRACENB);
     cpl_table_delete(trace_wave);
 }
 
@@ -578,17 +578,29 @@ static void test_cr2res_get_trace_wave_poly(void)
 static void test_cr2res_wlestimate_compute(void)
 {
     //define input
-    double wmin = 3000; //???
-    double wmax = 5000;
+    // these values return "simple" results 
+    double wmin = 2000;
+    double wmax = 4047;
     cpl_polynomial *res;
 
     //run test
     cpl_test(res = cr2res_wlestimate_compute(wmin, wmax));
     //test output
-    //which coefficients should it then have???
+    cpl_size power = 0;
+    cpl_test_abs(1999.0, cpl_polynomial_get_coeff(res, &power), DBL_EPSILON);
+    power = 1;
+    cpl_test_abs(1.0, cpl_polynomial_get_coeff(res, &power), DBL_EPSILON);
 
     //deallocate memory
     cpl_polynomial_delete(res);
+
+    wmin = 5000;
+    wmax = 4047;
+    cpl_test_null(cr2res_wlestimate_compute(wmin, wmax));
+
+    wmin = -10;
+    wmax = 0.11;
+    cpl_test_null(cr2res_wlestimate_compute(wmin, wmax));
 }
 
 /*----------------------------------------------------------------------------*/
@@ -602,15 +614,22 @@ static void test_cr2res_wlestimate_compute(void)
 static void test_cr2res_convert_order_to_idx(void)
 {
     //define input
-    int order = 20;
+    int order;
     int res;
 
     //run test
-    cpl_test(res = cr2res_convert_order_to_idx(order));
-    //test output
-    cpl_test_assert(res == 69); // ????
+    order = 50;
+    cpl_test_eq(order, cr2res_convert_order_to_idx(order));
+    
+    order = -49;
+    cpl_test_eq(order + 100, cr2res_convert_order_to_idx(order));
 
-    //deallocate memory
+    order = 51;
+    cpl_test_eq(-1, cr2res_convert_order_to_idx(order));
+
+
+    order = -50;
+    cpl_test_eq(-1, cr2res_convert_order_to_idx(order));
 }
 
 /*----------------------------------------------------------------------------*/
@@ -747,26 +766,25 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    // test_cr2res_vector_get_rest();
-    // test_cr2res_vector_get_int();
-    // test_cr2res_polynomial_eval_vector();
-    // test_cr2res_image_cut_rectify();
-    // test_cr2res_image_insert_rect();
-    // test_cr2res_threshold_spec();
-    //test_cr2res_get_base_name();
-    //test_cr2res_get_root_name();
-    //test_cr2res_extract_filename();
-    //test_cr2res_extract_frameset();
+    test_cr2res_vector_get_rest();
+    test_cr2res_vector_get_int();
+    test_cr2res_polynomial_eval_vector();
+    test_cr2res_image_cut_rectify();
+    test_cr2res_image_insert_rect();
+    test_cr2res_threshold_spec();
+    test_cr2res_get_base_name();
+    test_cr2res_get_root_name();
+    test_cr2res_extract_frameset();
     test_cr2res_get_trace_table_orders();
-    //test_cr2res_get_trace_table_index();
+    test_cr2res_get_trace_table_index();
     test_cr2res_get_trace_wave_poly();
-    // test_cr2res_wlestimate_compute();
-    // test_cr2res_convert_order_to_idx();
-    // test_cr2res_convert_idx_to_order();
-    // test_cr2res_convert_array_to_poly();
-    // test_cr2res_convert_poly_to_array();
-    // test_cr2res_detector_shotnoise_model();
-    // test_cr2res_get_license();
+    test_cr2res_wlestimate_compute();
+    test_cr2res_convert_order_to_idx();
+    test_cr2res_convert_idx_to_order();
+    test_cr2res_convert_array_to_poly();
+    test_cr2res_convert_poly_to_array();
+    test_cr2res_detector_shotnoise_model();
+    test_cr2res_get_license();
 
     return cpl_test_end(0);
 }
