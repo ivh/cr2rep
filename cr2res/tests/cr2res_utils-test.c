@@ -427,8 +427,8 @@ static void test_cr2res_extract_frameset(void)
     //test size
     cpl_test_eq(1, cpl_frameset_get_size(res));
     //check if filenames fit
-    char *fname1 = "cr2res_trace-test.log";
-    char *fname2 = cpl_frame_get_filename(cpl_frameset_get_position(res, 0));
+    const char *fname1 = "cr2res_trace-test.log";
+    const char *fname2 = cpl_frame_get_filename(cpl_frameset_get_position(res, 0));
     cpl_test_eq_string(fname1, fname2); //Is that the right comparison?
     //check that the reference was copied as it is supposed to
     cpl_test_noneq_ptr(cpl_frameset_get_position(res, 0), frame);
@@ -454,23 +454,26 @@ static void test_cr2res_get_trace_table_orders(void)
     int n = 10;
     int data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     cpl_table *trace_wave = cpl_table_new(n);
-    cpl_table_wrap_int(trace_wave, data, "Order"); //what table do we need ?
+    cpl_table_wrap_int(trace_wave, data, CR2RES_COL_ORDER); //what table do we need ?
 
-    int cur_order = cpl_table_get(trace_wave, "Order", 5, NULL) ;
+    int cur_order = cpl_table_get(trace_wave, CR2RES_COL_ORDER, 5, NULL) ;
 
     cpl_test_eq(cur_order, 6);
 
-    int *nb_orders = 10;
+    int nb_orders;
     int *res;
 
     //run test
-    cpl_test(res = cr2res_get_trace_table_orders(trace_wave, nb_orders));
+    cpl_test(res = cr2res_get_trace_table_orders(trace_wave, &nb_orders));
+    cpl_test_eq(nb_orders, n);
+
     //test output
-    //cpl_error_set_message(test_cr2res_get_trace_table_orders, CPL_ERROR_NULL_INPUT, "%s", res);
-    cpl_test_array_abs(res, data, DBL_EPSILON * n * n * 10);
+    //cpl_test_array_abs(res, data, DBL_EPSILON * n ); // This segfaults, unclear why.
+    for (int i=0; i < n; i++) cpl_test_eq(data[i],res[i]);
 
     //deallocate memory
-    cpl_table_unwrap(trace_wave, "Order");
+    cpl_free(res);
+    cpl_table_unwrap(trace_wave, CR2RES_COL_ORDER);
     cpl_table_delete(trace_wave);
 }
 
@@ -754,7 +757,7 @@ int main(void)
     //test_cr2res_get_root_name();
     //test_cr2res_extract_filename();
     //test_cr2res_extract_frameset();
-    // test_cr2res_get_trace_table_orders();
+    test_cr2res_get_trace_table_orders();
     //test_cr2res_get_trace_table_index();
     test_cr2res_get_trace_wave_poly();
     // test_cr2res_wlestimate_compute();
