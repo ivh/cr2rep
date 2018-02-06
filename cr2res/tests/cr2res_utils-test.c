@@ -29,6 +29,7 @@
 #include <string.h>
 #include <cpl.h>
 #include <cr2res_utils.h>
+#include <cr2res_dfs.h>
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -378,7 +379,7 @@ static void test_cr2res_extract_filename(void)
     cpl_frameset *in = cpl_frameset_new();
     cpl_frameset_insert(in, other);
     cpl_frameset_insert(in, frame);
-    
+
     char *tag = "test_correct";
     const char *res;
 
@@ -386,7 +387,7 @@ static void test_cr2res_extract_filename(void)
     cpl_test(res = cr2res_extract_filename(in, tag));
     //test output
     cpl_test_eq_string(res, "cr2res_trace-test.log");
-    
+
     //deallocate memory
     cpl_frameset_delete(in); //this should also delete the frames
 }
@@ -535,26 +536,30 @@ static void test_cr2res_get_trace_table_index(void)
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_get_trace_wave_poly(void)
 {
-    //define input
-    int n = 10;
-    int data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    int data2[] = {1, 1, 1, 1, 1, 1, 2, 1, 1, 1};
-    cpl_table *trace_wave = cpl_table_new(n);
-    cpl_table_wrap_int(trace_wave, data, "Order"); //what table do we need ?
-    cpl_table_wrap_int(trace_wave, data2, "TraceNb");
-    char *poly_column;
-    int order;
-    int trace_nb;
-    cpl_polynomial *res;
+    cpl_table *trace_wave = cpl_table_new(1);
+    cpl_table_new_column_array (trace_wave, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 3);
+    cpl_table_new_column(trace_wave, CR2RES_COL_ORDER, CPL_TYPE_INT);
+    cpl_table_new_column(trace_wave, CR2RES_COL_TRACENB, CPL_TYPE_INT);
+    cpl_table_set(trace_wave, CR2RES_COL_ORDER, 0, 1);
+    cpl_table_set(trace_wave, CR2RES_COL_TRACENB, 0, 1);
+    double pdata[] = {1.1, 2.2, 3.3};
+    cpl_array * parr = cpl_array_wrap_double(pdata, 3);
+    cpl_table_set_array(trace_wave, CR2RES_COL_WAVELENGTH, 0, parr);
 
     //run test
-    cpl_test(res = cr2res_get_trace_wave_poly(trace_wave, poly_column, order, trace_nb));
+    cpl_polynomial * res_poly;
+    cpl_test(res_poly = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH, 1, 1));
     //test output
+    cpl_size power = 0;
+    cpl_test_abs(1.1, cpl_polynomial_get_coeff(res_poly, &power), DBL_EPSILON);
+    power = 1;
+    cpl_test_abs(2.2, cpl_polynomial_get_coeff(res_poly, &power), DBL_EPSILON);
+    power = 2;
+    cpl_test_abs(3.3, cpl_polynomial_get_coeff(res_poly, &power), DBL_EPSILON);
 
-    //deallocate memory
-    cpl_table_unwrap(trace_wave, "Order");
-    cpl_table_unwrap(trace_wave, "TraceNb");
+    cpl_array_unwrap(parr);
     cpl_table_delete(trace_wave);
+    cpl_polynomial_delete(res_poly);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -739,39 +744,18 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-<<<<<<< HEAD
-    test_cr2res_vector_get_rest();
-    test_cr2res_vector_get_int();
-    test_cr2res_polynomial_eval_vector();
-    test_cr2res_image_cut_rectify();
-    test_cr2res_image_insert_rect();
-    test_cr2res_threshold_spec();
-    test_cr2res_get_base_name();
-    test_cr2res_get_root_name();
-    test_cr2res_extract_frameset();
-    test_cr2res_get_trace_table_orders();
-    test_cr2res_get_trace_table_index();
-    test_cr2res_get_trace_wave_poly();
-    test_cr2res_wlestimate_compute();
-    test_cr2res_convert_order_to_idx();
-    test_cr2res_convert_idx_to_order();
-    test_cr2res_convert_array_to_poly();
-    test_cr2res_convert_poly_to_array();
-    test_cr2res_detector_shotnoise_model();
-    test_cr2res_get_license();
-=======
     // test_cr2res_vector_get_rest();
     // test_cr2res_vector_get_int();
     // test_cr2res_polynomial_eval_vector();
     // test_cr2res_image_cut_rectify();
     // test_cr2res_image_insert_rect();
     // test_cr2res_threshold_spec();
-    test_cr2res_get_base_name();
-    test_cr2res_get_root_name();
-    test_cr2res_extract_filename();
-    test_cr2res_extract_frameset();
+    //test_cr2res_get_base_name();
+    //test_cr2res_get_root_name();
+    //test_cr2res_extract_filename();
+    //test_cr2res_extract_frameset();
     // test_cr2res_get_trace_table_orders();
-    test_cr2res_get_trace_table_index();
+    //test_cr2res_get_trace_table_index();
     test_cr2res_get_trace_wave_poly();
     // test_cr2res_wlestimate_compute();
     // test_cr2res_convert_order_to_idx();
@@ -780,7 +764,6 @@ int main(void)
     // test_cr2res_convert_poly_to_array();
     // test_cr2res_detector_shotnoise_model();
     // test_cr2res_get_license();
->>>>>>> 7bec9d8d32d0d5d424e951d9bad6eacefde62292
 
     return cpl_test_end(0);
 }
