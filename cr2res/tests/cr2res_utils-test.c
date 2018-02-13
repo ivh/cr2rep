@@ -78,7 +78,7 @@ static void test_cr2res_vector_get_int(void)
 {
     int i;
     double d;
-    int n = 1000;
+    int n = 10;
     cpl_vector *in = cpl_vector_new(n);
     int *res;
 
@@ -155,13 +155,13 @@ static void test_cr2res_image_cut_rectify(void)
     cpl_image_flip(img, 0); // so that the image looks as formatted above.
 
     double ydata[] = {1.9, 2.1, 3.5, 2.8, 3.99};
-    cpl_vector * ycen = cpl_vector_wrap(5, ydata);
+    cpl_vector *ycen = cpl_vector_wrap(5, ydata);
 
     // Run the main function to be tested
-    cpl_test( res=cr2res_image_cut_rectify(img, ycen, 1) );
+    cpl_test(res = cr2res_image_cut_rectify(img, ycen, 1));
 
     // What result should be
-    int cmpdata[] = {9,9,9,9,9};
+    int cmpdata[] = {9, 9, 9, 9, 9};
     cmp = cpl_image_wrap_int(5, 1, cmpdata);
 
     // Compare the two
@@ -185,11 +185,11 @@ static void test_cr2res_image_cut_rectify(void)
 static void test_cr2res_image_insert_rect(void)
 {
     int recdata[] = {1, 2, 3, 2, 1,
-                    1, 2, 9, 2, 9,
-                    1, 9, 3, 9, 1,
-                    9, 2, 3, 2, 1};
+                     1, 2, 9, 2, 9,
+                     1, 9, 3, 9, 1,
+                     9, 2, 3, 2, 1};
     cpl_image *rect_in = cpl_image_wrap_int(5, 4, recdata);
-    cpl_image_flip(rect_in,0);
+    cpl_image_flip(rect_in, 0);
 
     double ydata[] = {0.5, 1.1, 6.7, 11.9, 12.1};
     cpl_vector *ycen = cpl_vector_wrap(5, ydata);
@@ -207,11 +207,12 @@ static void test_cr2res_image_insert_rect(void)
                      0, 2, 0, 0, 0,
                      1, 2, 0, 0, 0};
     cpl_image *compare = cpl_image_wrap_int(5, 12, cmpdata);
-    cpl_image_flip(compare,0);
+    cpl_image_flip(compare, 0);
 
     cpl_test_zero(cr2res_image_insert_rect(rect_in, ycen, img_out));
 
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG)
+    {
         cpl_image_save(img_out, "out.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
         cpl_image_save(compare, "cmp.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
     }
@@ -239,7 +240,7 @@ static void test_cr2res_polynomial_eval_vector(void)
     int i;
     double p0 = 1.1, p1 = 2.2, p2 = 3.3;
     double d, val;
-    int n = 1000;
+    int n = 100;
     cpl_vector *in = cpl_vector_new(n);
     cpl_vector *out = cpl_vector_new(n);
     cpl_vector *res;
@@ -278,7 +279,7 @@ static void test_cr2res_polynomial_eval_vector(void)
   @brief    Find the regions with over-average values in a vector
   @param    invector    The vector to be analyzed
   @param    smooth      The size of the boxcar smoothing kernel
-  @return   Vector derived as (invector-smoothed_vector - thresh),
+  @return   Vector derived as (invector - smoothed_vector - thresh),
             meaning that positive values are at least thresh larger than
             the smoothed vector.
             The returned vector needs to be deallocated by the caller.
@@ -288,13 +289,16 @@ static void test_cr2res_threshold_spec(void)
 {
     //define input
     int n = 10;
-    double data[] = {1,2,1,5,2,1,15,1,0,1};
+    double data[] = {1., 2., 1., 5., 3., 1., 15., 2., 0., 1.};
     cpl_vector *invector = cpl_vector_wrap(n, data);
-    //expected data ?
-    double outdata[] = {0.5, -2.5, -1.5, -1.5, 0, 0.5, -1.5, 5, 5, -2.5};
+    // expected data = data - median of boxcar - thresh
+    // what is the expected behaviour at the borders?
+    // -3, -3, -4, 0, -3, -4, 10, -2, -3, -1
+    double outdata[] = {1-1-3, 2-1-3, 1-2-3, 5-3-3, 3-3-3, 1-3-3, 15-2-3, 2-2-3, 0-1-3, 1-1-3};
     cpl_vector *outvector = cpl_vector_wrap(n, outdata);
 
-    int smooth = 2;
+    //boxcar size = smooth + 3, for even values, and smooth + 2 for odd values
+    int smooth = 0; //the documentation isn't really right about what smooth is
     double thresh = 3;
     //define output
     cpl_vector *res;
@@ -307,8 +311,8 @@ static void test_cr2res_threshold_spec(void)
     cpl_test_vector_abs(outvector, res, DBL_EPSILON * n * n * 10);
 
     //deallocate memory
-    cpl_vector_delete(outvector);
-    cpl_vector_delete(invector);
+    cpl_vector_unwrap(outvector);
+    cpl_vector_unwrap(invector);
     cpl_vector_delete(res);
 
     return;
@@ -371,7 +375,6 @@ static void test_cr2res_extract_filename(void)
     cpl_frame_set_filename(frame, "bla-test.log");
     cpl_frame_set_tag(frame, "test_correct");
 
-
     cpl_frame *other = cpl_frame_new();
     cpl_frame_set_filename(other, "blub-test.log");
     cpl_frame_set_tag(other, "test_wrong");
@@ -379,7 +382,7 @@ static void test_cr2res_extract_filename(void)
     cpl_frameset *in = cpl_frameset_new();
     cpl_frameset_insert(in, other);
     cpl_frameset_insert(in, frame);
-    
+
     char *tag = "test_correct";
     const char *res;
 
@@ -408,7 +411,6 @@ static void test_cr2res_extract_frameset(void)
     cpl_frame *frame = cpl_frame_new();
     cpl_frame_set_filename(frame, "bla-test.log");
     cpl_frame_set_tag(frame, "test_correct");
-
 
     cpl_frame *other = cpl_frame_new();
     cpl_frame_set_filename(other, "blub-test.log");
@@ -456,7 +458,7 @@ static void test_cr2res_get_trace_table_orders(void)
     cpl_table *trace_wave = cpl_table_new(n);
     cpl_table_wrap_int(trace_wave, data, CR2RES_COL_ORDER); //what table do we need ?
 
-    int cur_order = cpl_table_get(trace_wave, CR2RES_COL_ORDER, 5, NULL) ;
+    int cur_order = cpl_table_get(trace_wave, CR2RES_COL_ORDER, 5, NULL);
 
     cpl_test_eq(cur_order, 6);
 
@@ -469,7 +471,8 @@ static void test_cr2res_get_trace_table_orders(void)
 
     //test output
     //cpl_test_array_abs(res, data, DBL_EPSILON * n ); // This segfaults, unclear why.
-    for (int i=0; i < n; i++) cpl_test_eq(data[i],res[i]);
+    for (int i = 0; i < n; i++)
+        cpl_test_eq(data[i], res[i]);
 
     //deallocate memory
     cpl_free(res);
@@ -505,7 +508,6 @@ static void test_cr2res_get_trace_table_index(void)
     //test output
     cpl_test_eq(res, 4);
 
-
     order = 7;
     // trace would be 2, but we just look for 1
     //run test
@@ -519,7 +521,6 @@ static void test_cr2res_get_trace_table_index(void)
     cpl_test(res = cr2res_get_trace_table_index(trace_wave, order, trace_nb));
     //test output
     cpl_test_eq(res, -1);
-
 
     //deallocate memory
     cpl_table_unwrap(trace_wave, CR2RES_COL_ORDER);
@@ -540,17 +541,17 @@ static void test_cr2res_get_trace_table_index(void)
 static void test_cr2res_get_trace_wave_poly(void)
 {
     cpl_table *trace_wave = cpl_table_new(1);
-    cpl_table_new_column_array (trace_wave, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 3);
+    cpl_table_new_column_array(trace_wave, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 3);
     cpl_table_new_column(trace_wave, CR2RES_COL_ORDER, CPL_TYPE_INT);
     cpl_table_new_column(trace_wave, CR2RES_COL_TRACENB, CPL_TYPE_INT);
     cpl_table_set(trace_wave, CR2RES_COL_ORDER, 0, 1);
     cpl_table_set(trace_wave, CR2RES_COL_TRACENB, 0, 1);
     double pdata[] = {1.1, 2.2, 3.3};
-    cpl_array * parr = cpl_array_wrap_double(pdata, 3);
+    cpl_array *parr = cpl_array_wrap_double(pdata, 3);
     cpl_table_set_array(trace_wave, CR2RES_COL_WAVELENGTH, 0, parr);
 
     //run test
-    cpl_polynomial * res_poly;
+    cpl_polynomial *res_poly;
     cpl_test(res_poly = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH, 1, 1));
     //test output
     cpl_size power = 0;
@@ -578,7 +579,7 @@ static void test_cr2res_get_trace_wave_poly(void)
 static void test_cr2res_wlestimate_compute(void)
 {
     //define input
-    // these values return "simple" results 
+    // these values return "simple" results
     double wmin = 2000;
     double wmax = 4047;
     cpl_polynomial *res;
@@ -615,18 +616,16 @@ static void test_cr2res_convert_order_to_idx(void)
 {
     //define input
     int order;
-    int res;
 
     //run test
     order = 50;
     cpl_test_eq(order, cr2res_convert_order_to_idx(order));
-    
+
     order = -49;
     cpl_test_eq(order + 100, cr2res_convert_order_to_idx(order));
 
     order = 51;
     cpl_test_eq(-1, cr2res_convert_order_to_idx(order));
-
 
     order = -50;
     cpl_test_eq(-1, cr2res_convert_order_to_idx(order));
@@ -642,13 +641,20 @@ static void test_cr2res_convert_order_to_idx(void)
 static void test_cr2res_convert_idx_to_order(void)
 {
     //define input
-    int order_idx = 50;
-    int res;
+    int order;
 
     //run test
-    cpl_test(res = cr2res_convert_idx_to_order(order_idx));
-    //test output
-    cpl_test_assert(res == 1);
+    order = 0;
+    cpl_test_eq(order, cr2res_convert_idx_to_order(order));
+
+    order = 51;
+    cpl_test_eq(order - 100, cr2res_convert_idx_to_order(order));
+
+    order = -1;
+    cpl_test_eq(-1, cr2res_convert_idx_to_order(order));
+
+    order = 99;
+    cpl_test_eq(-1, cr2res_convert_idx_to_order(order));
 
     //deallocate memory
 }
@@ -668,12 +674,19 @@ static void test_cr2res_convert_array_to_poly(void)
     double data[] = {0.9, 1.5, 219.1, 123.8, 18, 123.3, 0.623, 0., 0.9, 1};
     cpl_array *arr = cpl_array_wrap_double(data, n);
     cpl_polynomial *res;
+    cpl_size power = 0;
+    double poly;
 
     //run test
     cpl_test(res = cr2res_convert_array_to_poly(arr));
-    //test output
 
-    //???
+    //test output
+    for (int i = 0; i < n; i++)
+    {
+        power = i;
+        poly = cpl_polynomial_get_coeff(res, &power);
+        cpl_test_eq(data[i], poly);
+    }
 
     //deallocate memory
     cpl_polynomial_delete(res);
@@ -692,15 +705,24 @@ static void test_cr2res_convert_array_to_poly(void)
 static void test_cr2res_convert_poly_to_array(void)
 {
     //define input
-    cpl_polynomial *poly;
-    int size;
-    cpl_array *res;
+    int n = 10;
+    cpl_array * res;
+    double data[] = {0.9, 1.5, 219.1, 123.8, 18, 123.3, 0.623, 0., 0.9, 1};
+    cpl_polynomial *poly = cpl_polynomial_new(1);
+    for (cpl_size i = 0; i < n; i++)
+        cpl_polynomial_set_coeff(poly, &i, data[i]);
+
+    //also if size = NULL, no error is raised. Problem?
 
     //run test
-    cpl_test(res = cr2res_convert_poly_to_array(poly, size));
+    cpl_test(res = cr2res_convert_poly_to_array(poly, n));
     //test output
+    for (int j = 0; j < n; j++)
+        cpl_test_eq(cpl_array_get(res, j, NULL), data[j]);
 
     //deallocate memory
+    cpl_polynomial_delete(poly);
+    cpl_array_delete(res);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -728,17 +750,34 @@ static void test_cr2res_convert_poly_to_array(void)
 static void test_cr2res_detector_shotnoise_model(void)
 {
     //define input
-    cpl_image *ima_data;
-    double gain;
-    double ron;
-    cpl_image **ima_errs;
+    cpl_image *ima_data = cpl_image_new(5, 12, CPL_TYPE_INT);
+    const double gain = 7;
+    const double ron = 3;
+    cpl_image *ima_errs;
     cpl_error_code res;
+    int cmpdata[] = {3, 3, 3, 3, 3,
+                     3, 3, 3, 3, 3,
+                     3, 3, 3, 3, 3,
+                     3, 3, 3, 3, 3,
+                     3, 3, 3, 3, 3,
+                     3, 3, 3, 3, 3,
+                     3, 3, 3, 3, 3,
+                     3, 3, 3, 3, 3,
+                     3, 3, 3, 3, 3,
+                     3, 3, 3, 3, 3,
+                     3, 3, 3, 3, 3,
+                     3, 3, 3, 3, 3};
+    cpl_image *compare = cpl_image_wrap_int(5, 12, cmpdata);
 
     //run test
-    cpl_test(res = cr2res_detector_shotnoise_model(ima_data, gain, ron, ima_errs));
+    cpl_test_eq(CPL_ERROR_NONE, cr2res_detector_shotnoise_model(ima_data, gain, ron, &ima_errs));
     //test output
+    cpl_test_image_abs(ima_errs, compare, 0);
 
     //deallocate memory
+    cpl_image_delete(ima_data);
+    cpl_image_delete(ima_errs);
+    cpl_image_unwrap(compare);
 }
 
 /*----------------------------------------------------------------------------*/
