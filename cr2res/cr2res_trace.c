@@ -466,7 +466,7 @@ cpl_vector * cr2res_trace_get_ycen(
     int             *    ptraces ;
     const cpl_array *    coeffs;
 
-    if (trace == NULL) return NULL ;
+    if (trace == NULL || size < 1) return NULL ;
 
     nrows = cpl_table_get_nrow(trace) ;
     porders = cpl_table_get_data_int(trace, CR2RES_COL_ORDER);
@@ -481,6 +481,9 @@ cpl_vector * cr2res_trace_get_ycen(
             poly = cr2res_convert_array_to_poly(coeffs) ;
         }
     }
+
+    // if no order found
+    if (poly == NULL) return NULL;
 
     out = cpl_vector_new(size) ;
     cpl_vector_fill_polynomial(out, poly, 1, 1);
@@ -506,9 +509,12 @@ int cr2res_trace_get_height(
     int    height;
     cpl_polynomial ** polys;
 
-    if (trace == NULL) return -1 ;
+    if (trace == NULL) return -1;
 
     polys = cr2res_trace_wave_get_polynomials(trace, order_nb, trace_nb);
+
+    // no order/trace found
+    if (polys == NULL) return -1;
 
     height = cr2res_trace_compute_height(polys[0], polys[1], CR2RES_DETECTOR_SIZE);
 
@@ -597,6 +603,10 @@ cpl_vector * cr2res_trace_compute_middle(
     cpl_vector  *   out ;
     cpl_polynomial * tmp;
 
+    if (trace1 == NULL || trace2 == NULL || vector_size < 1){
+        return NULL;
+    }
+
     out = cpl_vector_new(vector_size) ;
     tmp =  cpl_polynomial_new(1);
     cpl_polynomial_add(tmp, trace1, trace2);
@@ -630,7 +640,7 @@ int cr2res_trace_compute_height(
     int                 height ;
 
     /* Check Entries */
-    if (trace1 == NULL || trace2 == NULL) return -1 ;
+    if (trace1 == NULL || trace2 == NULL || vector_size < 1) return -1 ;
 
     diff_poly =  cpl_polynomial_new(1);
     diff_vec =  cpl_vector_new(vector_size);
