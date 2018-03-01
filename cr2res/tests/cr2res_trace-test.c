@@ -158,6 +158,7 @@ static cpl_image *create_test_image(void)
     cpl_table_delete(traces);
 
     cpl_image_save(trace_ima, "TEST.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+
     return trace_ima;
 }
 
@@ -198,14 +199,14 @@ static void test_cr2res_trace(void)
     /* NULL Input */
     cpl_test_null(cr2res_trace(NULL, 1.0, 1, 6, 500, 0));
     // regular run
-    cpl_test(out = cr2res_trace(trace_ima, 1.0, 1, 2, 10, 0));
+    //cpl_test(out = cr2res_trace(trace_ima, 1.0, 1, 2, 10, 0));
     // test results?
 
     // debug output
-    cpl_table_save(out, NULL, NULL, "TEST2.fits", CPL_IO_CREATE);
+    //cpl_table_save(out, NULL, NULL, "TEST2.fits", CPL_IO_CREATE);
 
     // free memory
-    cpl_table_delete(out);
+    //cpl_table_delete(out);
     cpl_image_delete(trace_ima);
     return;
 }
@@ -382,7 +383,7 @@ static void test_cr2res_trace_get_height(void)
     cpl_test_eq(cr2res_trace_get_height(NULL, order_nb, trace_nb), -1);
     cpl_test_eq(cr2res_trace_get_height(trace, 20, trace_nb), -1);
     cpl_test_eq(cr2res_trace_get_height(trace, order_nb, 5), -1);
-    
+
     cpl_test(res = cr2res_trace_get_height(trace, order_nb, trace_nb));
     //test output
     cpl_test_eq(res, 174.1271552); // value analytically from test table
@@ -426,11 +427,11 @@ static void test_cr2res_trace_wave_get_polynomials(void)
     cpl_size power = 0;
     cpl_test_abs(cpl_polynomial_get_coeff(res[0], &power), 524.126, DBL_EPSILON);
     cpl_test_abs(cpl_polynomial_get_coeff(res[1], &power), 350.398, DBL_EPSILON);
-    
+
     power = 1;
     cpl_test_abs(cpl_polynomial_get_coeff(res[0], &power), 0.0171958, DBL_EPSILON);
     cpl_test_abs(cpl_polynomial_get_coeff(res[1], &power), 0.0170009, DBL_EPSILON);
-    
+
     //deallocate memory
     cpl_table_delete(trace);
     cpl_polynomial_delete(res[0]);
@@ -460,7 +461,7 @@ static void test_cr2res_trace_compute_middle(void)
     cpl_size power = 0;
     cpl_polynomial_set_coeff(trace1, &power, 10.);
     cpl_polynomial_set_coeff(trace2, &power, 20.);
-    
+
     power = 1;
     cpl_polynomial_set_coeff(trace1, &power, 1.);
     cpl_polynomial_set_coeff(trace2, &power, 3.);
@@ -474,7 +475,7 @@ static void test_cr2res_trace_compute_middle(void)
     cpl_test_null(cr2res_trace_compute_middle(NULL, trace2, vector_size));
     cpl_test_null(cr2res_trace_compute_middle(trace1, NULL, vector_size));
     cpl_test_null(cr2res_trace_compute_middle(trace1, trace2, -1));
-    
+
     cpl_test(res = cr2res_trace_compute_middle(trace1, trace2, vector_size));
     //test output
     cpl_test_vector_abs(res, cmp, DBL_EPSILON);
@@ -507,7 +508,7 @@ static void test_cr2res_trace_compute_height(void)
     cpl_size power = 0;
     cpl_polynomial_set_coeff(trace1, &power, 10.);
     cpl_polynomial_set_coeff(trace2, &power, 20.);
-    
+
     power = 1;
     cpl_polynomial_set_coeff(trace1, &power, 1.);
     cpl_polynomial_set_coeff(trace2, &power, 3.);
@@ -793,7 +794,7 @@ static void test_cr2res_trace_extract_edges(void)
 /*----------------------------------------------------------------------------*/
 int main(void)
 {
-    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
+    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
     test_cr2res_trace();
     test_cr2res_trace_clean();

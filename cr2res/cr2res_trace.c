@@ -469,6 +469,10 @@ cpl_vector * cr2res_trace_get_ycen(
     if (trace == NULL || size < 1) return NULL ;
 
     nrows = cpl_table_get_nrow(trace) ;
+
+    // prevent reading garbage if invalid data in table
+    cpl_table_fill_invalid_int(trace, CR2RES_COL_ORDER, -1);
+    cpl_table_fill_invalid_int(trace, CR2RES_COL_TRACENB, -1);
     porders = cpl_table_get_data_int(trace, CR2RES_COL_ORDER);
     ptraces = cpl_table_get_data_int(trace, CR2RES_COL_TRACENB);
 
@@ -478,12 +482,22 @@ cpl_vector * cr2res_trace_get_ycen(
         if (porders[i] == order_nb && ptraces[i] == trace_nb) {
             /* Get the polynomial*/
             coeffs = cpl_table_get_array(trace, CR2RES_COL_ALL, i) ;
+            if (coeffs == NULL) {
+                cpl_msg_warning(__func__,
+                    "Row %d should have our array, but error %d",i,cpl_error_get_code());
+                cpl_error_reset();
+                continue;
+            }
             poly = cr2res_convert_array_to_poly(coeffs) ;
+            break; // The first one is enough.
         }
     }
 
     // if no order found
-    if (poly == NULL) return NULL;
+    if (poly == NULL){
+        cpl_msg_warning(__func__, "Cannot find trace %d of order %d in table.", trace_nb, order_nb);
+        return NULL;
+    }
 
     out = cpl_vector_new(size) ;
     cpl_vector_fill_polynomial(out, poly, 1, 1);
