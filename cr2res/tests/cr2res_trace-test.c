@@ -36,7 +36,7 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static void test_cr2res_trace(void);
+static void test_cr2res_trace(void) ;
 static void test_cr2res_trace_clean(void);
 static void test_cr2res_trace_gen_image(void);
 static void test_cr2res_trace_get_order_numbers(void);
@@ -81,16 +81,16 @@ static void test_cr2res_trace_extract_edges(void);
 /*----------------------------------------------------------------------------*/
 static cpl_table *create_test_table(void)
 {
-    cpl_table *traces;
+    cpl_table   *   traces ;
     cpl_array *array;
-    int poly_order, norders;
+	int				poly_order, norders ;
 
     /* Initialise */
-    poly_order = 2;
-    norders = 9;
+    poly_order = 2 ;
+    norders = 9 ;
 
-    /* Create a label image with 9 orders */
-    traces = cpl_table_new(norders);
+    /* NULL Input */
+    traces = cpl_table_new(norders) ;
     cpl_table_new_column_array(traces, CR2RES_COL_ALL, CPL_TYPE_DOUBLE, poly_order);
     cpl_table_new_column_array(traces, CR2RES_COL_UPPER, CPL_TYPE_DOUBLE, poly_order);
     cpl_table_new_column_array(traces, CR2RES_COL_LOWER, CPL_TYPE_DOUBLE, poly_order);
@@ -111,18 +111,18 @@ static cpl_table *create_test_table(void)
 
   */
     double all_1[] = {54.3148, 226.289, 437.881, 660.954, 897.266,
-                      1148.31, 1415.88, 1701.85, 1982.59};
+           1148.31, 1415.88, 1701.85, 1982.59} ;
     double all_2[] = {0.00738623, 0.0169145, 0.0172448, 0.0178211,
-                      0.0185319, 0.019388, 0.0202877, 0.021292, 0.0111388};
+           0.0185319, 0.019388, 0.0202877, 0.021292, 0.0111388} ;
     double upper_1[] = {110.379, 311.885, 524.126, 747.931, 985.06,
-                        1237.01, 1505.34, 1792.03, 2047.88};
+           1237.01, 1505.34, 1792.03, 2047.88} ;
     double upper_2[] = {0.0159501, 0.0167957, 0.0171958, 0.0179547,
-                        0.0186544, 0.0193813, 0.0202763, 0.0213662, 8.66878e-05};
+           0.0186544, 0.0193813, 0.0202763, 0.0213662, 8.66878e-05} ;
     double lower_1[] = {1.63328, 139.106, 350.398, 572.986, 808.823,
-                        1059.39, 1326.43, 1611.65, 1917.3};
+           1059.39, 1326.43, 1611.65, 1917.3} ;
     double lower_2[] = {-8.95809e-05, 0.017396, 0.0170009, 0.0177137,
-                        0.0185517, 0.0194215, 0.0202534, 0.0212178, 0.0221835};
-    array = cpl_array_new(poly_order, CPL_TYPE_DOUBLE);
+           0.0185517, 0.0194215, 0.0202534, 0.0212178, 0.0221835} ;
+    array = cpl_array_new(poly_order, CPL_TYPE_DOUBLE) ;
     for (int i = 0; i < norders; i++)
     {
         cpl_array_set(array, 0, all_1[i]);
@@ -137,7 +137,7 @@ static cpl_table *create_test_table(void)
         cpl_table_set(traces, CR2RES_COL_ORDER, i, i + 1);
         cpl_table_set(traces, CR2RES_COL_TRACENB, i, 1);
     }
-    cpl_array_delete(array);
+    cpl_array_delete(array) ;
     return traces;
 }
 
@@ -152,17 +152,22 @@ static cpl_image *create_test_image(void)
 {
     cpl_table *traces;
     cpl_image *trace_ima;
+    cpl_image *extract;
 
     traces = create_test_table();
-    trace_ima = cr2res_trace_gen_image(traces, 2048, 2048);
-    cpl_table_delete(traces);
+    trace_ima = cr2res_trace_gen_image(traces, 2048, 2048) ;
+    cpl_table_delete(traces) ;
+    extract = cpl_image_extract(trace_ima, 32, 105, 41, 114);
 
+    cpl_image_save(extract, "extract.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
     cpl_image_save(trace_ima, "TEST.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+
+    cpl_image_delete(extract);
 
     return trace_ima;
 }
 
-/*----------------------------------------------------------------------------*/
+    /* cpl_test_null(out); */
 /**
   @brief  Main function for running all parts of the trace algorithm
   @param    ima             input image
@@ -190,24 +195,22 @@ static cpl_image *create_test_image(void)
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace(void)
 {
-    cpl_image *trace_ima;
+    cpl_image *trace_ima = create_test_image();
     cpl_table *out;
-    // Get test image
-    trace_ima = create_test_image();
-
+   
     // run tests
     /* NULL Input */
     cpl_test_null(cr2res_trace(NULL, 1.0, 1, 6, 500, 0));
     // regular run
+    cpl_test(out = cr2res_trace(trace_ima, 1.0, 1, 2, 10, 0));
     //cpl_test(out = cr2res_trace(trace_ima, 1.0, 1, 2, 10, 0));
     // test results?
 
+    cpl_table_save(out, NULL, NULL, "TEST2.fits", CPL_IO_CREATE);
     // debug output
     //cpl_table_save(out, NULL, NULL, "TEST2.fits", CPL_IO_CREATE);
-
-    // free memory
-    //cpl_table_delete(out);
-    cpl_image_delete(trace_ima);
+    cpl_table_delete(out);
+    cpl_image_delete(trace_ima) ;
     return;
 }
 
@@ -222,9 +225,9 @@ static void test_cr2res_trace(void)
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_clean(void)
 {
-    //TODO what about opening ??
 
-    //define input
+    /* test_cr2res_trace() ; */
+    /* test_cr2res_trace_clean() ; */
     cpl_binary data[] = {1, 1, 0, 0,
                          1, 1, 0, 0,
                          0, 0, 1, 0,
@@ -238,18 +241,18 @@ static void test_cr2res_trace_clean(void)
                              0, 0, 0, 0,
                              0, 0, 0, 0};
     cpl_mask *cmp = cpl_mask_wrap(4, 4, data_cmp);
-    //run test
+    /* test_cr2res_trace_labelize() ; */
     cpl_test_null(cr2res_trace_clean(NULL, opening, min_cluster));
     cpl_test(res = cr2res_trace_clean(mask, opening, min_cluster));
-    //test output
+    /* test_cr2res_trace_fit() ; */
     cpl_test_eq_mask(cmp, res);
-    //deallocate memory
+    /* test_cr2res_trace_compare() ; */
     cpl_mask_unwrap(mask);
     cpl_mask_unwrap(cmp);
     cpl_mask_delete(res);
 }
-
-/*----------------------------------------------------------------------------*/
+    /* test_cr2res_trace_combine() ; */
+    /* test_cr2res_trace_gen_image() ; */
 /**
   @brief    Make an image out of the trace solution
   @param trace  The trace table
@@ -260,16 +263,17 @@ static void test_cr2res_trace_clean(void)
   polynomials of the different trace edges are used to fill the traces with
   the value of the order.
  */
-/*----------------------------------------------------------------------------*/
+    /* test_cr2res_trace_get_order_numbers() ; */
 static void test_cr2res_trace_gen_image(void)
 {
-    //define input
+    /* test_cr2res_trace_open_get_polynomials() ; */
     int nx = 2048;
     int ny = 2048;
     cpl_image *res;
-    cpl_image *cmp = cpl_image_load("test_cr2res_trace_gen_image.fits", CPL_TYPE_INT, 0, 0);
+    //cpl_image *cmp = cpl_image_load("test_cr2res_trace_gen_image.fits", CPL_TYPE_INT, 0, 0);
+    cpl_image *cmp = cpl_image_load("test_cr2res_trace_gen_image_extract.fits", CPL_TYPE_INT, 0, 0);
     cpl_table *trace = create_test_table();
-
+    /* test_cr2res_trace_compute_middle() ; */
     //run test
     // Null tests
     cpl_test_null(cr2res_trace_gen_image(NULL, nx, ny));
@@ -279,11 +283,13 @@ static void test_cr2res_trace_gen_image(void)
     cpl_test(res = cr2res_trace_gen_image(trace, nx, ny));
     //test output ?
     // This is more of a regression test than anything, but the image looks good
-    cpl_test_image_abs(res, cmp, DBL_EPSILON);
+    cpl_image *extract = cpl_image_extract(res, 32, 105, 41, 114);
+    cpl_test_image_abs(extract, cmp, DBL_EPSILON);
 
     //deallocate memory
     cpl_image_delete(res);
     cpl_image_delete(cmp);
+    cpl_image_delete(extract);
     cpl_table_delete(trace);
 }
 
@@ -304,7 +310,7 @@ static void test_cr2res_trace_get_order_numbers(void)
     cpl_table *trace = create_test_table();
     int nb_orders;
     int *res;
-    //run test
+    /* test_cr2res_trace_compute_height() ; */
     cpl_test_null(cr2res_trace_get_order_numbers(NULL, &nb_orders));
     cpl_test_null(cr2res_trace_get_order_numbers(trace, NULL));
     cpl_test(res = cr2res_trace_get_order_numbers(trace, &nb_orders));
@@ -383,7 +389,7 @@ static void test_cr2res_trace_get_height(void)
     cpl_test_eq(cr2res_trace_get_height(NULL, order_nb, trace_nb), -1);
     cpl_test_eq(cr2res_trace_get_height(trace, 20, trace_nb), -1);
     cpl_test_eq(cr2res_trace_get_height(trace, order_nb, 5), -1);
-
+    
     cpl_test(res = cr2res_trace_get_height(trace, order_nb, trace_nb));
     //test output
     cpl_test_eq(res, 174.1271552); // value analytically from test table
@@ -427,11 +433,11 @@ static void test_cr2res_trace_wave_get_polynomials(void)
     cpl_size power = 0;
     cpl_test_abs(cpl_polynomial_get_coeff(res[0], &power), 524.126, DBL_EPSILON);
     cpl_test_abs(cpl_polynomial_get_coeff(res[1], &power), 350.398, DBL_EPSILON);
-
+    
     power = 1;
     cpl_test_abs(cpl_polynomial_get_coeff(res[0], &power), 0.0171958, DBL_EPSILON);
     cpl_test_abs(cpl_polynomial_get_coeff(res[1], &power), 0.0170009, DBL_EPSILON);
-
+    
     //deallocate memory
     cpl_table_delete(trace);
     cpl_polynomial_delete(res[0]);
@@ -461,7 +467,7 @@ static void test_cr2res_trace_compute_middle(void)
     cpl_size power = 0;
     cpl_polynomial_set_coeff(trace1, &power, 10.);
     cpl_polynomial_set_coeff(trace2, &power, 20.);
-
+    
     power = 1;
     cpl_polynomial_set_coeff(trace1, &power, 1.);
     cpl_polynomial_set_coeff(trace2, &power, 3.);
@@ -475,7 +481,7 @@ static void test_cr2res_trace_compute_middle(void)
     cpl_test_null(cr2res_trace_compute_middle(NULL, trace2, vector_size));
     cpl_test_null(cr2res_trace_compute_middle(trace1, NULL, vector_size));
     cpl_test_null(cr2res_trace_compute_middle(trace1, trace2, -1));
-
+    
     cpl_test(res = cr2res_trace_compute_middle(trace1, trace2, vector_size));
     //test output
     cpl_test_vector_abs(res, cmp, DBL_EPSILON);
@@ -508,7 +514,7 @@ static void test_cr2res_trace_compute_height(void)
     cpl_size power = 0;
     cpl_polynomial_set_coeff(trace1, &power, 10.);
     cpl_polynomial_set_coeff(trace2, &power, 20.);
-
+    
     power = 1;
     cpl_polynomial_set_coeff(trace1, &power, 1.);
     cpl_polynomial_set_coeff(trace2, &power, 3.);
@@ -794,7 +800,7 @@ static void test_cr2res_trace_extract_edges(void)
 /*----------------------------------------------------------------------------*/
 int main(void)
 {
-    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
+    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
 
     test_cr2res_trace();
     test_cr2res_trace_clean();
@@ -818,5 +824,5 @@ int main(void)
 
     return cpl_test_end(0);
 }
-
 /**@}*/
+

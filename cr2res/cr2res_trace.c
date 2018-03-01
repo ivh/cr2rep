@@ -523,7 +523,7 @@ int cr2res_trace_get_height(
     int    height;
     cpl_polynomial ** polys;
 
-    if (trace == NULL) return -1;
+    if (trace == NULL) return -1 ;
 
     polys = cr2res_trace_wave_get_polynomials(trace, order_nb, trace_nb);
 
