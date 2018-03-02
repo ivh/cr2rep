@@ -500,7 +500,11 @@ cpl_vector * cr2res_trace_get_ycen(
     }
 
     out = cpl_vector_new(size) ;
-    cpl_vector_fill_polynomial(out, poly, 1, 1);
+    if (cpl_vector_fill_polynomial(out, poly, 1, 1) != CPL_ERROR_NONE) {
+        cpl_vector_delete(out);
+        return NULL;
+    };
+
     cpl_polynomial_delete(poly);
 
     return out ;
