@@ -91,7 +91,7 @@ char * cr2res_io_create_extname(
     /* Create wished EXTNAME */
     if (data)   wished_extname = cpl_sprintf("CHIP%d", detector) ;
     else        wished_extname = cpl_sprintf("CHIP%dERR", detector) ;
-    
+
     return wished_extname ;
 }
 
@@ -111,7 +111,7 @@ int cr2res_io_get_ext_idx(
 {
     const char          *   extname ;
     char                *   wished_extname ;
-    int                     wished_ext_nb ;
+    int                     wished_ext_nb = -1 ;
     cpl_propertylist    *   pl ;
     int                     nb_ext, i ;
 
@@ -266,7 +266,7 @@ cpl_imagelist * cr2res_io_load_DETLIN_COEFFS(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Get the extension number for this detector */
-    /* TODO : 
+    /* TODO :
        Check with the DETLIN data format which detector in which * extension */
     wished_ext_nb = detector ;
 
@@ -547,7 +547,7 @@ int cr2res_io_save_MASTER_DARK(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            master_darks, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, 
+            master_darks, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
             CR2RES_MASTER_DARK_PROCATG, "") ;
 }
 
@@ -574,7 +574,7 @@ int cr2res_io_save_FLAT_BPM(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            flat_bpms, qc_list, ext_plist, CPL_TYPE_INT, recipe, 
+            flat_bpms, qc_list, ext_plist, CPL_TYPE_INT, recipe,
             CR2RES_FLAT_BPM_PROCATG, CR2RES_BPM_PROTYPE) ;
 }
 
@@ -627,7 +627,7 @@ int cr2res_io_save_CALIB_COLLAPSED(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            calib_collapsed, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, 
+            calib_collapsed, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
             CR2RES_CALIB_COLLAPSED_PROCATG, CR2RES_CALIB_COLLAPSED_PROTYPE) ;
 }
 
@@ -655,7 +655,7 @@ int cr2res_io_save_MASTER_FLAT(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            master_flats, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, 
+            master_flats, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
             CR2RES_MASTER_FLAT_PROCATG, CR2RES_MASTER_FLAT_PROTYPE) ;
 }
 
@@ -736,7 +736,7 @@ int cr2res_io_save_BLAZE_IMAGE(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            blaze, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, 
+            blaze, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
             CR2RES_BLAZE_IMAGE_PROCATG, CR2RES_SLIT_MODEL_PROTYPE) ;
 }
 
@@ -817,7 +817,7 @@ int cr2res_io_save_SLIT_MODEL(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, 
+            data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
             CR2RES_SLIT_MODEL_PROCATG, CR2RES_SLIT_MODEL_PROTYPE) ;
 }
 
@@ -844,7 +844,7 @@ int cr2res_io_save_WAVE_MAP(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, 
+            data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
             CR2RES_WAVE_MAP_PROCATG, "") ;
 }
 
