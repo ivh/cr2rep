@@ -466,6 +466,12 @@ cpl_vector * cr2res_trace_get_ycen(
     int             *    ptraces ;
     const cpl_array *    coeffs;
 
+    /* Initialize */
+    /* poly is not necessarly initialized in the for loop !!! */
+    /* If not initialized here, it might be used uninitialised  */
+    /* by cpl_vector_fill_polynomial() and cause a seg fault */
+    poly = NULL ;
+
     if (trace == NULL || size < 1) return NULL ;
 
     nrows = cpl_table_get_nrow(trace) ;
