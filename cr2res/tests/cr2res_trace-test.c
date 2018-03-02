@@ -351,7 +351,6 @@ static void test_cr2res_trace_get_ycen(void)
     cpl_test_null(cr2res_trace_get_ycen(trace, order_nb, 5, size));
     cpl_test_null(cr2res_trace_get_ycen(trace, order_nb, trace_nb, -1));
 
-    /** this block causes segfault at XXX above when uncommented ??
 
     // assemble comparison vector
     double data[size];
@@ -369,7 +368,6 @@ static void test_cr2res_trace_get_ycen(void)
     cpl_vector_delete(res);
     cpl_vector_unwrap(cmp);
 
-    */
 
     cpl_table_delete(trace);
 }
@@ -809,11 +807,11 @@ int main(void)
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
 
     //test_cr2res_trace();
-    test_cr2res_trace_clean();
-    test_cr2res_trace_gen_image();
-    test_cr2res_trace_get_order_numbers();
-    test_cr2res_trace_get_ycen();
-    test_cr2res_trace_get_height();
+    //test_cr2res_trace_clean();
+    //test_cr2res_trace_gen_image();
+    //test_cr2res_trace_get_order_numbers();
+    //test_cr2res_trace_get_ycen();
+    //test_cr2res_trace_get_height();
     test_cr2res_trace_wave_get_polynomials();
     //test_cr2res_trace_compute_middle();
     //test_cr2res_trace_compute_height();
