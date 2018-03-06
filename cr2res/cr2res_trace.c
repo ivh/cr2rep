@@ -736,12 +736,20 @@ int cr2res_trace_add_order_trace_wavelength_columns(
     double                  y_pos ;
     int                     order, trace_nb, nb_orders, trace_id, i, j ;
 
+    if (traces == NULL) return -1;
+
     /* Add The Order column using the header */
     cpl_table_new_column(traces, CR2RES_COL_ORDER, CPL_TYPE_INT) ;
 
     /* Load the Plist */
     plist_order_pos = cpl_propertylist_load(file_for_wl,
             cr2res_io_get_ext_idx(file_for_wl, det_nr, 1)) ;
+
+    // couldn't find anything
+    if (plist_order_pos == NULL){
+        cpl_error_reset();
+        return -1;
+    }
 
     /* Loop on the traces */
     for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
@@ -884,6 +892,9 @@ static cpl_mask * cr2res_trace_signal_detect(
     int                 trace_sep_loc ;
     cpl_matrix      *   kernel ;
     cpl_mask        *   mask ;
+
+    if (image == NULL) return NULL;
+    if (trace_sep < 0 || smoothfactor < 0) return NULL;
 
     /* Prepare the kernel used for median filtering */
     trace_sep_loc = (int) (trace_sep*smoothfactor);
@@ -1035,7 +1046,7 @@ static cpl_array * cr2res_trace_fit_trace(
     cpl_size            i, degree_local, n ;
 
     /* Check Entries */
-    if (table == NULL) return NULL ;
+    if (table == NULL || degree < 0) return NULL ;
 
     /* Initialise */
     n = cpl_table_get_nrow(table) ;
@@ -1058,7 +1069,7 @@ static cpl_array * cr2res_trace_fit_trace(
         cpl_vector_set(y, i, (double)ys[i]) ;
     }
 
-    /* If the xs range is too small, reduce the degree  */
+    /* If the xs range is too small, reduce the degree */
     /* This case corresponds to the traces that appear on the image corner */
     if (x_max - x_min < 1500) degree_local = 1 ;
 
@@ -1104,6 +1115,7 @@ static cpl_image * cr2res_trace_convert_cluster_to_labels(
     const int       *   pclusters ;
     int                 i ;
 
+    if (cluster == NULL || nx < 1 || ny < 1) return NULL;
     /* Create labels image  */
     labels = cpl_image_new(nx, ny, CPL_TYPE_INT);
     pxs = cpl_table_get_data_int_const(cluster, CR2RES_COL_XS) ;
@@ -1132,6 +1144,8 @@ static cpl_table * cr2res_trace_convert_labels_to_cluster(cpl_image * labels)
     cpl_table   *   clustertable ;
     int             nb_table_entries, nx, ny, i, j ;
 
+
+    if (labels == NULL) return NULL;
     /* Count the number of pixels that are not 0 */
     nb_table_entries = 0 ;
     plabels = cpl_image_get_data_int_const(labels) ;
