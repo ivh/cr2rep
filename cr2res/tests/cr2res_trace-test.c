@@ -686,8 +686,7 @@ static void test_cr2res_trace_add_order_trace_wavelength_columns(void)
 
     cpl_test_eq(0, cr2res_trace_add_order_trace_wavelength_columns(traces, file_for_wl, det_nr));
     //test output
-    cpl_table_save(traces, NULL, NULL, "new_table.fits", CPL_IO_CREATE);
-    //TODO
+    //cpl_table_save(traces, NULL, NULL, "new_table.fits", CPL_IO_CREATE);
 
     wl = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, 0);
     cpl_test_abs(cpl_array_get(wl, 0, 0), 0, FLT_EPSILON);
@@ -746,9 +745,9 @@ static void test_cr2res_trace_split_traces(void)
     cpl_test(res = cr2res_trace_split_traces(mask, trace_table));
     //test output
     sub = cpl_mask_extract(res, 36, 165, 45, 174);
-    cpl_mask_save(res, "res.fits", NULL, CPL_IO_CREATE);
-    cpl_mask_save(sub, "sub.fits", NULL, CPL_IO_CREATE);
-    cpl_mask_save(cmp, "cmp.fits", NULL, CPL_IO_CREATE);
+    //cpl_mask_save(res, "res.fits", NULL, CPL_IO_CREATE);
+    //cpl_mask_save(sub, "sub.fits", NULL, CPL_IO_CREATE);
+    //cpl_mask_save(cmp, "cmp.fits", NULL, CPL_IO_CREATE);
     cpl_test_eq_mask(sub, cmp);
 
     //deallocate memory
@@ -1087,17 +1086,25 @@ static void test_cr2res_trace_clean_blobs(void)
 static void test_cr2res_trace_extract_edges(void)
 {
     //define input
-    int xs[] = {4, 5, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2};
-    int ys[] = {4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 5, 5};
-    int clusters[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2};
+    int xs[] = {4, 5, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4};
+    int ys[] = {4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1};
+    int clusters[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-    cpl_table *pixels_table = cpl_table_new(17);
+    cpl_table *pixels_table = cpl_table_new(15);
     cpl_table_wrap_int(pixels_table, xs, CR2RES_COL_XS);
     cpl_table_wrap_int(pixels_table, ys, CR2RES_COL_YS);
     cpl_table_wrap_int(pixels_table, clusters, CR2RES_COL_CLUSTERS);
 
     cpl_table *edge_lower_table;
     cpl_table *edge_upper_table;
+
+    int cmp_xs_lower[] = {5, 1, 2, 3, 4};
+    int cmp_ys_lower[] = {2, 1, 1, 1, 1};
+    int cmp_cluster_lower[] = {1, 1, 1, 1, 1};
+
+    int cmp_xs_upper[] = {4, 5, 2, 3, 1};
+    int cmp_ys_upper[] = {4, 4, 3, 3, 2};
+    int cmp_cluster_upper[] = {1, 1, 1, 1, 1};
 
     //run test
     cpl_test_eq(-1, cr2res_trace_extract_edges(NULL, &edge_lower_table, &edge_upper_table));
@@ -1106,11 +1113,17 @@ static void test_cr2res_trace_extract_edges(void)
 
     cpl_test_eq(0, cr2res_trace_extract_edges(pixels_table, &edge_lower_table, &edge_upper_table));
     //test output
-    //TODO
-    cpl_table_save(edge_lower_table, NULL, NULL, "edge_lower.fits", CPL_IO_CREATE);
+    for(int i=0;i<5;i++){
+        cpl_test_eq(cpl_table_get(edge_lower_table, CR2RES_COL_XS, i, NULL), cmp_xs_lower[i]);
+        cpl_test_eq(cpl_table_get(edge_lower_table, CR2RES_COL_YS, i, NULL), cmp_ys_lower[i]);
+        cpl_test_eq(cpl_table_get(edge_lower_table, CR2RES_COL_CLUSTERS, i, NULL), cmp_cluster_lower[i]);
+
+        cpl_test_eq(cpl_table_get(edge_upper_table, CR2RES_COL_XS, i, NULL), cmp_xs_upper[i]);
+        cpl_test_eq(cpl_table_get(edge_upper_table, CR2RES_COL_YS, i, NULL), cmp_ys_upper[i]);
+        cpl_test_eq(cpl_table_get(edge_upper_table, CR2RES_COL_CLUSTERS, i, NULL), cmp_cluster_upper[i]);
+    }
 
     //deallocate memory
-    //TODO something is leaking
     cpl_table_unwrap(pixels_table, CR2RES_COL_XS);
     cpl_table_unwrap(pixels_table, CR2RES_COL_YS);
     cpl_table_unwrap(pixels_table, CR2RES_COL_CLUSTERS);
@@ -1129,13 +1142,13 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
 
-    test_cr2res_trace();
-    /* test_cr2res_trace_clean(); */
-    /* test_cr2res_trace_gen_image(); */
-    /* test_cr2res_trace_get_order_numbers(); */
+    //test_cr2res_trace();
+    test_cr2res_trace_clean();
+    test_cr2res_trace_gen_image();
+    test_cr2res_trace_get_order_numbers();
     test_cr2res_trace_get_ycen();
-    /* test_cr2res_trace_get_height(); */
-    /* test_cr2res_trace_wave_get_polynomials(); */
+    test_cr2res_trace_get_height();
+    test_cr2res_trace_wave_get_polynomials();
     test_cr2res_trace_compute_middle();
     test_cr2res_trace_compute_height();
     test_cr2res_trace_get_trace_ypos();
