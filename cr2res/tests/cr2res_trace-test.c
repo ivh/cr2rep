@@ -1130,12 +1130,12 @@ int main(void)
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
 
     test_cr2res_trace();
-    test_cr2res_trace_clean();
-    test_cr2res_trace_gen_image();
-    test_cr2res_trace_get_order_numbers();
+    /* test_cr2res_trace_clean(); */
+    /* test_cr2res_trace_gen_image(); */
+    /* test_cr2res_trace_get_order_numbers(); */
     test_cr2res_trace_get_ycen();
-    test_cr2res_trace_get_height();
-    test_cr2res_trace_wave_get_polynomials();
+    /* test_cr2res_trace_get_height(); */
+    /* test_cr2res_trace_wave_get_polynomials(); */
     test_cr2res_trace_compute_middle();
     test_cr2res_trace_compute_height();
     test_cr2res_trace_get_trace_ypos();
