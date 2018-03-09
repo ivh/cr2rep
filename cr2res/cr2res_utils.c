@@ -139,6 +139,8 @@ int * cr2res_vector_get_int(
     int         * ycen_int;
     int         i, lenx;
 
+    if (ycen == NULL) return NULL;
+
     lenx = cpl_vector_get_size(ycen);
     ycen_int = cpl_malloc(lenx*sizeof(int));
     for (i=0 ; i<lenx ; i++){
@@ -160,6 +162,8 @@ double * cr2res_vector_get_rest(
 {
     double      * ycen_rest;
     int         i, lenx, val;
+
+    if (ycen == NULL) return NULL;
 
     lenx = cpl_vector_get_size(ycen);
     ycen_rest = cpl_malloc(lenx*sizeof(double));
@@ -192,6 +196,8 @@ cpl_image * cr2res_image_cut_rectify(
     int             * ycen_int;
     int             i, ymin, ymax;
     int             empty_bottom = 0;
+
+    if (img_in == NULL || ycen == NULL || height < 1) return NULL;
 
     imtyp = cpl_image_get_type(img_in);
     lenx = cpl_image_get_size_x(img_in);
@@ -256,6 +262,8 @@ int cr2res_image_insert_rect(
     int             i, ymin, ymax;
     int             empty_bottom;
 
+    if (rect_in == NULL || ycen == NULL || img_out == NULL) return -1;
+
     lenx = cpl_image_get_size_x(img_out);
     leny = cpl_image_get_size_y(img_out);
     height = cpl_image_get_size_y(rect_in);
@@ -317,6 +325,8 @@ cpl_vector * cr2res_polynomial_eval_vector(
     cpl_size nx;
     cpl_vector * outvec;
 
+    if (poly == NULL || vec == NULL) return NULL;
+
     nx = cpl_vector_get_size(vec);
     outvec = cpl_vector_new(nx);
     for (i=0; i<nx; i++){
@@ -343,6 +353,9 @@ cpl_vector * cr2res_threshold_spec(
         double thresh)
 {
     cpl_vector * smoothed;
+
+    if (invector == NULL || smooth < 0) return NULL;
+
     smoothed = cpl_vector_filter_median_create(invector, (smooth/2)+1);
     cpl_vector_subtract(smoothed, invector);
     cpl_vector_add_scalar(smoothed, thresh);
@@ -361,6 +374,8 @@ cpl_vector * cr2res_threshold_spec(
 char * cr2res_get_base_name(const char *filename)
 {
     char *p ;
+    if (filename == NULL) return NULL;
+
     p = strrchr (filename, '/');
     return p ? p + 1 : (char *) filename;
 }
@@ -376,6 +391,7 @@ char * cr2res_get_root_name(const char * filename)
 {
     static char path[4096+1];
     char * lastdot ;
+    if (filename == NULL) return NULL;
 
     if (strlen(filename)>4096) return NULL ;
     memset(path, 4096, 0);
@@ -535,7 +551,7 @@ int * cr2res_get_trace_table_orders(
 
 
     /* Check Entries */
-    if (trace_wave == NULL) return NULL ;
+    if (trace_wave == NULL || nb_orders == NULL) return NULL ;
 
     /* Initialise */
     nrows = cpl_table_get_nrow(trace_wave) ;
@@ -758,7 +774,7 @@ cpl_array * cr2res_convert_poly_to_array(
     cpl_size        degree, i ;
 
     /* Test entries */
-    if (poly == NULL) return NULL ;
+    if (poly == NULL || size < 1) return NULL ;
 
     /* Initialise */
     degree = cpl_polynomial_get_degree(poly) ;

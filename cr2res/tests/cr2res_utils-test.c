@@ -35,12 +35,11 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static void test_cr2res_vector_get_rest(void);        //check
-static void test_cr2res_vector_get_int(void);         //check
-static void test_cr2res_image_cut_rectify(void);      //check
-static void test_cr2res_image_insert_rect(void);      //check
-static void test_cr2res_polynomial_eval_vector(void); //check
-
+static void test_cr2res_vector_get_rest(void);
+static void test_cr2res_vector_get_int(void);
+static void test_cr2res_image_cut_rectify(void);
+static void test_cr2res_image_insert_rect(void);
+static void test_cr2res_polynomial_eval_vector(void);
 static void test_cr2res_threshold_spec(void);
 static void test_cr2res_get_base_name(void);
 static void test_cr2res_get_root_name(void);
@@ -55,8 +54,7 @@ static void test_cr2res_convert_array_to_poly(void);
 static void test_cr2res_convert_poly_to_array(void);
 static void test_cr2res_get_trace_table_orders(void);
 static void test_cr2res_detector_shotnoise_model(void);
-
-static void test_cr2res_get_license(void); //check
+static void test_cr2res_get_license(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -87,6 +85,8 @@ static void test_cr2res_vector_get_int(void)
         d = (double)i;
         cpl_vector_set(in, i, d + (d / (n + 1)));
     }
+
+    cpl_test_null(cr2res_vector_get_int(NULL));
 
     cpl_test(res = cr2res_vector_get_int(in));
 
@@ -124,6 +124,8 @@ static void test_cr2res_vector_get_rest(void)
         cpl_vector_set(out, i, (d / (n + 1)));
     }
 
+    cpl_test_null(cr2res_vector_get_rest(NULL));
+
     cpl_test(res = cr2res_vector_get_rest(in));
     cpl_vector_delete(in);
     in = cpl_vector_wrap(n, res);
@@ -145,8 +147,6 @@ static void test_cr2res_vector_get_rest(void)
 static void test_cr2res_image_cut_rectify(void)
 {
     cpl_image *res;
-    cpl_image *cmp;
-
     int imdata[] = {1, 2, 3, 2, 1,
                     1, 2, 9, 2, 9,
                     1, 9, 3, 9, 1,
@@ -154,15 +154,19 @@ static void test_cr2res_image_cut_rectify(void)
     cpl_image *img = cpl_image_wrap_int(5, 4, imdata);
     cpl_image_flip(img, 0); // so that the image looks as formatted above.
 
+    // What result should be
+    int cmpdata[] = {9, 9, 9, 9, 9};
+    cpl_image *cmp = cpl_image_wrap_int(5, 1, cmpdata);
+
     double ydata[] = {1.9, 2.1, 3.5, 2.8, 3.99};
     cpl_vector *ycen = cpl_vector_wrap(5, ydata);
 
     // Run the main function to be tested
-    cpl_test(res = cr2res_image_cut_rectify(img, ycen, 1));
+    cpl_test_null(cr2res_image_cut_rectify(NULL, ycen, 1));
+    cpl_test_null(cr2res_image_cut_rectify(img, NULL, 1));
+    cpl_test_null(cr2res_image_cut_rectify(img, ycen, 0));
 
-    // What result should be
-    int cmpdata[] = {9, 9, 9, 9, 9};
-    cmp = cpl_image_wrap_int(5, 1, cmpdata);
+    cpl_test(res = cr2res_image_cut_rectify(img, ycen, 1));
 
     // Compare the two
     cpl_test_image_abs(res, cmp, 0);
@@ -208,6 +212,10 @@ static void test_cr2res_image_insert_rect(void)
                      1, 2, 0, 0, 0};
     cpl_image *compare = cpl_image_wrap_int(5, 12, cmpdata);
     cpl_image_flip(compare, 0);
+
+    cpl_test_eq(-1, cr2res_image_insert_rect(NULL, ycen, img_out));
+    cpl_test_eq(-1, cr2res_image_insert_rect(rect_in, NULL, img_out));
+    cpl_test_eq(-1, cr2res_image_insert_rect(rect_in, ycen, NULL));
 
     cpl_test_zero(cr2res_image_insert_rect(rect_in, ycen, img_out));
 
@@ -262,6 +270,9 @@ static void test_cr2res_polynomial_eval_vector(void)
         cpl_vector_set(out, i, val);
     }
 
+    cpl_test_null(cr2res_polynomial_eval_vector(NULL, in));
+    cpl_test_null(cr2res_polynomial_eval_vector(poly, NULL));
+    
     cpl_test(res = cr2res_polynomial_eval_vector(poly, in));
 
     cpl_test_vector_abs(res, out, DBL_EPSILON * n * n * 10);
@@ -294,7 +305,7 @@ static void test_cr2res_threshold_spec(void)
     // expected data = data - median of boxcar - thresh
     // what is the expected behaviour at the borders?
     // -3, -3, -4, 0, -3, -4, 10, -2, -3, -1
-    double outdata[] = {1-1-3, 2-1-3, 1-2-3, 5-3-3, 3-3-3, 1-3-3, 15-2-3, 2-2-3, 0-1-3, 1-1-3};
+    double outdata[] = {1 - 1 - 3, 2 - 1 - 3, 1 - 2 - 3, 5 - 3 - 3, 3 - 3 - 3, 1 - 3 - 3, 15 - 2 - 3, 2 - 2 - 3, 0 - 1 - 3, 1 - 1 - 3};
     cpl_vector *outvector = cpl_vector_wrap(n, outdata);
 
     //boxcar size = smooth + 3, for even values, and smooth + 2 for odd values
@@ -304,6 +315,10 @@ static void test_cr2res_threshold_spec(void)
     cpl_vector *res;
 
     //run test
+    cpl_test_null(cr2res_threshold_spec(NULL, smooth, thresh));
+    cpl_test_null(cr2res_threshold_spec(invector, -1, thresh));
+    //cpl_test_null(cr2res_threshold_spec(invector, smooth, 4545));
+
     cpl_test(res = cr2res_threshold_spec(invector, smooth, thresh));
 
     //cpl_vector_dump(res, "test.log");
@@ -332,10 +347,11 @@ static void test_cr2res_get_base_name(void)
     char *res;
 
     //run test
+    cpl_test_null(cr2res_get_base_name(NULL));
+
     cpl_test(res = cr2res_get_base_name(filename));
     //test output
     cpl_test_eq_string(res, "cr2res_trace-test.log");
-    //deallocate memory
 }
 
 /*----------------------------------------------------------------------------*/
@@ -353,11 +369,11 @@ static void test_cr2res_get_root_name(void)
     char *res;
 
     //run test
+    cpl_test_null(cr2res_get_root_name(NULL));
+
     cpl_test(res = cr2res_get_root_name(filename));
     //test output
     cpl_test_eq_string(res, "cr2res_trace-test");
-
-    //deallocate memory
 }
 
 /*----------------------------------------------------------------------------*/
@@ -387,6 +403,9 @@ static void test_cr2res_extract_filename(void)
     const char *res;
 
     //run test
+    cpl_test_null(cr2res_extract_filename(NULL, tag));
+    cpl_test_null(cr2res_extract_filename(in, NULL));
+
     cpl_test(res = cr2res_extract_filename(in, tag));
     //test output
     cpl_test_eq_string(res, "bla-test.log");
@@ -424,6 +443,9 @@ static void test_cr2res_extract_frameset(void)
     cpl_frameset *res;
 
     //run test
+    cpl_test_null(cr2res_extract_frameset(NULL, tag));
+    cpl_test_null(cr2res_extract_frameset(in, NULL));
+    
     cpl_test(res = cr2res_extract_frameset(in, tag));
     //test output
     //test size
@@ -466,6 +488,9 @@ static void test_cr2res_get_trace_table_orders(void)
     int *res;
 
     //run test
+    cpl_test_null(cr2res_get_trace_table_orders(NULL, &nb_orders));
+    cpl_test_null(cr2res_get_trace_table_orders(trace_wave, NULL));
+    
     cpl_test(res = cr2res_get_trace_table_orders(trace_wave, &nb_orders));
     cpl_test_eq(nb_orders, n);
 
@@ -504,6 +529,10 @@ static void test_cr2res_get_trace_table_index(void)
     cpl_size res;
 
     //run test
+    cpl_test_eq(-1, cr2res_get_trace_table_index(NULL, order, trace_nb));
+    cpl_test_eq(-1, cr2res_get_trace_table_index(trace_wave, -1, trace_nb));
+    cpl_test_eq(-1, cr2res_get_trace_table_index(trace_wave, order, -50));
+
     cpl_test(res = cr2res_get_trace_table_index(trace_wave, order, trace_nb));
     //test output
     cpl_test_eq(res, 4);
@@ -552,6 +581,11 @@ static void test_cr2res_get_trace_wave_poly(void)
 
     //run test
     cpl_polynomial *res_poly;
+    cpl_test_null(cr2res_get_trace_wave_poly(NULL, CR2RES_COL_WAVELENGTH, 1, 1));
+    cpl_test_null(cr2res_get_trace_wave_poly(trace_wave, "blub", 1, 1));
+    cpl_test_null(cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH, 20, 1));
+    cpl_test_null(cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH, 1, -90));
+
     cpl_test(res_poly = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH, 1, 1));
     //test output
     cpl_size power = 0;
@@ -585,6 +619,10 @@ static void test_cr2res_wlestimate_compute(void)
     cpl_polynomial *res;
 
     //run test
+    cpl_test_null(cr2res_wlestimate_compute(-1, 1));
+    cpl_test_null(cr2res_wlestimate_compute(5, -1));
+    cpl_test_null(cr2res_wlestimate_compute(5, 1));
+    
     cpl_test(res = cr2res_wlestimate_compute(wmin, wmax));
     //test output
     cpl_size power = 0;
@@ -655,8 +693,6 @@ static void test_cr2res_convert_idx_to_order(void)
 
     order = 99;
     cpl_test_eq(-1, cr2res_convert_idx_to_order(order));
-
-    //deallocate memory
 }
 
 /*----------------------------------------------------------------------------*/
@@ -678,6 +714,8 @@ static void test_cr2res_convert_array_to_poly(void)
     double poly;
 
     //run test
+    cpl_test_null(cr2res_convert_array_to_poly(NULL));
+
     cpl_test(res = cr2res_convert_array_to_poly(arr));
 
     //test output
@@ -706,7 +744,7 @@ static void test_cr2res_convert_poly_to_array(void)
 {
     //define input
     int n = 10;
-    cpl_array * res;
+    cpl_array *res;
     double data[] = {0.9, 1.5, 219.1, 123.8, 18, 123.3, 0.623, 0., 0.9, 1};
     cpl_polynomial *poly = cpl_polynomial_new(1);
     for (cpl_size i = 0; i < n; i++)
@@ -715,6 +753,9 @@ static void test_cr2res_convert_poly_to_array(void)
     //also if size = NULL, no error is raised. Problem?
 
     //run test
+    cpl_test_null(cr2res_convert_poly_to_array(NULL, n));
+    cpl_test_null(cr2res_convert_poly_to_array(poly, 0));
+    
     cpl_test(res = cr2res_convert_poly_to_array(poly, n));
     //test output
     for (int j = 0; j < n; j++)
@@ -770,6 +811,15 @@ static void test_cr2res_detector_shotnoise_model(void)
     cpl_image *compare = cpl_image_wrap_int(5, 12, cmpdata);
 
     //run test
+    cpl_test_eq(CPL_ERROR_NULL_INPUT, cr2res_detector_shotnoise_model(NULL, gain, ron, &ima_errs));
+    cpl_test_error(CPL_ERROR_NULL_INPUT);
+    cpl_test_eq(CPL_ERROR_ILLEGAL_INPUT, cr2res_detector_shotnoise_model(ima_data, 0, ron, &ima_errs));
+    cpl_test_error(CPL_ERROR_ILLEGAL_INPUT);
+    cpl_test_eq(CPL_ERROR_ILLEGAL_INPUT, cr2res_detector_shotnoise_model(ima_data, gain, 0, &ima_errs));
+    cpl_test_error(CPL_ERROR_ILLEGAL_INPUT);
+    cpl_test_eq(CPL_ERROR_NULL_INPUT, cr2res_detector_shotnoise_model(ima_data, gain, ron, NULL));
+    cpl_test_error(CPL_ERROR_NULL_INPUT);
+
     cpl_test_eq(CPL_ERROR_NONE, cr2res_detector_shotnoise_model(ima_data, gain, ron, &ima_errs));
     //test output
     cpl_test_image_abs(ima_errs, compare, 0);

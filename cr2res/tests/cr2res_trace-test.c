@@ -290,23 +290,28 @@ static void test_cr2res_trace_clean(void)
 
     /* test_cr2res_trace() ; */
     /* test_cr2res_trace_clean() ; */
-    cpl_binary data[] = {1, 1, 0, 0,
-                         1, 1, 0, 0,
-                         0, 0, 1, 0,
-                         0, 0, 1, 0};
-    cpl_mask *mask = cpl_mask_wrap(4, 4, data);
-    int opening = 0;
+    cpl_binary data[] = {1, 1, 0, 0, 0, 0,
+                         1, 1, 0, 0, 0, 1,
+                         0, 0, 0, 0, 0, 0,
+                         0, 1, 0, 1, 1, 0,
+                         0, 0, 0, 0, 0, 0,
+                         1, 0, 0, 0, 1, 1};
+    cpl_mask *mask = cpl_mask_wrap(6, 6, data);
+    int opening = 1;
     int min_cluster = 3;
     cpl_mask *res;
-    cpl_binary data_cmp[] = {1, 1, 0, 0,
-                             1, 1, 0, 0,
-                             0, 0, 0, 0,
-                             0, 0, 0, 0};
-    cpl_mask *cmp = cpl_mask_wrap(4, 4, data_cmp);
+    cpl_binary data_cmp[] = {1, 1, 0, 0, 0, 0,
+                             1, 1, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0,
+                             0, 1, 1, 1, 1, 0,
+                             0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0};
+    cpl_mask *cmp = cpl_mask_wrap(6, 6, data_cmp);
     /* test_cr2res_trace_labelize() ; */
 
     cpl_test_null(cr2res_trace_clean(NULL, opening, min_cluster));
     cpl_test(res = cr2res_trace_clean(mask, opening, min_cluster));
+    cpl_mask_save(res, "res.fits", NULL, CPL_IO_CREATE);
     /* test_cr2res_trace_fit() ; */
     cpl_test_eq_mask(cmp, res);
     /* test_cr2res_trace_compare() ; */
@@ -1113,11 +1118,11 @@ static void test_cr2res_trace_extract_edges(void)
 
     cpl_test_eq(0, cr2res_trace_extract_edges(pixels_table, &edge_lower_table, &edge_upper_table));
     //test output
-    for(int i=0;i<5;i++){
+    for (int i = 0; i < 5; i++)
+    {
         cpl_test_eq(cpl_table_get(edge_lower_table, CR2RES_COL_XS, i, NULL), cmp_xs_lower[i]);
         cpl_test_eq(cpl_table_get(edge_lower_table, CR2RES_COL_YS, i, NULL), cmp_ys_lower[i]);
         cpl_test_eq(cpl_table_get(edge_lower_table, CR2RES_COL_CLUSTERS, i, NULL), cmp_cluster_lower[i]);
-
         cpl_test_eq(cpl_table_get(edge_upper_table, CR2RES_COL_XS, i, NULL), cmp_xs_upper[i]);
         cpl_test_eq(cpl_table_get(edge_upper_table, CR2RES_COL_YS, i, NULL), cmp_ys_upper[i]);
         cpl_test_eq(cpl_table_get(edge_upper_table, CR2RES_COL_CLUSTERS, i, NULL), cmp_cluster_upper[i]);
@@ -1140,7 +1145,7 @@ static void test_cr2res_trace_extract_edges(void)
 /*----------------------------------------------------------------------------*/
 int main(void)
 {
-    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_WARNING);
+    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
     //test_cr2res_trace();
     test_cr2res_trace_clean();
