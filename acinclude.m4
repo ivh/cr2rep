@@ -102,7 +102,7 @@ AC_DEFUN([CR2RES_SET_PATHS],
     fi
 
     if test -z "$configdir"; then
-       configdir='${datadir}/${PACKAGE}/config'
+        configdir='${datadir}/esopipes/${PACKAGE}-${VERSION}/config'
     fi
 
     if test -z "$wkfextradir"; then
