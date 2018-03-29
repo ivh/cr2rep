@@ -1148,24 +1148,24 @@ int main(void)
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
     //test_cr2res_trace();
-    test_cr2res_trace_clean();
-    test_cr2res_trace_gen_image();
-    test_cr2res_trace_get_order_numbers();
-    test_cr2res_trace_get_ycen();
-    test_cr2res_trace_get_height();
-    test_cr2res_trace_wave_get_polynomials();
-    test_cr2res_trace_compute_middle();
-    test_cr2res_trace_compute_height();
-    test_cr2res_trace_get_trace_ypos();
-    test_cr2res_trace_add_order_trace_wavelength_columns();
-    test_cr2res_trace_split_traces();
-    test_cr2res_trace_signal_detect();
-    test_cr2res_trace_fit_traces();
-    test_cr2res_trace_fit_trace();
-    test_cr2res_trace_convert_cluster_to_labels();
-    test_cr2res_trace_convert_labels_to_cluster();
-    test_cr2res_trace_clean_blobs();
-    test_cr2res_trace_extract_edges();
+    /* test_cr2res_trace_clean(); */
+    /* test_cr2res_trace_gen_image(); */
+    /* test_cr2res_trace_get_order_numbers(); */
+    /* test_cr2res_trace_get_ycen(); */
+    /* test_cr2res_trace_get_height(); */
+    /* test_cr2res_trace_wave_get_polynomials(); */
+    /* test_cr2res_trace_compute_middle(); */
+    /* test_cr2res_trace_compute_height(); */
+    /* test_cr2res_trace_get_trace_ypos(); */
+    /* test_cr2res_trace_add_order_trace_wavelength_columns(); */
+    /* test_cr2res_trace_split_traces(); */
+    /* test_cr2res_trace_signal_detect(); */
+    /* test_cr2res_trace_fit_traces(); */
+    /* test_cr2res_trace_fit_trace(); */
+    /* test_cr2res_trace_convert_cluster_to_labels(); */
+    /* test_cr2res_trace_convert_labels_to_cluster(); */
+    /* test_cr2res_trace_clean_blobs(); */
+    /* test_cr2res_trace_extract_edges(); */
 
     return cpl_test_end(0);
 }

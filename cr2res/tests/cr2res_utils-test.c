@@ -855,25 +855,25 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    test_cr2res_vector_get_rest();
-    test_cr2res_vector_get_int();
-    test_cr2res_polynomial_eval_vector();
-    test_cr2res_image_cut_rectify();
-    test_cr2res_image_insert_rect();
-    test_cr2res_threshold_spec();
-    test_cr2res_get_base_name();
-    test_cr2res_get_root_name();
-    test_cr2res_extract_frameset();
-    test_cr2res_get_trace_table_orders();
-    test_cr2res_get_trace_table_index();
-    test_cr2res_get_trace_wave_poly();
-    test_cr2res_wlestimate_compute();
-    test_cr2res_convert_order_to_idx();
-    test_cr2res_convert_idx_to_order();
-    test_cr2res_convert_array_to_poly();
-    test_cr2res_convert_poly_to_array();
-    test_cr2res_detector_shotnoise_model();
-    test_cr2res_get_license();
+    /* test_cr2res_vector_get_rest(); */
+    /* test_cr2res_vector_get_int(); */
+    /* test_cr2res_polynomial_eval_vector(); */
+    /* test_cr2res_image_cut_rectify(); */
+    /* test_cr2res_image_insert_rect(); */
+    /* test_cr2res_threshold_spec(); */
+    /* test_cr2res_get_base_name(); */
+    /* test_cr2res_get_root_name(); */
+    /* test_cr2res_extract_frameset(); */
+    /* test_cr2res_get_trace_table_orders(); */
+    /* test_cr2res_get_trace_table_index(); */
+    /* test_cr2res_get_trace_wave_poly(); */
+    /* test_cr2res_wlestimate_compute(); */
+    /* test_cr2res_convert_order_to_idx(); */
+    /* test_cr2res_convert_idx_to_order(); */
+    /* test_cr2res_convert_array_to_poly(); */
+    /* test_cr2res_convert_poly_to_array(); */
+    /* test_cr2res_detector_shotnoise_model(); */
+    /* test_cr2res_get_license(); */
 
     return cpl_test_end(0);
 }
