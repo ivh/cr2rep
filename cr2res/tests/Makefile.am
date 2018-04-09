@@ -59,5 +59,8 @@ TESTS = $(check_PROGRAMS)
 XFAIL_TESTS =
 
 # We need to remove any files that the above tests created.
-clean-local:
+clean-local: 
+	$(RM) *.log *.paf *.fits .logfile
+
+
 
