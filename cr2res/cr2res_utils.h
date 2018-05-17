@@ -52,10 +52,6 @@ typedef enum {
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-int cr2res_detlin_correct(
-        cpl_imagelist       *   ilist,
-        const cpl_imagelist *   detlin_coeffs) ;
-
 double * cr2res_vector_get_rest(
     const cpl_vector    * ycen);
 int * cr2res_vector_get_int(

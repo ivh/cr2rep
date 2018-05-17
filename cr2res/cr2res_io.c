@@ -74,7 +74,7 @@ static int cr2res_io_save_table(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Create Extname
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @param    data        1 for the data image, 0 for the error
   @return   the newly allocated string with the EXTNAME
  */
@@ -99,7 +99,7 @@ char * cr2res_io_create_extname(
 /**
   @brief    Get the wished extension number for a detector
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @param    data        1 for the data image, 0 for the error
   @return   the Extension number or -1 in error case
  */
@@ -191,7 +191,7 @@ cpl_bivector * cr2res_io_load_EMISSION_LINES(
 /**
   @brief    Load an image from a MASTER_DARK
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @param    data        1 for the data image, 0 for the error
   @return   A float type image or NULL in error case. The returned object
               needs to be deallocated
@@ -221,7 +221,7 @@ cpl_image * cr2res_io_load_MASTER_DARK(
 /**
   @brief    Load an image from a BPM
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   An integer type image or NULL in error case. The returned object
               needs to be deallocated
  */
@@ -249,7 +249,7 @@ cpl_image * cr2res_io_load_BPM(
 /**
   @brief    Load the detlin coefficients
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A float image list with the polynomial coefficients for each
               pixel of the wished detector. The returned object list
               needs to be deallocated
@@ -280,7 +280,7 @@ cpl_imagelist * cr2res_io_load_DETLIN_COEFFS(
 /**
   @brief    Load an image from a MASTER_FLAT
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @param    data        1 for the data image, 0 for the error
   @return   A float image or NULL in error case. The returned object
               needs to be deallocated
@@ -291,14 +291,26 @@ cpl_image * cr2res_io_load_MASTER_FLAT(
         int             detector,
         int             data)
 {
-        return NULL ;
+    int     wished_ext_nb ;
+
+    /* Check entries */
+    if (filename == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, data) ;
+
+    /* The wished extension was not found */
+    if (wished_ext_nb < 0) return NULL ;
+
+    return cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb);
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Load a table from a TRACE_WAVE
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
@@ -326,7 +338,7 @@ cpl_table * cr2res_io_load_TRACE_WAVE(
 /**
   @brief    Load an image from a SLIT MODEL
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A float image or NULL in error case. The returned object
               needs to be deallocated
  */
@@ -343,7 +355,7 @@ cpl_image * cr2res_io_load_SLIT_MODEL(
 /**
   @brief    Load an image from a WAVE_MAP
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A float image or NULL in error case. The returned object
               needs to be deallocated
  */
@@ -359,7 +371,7 @@ cpl_image * cr2res_io_load_WAVE_MAP(
 /**
   @brief    Load an image from a SLITPOS_MAP
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A float image or NULL in error case. The returned object
               needs to be deallocated
  */
@@ -375,7 +387,7 @@ cpl_image * cr2res_io_load_SLITPOS_MAP(
 /**
   @brief    Load an image from a TILT_MAP
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A float image or NULL in error case. The returned object
               needs to be deallocated
  */
@@ -391,7 +403,7 @@ cpl_image * cr2res_io_load_TILT_MAP(
 /**
   @brief    Load a table from a TILT_POLY
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
@@ -407,7 +419,7 @@ cpl_table * cr2res_io_load_TILT_POLY(
 /**
   @brief    Load a table from a EXTRACT_1D
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
@@ -435,7 +447,7 @@ cpl_table * cr2res_io_load_EXTRACT_1D(
 /**
   @brief    Load a table from a SPLICED_1D
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
@@ -465,7 +477,7 @@ cpl_table * cr2res_io_load_EXTRACT_2D(
 /**
   @brief    Load a table from a EXTRACT_POL
   @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to 3)
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
@@ -532,50 +544,54 @@ int cr2res_io_save_EMISSION_LINES(
   @param    master_darks  The data/error master darks (1 per detector)
   @param    qc_list     The QC parameters
   @param    ext_plist   The extensions property lists
+  @param    procatg     The PRO CATG value
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_io_save_MASTER_DARK(
-        cpl_frameset            *   allframes,
         const char              *   filename,
-        cpl_frameset            *   used_frames,
+        cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  master_darks,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
             master_darks, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
-            CR2RES_MASTER_DARK_PROCATG, "") ;
+            procatg, CR2RES_MASTER_DARK_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Save a FLAT_BPM
+  @brief    Save a BPM
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
-  @param    flat_bpms   The data/error BPMs (1 per detector)
+  @param    bpms        The BPMs (1 per detector)
   @param    qc_list     The QC parameters
   @param    ext_plist   The extensions property lists
+  @param    procatg     The PRO CATG value
   @param    recipe      The recipe name
+
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_io_save_FLAT_BPM(
+int cr2res_io_save_BPM(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        hdrl_image              **  flat_bpms,
+        hdrl_image              **  bpms,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, parlist,
-            flat_bpms, qc_list, ext_plist, CPL_TYPE_INT, recipe,
-            CR2RES_FLAT_BPM_PROCATG, CR2RES_BPM_PROTYPE) ;
+            bpms, qc_list, ext_plist, CPL_TYPE_INT, recipe,
+            procatg, CR2RES_BPM_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/

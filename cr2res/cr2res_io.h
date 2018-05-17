@@ -110,23 +110,24 @@ int cr2res_io_save_EMISSION_LINES(
         const char              *   recipe) ;
 
 int cr2res_io_save_MASTER_DARK(
-        cpl_frameset            *   allframes,
         const char              *   filename,
-        cpl_frameset            *   used_frames,
+        cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  master_darks,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
         const char              *   recipe) ;
 
-int cr2res_io_save_FLAT_BPM(
+int cr2res_io_save_BPM(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        hdrl_image              **  master_bpms,
+        hdrl_image              **  bpms,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
+        const char              *   procatg,
+        const char              *   recipe) ;
 
 int cr2res_io_save_DETLIN_COEFFS(
         const char              *   filename,

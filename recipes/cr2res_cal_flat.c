@@ -513,8 +513,8 @@ static int cr2res_cal_flat(
         /* BPM */
         out_file = cpl_sprintf("%s_%s_master_bpm.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-        cr2res_io_save_FLAT_BPM(out_file, frameset, parlist,
-                bpm, NULL, ext_plist, RECIPE_STRING) ;
+        cr2res_io_save_BPM(out_file, frameset, parlist,
+                bpm, NULL, ext_plist, CR2RES_FLAT_BPM_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
         /* Free */

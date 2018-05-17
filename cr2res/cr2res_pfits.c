@@ -56,6 +56,18 @@ const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    find out the DIT value 
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_pfits_get_dit(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_double(plist, "ESO DET DIT")  ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    find out the Min wavelength for an order (all detectors)
   @param    plist       property list to read from
   @param    order       Order
@@ -202,6 +214,18 @@ double cr2res_pfits_get_ceny(const cpl_propertylist * plist, int order)
 
     cpl_free(key_name) ;
     return val ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the EXPNO value 
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_pfits_get_expno(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_int(plist, "ESO TPL EXPNO")  ;
 }
 
 /*----------------------------------------------------------------------------*/

@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-#ifndef CR2RES_BPM_H
-#define CR2RES_BPM_H
+#ifndef CR2RES_CALIB_H
+#define CR2RES_CALIB_H
 
 /*-----------------------------------------------------------------------------
                                    Includes
@@ -31,34 +31,21 @@
                                     Define
  -----------------------------------------------------------------------------*/
 
-typedef enum _cr2res_bpm_type_ {
-    CR2RES_BPM_DARK  	= 1 << 0,
-    CR2RES_BPM_FLAT     = 1 << 1
-} cr2res_bpm_type ;
-
 /*-----------------------------------------------------------------------------
                                 Prototypes
  -----------------------------------------------------------------------------*/
 
-cpl_image * cr2res_compute_bpm(
-        cpl_image   *   in,
-        double          low,
-        double          high,
-        double          lines_ratio,
-        int             clean_flag) ;
-
-int cr2res_bpm_correct_image(
-        cpl_image           *   in,
+int cr2res_calib_chip_list(
+        cpl_imagelist       *   ilist,
+        int                     chip,
+        const char          *   flat,
+        const char          *   dark,
         const char          *   bpm,
-        int                     chip) ;
+        const char          *   detlin,
+        double                  dit) ;
 
-cpl_mask * cr2res_bpm_extract_mask(
-        const cpl_image     *   bpm_ima,
-        cr2res_bpm_type         bpm_type) ;
-
-int cr2res_bpm_add_mask(
-        cpl_image   *   bpm_ima,
-        cpl_mask    *   bpm,
-        int             bpm_code) ;
+int cr2res_detlin_correct(
+        cpl_imagelist       *   ilist,
+        const cpl_imagelist *   detlin_coeffs) ;
 
 #endif
