@@ -40,7 +40,7 @@ typedef enum _cr2res_bpm_type_ {
                                 Prototypes
  -----------------------------------------------------------------------------*/
 
-cpl_image * cr2res_compute_bpm(
+cpl_mask * cr2res_compute_bpm(
         cpl_image   *   in,
         double          low,
         double          high,

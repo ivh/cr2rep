@@ -52,6 +52,13 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static double cr2res_spec_dark_ron(
+        const cpl_image     *   ima1,
+        const cpl_image     *   ima2,
+        int                     hsize,
+        int                     nsamples,
+        int                     ndit) ;
+
 static int cr2res_cal_dark_compare(
         const cpl_frame   *   frame1,
         const cpl_frame   *   frame2) ;
@@ -158,17 +165,10 @@ static int cr2res_cal_dark_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    /* --bpm_low */
-    p = cpl_parameter_new_value("cr2res_cal_dark.bpm_low", CPL_TYPE_DOUBLE,
-            "Low Threshold for the BPM", "cr2res_cal_dark", 0.5);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_low");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    /* --bpm_high */
-    p = cpl_parameter_new_value("cr2res_cal_dark.bpm_high", CPL_TYPE_DOUBLE,
-            "High Threshold for the BPM", "cr2res_cal_dark", 2.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_high");
+    /* --bpm_kappa */
+    p = cpl_parameter_new_value("cr2res_cal_dark.bpm_kappa", CPL_TYPE_DOUBLE,
+           "Kappa Threshold for the BPM", "cr2res_cal_dark", 3.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_kappa");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -177,6 +177,22 @@ static int cr2res_cal_dark_create(cpl_plugin * plugin)
             CPL_TYPE_DOUBLE, "Maximum ratio of bad pixels per line", 
             "cr2res_cal_dark", 0.5);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_lines_ratio");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    /* --ron_hsize */
+    p = cpl_parameter_new_value("cr2res_cal_dark.ron_hsize", 
+            CPL_TYPE_INT, "Half size of the window for RON computation", 
+            "cr2res_cal_dark", 6);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ron_hsize");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    /* --ron_nsamples */
+    p = cpl_parameter_new_value("cr2res_cal_dark.ron_nsamples", 
+            CPL_TYPE_INT, "Number of samples for RON computation", 
+            "cr2res_cal_dark", 100);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ron_nsamples");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -254,8 +270,9 @@ static int cr2res_cal_dark(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   par ;
-    int                     reduce_det ;
-    double                  gain, dit, bpm_low, bpm_high, bpm_lines_ratio ;
+    int                     reduce_det, ron_hsize, ron_nsamples, ndit ;
+    double                  gain, dit, bpm_kappa, bpm_lines_ratio, bpm_high, 
+                            bpm_low, med, sigma, mean, ron1, ron2 ;
     hdrl_parameter      *   collapse_params ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_one ;
@@ -269,7 +286,8 @@ static int cr2res_cal_dark(
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
 
     hdrl_imagelist      *   dark_cube ;
-    cpl_image           *   my_bpm ;
+    cpl_mask            *   my_bpm ;
+    cpl_image           *   bpm_ima ;
     const char          *   fname ;
     cpl_image           *   ima_data ;
     cpl_image           *   ima_err ;
@@ -277,7 +295,7 @@ static int cr2res_cal_dark(
     hdrl_image          *   master;
     cpl_image           *   contrib_map;
     char                *   filename ;
-    int                     nb_frames, i, l, ext ;
+    int                     nb_frames, i, l, ext, nb_bad ;
 
     /* RETRIEVE INPUT PARAMETERS */
     /* --detector */
@@ -285,13 +303,17 @@ static int cr2res_cal_dark(
             "cr2res.cr2res_cal_dark.detector");
     reduce_det = cpl_parameter_get_int(par);
 
-    /* --bpm_low */
-    par = cpl_parameterlist_find_const(parlist, "cr2res_cal_dark.bpm_low");
-    bpm_low = cpl_parameter_get_double(par);
+    /* --ron_hsize */
+    par = cpl_parameterlist_find_const(parlist, "cr2res_cal_dark.ron_hsize");
+    ron_hsize = cpl_parameter_get_int(par);
 
-    /* --bpm_high */
-    par = cpl_parameterlist_find_const(parlist, "cr2res_cal_dark.bpm_high");
-    bpm_high = cpl_parameter_get_double(par);
+    /* --ron_nsamples */
+    par = cpl_parameterlist_find_const(parlist, "cr2res_cal_dark.ron_nsamples");
+    ron_nsamples = cpl_parameter_get_int(par);
+
+    /* --bpm_kappa */
+    par = cpl_parameterlist_find_const(parlist, "cr2res_cal_dark.bpm_kappa");
+    bpm_kappa = cpl_parameter_get_double(par);
 
     /* --bpm_lines_ratio */
     par = cpl_parameterlist_find_const(parlist,
@@ -305,6 +327,14 @@ static int cr2res_cal_dark(
     collapse_params = hdrl_collapse_parameter_parse_parlist(parlist,
             "cr2res_cal_dark") ;
    
+    /* Verify Parameters */
+    if (bpm_kappa < 0.1) {
+        hdrl_parameter_destroy(collapse_params) ;
+        cpl_msg_error(__func__, "Kappa must be higher than 0.1") ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
+
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
         hdrl_parameter_destroy(collapse_params) ;
@@ -325,6 +355,7 @@ static int cr2res_cal_dark(
         return -1 ;
     }
 
+    printf("error : %s\n", cpl_error_get_where()) ;
     /* Labelise the raw frames with the DIT */
     if ((labels = cpl_frameset_labelise(rawframes, cr2res_cal_dark_compare,
                 &nlabels)) == NULL) {
@@ -345,9 +376,10 @@ static int cr2res_cal_dark(
         plist = cpl_propertylist_load(cpl_frame_get_filename(
                     cpl_frameset_get_position(raw_one, 0)), 0) ;
         dit = cr2res_pfits_get_dit(plist) ;
+        ndit = cr2res_pfits_get_ndit(plist) ;
         cpl_propertylist_delete(plist) ;
 
-        cpl_msg_info(__func__, "Process DIT %g", dit) ;
+        cpl_msg_info(__func__, "Process DIT %g / %d", dit, ndit) ;
         cpl_msg_indent_more() ;
 
         /* Loop on the extensions */
@@ -424,24 +456,80 @@ static int cr2res_cal_dark(
                 contrib_map = NULL ;
             }
             cpl_image_delete(contrib_map);
-            hdrl_imagelist_delete(dark_cube);
        
             /* Compute BPM from the MASTER dark */
             if (master_darks[ext-1] != NULL) {
-                if ((my_bpm = cr2res_compute_bpm(
-                                hdrl_image_get_image(master_darks[ext-1]),
-                                bpm_low, bpm_high, bpm_lines_ratio, 0))==NULL) {
-                    cpl_msg_warning(__func__, "Cannot create bad pixels map") ;
+                /* Compute Thresholds */
+                med = cpl_image_get_median_dev(
+                        hdrl_image_get_image(master_darks[ext-1]), &sigma) ;
+                if (cpl_error_get_code()) {
+                    cpl_error_reset() ;
+                    cpl_msg_warning(__func__, "Cannot compute statistics") ;
                 } else {
-                    bpms[ext-1] = hdrl_image_create(my_bpm, NULL) ;
-                    cpl_image_delete(my_bpm) ;
+                    bpm_low = med - bpm_kappa * sigma ;
+                    bpm_high = med + bpm_kappa * sigma ;
+
+                    /* Compute BPM */
+                    if ((my_bpm = cr2res_compute_bpm(
+                                    hdrl_image_get_image(master_darks[ext-1]),
+                                    bpm_low, bpm_high, bpm_lines_ratio, 
+                                    0))==NULL) {
+                        cpl_msg_warning(__func__, "Cannot create BPM") ;
+                    } else {
+                        /* Convert mask to image */
+                        bpm_ima = cpl_image_new_from_mask(my_bpm) ;
+                        cpl_image_multiply_scalar(bpm_ima,
+                                CR2RES_BPM_DARK) ;
+                        cpl_mask_delete(my_bpm) ;
+                        bpms[ext-1] = hdrl_image_create(bpm_ima, NULL) ;
+                        cpl_image_delete(bpm_ima) ;
+                    }
                 }
             }
 
             /* QCs */
-            if (master_darks[ext-1] != NULL) {
-                ext_plist[ext-1] = NULL ;
+            ext_plist[ext-1] = cpl_propertylist_new() ;
+            
+            /* QCs from RAW */
+            if (hdrl_imagelist_get_size(dark_cube) >= 3) {
+                ron1 = cr2res_spec_dark_ron(
+                        hdrl_image_get_image(hdrl_imagelist_get(dark_cube,0)), 
+                        hdrl_image_get_image(hdrl_imagelist_get(dark_cube,1)), 
+                        ron_hsize, ron_nsamples, ndit) ;
+                ron2 = cr2res_spec_dark_ron(
+                        hdrl_image_get_image(hdrl_imagelist_get(dark_cube,1)), 
+                        hdrl_image_get_image(hdrl_imagelist_get(dark_cube,2)), 
+                        ron_hsize, ron_nsamples, ndit) ;
 
+                cpl_propertylist_append_double(ext_plist[ext-1], 
+                        "ESO QC DARK RON1", ron1) ;
+                cpl_propertylist_append_double(ext_plist[ext-1], 
+                        "ESO QC DARK RON2", ron2) ;
+            }
+            hdrl_imagelist_delete(dark_cube);
+
+            /* QCs from MASTER DARK */
+            if (master_darks[ext-1] != NULL) {
+                 /* Compute Thresholds */
+                med = cpl_image_get_median_dev(
+                        hdrl_image_get_image(master_darks[ext-1]), &sigma) ;
+                mean = cpl_image_get_mean(
+                        hdrl_image_get_image(master_darks[ext-1])) ;
+
+                cpl_propertylist_append_double(ext_plist[ext-1], 
+                        "ESO QC DARK MEAN", mean) ;
+                cpl_propertylist_append_double(ext_plist[ext-1], 
+                        "ESO QC DARK MEDIAN", med) ;
+                cpl_propertylist_append_double(ext_plist[ext-1], 
+                        "ESO QC DARK STDDEV", sigma) ;
+            }
+            /* QCs from BPM */
+            if (bpms[ext-1] != NULL) {
+                nb_bad = (int)(
+                        cpl_image_get_flux(hdrl_image_get_image(bpms[ext-1])) 
+                        / CR2RES_BPM_DARK) ;
+                cpl_propertylist_append_int(ext_plist[ext-1], 
+                        "ESO QC DARK NBAD", nb_bad) ;
             }
             cpl_msg_indent_less() ;
         }
@@ -571,6 +659,44 @@ static int cr2res_cal_dark_compare(
     cpl_propertylist_delete(plist1) ;
     cpl_propertylist_delete(plist2) ;
     return comparison ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    The RON computation
+  @param    ima1        the first input image
+  @param    ima2        the second input image
+  @param    ndit        the NDIT
+  @return   the RON or -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+static double cr2res_spec_dark_ron(
+        const cpl_image     *   ima1,
+        const cpl_image     *   ima2,
+        int                     hsize,
+        int                     nsamples,
+        int                     ndit)
+{
+    cpl_image       *   ima ;
+    double              norm ;
+    double              ron ;
+
+    /* Test entries */
+    if (ima1 == NULL)   return -1.0 ;
+    if (ima2 == NULL)   return -1.0 ;
+    if (ndit < 1)       return -1.0 ;
+
+    /* Compute norm */
+    norm = 0.5 * ndit ;
+    norm = sqrt(norm) ;
+
+    /* Subtraction */
+    if ((ima = cpl_image_subtract_create(ima2, ima1)) == NULL) return -1.0 ;
+
+    /* RON measurement */
+    cpl_flux_get_noise_window(ima, NULL, hsize, nsamples, &ron, NULL) ;
+    cpl_image_delete(ima) ;
+    return norm*ron ;
 }
 
 

@@ -41,6 +41,7 @@ double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order) ;
 double cr2res_pfits_get_ceny(const cpl_propertylist * plist, int order) ;
 
 int cr2res_pfits_get_expno(const cpl_propertylist * plist) ;
+int cr2res_pfits_get_ndit(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_order(const cpl_propertylist * plist, double yposition) ;
 cr2res_decker cr2res_pfits_get_decker_position(const cpl_propertylist * plist) ;
 

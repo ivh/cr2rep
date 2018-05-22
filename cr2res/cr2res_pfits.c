@@ -230,6 +230,18 @@ int cr2res_pfits_get_expno(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    find out the NDIT value 
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_pfits_get_ndit(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_int(plist, "ESO DET NDIT")  ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    find out the order number closest to the passed y position
   @param    plist       property list to read from
   @param    yposition   Y position

@@ -1190,22 +1190,23 @@ static int cr2res_io_save_image(
 
     /* Save the extensions */
     for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
+        if (ext_plist[ext-1] == NULL) {
+            qclist_loc = cpl_propertylist_new();
+        } else {
+            qclist_loc = cpl_propertylist_duplicate(ext_plist[ext-1]) ;
+        }
         /* Save the DATA */
-        qclist_loc = cpl_propertylist_new() ;
-
         wished_extname = cr2res_io_create_extname(ext, 1) ;
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", wished_extname) ;
         if (data[ext-1] == NULL)    to_save = NULL ;
         else                        to_save = hdrl_image_get_image(data[ext-1]);
         cpl_image_save(to_save, filename, type, qclist_loc,
                 CPL_IO_EXTEND) ;
-        cpl_propertylist_delete(qclist_loc) ;
         cpl_free(wished_extname) ;
 
         /* Save the NOISE */
-        qclist_loc = cpl_propertylist_new() ;
         wished_extname = cr2res_io_create_extname(ext, 0) ;
-        cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", wished_extname) ;
+        cpl_propertylist_update_string(qclist_loc, "EXTNAME", wished_extname) ;
         if (data[ext-1] == NULL)    to_save = NULL ;
         else                        to_save = hdrl_image_get_error(data[ext-1]);
         cpl_image_save(to_save, filename, type, qclist_loc,
