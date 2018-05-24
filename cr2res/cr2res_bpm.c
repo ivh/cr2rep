@@ -54,7 +54,7 @@
   @return   the BPM
  */
 /*----------------------------------------------------------------------------*/
-cpl_mask * cr2res_compute_bpm(
+cpl_mask * cr2res_bpm_compute(
         cpl_image   *   in,
         double          low,
         double          high,
@@ -101,6 +101,76 @@ cpl_mask * cr2res_compute_bpm(
     }
 
     return bpm ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Count BPM of a given type
+  @param    bpm         the BPM
+  @param    type        the bad pixel type
+  @return   the count or -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_bpm_count(
+        cpl_image       *   bpm,
+        cr2res_bpm_type     type)
+{
+    cpl_image   *   tmp ;
+    int             count ;
+ 
+    /* Check Entries */
+    if (bpm == NULL) return -1 ;
+
+    tmp = cpl_image_duplicate(bpm);
+    cpl_image_xor_scalar(tmp, NULL, type);
+    cpl_image_reject_value(tmp, CPL_VALUE_ZERO);
+    count = cpl_image_count_rejected(tmp);
+    cpl_image_delete(tmp);
+
+    return count ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Merge 2 BPMs
+  @param    bpm1        the first BPM
+  @param    bpm2        the second BPM
+  @return   the merged BPM or NULL in error case
+ */
+/*----------------------------------------------------------------------------*/
+cpl_image * cr2res_bpm_merge(
+        cpl_image   *   bpm1,
+        cpl_image   *   bpm2)
+{
+
+
+
+
+
+
+    return NULL ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Create a BPM from a mask
+  @param    mask        the input mask
+  @param    type        the bad pixel type
+  @return   the BPM or NULL in error case
+ */
+/*----------------------------------------------------------------------------*/
+cpl_image * cr2res_bpm_from_mask(
+        cpl_mask        *   mask,
+        cr2res_bpm_type     type)
+{
+    cpl_image   *   bpm_ima ;
+ 
+    /* Check Entries */
+    if (mask == NULL) return NULL ;
+
+    bpm_ima = cpl_image_new_from_mask(mask) ;
+    cpl_image_multiply_scalar(bpm_ima, type) ;
+    return bpm_ima ;
 }
 
 /*----------------------------------------------------------------------------*/

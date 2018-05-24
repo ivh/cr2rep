@@ -583,15 +583,32 @@ int cr2res_io_save_BPM(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        hdrl_image              **  bpms,
+        cpl_image               **  bpms,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_image(filename, allframes, parlist,
-            bpms, qc_list, ext_plist, CPL_TYPE_INT, recipe,
+    hdrl_image      *   hdrl_bpms[CR2RES_NB_DETECTORS] ;
+    int                 ext, ret ;
+            
+    /* Convert to HDRL images */
+    for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
+        hdrl_bpms[ext-1] = hdrl_image_create(bpms[ext-1], NULL) ;
+    }
+
+    /* Save */
+    ret = cr2res_io_save_image(filename, allframes, parlist,
+            hdrl_bpms, qc_list, ext_plist, CPL_TYPE_INT, recipe,
             procatg, CR2RES_BPM_PROTYPE) ;
+
+    /* Free and return */
+    for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
+        hdrl_image_delete(hdrl_bpms[ext-1]) ;
+    }
+
+
+    return ret ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -682,7 +699,7 @@ int cr2res_io_save_TRACE_WAVE(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Save a BLAZE
+  @brief    Save a 1D extracted spectrum   
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
@@ -694,7 +711,7 @@ int cr2res_io_save_TRACE_WAVE(
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_io_save_BLAZE(
+int cr2res_io_save_EXTRACT_1D(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
@@ -871,33 +888,6 @@ int cr2res_io_save_TILT_POLY(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Save a EXTRACT_1D
-  @param    filename    The FITS file name
-  @param    allframes   The recipe input frames
-  @param    parlist     The recipe input parameters
-  @param    tables      The tables to save (1 per detector)
-  @param    qc_list     The QC parameters
-  @param    ext_plist   The extensions property lists
-  @param    recipe      The recipe name
-  @return   0 if ok, -1 in error case
- */
-/*----------------------------------------------------------------------------*/
-int cr2res_io_save_EXTRACT_1D(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        const cpl_parameterlist *   parlist,
-        cpl_table               **  tables,
-        const cpl_propertylist  *   qc_list,
-        cpl_propertylist        **  ext_plist,
-        const char              *   recipe)
-{
-    return cr2res_io_save_table(filename, allframes, parlist, tables,
-            qc_list, ext_plist, recipe, CR2RES_EXTRACT_1D_PROCATG,
-            CR2RES_EXTRACT_1D_PROTYPE) ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Save a SPLICED_1D
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
@@ -1014,8 +1004,12 @@ static int cr2res_io_save_table(
     cpl_propertylist_append_string(pro_list, CPL_DFS_PRO_TYPE, protype) ;
 
     /* Create the first extension header */
-    if (ext_plist[0]==NULL) ext_head = cpl_propertylist_new() ;
-    else                    ext_head = cpl_propertylist_duplicate(ext_plist[0]);
+    if (ext_plist[0]==NULL) {
+        ext_head = cpl_propertylist_new() ;
+    } else {
+        ext_head = cpl_propertylist_duplicate(ext_plist[0]);
+        cpl_propertylist_erase(ext_head, "EXTNAME");
+    }
     wished_extname = cr2res_io_create_extname(1, 1) ;
     cpl_propertylist_update_string(ext_head, "EXTNAME", wished_extname) ;
     cpl_free(wished_extname) ;
@@ -1047,8 +1041,12 @@ static int cr2res_io_save_table(
     /* Save the extensions */
     for (i=1 ; i<CR2RES_NB_DETECTORS ; i++) {
         /* Create the first extension header */
-        if (ext_plist[i] == NULL) ext_head = cpl_propertylist_new() ;
-        else                ext_head = cpl_propertylist_duplicate(ext_plist[i]);
+        if (ext_plist[i] == NULL) {
+            ext_head = cpl_propertylist_new() ;
+        } else {
+            ext_head = cpl_propertylist_duplicate(ext_plist[i]);
+            cpl_propertylist_erase(ext_head, "EXTNAME");
+        }
         wished_extname = cr2res_io_create_extname(i+1, 1) ;
         cpl_propertylist_update_string(ext_head, "EXTNAME", wished_extname) ;
         cpl_free(wished_extname) ;
@@ -1122,14 +1120,16 @@ static int cr2res_io_save_image(
             qclist_loc = cpl_propertylist_new();
         } else {
             qclist_loc = cpl_propertylist_duplicate(ext_plist[ext-1]) ;
+            cpl_propertylist_erase(qclist_loc, "EXTNAME");
         }
+
         /* Save the DATA */
         wished_extname = cr2res_io_create_extname(ext, 1) ;
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", wished_extname) ;
+
         if (data[ext-1] == NULL)    to_save = NULL ;
         else                        to_save = hdrl_image_get_image(data[ext-1]);
-        cpl_image_save(to_save, filename, type, qclist_loc,
-                CPL_IO_EXTEND) ;
+        cpl_image_save(to_save, filename, type, qclist_loc, CPL_IO_EXTEND) ;
         cpl_free(wished_extname) ;
 
         /* Save the NOISE */
@@ -1137,8 +1137,7 @@ static int cr2res_io_save_image(
         cpl_propertylist_update_string(qclist_loc, "EXTNAME", wished_extname) ;
         if (data[ext-1] == NULL)    to_save = NULL ;
         else                        to_save = hdrl_image_get_error(data[ext-1]);
-        cpl_image_save(to_save, filename, type, qclist_loc,
-                CPL_IO_EXTEND) ;
+        cpl_image_save(to_save, filename, type, qclist_loc, CPL_IO_EXTEND) ;
         cpl_propertylist_delete(qclist_loc) ;
         cpl_free(wished_extname) ;
     }

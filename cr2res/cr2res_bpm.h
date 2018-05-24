@@ -36,16 +36,33 @@ typedef enum _cr2res_bpm_type_ {
     CR2RES_BPM_FLAT     = 1 << 1
 } cr2res_bpm_type ;
 
+#define CR2RES_NB_BPM_TYPES     2 
+static cr2res_bpm_type bpm_types[CR2RES_NB_BPM_TYPES] = {
+    CR2RES_BPM_DARK, 
+    CR2RES_BPM_FLAT};
+
 /*-----------------------------------------------------------------------------
                                 Prototypes
  -----------------------------------------------------------------------------*/
 
-cpl_mask * cr2res_compute_bpm(
+cpl_mask * cr2res_bpm_compute(
         cpl_image   *   in,
         double          low,
         double          high,
         double          lines_ratio,
         int             clean_flag) ;
+
+int cr2res_bpm_count(
+        cpl_image       *   bpm,
+        cr2res_bpm_type     type) ;
+
+cpl_image * cr2res_bpm_merge(
+        cpl_image   *   bpm1,
+        cpl_image   *   bpm2) ;
+
+cpl_image * cr2res_bpm_from_mask(
+        cpl_mask        *   mask,
+        cr2res_bpm_type     type) ;
 
 int cr2res_bpm_correct_image(
         cpl_image           *   in,

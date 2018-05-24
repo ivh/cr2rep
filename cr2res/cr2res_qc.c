@@ -38,55 +38,49 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-
 /*----------------------------------------------------------------------------*/
 /**
  * @defgroup cr2res_qc  QC related functions
- *
- * TBD
  */
 /*----------------------------------------------------------------------------*/
 
 /**@{*/
 
-
-/*---------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 /**
-* @brief    count number of bad pixels in image
-* @param    bpm    image with bad pixels
-* @param    type   value to count as bad pixels
-* @return   nbp    number of bad pixels
-*/
-/*---------------------------------------------------------------------------*/
-int cr2res_qc_count_badpix(cpl_image * bpm, int type)
+  @brief    The Read Out Noise computation
+  @param    ima1        the first input image
+  @param    ima2        the second input image
+  @param    hsize
+  @param    nsamples
+  @param    ndit        the NDIT
+  @return   the RON or -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_ron(
+        const cpl_image     *   ima1,
+        const cpl_image     *   ima2,
+        int                     hsize,
+        int                     nsamples,
+        int                     ndit)
 {
-    if (bpm == NULL) return -1;
+    cpl_image       *   ima ;
+    double              norm, ron ;
 
-    cpl_image * tmp = cpl_image_duplicate(bpm);
-    cpl_image_xor_scalar(tmp, NULL, type);
-    cpl_image_reject_value(tmp, CPL_VALUE_ZERO);
-    int nbp = cpl_image_count_rejected(tmp);
-    cpl_image_delete(tmp);
-    return nbp;
-}
+    /* Test entries */
+    if (ima1 == NULL || ima2 == NULL || ndit < 1)   return -1.0 ;
 
-/*---------------------------------------------------------------------------*/
-/**
-* @brief    get the read out noise of image1 and 2
-* @param    im1      first image
-* @param    im2      second image
-* @return   rdnoise  read out noise
-*/
-/*---------------------------------------------------------------------------*/
-double cr2res_qc_read_out_noise(cpl_image * im1, cpl_image * im2)
-{
-    if (im1 == NULL || im2 == NULL) return -1;
+    /* Compute norm */
+    norm = 0.5 * ndit ;
+    norm = sqrt(norm) ;
 
-    cpl_image *tmp = cpl_image_duplicate(im1);
-    cpl_image_subtract(tmp, im2);
-    double rdnoise = cpl_image_get_stdev(tmp);
-    cpl_image_delete(tmp);
-    return rdnoise;
+    /* Subtraction */
+    if ((ima = cpl_image_subtract_create(ima2, ima1)) == NULL) return -1.0 ;
+
+    /* RON measurement */
+    cpl_flux_get_noise_window(ima, NULL, hsize, nsamples, &ron, NULL) ;
+    cpl_image_delete(ima) ;
+    return norm*ron ;
 }
 
 /*---------------------------------------------------------------------------*/

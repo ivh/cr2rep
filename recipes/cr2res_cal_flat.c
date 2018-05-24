@@ -78,9 +78,9 @@ static int cr2res_cal_flat_reduce(
         hdrl_image          **  master_flat,
         cpl_table           **  trace_wave,
         cpl_table           **  slit_func,
-        cpl_table           **  blaze,
+        cpl_table           **  extract_1d,
         hdrl_image          **  slit_model,
-        hdrl_image          **  bpm,
+        cpl_image           **  bpm,
         cpl_propertylist    **  plist) ;
 static int cr2res_cal_flat_create(cpl_plugin *);
 static int cr2res_cal_flat_exec(cpl_plugin *);
@@ -100,11 +100,11 @@ static char cr2res_cal_flat_description[] =
 "bpm.fits " CR2RES_DARK_BPM_PROCATG "\n"
 " The recipe produces the following products:\n"
 "cr2res_cal_flat_bpm.fits " CR2RES_FLAT_BPM_PROCATG "\n"
-"cr2res_cal_flat_blaze.fits " CR2RES_BLAZE_PROCATG "\n"
+"cr2res_cal_flat_blaze.fits " CR2RES_FLAT_EXTRACT_1D_PROCATG "\n"
 "cr2res_cal_flat_slit_model.fits " CR2RES_FLAT_SLIT_MODEL_PROCATG "\n"
 "cr2res_cal_flat_slit_func.fits " CR2RES_FLAT_SLIT_FUNC_PROCATG "\n"
 "cr2res_cal_flat_trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
-"cr2res_cal_flat_master.fits " CR2RES_MASTER_FLAT_PROCATG  "\n"
+"cr2res_cal_flat_master.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG  "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -359,9 +359,9 @@ static int cr2res_cal_flat(
     hdrl_image          *   master_flat[CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_wave[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slit_func[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   blaze[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   extract_1d[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   slit_model[CR2RES_NB_DETECTORS] ;
-    hdrl_image          *   bpm[CR2RES_NB_DETECTORS] ;
+    cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
     int                     i, det_nr; 
@@ -452,7 +452,7 @@ static int cr2res_cal_flat(
             master_flat[det_nr-1] = NULL ;
             trace_wave[det_nr-1] = NULL ;
             slit_func[det_nr-1] = NULL ;
-            blaze[det_nr-1] = NULL ;
+            extract_1d[det_nr-1] = NULL ;
             slit_model[det_nr-1] = NULL ;
             bpm[det_nr-1] = NULL ;
             ext_plist[det_nr-1] = NULL ;
@@ -474,7 +474,7 @@ static int cr2res_cal_flat(
                         &(master_flat[det_nr-1]),
                         &(trace_wave[det_nr-1]),
                         &(slit_func[det_nr-1]),
-                        &(blaze[det_nr-1]),
+                        &(extract_1d[det_nr-1]),
                         &(slit_model[det_nr-1]),
                         &(bpm[det_nr-1]),
                         &(ext_plist[det_nr-1])) == -1) {
@@ -499,15 +499,15 @@ static int cr2res_cal_flat(
         /* BLAZE */
 		out_file = cpl_sprintf("%s_%s_blaze.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-		cr2res_io_save_BLAZE(out_file, frameset, parlist, blaze, NULL, 
-                ext_plist, CR2RES_BLAZE_PROCATG, RECIPE_STRING) ;
+		cr2res_io_save_EXTRACT_1D(out_file, frameset, parlist, extract_1d, NULL, 
+                ext_plist, CR2RES_FLAT_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
         /* MASTER_FLAT */
 		out_file = cpl_sprintf("%s_%s_master_flat.fits", RECIPE_STRING,
                 decker_desc[i]) ;
         cr2res_io_save_MASTER_FLAT(out_file, frameset, parlist,
-                master_flat, NULL, ext_plist, CR2RES_MASTER_FLAT_PROCATG, 
+                master_flat, NULL, ext_plist, CR2RES_FLAT_MASTER_FLAT_PROCATG, 
                 RECIPE_STRING) ;
 		cpl_free(out_file);
 
@@ -542,12 +542,12 @@ static int cr2res_cal_flat(
                 cpl_table_delete(trace_wave[det_nr-1]) ;
             if (slit_func[det_nr-1] != NULL) 
                 cpl_table_delete(slit_func[det_nr-1]) ;
-            if (blaze[det_nr-1] != NULL)
-                cpl_table_delete(blaze[det_nr-1]) ;
+            if (extract_1d[det_nr-1] != NULL)
+                cpl_table_delete(extract_1d[det_nr-1]) ;
             if (slit_model[det_nr-1] != NULL) 
                 hdrl_image_delete(slit_model[det_nr-1]) ;
             if (bpm[det_nr-1] != NULL) 
-                hdrl_image_delete(bpm[det_nr-1]) ;
+                cpl_image_delete(bpm[det_nr-1]) ;
             if (ext_plist[det_nr-1] != NULL) 
                 cpl_propertylist_delete(ext_plist[det_nr-1]) ;
         }
@@ -589,9 +589,9 @@ static int cr2res_cal_flat_reduce(
         hdrl_image          **  master_flat,
         cpl_table           **  trace_wave,
         cpl_table           **  slit_func,
-        cpl_table           **  blaze,
+        cpl_table           **  extract_1d,
         hdrl_image          **  slit_model,
-        hdrl_image          **  bpm,
+        cpl_image           **  bpm,
         cpl_propertylist    **  ext_plist)
 {
     const char          *   first_file ;
@@ -620,6 +620,11 @@ static int cr2res_cal_flat_reduce(
             cpl_frameset_get_position_const(rawframes, 0)) ;
     ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
 
+    /* Get the DIT for the Dark correction */
+    plist = cpl_propertylist_load(first_file, 0) ;
+    dit = cr2res_pfits_get_dit(plist) ;
+    cpl_propertylist_delete(plist);
+
     /* Load the extension header for saving */
     plist = cpl_propertylist_load(first_file, ext_nr) ;
     if (plist == NULL) return -1 ;
@@ -631,10 +636,6 @@ static int cr2res_cal_flat_reduce(
         cpl_propertylist_delete(plist);
         return -1 ;
     }
-
-    /* Get the DIT for the Dark correction */
-    /* TODO */
-    dit = 10.0 ;
 
     /* Calibrate the Data */
     cpl_msg_info(__func__, "Calibrate the input images") ;
@@ -826,12 +827,11 @@ static int cr2res_cal_flat_reduce(
     /* Return the results */
     *trace_wave = traces ;
     *slit_func = slit_func_tab ;
-    *blaze = extract_tab ;
+    *extract_1d = extract_tab ;
     *slit_model = model_master ;
     *master_flat = master_flat_loc ;
     *ext_plist = plist ;
-    *bpm = hdrl_image_create(bpm_im, NULL) ;
-    cpl_image_delete(bpm_im) ;
+    *bpm = bpm_im ;
     return 0 ;
 }
 

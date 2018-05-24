@@ -123,7 +123,7 @@ int cr2res_io_save_BPM(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        hdrl_image              **  bpms,
+        cpl_image               **  bpms,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
         const char              *   procatg,
@@ -159,7 +159,7 @@ int cr2res_io_save_TRACE_WAVE(
         const char              *   procatg,
         const char              *   recipe) ;
 
-int cr2res_io_save_BLAZE(
+int cr2res_io_save_EXTRACT_1D(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
@@ -217,15 +217,6 @@ int cr2res_io_save_TILT_MAP(
         const char              *   recipe);
 
 int cr2res_io_save_TILT_POLY(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        const cpl_parameterlist *   parlist,
-        cpl_table               **  tables,
-        const cpl_propertylist  *   qc_list,
-        cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
-
-int cr2res_io_save_EXTRACT_1D(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,

@@ -473,7 +473,8 @@ static int cr2res_util_extract(
     out_file = cpl_sprintf("%s_extr1D.fits",
                     cr2res_get_base_name(cr2res_get_root_name(science_file)));
     cr2res_io_save_EXTRACT_1D(out_file, frameset,
-            parlist, extract_tab, NULL, ext_plist, RECIPE_STRING) ;
+            parlist, extract_tab, NULL, ext_plist,
+            CR2RES_UTIL_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free and return */

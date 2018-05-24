@@ -34,6 +34,7 @@
 #include "cr2res_dfs.h"
 #include "cr2res_io.h"
 #include "cr2res_bpm.h"
+#include "cr2res_qc.h"
 #include "cr2res_calib.h"
 
 /*-----------------------------------------------------------------------------
@@ -51,13 +52,6 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
 /*-----------------------------------------------------------------------------
                             Private function prototypes
  -----------------------------------------------------------------------------*/
-
-static double cr2res_spec_dark_ron(
-        const cpl_image     *   ima1,
-        const cpl_image     *   ima2,
-        int                     hsize,
-        int                     nsamples,
-        int                     ndit) ;
 
 static int cr2res_cal_dark_compare(
         const cpl_frame   *   frame1,
@@ -281,12 +275,11 @@ static int cr2res_cal_dark(
     cpl_propertylist    *   plist ;
     
     hdrl_image          *   master_darks[CR2RES_NB_DETECTORS] ;
-    hdrl_image          *   bpms[CR2RES_NB_DETECTORS] ;
+    cpl_image           *   bpms[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
 
     hdrl_imagelist      *   dark_cube ;
     cpl_mask            *   my_bpm ;
-    cpl_image           *   bpm_ima ;
     const char          *   fname ;
     cpl_image           *   ima_data ;
     cpl_image           *   ima_err ;
@@ -354,7 +347,6 @@ static int cr2res_cal_dark(
         return -1 ;
     }
 
-    printf("error : %s\n", cpl_error_get_where()) ;
     /* Labelise the raw frames with the DIT */
     if ((labels = cpl_frameset_labelise(rawframes, cr2res_cal_dark_compare,
                 &nlabels)) == NULL) {
@@ -469,19 +461,16 @@ static int cr2res_cal_dark(
                     bpm_high = med + bpm_kappa * sigma ;
 
                     /* Compute BPM */
-                    if ((my_bpm = cr2res_compute_bpm(
+                    if ((my_bpm = cr2res_bpm_compute(
                                     hdrl_image_get_image(master_darks[ext-1]),
                                     bpm_low, bpm_high, bpm_lines_ratio, 
-                                    0))==NULL) {
+                                    0)) == NULL) {
                         cpl_msg_warning(__func__, "Cannot create BPM") ;
                     } else {
-                        /* Convert mask to image */
-                        bpm_ima = cpl_image_new_from_mask(my_bpm) ;
-                        cpl_image_multiply_scalar(bpm_ima,
-                                CR2RES_BPM_DARK) ;
+                        /* Convert mask to BPM */
+                        bpms[ext-1] = cr2res_bpm_from_mask(my_bpm, 
+                                CR2RES_BPM_DARK);
                         cpl_mask_delete(my_bpm) ;
-                        bpms[ext-1] = hdrl_image_create(bpm_ima, NULL) ;
-                        cpl_image_delete(bpm_ima) ;
                     }
                 }
             }
@@ -491,11 +480,11 @@ static int cr2res_cal_dark(
             
             /* QCs from RAW */
             if (hdrl_imagelist_get_size(dark_cube) >= 3) {
-                ron1 = cr2res_spec_dark_ron(
+                ron1 = cr2res_qc_ron(
                         hdrl_image_get_image(hdrl_imagelist_get(dark_cube,0)), 
                         hdrl_image_get_image(hdrl_imagelist_get(dark_cube,1)), 
                         ron_hsize, ron_nsamples, ndit) ;
-                ron2 = cr2res_spec_dark_ron(
+                ron2 = cr2res_qc_ron(
                         hdrl_image_get_image(hdrl_imagelist_get(dark_cube,1)), 
                         hdrl_image_get_image(hdrl_imagelist_get(dark_cube,2)), 
                         ron_hsize, ron_nsamples, ndit) ;
@@ -524,9 +513,7 @@ static int cr2res_cal_dark(
             }
             /* QCs from BPM */
             if (bpms[ext-1] != NULL) {
-                nb_bad = (int)(
-                        cpl_image_get_flux(hdrl_image_get_image(bpms[ext-1])) 
-                        / CR2RES_BPM_DARK) ;
+                nb_bad = cr2res_bpm_count(bpms[ext-1], CR2RES_BPM_DARK) ;
                 cpl_propertylist_append_int(ext_plist[ext-1], 
                         "ESO QC DARK NBAD", nb_bad) ;
             }
@@ -543,7 +530,7 @@ static int cr2res_cal_dark(
             cpl_frameset_delete(raw_one) ;
             for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
                 if (bpms[ext-1] != NULL) 
-                    hdrl_image_delete(bpms[ext-1]);
+                    cpl_image_delete(bpms[ext-1]);
                 if (master_darks[ext-1] != NULL) 
                     hdrl_image_delete(master_darks[ext-1]);
                 if (ext_plist[ext-1] != NULL) 
@@ -568,7 +555,7 @@ static int cr2res_cal_dark(
             cpl_frameset_delete(raw_one) ;
             for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
                 if (bpms[ext-1] != NULL) 
-                    hdrl_image_delete(bpms[ext-1]);
+                    cpl_image_delete(bpms[ext-1]);
                 if (master_darks[ext-1] != NULL) 
                     hdrl_image_delete(master_darks[ext-1]);
                 if (ext_plist[ext-1] != NULL) 
@@ -589,7 +576,7 @@ static int cr2res_cal_dark(
         cpl_frameset_delete(raw_one) ;
         for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
             if (bpms[ext-1] != NULL) 
-                hdrl_image_delete(bpms[ext-1]);
+                cpl_image_delete(bpms[ext-1]);
             if (master_darks[ext-1] != NULL) 
                 hdrl_image_delete(master_darks[ext-1]);
             if (ext_plist[ext-1] != NULL) 
@@ -660,42 +647,5 @@ static int cr2res_cal_dark_compare(
     return comparison ;
 }
 
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    The RON computation
-  @param    ima1        the first input image
-  @param    ima2        the second input image
-  @param    ndit        the NDIT
-  @return   the RON or -1 in error case
- */
-/*----------------------------------------------------------------------------*/
-static double cr2res_spec_dark_ron(
-        const cpl_image     *   ima1,
-        const cpl_image     *   ima2,
-        int                     hsize,
-        int                     nsamples,
-        int                     ndit)
-{
-    cpl_image       *   ima ;
-    double              norm ;
-    double              ron ;
-
-    /* Test entries */
-    if (ima1 == NULL)   return -1.0 ;
-    if (ima2 == NULL)   return -1.0 ;
-    if (ndit < 1)       return -1.0 ;
-
-    /* Compute norm */
-    norm = 0.5 * ndit ;
-    norm = sqrt(norm) ;
-
-    /* Subtraction */
-    if ((ima = cpl_image_subtract_create(ima2, ima1)) == NULL) return -1.0 ;
-
-    /* RON measurement */
-    cpl_flux_get_noise_window(ima, NULL, hsize, nsamples, &ron, NULL) ;
-    cpl_image_delete(ima) ;
-    return norm*ron ;
-}
 
 

@@ -28,19 +28,15 @@
 #include <cpl.h>
 
 #include "cr2res_utils.h"
-#include "cr2res_calib.h"
-#include "cr2res_pfits.h"
+#include "cr2res_bpm.h"
 #include "cr2res_dfs.h"
-#include "cr2res_flat.h"
-#include "cr2res_trace.h"
-#include "cr2res_extract.h"
 #include "cr2res_io.h"
 
 /*-----------------------------------------------------------------------------
                                 Define
  -----------------------------------------------------------------------------*/
 
-#define RECIPE_STRING "cr2res_util_calib"
+#define RECIPE_STRING "cr2res_util_bpm_split"
 
 /*-----------------------------------------------------------------------------
                              Plugin registration
@@ -52,26 +48,22 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
-static int cr2res_util_calib_create(cpl_plugin *);
-static int cr2res_util_calib_exec(cpl_plugin *);
-static int cr2res_util_calib_destroy(cpl_plugin *);
-static int cr2res_util_calib(cpl_frameset *, const cpl_parameterlist *);
+static int cr2res_util_bpm_split_create(cpl_plugin *);
+static int cr2res_util_bpm_split_exec(cpl_plugin *);
+static int cr2res_util_bpm_split_destroy(cpl_plugin *);
+static int cr2res_util_bpm_split(cpl_frameset *, const cpl_parameterlist *);
 
 /*-----------------------------------------------------------------------------
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_calib_description[] =
-"CRIRES+ calibration utility\n"
-"Each input file is corrected with : BPM / Dark / Flat / Det. Lin. / Cosmics\n"
+static char cr2res_util_bpm_split_description[] =
+"CRIRES+ BPM splitting utility\n"
+"Each input BPM is splitted into several BPMs\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw.fits " CR2RES_CALIB_RAW"\n"
-"detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG "\n"
-"bpm.fits " CR2RES_BPM_PROTYPE "\n"
-"master_dark.fits " CR2RES_MASTER_DARK_PROCATG "\n"
-"master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG "\n"
+"raw.fits " CR2RES_BPM_PROTYPE"\n"
 " The recipe produces the following products:\n"
-"cr2res_util_calib.fits " CR2RES_CALIBRATED_PROCATG "\n"
+"cr2res_util_bpm_split.fits " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -98,15 +90,15 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CPL_PLUGIN_API,
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
-                    "cr2res_util_calib",
-                    "Calibration utility",
-                    cr2res_util_calib_description,
+                    "cr2res_util_bpm_split",
+                    "BPM splitting utility",
+                    cr2res_util_bpm_split_description,
                     "Thomas Marquart, Yves Jung",
                     PACKAGE_BUGREPORT,
                     cr2res_get_license(),
-                    cr2res_util_calib_create,
-                    cr2res_util_calib_exec,
-                    cr2res_util_calib_destroy)) {    
+                    cr2res_util_bpm_split_create,
+                    cr2res_util_bpm_split_exec,
+                    cr2res_util_bpm_split_destroy)) {    
         cpl_msg_error(cpl_func, "Plugin initialization failed");
         (void)cpl_error_set_where(cpl_func);                          
         return 1;                                               
@@ -130,7 +122,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
   Defining the command-line/configuration parameters for the recipe.
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_calib_create(cpl_plugin * plugin)
+static int cr2res_util_bpm_split_create(cpl_plugin * plugin)
 {
     cpl_recipe          *   recipe ;
     cpl_parameter       *   p ;
@@ -145,17 +137,10 @@ static int cr2res_util_calib_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
-    p = cpl_parameter_new_value("cr2res.cr2res_util_calib.detector",
+    p = cpl_parameter_new_value("cr2res.cr2res_util_bpm_split.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
-            "cr2res.cr2res_util_calib", 0);
+            "cr2res.cr2res_util_bpm_split", 0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "detector");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_util_calib.calib_cosmics_corr",
-            CPL_TYPE_BOOL, "Correct the Cosmics",
-            "cr2res.cr2res_util_calib", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "calib_cosmics_corr");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -169,7 +154,7 @@ static int cr2res_util_calib_create(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_calib_exec(cpl_plugin * plugin)
+static int cr2res_util_bpm_split_exec(cpl_plugin * plugin)
 {
     cpl_recipe  *recipe;
 
@@ -178,7 +163,7 @@ static int cr2res_util_calib_exec(cpl_plugin * plugin)
         recipe = (cpl_recipe *)plugin;
     else return -1;
 
-    return cr2res_util_calib(recipe->frames, recipe->parameters);
+    return cr2res_util_bpm_split(recipe->frames, recipe->parameters);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -188,7 +173,7 @@ static int cr2res_util_calib_exec(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_calib_destroy(cpl_plugin * plugin)
+static int cr2res_util_bpm_split_destroy(cpl_plugin * plugin)
 {
     cpl_recipe *recipe;
 
@@ -209,38 +194,29 @@ static int cr2res_util_calib_destroy(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_calib(
+static int cr2res_util_bpm_split(
         cpl_frameset            *   frameset,
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     calib_cosmics_corr, reduce_det ;
+    int                     reduce_det ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   cur_frame ;
     const char          *   cur_fname ;
-    const cpl_frame     *   detlin_frame ;
-    const cpl_frame     *   master_dark_frame ;
-    const cpl_frame     *   master_flat_frame ;
-    const cpl_frame     *   bpm_frame ;
-    cpl_imagelist       *   ilist ;
     cpl_image           *   ima ;
-    cpl_propertylist    *   plist ;
-    hdrl_image          *   calibrated[CR2RES_NB_DETECTORS] ;
+    cpl_image   *   splitted_bpms[CR2RES_NB_BPM_TYPES][CR2RES_NB_DETECTORS] ;
+    cpl_mask            *   my_mask ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
-    double                  raw_dit ;
-    int                     i, det_nr, wished_ext_nb; 
+    int                     i, j, det_nr, wished_ext_nb; 
 
-    /* Initiaise */
+    /* Initialise */
 
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_calib.detector");
+            "cr2res.cr2res_util_bpm_split.detector");
     reduce_det = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_calib.calib_cosmics_corr");
-    calib_cosmics_corr = cpl_parameter_get_bool(param);
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
@@ -250,17 +226,9 @@ static int cr2res_util_calib(
     }
 	
     /* Get Calibration frames */
-    detlin_frame = cpl_frameset_find_const(frameset,
-            CR2RES_DETLIN_COEFFS_PROCATG);
-    master_dark_frame = cpl_frameset_find_const(frameset,
-            CR2RES_MASTER_DARK_PROCATG) ; 
-    master_flat_frame = cpl_frameset_find_const(frameset,
-            CR2RES_FLAT_MASTER_FLAT_PROCATG) ; 
-    bpm_frame = cpl_frameset_find_const(frameset,
-            CR2RES_BPM_PROTYPE) ;
 
     /* Get the rawframes */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_CALIB_RAW) ;
+    rawframes = cr2res_extract_frameset(frameset, CR2RES_BPM_PROTYPE) ;
     if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
         cpl_msg_error(__func__, "Cannot find any RAW file") ;
         cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
@@ -278,7 +246,8 @@ static int cr2res_util_calib(
         /* Loop on the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             /* Initialise */
-            calibrated[det_nr-1] = NULL ;
+            for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++)
+                splitted_bpms[j][det_nr-1] = NULL ;
             ext_plist[det_nr-1] = NULL ;
 
             /* Compute only one detector */
@@ -287,50 +256,41 @@ static int cr2res_util_calib(
             cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
             cpl_msg_indent_more() ;
 
-            /* Load the image list (with 1 image) */
-            ilist = cpl_imagelist_new() ;
-
             /* Load the image to calibrate */
-            wished_ext_nb = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
-            ima = cpl_image_load(cur_fname, CPL_TYPE_FLOAT, 0, wished_ext_nb);
-            cpl_imagelist_set(ilist, ima, 0) ;
+            ima = cr2res_io_load_BPM(cur_fname, det_nr);
 
-            /* Get the DIT for the dark correction */
-            plist = cpl_propertylist_load(cur_fname, 0);
-            raw_dit = cr2res_pfits_get_dit(plist) ;
-            cpl_propertylist_delete(plist) ;
-
-            /* Call the reduction function */
-            if (cr2res_calib_chip_list(ilist, det_nr, calib_cosmics_corr, 
-                        master_flat_frame, master_dark_frame, bpm_frame, 
-                        detlin_frame, raw_dit) == -1) {
-                cpl_msg_warning(__func__, "Failed to calibrate") ;
+            /* Loop on the BPM types */
+            for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {
+                my_mask = cr2res_bpm_extract_mask(ima, bpm_types[j]) ;
+                splitted_bpms[j][det_nr-1] = 
+                    cr2res_bpm_from_mask(my_mask, bpm_types[j]) ;
+                cpl_mask_delete(my_mask) ;
             }
+            cpl_image_delete(ima); 
             cpl_msg_indent_less() ;
 
-            /* Put ilist in calibrated */
-            calibrated[det_nr-1] = hdrl_image_create(
-                    cpl_imagelist_get(ilist, 0), NULL);
-            cpl_imagelist_delete(ilist) ;
-
             /* Create the header */
+            wished_ext_nb = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
             ext_plist[det_nr-1]=cpl_propertylist_load(cur_fname,wished_ext_nb);
         }
 
         /* Ѕave Products */
 
-        /* CALIBRATED */
-		out_file=cpl_sprintf("%s_calibrated.fits", 
-                cr2res_get_base_name(cur_fname)) ;
-        cr2res_io_save_CALIBRATED(out_file, frameset, parlist,
-                calibrated, NULL, ext_plist, CR2RES_CALIBRATED_PROCATG, 
-                RECIPE_STRING) ;
-		cpl_free(out_file);
-
+        /* SPLITTED_BPM */
+        for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {
+            out_file=cpl_sprintf("%s_splitted_%d.fits", 
+                    cr2res_get_base_name(cur_fname), bpm_types[j]) ;
+            cr2res_io_save_BPM(out_file, frameset, parlist,
+                    splitted_bpms[j], NULL, ext_plist, 
+                    CR2RES_UTIL_BPM_SPLIT_PROCATG, RECIPE_STRING) ;
+            cpl_free(out_file);
+        }
         /* Free */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-            if (calibrated[det_nr-1] != NULL)
-                hdrl_image_delete(calibrated[det_nr-1]) ;
+            for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {
+                if (splitted_bpms[j][det_nr-1] != NULL)
+                    cpl_image_delete(splitted_bpms[j][det_nr-1]) ;
+            }
             if (ext_plist[det_nr-1] != NULL) 
                 cpl_propertylist_delete(ext_plist[det_nr-1]) ;
         }
