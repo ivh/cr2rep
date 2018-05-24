@@ -76,7 +76,6 @@ static char cr2res_cal_dark_description[] =
 "CRIRES+ dark recipe\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
 "raw-file.fits " CR2RES_DARK_RAW "\n"
-"detlin.fits " CR2RES_DETLIN_BPM_PROCATG "\n"
 " The recipe produces the following products for each different DIT found:\n"
 "cr2res_cal_dark_master_DIT.fits " CR2RES_MASTER_DARK_PROCATG "\n"
 "cr2res_cal_dark_bpm_DIT.fits " CR2RES_DARK_BPM_PROCATG "\n"

@@ -28,6 +28,7 @@
 #include <cpl.h>
 
 #include "cr2res_utils.h"
+#include "cr2res_calib.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
 #include "cr2res_flat.h"
@@ -51,15 +52,6 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
-static int cr2res_util_calib_reduce(
-        const cpl_frameset  *   rawframes,
-        const cpl_frame     *   detlin_frame,
-        const cpl_frame     *   master_dark_frame,
-        const cpl_frame     *   bpm_frame,
-        int                     reduce_det,
-        hdrl_image          **  calib_collapsed,
-        cpl_propertylist    **  ext_plist) ;
-
 static int cr2res_util_calib_create(cpl_plugin *);
 static int cr2res_util_calib_exec(cpl_plugin *);
 static int cr2res_util_calib_destroy(cpl_plugin *);
@@ -70,13 +62,16 @@ static int cr2res_util_calib(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_util_calib_description[] =
-"TODO : Descripe here the recipe in / out / params / basic algo\n"
-"raw.fits " CR2RES_FLAT_RAW "or TODO""\n"
+"CRIRES+ calibration utility\n"
+"Each input file is corrected with : BPM / Dark / Flat / Det. Lin. / Cosmics\n"
+"The files listed in the Set Of Frames (sof-file) must be tagged:\n"
+"raw.fits " CR2RES_CALIB_RAW"\n"
 "detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG "\n"
+"bpm.fits " CR2RES_BPM_PROTYPE "\n"
 "master_dark.fits " CR2RES_MASTER_DARK_PROCATG "\n"
-"dark_bpm.fits " CR2RES_DARK_BPM_PROCATG "\n"
+"master_flat.fits " CR2RES_MASTER_FLAT_PROCATG "\n"
 " The recipe produces the following products:\n"
-"cr2res_util_calib.fits " CR2RES_CALIB_COLLAPSED_PROCATG "\n"
+"cr2res_util_calib.fits " CR2RES_CALIBRATED_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -157,6 +152,13 @@ static int cr2res_util_calib_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_calib.calib_cosmics_corr",
+            CPL_TYPE_BOOL, "Correct the Cosmics",
+            "cr2res.cr2res_util_calib", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "calib_cosmics_corr");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     return 0;
 }
 
@@ -212,26 +214,33 @@ static int cr2res_util_calib(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     reduce_det ;
+    int                     calib_cosmics_corr, reduce_det ;
     cpl_frameset        *   rawframes ;
+    const cpl_frame     *   cur_frame ;
+    const char          *   cur_fname ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
-    const cpl_frame     *   dark_bpm_frame ;
-    hdrl_image          *   calib_collapsed[CR2RES_NB_DETECTORS] ;
+    const cpl_frame     *   master_flat_frame ;
+    const cpl_frame     *   bpm_frame ;
+    cpl_imagelist       *   ilist ;
+    cpl_image           *   ima ;
+    cpl_propertylist    *   plist ;
+    hdrl_image          *   calibrated[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
-    int                     i, det_nr; 
+    double                  raw_dit ;
+    int                     i, det_nr, wished_ext_nb; 
 
     /* Initiaise */
-    cr2res_decker decker_values[CR2RES_NB_DECKER_POSITIONS] = 
-        {CR2RES_DECKER_NONE, CR2RES_DECKER_1_3, CR2RES_DECKER_2_4} ; 
-    char * decker_desc[CR2RES_NB_DECKER_POSITIONS] =
-        {"Open", "Decker1", "Decker2"} ;
+
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_calib.detector");
     reduce_det = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_calib.calib_cosmics_corr");
+    calib_cosmics_corr = cpl_parameter_get_bool(param);
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
@@ -245,22 +254,31 @@ static int cr2res_util_calib(
             CR2RES_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
             CR2RES_MASTER_DARK_PROCATG) ; 
-    dark_bpm_frame = cpl_frameset_find_const(frameset,
-            CR2RES_DARK_BPM_PROCATG) ;
+    master_flat_frame = cpl_frameset_find_const(frameset,
+            CR2RES_MASTER_FLAT_PROCATG) ; 
+    bpm_frame = cpl_frameset_find_const(frameset,
+            CR2RES_BPM_PROTYPE) ;
 
-    /* Loop on the decker positions */
-    for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
-        /* Get the Frames for the current decker position */
-        rawframes = cr2res_extract_decker_frameset(frameset,
-                CR2RES_FLAT_RAW, decker_values[i]) ;
-        if (rawframes == NULL) continue ;
-        cpl_msg_info(__func__, "Reduce %s Frames", decker_desc[i]) ;
+    /* Get the rawframes */
+    rawframes = cr2res_extract_frameset(frameset, CR2RES_CALIB_RAW) ;
+    if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
+        cpl_msg_error(__func__, "Cannot find any RAW file") ;
+        cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
+        return -1 ;
+    }
+
+    /* Loop on the RAW frames */
+    for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
+        /* Get the Current Frame */
+		cur_frame = cpl_frameset_get_position(rawframes, i) ;
+        cur_fname = cpl_frame_get_filename(cur_frame) ;
+        cpl_msg_info(__func__, "Reduce Frame %s", cur_fname) ;
         cpl_msg_indent_more() ;
 
         /* Loop on the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             /* Initialise */
-            calib_collapsed[det_nr-1] = NULL ;
+            calibrated[det_nr-1] = NULL ;
             ext_plist[det_nr-1] = NULL ;
 
             /* Compute only one detector */
@@ -269,123 +287,55 @@ static int cr2res_util_calib(
             cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
             cpl_msg_indent_more() ;
 
+            /* Load the image list (with 1 image) */
+            ilist = cpl_imagelist_new() ;
+
+            /* Load the image to calibrate */
+            wished_ext_nb = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
+            ima = cpl_image_load(cur_fname, CPL_TYPE_FLOAT, 0, wished_ext_nb);
+            cpl_imagelist_set(ilist, ima, 0) ;
+
+            /* Get the DIT for the dark correction */
+            plist = cpl_propertylist_load(cur_fname, 0);
+            raw_dit = cr2res_pfits_get_dit(plist) ;
+            cpl_propertylist_delete(plist) ;
+
             /* Call the reduction function */
-            if (cr2res_util_calib_reduce(rawframes, detlin_frame, 
-                        master_dark_frame, dark_bpm_frame, det_nr,
-                        &(calib_collapsed[det_nr-1]),
-                        &(ext_plist[det_nr-1])) == -1) {
-                cpl_msg_warning(__func__, 
-                        "Failed to reduce detector %d of %s Frames", 
-                        det_nr, decker_desc[i]);
+            if (cr2res_calib_chip_list(ilist, det_nr, calib_cosmics_corr, 
+                        master_flat_frame, master_dark_frame, bpm_frame, 
+                        detlin_frame, raw_dit) == -1) {
+                cpl_msg_warning(__func__, "Failed to calibrate") ;
             }
             cpl_msg_indent_less() ;
+
+            /* Put ilist in calibrated */
+            calibrated[det_nr-1] = hdrl_image_create(
+                    cpl_imagelist_get(ilist, 0), NULL);
+            cpl_imagelist_delete(ilist) ;
+
+            /* Create the header */
+            ext_plist[det_nr-1]=cpl_propertylist_load(cur_fname,wished_ext_nb);
         }
-        cpl_frameset_delete(rawframes) ;
 
         /* Ѕave Products */
 
-        /* CALIB_COLLAPSED */
-		out_file = cpl_sprintf("%s_%s.fits", RECIPE_STRING,
-                decker_desc[i]) ;
-        cr2res_io_save_CALIB_COLLAPSED(out_file, frameset, parlist,
-                calib_collapsed, NULL, ext_plist, RECIPE_STRING) ;
+        /* CALIBRATED */
+		out_file=cpl_sprintf("%s_calibrated.fits", 
+                cr2res_get_base_name(cur_fname)) ;
+        cr2res_io_save_CALIBRATED(out_file, frameset, parlist,
+                calibrated, NULL, ext_plist, CR2RES_CALIBRATED_PROCATG, 
+                RECIPE_STRING) ;
 		cpl_free(out_file);
 
         /* Free */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-            if (calib_collapsed[det_nr-1] != NULL)
-                hdrl_image_delete(calib_collapsed[det_nr-1]) ;
+            if (calibrated[det_nr-1] != NULL)
+                hdrl_image_delete(calibrated[det_nr-1]) ;
             if (ext_plist[det_nr-1] != NULL) 
                 cpl_propertylist_delete(ext_plist[det_nr-1]) ;
         }
         cpl_msg_indent_less() ;
     }
     return (int)cpl_error_get_code();
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief  
-  @param 
-  @return  
- */
-/*----------------------------------------------------------------------------*/
-static int cr2res_util_calib_reduce(
-        const cpl_frameset  *   rawframes,
-        const cpl_frame     *   detlin_frame,
-        const cpl_frame     *   master_dark_frame,
-        const cpl_frame     *   bpm_frame,
-        int                     reduce_det,
-        hdrl_image          **  calib_collapsed,
-        cpl_propertylist    **  ext_plist)
-{
-    const char          *   first_file ;
-    cpl_imagelist       *   detlin_coeffs ;
-    cpl_image           *   master_dark ;
-    cpl_imagelist       *   imlist ;
-    hdrl_image          *   calib_collapsed_loc ;
-    cpl_propertylist    *   plist ;
-    int                     i, ext_nr ;
-    
-    /* Check Inputs */
-    if (rawframes == NULL) return -1 ;
-
-    /* Get the Extension number */
-    first_file = cpl_frame_get_filename(
-            cpl_frameset_get_position_const(rawframes, 0)) ;
-    ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
-
-    /* Load the extension header for saving */
-    plist = cpl_propertylist_load(first_file, ext_nr) ;
-    if (plist == NULL) return -1 ;
-
-    /* Load the image list */
-    imlist = cpl_imagelist_load_frameset(rawframes, CPL_TYPE_FLOAT, 1, ext_nr) ;
-    if (imlist == NULL) {
-        cpl_msg_error(__func__, "Failed to Load the images") ;
-        cpl_propertylist_delete(plist);
-        return -1 ;
-    }
-
-    /* Load MASTER DARK */
-    if (master_dark_frame != NULL) {
-        if ((master_dark = cr2res_io_load_MASTER_DARK(
-                        cpl_frame_get_filename(master_dark_frame), 
-                        reduce_det, 1)) == NULL) {
-            cpl_msg_warning(__func__, "Failed to Load the Master Dark") ;
-        }
-    } else {
-        master_dark = NULL ;
-    }
-
-    /* Load DETLIN */
-    if (detlin_frame != NULL) {
-        if ((detlin_coeffs = cr2res_io_load_DETLIN_COEFFS(
-                        cpl_frame_get_filename(detlin_frame), 
-                        reduce_det)) == NULL) {
-            cpl_msg_warning(__func__, "Failed to Load the Detlin Coeffs") ;
-        }
-    } else {
-        detlin_coeffs = NULL ;
-    }
-
-    /* Compute the Calib */
-    if ((calib_collapsed_loc = cr2res_calib_collapse(imlist, master_dark, 
-                    detlin_coeffs, 0)) == NULL) {
-        cpl_msg_error(__func__, "Failed to Calibrate/Collapse") ;
-        cpl_propertylist_delete(plist);
-        cpl_imagelist_delete(imlist) ;
-        if (detlin_coeffs != NULL) cpl_imagelist_delete(detlin_coeffs) ;
-        if (master_dark != NULL) cpl_image_delete(master_dark) ;
-        return -1 ;
-    }
-    if (detlin_coeffs != NULL) cpl_imagelist_delete(detlin_coeffs) ;
-    if (master_dark != NULL) cpl_image_delete(master_dark) ;
-    cpl_imagelist_delete(imlist) ;
-
-    /* Return the results */
-    *calib_collapsed = calib_collapsed_loc ;
-    *ext_plist = plist ;
-    return 0 ;
 }
 

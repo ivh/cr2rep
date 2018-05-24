@@ -29,12 +29,17 @@
 #include <cpl.h>
 #include "cr2res_calib.h"
 #include "cr2res_bpm.h"
+#include "cr2res_pfits.h"
 #include "cr2res_io.h"
 #include "cr2res_utils.h"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
+
+static int cr2res_detlin_correct(
+        cpl_imagelist       *   ilist,
+        const cpl_imagelist *   detlin_coeffs) ;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -49,10 +54,11 @@
   @brief    The images calibration routine for a given chip
   @param    ilist       the list of frames to calibrate 
   @param    chip        the chip to calibrate (1 to CR2RES_NB_DETECTORS)
+  @param    cosmics_corr    Flag to correct for cosmics
   @param    flat        the flat frame or NULL
   @param    dark        the dark frame or NULL
   @param    bpm         the bpm frame or NULL
-  @param    detlin      the detlin  frame or NULL
+  @param    detlin      the detlin frame or NULL
   @param    dit         the DIT for the dark correction
   The flat, dark and bpm must have the same size as the input ilist.
   In the case of detlin, data are only taken in normal mode.
@@ -62,15 +68,18 @@
 int cr2res_calib_chip_list(
         cpl_imagelist       *   ilist,
         int                     chip,
-        const char          *   flat,
-        const char          *   dark,
-        const char          *   bpm,
-        const char          *   detlin,
+        int                     cosmics_corr,
+        const cpl_frame     *   flat,
+        const cpl_frame     *   dark,
+        const cpl_frame     *   bpm,
+        const cpl_frame     *   detlin,
         double                  dit)
 {
-    cpl_image       *   calib ;
-    cpl_imagelist   *   calib_list ;
-    int                 i ;
+    cpl_image           *   calib ;
+    cpl_imagelist       *   calib_list ;
+    cpl_propertylist    *   plist ;
+    double                  dark_dit ;
+    int                     i ;
 
     /* Test entries */
     if (ilist == NULL) return -1 ;
@@ -81,26 +90,33 @@ int cr2res_calib_chip_list(
         cpl_msg_info(__func__, "Correct the bad pixels") ;
         for (i=0 ; i<cpl_imagelist_get_size(ilist) ; i++) {
             if (cr2res_bpm_correct_image(cpl_imagelist_get(ilist, i),
-                        bpm, chip) != 0) {
+                        cpl_frame_get_filename(bpm), chip) != 0) {
                 cpl_msg_error(__func__,
                         "Cannot clean the bad pixels in obj %d", i+1);
                 return -1 ;
             }
         }
     }
+
     /* Apply the dark */
     if (dark != NULL) {
         cpl_msg_info(__func__, "Correct for the dark") ;
         for (i=0 ; i<cpl_imagelist_get_size(ilist) ; i++) {
 
             /* Load the dark */
-            if ((calib = cr2res_io_load_MASTER_DARK(dark, chip, 1)) == NULL) {
+            if ((calib = cr2res_io_load_MASTER_DARK(
+                            cpl_frame_get_filename(dark), chip, 1)) == NULL) {
                 cpl_msg_error(__func__, "Cannot load the dark") ;
                 return -1 ;
             }
 
-            /* Multiply the dark by dit */
-            cpl_image_multiply_scalar(calib, dit) ;
+            /* Get the dark DIT */
+            plist = cpl_propertylist_load(cpl_frame_get_filename(dark), 0);
+            dark_dit = cr2res_pfits_get_dit(plist) ;
+            cpl_propertylist_delete(plist) ;
+
+            /* Multiply the dark by dit/dark_dit */
+            cpl_image_multiply_scalar(calib, dit/dark_dit) ;
 
             /* Subtract the dark */
             if (cpl_image_subtract(cpl_imagelist_get(ilist, i), 
@@ -117,7 +133,8 @@ int cr2res_calib_chip_list(
     if (detlin != NULL) {
         /* Load the detlin coeffs */
         cpl_msg_info(__func__, "Load the Non-Linearity coefficients") ;
-        if ((calib_list = cr2res_io_load_DETLIN_COEFFS(detlin, chip)) == NULL) {
+        if ((calib_list = cr2res_io_load_DETLIN_COEFFS(
+                        cpl_frame_get_filename(detlin), chip)) == NULL) {
             cpl_msg_error(__func__, "Cannot load the detlin") ;
             return -1 ;
         }
@@ -136,7 +153,8 @@ int cr2res_calib_chip_list(
     if (flat != NULL) {
         /* Load the flat */
         cpl_msg_info(__func__, "Load the flat field") ;
-        if ((calib = cr2res_io_load_MASTER_FLAT(flat, chip, 1)) == NULL) {
+        if ((calib = cr2res_io_load_MASTER_FLAT(
+                        cpl_frame_get_filename(flat), chip, 1)) == NULL) {
             cpl_msg_error(__func__, "Cannot load the flat field") ;
             return -1 ;
         }
@@ -150,8 +168,17 @@ int cr2res_calib_chip_list(
         }
         cpl_image_delete(calib) ;
     }
+
+    /* Comics correction */
+    if (cosmics_corr) {
+        cpl_msg_info(__func__, "Apply the cosmics corrections") ;
+        /* TODO */
+        cpl_msg_info(__func__, "STILL TO BE DONE") ;
+    }
     return 0 ;
 }
+
+/**@}*/
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -161,7 +188,7 @@ int cr2res_calib_chip_list(
   @return   0 if everything is ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_detlin_correct(
+static int cr2res_detlin_correct(
         cpl_imagelist       *   ilist,
         const cpl_imagelist *   detlin_coeffs)
 {
@@ -238,6 +265,5 @@ int cr2res_detlin_correct(
     return 0 ;
 }
 
-/**@}*/
 
 

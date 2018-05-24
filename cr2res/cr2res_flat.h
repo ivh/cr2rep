@@ -33,12 +33,6 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-hdrl_image * cr2res_calib_collapse(
-        const cpl_imagelist     *   imlist,
-        const cpl_image         *   master_dark,
-        const cpl_imagelist     *   detlin_coeffs,
-        int                         cosmics_corr) ;
-
 hdrl_image * cr2res_master_flat(
         const hdrl_image    *   collapsed,
         const hdrl_image    *   model_master,

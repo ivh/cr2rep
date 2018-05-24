@@ -38,14 +38,11 @@
 int cr2res_calib_chip_list(
         cpl_imagelist       *   ilist,
         int                     chip,
-        const char          *   flat,
-        const char          *   dark,
-        const char          *   bpm,
-        const char          *   detlin,
+        int                     cosmics_corr,
+        const cpl_frame     *   flat,
+        const cpl_frame     *   dark,
+        const cpl_frame     *   bpm,
+        const cpl_frame     *   detlin,
         double                  dit) ;
-
-int cr2res_detlin_correct(
-        cpl_imagelist       *   ilist,
-        const cpl_imagelist *   detlin_coeffs) ;
 
 #endif

@@ -70,23 +70,22 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
 
         if (tag == NULL) {
             cpl_msg_warning(cpl_func, "Frame %d has no tag", i);
-        } else if (!strcmp(tag, CR2RES_DETLIN_RAW) ||
+        } else if (!strcmp(tag, CR2RES_COMMAND_LINE) ||
+                !strcmp(tag, CR2RES_CALIB_RAW) ||
                 !strcmp(tag, CR2RES_DARK_RAW) ||
                 !strcmp(tag, CR2RES_FLAT_RAW) ||
-                !strcmp(tag, CR2RES_COMMAND_LINE)) {
+                !strcmp(tag, CR2RES_DETLIN_RAW)) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
-        } else if (!strcmp(tag, CR2RES_DETLIN_BPM_PROCATG) ||
-                !strcmp(tag, CR2RES_DETLIN_COEFFS_PROCATG) ||
+        } else if (!strcmp(tag, CR2RES_DETLIN_COEFFS_PROCATG) ||
                 !strcmp(tag, CR2RES_MASTER_DARK_PROCATG) ||
                 !strcmp(tag, CR2RES_DARK_BPM_PROCATG) ||
-                !strcmp(tag, CR2RES_BLAZE_IMAGE_PROCATG) ||
+                !strcmp(tag, CR2RES_FLAT_SLIT_MODEL_PROCATG) ||
                 !strcmp(tag, CR2RES_BLAZE_PROCATG) ||
                 !strcmp(tag, CR2RES_MASTER_FLAT_PROCATG) ||
-                !strcmp(tag, CR2RES_SLIT_ILLUM_PROCATG) ||
+                !strcmp(tag, CR2RES_FLAT_SLIT_FUNC_PROCATG) ||
                 !strcmp(tag, CR2RES_FLAT_BPM_PROCATG) ||
                 !strcmp(tag, CR2RES_EMISSION_LINES_PROCATG) ||
-                !strcmp(tag, CR2RES_CALIB_COLLAPSED_PROCATG) ||
                 !strcmp(tag, CR2RES_TILT_COEFFS_PROCATG)) {
             /* CALIB frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_CALIB);

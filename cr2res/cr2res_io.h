@@ -129,15 +129,6 @@ int cr2res_io_save_BPM(
         const char              *   procatg,
         const char              *   recipe) ;
 
-int cr2res_io_save_DETLIN_COEFFS(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        const cpl_parameterlist *   parlist,
-        hdrl_imagelist          **  detlin_coeffs,
-        const cpl_propertylist  *   qc_list,
-        cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
-
 int cr2res_io_save_MASTER_FLAT(
         const char              *   filename,
         cpl_frameset            *   allframes,
@@ -145,15 +136,17 @@ int cr2res_io_save_MASTER_FLAT(
         hdrl_image              **  master_flats,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
+        const char              *   procatg,
+        const char              *   recipe) ;
 
-int cr2res_io_save_CALIB_COLLAPSED(
+int cr2res_io_save_CALIBRATED(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  calib_collapsed,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
         const char              *   recipe) ;
 
 int cr2res_io_save_TRACE_WAVE(
@@ -163,7 +156,8 @@ int cr2res_io_save_TRACE_WAVE(
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
+        const char              *   procatg,
+        const char              *   recipe) ;
 
 int cr2res_io_save_BLAZE(
         const char              *   filename,
@@ -172,24 +166,7 @@ int cr2res_io_save_BLAZE(
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
-        const char              *   recipe) ;
-
-int cr2res_io_save_BLAZE_IMAGE(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        const cpl_parameterlist *   parlist,
-        hdrl_image              **  blaze,
-        const cpl_propertylist  *   qc_list,
-        cpl_propertylist        **  ext_plist,
-        const char              *   recipe) ;
-
-int cr2res_io_save_SLIT_ILLUM(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        const cpl_parameterlist *   parlist,
-        cpl_table               **  slit_func,
-        const cpl_propertylist  *   qc_list,
-        cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
         const char              *   recipe) ;
 
 int cr2res_io_save_SLIT_FUNC(
@@ -199,6 +176,7 @@ int cr2res_io_save_SLIT_FUNC(
         cpl_table               **  slit_func,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
         const char              *   recipe) ;
 
 int cr2res_io_save_SLIT_MODEL(
@@ -208,6 +186,7 @@ int cr2res_io_save_SLIT_MODEL(
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
         const char              *   recipe);
 
 int cr2res_io_save_WAVE_MAP(

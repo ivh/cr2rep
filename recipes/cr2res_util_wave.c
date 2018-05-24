@@ -532,7 +532,7 @@ static int cr2res_util_wave(
     out_file = cpl_sprintf("%s_wave.fits",
             cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
     cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, out_trace_wave,
-            NULL, ext_plist, RECIPE_STRING) ;
+            NULL, ext_plist, CR2RES_UTIL_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Save the Wave Map */

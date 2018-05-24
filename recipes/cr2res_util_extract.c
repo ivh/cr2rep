@@ -461,12 +461,14 @@ static int cr2res_util_extract(
     out_file = cpl_sprintf("%s_extrModel.fits",
                     cr2res_get_base_name(cr2res_get_root_name(science_file)));
     cr2res_io_save_SLIT_MODEL(out_file, frameset,
-            parlist, model_master, NULL, ext_plist, RECIPE_STRING) ;
+            parlist, model_master, NULL, ext_plist,
+            CR2RES_UTIL_SLIT_MODEL_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
     out_file = cpl_sprintf("%s_extrSlitFu.fits",
                     cr2res_get_base_name(cr2res_get_root_name(science_file)));
     cr2res_io_save_SLIT_FUNC(out_file, frameset,
-            parlist, slit_func_tab, NULL, ext_plist, RECIPE_STRING) ;
+            parlist, slit_func_tab, NULL, ext_plist,
+            CR2RES_UTIL_SLIT_FUNC_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
     out_file = cpl_sprintf("%s_extr1D.fits",
                     cr2res_get_base_name(cr2res_get_root_name(science_file)));
