@@ -95,6 +95,7 @@
 #define CR2RES_TRACE_WAVE_PROTYPE           "TRACE_WAVE"
 
 /* For CR2RES_FLAT_MASTER_FLAT_PROCATG */
+/*     CR2RES_UTIL_MASTER_FLAT_PROCATG */
 /* Master Flat image with values around 1 */
 #define CR2RES_MASTER_FLAT_PROTYPE          "MASTER_FLAT"
 
@@ -143,11 +144,13 @@
 #define CR2RES_UTIL_SLIT_MODEL_PROCATG      "UTIL_SLIT_MODEL"
 #define CR2RES_UTIL_EXTRACT_1D_PROCATG      "UTIL_EXTRACT_1D"
 
+/* Produced by cr2res_util_normflat */
+#define CR2RES_UTIL_MASTER_FLAT_PROCATG     "UTIL_MASTER_FLAT"
+
 /* TODO */
 /* Produced by cr2res_util_tilt */
 #define CR2RES_TILT_COEFFS_PROCATG          "TILT_COEFFS"
 
-/* Produced by cr2res_util_normflat */
 /* Produced by cr2res_util_wave */
 
 /* TODO */

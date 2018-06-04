@@ -37,11 +37,12 @@ plugin_LTLIBRARIES = cr2res_cal_dark.la \
                      cr2res_cal_flat.la \
                      cr2res_util_bpm_split.la \
                      cr2res_util_calib.la \
-                     cr2res_util_wave.la \
-                     cr2res_util_trace.la \
-                     cr2res_util_tilt.la \
                      cr2res_util_extract.la \
-                     cr2res_util_genlines.la
+                     cr2res_util_genlines.la \
+                     cr2res_util_normflat.la \
+                     cr2res_util_tilt.la \
+                     cr2res_util_trace.la \
+                     cr2res_util_wave.la 
 
 cr2res_cal_dark_la_SOURCES = cr2res_cal_dark.c
 cr2res_cal_dark_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
@@ -63,21 +64,6 @@ cr2res_util_calib_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
 cr2res_util_calib_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
 cr2res_util_calib_la_DEPENDENCIES = $(LIBCR2RES)
 
-cr2res_util_wave_la_SOURCES = cr2res_util_wave.c
-cr2res_util_wave_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
-cr2res_util_wave_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
-cr2res_util_wave_la_DEPENDENCIES = $(LIBCR2RES)
-
-cr2res_util_trace_la_SOURCES = cr2res_util_trace.c
-cr2res_util_trace_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
-cr2res_util_trace_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
-cr2res_util_trace_la_DEPENDENCIES = $(LIBCR2RES)
-
-cr2res_util_tilt_la_SOURCES = cr2res_util_tilt.c
-cr2res_util_tilt_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
-cr2res_util_tilt_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
-cr2res_util_tilt_la_DEPENDENCIES = $(LIBCR2RES)
-
 cr2res_util_extract_la_SOURCES = cr2res_util_extract.c
 cr2res_util_extract_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
 cr2res_util_extract_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
@@ -87,3 +73,24 @@ cr2res_util_genlines_la_SOURCES = cr2res_util_genlines.c
 cr2res_util_genlines_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
 cr2res_util_genlines_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
 cr2res_util_genlines_la_DEPENDENCIES = $(LIBCR2RES)
+
+cr2res_util_normflat_la_SOURCES = cr2res_util_normflat.c
+cr2res_util_normflat_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
+cr2res_util_normflat_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
+cr2res_util_normflat_la_DEPENDENCIES = $(LIBCR2RES)
+
+cr2res_util_tilt_la_SOURCES = cr2res_util_tilt.c
+cr2res_util_tilt_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
+cr2res_util_tilt_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
+cr2res_util_tilt_la_DEPENDENCIES = $(LIBCR2RES)
+
+cr2res_util_trace_la_SOURCES = cr2res_util_trace.c
+cr2res_util_trace_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
+cr2res_util_trace_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
+cr2res_util_trace_la_DEPENDENCIES = $(LIBCR2RES)
+
+cr2res_util_wave_la_SOURCES = cr2res_util_wave.c
+cr2res_util_wave_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
+cr2res_util_wave_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
+cr2res_util_wave_la_DEPENDENCIES = $(LIBCR2RES)
+

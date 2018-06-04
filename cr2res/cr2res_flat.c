@@ -84,7 +84,8 @@ hdrl_image * cr2res_master_flat(
         return NULL ;
     }
 
-    *bpm = bpm_loc ;
+    if (bpm != NULL)    *bpm = bpm_loc ;
+    else                cpl_mask_delete(bpm_loc) ;
     return master_flat ;
 } 
 
@@ -103,8 +104,8 @@ static cpl_mask * cr2res_bpm_from_master_flat(
         double                  high,
         double                  bad_per_line_limit)
 {
-    cpl_image       *   ima ;
-    double          *   pima ;
+    const cpl_image *   ima ;
+    const double    *   pima ;
     cpl_mask        *   mask ;
     cpl_binary      *   pmask ;
     int                 nx, ny, cur_bp_nb ;
@@ -114,8 +115,8 @@ static cpl_mask * cr2res_bpm_from_master_flat(
     if (master_flat == NULL) return NULL ;
         
     /* Initialise */
-    ima = hdrl_image_get_image(master_flat) ;
-    pima = cpl_image_get_data_double(ima) ;
+    ima = hdrl_image_get_image_const(master_flat) ;
+    pima = cpl_image_get_data_double_const(ima) ;
     nx = cpl_image_get_size_x(ima) ;
     ny = cpl_image_get_size_y(ima) ;
     mask = cpl_mask_new(nx, ny) ; 
