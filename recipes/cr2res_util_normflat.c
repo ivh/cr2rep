@@ -70,7 +70,7 @@ static int cr2res_util_normflat(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_util_normflat_description[] =
-"CRIRES+ flat recipe\n"
+"CRIRES+ flat normalization utility\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
 "raw-file.fits " CR2RES_FLAT_RAW "\n"
 "slit_model.fits " CR2RES_SLIT_MODEL_PROTYPE "\n"
@@ -103,7 +103,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
                     "cr2res_util_normflat",
-                    "Flat recipe",
+                    "Flat Normalization utility",
                     cr2res_util_normflat_description,
                     "Thomas Marquart, Yves Jung",
                     PACKAGE_BUGREPORT,
