@@ -89,8 +89,8 @@ char * cr2res_io_create_extname(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Create wished EXTNAME */
-    if (data)   wished_extname = cpl_sprintf("CHIP%d", detector) ;
-    else        wished_extname = cpl_sprintf("CHIP%dERR", detector) ;
+    if (data)   wished_extname = cpl_sprintf("CHIP%d.INT1", detector) ;
+    else        wished_extname = cpl_sprintf("CHIP%dERR.INT1", detector) ;
 
     return wished_extname ;
 }
@@ -129,7 +129,7 @@ int cr2res_io_get_ext_idx(
     for (i=1 ; i<=nb_ext ; i++) {
         /* Get the header */
         pl = cpl_propertylist_load(filename, i) ;
-        /* Read the ext EXTNAME */
+        /* Read the EXTNAME */
         extname = cpl_propertylist_get_string(pl, "EXTNAME");
 
         /* Compare to the wished one */
@@ -590,11 +590,11 @@ int cr2res_io_save_BPM(
         const char              *   recipe)
 {
     hdrl_image      *   hdrl_bpms[CR2RES_NB_DETECTORS] ;
-    int                 ext, ret ;
+    int                 det_nr, ret ;
             
     /* Convert to HDRL images */
-    for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
-        hdrl_bpms[ext-1] = hdrl_image_create(bpms[ext-1], NULL) ;
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        hdrl_bpms[det_nr-1] = hdrl_image_create(bpms[det_nr-1], NULL) ;
     }
 
     /* Save */
@@ -603,8 +603,8 @@ int cr2res_io_save_BPM(
             procatg, CR2RES_BPM_PROTYPE) ;
 
     /* Free and return */
-    for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
-        hdrl_image_delete(hdrl_bpms[ext-1]) ;
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        hdrl_image_delete(hdrl_bpms[det_nr-1]) ;
     }
 
 
@@ -1092,7 +1092,7 @@ static int cr2res_io_save_image(
     cpl_propertylist    *   qclist_loc ;
     cpl_image           *   to_save ;
     char          		*   wished_extname ;
-    int                     ext ;
+    int                     det_nr ;
 
     /* Create a local QC list and add the PRO.CATG */
     if (qc_list == NULL) {
@@ -1115,28 +1115,32 @@ static int cr2res_io_save_image(
     cpl_propertylist_delete(qclist_loc) ;
 
     /* Save the extensions */
-    for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
-        if (ext_plist[ext-1] == NULL) {
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        if (ext_plist[det_nr-1] == NULL) {
             qclist_loc = cpl_propertylist_new();
         } else {
-            qclist_loc = cpl_propertylist_duplicate(ext_plist[ext-1]) ;
+            qclist_loc = cpl_propertylist_duplicate(ext_plist[det_nr-1]) ;
             cpl_propertylist_erase(qclist_loc, "EXTNAME");
         }
 
         /* Save the DATA */
-        wished_extname = cr2res_io_create_extname(ext, 1) ;
+        wished_extname = cr2res_io_create_extname(det_nr, 1) ;
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", wished_extname) ;
 
-        if (data[ext-1] == NULL)    to_save = NULL ;
-        else                        to_save = hdrl_image_get_image(data[ext-1]);
+        if (data[det_nr-1] == NULL)
+            to_save = NULL ;
+        else                        
+            to_save = hdrl_image_get_image(data[det_nr-1]);
         cpl_image_save(to_save, filename, type, qclist_loc, CPL_IO_EXTEND) ;
         cpl_free(wished_extname) ;
 
         /* Save the NOISE */
-        wished_extname = cr2res_io_create_extname(ext, 0) ;
+        wished_extname = cr2res_io_create_extname(det_nr, 0) ;
         cpl_propertylist_update_string(qclist_loc, "EXTNAME", wished_extname) ;
-        if (data[ext-1] == NULL)    to_save = NULL ;
-        else                        to_save = hdrl_image_get_error(data[ext-1]);
+        if (data[det_nr-1] == NULL)    
+            to_save = NULL ;
+        else                        
+            to_save = hdrl_image_get_error(data[det_nr-1]);
         cpl_image_save(to_save, filename, type, qclist_loc, CPL_IO_EXTEND) ;
         cpl_propertylist_delete(qclist_loc) ;
         cpl_free(wished_extname) ;

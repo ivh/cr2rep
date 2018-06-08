@@ -287,7 +287,7 @@ static int cr2res_cal_dark(
     hdrl_image          *   master;
     cpl_image           *   contrib_map;
     char                *   filename ;
-    int                     nb_frames, i, l, ext, nb_bad ;
+    int                     nb_frames, i, l, ext_nr, det_nr, nb_bad ;
 
     /* RETRIEVE INPUT PARAMETERS */
     /* --detector */
@@ -374,17 +374,17 @@ static int cr2res_cal_dark(
         cpl_msg_indent_more() ;
 
         /* Loop on the extensions */
-        for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
-            cpl_msg_info(__func__, "Process Detector nb %i", ext) ;
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            cpl_msg_info(__func__, "Process Detector nb %i", det_nr) ;
             cpl_msg_indent_more() ;
 
             /* Initialise */
-            master_darks[ext-1] = NULL ;
-            bpms[ext-1] = NULL ;
-            ext_plist[ext-1] = NULL ;
+            master_darks[det_nr-1] = NULL ;
+            bpms[det_nr-1] = NULL ;
+            ext_plist[det_nr-1] = NULL ;
 
             /* Compute only one detector */
-            if (reduce_det != 0 && ext != reduce_det) continue ;
+            if (reduce_det != 0 && det_nr != reduce_det) continue ;
 
             /* Loop on the frames */
             dark_cube = hdrl_imagelist_new();
@@ -393,14 +393,17 @@ static int cr2res_cal_dark(
                 fname=cpl_frame_get_filename(
                         cpl_frameset_get_position(raw_one, i)) ; 
                 cpl_msg_info(__func__, "Load Image from File %s / Detector %i", 
-                        fname, ext) ;
-                
+                        fname, det_nr) ;
+
+                /* Get Extension Number */
+                ext_nr =  cr2res_io_get_ext_idx(fname, det_nr, 1) ;
+
                 /* Load the image */
                 if ((ima_data = cpl_image_load(fname, CPL_TYPE_FLOAT, 0,
-                                ext)) == NULL) {
+                                ext_nr)) == NULL) {
                     cpl_msg_error(__func__, 
                             "Cannot load image from File %s / Detector %d", 
-                            fname, ext) ;
+                            fname, det_nr) ;
                     cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
                     cpl_msg_indent_less() ;
                     cpl_msg_indent_less() ;
@@ -441,18 +444,18 @@ static int cr2res_cal_dark(
 
             /* Get the proper collapsing function and do frames combination */
             if (hdrl_imagelist_collapse(dark_cube, collapse_params,
-                    &(master_darks[ext-1]), &contrib_map) != CPL_ERROR_NONE) {
-                cpl_msg_warning(__func__, "Cannot collapse Detector %d", ext) ;
-                master_darks[ext-1] = NULL ;
+                    &(master_darks[det_nr-1]), &contrib_map) != CPL_ERROR_NONE){
+                cpl_msg_warning(__func__, "Cannot collapse Detector %d",det_nr);
+                master_darks[det_nr-1] = NULL ;
                 contrib_map = NULL ;
             }
             cpl_image_delete(contrib_map);
        
             /* Compute BPM from the MASTER dark */
-            if (master_darks[ext-1] != NULL) {
+            if (master_darks[det_nr-1] != NULL) {
                 /* Compute Thresholds */
                 med = cpl_image_get_median_dev(
-                        hdrl_image_get_image(master_darks[ext-1]), &sigma) ;
+                        hdrl_image_get_image(master_darks[det_nr-1]), &sigma) ;
                 if (cpl_error_get_code()) {
                     cpl_error_reset() ;
                     cpl_msg_warning(__func__, "Cannot compute statistics") ;
@@ -462,13 +465,13 @@ static int cr2res_cal_dark(
 
                     /* Compute BPM */
                     if ((my_bpm = cr2res_bpm_compute(
-                                    hdrl_image_get_image(master_darks[ext-1]),
-                                    bpm_low, bpm_high, bpm_lines_ratio, 
-                                    0)) == NULL) {
+                                hdrl_image_get_image(master_darks[det_nr-1]),
+                                bpm_low, bpm_high, bpm_lines_ratio, 
+                                0)) == NULL) {
                         cpl_msg_warning(__func__, "Cannot create BPM") ;
                     } else {
                         /* Convert mask to BPM */
-                        bpms[ext-1] = cr2res_bpm_from_mask(my_bpm, 
+                        bpms[det_nr-1] = cr2res_bpm_from_mask(my_bpm, 
                                 CR2RES_BPM_DARK);
                         cpl_mask_delete(my_bpm) ;
                     }
@@ -476,7 +479,7 @@ static int cr2res_cal_dark(
             }
 
             /* QCs */
-            ext_plist[ext-1] = cpl_propertylist_new() ;
+            ext_plist[det_nr-1] = cpl_propertylist_new() ;
             
             /* QCs from RAW */
             if (hdrl_imagelist_get_size(dark_cube) >= 3) {
@@ -489,32 +492,32 @@ static int cr2res_cal_dark(
                         hdrl_image_get_image(hdrl_imagelist_get(dark_cube,2)), 
                         ron_hsize, ron_nsamples, ndit) ;
 
-                cpl_propertylist_append_double(ext_plist[ext-1], 
+                cpl_propertylist_append_double(ext_plist[det_nr-1], 
                         "ESO QC DARK RON1", ron1) ;
-                cpl_propertylist_append_double(ext_plist[ext-1], 
+                cpl_propertylist_append_double(ext_plist[det_nr-1], 
                         "ESO QC DARK RON2", ron2) ;
             }
             hdrl_imagelist_delete(dark_cube);
 
             /* QCs from MASTER DARK */
-            if (master_darks[ext-1] != NULL) {
+            if (master_darks[det_nr-1] != NULL) {
                  /* Compute Thresholds */
                 med = cpl_image_get_median_dev(
-                        hdrl_image_get_image(master_darks[ext-1]), &sigma) ;
+                        hdrl_image_get_image(master_darks[det_nr-1]), &sigma) ;
                 mean = cpl_image_get_mean(
-                        hdrl_image_get_image(master_darks[ext-1])) ;
+                        hdrl_image_get_image(master_darks[det_nr-1])) ;
 
-                cpl_propertylist_append_double(ext_plist[ext-1], 
+                cpl_propertylist_append_double(ext_plist[det_nr-1], 
                         "ESO QC DARK MEAN", mean) ;
-                cpl_propertylist_append_double(ext_plist[ext-1], 
+                cpl_propertylist_append_double(ext_plist[det_nr-1], 
                         "ESO QC DARK MEDIAN", med) ;
-                cpl_propertylist_append_double(ext_plist[ext-1], 
+                cpl_propertylist_append_double(ext_plist[det_nr-1], 
                         "ESO QC DARK STDDEV", sigma) ;
             }
             /* QCs from BPM */
-            if (bpms[ext-1] != NULL) {
-                nb_bad = cr2res_bpm_count(bpms[ext-1], CR2RES_BPM_DARK) ;
-                cpl_propertylist_append_int(ext_plist[ext-1], 
+            if (bpms[det_nr-1] != NULL) {
+                nb_bad = cr2res_bpm_count(bpms[det_nr-1], CR2RES_BPM_DARK) ;
+                cpl_propertylist_append_int(ext_plist[det_nr-1], 
                         "ESO QC DARK NBAD", nb_bad) ;
             }
             cpl_msg_indent_less() ;
@@ -528,13 +531,13 @@ static int cr2res_cal_dark(
                     RECIPE_STRING) != 0) {
             cpl_frameset_delete(rawframes) ;
             cpl_frameset_delete(raw_one) ;
-            for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
-                if (bpms[ext-1] != NULL) 
-                    cpl_image_delete(bpms[ext-1]);
-                if (master_darks[ext-1] != NULL) 
-                    hdrl_image_delete(master_darks[ext-1]);
-                if (ext_plist[ext-1] != NULL) 
-                    cpl_propertylist_delete(ext_plist[ext-1]);
+            for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+                if (bpms[det_nr-1] != NULL) 
+                    cpl_image_delete(bpms[det_nr-1]);
+                if (master_darks[det_nr-1] != NULL) 
+                    hdrl_image_delete(master_darks[det_nr-1]);
+                if (ext_plist[det_nr-1] != NULL) 
+                    cpl_propertylist_delete(ext_plist[det_nr-1]);
             }
             cpl_free(labels);
             hdrl_parameter_destroy(collapse_params) ;
@@ -553,13 +556,13 @@ static int cr2res_cal_dark(
                     ext_plist, CR2RES_DARK_BPM_PROCATG, RECIPE_STRING) != 0) {
             cpl_frameset_delete(rawframes) ;
             cpl_frameset_delete(raw_one) ;
-            for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
-                if (bpms[ext-1] != NULL) 
-                    cpl_image_delete(bpms[ext-1]);
-                if (master_darks[ext-1] != NULL) 
-                    hdrl_image_delete(master_darks[ext-1]);
-                if (ext_plist[ext-1] != NULL) 
-                    cpl_propertylist_delete(ext_plist[ext-1]);
+            for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+                if (bpms[det_nr-1] != NULL) 
+                    cpl_image_delete(bpms[det_nr-1]);
+                if (master_darks[det_nr-1] != NULL) 
+                    hdrl_image_delete(master_darks[det_nr-1]);
+                if (ext_plist[det_nr-1] != NULL) 
+                    cpl_propertylist_delete(ext_plist[det_nr-1]);
             }
             cpl_free(labels);
             hdrl_parameter_destroy(collapse_params) ;
@@ -574,13 +577,13 @@ static int cr2res_cal_dark(
 
         /* Free */
         cpl_frameset_delete(raw_one) ;
-        for (ext=1 ; ext<=CR2RES_NB_DETECTORS ; ext++) {
-            if (bpms[ext-1] != NULL) 
-                cpl_image_delete(bpms[ext-1]);
-            if (master_darks[ext-1] != NULL) 
-                hdrl_image_delete(master_darks[ext-1]);
-            if (ext_plist[ext-1] != NULL) 
-                cpl_propertylist_delete(ext_plist[ext-1]);
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            if (bpms[det_nr-1] != NULL) 
+                cpl_image_delete(bpms[det_nr-1]);
+            if (master_darks[det_nr-1] != NULL) 
+                hdrl_image_delete(master_darks[det_nr-1]);
+            if (ext_plist[det_nr-1] != NULL) 
+                cpl_propertylist_delete(ext_plist[det_nr-1]);
         }
         cpl_msg_indent_less() ;
     }

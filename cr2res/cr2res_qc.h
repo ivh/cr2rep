@@ -37,17 +37,8 @@ double cr2res_qc_ron(
         int                     nsamples,
         int                     ndit) ;
 
-
-/*************/
-/* Useful ?? */
-double cr2res_qc_dark_mean(cpl_image * dark);
-double cr2res_qc_dark_median(cpl_image * dark);
-double cr2res_qc_dark_stddev(cpl_image * );
-int cr2res_qc_trace_count_orders(cpl_table * tracewave);
-int cr2res_qc_trace_count_traces(cpl_table * tracewave);
 int cr2res_qc_trace_get_ypos(cpl_table * tracewave, int order, int trace);
 double cr2res_qc_wave_zeropoint(cpl_table * tracewave, int order, int trace);
-/*************/
 
 #endif
 

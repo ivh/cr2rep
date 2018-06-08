@@ -273,7 +273,7 @@ static int cr2res_util_extract(
     cpl_vector          **  spectrum ;
     cpl_vector          **  slit_func ;
     hdrl_image          *   model_tmp ;
-    int                     det_nr, extr_height, nb_traces, trace_id,
+    int                     det_nr, ext_nr, extr_height, nb_traces, trace_id,
                             order, i ;
 
     /* RETRIEVE INPUT PARAMETERS */
@@ -332,9 +332,12 @@ static int cr2res_util_extract(
         extract_tab[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
 
+        /* Get Extension Number */
+        ext_nr = cr2res_io_get_ext_idx(science_file, det_nr, 1) ;
+        if (ext_nr < 0) continue ;
+
         /* Store the extenѕion header for product saving */
-        ext_plist[det_nr-1] = cpl_propertylist_load(science_file,
-                cr2res_io_get_ext_idx(science_file, det_nr, 1)) ;
+        ext_plist[det_nr-1] = cpl_propertylist_load(science_file, ext_nr) ;
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -356,8 +359,10 @@ static int cr2res_util_extract(
 
         /* Load the image in which the traces are to extract */
         cpl_msg_info(__func__, "Load the Image") ;
+
+        /* Load the image */
         if ((science_ima = cpl_image_load(science_file, CPL_TYPE_FLOAT,
-                        0, det_nr)) == NULL) {
+                        0, ext_nr)) == NULL) {
             cpl_table_delete(trace_table) ;
             cpl_msg_error(__func__, "Failed to load the image - skip detector");
             cpl_error_reset() ;
