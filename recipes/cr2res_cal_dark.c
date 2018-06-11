@@ -265,7 +265,7 @@ static int cr2res_cal_dark(
     const cpl_parameter *   par ;
     int                     reduce_det, ron_hsize, ron_nsamples, ndit ;
     double                  gain, dit, bpm_kappa, bpm_lines_ratio, bpm_high, 
-                            bpm_low, med, sigma, mean, ron1, ron2 ;
+                            bpm_low, med, sigma, mean, ron1, ron2, ron ;
     hdrl_parameter      *   collapse_params ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_one ;
@@ -417,7 +417,8 @@ static int cr2res_cal_dark(
 
                 /* Create the noise image */
                 cpl_msg_info(__func__, "Create the associated Noise image");
-                if (cr2res_detector_shotnoise_model(ima_data, gain, 10.,
+                ron = 0.0 ;
+                if (cr2res_detector_shotnoise_model(ima_data, gain, ron,
                             &ima_err) != CPL_ERROR_NONE) {
                     cpl_free(labels);
                     cpl_msg_error(__func__, "Cannot create the Noise image") ;

@@ -744,14 +744,11 @@ cpl_error_code cr2res_detector_shotnoise_model(
     cpl_ensure_code(ima_data, CPL_ERROR_NULL_INPUT);
     cpl_ensure_code(ima_errs, CPL_ERROR_NULL_INPUT);
     cpl_ensure_code(gain > 0., CPL_ERROR_ILLEGAL_INPUT);
-    cpl_ensure_code(ron > 0., CPL_ERROR_ILLEGAL_INPUT);
+    cpl_ensure_code(ron > -1e-5, CPL_ERROR_ILLEGAL_INPUT);
 
     *ima_errs = cpl_image_duplicate(ima_data);
     /* set negative values (= zero measurable electrons) to read out noise */
     cpl_image_threshold(*ima_errs, 0., DBL_MAX, ron, ron);
-
-    /* err_ADU = sqrt(counts/gain + ron * ron)*/
-
     cpl_image_divide_scalar(*ima_errs, gain);
     cpl_image_add_scalar(*ima_errs, ron * ron);
     cpl_image_power(*ima_errs, 0.5);
