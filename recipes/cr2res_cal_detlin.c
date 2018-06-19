@@ -67,6 +67,7 @@ static int cr2res_cal_detlin_reduce(
         int                     trace_min_cluster,
         double                  trace_smooth,
         int                     trace_opening,
+        int                     trace_collapse,
         int                     trace_split,
         int                     reduce_det,
         cpl_imagelist       **  coeffs,
@@ -196,6 +197,13 @@ static int cr2res_cal_detlin_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.trace_collapse",
+            CPL_TYPE_BOOL, "Collapse the input frames for the trace analysis",
+            "cr2res.cr2res_cal_detlin", TRUE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_collapse");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.trace_split",
             CPL_TYPE_BOOL, "Split the traces when only 1 per order",
             "cr2res.cr2res_cal_detlin", FALSE);
@@ -265,7 +273,7 @@ static int cr2res_cal_detlin(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     trace_degree, trace_min_cluster,
+    int                     trace_degree, trace_min_cluster, trace_collapse,
                             trace_opening, trace_split, reduce_det ;
     double                  bpm_kappa, trace_smooth ;
     cpl_frameset        *   rawframes ;
@@ -299,6 +307,9 @@ static int cr2res_cal_detlin(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_detlin.trace_opening");
     trace_opening = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_detlin.trace_collapse");
+    trace_collapse = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_detlin.trace_split");
     trace_split = cpl_parameter_get_bool(param);
@@ -357,7 +368,7 @@ static int cr2res_cal_detlin(
             /* Call the reduction function */
             if (cr2res_cal_detlin_reduce(rawframes_one, bpm_kappa,
                         trace_degree, trace_min_cluster, trace_smooth, 
-                        trace_opening, trace_split,
+                        trace_opening, trace_collapse, trace_split,
                         det_nr,
                         &coeffs_cube_one_setting,
                         &bpm_one_setting,
@@ -436,6 +447,7 @@ static int cr2res_cal_detlin_reduce(
         int                     trace_min_cluster,
         double                  trace_smooth,
         int                     trace_opening,
+        int                     trace_collapse,
         int                     trace_split,
         int                     reduce_det,
         cpl_imagelist       **  coeffs,
@@ -502,17 +514,22 @@ static int cr2res_cal_detlin_reduce(
     plist = cpl_propertylist_load(first_file, ext_nr) ;
     if (plist == NULL) return -1 ;
 
-    /* Collapse */
-    cpl_msg_info(__func__, "Collapse the input images") ;
-    cpl_msg_indent_more() ;
-    if ((collapsed_ima = cpl_imagelist_collapse_create(imlist)) == NULL) {
-        cpl_msg_error(__func__, "Failed to Calibrate and collapse") ;
-        cpl_imagelist_delete(imlist) ;
-        cpl_vector_delete(dits); 
-        cpl_propertylist_delete(plist);
-        cpl_msg_indent_less() ;
-        return -1 ;
+    if (trace_collapse) {
+        /* Collapse */
+        cpl_msg_info(__func__, "Collapse the input images") ;
+        cpl_msg_indent_more() ;
+        if ((collapsed_ima = cpl_imagelist_collapse_create(imlist)) == NULL) {
+            cpl_msg_error(__func__, "Failed to Calibrate and collapse") ;
+            cpl_imagelist_delete(imlist) ;
+            cpl_vector_delete(dits); 
+            cpl_propertylist_delete(plist);
+            cpl_msg_indent_less() ;
+            return -1 ;
+        }
+    } else {
+        collapsed_ima = cpl_image_duplicate(cpl_imagelist_get(imlist, 0)) ;
     }
+
     nx = cpl_image_get_size_x(collapsed_ima) ;
     ny = cpl_image_get_size_y(collapsed_ima) ;
 
@@ -538,6 +555,10 @@ static int cr2res_cal_detlin_reduce(
     hdrl_image_delete(collapsed) ;
     cpl_msg_indent_less() ;
 
+
+
+
+
     /* Allocate */
     bpm_loc = cpl_image_new(nx, ny, CPL_TYPE_INT) ;
     pbpm_loc = cpl_image_get_data_int(bpm_loc) ;
@@ -551,7 +572,6 @@ static int cr2res_cal_detlin_reduce(
     cpl_image_add_scalar(bpm_loc, CR2RES_BPM_OUTOFORDER); 
 
     /* Create the trace image */
-    cpl_msg_info(__func__, "Compute the trace") ;
     trace_image = cr2res_trace_gen_image(traces, nx, ny) ;
     pti = cpl_image_get_data_int(trace_image) ;
 
