@@ -271,7 +271,6 @@ static int cr2res_cal_dark(
     cpl_frameset        *   raw_one ;
     cpl_size            *   labels ;
     cpl_size                nlabels ;
-    const char          *   detlin ;
     cpl_propertylist    *   plist ;
     
     hdrl_image          *   master_darks[CR2RES_NB_DETECTORS] ;
@@ -336,7 +335,6 @@ static int cr2res_cal_dark(
     }
     
     /* Retrieve calibration data */
-    detlin = cr2res_extract_filename(frameset, CR2RES_DETLIN_COEFFS_PROCATG) ;
 
     /* Extract RAW frames */
     rawframes = cr2res_extract_frameset(frameset, CR2RES_DARK_RAW) ;
