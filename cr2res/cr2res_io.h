@@ -119,6 +119,16 @@ int cr2res_io_save_MASTER_DARK(
         const char              *   procatg,
         const char              *   recipe) ;
 
+int cr2res_io_save_DETLIN_COEFFS(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_imagelist           **  coeffs,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
+        const char              *   recipe) ;
+
 int cr2res_io_save_BPM(
         const char              *   filename,
         cpl_frameset            *   allframes,

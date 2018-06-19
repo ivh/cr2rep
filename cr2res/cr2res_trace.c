@@ -356,8 +356,11 @@ cpl_image * cr2res_trace_gen_image(
 
     /* Loop on the traces */
     for (i=0 ; i<cpl_table_get_nrow(trace) ; i++) {
-        /* Get the Order */
-        order = cpl_table_get(trace, CR2RES_COL_ORDER, i, NULL) ;
+        /* Get the Order - Use fix value when no order column */
+        if (cpl_table_has_column(trace, CR2RES_COL_ORDER))
+            order = cpl_table_get(trace, CR2RES_COL_ORDER, i, NULL) ;
+        else
+            order = 100 ;
 
         /* Get the Upper polynomial*/
         coeffs_upper = cpl_table_get_array(trace, CR2RES_COL_UPPER, i) ;
@@ -501,7 +504,9 @@ cpl_vector * cr2res_trace_get_ycen(
 
     // if no order found
     if (poly == NULL){
-        cpl_msg_warning(__func__, "Cannot find trace %d of order %d in table.", trace_nb, order_nb);
+        cpl_msg_warning(__func__, 
+                "Cannot find trace %"CPL_SIZE_FORMAT" of order %"CPL_SIZE_FORMAT,
+                trace_nb, order_nb);
         return NULL;
     }
 

@@ -39,6 +39,18 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_io_save_imagelist(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_imagelist           **  data,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        cpl_type                    type,
+        const char              *   recipe,
+        const char              *   procatg,
+        const char              *   protype) ;
+
 static int cr2res_io_save_image(
         const char              *   filename,
         cpl_frameset            *   allframes,
@@ -89,8 +101,13 @@ char * cr2res_io_create_extname(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Create wished EXTNAME */
+    /*
     if (data)   wished_extname = cpl_sprintf("CHIP%d.INT1", detector) ;
     else        wished_extname = cpl_sprintf("CHIP%dERR.INT1", detector) ;
+    */
+
+    if (data)   wished_extname = cpl_sprintf("CHIP%d", detector) ;
+    else        wished_extname = cpl_sprintf("CHIP%dERR", detector) ;
 
     return wished_extname ;
 }
@@ -266,9 +283,7 @@ cpl_imagelist * cr2res_io_load_DETLIN_COEFFS(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Get the extension number for this detector */
-    /* TODO :
-       Check with the DETLIN data format which detector in which * extension */
-    wished_ext_nb = detector ;
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
 
     /* The wished extension was not found */
     if (wished_ext_nb < 0) return NULL ;
@@ -566,6 +581,35 @@ int cr2res_io_save_MASTER_DARK(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Save a DETLIN COEFFS
+  @param    allframes   The recipe input frames
+  @param    filename    The FITS file name
+  @param    parlist     The recipe input parameters
+  @param    coeffs      The detlin coefficients (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
+  @param    procatg     The PRO CATG value
+  @param    recipe      The recipe name
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_DETLIN_COEFFS(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_imagelist           **  coeffs,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
+        const char              *   recipe)
+{
+    return cr2res_io_save_imagelist(filename, allframes, parlist,
+            coeffs, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
+            procatg, CR2RES_DETLIN_COEFFS_PROTYPE) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Save a BPM
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
@@ -594,7 +638,10 @@ int cr2res_io_save_BPM(
             
     /* Convert to HDRL images */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        hdrl_bpms[det_nr-1] = hdrl_image_create(bpms[det_nr-1], NULL) ;
+        if (bpms[det_nr-1] == NULL) 
+            hdrl_bpms[det_nr-1] = NULL ;
+        else
+            hdrl_bpms[det_nr-1] = hdrl_image_create(bpms[det_nr-1], NULL) ;
     }
 
     /* Save */
@@ -1142,6 +1189,95 @@ static int cr2res_io_save_image(
         else                        
             to_save = hdrl_image_get_error(data[det_nr-1]);
         cpl_image_save(to_save, filename, type, qclist_loc, CPL_IO_EXTEND) ;
+        cpl_propertylist_delete(qclist_loc) ;
+        cpl_free(wished_extname) ;
+    }
+
+	return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a multi extension imagelists
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    data        The imagelists to save (only data for the moment)
+  @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
+  @param    type        CPL_TYPE_FLOAT, CPL_TYPE_INT,...
+  @param    recipe      The recipe name
+  @param    procatg     PRO.CATG
+  @param    protype     PRO.TYPE
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_io_save_imagelist(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_imagelist           **  data,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        cpl_type                    type,
+        const char              *   recipe,
+        const char              *   procatg,
+        const char              *   protype)
+{
+    cpl_propertylist    *   qclist_loc ;
+    char          		*   wished_extname ;
+    int                     det_nr ;
+
+    /* Create a local QC list and add the PRO.CATG */
+    if (qc_list == NULL) {
+        qclist_loc = cpl_propertylist_new();
+    } else {
+        qclist_loc = cpl_propertylist_duplicate(qc_list) ;
+    }
+    cpl_propertylist_update_string(qclist_loc, CPL_DFS_PRO_CATG, procatg);
+    cpl_propertylist_update_string(qclist_loc, CPL_DFS_PRO_TYPE, protype);
+
+    /* Create the Primary Data Unit without data */
+    if (cpl_dfs_save_image(allframes, NULL, parlist, allframes, NULL, NULL,
+                type, recipe, qclist_loc, NULL,
+                PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Cannot save the empty primary HDU") ;
+        cpl_propertylist_delete(qclist_loc) ;
+        return -1 ;
+    }
+    /* Delete PRO LIST */
+    cpl_propertylist_delete(qclist_loc) ;
+
+    /* Save the extensions */
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        if (ext_plist[det_nr-1] == NULL) {
+            qclist_loc = cpl_propertylist_new();
+        } else {
+            qclist_loc = cpl_propertylist_duplicate(ext_plist[det_nr-1]) ;
+            cpl_propertylist_erase(qclist_loc, "EXTNAME");
+        }
+
+        /* Save the DATA */
+        wished_extname = cr2res_io_create_extname(det_nr, 1) ;
+        cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", wished_extname) ;
+
+        if (data[det_nr-1] == NULL) {
+            cpl_propertylist_save(qclist_loc, filename, CPL_IO_EXTEND) ;
+        } else {                        
+            cpl_imagelist_save(data[det_nr-1], filename, type, qclist_loc, 
+                    CPL_IO_EXTEND) ;
+        }
+        cpl_free(wished_extname) ;
+
+        /* Save the NOISE */
+        wished_extname = cr2res_io_create_extname(det_nr, 0) ;
+        cpl_propertylist_update_string(qclist_loc, "EXTNAME", wished_extname) ;
+        if (data[det_nr-1] == NULL) {
+            cpl_propertylist_save(qclist_loc, filename, CPL_IO_EXTEND) ;
+        } else {                        
+            cpl_imagelist_save(data[det_nr-1], filename, type, qclist_loc, 
+                    CPL_IO_EXTEND) ;
+        }
         cpl_propertylist_delete(qclist_loc) ;
         cpl_free(wished_extname) ;
     }

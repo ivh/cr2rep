@@ -66,6 +66,7 @@
 #define CR2RES_DETLIN_COEFFS_PROTYPE        "DETLIN_COEFFS"
 
 /* For  CR2RES_FLAT_BPM_PROCATG */
+/*      CR2RES_DETLIN_BPM_PROCATG */
 /*      CR2RES_DARK_BPM_PROCATG */
 /*      CR2RES_UTIL_BPM_SPLIT_PROCATG */
 /* BPM Image with values CR2RES_BPM_DARK / CR2RES_BPM_FLAT... */
@@ -117,6 +118,7 @@
 
 /* Produced by cr2res_cal_detlin */
 #define CR2RES_DETLIN_COEFFS_PROCATG        "DETLIN_COEFFS"
+#define CR2RES_DETLIN_BPM_PROCATG           "DETLIN_BPM"
 
 /* Produced by cr2res_cal_dark */
 #define CR2RES_MASTER_DARK_PROCATG          "MASTER_DARK"

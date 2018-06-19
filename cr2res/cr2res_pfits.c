@@ -56,6 +56,18 @@ const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    find out the Setting
+  @param    plist       property list to read from
+  @return   pointer to statically allocated character string
+ */
+/*----------------------------------------------------------------------------*/
+const char * cr2res_pfits_get_wlen_id(const cpl_propertylist * plist)
+{
+    return (const char *) cpl_propertylist_get_string(plist, "ESO INS WLEN ID");
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    find out the DIT value 
   @param    plist       property list to read from
   @return   the requested value
@@ -214,6 +226,30 @@ double cr2res_pfits_get_ceny(const cpl_propertylist * plist, int order)
 
     cpl_free(key_name) ;
     return val ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the NAXIS1 value 
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_pfits_get_naxis1(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_int(plist, "NAXIS1")  ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the NAXIS2 value 
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_pfits_get_naxis2(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_int(plist, "NAXIS2")  ;
 }
 
 /*----------------------------------------------------------------------------*/
