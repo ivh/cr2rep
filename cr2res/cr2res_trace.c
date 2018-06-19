@@ -141,6 +141,10 @@ cpl_table * cr2res_trace(
         return NULL ;
     }
 
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_mask_save(mask, "debug_mask_before_cleaning.fits", NULL,
+                    CPL_IO_CREATE);
+        }
     /* Clean the traces in the image */
     cpl_msg_info(__func__, "Traces cleaning") ;
     if ((mask_clean = cr2res_trace_clean(mask, opening, min_cluster)) == NULL) {
@@ -1209,7 +1213,7 @@ static cpl_mask * cr2res_trace_clean_blobs(
         cpl_msg_error(__func__, "Failed to labelise") ;
         return NULL ;
     }
-    if (nlabels > 1000) {
+    if (nlabels > 10000) {
         cpl_msg_error(__func__, "Too many labels resulting from mask") ;
         cpl_image_delete(labels) ;
         return NULL ;
