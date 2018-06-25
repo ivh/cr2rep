@@ -617,7 +617,7 @@ static int cr2res_cal_detlin_reduce(
                         pcur_coeffs[idx] = 0.0 ;
                     }
                     if (i==1000 && j==1000) {
-                        printf("failed fit %s\n", cpl_error_get_where()) ;
+                        printf("failed fit %s\n", cpl_error_get_message()) ;
                     }
                     cpl_error_reset() ;
 
