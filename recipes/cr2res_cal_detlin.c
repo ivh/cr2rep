@@ -555,10 +555,6 @@ static int cr2res_cal_detlin_reduce(
     hdrl_image_delete(collapsed) ;
     cpl_msg_indent_less() ;
 
-
-
-
-
     /* Allocate */
     bpm_loc = cpl_image_new(nx, ny, CPL_TYPE_INT) ;
     pbpm_loc = cpl_image_get_data_int(bpm_loc) ;
@@ -583,13 +579,7 @@ static int cr2res_cal_detlin_reduce(
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
             idx = i + j*nx ;
-            if (i==1000 && j==1000) {
-                printf("hello1\n") ;
-            }
             if (pti[idx] > 0) {
-                if (i==1000 && j==1000) {
-                    printf("hello2\n") ;
-                }
                 /* We are in a trace, let's compute the linearity */
 
                 /* Store the DITS */
@@ -605,6 +595,12 @@ static int cr2res_cal_detlin_reduce(
                     cpl_vector_set(fitvals, k, pcur_im[idx]) ;
                 }
 
+                if (i==1000 && j==1000) {
+                    cpl_vector_dump(dits, stdout) ;
+                    cpl_vector_dump(fitvals, stdout) ;
+                    cpl_matrix_dump(samppos, stdout) ;
+                    printf("%d\n", max_degree) ;
+                }
                 /* Fit  */
                 fit1d = cpl_polynomial_new(1);
                 if (cpl_polynomial_fit(fit1d, samppos, &sampsym, fitvals, NULL,
