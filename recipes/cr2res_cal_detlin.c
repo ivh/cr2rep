@@ -583,7 +583,13 @@ static int cr2res_cal_detlin_reduce(
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
             idx = i + j*nx ;
+            if (i==1000 && j==1000) {
+                printf("hello1\n") ;
+            }
             if (pti[idx] > 0) {
+                if (i==1000 && j==1000) {
+                    printf("hello2\n") ;
+                }
                 /* We are in a trace, let's compute the linearity */
 
                 /* Store the DITS */
