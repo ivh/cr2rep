@@ -617,6 +617,10 @@ static int cr2res_cal_detlin_reduce(
                         pcur_coeffs[idx] = 0.0 ;
                     }
                     cpl_error_reset() ;
+                    if (i==1000 && j==1000) {
+                        printf("failed fit\n") ;
+                    }
+
                     continue ;
                 }
                 cpl_matrix_unwrap(samppos) ;
