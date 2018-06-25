@@ -616,10 +616,10 @@ static int cr2res_cal_detlin_reduce(
                         pcur_coeffs = cpl_image_get_data_float(cur_coeffs) ;
                         pcur_coeffs[idx] = 0.0 ;
                     }
-                    cpl_error_reset() ;
                     if (i==1000 && j==1000) {
-                        printf("failed fit\n") ;
+                        printf("failed fit %s\n", cpl_error_get_where()) ;
                     }
+                    cpl_error_reset() ;
 
                     continue ;
                 }
