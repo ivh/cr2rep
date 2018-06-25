@@ -616,12 +616,25 @@ static int cr2res_cal_detlin_reduce(
                 cpl_matrix_unwrap(samppos) ;
                 cpl_vector_delete(fitvals) ;
 
+
+                if (i==1000 && j==1000) {
+                    /* cpl_polynomial_dump(fit1d, stdout);  */
+                }
+
                 /* Store the Coefficients in the output image list */
                 pbpm_loc[idx] = 0 ;
                 for (l=0 ; l<=max_degree ; l++) {
                     cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
                     pcur_coeffs = cpl_image_get_data_float(cur_coeffs) ;
                     pcur_coeffs[idx] = cpl_polynomial_get_coeff(fit1d, &l) ;
+                    if (i==1000 && j==1000) {
+
+                        cpl_polynomial_dump(fit1d, stdout); 
+                        printf("1000, 1000: %d %d %g \n",
+                                idx, l, pcur_coeffs[idx]) ;
+
+
+                    }
                 }
                 cpl_polynomial_delete(fit1d) ;
             }
