@@ -928,7 +928,7 @@ static int cr2res_extract_slit_func_vert(
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_extract_slitdec_curved(
-        cpl_image   *   img_in,
+        hdrl_image  *   img_hdrl,
         cpl_table   *   trace_tab,
         int             order,
         int             trace_id,
@@ -949,7 +949,10 @@ int cr2res_extract_slitdec_curved(
     double          *   slitfu_sw_data;
     double          *   model_sw;
     int             *   mask_sw;
+    const cpl_image       *   img_in;
+    const cpl_image       *   err_in;
     cpl_image       *   img_sw;
+    cpl_image       *   err_sw;
     cpl_image       *   img_rect;
     cpl_image       *   model_rect;
     cpl_vector      *   ycen ;
@@ -966,6 +969,9 @@ int cr2res_extract_slitdec_curved(
     double              pixval, img_median;
     int                 i, j, nswaths, halfswath, row, col, x, y, ny_os,
                         sw_start, sw_end, badpix;
+
+    img_in = hdrl_image_get_image_const(img_hdrl);
+    err_in = hdrl_image_get_error_const(img_hdrl);
 
     /* Check Entries */
     if (img_in == NULL || trace_tab == NULL) return -1 ;
@@ -1013,6 +1019,7 @@ int cr2res_extract_slitdec_curved(
     mask_sw = cpl_malloc(height*swath*sizeof(int));
     model_sw = cpl_malloc(height*swath*sizeof(double));
     img_sw = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
+    err_sw = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
     ycen_sw = cpl_malloc(swath*sizeof(double));
 
     // Local versions of return data
@@ -1151,7 +1158,7 @@ int cr2res_extract_xi_zeta_tensors(int ncols,      /* Swath width in pixels     
                                                    /* the central line yc.                                  */
                     int osample,                   /* Subpixel ovsersampling factor                         */
                     double PSF_curve[ncols][3],    /* Parabolic fit to the slit image curvature.            */
-                                                   /* For column d_x = PSF_curve[ncols][0] +                */
+                                                   /* For column d_x = PSF_curve[ncols[0] +                */
                                                    /*                  PSF_curve[ncols][1] *d_y +           */
                                                    /*                  PSF_curve[ncols][2] *d_y^2,          */
                                                    /* where d_y is the offset from the central line ycen.   */
