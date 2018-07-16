@@ -769,7 +769,8 @@ cpl_error_code cr2res_detector_shotnoise_model(
   @return   0 if successful, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_pol_load_images(const cpl_frameset *fs1, const cpl_frameset *fs2, int chip, cpl_image **sum1, cpl_image **sum2)
+int cr2res_pol_load_images(const cpl_frameset *fs1, const cpl_frameset *fs2,
+                            int chip, cpl_image **sum1, cpl_image **sum2)
 {
     // in this case sum is the average of the input frames
     // and as input is integer, the division is integer, which means if the sum is odd, there will be an error of 0.5
@@ -798,8 +799,10 @@ int cr2res_pol_load_images(const cpl_frameset *fs1, const cpl_frameset *fs2, int
   @return   0 if successful, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_pol_demod_extract(cpl_image *im1, cpl_image *im2, cpl_table *trace_wave, int order,
-                             cpl_vector ** trace_a_angle_1, cpl_vector ** trace_b_angle_1, cpl_vector ** trace_a_angle_2, cpl_vector ** trace_b_angle_2)
+int cr2res_pol_demod_extract(cpl_image *im1, cpl_image *im2,
+    cpl_table *trace_wave, int order, cpl_vector ** trace_a_angle_1,
+    cpl_vector ** trace_b_angle_1, cpl_vector ** trace_a_angle_2,
+    cpl_vector ** trace_b_angle_2)
 {
     const int Trace_A = 1;
     const int Trace_B = 2;
@@ -823,19 +826,23 @@ int cr2res_pol_demod_extract(cpl_image *im1, cpl_image *im2, cpl_table *trace_wa
     else
     {
         // extract values for the current order
-        extr_res = cr2res_extract_slitdec_vert(im1, trace_wave, order, Trace_A, height, swath, oversample, smooth_slit, &slit_func, trace_a_angle_1, &model);
+        extr_res = cr2res_extract_slitdec_vert(im1, trace_wave, order, Trace_A,
+            height, swath, oversample, smooth_slit, &slit_func, trace_a_angle_1, &model);
         cpl_vector_delete(slit_func);
         hdrl_image_delete(model);
 
-        extr_res = cr2res_extract_slitdec_vert(im1, trace_wave, order, Trace_B, height, swath, oversample, smooth_slit, &slit_func, trace_b_angle_1, &model);
+        extr_res = cr2res_extract_slitdec_vert(im1, trace_wave, order, Trace_B,
+            height, swath, oversample, smooth_slit, &slit_func, trace_b_angle_1, &model);
         cpl_vector_delete(slit_func);
         hdrl_image_delete(model);
 
-        extr_res = cr2res_extract_slitdec_vert(im2, trace_wave, order, Trace_A, height, swath, oversample, smooth_slit, &slit_func, trace_a_angle_2, &model);
+        extr_res = cr2res_extract_slitdec_vert(im2, trace_wave, order, Trace_A,
+            height, swath, oversample, smooth_slit, &slit_func, trace_a_angle_2, &model);
         cpl_vector_delete(slit_func);
         hdrl_image_delete(model);
 
-        extr_res = cr2res_extract_slitdec_vert(im2, trace_wave, order, Trace_B, height, swath, oversample, smooth_slit, &slit_func, trace_b_angle_2, &model);
+        extr_res = cr2res_extract_slitdec_vert(im2, trace_wave, order, Trace_B,
+            height, swath, oversample, smooth_slit, &slit_func, trace_b_angle_2, &model);
         cpl_vector_delete(slit_func);
         hdrl_image_delete(model);
     }
@@ -856,8 +863,10 @@ int cr2res_pol_demod_extract(cpl_image *im1, cpl_image *im2, cpl_table *trace_wa
   @return   0 if successful, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_pol_demod_order(cpl_vector * trace_a_angle_1, cpl_vector * trace_b_angle_1, cpl_vector * trace_a_angle_2, cpl_vector * trace_b_angle_2, 
-                           cpl_vector **sx, cpl_vector **si, cpl_vector **sn)
+int cr2res_pol_demod_order(cpl_vector * trace_a_angle_1,
+    cpl_vector * trace_b_angle_1, cpl_vector * trace_a_angle_2,
+    cpl_vector * trace_b_angle_2, cpl_vector **sx, cpl_vector **si,
+    cpl_vector **sn)
 {
     // step 3: demodulation
     //
@@ -876,7 +885,7 @@ int cr2res_pol_demod_order(cpl_vector * trace_a_angle_1, cpl_vector * trace_b_an
     //            Fiber_B(angl1)   Fiber_A(angl2)   Fiber_A(angl3)   Fiber_B(angl4)
     // where RN = -------------- * -------------- * -------------- * --------------
     //            Fiber_A(angl1)   Fiber_B(angl2)   Fiber_B(angl3)   Fiber_A(angl4)
-    
+
     cpl_vector *R, *RN;
     // calculate R
     R = cpl_vector_duplicate(trace_b_angle_1);
@@ -891,7 +900,7 @@ int cr2res_pol_demod_order(cpl_vector * trace_a_angle_1, cpl_vector * trace_b_an
     cpl_vector_add_scalar(R, 1.);
     cpl_vector_divide(*sx, R);
 
-    
+
     // Calculate Stokes I
     *si = cpl_vector_duplicate(trace_a_angle_1);
     cpl_vector_add(*si, trace_b_angle_1);
@@ -924,7 +933,7 @@ int cr2res_pol_demod_order(cpl_vector * trace_a_angle_1, cpl_vector * trace_b_an
   @param    sum1        Image 1, Trace_A and Trace_B at angle 1
   @param    sum2        Image 2, Trace_A and Trace_B at angle 2
   @param    trace_wave  Trace Wave Table
-  @return   Table with columns "POL_X_1" for each order and stokes parameter, NULL on error 
+  @return   Table with columns "POL_X_1" for each order and stokes parameter, NULL on error
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_demod(cpl_image *sum1, cpl_image *sum2, cpl_table *trace_wave)
@@ -933,7 +942,7 @@ cpl_table * cr2res_demod(cpl_image *sum1, cpl_image *sum2, cpl_table *trace_wave
     if (sum1 == NULL || sum2 == NULL || trace_wave == NULL) return NULL;
     if (cpl_image_get_size_x(sum1) != cpl_image_get_size_x(sum2)) return NULL;
     if (cpl_image_get_size_y(sum1) != cpl_image_get_size_y(sum2)) return NULL;
-    
+
     // Step 0: Define variables
     // vectors for each combination of fiber and angle
     cpl_vector *trace_b_angle_1;
@@ -945,7 +954,7 @@ cpl_table * cr2res_demod(cpl_image *sum1, cpl_image *sum2, cpl_table *trace_wave
     cpl_size order;
     int nb_orders;
     int * orders = cr2res_trace_get_order_numbers(trace_wave, &nb_orders);
-    
+
     // temporary Stokes parameters
     cpl_vector * sx, *si, *sn;
     int res = 0;
@@ -962,7 +971,8 @@ cpl_table * cr2res_demod(cpl_image *sum1, cpl_image *sum2, cpl_table *trace_wave
         order = orders[i];
 
         // Step 2: Extract individual traces
-        res = cr2res_pol_demod_extract(sum1, sum2, trace_wave, order, &trace_a_angle_1, &trace_b_angle_1, &trace_a_angle_2, &trace_b_angle_2);
+        res = cr2res_pol_demod_extract(sum1, sum2, trace_wave, order, &trace_a_angle_1,
+            &trace_b_angle_1, &trace_a_angle_2, &trace_b_angle_2);
         if (res == -1)
         {
             sx = cpl_vector_new(size);
@@ -975,7 +985,8 @@ cpl_table * cr2res_demod(cpl_image *sum1, cpl_image *sum2, cpl_table *trace_wave
         else
         {
             // Step 3: Calculate Stokes spectra
-            cr2res_pol_demod_order(trace_a_angle_1, trace_b_angle_1, trace_a_angle_2, trace_b_angle_2, &sx, &si, &sn);
+            cr2res_pol_demod_order(trace_a_angle_1, trace_b_angle_1, trace_a_angle_2,
+                trace_b_angle_2, &sx, &si, &sn);
             cpl_vector_delete(trace_a_angle_1);
             cpl_vector_delete(trace_b_angle_1);
             cpl_vector_delete(trace_a_angle_2);
@@ -1011,14 +1022,15 @@ cpl_table * cr2res_demod(cpl_image *sum1, cpl_image *sum2, cpl_table *trace_wave
   @return   the fitted polynomial if succesful, NULL on error
  */
 /*----------------------------------------------------------------------------*/
-cpl_polynomial * cr2res_fit_noise(cpl_image *img, cpl_table *trace_wave, cpl_size order_x, cpl_size order_y)
+cpl_polynomial * cr2res_fit_noise(cpl_image *img, cpl_table *trace_wave,
+            cpl_size order_x, cpl_size order_y)
 {
 
     if (img == NULL || trace_wave == NULL) return NULL;
     if (order_x < 0 || order_y < 0) return NULL;
 
     //Step 1: identify areas inbetween traces
-    
+
     cpl_size order;
     cpl_size trace1 = 1;
     cpl_size trace2 = 2; // if decker, set to 2, otherwise 1
@@ -1036,7 +1048,7 @@ cpl_polynomial * cr2res_fit_noise(cpl_image *img, cpl_table *trace_wave, cpl_siz
 
     double y_lower, y_upper;
     int c = 0; //counter for number of data points
-    
+
     cpl_matrix *samppos = cpl_matrix_new(2, cpl_image_get_size_x(img) * cpl_image_get_size_y(img));
     cpl_vector *fitvals = cpl_vector_new(cpl_image_get_size_x(img) * cpl_image_get_size_y(img));
     cpl_vector *x = cpl_vector_new(1);
@@ -1050,12 +1062,12 @@ cpl_polynomial * cr2res_fit_noise(cpl_image *img, cpl_table *trace_wave, cpl_siz
     int k;
     porders = cpl_table_get_data_int(trace_wave, CR2RES_COL_ORDER);
     ptraces = cpl_table_get_data_int(trace_wave, CR2RES_COL_TRACENB);
-    
+
     for(int m = 0; m <= nb_orders; m++)
     {
         // the last time is above the topmost border
         if (m != nb_orders) order = orders[m];
-        else 
+        else
         {
             // find maximum order
             order = orders[0];
@@ -1096,7 +1108,7 @@ cpl_polynomial * cr2res_fit_noise(cpl_image *img, cpl_table *trace_wave, cpl_siz
             poly_upper = cpl_polynomial_new(1);
             cpl_polynomial_set_coeff(poly_upper, &power, cpl_image_get_size_y(img));
         }
-            
+
         // loop over image and set data points outside of traces
 
         for(cpl_size i = 1; i < cpl_image_get_size_x(img)-1; i++)
@@ -1104,7 +1116,7 @@ cpl_polynomial * cr2res_fit_noise(cpl_image *img, cpl_table *trace_wave, cpl_siz
             cpl_vector_set(x, 0, (double)i);
             y_lower = cpl_polynomial_eval(poly_lower, x);
             y_upper = cpl_polynomial_eval(poly_upper, x);
-        
+
             for(cpl_size j = y_lower; j < y_upper; j++)
             {
                 value = cpl_image_get(img, i, j, &pis_rejected);
@@ -1134,13 +1146,13 @@ cpl_polynomial * cr2res_fit_noise(cpl_image *img, cpl_table *trace_wave, cpl_siz
     //const cpl_matrix *samppos = mat; //Matrix of p sample positions, with d rows and p columns
     const cpl_boolean *sampsym = NULL; //NULL, or d booleans, true iff the sampling is symmetric
     //cpl_vector *fitvals = vec; //Vector of the p values to fit
-    const cpl_vector *fitsigm = NULL; //Uncertainties of the sampled values, or NULL for all ones 
-    const cpl_boolean dimdeg = TRUE; //True iff there is a fitting degree per dimension 
-    const cpl_size * mindeg = NULL; //Pointer to 1 or d minimum fitting degree(s), or NULL 
-    const cpl_size maxdeg[] = {order_x, order_y}; //Pointer to 1 or d maximum fitting degree(s), at least mindeg 
+    const cpl_vector *fitsigm = NULL; //Uncertainties of the sampled values, or NULL for all ones
+    const cpl_boolean dimdeg = TRUE; //True iff there is a fitting degree per dimension
+    const cpl_size * mindeg = NULL; //Pointer to 1 or d minimum fitting degree(s), or NULL
+    const cpl_size maxdeg[] = {order_x, order_y}; //Pointer to 1 or d maximum fitting degree(s), at least mindeg
 
     cpl_error_code ec = cpl_polynomial_fit(fit, samppos, sampsym, fitvals, fitsigm, dimdeg, mindeg, maxdeg);
-    
+
     cpl_free(orders);
     cpl_matrix_delete(samppos);
     cpl_vector_delete(fitvals);
@@ -1150,7 +1162,7 @@ cpl_polynomial * cr2res_fit_noise(cpl_image *img, cpl_table *trace_wave, cpl_siz
     {
         cpl_free(fit);
         return NULL;
-    } 
+    }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1193,7 +1205,7 @@ int cr2res_slit_pos(cpl_table *tw_decker1, cpl_table *tw_decker2, cpl_polynomial
 
     cpl_matrix *matrix_xy = cpl_matrix_new(2, CR2RES_DETECTOR_SIZE * 4);
     cpl_matrix *matrix_wd = cpl_matrix_new(2, CR2RES_DETECTOR_SIZE * 4);
-    
+
     cpl_vector *vec_w = cpl_vector_new(CR2RES_DETECTOR_SIZE*4);
     cpl_vector *vec_s = cpl_vector_new(CR2RES_DETECTOR_SIZE*4);
 
@@ -1214,7 +1226,7 @@ int cr2res_slit_pos(cpl_table *tw_decker1, cpl_table *tw_decker2, cpl_polynomial
             if (k == 1){
                 line = cr2res_get_trace_wave_poly(tw_decker1, CR2RES_COL_ALL, order, 1);
                 wave = cr2res_get_trace_wave_poly(tw_decker1, CR2RES_COL_WAVELENGTH, order, 1);
-            } 
+            }
             else if (k == 2)
             {
                 line = cr2res_get_trace_wave_poly(tw_decker2, CR2RES_COL_ALL, order, 1);
@@ -1236,7 +1248,7 @@ int cr2res_slit_pos(cpl_table *tw_decker1, cpl_table *tw_decker2, cpl_polynomial
                 _x = cpl_vector_get(x, i);
                 _y = cpl_polynomial_eval_1d(line, _x, NULL);
                 _w = cpl_polynomial_eval_1d(wave, _x, NULL);
-            
+
                 cpl_matrix_set(matrix_xy, 0, CR2RES_DETECTOR_SIZE*(k-1) + i, _x);
                 cpl_matrix_set(matrix_xy, 1, CR2RES_DETECTOR_SIZE*(k-1) + i, _y);
 
@@ -1299,8 +1311,8 @@ int cr2res_slit_pos_image(cpl_table *tw_decker1, cpl_table *tw_decker2, cpl_imag
                 cpl_vector_set(vec_wd, 1, (double)y);
                 s = cpl_polynomial_eval(coef_slit[k], vec_wd);
 
-                if ((s > 0) && (s < 10)) 
-                {   
+                if ((s > 0) && (s < 10))
+                {
                     cpl_image_set(slitpos, x, y, s);
                     cpl_image_set(wavelength, x, y, w);
                 }
