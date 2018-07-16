@@ -297,15 +297,24 @@ static void test_cr2res_trace_clean(void)
                          0, 0, 0, 0, 0, 0,
                          1, 0, 0, 0, 1, 1};
     cpl_mask *mask = cpl_mask_wrap(6, 6, data);
-    int opening = 1;
+    int opening = 0;
     int min_cluster = 3;
     cpl_mask *res;
+    // without opening:
     cpl_binary data_cmp[] = {1, 1, 0, 0, 0, 0,
                              1, 1, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0,
-                             0, 1, 1, 1, 1, 0,
+                             0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0};
+
+    // with opening
+    // cpl_binary data_cmp[] = {1, 1, 0, 0, 0, 0,
+    //                          1, 1, 0, 0, 0, 0,
+    //                          0, 0, 0, 0, 0, 0,
+    //                          0, 1, 1, 1, 1, 0,
+    //                          0, 0, 0, 0, 0, 0,
+    //                          0, 0, 0, 0, 0, 0};
     cpl_mask *cmp = cpl_mask_wrap(6, 6, data_cmp);
     /* test_cr2res_trace_labelize() ; */
 

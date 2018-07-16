@@ -38,8 +38,8 @@
  -----------------------------------------------------------------------------*/
 
 static void test_cr2res_qc_test1(void);
-static void test_cr2res_qc_count_badpix(void);
-static void test_cr2res_qc_read_out_noise(void);
+// static void test_cr2res_qc_count_badpix(void);
+// static void test_cr2res_qc_read_out_noise(void);
 static void test_cr2res_qc_dark_mean(void);
 static void test_cr2res_qc_dark_median(void);
 static void test_cr2res_qc_dark_stddev(void);
@@ -196,26 +196,24 @@ static cpl_image *create_test_image(void)
 * @return   nbp    number of bad pixels
 */
 /*---------------------------------------------------------------------------*/
-static void test_cr2res_qc_count_badpix(void)
-{
-    cpl_image *bpm = create_test_image();
-    cpl_image *tmp = cpl_image_duplicate(bpm);
-    int type = 2;
-    int res;
-    int cmp = 354639;
+// static void test_cr2res_qc_count_badpix(void)
+// {
+    // cpl_image *bpm = create_test_image();
+    // cpl_image *tmp = cpl_image_duplicate(bpm);
+    // int type = 2;
+    // int res;
+    // int cmp = 354639;
 
-    cpl_test_eq(-1, cr2res_qc_count_badpix(NULL, type));
-    cpl_test_eq(0, cr2res_qc_count_badpix(bpm, -2));
+    // cpl_test_eq(-1, cr2res_qc_count_badpix(NULL, type));
+    // cpl_test_eq(0, cr2res_qc_count_badpix(bpm, -2));
 
-    cpl_test(res = cr2res_qc_count_badpix(bpm, type));
-    cpl_test_eq(res, cmp);
-    cpl_test_image_abs(bpm, tmp, 0);
+    // cpl_test(res = cr2res_qc_count_badpix(bpm, type));
+    // cpl_test_eq(res, cmp);
+    // cpl_test_image_abs(bpm, tmp, 0);
 
-    cpl_image_delete(bpm);
-    cpl_image_delete(tmp);
-
-    return;
-}
+    // cpl_image_delete(bpm);
+    // cpl_image_delete(tmp);
+// }
 
 /*---------------------------------------------------------------------------*/
 /**
@@ -225,24 +223,24 @@ static void test_cr2res_qc_count_badpix(void)
 * @return   rdnoise  read out noise
 */
 /*---------------------------------------------------------------------------*/
-static void test_cr2res_qc_read_out_noise(void)
-{
-    cpl_image *im1 = create_test_image();
-    cpl_image *im2 = create_test_image();
-    cpl_image_fill_window(im2, 100, 100, 200, 200, 2);
+// static void test_cr2res_qc_read_out_noise(void)
+// {
+    // cpl_image *im1 = create_test_image();
+    // cpl_image *im2 = create_test_image();
+    // cpl_image_fill_window(im2, 100, 100, 200, 200, 2);
     
-    double res;
-    double cmp = 0.0797785;
+    // double res;
+    // double cmp = 0.0797785;
 
-    cpl_test_abs(-1, cr2res_qc_read_out_noise(NULL, im2), DBL_EPSILON);
-    cpl_test_abs(-1, cr2res_qc_read_out_noise(im1, NULL), DBL_EPSILON);
+    // cpl_test_abs(-1, cr2res_qc_read_out_noise(NULL, im2), DBL_EPSILON);
+    // cpl_test_abs(-1, cr2res_qc_read_out_noise(im1, NULL), DBL_EPSILON);
 
-    cpl_test(res = cr2res_qc_read_out_noise(im1, im2));
-    cpl_test_abs(res, cmp, 1e-5);
+    // cpl_test(res = cr2res_qc_read_out_noise(im1, im2));
+    // cpl_test_abs(res, cmp, 1e-5);
 
-    cpl_image_delete(im1);
-    cpl_image_delete(im2);
-}
+    // cpl_image_delete(im1);
+    // cpl_image_delete(im2);
+// }
 
 /*---------------------------------------------------------------------------*/
 /**
@@ -406,8 +404,8 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    test_cr2res_qc_count_badpix();
-    test_cr2res_qc_read_out_noise();
+    // test_cr2res_qc_count_badpix();
+    // test_cr2res_qc_read_out_noise();
     test_cr2res_qc_dark_mean();
     test_cr2res_qc_dark_median();
     test_cr2res_qc_dark_stddev();

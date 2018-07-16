@@ -30,6 +30,7 @@
 #include <cpl.h>
 #include <cr2res_utils.h>
 #include <cr2res_dfs.h>
+#include <cr2res_trace.h>
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -54,6 +55,10 @@ static void test_cr2res_convert_array_to_poly(void);
 static void test_cr2res_convert_poly_to_array(void);
 static void test_cr2res_get_trace_table_orders(void);
 static void test_cr2res_detector_shotnoise_model(void);
+static void test_cr2res_demod(void);
+static void test_cr2res_fit_noise(void);
+static void test_cr2res_slit_pos(void);
+static void test_cr2res_slit_pos_img(void);
 static void test_cr2res_get_license(void);
 
 /*----------------------------------------------------------------------------*/
@@ -830,6 +835,201 @@ static void test_cr2res_detector_shotnoise_model(void)
     cpl_image_unwrap(compare);
 }
 
+static cpl_table *create_test_table()
+{
+    int poly_order = 2;
+    int n_orders = 2;
+    cpl_table * traces = cpl_table_new(n_orders);
+    cpl_table_new_column_array(traces, CR2RES_COL_ALL, CPL_TYPE_DOUBLE, poly_order);
+    cpl_table_new_column_array(traces, CR2RES_COL_UPPER, CPL_TYPE_DOUBLE, poly_order);
+    cpl_table_new_column_array(traces, CR2RES_COL_LOWER, CPL_TYPE_DOUBLE, poly_order);
+    cpl_table_new_column(traces, CR2RES_COL_ORDER, CPL_TYPE_INT);
+    cpl_table_new_column(traces, CR2RES_COL_TRACENB, CPL_TYPE_INT);
+
+    double all_1[] = {86.6279, 175.5738};
+    double all_2[] = {0.01699, 0.07512};
+    double upper_1[] = {108.5065, 197.3485};
+    double upper_2[] = {0.016601, 0.0184364};
+    double lower_1[] = {64.05477, 153.7987};
+    double lower_2[] = {0.017355, 0.01659297};
+
+    cpl_array * array = cpl_array_new(poly_order, CPL_TYPE_DOUBLE);
+    for (int i = 0; i < n_orders; i++)
+    {
+        cpl_array_set(array, 0, all_1[i]);
+        cpl_array_set(array, 1, all_2[i]);
+        cpl_table_set_array(traces, CR2RES_COL_ALL, i, array);
+        cpl_array_set(array, 0, upper_1[i]);
+        cpl_array_set(array, 1, upper_2[i]);
+        cpl_table_set_array(traces, CR2RES_COL_UPPER, i, array);
+        cpl_array_set(array, 0, lower_1[i]);
+        cpl_array_set(array, 1, lower_2[i]);
+        cpl_table_set_array(traces, CR2RES_COL_LOWER, i, array);
+        cpl_table_set(traces, CR2RES_COL_ORDER, i, 7);
+        cpl_table_set(traces, CR2RES_COL_TRACENB, i, i + 1);
+    }
+
+    cpl_array_delete(array);
+    return traces;
+}
+
+static cpl_image *create_test_image()
+{
+    cpl_image *img = cpl_image_load("cr2res_utils_test_image.fits", CPL_TYPE_INT, 0, 1);
+    return img;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_demod(void)
+{
+    // Define all variables
+    cpl_table * trace_wave = create_test_table();
+    cpl_image * sum1 = create_test_image();
+    cpl_image * sum2 = create_test_image();
+    cpl_table * res;
+
+    // run test
+    cpl_test(res = cr2res_demod(sum1, sum2, trace_wave));
+
+    // Check values
+    // Stokes X, and N should be 0, as both polarisations are the same picture
+    // Stokes I should be some value, depending on the point
+    cpl_test_abs(0., cpl_table_get_column_max(res, "POL_X_7"), DBL_EPSILON);
+    cpl_test_abs(0., cpl_table_get_column_max(res, "POL_N_7"), DBL_EPSILON);
+    // Stokes I mean value from previous run
+    cpl_test_abs(12494.8323090149976, cpl_table_get_column_mean(res, "POL_I_7"), DBL_EPSILON);
+
+    // Save results for comparison
+    cpl_table_save(res, NULL, NULL, "./demod_table.fits", CPL_IO_CREATE);
+
+    // Delete cpl structures
+    cpl_table_delete(res);
+    cpl_table_delete(trace_wave);
+    cpl_image_delete(sum1);
+    cpl_image_delete(sum2);    
+    return;
+}
+
+static void test_cr2res_fit_noise(void)
+{
+    // Define all variables
+    cpl_image *img = create_test_image();
+    
+    // for(int i = 1; i < 100; i++)
+    // {
+    //     for(int j = 1; j < 100; j++)
+    //     {
+    //         cpl_image_set(img, i, j, 10000);
+    //     }
+    // }
+    
+    cpl_table *trace_wave = create_test_table();
+    cpl_polynomial * res;
+    cpl_polynomial *cmp = cpl_polynomial_new(2);
+    cpl_size power[] = {0,0};
+
+    // Define comparison polynomial, values from previous run
+    // 1.dim.power  2.dim.power  coefficient
+    //   0            0      25.1533
+    //   1            0      0.245861
+    //   0            1      0.519612
+    //   1            1      -0.000952474
+    cpl_polynomial_set_coeff(cmp, power, 25.1533);
+    power[0] = 1;
+    cpl_polynomial_set_coeff(cmp, power, 0.245861);
+    power[1] = 1;
+    cpl_polynomial_set_coeff(cmp, power, -0.000952474);
+    power[0] = 0;
+    power[1] = 1;    
+    cpl_polynomial_set_coeff(cmp, power, 0.519612);
+
+    // Run function
+    cpl_test(res = cr2res_fit_noise(img, trace_wave, 1, 1));
+    
+    // Compare output
+    // thats as precise as it gets, from the polynomial dump
+    cpl_test_polynomial_abs(res, cmp, 1e-4);
+
+    // save polynomial for plotting and/or comparison
+    FILE * file = fopen("fit_noise.txt", "w");
+    cpl_polynomial_dump(res, file);
+    fclose(file);
+    
+    // delete cpl objects
+    cpl_table_delete(trace_wave);
+    cpl_polynomial_delete(res);
+    cpl_polynomial_delete(cmp);
+    cpl_image_delete(img); 
+    return;
+}
+
+static void test_cr2res_slit_pos()
+{
+    int chip = 2;
+    cpl_table *tw_decker1 = cpl_table_load("CRIFORS_H24_F_decker1_trace.fits", chip, 0);
+    cpl_table *tw_decker2 = cpl_table_load("CRIFORS_H24_F_decker2_trace.fits", chip, 0);
+
+    int nb_orders;
+    int *orders = cr2res_get_trace_table_orders(tw_decker1, &nb_orders);
+    
+
+    cpl_polynomial *coef_wave[nb_orders];
+    cpl_polynomial *coef_slit[nb_orders];
+
+    cpl_test_eq(0, cr2res_slit_pos(tw_decker1, tw_decker2, coef_slit, coef_wave));
+
+    cpl_table_delete(tw_decker1);
+    cpl_table_delete(tw_decker2);
+    for (int i=0; i < nb_orders; i++){
+
+        if (i == 3){
+        FILE * file = fopen("slit.txt", "w");
+        char str[3];
+        sprintf(str, "%i\n", orders[i]);
+        fwrite(str, 1, sizeof(str), file);
+        cpl_polynomial_dump(coef_slit[i], file);
+        fclose(file);
+
+        FILE * file2 = fopen("wave.txt", "w");
+        char str2[3];
+        sprintf(str2, "%i\n", orders[i]);
+        fwrite(str2, 1, sizeof(str2), file2);
+        cpl_polynomial_dump(coef_wave[i], file2);
+        fclose(file2);
+        }
+
+        cpl_polynomial_delete(coef_wave[i]);
+        cpl_polynomial_delete(coef_slit[i]);
+    }
+    cpl_free(orders);
+}
+
+static void test_cr2res_slit_pos_img()
+{
+    int chip = 2;
+    cpl_table *tw_decker1 = cpl_table_load("CRIFORS_H24_F_decker1_trace.fits", chip, 0);
+    cpl_table *tw_decker2 = cpl_table_load("CRIFORS_H24_F_decker2_trace.fits", chip, 0);
+
+    cpl_image *slitpos = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
+    cpl_image *wavelength = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
+
+    cpl_test_eq(0, cr2res_slit_pos_image(tw_decker1, tw_decker2, slitpos, wavelength));
+
+    cpl_image_save(slitpos, "slit.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    cpl_image_save(wavelength, "wave.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+
+    cpl_table_delete(tw_decker1);
+    cpl_table_delete(tw_decker2);
+    cpl_image_delete(slitpos);
+    cpl_image_delete(wavelength);
+}
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the pipeline copyright and license
@@ -853,7 +1053,7 @@ static void test_cr2res_get_license(void)
 /*----------------------------------------------------------------------------*/
 int main(void)
 {
-    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
+    cpl_test_init("test@bugreport.se", CPL_MSG_DEBUG);
 
     /* test_cr2res_vector_get_rest(); */
     /* test_cr2res_vector_get_int(); */
@@ -874,6 +1074,10 @@ int main(void)
     /* test_cr2res_convert_poly_to_array(); */
     /* test_cr2res_detector_shotnoise_model(); */
     /* test_cr2res_get_license(); */
+    // test_cr2res_demod();
+    // test_cr2res_fit_noise();
+    test_cr2res_slit_pos();
+    test_cr2res_slit_pos_img();
 
     return cpl_test_end(0);
 }
