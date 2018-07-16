@@ -113,6 +113,13 @@ cpl_error_code cr2res_detector_shotnoise_model(
         const double        ron,
         cpl_image       **  ima_errs) ;
 
+cpl_table * cr2res_demod(cpl_image *sum1, cpl_image *sum2, cpl_table *trace_wave);
+
+cpl_polynomial * cr2res_fit_noise(cpl_image *img, cpl_table *trace_wave, cpl_size order_x, cpl_size order_y);
+
+int cr2res_slit_pos(cpl_table *tw_decker1, cpl_table *tw_decker2, cpl_polynomial **coef_slit, cpl_polynomial **coef_wave);
+int cr2res_slit_pos_image(cpl_table *tw_decker1, cpl_table *tw_decker2, cpl_image *slitpos, cpl_image *wavelength);
+
 const char * cr2res_get_license(void) ;
 
 #endif
