@@ -47,7 +47,7 @@ int cr2res_extract_slitdec_vert(
         hdrl_image  **  model) ;
 
 int cr2res_extract_slitdec_curved(
-        hdrl_image  *   img_in,
+        hdrl_image  *   img_hdrl,
         cpl_table   *   trace_tab,
         int             order,
         int             trace_id,
