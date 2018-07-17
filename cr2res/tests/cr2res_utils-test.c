@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <cpl.h>
+#include <hdrl.h>
 #include <cr2res_utils.h>
 #include <cr2res_dfs.h>
 #include <cr2res_trace.h>
@@ -892,10 +893,12 @@ static void test_cr2res_demod(void)
     cpl_table * trace_wave = create_test_table();
     cpl_image * sum1 = create_test_image();
     cpl_image * sum2 = create_test_image();
+    hdrl_image * sum1_hdrl = hdrl_image_create(sum1, NULL);
+    hdrl_image * sum2_hdrl = hdrl_image_create(sum2, NULL);
     cpl_table * res;
 
     // run test
-    cpl_test(res = cr2res_demod(sum1, sum2, trace_wave));
+    cpl_test(res = cr2res_demod(sum1_hdrl, sum2_hdrl, trace_wave));
 
     // Check values
     // Stokes X, and N should be 0, as both polarisations are the same picture
@@ -913,6 +916,8 @@ static void test_cr2res_demod(void)
     cpl_table_delete(trace_wave);
     cpl_image_delete(sum1);
     cpl_image_delete(sum2);    
+    hdrl_image_delete(sum1_hdrl);
+    hdrl_image_delete(sum2_hdrl);
     return;
 }
 
