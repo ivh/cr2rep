@@ -218,11 +218,11 @@ class MyHandler(PatternMatchingEventHandler):
 
 if __name__ == '__main__':
 
-    FILE1 = './debug_img_sw.fits'
-    FILE2 = './debug_spc.fits'
-    FILE3 = './debug_slitfu.fits'
-    FILE4 = './debug_model_sw.fits'
-    FILE5 = './debug_ycen.fits'
+    FILE1 = '../cr2res/debug_img_sw.fits'
+    FILE2 = '../cr2res/debug_spc.fits'
+    FILE3 = '../cr2res/debug_slitfu.fits'
+    FILE4 = '../cr2res/debug_model_sw.fits'
+    FILE5 = '../cr2res/debug_ycen.fits'
 
     img = fits.open(FILE1)[0].data
     spec = fits.open(FILE2)[0].data
@@ -236,7 +236,7 @@ if __name__ == '__main__':
 
     args = sys.argv[1:]
     observer = Observer()
-    observer.schedule(MyHandler(), path=args[0] if args else '.')
+    observer.schedule(MyHandler(), path=args[0] if args else '../cr2res/')
     observer.start()
 
     try:
