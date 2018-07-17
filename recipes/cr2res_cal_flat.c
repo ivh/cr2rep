@@ -603,7 +603,7 @@ static int cr2res_cal_flat_reduce(
     cpl_image           *   bpm_im ;
     cpl_mask            *   bpm_flat ;
     cpl_table           *   traces ;
-    cpl_vector          **  spectrum ;
+    cpl_bivector          **  spectrum ;
     cpl_vector          **  slit_func_vec ;
     hdrl_image          *   model_master;
     cpl_table           *   slit_func_tab ;
@@ -687,7 +687,7 @@ static int cr2res_cal_flat_reduce(
 
     /* Extract */
     nb_traces = cpl_table_get_nrow(traces) ;
-	spectrum = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
+	spectrum = cpl_malloc(nb_traces * sizeof(cpl_bivector *)) ;
 	slit_func_vec = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
 	model_master = hdrl_image_duplicate(collapsed) ;
 	hdrl_image_mul_scalar(model_master, (hdrl_value){0.0, 0.0}) ;
@@ -737,7 +737,7 @@ static int cr2res_cal_flat_reduce(
 		} else {
 			/* Call the SLIT DECOMPOSITION */
 			if (cr2res_extract_slitdec_vert(
-                        hdrl_image_get_image(collapsed), 
+                        collapsed, 
                         traces, order, trace_id, extract_height, 
                         extract_swath_width, extract_oversample, 
                         extract_smooth, &(slit_func_vec[i]), &(spectrum[i]), 
@@ -770,7 +770,7 @@ static int cr2res_cal_flat_reduce(
 	/* Deallocate Vectors */
 	for (i=0 ; i<nb_traces ; i++) {
 		if (slit_func_vec[i] != NULL) cpl_vector_delete(slit_func_vec[i]) ;
-		if (spectrum[i] != NULL) cpl_vector_delete(spectrum[i]) ;
+		if (spectrum[i] != NULL) cpl_bivector_delete(spectrum[i]) ;
 	}
 	cpl_free(spectrum) ;
 	cpl_free(slit_func_vec) ;
