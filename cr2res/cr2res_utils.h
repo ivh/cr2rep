@@ -25,6 +25,7 @@
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
+#include <hdrl.h>
 
 /*-----------------------------------------------------------------------------
                                    Define
@@ -113,7 +114,7 @@ cpl_error_code cr2res_detector_shotnoise_model(
         const double        ron,
         cpl_image       **  ima_errs) ;
 
-cpl_table * cr2res_demod(cpl_image *sum1, cpl_image *sum2, cpl_table *trace_wave);
+cpl_table * cr2res_demod(hdrl_image *sum1, hdrl_image *sum2, cpl_table *trace_wave);
 
 cpl_polynomial * cr2res_fit_noise(cpl_image *img, cpl_table *trace_wave, cpl_size order_x, cpl_size order_y);
 

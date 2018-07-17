@@ -799,10 +799,10 @@ int cr2res_pol_load_images(const cpl_frameset *fs1, const cpl_frameset *fs2,
   @return   0 if successful, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_pol_demod_extract(cpl_image *im1, cpl_image *im2,
-    cpl_table *trace_wave, int order, cpl_vector ** trace_a_angle_1,
-    cpl_vector ** trace_b_angle_1, cpl_vector ** trace_a_angle_2,
-    cpl_vector ** trace_b_angle_2)
+int cr2res_pol_demod_extract(hdrl_image *im1, hdrl_image *im2,
+    cpl_table *trace_wave, int order, cpl_bivector ** trace_a_angle_1,
+    cpl_bivector ** trace_b_angle_1, cpl_bivector ** trace_a_angle_2,
+    cpl_bivector ** trace_b_angle_2)
 {
     const int Trace_A = 1;
     const int Trace_B = 2;
@@ -863,9 +863,9 @@ int cr2res_pol_demod_extract(cpl_image *im1, cpl_image *im2,
   @return   0 if successful, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_pol_demod_order(cpl_vector * trace_a_angle_1,
-    cpl_vector * trace_b_angle_1, cpl_vector * trace_a_angle_2,
-    cpl_vector * trace_b_angle_2, cpl_vector **sx, cpl_vector **si,
+int cr2res_pol_demod_order(cpl_bivector * trace_a_angle_1,
+    cpl_bivector * trace_b_angle_1, cpl_bivector * trace_a_angle_2,
+    cpl_bivector * trace_b_angle_2, cpl_vector **sx, cpl_vector **si,
     cpl_vector **sn)
 {
     // step 3: demodulation
@@ -888,10 +888,10 @@ int cr2res_pol_demod_order(cpl_vector * trace_a_angle_1,
 
     cpl_vector *R, *RN;
     // calculate R
-    R = cpl_vector_duplicate(trace_b_angle_1);
-    cpl_vector_multiply(R, trace_a_angle_2);
-    cpl_vector_divide(R, trace_a_angle_1);
-    cpl_vector_divide(R, trace_b_angle_2);
+    R = cpl_vector_duplicate(cpl_bivector_get_x(trace_b_angle_1));
+    cpl_vector_multiply(R, cpl_bivector_get_x(trace_a_angle_2));
+    cpl_vector_divide(R, cpl_bivector_get_x(trace_a_angle_1));
+    cpl_vector_divide(R, cpl_bivector_get_x(trace_b_angle_2));
     cpl_vector_power(R, 0.5);
 
         // calculate Stokes X
@@ -902,18 +902,18 @@ int cr2res_pol_demod_order(cpl_vector * trace_a_angle_1,
 
 
     // Calculate Stokes I
-    *si = cpl_vector_duplicate(trace_a_angle_1);
-    cpl_vector_add(*si, trace_b_angle_1);
-    cpl_vector_add(*si, trace_a_angle_2);
-    cpl_vector_add(*si, trace_b_angle_2);
+    *si = cpl_vector_duplicate(cpl_bivector_get_x(trace_a_angle_1));
+    cpl_vector_add(*si, cpl_bivector_get_x(trace_b_angle_1));
+    cpl_vector_add(*si, cpl_bivector_get_x(trace_a_angle_2));
+    cpl_vector_add(*si, cpl_bivector_get_x(trace_b_angle_2));
     cpl_vector_multiply_scalar(*si, 0.25);
 
     // Calculate RN
-    RN = cpl_vector_duplicate(trace_b_angle_1);
-    cpl_vector_multiply(RN, trace_a_angle_2);
-    cpl_vector_divide(RN, trace_a_angle_1);
-    cpl_vector_divide(RN, trace_b_angle_2);
-    cpl_vector_power(RN, 0.5);
+    RN = cpl_vector_duplicate(cpl_bivector_get_x(trace_b_angle_1));
+    cpl_vector_multiply(RN, cpl_bivector_get_x(trace_a_angle_2));
+    cpl_vector_divide(  RN, cpl_bivector_get_x(trace_a_angle_1));
+    cpl_vector_divide(  RN, cpl_bivector_get_x(trace_b_angle_2));
+    cpl_vector_power(   RN, 0.5);
 
     // Calculate Stokes N
     *sn = cpl_vector_duplicate(RN);
@@ -936,19 +936,19 @@ int cr2res_pol_demod_order(cpl_vector * trace_a_angle_1,
   @return   Table with columns "POL_X_1" for each order and stokes parameter, NULL on error
  */
 /*----------------------------------------------------------------------------*/
-cpl_table * cr2res_demod(cpl_image *sum1, cpl_image *sum2, cpl_table *trace_wave)
+cpl_table * cr2res_demod(hdrl_image *sum1, hdrl_image *sum2, cpl_table *trace_wave)
 {
     // Check input
     if (sum1 == NULL || sum2 == NULL || trace_wave == NULL) return NULL;
-    if (cpl_image_get_size_x(sum1) != cpl_image_get_size_x(sum2)) return NULL;
-    if (cpl_image_get_size_y(sum1) != cpl_image_get_size_y(sum2)) return NULL;
+    if (hdrl_image_get_size_x(sum1) != hdrl_image_get_size_x(sum2)) return NULL;
+    if (hdrl_image_get_size_y(sum1) != hdrl_image_get_size_y(sum2)) return NULL;
 
     // Step 0: Define variables
     // vectors for each combination of fiber and angle
-    cpl_vector *trace_b_angle_1;
-    cpl_vector *trace_a_angle_1;
-    cpl_vector *trace_b_angle_2;
-    cpl_vector *trace_a_angle_2;
+    cpl_bivector *trace_b_angle_1;
+    cpl_bivector *trace_a_angle_1;
+    cpl_bivector *trace_b_angle_2;
+    cpl_bivector *trace_a_angle_2;
 
     // Get number of orders
     cpl_size order;
@@ -961,7 +961,7 @@ cpl_table * cr2res_demod(cpl_image *sum1, cpl_image *sum2, cpl_table *trace_wave
 
     // output stokes table
     // number of elements = number of orders * number of chips * number of stokes parameters
-    cpl_size size = cpl_image_get_size_x(sum1);
+    cpl_size size = hdrl_image_get_size_x(sum1);
     cpl_table * stokes = cpl_table_new(size);
     char column_name[10]; //for constructing the names of columns
 
@@ -987,10 +987,10 @@ cpl_table * cr2res_demod(cpl_image *sum1, cpl_image *sum2, cpl_table *trace_wave
             // Step 3: Calculate Stokes spectra
             cr2res_pol_demod_order(trace_a_angle_1, trace_b_angle_1, trace_a_angle_2,
                 trace_b_angle_2, &sx, &si, &sn);
-            cpl_vector_delete(trace_a_angle_1);
-            cpl_vector_delete(trace_b_angle_1);
-            cpl_vector_delete(trace_a_angle_2);
-            cpl_vector_delete(trace_b_angle_2);
+            cpl_bivector_delete(trace_a_angle_1);
+            cpl_bivector_delete(trace_b_angle_1);
+            cpl_bivector_delete(trace_a_angle_2);
+            cpl_bivector_delete(trace_b_angle_2);
         }
         sprintf(column_name, "POL_X_%i", order);
         cpl_table_wrap_double(stokes, cpl_vector_get_data(sx), column_name);

@@ -34,7 +34,7 @@
  -----------------------------------------------------------------------------*/
 
 int cr2res_extract_slitdec_vert(
-        cpl_image   *   img_hdrl,
+        hdrl_image   *   img_hdrl,
         cpl_table   *   trace_tab,
         int             order,
         int             trace_id,
@@ -43,7 +43,7 @@ int cr2res_extract_slitdec_vert(
         int             oversample,
         double          smooth_slit,
         cpl_vector  **  slit_func,
-        cpl_vector  **  spec,
+        cpl_bivector  **  spec,
         hdrl_image  **  model) ;
 
 int cr2res_extract_slitdec_curved(
@@ -56,7 +56,7 @@ int cr2res_extract_slitdec_curved(
         int             oversample,
         double          smooth_slit,
         cpl_vector  **  slit_func,
-        cpl_vector  **  spec,
+        cpl_bivector  **  spec,
         hdrl_image  **  model);
 
 int cr2res_extract_sum_vert(
@@ -66,7 +66,7 @@ int cr2res_extract_sum_vert(
         int             trace_id,
         int             height,
         cpl_vector  **  slit_func,
-        cpl_vector  **  spec,
+        cpl_bivector**  spec,
         hdrl_image  **  model) ;
 
 cpl_table * cr2res_extract_SLITFUNC_create(
@@ -74,7 +74,7 @@ cpl_table * cr2res_extract_SLITFUNC_create(
         cpl_table       *   trace_table) ;
 
 cpl_table * cr2res_extract_EXTRACT1D_create(
-        cpl_vector      **  spectrum,
+        cpl_bivector    **  spectrum,
         cpl_table       *   trace_table) ;
 
 cpl_vector * cr2res_extract_EXTRACT1D_get_spectrum(

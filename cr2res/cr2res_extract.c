@@ -142,7 +142,7 @@ int cr2res_extract_sum_vert(
         int             trace_id,
         int             height,
         cpl_vector  **  slit_func,
-        cpl_vector  **  spec,
+        cpl_bivector **  spec,
         hdrl_image  **  model)
 {
     int             *   ycen_int;
@@ -220,7 +220,8 @@ int cr2res_extract_sum_vert(
 
 
     *slit_func = slitfu;
-    *spec = spc;
+    cpl_vector * err_out = cpl_vector_new(cpl_vector_get_size(spc));
+    *spec = cpl_bivector_wrap_vectors(spc, err_out);
     *model = hdrl_image_create(img_tmp, NULL);
     cpl_image_delete(img_tmp);
 
@@ -236,7 +237,7 @@ int cr2res_extract_sum_vert(
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_extract_EXTRACT1D_create(
-        cpl_vector      **  spectrum,
+        cpl_bivector    **  spectrum,
         cpl_table       *   trace_table)
 {
     cpl_table       *   out ;
@@ -254,14 +255,14 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
     all_null = 1 ;
     for (i=0 ; i<nb_traces ; i++)
         if (spectrum[i] != NULL) {
-            nrows = cpl_vector_get_size(spectrum[i]) ;
+            nrows = cpl_bivector_get_size(spectrum[i]) ;
             all_null = 0 ;
         }
     if (all_null == 1) return NULL ;
 
     /* Check the sizes */
     for (i=0 ; i<nb_traces ; i++)
-        if (spectrum[i] != NULL && cpl_vector_get_size(spectrum[i]) != nrows)
+        if (spectrum[i] != NULL && cpl_bivector_get_size(spectrum[i]) != nrows)
             return NULL ;
 
     /* Create the table */
@@ -279,7 +280,7 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
         if (spectrum[i] != NULL) {
             order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
             trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
-            pspec = cpl_vector_get_data_const(spectrum[i]) ;
+            pspec = cpl_bivector_get_x_data_const(spectrum[i]) ;
             col_name = cr2res_dfs_SPEC_colname(order, trace_id) ;
             cpl_table_copy_data_double(out, col_name, pspec) ;
             cpl_free(col_name) ;
@@ -399,14 +400,12 @@ cpl_vector * cr2res_extract_EXTRACT1D_get_spectrum(
   @param    sw Swath width to start from
   @param    nx number of pixel columns to match
 
-  Returns the new swath width. CURRENTLY UNIMPLEMENTED, except it ensures
-  an even number. TODO
-
+  Returns the new swath width and swath edges. All bins end up with the same even swath size
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_extract_slitdec_adjust_swath(int sw, int nx, cpl_vector* bins_begin, cpl_vector *bins_end)
 {
-    if (sw == 0  || nx == 0) return -1;
+    if (sw <= 0  || nx <= 0) return -1;
     if (bins_begin == NULL || bins_end == NULL) return -1;
 
     int nbin, i = 0;
@@ -416,6 +415,7 @@ static int cr2res_extract_slitdec_adjust_swath(int sw, int nx, cpl_vector* bins_
     nbin =  (int) round((double)nx / (double)sw);
     if (nbin < 1) nbin = 1;
     
+    // Step / 2, to get half width swaths
     step = (double)nx / (double)nbin / 2.;
     double bins[nbin * 2 + 1];
     cpl_vector_set_size(bins_begin, 2*nbin-1);
@@ -433,7 +433,41 @@ static int cr2res_extract_slitdec_adjust_swath(int sw, int nx, cpl_vector* bins_
         }
     }
 
-    sw = (int) ceil(step * 2. + 1);
+    // Enforce the same swath size for all swaths
+    int max_swath = 0;
+    int diff = 0;
+    // find maximum swath size
+    for (i=0; i < nbin*2-1; i++)
+    {
+        diff = cpl_vector_get(bins_end, i) - cpl_vector_get(bins_begin, i);
+        if (diff > max_swath)
+        {
+            max_swath = cpl_vector_get(bins_end, i) - cpl_vector_get(bins_begin, i);
+        }
+    }
+    // make swaths even sized
+    if (max_swath % 2 == 1) max_swath += 1;
+
+    // enlarge bins that are smaller than maximum size
+    for(i = 0; i < nbin*2-1; i++)
+    {
+        diff = cpl_vector_get(bins_end, i) - cpl_vector_get(bins_begin, i);
+        if (diff < max_swath)
+        {
+            // most bins are enlarged at the end, except for the last one which is enlarged to the front in order to stop at the last pixel
+            if (i != nbin*2-2)
+            {
+                diff = cpl_vector_get(bins_end, i) + max_swath - diff;
+                cpl_vector_set(bins_end, i, diff);
+            }
+            else{
+                diff = cpl_vector_get(bins_begin, i) - (max_swath - diff);
+                cpl_vector_set(bins_begin, i, diff);
+            }
+        }
+    }
+
+    sw = max_swath;
     return sw;
 }
 
@@ -474,7 +508,7 @@ static int cr2res_extract_slitdec_adjust_swath(int sw, int nx, cpl_vector* bins_
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_extract_slitdec_vert(
-        cpl_image   *   img_in,
+        hdrl_image   *   img_hdrl,
         cpl_table   *   trace_tab,
         int             order,
         int             trace_id,
@@ -483,7 +517,7 @@ int cr2res_extract_slitdec_vert(
         int             oversample,
         double          smooth_slit,
         cpl_vector  **  slit_func,
-        cpl_vector  **  spec,
+        cpl_bivector  **  spec,
         hdrl_image  **  model)
 {
     cpl_polynomial  **  traces ;
@@ -495,6 +529,8 @@ int cr2res_extract_slitdec_vert(
     double          *   slitfu_sw_data;
     double          *   model_sw;
     int             *   mask_sw;
+    const cpl_image *   img_in;
+    const cpl_image *   err_in;
     cpl_image       *   img_sw;
     cpl_image       *   img_rect;
     cpl_image       *   model_rect;
@@ -509,17 +545,27 @@ int cr2res_extract_slitdec_vert(
     cpl_vector      *   tmp_vec;
     cpl_vector      *   bins_begin;
     cpl_vector      *   bins_end;
+    cpl_vector      *   unc_background;
+    cpl_vector      *   unc_decomposition;
     cpl_size            lenx, leny;
     cpl_type            imtyp;
-    double              pixval, img_median;
+    double              pixval, img_median, unc, model_unc, img_unc, norm;
     int                 i, j, nswaths, row, col, x, y, ny_os,
                         sw_start, sw_end, badpix;
 
 
 
     /* Check Entries */
-    if (img_in == NULL || trace_tab == NULL) return -1 ;
+    if (img_hdrl == NULL || trace_tab == NULL) return -1 ;
 
+
+    /* Initialise */
+    img_in = hdrl_image_get_image_const(img_hdrl);
+    err_in = hdrl_image_get_error_const(img_hdrl);
+    imtyp = cpl_image_get_type(img_in);
+    lenx = cpl_image_get_size_x(img_in);
+    leny = cpl_image_get_size_y(img_in);
+    
     /* Compute height if not given */
     if (height <= 0) {
         height = cr2res_trace_get_height(trace_tab, order, trace_id);
@@ -528,10 +574,10 @@ int cr2res_extract_slitdec_vert(
             return -1;
         }
     }
-    /* Initialise */
-    imtyp = cpl_image_get_type(img_in);
-    lenx = cpl_image_get_size_x(img_in);
-    leny = cpl_image_get_size_y(img_in);
+    if (height > leny){
+        height = leny;
+        cpl_msg_warning(__func__, "Given height larger than image, clipping height");
+    }
 
     /* Get ycen */
     if ((ycen = cr2res_trace_get_ycen(trace_tab, order,
@@ -540,8 +586,10 @@ int cr2res_extract_slitdec_vert(
         return -1 ;
     }
 
-    bins_begin = cpl_vector_new(10);
-    bins_end =   cpl_vector_new(lenx / swath);
+    if (oversample <= 0) oversample = 1;
+
+    bins_begin = cpl_vector_new(1);
+    bins_end =   cpl_vector_new(1);
 
     /* Number of rows after oversampling */
     ny_os = oversample*(height+1) +1;
@@ -573,7 +621,20 @@ int cr2res_extract_slitdec_vert(
     slitfu_sw = cpl_vector_new(ny_os);
     slitfu_sw_data = cpl_vector_get_data(slitfu_sw);
 
+    /* Allocate */
+    mask_sw = cpl_malloc(height*swath*sizeof(int));
+    model_sw = cpl_malloc(height*swath*sizeof(double));
+    ycen_sw = cpl_malloc(swath*sizeof(double));
+    img_sw = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
 
+    weights_sw = cpl_vector_new(swath);
+
+    /* Pre-calculate the weights for overlapping swaths*/
+    for (i=0; i < swath/2; i++) {
+        cpl_vector_set(weights_sw, i, i + 1);
+        cpl_vector_set(weights_sw, swath - i - 1, i+1);
+    }
+    cpl_vector_divide_scalar(weights_sw, i + 1); // normalize such that max(w)=1
 
     // Local versions of return data
     slitfu = cpl_vector_new(ny_os);
@@ -582,25 +643,9 @@ int cr2res_extract_slitdec_vert(
     model_rect = cpl_image_new(lenx, height, CPL_TYPE_DOUBLE);
 
 
-    for (i=0;i<nswaths-1;i++){ // TODO: Treat last swath!
+    for (i=0;i<nswaths;i++){
         sw_start = cpl_vector_get(bins_begin, i);
         sw_end = cpl_vector_get(bins_end, i);
-        swath = sw_end - sw_start;
-
-        /* Allocate */
-        mask_sw = cpl_malloc(height*swath*sizeof(int));
-        model_sw = cpl_malloc(height*swath*sizeof(double));
-        ycen_sw = cpl_malloc(swath*sizeof(double));
-        img_sw = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
-
-        weights_sw = cpl_vector_new(swath);
-
-        /* Pre-calculate the weights for overlapping swaths*/
-        for (i=0; i < swath/2; i++) {
-            cpl_vector_set(weights_sw, i, i + 1);
-            cpl_vector_set(weights_sw, swath/2 - i - 1, i+1);
-        }
-        cpl_vector_divide_scalar(weights_sw, i + 1); // normalize such that max(w)=1
 
 
         // Copy swath image into seperate image
@@ -637,7 +682,7 @@ int cr2res_extract_slitdec_vert(
             x = sw_start + col;          // coords in large image
             for(y=1;y<=height;y++){
                 j = (y-1)*swath + (col-1) ; // raw index for mask, start with 0!
-                cpl_image_set(model_rect,x,y, model_sw[j]);
+                cpl_image_set(model_rect, x, y, model_sw[j]);
                 if(cpl_error_get_code() != CPL_ERROR_NONE)
                     cpl_msg_error(__func__, "%d %d %s", x, y, cpl_error_get_where());
             }
@@ -665,6 +710,7 @@ int cr2res_extract_slitdec_vert(
         }
         /* Multiply by weights and add to output array */
         cpl_vector_multiply(spec_sw, weights_sw);
+        // Unweight first and last half swath
         if (i==0){
             for (j=0;j<swath/2;j++) {
                 cpl_vector_set(spec_sw, j,
@@ -677,21 +723,23 @@ int cr2res_extract_slitdec_vert(
                     cpl_vector_get(spec_sw,j)/cpl_vector_get(weights_sw,j));
             }
         }
+        // Save swath to output vector
         for (j=sw_start;j<sw_end;j++) {
             cpl_vector_set(spc, j,
                 cpl_vector_get(spec_sw, j - sw_start) + cpl_vector_get(spc, j) );
-        }        cpl_vector_delete(spec_sw);
-
-        cpl_free(mask_sw);
-        cpl_free(model_sw);
-        cpl_free(ycen_sw);
-        cpl_image_delete(img_sw);
+        }        
+        cpl_vector_delete(spec_sw);
 
     } // End loop over swaths
     cpl_vector_delete(slitfu_sw);
     cpl_vector_delete(weights_sw);
     cpl_vector_delete(bins_begin);
     cpl_vector_delete(bins_end);
+
+    cpl_free(mask_sw);
+    cpl_free(model_sw);
+    cpl_free(ycen_sw);
+    cpl_image_delete(img_sw);
 
     // insert model_rect into large frame
     cr2res_image_insert_rect(model_rect, ycen, img_out);
@@ -701,6 +749,34 @@ int cr2res_extract_slitdec_vert(
 
     // TODO: Update BPM in img_out
     // TODO: Calculate error and return it.
+    img_tmp = cpl_image_collapse_median_create(err_in, 0, 0, 0);
+    unc_background = cpl_vector_new_from_image_row(img_tmp, 1);
+    cpl_image_delete(img_tmp);
+
+    unc_decomposition = cpl_vector_new(lenx);
+    for (i = 1; i <= lenx; i++)
+    {
+        unc = 0.;
+        norm = 0.;
+        for (j = 1; j <= height; j++)
+        {
+            model_unc = cpl_image_get(model_rect, i, j, &badpix);
+            img_unc = cpl_image_get(img_rect, i, j, &badpix);
+            if (badpix == 0){
+                norm += 1;
+                unc += (model_unc - img_unc) * (model_unc - img_unc);
+            }
+        }
+        cpl_vector_set(unc_decomposition, i-1, sqrt(unc * height / norm));
+    }
+
+    cpl_vector_multiply(unc_background, unc_background);
+    cpl_vector_multiply(unc_decomposition, unc_decomposition);
+    cpl_vector_add(unc_decomposition, unc_background);
+    cpl_vector_sqrt(unc_decomposition);
+
+    cpl_vector_delete(unc_background);
+
 
     // TODO: Deallocate return arrays in case of error, return -1
     cpl_image_delete(img_rect);
@@ -709,7 +785,7 @@ int cr2res_extract_slitdec_vert(
     cpl_free(ycen_rest);
 
     *slit_func = slitfu;
-    *spec = spc;
+    *spec = cpl_bivector_wrap_vectors(spc, unc_decomposition);
     *model = hdrl_image_create(img_out, NULL);
     cpl_image_delete(img_out);
 
@@ -762,7 +838,7 @@ int cr2res_extract_slitdec_curved(
         int             oversample,
         double          smooth_slit,
         cpl_vector  **  slit_func,
-        cpl_vector  **  spec,
+        cpl_bivector  **  spec,
         hdrl_image  **  model)
 {
     cpl_polynomial  **  traces ;
@@ -774,8 +850,8 @@ int cr2res_extract_slitdec_curved(
     double          *   slitfu_sw_data;
     double          *   model_sw;
     int             *   mask_sw;
-    const cpl_image       *   img_in;
-    const cpl_image       *   err_in;
+    const cpl_image *   img_in;
+    const cpl_image *   err_in;
     cpl_image       *   img_sw;
     cpl_image       *   err_sw;
     cpl_image       *   img_rect;
@@ -791,17 +867,24 @@ int cr2res_extract_slitdec_curved(
     cpl_vector      *   tmp_vec;
     cpl_vector      *   bins_begin;
     cpl_vector      *   bins_end;
+    cpl_vector      *   unc_background;
+    cpl_vector      *   unc_decomposition;
     cpl_size            lenx, leny;
     cpl_type            imtyp;
-    double              pixval, img_median;
+    double              pixval, img_median, norm, model_unc, img_unc, unc;
     int                 i, j, nswaths, halfswath, row, col, x, y, ny_os,
                         sw_start, sw_end, badpix;
+
+    /* Check Entries */
+    if (img_hdrl == NULL || trace_tab == NULL) return -1 ;
 
     img_in = hdrl_image_get_image_const(img_hdrl);
     err_in = hdrl_image_get_error_const(img_hdrl);
 
-    /* Check Entries */
-    if (img_in == NULL || trace_tab == NULL) return -1 ;
+    /* Initialise */
+    imtyp = cpl_image_get_type(img_in);
+    lenx = cpl_image_get_size_x(img_in);
+    leny = cpl_image_get_size_y(img_in);
 
     /* Compute height if not given */
     if (height <= 0) {
@@ -811,10 +894,11 @@ int cr2res_extract_slitdec_curved(
             return -1;
         }
     }
-    /* Initialise */
-    imtyp = cpl_image_get_type(img_in);
-    lenx = cpl_image_get_size_x(img_in);
-    leny = cpl_image_get_size_y(img_in);
+    if (height > leny){
+        height = leny;
+        cpl_msg_warning(__func__, "Given height larger than image, clipping height");
+    }
+
     /* Get ycen */
     if ((ycen = cr2res_trace_get_ycen(trace_tab, order,
                     trace_id, lenx)) == NULL) {
@@ -822,15 +906,15 @@ int cr2res_extract_slitdec_curved(
         return -1 ;
     }
 
-    bins_begin = cpl_vector_new((int)lenx / swath - 2);
-    bins_end =   cpl_vector_new((int)lenx / swath - 2);
+
+    bins_begin = cpl_vector_new(lenx / swath - 2);
+    bins_end =   cpl_vector_new(lenx / swath - 2);
 
     /* Number of rows after oversampling */
     ny_os = oversample*(height+1) +1;
     swath = cr2res_extract_slitdec_adjust_swath(swath, lenx, bins_begin, bins_end);
     halfswath = swath/2;
-    nswaths = (lenx / swath) *2; // *2 because we step in half swaths!
-    if (lenx%swath >= halfswath) nswaths +=1;
+    nswaths = cpl_vector_get_size(bins_begin); // because we step in half swaths!
 
     // Get cut-out rectified order
     img_rect = cr2res_image_cut_rectify(img_in, ycen, height);
@@ -871,11 +955,12 @@ int cr2res_extract_slitdec_curved(
     cpl_vector_divide_scalar(weights_sw,i+1); // normalize such that max(w)=1
 
 
-    for (i=0;i<nswaths-1;i++){ // TODO: Treat last swath!
-        sw_start = i*halfswath;
-        sw_end = sw_start + swath;
+    for (i=0;i<nswaths;i++){ // TODO: Treat last swath!
+        sw_start = cpl_vector_get(bins_begin, i);
+        sw_end = cpl_vector_get(bins_end, i);
+
         for(col=1; col<=swath; col++){      // col is x-index in swath
-            x = i*halfswath + col;          // coords in large image
+            x = sw_start + col;          // coords in large image
             for(y=1;y<=height;y++){
                 pixval = cpl_image_get(img_rect, x, y, &badpix);
                 if(cpl_error_get_code() != CPL_ERROR_NONE)
@@ -959,6 +1044,31 @@ int cr2res_extract_slitdec_curved(
 
     // TODO: Update BPM in img_out
     // TODO: Calculate error and return it.
+    img_tmp = cpl_image_collapse_median_create(err_in, 0, 0, 0);
+    unc_background = cpl_vector_new_from_image_row(img_tmp, 1);
+    cpl_image_delete(img_tmp);
+
+    unc_decomposition = cpl_vector_new(lenx);
+    for (i = 1; i <= lenx; i++)
+    {
+        unc = 0.;
+        norm = 0.;
+        for (j = 1; j <= leny; j++)
+        {
+            model_unc = cpl_image_get(model_rect, i, j, &badpix);
+            img_unc = cpl_image_get(img_rect, i, j, &badpix);
+            if (badpix == 1) norm += 1;
+            unc += (model_unc - img_unc) * (model_unc - img_unc) * badpix;
+        }
+        cpl_vector_set(unc_decomposition, i, unc / norm * lenx);
+    }
+
+    cpl_vector_multiply(unc_background, unc_background);
+    cpl_vector_multiply(unc_decomposition, unc_decomposition);
+    cpl_vector_add(unc_decomposition, unc_background);
+    cpl_vector_sqrt(unc_decomposition);
+
+    cpl_vector_delete(unc_background);
 
     // TODO: Deallocate return arrays in case of error, return -1
     cpl_image_delete(img_rect);
@@ -971,7 +1081,7 @@ int cr2res_extract_slitdec_curved(
     cpl_free(ycen_sw);
 
     *slit_func = slitfu;
-    *spec = spc;
+    *spec = cpl_bivector_wrap_vectors(spc, unc_decomposition);
     *model = hdrl_image_create(img_out, NULL);
     cpl_image_delete(img_out);
 
@@ -1157,18 +1267,18 @@ static int cr2res_extract_slit_func_vert(
             }
             norm/=ncols;
             lambda=lambda_sP*norm;
-            Adiag[0        ] = 0.e0;
-            Adiag[0+ncols  ]+= lambda;
-            Adiag[0+ncols*2] =-lambda;
+            Adiag[0        ]  = 0.e0;
+            Adiag[0+ncols  ] += lambda;
+            Adiag[0+ncols*2] -= lambda;
             for(x=1; x<ncols-1; x++)
             {
                 Adiag[x]=-lambda;
                 Adiag[x+ncols  ]+= 2.e0*lambda;
                 Adiag[x+ncols*2] =-lambda;
             }
-            Adiag[ncols-1        ] =-lambda;
-            Adiag[ncols*2-1+ncols]+= lambda;
-            Adiag[ncols*3-1+ncols] = 0.e0;
+            Adiag[ncols - 1            ] -= lambda;
+            Adiag[ncols - 1 +     ncols] += lambda;
+            Adiag[ncols - 1 + 2 * ncols] = 0.e0;
 
             info=cr2res_extract_slitdec_bandsol(Adiag, E, ncols, 3);
             for(x=0; x<ncols; x++) sP[x]=E[x];
