@@ -40,11 +40,11 @@
 static void test_cr2res_qc_test1(void);
 // static void test_cr2res_qc_count_badpix(void);
 // static void test_cr2res_qc_read_out_noise(void);
-static void test_cr2res_qc_dark_mean(void);
-static void test_cr2res_qc_dark_median(void);
-static void test_cr2res_qc_dark_stddev(void);
-static void test_cr2res_qc_trace_count_orders(void);
-static void test_cr2res_qc_trace_count_traces(void);
+// static void test_cr2res_qc_dark_mean(void);
+// static void test_cr2res_qc_dark_median(void);
+// static void test_cr2res_qc_dark_stddev(void);
+// static void test_cr2res_qc_trace_count_orders(void);
+// static void test_cr2res_qc_trace_count_traces(void);
 static void test_cr2res_qc_trace_get_ypos(void);
 static void test_cr2res_qc_wave_zeropoint(void);
 
@@ -242,104 +242,104 @@ static cpl_image *create_test_image(void)
     // cpl_image_delete(im2);
 // }
 
-/*---------------------------------------------------------------------------*/
-/**
-* @brief    get the mean dark current of the image
-* @param    dark   dark frame image, i.e. with no light exposure
-* @return   mean   mean dark current
-*/
-/*---------------------------------------------------------------------------*/
-static void test_cr2res_qc_dark_mean(void)
-{
-    cpl_image *dark = create_test_image();
-    double res;
-    double mean = 3.31055;
+// /*---------------------------------------------------------------------------*/
+// /**
+// * @brief    get the mean dark current of the image
+// * @param    dark   dark frame image, i.e. with no light exposure
+// * @return   mean   mean dark current
+// */
+// /*---------------------------------------------------------------------------*/
+// static void test_cr2res_qc_dark_mean(void)
+// {
+//     cpl_image *dark = create_test_image();
+//     double res;
+//     double mean = 3.31055;
 
-    cpl_test_abs(-1, cr2res_qc_dark_mean(NULL), 0);
-    cpl_test(res = cr2res_qc_dark_mean(dark));
-    cpl_test_abs(res, mean, 1e-5);
+//     cpl_test_abs(-1, cr2res_qc_dark_mean(NULL), 0);
+//     cpl_test(res = cr2res_qc_dark_mean(dark));
+//     cpl_test_abs(res, mean, 1e-5);
 
-    cpl_image_delete(dark);
-}
+//     cpl_image_delete(dark);
+// }
 
-/*---------------------------------------------------------------------------*/
-/**
-* @brief    get the median of the dark current in the image
-* @param    dark   dark frame image, i.e. with no light exposure
-* @return   median median dark current
-*/
-/*---------------------------------------------------------------------------*/
-static void test_cr2res_qc_dark_median(void)
-{
-    cpl_image *dark = create_test_image();
-    double res;
-    double median = 3;
+// /*---------------------------------------------------------------------------*/
+// /**
+// * @brief    get the median of the dark current in the image
+// * @param    dark   dark frame image, i.e. with no light exposure
+// * @return   median median dark current
+// */
+// /*---------------------------------------------------------------------------*/
+// static void test_cr2res_qc_dark_median(void)
+// {
+//     cpl_image *dark = create_test_image();
+//     double res;
+//     double median = 3;
 
-    cpl_test_abs(-1, cr2res_qc_dark_median(NULL), 0);
-    cpl_test(res = cr2res_qc_dark_median(dark));
-    cpl_test_abs(res, median, 1e-5);
+//     cpl_test_abs(-1, cr2res_qc_dark_median(NULL), 0);
+//     cpl_test(res = cr2res_qc_dark_median(dark));
+//     cpl_test_abs(res, median, 1e-5);
 
-    cpl_image_delete(dark);
-}
+//     cpl_image_delete(dark);
+// }
 
-/*---------------------------------------------------------------------------*/
-/**
-* @brief    get the standard deviation of the dark current
-* @param    dark    dark frame image, i.e. with no light exposure
-* @return   stddev  standard deviation of dark current
-*/
-/*---------------------------------------------------------------------------*/
-static void test_cr2res_qc_dark_stddev(void)
-{
-    cpl_image *dark = create_test_image();
-    double res;
-    double std = 3.38368;
+// /*---------------------------------------------------------------------------*/
+// /**
+// * @brief    get the standard deviation of the dark current
+// * @param    dark    dark frame image, i.e. with no light exposure
+// * @return   stddev  standard deviation of dark current
+// */
+// /*---------------------------------------------------------------------------*/
+// static void test_cr2res_qc_dark_stddev(void)
+// {
+//     cpl_image *dark = create_test_image();
+//     double res;
+//     double std = 3.38368;
 
-    cpl_test_abs(-1, cr2res_qc_dark_stddev(NULL), 0);
-    cpl_test(res = cr2res_qc_dark_stddev(dark));
-    cpl_test_abs(res, std, 1e-5);
+//     cpl_test_abs(-1, cr2res_qc_dark_stddev(NULL), 0);
+//     cpl_test(res = cr2res_qc_dark_stddev(dark));
+//     cpl_test_abs(res, std, 1e-5);
 
-    cpl_image_delete(dark);
-}
+//     cpl_image_delete(dark);
+// }
 
-/*---------------------------------------------------------------------------*/
-/**
-* @brief    count the trace orders in the table
-* @param    tracewave    table with traces as polynomials
-* @return   nb_orders    number of individual orders
-*/
-/*---------------------------------------------------------------------------*/
-static void test_cr2res_qc_trace_count_orders(void)
-{
-    cpl_table *tracewave = create_test_table();
-    int res;
-    int norders = 9;
+// /*---------------------------------------------------------------------------*/
+// /**
+// * @brief    count the trace orders in the table
+// * @param    tracewave    table with traces as polynomials
+// * @return   nb_orders    number of individual orders
+// */
+// /*---------------------------------------------------------------------------*/
+// static void test_cr2res_qc_trace_count_orders(void)
+// {
+//     cpl_table *tracewave = create_test_table();
+//     int res;
+//     int norders = 9;
 
-    cpl_test_eq(-1, cr2res_qc_trace_count_orders(NULL));
-    cpl_test(res = cr2res_qc_trace_count_orders(tracewave));
-    cpl_test_eq(res, norders);
-    cpl_table_delete(tracewave);
-}
+//     cpl_test_eq(-1, cr2res_qc_trace_count_orders(NULL));
+//     cpl_test(res = cr2res_qc_trace_count_orders(tracewave));
+//     cpl_test_eq(res, norders);
+//     cpl_table_delete(tracewave);
+// }
 
-/*---------------------------------------------------------------------------*/
-/**
-* @brief    count the number of traces in the table
-* @param    tracewave    table with traces as polynomials
-* @return   ntraces      number of traces
-*/
-/*---------------------------------------------------------------------------*/
-static void test_cr2res_qc_trace_count_traces(void)
-{
-    cpl_table *tracewave = create_test_table();
-    int res;
-    int ntraces = 9;
+// /*---------------------------------------------------------------------------*/
+// /**
+// * @brief    count the number of traces in the table
+// * @param    tracewave    table with traces as polynomials
+// * @return   ntraces      number of traces
+// */
+// /*---------------------------------------------------------------------------*/
+// static void test_cr2res_qc_trace_count_traces(void)
+// {
+//     cpl_table *tracewave = create_test_table();
+//     int res;
+//     int ntraces = 9;
 
-    cpl_test_eq(-1, cr2res_qc_trace_count_traces(NULL));
-    cpl_test(res = cr2res_qc_trace_count_traces(tracewave));
-    cpl_test_eq(res, ntraces);
+//     cpl_test_eq(-1, cr2res_qc_trace_count_traces(NULL));
+//     cpl_test(res = cr2res_qc_trace_count_traces(tracewave));
+//     cpl_test_eq(res, ntraces);
 
-    cpl_table_delete(tracewave);
-}
+//     cpl_table_delete(tracewave);
+// }
 
 /*---------------------------------------------------------------------------*/
 /**
@@ -402,17 +402,17 @@ static void test_cr2res_qc_wave_zeropoint(void)
 /*----------------------------------------------------------------------------*/
 int main(void)
 {
-    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
+    cpl_test_init("test@bugreport.se", CPL_MSG_DEBUG);
 
     // test_cr2res_qc_count_badpix();
     // test_cr2res_qc_read_out_noise();
-    test_cr2res_qc_dark_mean();
-    test_cr2res_qc_dark_median();
-    test_cr2res_qc_dark_stddev();
-    test_cr2res_qc_trace_count_orders();
-    test_cr2res_qc_trace_count_traces();
-    test_cr2res_qc_trace_get_ypos();
-    test_cr2res_qc_wave_zeropoint();
+    // test_cr2res_qc_dark_mean();
+    // test_cr2res_qc_dark_median();
+    // test_cr2res_qc_dark_stddev();
+    // test_cr2res_qc_trace_count_orders();
+    // test_cr2res_qc_trace_count_traces();
+    // test_cr2res_qc_trace_get_ypos();
+    // test_cr2res_qc_wave_zeropoint();
 
     return cpl_test_end(0);
 }
