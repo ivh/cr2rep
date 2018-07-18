@@ -17,6 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
+#pragma GCC optimize ("O0")
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -408,67 +410,72 @@ static int cr2res_extract_slitdec_adjust_swath(int sw, int nx, cpl_vector* bins_
     if (sw <= 0  || nx <= 0) return -1;
     if (bins_begin == NULL || bins_end == NULL) return -1;
 
+    if (sw % 2 == 1) sw += 1;
+
     int nbin, i = 0;
     double step = 0;
 
     // Calculate number of bins
-    nbin =  (int) round((double)nx / (double)sw);
+    nbin =  nx / sw;
     if (nbin < 1) nbin = 1;
     
     // Step / 2, to get half width swaths
-    step = (double)nx / (double)nbin / 2.;
+    step = sw / 2;
     double bins[nbin * 2 + 1];
-    cpl_vector_set_size(bins_begin, 2*nbin-1);
-    cpl_vector_set_size(bins_end, 2*nbin-1);
+    cpl_vector_set_size(bins_begin, 2*nbin);
+    cpl_vector_set_size(bins_end, 2*nbin);
 
     // boundaries of bins
-    for(i = 0; i < nbin*2 + 1; i++)
+    for(i = 0; i < nbin*2 + 2; i++)
     {
         bins[i] = i * step;
-        if (i < nbin*2 + 1 - 2){
+        if (i < nbin*2){
             cpl_vector_set(bins_begin, i, floor(bins[i]));
         }
         if (i >= 2){
             cpl_vector_set(bins_end, i-2, ceil(bins[i]));
         }
     }
+    cpl_vector_set(bins_begin, 2*nbin-1, nx - sw);
+    cpl_vector_set(bins_end, 2*nbin-1, nx);
+    return sw;
 
-    // Enforce the same swath size for all swaths
-    int max_swath = 0;
-    int diff = 0;
-    // find maximum swath size
-    for (i=0; i < nbin*2-1; i++)
-    {
-        diff = cpl_vector_get(bins_end, i) - cpl_vector_get(bins_begin, i);
-        if (diff > max_swath)
-        {
-            max_swath = cpl_vector_get(bins_end, i) - cpl_vector_get(bins_begin, i);
-        }
-    }
-    // make swaths even sized
-    if (max_swath % 2 == 1) max_swath += 1;
+    // // Enforce the same swath size for all swaths
+    // int max_swath = 0;
+    // int diff = 0;
+    // // find maximum swath size
+    // for (i=0; i < nbin*2-1; i++)
+    // {
+    //     diff = cpl_vector_get(bins_end, i) - cpl_vector_get(bins_begin, i);
+    //     if (diff > max_swath)
+    //     {
+    //         max_swath = cpl_vector_get(bins_end, i) - cpl_vector_get(bins_begin, i);
+    //     }
+    // }
+    // // make swaths even sized
+    // if (max_swath % 2 == 1) max_swath += 1;
 
     // enlarge bins that are smaller than maximum size
-    for(i = 0; i < nbin*2-1; i++)
-    {
-        diff = cpl_vector_get(bins_end, i) - cpl_vector_get(bins_begin, i);
-        if (diff < max_swath)
-        {
-            // most bins are enlarged at the end, except for the last one which is enlarged to the front in order to stop at the last pixel
-            if (i != nbin*2-2)
-            {
-                diff = cpl_vector_get(bins_end, i) + max_swath - diff;
-                cpl_vector_set(bins_end, i, diff);
-            }
-            else{
-                diff = cpl_vector_get(bins_begin, i) - (max_swath - diff);
-                cpl_vector_set(bins_begin, i, diff);
-            }
-        }
-    }
+    // for(i = 0; i < nbin*2-1; i++)
+    // {
+    //     diff = cpl_vector_get(bins_end, i) - cpl_vector_get(bins_begin, i);
+    //     if (diff < max_swath)
+    //     {
+    //         // most bins are enlarged at the end, except for the last one which is enlarged to the front in order to stop at the last pixel
+    //         if (i != nbin*2-2)
+    //         {
+    //             diff = cpl_vector_get(bins_end, i) + max_swath - diff;
+    //             cpl_vector_set(bins_end, i, diff);
+    //         }
+    //         else{
+    //             diff = cpl_vector_get(bins_begin, i) - (max_swath - diff);
+    //             cpl_vector_set(bins_begin, i, diff);
+    //         }
+    //     }
+    // }
 
-    sw = max_swath;
-    return sw;
+    // sw = max_swath;
+    // return sw;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -537,6 +544,7 @@ int cr2res_extract_slitdec_vert(
     cpl_vector      *   ycen ;
     cpl_image       *   img_tmp;
     cpl_image       *   img_out;
+
     cpl_vector      *   spec_sw;
     cpl_vector      *   slitfu_sw;
     cpl_vector      *   spc;
@@ -708,8 +716,7 @@ int cr2res_extract_slitdec_vert(
             cpl_image_save(img_sw, "debug_img_sw.fits", CPL_TYPE_FLOAT, NULL,
                     CPL_IO_CREATE);
         }
-        /* Multiply by weights and add to output array */
-        cpl_vector_multiply(spec_sw, weights_sw);
+        
         // Unweight first and last half swath
         if (i==0){
             for (j=0;j<swath/2;j++) {
@@ -718,11 +725,20 @@ int cr2res_extract_slitdec_vert(
             }
         }
         if (i==nswaths-1) {
+            int k = cpl_vector_get(bins_end, i-1) - cpl_vector_get(bins_begin, i) - swath/2;
+            for (j= 0; j < swath - k; j++){
+                cpl_vector_set(spec_sw, j, cpl_vector_get(spec_sw, j + k));
+            }
             for (j=swath/2; j<swath;j++) {
                 cpl_vector_set(spec_sw, j,
                     cpl_vector_get(spec_sw,j)/cpl_vector_get(weights_sw,j));
             }
+            sw_start = cpl_vector_get(bins_begin, i-1) + swath / 2;
         }
+
+        /* Multiply by weights and add to output array */
+        cpl_vector_multiply(spec_sw, weights_sw);
+
         // Save swath to output vector
         for (j=sw_start;j<sw_end;j++) {
             cpl_vector_set(spc, j,
