@@ -113,7 +113,7 @@ static cpl_image *create_image_linear_increase()
 
 static cpl_table * create_table_linear_increase()
 {
-    double all = 10.;
+    double all = 11;
     double upper = 15.;
     double lower = 5.;
 
@@ -280,7 +280,7 @@ static void test_cr2res_slitdec_vert(void)
     int height = 20;
     int swath = 15;
     int oversample = 2;
-    double smooth_slit = 0.1;
+    double smooth_slit = 10;
     int width = cpl_image_get_size_x(img_in);
 
     cpl_vector * slit_func;
@@ -296,12 +296,12 @@ static void test_cr2res_slitdec_vert(void)
     for(int i = 0; i < width; i++)
     {
         //spectrum
-        ratio = (cpl_bivector_get_x_data(spec)[i] - 50) / (i+1);
+        ratio = cpl_bivector_get_x_data(spec)[i] / (i+51);
         cpl_test_abs(ratio, 1, 0.1);
 
         //relative error
         ratio = cpl_bivector_get_y_data(spec)[i] / cpl_bivector_get_x_data(spec)[i];
-        cpl_test_lt(ratio, 1e-2);
+        cpl_test_lt(ratio,  0.1);
     }
 
 
@@ -311,14 +311,14 @@ static void test_cr2res_slitdec_vert(void)
         cpl_test_abs(ratio, 1, DBL_EPSILON);
     }
 
-    cpl_vector_save(cpl_bivector_get_x(spec), "debug_spec.fits", CPL_TYPE_DOUBLE, NULL,
-        CPL_IO_CREATE);
-    cpl_vector_save(cpl_bivector_get_y(spec), "debug_err.fits", CPL_TYPE_DOUBLE, NULL,
-        CPL_IO_CREATE);
-    cpl_vector_save(slit_func, "debug_slitfunc.fits", CPL_TYPE_DOUBLE,
-        NULL, CPL_IO_CREATE);
-    cpl_image_save(hdrl_image_get_image(model), "debug_model.fits", CPL_TYPE_FLOAT,
-        NULL, CPL_IO_CREATE);
+    // cpl_vector_save(cpl_bivector_get_x(spec), "debug_spec.fits", CPL_TYPE_DOUBLE, NULL,
+    //     CPL_IO_CREATE);
+    // cpl_vector_save(cpl_bivector_get_y(spec), "debug_err.fits", CPL_TYPE_DOUBLE, NULL,
+    //     CPL_IO_CREATE);
+    // cpl_vector_save(slit_func, "debug_slitfunc.fits", CPL_TYPE_DOUBLE,
+    //     NULL, CPL_IO_CREATE);
+    // cpl_image_save(hdrl_image_get_image(model), "debug_model.fits", CPL_TYPE_FLOAT,
+    //     NULL, CPL_IO_CREATE);
 
     // Free memory
     cpl_vector_delete(slit_func);
@@ -327,6 +327,39 @@ static void test_cr2res_slitdec_vert(void)
     cpl_image_delete(img_in);
     cpl_table_delete(trace_table);
     hdrl_image_delete(img_hdrl);
+}
+
+static void test_cr2res_slitdec_curved(void)
+{
+    cpl_image * img_in = create_image_linear_increase();
+    hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
+    cpl_table * trace_table = create_table_linear_increase();
+    int order = 1;
+    int trace = 1;
+    int height = 20;
+    int swath = 15;
+    int oversample = 2;
+    double smooth_slit = 10;
+    int width = cpl_image_get_size_x(img_in);
+    cpl_vector * shear = cpl_vector_new(width);
+
+
+    cpl_vector * slit_func;
+    cpl_bivector * spec;
+    hdrl_image * model;
+    int res;
+
+    cr2res_extract_slitdec_curved(img_hdrl, trace_table, shear, order, trace, height, swath, oversample, smooth_slit, &slit_func, &spec, &model);
+
+    // Free memory
+    cpl_vector_delete(slit_func);
+    cpl_bivector_delete(spec);
+    cpl_vector_delete(shear);
+    hdrl_image_delete(model);
+    cpl_image_delete(img_in);
+    cpl_table_delete(trace_table);
+    hdrl_image_delete(img_hdrl);
+
 }
 
 /*----------------------------------------------------------------------------*/
@@ -340,7 +373,8 @@ int main(void)
 
     //test_cr2res_slitdec_vert_edge_cases();
     //test_cr2res_slitdec_vert_regression();
-    test_cr2res_slitdec_vert();
+    //test_cr2res_slitdec_vert();
+    test_cr2res_slitdec_curved();
 
     return cpl_test_end(0);
 }

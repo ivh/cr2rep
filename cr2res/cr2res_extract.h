@@ -49,6 +49,7 @@ int cr2res_extract_slitdec_vert(
 int cr2res_extract_slitdec_curved(
         hdrl_image  *   img_hdrl,
         cpl_table   *   trace_tab,
+        cpl_vector  *   shear,
         int             order,
         int             trace_id,
         int             height,
@@ -56,7 +57,7 @@ int cr2res_extract_slitdec_curved(
         int             oversample,
         double          smooth_slit,
         cpl_vector  **  slit_func,
-        cpl_bivector  **  spec,
+        cpl_bivector**  spec,
         hdrl_image  **  model);
 
 int cr2res_extract_sum_vert(
