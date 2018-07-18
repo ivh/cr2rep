@@ -99,15 +99,15 @@ static cpl_image *create_image_linear_increase()
     double step = 0.1;
     cpl_image * img = cpl_image_new(nx, ny, CPL_TYPE_DOUBLE);
 
-    
+
     for(int i = 1; i <= nx; i++)
     {
         for(int j = 6; j <= ny-5; j++)
         {
             cpl_image_set(img, i, j, i  * step + min);
-        }   
+        }
     }
-    
+
     return img;
 }
 
@@ -185,7 +185,7 @@ static void test_cr2res_slitdec_vert_regression(void)
     cpl_test_vector_abs(cpl_bivector_get_x(spec), cmp_spec, 1e-1);
     cpl_test_vector_abs(cpl_bivector_get_y(spec), cmp_err, 1e-3);
     cpl_test_image_abs(hdrl_image_get_image(model), cmp_model, 1e-4);
-    
+
     // in case the files are needed again (e.g. when the input is changed)
     // cpl_vector_save(cpl_bivector_get_x(spec), "debug_spec.fits", CPL_TYPE_DOUBLE, NULL,
     //     CPL_IO_CREATE);
@@ -252,7 +252,7 @@ static void test_cr2res_slitdec_vert_edge_cases(void)
     cpl_vector_delete(slit_func);
     cpl_bivector_delete(spec);
     hdrl_image_delete(model);
-    
+
     cpl_test_eq( 0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, swath, 0, smooth_slit, &slit_func, &spec, &model));
     cpl_vector_delete(slit_func);
     cpl_bivector_delete(spec);
@@ -304,13 +304,13 @@ static void test_cr2res_slitdec_vert(void)
         cpl_test_lt(ratio, 1e-2);
     }
 
-    
+
     for(int j = 0; j < height; j++)
     {
         ratio = cpl_vector_get_sum(slit_func) / oversample;
         cpl_test_abs(ratio, 1, DBL_EPSILON);
     }
-    
+
     cpl_vector_save(cpl_bivector_get_x(spec), "debug_spec.fits", CPL_TYPE_DOUBLE, NULL,
         CPL_IO_CREATE);
     cpl_vector_save(cpl_bivector_get_y(spec), "debug_err.fits", CPL_TYPE_DOUBLE, NULL,
@@ -336,7 +336,7 @@ static void test_cr2res_slitdec_vert(void)
 /*----------------------------------------------------------------------------*/
 int main(void)
 {
-    cpl_test_init("test@bugreport.se", CPL_MSG_DEBUG);
+    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
     //test_cr2res_slitdec_vert_edge_cases();
     //test_cr2res_slitdec_vert_regression();

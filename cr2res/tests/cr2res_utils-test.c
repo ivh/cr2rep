@@ -278,7 +278,7 @@ static void test_cr2res_polynomial_eval_vector(void)
 
     cpl_test_null(cr2res_polynomial_eval_vector(NULL, in));
     cpl_test_null(cr2res_polynomial_eval_vector(poly, NULL));
-    
+
     cpl_test(res = cr2res_polynomial_eval_vector(poly, in));
 
     cpl_test_vector_abs(res, out, DBL_EPSILON * n * n * 10);
@@ -451,7 +451,7 @@ static void test_cr2res_extract_frameset(void)
     //run test
     cpl_test_null(cr2res_extract_frameset(NULL, tag));
     cpl_test_null(cr2res_extract_frameset(in, NULL));
-    
+
     cpl_test(res = cr2res_extract_frameset(in, tag));
     //test output
     //test size
@@ -496,7 +496,7 @@ static void test_cr2res_get_trace_table_orders(void)
     //run test
     cpl_test_null(cr2res_get_trace_table_orders(NULL, &nb_orders));
     cpl_test_null(cr2res_get_trace_table_orders(trace_wave, NULL));
-    
+
     cpl_test(res = cr2res_get_trace_table_orders(trace_wave, &nb_orders));
     cpl_test_eq(nb_orders, n);
 
@@ -628,7 +628,7 @@ static void test_cr2res_wlestimate_compute(void)
     cpl_test_null(cr2res_wlestimate_compute(-1, 1));
     cpl_test_null(cr2res_wlestimate_compute(5, -1));
     cpl_test_null(cr2res_wlestimate_compute(5, 1));
-    
+
     cpl_test(res = cr2res_wlestimate_compute(wmin, wmax));
     //test output
     cpl_size power = 0;
@@ -761,7 +761,7 @@ static void test_cr2res_convert_poly_to_array(void)
     //run test
     cpl_test_null(cr2res_convert_poly_to_array(NULL, n));
     cpl_test_null(cr2res_convert_poly_to_array(poly, 0));
-    
+
     cpl_test(res = cr2res_convert_poly_to_array(poly, n));
     //test output
     for (int j = 0; j < n; j++)
@@ -915,7 +915,7 @@ static void test_cr2res_demod(void)
     cpl_table_delete(res);
     cpl_table_delete(trace_wave);
     cpl_image_delete(sum1);
-    cpl_image_delete(sum2);    
+    cpl_image_delete(sum2);
     hdrl_image_delete(sum1_hdrl);
     hdrl_image_delete(sum2_hdrl);
     return;
@@ -925,7 +925,7 @@ static void test_cr2res_fit_noise(void)
 {
     // Define all variables
     cpl_image *img = create_test_image();
-    
+
     // for(int i = 1; i < 100; i++)
     // {
     //     for(int j = 1; j < 100; j++)
@@ -933,7 +933,7 @@ static void test_cr2res_fit_noise(void)
     //         cpl_image_set(img, i, j, 10000);
     //     }
     // }
-    
+
     cpl_table *trace_wave = create_test_table();
     cpl_polynomial * res;
     cpl_polynomial *cmp = cpl_polynomial_new(2);
@@ -951,12 +951,12 @@ static void test_cr2res_fit_noise(void)
     power[1] = 1;
     cpl_polynomial_set_coeff(cmp, power, -0.000952474);
     power[0] = 0;
-    power[1] = 1;    
+    power[1] = 1;
     cpl_polynomial_set_coeff(cmp, power, 0.519612);
 
     // Run function
     cpl_test(res = cr2res_fit_noise(img, trace_wave, 1, 1));
-    
+
     // Compare output
     // thats as precise as it gets, from the polynomial dump
     cpl_test_polynomial_abs(res, cmp, 1e-4);
@@ -965,12 +965,12 @@ static void test_cr2res_fit_noise(void)
     FILE * file = fopen("fit_noise.txt", "w");
     cpl_polynomial_dump(res, file);
     fclose(file);
-    
+
     // delete cpl objects
     cpl_table_delete(trace_wave);
     cpl_polynomial_delete(res);
     cpl_polynomial_delete(cmp);
-    cpl_image_delete(img); 
+    cpl_image_delete(img);
     return;
 }
 
@@ -982,7 +982,7 @@ static void test_cr2res_slit_pos()
 
     int nb_orders;
     int *orders = cr2res_get_trace_table_orders(tw_decker1, &nb_orders);
-    
+
 
     cpl_polynomial *coef_wave[nb_orders];
     cpl_polynomial *coef_slit[nb_orders];
@@ -1058,7 +1058,7 @@ static void test_cr2res_get_license(void)
 /*----------------------------------------------------------------------------*/
 int main(void)
 {
-    cpl_test_init("test@bugreport.se", CPL_MSG_DEBUG);
+    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
     // test_cr2res_vector_get_rest();
     // test_cr2res_vector_get_int();

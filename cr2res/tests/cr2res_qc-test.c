@@ -228,7 +228,7 @@ static cpl_image *create_test_image(void)
     // cpl_image *im1 = create_test_image();
     // cpl_image *im2 = create_test_image();
     // cpl_image_fill_window(im2, 100, 100, 200, 200, 2);
-    
+
     // double res;
     // double cmp = 0.0797785;
 
@@ -370,7 +370,7 @@ static void test_cr2res_qc_trace_get_ypos(void)
 
 /*---------------------------------------------------------------------------*/
 /**
-* @brief    get the zeropoint (i.e. y(x=0)) for a given order and trace 
+* @brief    get the zeropoint (i.e. y(x=0)) for a given order and trace
 * @param    tracewave    table with traces as polynomials
 * @param    order        order to get values for
 * @param    trace        trace of that order
@@ -402,7 +402,7 @@ static void test_cr2res_qc_wave_zeropoint(void)
 /*----------------------------------------------------------------------------*/
 int main(void)
 {
-    cpl_test_init("test@bugreport.se", CPL_MSG_DEBUG);
+    cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
     // test_cr2res_qc_count_badpix();
     // test_cr2res_qc_read_out_noise();
