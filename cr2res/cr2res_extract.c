@@ -81,8 +81,8 @@ static int cr2res_extract_slit_func_curved(int ncols,        /* Swath width in p
                      int *ycen_offset, /* Order image column shift     [ncols]                         */
                      int y_lower_lim,  /* Number of detector pixels below the pixel containing  */
                                        /* the central line yc.                                  */
-                     double *shear,    /* slit tilt [ncols], that I later convert to PSF_curve array. */
-                     
+                     double *PSF_curve,  /* Slit curvature */
+                     int delta_x,
                      double *sL,       /* Slit function resulting from decomposition    [ny]        */
                      double *sP,       /* Spectrum resulting from decomposition      [ncols]           */
                      double *model,    /* Model constructed from sp and sf        [nrows][ncols]              */
@@ -100,7 +100,7 @@ static int cr2res_extract_xi_zeta_tensors(int ncols,                /* Swath wid
                     int y_lower_lim,                                /* Number of detector pixels below the pixel containing  */
                                                                     /* the central line yc.                                  */
                     int osample,                                    /* Subpixel ovsersampling factor                         */
-                    double PSF_curve[ncols][3],                     /* Parabolic fit to the slit image curvature.            */
+                    double * PSF_curve,                     /* Parabolic fit to the slit image curvature.            */
                                                                     /* For column d_x = PSF_curve[ncols][0] +                */
                                                                     /*                  PSF_curve[ncols][1] *d_y +           */
                                                                     /*                  PSF_curve[ncols][2] *d_y^2,          */
@@ -453,6 +453,91 @@ static int cr2res_extract_slitdec_adjust_swath(int sw, int nx, cpl_vector* bins_
 /*----------------------------------------------------------------------------*/
 /**
   @brief   Main vertical slit decomposition wrapper with swath loop
+  @param   trace_wave   The traces table
+
+  @return  psf_curve, as a cpl_image
+
+  This func takes a single image (contining many orders), and a *single*
+  order definition in the form of central y-corrds., plus the height.
+  Swath widht and oversampling are passed through.
+
+
+ */
+/*----------------------------------------------------------------------------*/
+cpl_image * cr2res_extract_meas_slitcurv(cpl_table * trace_wave, int order, int lenx)
+{
+    // This is very much similar to cr2res_slit_pos in cr2res_utils
+    // load data
+    int i, j, k, trace, ntraces;
+    int nrows = cpl_table_get_nrow(trace_wave);
+    double _x, _y, _w;
+    volatile cpl_error_code errcode;
+    cpl_image * psf_curve = cpl_image_new(3, lenx, CPL_TYPE_DOUBLE);
+
+    // Determine the number of traces for th egiven order
+    ntraces = 0;
+    for (i=0; i < nrows; i++)
+        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER,i,NULL)==order) ntraces++;
+
+    if (ntraces == 1){
+        // Only one trace, i.e. no shear -> psf_curve eq 0
+        return psf_curve;
+    }
+
+    cpl_vector * x = cpl_vector_new(lenx);
+    for (i = 0; i < lenx; i++) cpl_vector_set(x, i, (double)i+1);
+
+    cpl_polynomial * coef_slit = cpl_polynomial_new(1);
+    cpl_matrix * matrix_xy = cpl_matrix_new(1, ntraces);
+    cpl_vector * vec_w = cpl_vector_new(ntraces);
+    cpl_polynomial *wave[ntraces];
+    cpl_polynomial *line[ntraces];
+
+    cpl_size pos;
+    const cpl_size maxdeg = ntraces-1;
+
+
+
+    for (k = 0; k < ntraces; k++){
+        // load wavelength polynomials, one per trace
+        line[k] = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_ALL, order, k+1);
+        wave[k] = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH, order, k+1);
+    }
+
+    // for each point along the order, fit a line through the wavelengths
+    for (i = 0; i < lenx; i++) {
+        _x = cpl_vector_get(x, i);
+        for (k = 0; k < ntraces; k++){
+            _y = cpl_polynomial_eval_1d(line[k], _x, NULL);
+            _w = cpl_polynomial_eval_1d(wave[k], _x, NULL);
+
+            cpl_matrix_set(matrix_xy, 0, k, _y);
+            cpl_vector_set(vec_w, k, _w);
+        }
+        errcode = cpl_polynomial_fit(coef_slit, matrix_xy, NULL, vec_w, NULL, FALSE, NULL, &maxdeg);
+        pos = 1;
+        cpl_image_set(psf_curve, 2, i+1, cpl_polynomial_get_coeff(coef_slit, &pos));
+        pos = 2;
+        cpl_image_set(psf_curve, 3, i+1, cpl_polynomial_get_coeff(coef_slit, &pos));
+    }
+
+    for (k = 0; k < ntraces; k++){
+        cpl_polynomial_delete(line[k]);
+        cpl_polynomial_delete(wave[k]);   
+    }
+
+    // delete cpl pointers
+    cpl_vector_delete(x);
+    cpl_matrix_delete(matrix_xy);
+    cpl_vector_delete(vec_w);
+    cpl_polynomial_delete(coef_slit);
+
+    return psf_curve;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief   Main vertical slit decomposition wrapper with swath loop
   @param    img_in      full detector image
   @param    trace_tab   The traces table
   @param    order       The order to extract
@@ -568,16 +653,13 @@ int cr2res_extract_slitdec_vert(
 
     if (oversample <= 0) oversample = 1;
 
-    bins_begin = cpl_vector_new(1);
-    bins_end =   cpl_vector_new(1);
-
     /* Number of rows after oversampling */
+    bins_begin = cpl_vector_new(1);
+    bins_end = cpl_vector_new(1);
     ny_os = oversample*(height+1) +1;
     if ((swath = cr2res_extract_slitdec_adjust_swath(swath, lenx, bins_begin, bins_end)) == -1){
         cpl_msg_error(__func__, "Cannot calculate swath size");
         cpl_vector_delete(ycen);
-        cpl_vector_delete(bins_begin);
-        cpl_vector_delete(bins_end);
         return -1;
     }
     nswaths = cpl_vector_get_size(bins_begin);
@@ -849,7 +931,6 @@ int cr2res_extract_slitdec_curved(
     double          *   err_sw_data;
     double          *   spec_sw_data;
     double          *   slitfu_sw_data;
-    double          *   shear_sw_data;
     double          *   model_sw;
     double          *   unc_sw;
     int             *   mask_sw;
@@ -860,6 +941,7 @@ int cr2res_extract_slitdec_curved(
     cpl_image       *   img_rect;
     cpl_image       *   err_rect;
     cpl_image       *   model_rect;
+    cpl_image       *   PSF_curve;
     cpl_vector      *   ycen ;
     cpl_image       *   img_tmp;
     cpl_image       *   img_out;
@@ -874,9 +956,9 @@ int cr2res_extract_slitdec_curved(
     cpl_vector      *   unc_decomposition;
     cpl_size            lenx, leny;
     cpl_type            imtyp;
-    double              pixval, errval, img_median, norm, model_unc, img_unc, unc, delta_x;
+    double              pixval, errval, img_median, norm, model_unc, img_unc, unc;
     int                 i, j, k, nswaths, halfswath, row, col, x, y, ny_os,
-                        sw_start, sw_end, badpix, y_lower_limit, y_upper_limit;
+                        sw_start, sw_end, badpix, y_lower_limit, y_upper_limit, delta_x;
 
     /* Check Entries */
     if (img_hdrl == NULL || trace_tab == NULL) return -1 ;
@@ -909,17 +991,13 @@ int cr2res_extract_slitdec_curved(
         return -1 ;
     }
 
-
-    bins_begin = cpl_vector_new(1);
-    bins_end   = cpl_vector_new(1);
-
     /* Number of rows after oversampling */
+    bins_begin = cpl_vector_new(1);
+    bins_end = cpl_vector_new(1);
     ny_os = oversample*(height+1) +1;
     if ((swath = cr2res_extract_slitdec_adjust_swath(swath, lenx, bins_begin, bins_end)) == -1){
         cpl_msg_error(__func__, "Cannot calculate swath size");
         cpl_vector_delete(ycen);
-        cpl_vector_delete(bins_begin);
-        cpl_vector_delete(bins_end);
         return -1;
     }
     nswaths = cpl_vector_get_size(bins_begin);
@@ -940,6 +1018,8 @@ int cr2res_extract_slitdec_curved(
     err_rect = cr2res_image_cut_rectify(err_in, ycen, height);
     ycen_rest = cr2res_vector_get_rest(ycen);
 
+    PSF_curve = cr2res_extract_meas_slitcurv(trace_tab, order, lenx);
+
     /* Allocate */
     mask_sw = cpl_malloc(height * swath*sizeof(int));
     model_sw = cpl_malloc(height * swath*sizeof(double));
@@ -948,7 +1028,6 @@ int cr2res_extract_slitdec_curved(
     err_sw = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
     ycen_sw = cpl_malloc(swath*sizeof(double));
     ycen_offset_sw = cpl_malloc(swath * sizeof(int));
-    shear_sw_data = cpl_malloc(swath * sizeof(double));
 
 
     // Local versions of return data
@@ -965,6 +1044,9 @@ int cr2res_extract_slitdec_curved(
     slitfu_sw_data = cpl_vector_get_data(slitfu_sw);
     weights_sw = cpl_vector_new(swath);
 
+    /* Maximum horizontal shift in detector pixels due to slit image curvature */
+    delta_x = max(fabs(cpl_vector_get_max(shear)), fabs(cpl_vector_get_min(shear))) * height / 2 + 1;
+
     /* Pre-calculate the weights for overlapping swaths*/
     for (i=0; i < swath/2; i++) {
         cpl_vector_set(weights_sw, i, i + 1);
@@ -972,6 +1054,12 @@ int cr2res_extract_slitdec_curved(
     }
     cpl_vector_divide_scalar(weights_sw,i+1); // normalize such that max(w)=1
 
+    for (i=0; i < delta_x; i++){
+        cpl_vector_set(weights_sw, i, 0);
+        cpl_vector_set(weights_sw, swath - i - 1, 0);
+        cpl_vector_set(weights_sw, swath / 2 + i, 1);
+        cpl_vector_set(weights_sw, swath / 2 - i - 1, 1);
+    }
 
     for (i=0;i<nswaths;i++){
         sw_start = cpl_vector_get(bins_begin, i);
@@ -1003,7 +1091,6 @@ int cr2res_extract_slitdec_curved(
 
         for (j=sw_start;j<sw_end;j++){
             ycen_sw[j-sw_start] = ycen_rest[j];
-            shear_sw_data[j - sw_start] = cpl_vector_get(shear, j);
         }
         y_lower_limit = (int) ycen_sw[0];
         for (j=0; j < swath; j++) {
@@ -1014,7 +1101,7 @@ int cr2res_extract_slitdec_curved(
 
         /* Finally ready to call the slit-decomp */
         cr2res_extract_slit_func_curved(swath, height, oversample, img_sw_data, 
-                    err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit, shear_sw_data, 
+                    err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit, cpl_image_get_data_double(PSF_curve), delta_x, 
                     slitfu_sw_data, spec_sw_data, model_sw, unc_sw, 0.0, smooth_slit, 1e-7, 20);
         
         for(col=1; col<=swath; col++){      // col is x-index in cut-out
@@ -1036,6 +1123,9 @@ int cr2res_extract_slitdec_curved(
             cpl_vector_save(tmp_vec, "debug_ycen.fits", CPL_TYPE_DOUBLE, NULL,
                     CPL_IO_CREATE);
             cpl_vector_unwrap(tmp_vec);
+            
+            cpl_vector_save(weights_sw, "debug_weights.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+
             cpl_vector_save(slitfu_sw, "debug_slitfu.fits", CPL_TYPE_DOUBLE,
                     NULL, CPL_IO_CREATE);
             img_tmp = cpl_image_wrap_double(swath, height, model_sw);
@@ -1105,6 +1195,7 @@ int cr2res_extract_slitdec_curved(
     cpl_image_delete(err_rect);
     cpl_image_delete(img_sw);
     cpl_image_delete(err_sw);
+    cpl_image_delete(PSF_curve);
     
     cpl_free(mask_sw);
     cpl_free(model_sw);
@@ -1112,7 +1203,6 @@ int cr2res_extract_slitdec_curved(
     cpl_free(ycen_rest);
     cpl_free(ycen_sw);
     cpl_free(ycen_offset_sw);
-    cpl_free(shear_sw_data);
 
     cpl_vector_delete(bins_begin);
     cpl_vector_delete(bins_end);
@@ -1409,7 +1499,7 @@ static int cr2res_extract_xi_zeta_tensors(int ncols,                            
                     int y_lower_lim,                                /* Number of detector pixels below the pixel containing  */
                                                                     /* the central line yc.                                  */
                     int osample,                                    /* Subpixel ovsersampling factor                         */
-                    double PSF_curve[ncols][3],                     /* Parabolic fit to the slit image curvature.            */
+                    double * PSF_curve,                     /* Parabolic fit to the slit image curvature.            */
                                                                     /* For column d_x = PSF_curve[ncols][0] +                */
                                                                     /*                  PSF_curve[ncols][1] *d_y +           */
                                                                     /*                  PSF_curve[ncols][2] *d_y^2,          */
@@ -1559,7 +1649,7 @@ static int cr2res_extract_xi_zeta_tensors(int ncols,                            
         else
           w = step;
         dy += step;
-        delta = (PSF_curve[x][1] + PSF_curve[x][2] * dy) * dy;
+        delta = (PSF_curve[1 + 3 * x] + PSF_curve[2 + 3 * x] * dy) * dy;
         ix1 = delta;
         ix2 = ix1 + signum(delta);
 
@@ -1823,7 +1913,8 @@ static int cr2res_extract_slit_func_curved(int ncols,        /* Swath width in p
                      int *ycen_offset, /* Order image column shift     [ncols]                         */
                      int y_lower_lim,  /* Number of detector pixels below the pixel containing  */
                                        /* the central line yc.                                  */
-                     double *shear,    /* slit tilt [ncols], that I later convert to PSF_curve array. */
+                     double *PSF_curve,  /* Slit curvature */
+                     int delta_x, /* Maximum horizontal shift in detector pixels due to slit image curvature         */
                      
                      double *sL,       /* Slit function resulting from decomposition    [ny]        */
                      double *sP,       /* Spectrum resulting from decomposition      [ncols]           */
@@ -1836,10 +1927,11 @@ static int cr2res_extract_slit_func_curved(int ncols,        /* Swath width in p
                      int maxiter)
 {
   int x, xx, xxx, y, yy, iy, jy, n, m, ny, y_upper_lim, i;
-  double delta_x, sum, norm, dev, lambda, diag_tot, ww, www, sP_change, sP_max;
+  double sum, norm, dev, lambda, diag_tot, ww, www, sP_change, sP_max;
   int info, iter, isum;
 
   ny = osample * (nrows + 1) + 1;/* The size of the sL array. Extra osample is because ycen can be between 0 and 1. */
+  y_upper_lim = nrows - 1 - y_lower_lim;
 
   double *sP_old = cpl_malloc(ncols * sizeof(double));
   double *l_Aij  = cpl_malloc(ny * (4*osample+1) * sizeof(double));
@@ -1854,25 +1946,6 @@ static int cr2res_extract_slit_func_curved(int ncols,        /* Swath width in p
                                                   /* of subpixels {x, iy} contributing to detector pixel   */
                                                   /* {x, y}.         [ncols][nrows][3*(osample+1)]                                      */
   int m_zeta[ncols][nrows];                       /* The actual number of controbuting elements in zeta  [ncols][nrows]  */
-
-  double PSF_curve[ncols][3]; /* Parabolic fit to the slit image curvature. [ncols][3]           */
-                              /* For column d_x = PSF_curve[ncols][0] +                */
-                              /*                  PSF_curve[ncols][1] *d_y +           */
-                              /*                  PSF_curve[ncols][2] *d_y^2,          */
-                              /* where d_y is the offset from the central line ycen.   */
-                              /* Thus central subpixel of omega[x][y'][delta_x][iy']   */
-                              /* does not stick out of column x.                       */
-
-  y_upper_lim = nrows - 1 - y_lower_lim;
-  delta_x = 0.; /* Maximum horizontal shift in detector pixels due to slit image curvature         */
-  for (i = 0; i < ncols; i++)
-  {
-    delta_x = max(delta_x, (int)(fabs(shear[i] * (0.5 / osample + y_lower_lim + ycen[i])) + 1));
-    delta_x = max(delta_x, (int)(fabs(shear[i] * (0.5 / osample + y_upper_lim + (1. - ycen[i]))) + 1));
-    PSF_curve[i][0] = 0.;
-    PSF_curve[i][1] = -shear[i];
-    PSF_curve[i][2] = 0.;
-  }
 
   i = cr2res_extract_xi_zeta_tensors(ncols, nrows, ny, ycen, ycen_offset, y_lower_lim, osample, PSF_curve, xi, zeta, m_zeta);
 
