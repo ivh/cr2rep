@@ -1258,16 +1258,14 @@ static int cr2res_extract_slit_func_vert(
       pre-computed once.
       */
     for(x=0; x<ncols; x++) {
-        iy2=(1.e0-ycen[x])*osample;
-        /*
-           The initial offset should be reconsidered.
-           It looks fine but needs theory.
-         */
-        iy1=iy2-osample;
-        if(iy2==0) d1=step;
-        else if(iy1==0) d1=0.e0;
-        else d1=fmod(ycen[x], step);
-        d2=step-d1;
+        iy2 = floor((1.0 - ycen[x]) * osample) + 1;
+        iy1 = iy2 - osample;
+
+        d1 = fmod(ycen[x], step);
+        if (d1 == 0)
+            d1 = step;
+        d2 = step - d1;
+
         for(y=0; y<nrows; y++)
         {
             iy1+=osample;
