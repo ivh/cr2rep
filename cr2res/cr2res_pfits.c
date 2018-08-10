@@ -68,7 +68,7 @@ const char * cr2res_pfits_get_wlen_id(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the DIT value 
+  @brief    find out the DIT value
   @param    plist       property list to read from
   @return   the requested value
  */
@@ -94,9 +94,9 @@ double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order)
 
     /* Check entries */
     if (plist == NULL) return -1.0 ;
-    
+
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ; 
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ;
 
     /* Create key name */
     key_name = cpl_sprintf("ESO INS WLEN MIN%02d", order_loc) ;
@@ -126,10 +126,10 @@ double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order)
     if (plist == NULL) return -1.0 ;
 
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ; 
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN MAX%02d", order_loc) ;
+    key_name = cpl_sprintf("ESO INS WLEN MAX%d", order_loc) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -156,10 +156,10 @@ double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order)
     if (plist == NULL) return -1.0 ;
 
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ; 
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN STRT%02d", order_loc) ;
+    key_name = cpl_sprintf("ESO INS WLEN STRT%d", order_loc) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -186,10 +186,10 @@ double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order)
     if (plist == NULL) return -1.0 ;
 
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ; 
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN END%02d", order_loc) ;
+    key_name = cpl_sprintf("ESO INS WLEN END%d", order_loc) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -216,10 +216,10 @@ double cr2res_pfits_get_ceny(const cpl_propertylist * plist, int order)
     if (plist == NULL) return -1.0 ;
 
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ; 
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN CENY%02d", order_loc) ;
+    key_name = cpl_sprintf("ESO INS WLEN CENY%d", order_loc) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -230,7 +230,7 @@ double cr2res_pfits_get_ceny(const cpl_propertylist * plist, int order)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the NAXIS1 value 
+  @brief    find out the NAXIS1 value
   @param    plist       property list to read from
   @return   the requested value
  */
@@ -242,7 +242,7 @@ int cr2res_pfits_get_naxis1(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the NAXIS2 value 
+  @brief    find out the NAXIS2 value
   @param    plist       property list to read from
   @return   the requested value
  */
@@ -254,7 +254,7 @@ int cr2res_pfits_get_naxis2(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the EXPNO value 
+  @brief    find out the EXPNO value
   @param    plist       property list to read from
   @return   the requested value
  */
@@ -266,7 +266,7 @@ int cr2res_pfits_get_expno(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the NDIT value 
+  @brief    find out the NDIT value
   @param    plist       property list to read from
   @return   the requested value
  */
@@ -307,7 +307,7 @@ int cr2res_pfits_get_order(
     for (i=min_order ; i <= max_order ; i++) {
 
         order_idx = cr2res_convert_order_to_idx(i);
-        key_name = cpl_sprintf("ESO INS WLEN CENY%02d", order_idx) ;
+        key_name = cpl_sprintf("ESO INS WLEN CENY%d", order_idx) ;
         ycen = cpl_propertylist_get_double(plist, key_name);
         cpl_free(key_name) ;
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
@@ -322,7 +322,7 @@ int cr2res_pfits_get_order(
     }
     if (best_diff > 100.0)
         cpl_msg_warning(__func__,
-                "Order %d identified with large difference of %.1f pix",  
+                "Order %d identified with large difference of %.1f pix",
                 best_number, best_diff);
     return best_number ;
 }
@@ -336,17 +336,17 @@ int cr2res_pfits_get_order(
 /*----------------------------------------------------------------------------*/
 cr2res_decker cr2res_pfits_get_decker_position(const cpl_propertylist * plist)
 {
-    /* TODO : ESO INS SLIT2 DECKER should be INTEGER - Currently '1   ' */
     int         decker_value_2 ;
     const char *    decker_value ;
-    decker_value = cpl_propertylist_get_string(plist, "ESO INS SLIT2 DECKER");
+    decker_value = cpl_propertylist_get_int(plist, "ESO INS OPTI8 ENC");
     if (cpl_error_get_code() != CPL_ERROR_NONE) {
         cpl_error_reset();
         return CR2RES_DECKER_INVALID ;
     }
-    if (decker_value[0] == '0') return CR2RES_DECKER_NONE ;
-    if (decker_value[0] == '1') return CR2RES_DECKER_1_3 ;
-    if (decker_value[0] == '2') return CR2RES_DECKER_2_4 ;
+    /* TODO: enter proper encoder values */
+    if (decker_value[0] == 5010) return CR2RES_DECKER_NONE ;
+    if (decker_value[0] == 6010) return CR2RES_DECKER_1_3 ;
+    if (decker_value[0] == 7010) return CR2RES_DECKER_2_4 ;
     return CR2RES_DECKER_INVALID ;
 }
 
