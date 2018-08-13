@@ -31,7 +31,7 @@
 #include <cpl.h>
 #include "hdrl.h"
 
-#include "cr2res_slit_curvature.h"
+#include "cr2res_slit_curv.h"
 #include "cr2res_utils.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
@@ -41,7 +41,7 @@
                                 Define
  -----------------------------------------------------------------------------*/
 
-#define RECIPE_STRING "cr2res_util_slit_curvature"
+#define RECIPE_STRING "cr2res_util_slit_curv"
 
 /*-----------------------------------------------------------------------------
                              Plugin registration
@@ -53,21 +53,21 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
-static int cr2res_util_slit_curvature_create(cpl_plugin *);
-static int cr2res_util_slit_curvature_exec(cpl_plugin *);
-static int cr2res_util_slit_curvature_destroy(cpl_plugin *);
-static int cr2res_util_slit_curvature(cpl_frameset *, const cpl_parameterlist *);
+static int cr2res_util_slit_curv_create(cpl_plugin *);
+static int cr2res_util_slit_curv_exec(cpl_plugin *);
+static int cr2res_util_slit_curv_destroy(cpl_plugin *);
+static int cr2res_util_slit_curv(cpl_frameset *, const cpl_parameterlist *);
 
 /*-----------------------------------------------------------------------------
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_slit_curvature_description[] =
+static char cr2res_util_slit_curv_description[] =
 "The utility expects 1 file as input:\n"
 "   * trace_wave.fits " CR2RES_COMMAND_LINE "\n"
-"The slit tilt is derived from each order with more than 1 trace.\n"
+"The slit curvature is derived from each order with more than 1 trace.\n"
 "The recipe produces the following products:\n"
-"   * SLIT_TILT\n"
+"   * SLIT_CURV\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -76,7 +76,7 @@ static char cr2res_util_slit_curvature_description[] =
 
 /*----------------------------------------------------------------------------*/
 /**
-  @defgroup cr2res_util_slit_curvature    Slit Tilt
+  @defgroup cr2res_util_slit_curv    Slit Curvature
  */
 /*----------------------------------------------------------------------------*/
 
@@ -102,15 +102,15 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CPL_PLUGIN_API,
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
-                    "cr2res_util_slit_curvature",
-                    "Slit Tilt utility",
-                    cr2res_util_slit_curvature_description,
+                    "cr2res_util_slit_curv",
+                    "Slit Curvature utility",
+                    cr2res_util_slit_curv_description,
                     "Thomas Marquart, Yves Jung",
                     PACKAGE_BUGREPORT,
                     cr2res_get_license(),
-                    cr2res_util_slit_curvature_create,
-                    cr2res_util_slit_curvature_exec,
-                    cr2res_util_slit_curvature_destroy)) {
+                    cr2res_util_slit_curv_create,
+                    cr2res_util_slit_curv_exec,
+                    cr2res_util_slit_curv_destroy)) {
         cpl_msg_error(cpl_func, "Plugin initialization failed");
         (void)cpl_error_set_where(cpl_func);
         return 1;
@@ -134,7 +134,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
   Defining the command-line/configuration parameters for the recipe.
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_slit_curvature_create(cpl_plugin * plugin)
+static int cr2res_util_slit_curv_create(cpl_plugin * plugin)
 {
     cpl_recipe    * recipe;
     cpl_parameter * p;
@@ -149,23 +149,30 @@ static int cr2res_util_slit_curvature_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
-    p = cpl_parameter_new_value("cr2res.cr2res_util_slit_curvature.detector",
+    p = cpl_parameter_new_value("cr2res.cr2res_util_slit_curv.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
-            "cr2res.cr2res_util_slit_curvature", 0);
+            "cr2res.cr2res_util_slit_curv", 0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "detector");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_slit_curvature.order",
+    p = cpl_parameter_new_value("cr2res.cr2res_util_slit_curv.order",
             CPL_TYPE_INT, "Only reduce the specified order",
-            "cr2res.cr2res_util_slit_curvature", -1);
+            "cr2res.cr2res_util_slit_curv", -1);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "order");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_slit_curvature.display",
+    p = cpl_parameter_new_value("cr2res.cr2res_util_slit_curv.trace_nb",
+            CPL_TYPE_INT, "Only reduce the specified trace number",
+            "cr2res.cr2res_util_slit_curv", -1);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_nb");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_util_slit_curv.display",
             CPL_TYPE_BOOL, "Flag for display",
-            "cr2res.cr2res_util_slit_curvature", FALSE);
+            "cr2res.cr2res_util_slit_curv", FALSE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -179,7 +186,7 @@ static int cr2res_util_slit_curvature_create(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_slit_curvature_exec(cpl_plugin * plugin)
+static int cr2res_util_slit_curv_exec(cpl_plugin * plugin)
 {
     cpl_recipe  *recipe;
 
@@ -188,7 +195,7 @@ static int cr2res_util_slit_curvature_exec(cpl_plugin * plugin)
         recipe = (cpl_recipe *)plugin;
     else return -1;
 
-    return cr2res_util_slit_curvature(recipe->frames, recipe->parameters);
+    return cr2res_util_slit_curv(recipe->frames, recipe->parameters);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -198,7 +205,7 @@ static int cr2res_util_slit_curvature_exec(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_slit_curvature_destroy(cpl_plugin * plugin)
+static int cr2res_util_slit_curv_destroy(cpl_plugin * plugin)
 {
     cpl_recipe *recipe;
 
@@ -219,38 +226,40 @@ static int cr2res_util_slit_curvature_destroy(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_slit_curvature(
+static int cr2res_util_slit_curv(
         cpl_frameset            *   frameset,
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param;
-    int                     reduce_det, reduce_order, display ;
+    int                     reduce_det, reduce_order, reduce_trace, display ;
     cpl_frame           *   fr ;
-    cpl_propertylist    *   plist ;
+    cpl_polynomial      **  curvatures ;
     const char          *   trace_wave_file ;
-    cpl_table           *   trace_wave_table ;
-    cpl_table           *   out_tilt[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   trace_wave_in ;
+    cpl_table           *   trace_wave[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   slit_curv[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
-    int                 *   orders ;
-    int                     det_nr, nb_orders, tilt_degree ;
-    cpl_polynomial      **  order_tilts ;
-    char                *   out_file;
+    int                     det_nr, order, trace_id, nb_traces, curv_degree ;
     char                *   col_name ;
-    cpl_array           *   tilt_array ;
+    char                *   out_file;
+    cpl_array           *   curv_array ;
     int                     i, j ;
 
     /* Initialise */
-    tilt_degree = 2 ;
+    curv_degree = 2 ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_slit_curvature.detector");
+            "cr2res.cr2res_util_slit_curv.detector");
     reduce_det = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_slit_curvature.order");
+            "cr2res.cr2res_util_slit_curv.order");
     reduce_order = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_slit_curvature.display");
+            "cr2res.cr2res_util_slit_curv.trace_nb");
+    reduce_trace = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_slit_curv.display");
     display = cpl_parameter_get_bool(param) ;
  
     /* Check Parameters */
@@ -276,7 +285,8 @@ static int cr2res_util_slit_curvature(
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
         /* Initialise */
-        out_tilt[det_nr-1] = NULL ;
+        trace_wave[det_nr-1] = NULL ;
+        slit_curv[det_nr-1] = cpl_table_new(CR2RES_DETECTOR_SIZE) ;
         ext_plist[det_nr-1] = NULL ;
 
         /* Store the extenѕion header for product saving */
@@ -291,86 +301,86 @@ static int cr2res_util_slit_curvature(
 
         /* Load the TRACE_WAVE table of this detector */
         cpl_msg_info(__func__, "Load the TRACE_WAVE table") ;
-        if ((trace_wave_table = cr2res_io_load_TRACE_WAVE(trace_wave_file,
+        if ((trace_wave_in = cr2res_io_load_TRACE_WAVE(trace_wave_file,
                         det_nr)) == NULL) {
             cpl_msg_error(__func__,"Failed to load table - skip detector");
             cpl_error_reset() ;
             cpl_msg_indent_less() ;
             continue ;
         }
+        nb_traces = cpl_table_get_nrow(trace_wave_in) ;
 
-        /* Get the list of orders  */
-        orders = cr2res_get_trace_table_orders(trace_wave_table, &nb_orders) ;
+        /* Allocate Data containers */
 
-        /* Get the extension header */
-        plist = cpl_propertylist_load(trace_wave_file, 
-                cr2res_io_get_ext_idx(trace_wave_file, det_nr, 1)) ;
+        /* Loop over the traces and get the slit curvature */
+        for (i=0 ; i<nb_traces ; i++) {
+            /* Get Order and trace id */
+            order = cpl_table_get(trace_wave_in, CR2RES_COL_ORDER, i, NULL) ;
+            trace_id = cpl_table_get(trace_wave_in, CR2RES_COL_TRACENB,i,NULL) ;
 
-        /* Loop over the Orders */
-        for (i=0 ; i<nb_orders ; i++) {
             /* Check if this order needs to be skipped */
-            if (reduce_order > -1 && orders[i] != reduce_order) {
+            if (reduce_order > -1 && order != reduce_order) {
+                cpl_msg_indent_less() ;
                 continue ;
             }
 
-            cpl_msg_info(__func__, "Process Order %d", orders[i]) ;
-            cpl_msg_indent_more() ;
+            /* Check if this trace needs to be skipped */
+            if (reduce_trace > -1 && trace_id != reduce_trace) {
+                cpl_msg_indent_less() ;
+                continue ;
+            }
 
-            /* Call the Tilt Computation */
-            if (cr2res_slit_curvature_compute_order(trace_wave_table, orders[i],
-                            display) == CPL_ERROR_NONE) {
-                cpl_msg_error(__func__, 
-                        "Cannot Compute Slit curvature for order %d",orders[i]) ;
+            cpl_msg_info(__func__, "Process Order %d/Trace %d",order,trace_id) ;
+            cpl_msg_indent_more() ;
+	
+            /* Call the Slit Curvature Computation */
+            if ((curvatures = cr2res_slit_curv_compute_order_trace(
+                            trace_wave_in, order, trace_id, 
+                            display)) == NULL) {
+                cpl_msg_error(__func__, "Cannot Compute Slit curvature");
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
                 continue ;
             }
 
-            /* Create the output table if necessary */
-            if (out_tilt[det_nr-1] == NULL) 
-                out_tilt[det_nr-1] = cpl_table_new(CR2RES_DETECTOR_SIZE) ;
-
             /* Store the Solution in the table */
-            col_name = cr2res_dfs_TILT_colname(orders[i]) ;
-            cpl_table_new_column_array(out_tilt[det_nr-1], col_name, 
-                    CPL_TYPE_DOUBLE, tilt_degree) ; 
+            col_name = cr2res_dfs_SLIT_CURV_colname(order, trace_id) ;
+            cpl_table_new_column_array(slit_curv[det_nr-1], col_name, 
+                    CPL_TYPE_DOUBLE, curv_degree+1) ; 
 
             /* Loop on the Column rows */
             for (j=0 ; j<CR2RES_DETECTOR_SIZE ; j++) {
-                if (order_tilts[j] != NULL) {
+                if (curvatures[j] != NULL) {
                     /* Ѕtore the polynomial in the table */
-                    tilt_array=cr2res_convert_poly_to_array(order_tilts[j],
-                            tilt_degree) ;
-                    cpl_polynomial_delete(order_tilts[j]) ;
-                    if (tilt_array != NULL) {
-                        cpl_table_set_array(out_tilt[det_nr-1], col_name, j, 
-                                tilt_array) ;
-                        cpl_array_delete(tilt_array) ;
+                    curv_array=cr2res_convert_poly_to_array(curvatures[j],
+                            curv_degree+1) ;
+                    cpl_polynomial_delete(curvatures[j]) ;
+                    if (curv_array != NULL) {
+                        cpl_table_set_array(slit_curv[det_nr-1], col_name, j, 
+                                curv_array) ;
+                        cpl_array_delete(curv_array) ;
                     }
                 }
             }
             cpl_free(col_name) ;
-            cpl_free(order_tilts) ; 
-
+            cpl_free(curvatures) ; 
             cpl_msg_indent_less() ;
         }
-        cpl_propertylist_delete(plist) ;
-        cpl_free(orders) ;
-        cpl_table_delete(trace_wave_table) ;
+        cpl_table_delete(trace_wave_in) ;
 
         cpl_msg_indent_less() ;
     }
 
-    /* Save the new SLIT_TILT table */
-    out_file=cpl_sprintf("%s_tilt.fits", 
+    /* Save the new SLIT_CURV table */
+    out_file=cpl_sprintf("%s_polynomials.fits", 
             cr2res_get_base_name(cr2res_get_root_name(trace_wave_file)));
-    cr2res_io_save_TILT_POLY(out_file, frameset, parlist, out_tilt, NULL, 
-            ext_plist, RECIPE_STRING) ;
+    cr2res_io_save_SLIT_CURV(out_file, frameset, parlist, slit_curv, NULL, 
+            ext_plist, CR2RES_UTIL_SLIT_CURV_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free and return */
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
-        if (out_tilt[i] != NULL) cpl_table_delete(out_tilt[i]) ;
+        if (slit_curv[i] != NULL) cpl_table_delete(slit_curv[i]) ;
         if (ext_plist[i] != NULL)
             cpl_propertylist_delete(ext_plist[i]) ;
     }

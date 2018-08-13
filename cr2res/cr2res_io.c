@@ -400,30 +400,14 @@ cpl_image * cr2res_io_load_SLITPOS_MAP(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load an image from a TILT_MAP
-  @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A float image or NULL in error case. The returned object
-              needs to be deallocated
- */
-/*----------------------------------------------------------------------------*/
-cpl_image * cr2res_io_load_TILT_MAP(
-        const char  *   filename,
-        int             detector)
-{
-    return NULL ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Load a table from a TILT_POLY
+  @brief    Load a table from a SLIT_CURV
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
-cpl_table * cr2res_io_load_TILT_POLY(
+cpl_table * cr2res_io_load_SLIT_CURV(
         const char  *   filename,
         int             detector)
 {
@@ -883,32 +867,7 @@ int cr2res_io_save_SLITPOS_MAP(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Save a TILT_MAP
-  @param    filename    The FITS file name
-  @param    allframes   The recipe input frames
-  @param    parlist     The recipe input parameters
-  @param    data        The data images to save (DATA and ERROR per detector)
-  @param    qc_list     The QC parameters
-  @param    ext_plist   The extensions property lists
-  @param    recipe      The recipe name
-  @return   0 if ok, -1 in error case
- */
-/*----------------------------------------------------------------------------*/
-int cr2res_io_save_TILT_MAP(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        const cpl_parameterlist *   parlist,
-        hdrl_image              **  data,
-        const cpl_propertylist  *   qc_list,
-        cpl_propertylist        **  ext_plist,
-        const char              *   recipe)
-{
-    return -1 ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Save a TILT_POLY
+  @brief    Save a SLIT_CURV
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
@@ -919,18 +878,18 @@ int cr2res_io_save_TILT_MAP(
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_io_save_TILT_POLY(
+int cr2res_io_save_SLIT_CURV(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
         const char              *   recipe)
 {
     return cr2res_io_save_table(filename, allframes, parlist, tables,
-            qc_list, ext_plist, recipe, CR2RES_TILT_COEFFS_PROCATG,
-            CR2RES_TILT_COEFFS_PROTYPE) ;
+            qc_list, ext_plist, recipe, procatg, CR2RES_SLIT_CURV_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/

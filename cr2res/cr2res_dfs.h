@@ -47,8 +47,8 @@
 /* EXTRACT_1D Table */
 #define CR2RES_COL_SPEC_SUFFIX      "SPEC"          /* Intensity */
 
-/* TILT_POLY Table */
-#define CR2RES_COL_TILT_SUFFIX      "TILT"          /* Polynomial */
+/* SLIT_CURV Table */
+#define CR2RES_COL_SLIT_CURV_SUFFIX "SLIT_CURV"     /* Polynomial */
 
 /* SPLICED_1D Table */
 /* EXTRACT_2D Table */
@@ -103,9 +103,9 @@
 /* For CR2RES_CALIBRATED_PROCATG */
 #define CR2RES_CALIBRATED_PROTYPE           "CALIBRATED"
 
-/* For  CR2RES_TILT_COEFFS_PROCATG  */
-/* Table with columns from cr2res_dfs_TILT_colname() */
-#define CR2RES_TILT_COEFFS_PROTYPE          "TILT_COEFFS"
+/* For  CR2RES_UTIL_SLIT_CURV_PROCATG  */
+/* Table with columns from cr2res_dfs_SLIT_CURV_colname() */
+#define CR2RES_SLIT_CURV_PROTYPE            "SLIT_CURV"
 
 /* For  CR2RES_CALIB_COLLAPSED_PROCATG */
 #define CR2RES_CALIB_COLLAPSED_PROTYPE      "CALIB_COLLAPSED"
@@ -149,13 +149,11 @@
 /* Produced by cr2res_util_normflat */
 #define CR2RES_UTIL_MASTER_FLAT_PROCATG     "UTIL_MASTER_FLAT"
 
-/* TODO */
-/* Produced by cr2res_util_tilt */
-#define CR2RES_TILT_COEFFS_PROCATG          "TILT_COEFFS"
+/* Produced by cr2res_util_slit_curv */
+#define CR2RES_UTIL_SLIT_CURV_PROCATG       "UTIL_SLIT_CURV"
 
+/* TODO */
 /* Produced by cr2res_util_wave */
-
-/* TODO */
 #define CR2RES_WAVE_COEFFS_PROCATG          "WAVE_COEFFS"
 #define CR2RES_WAVE_MAP_PROCATG             "WAVE_MAP"
 
@@ -173,6 +171,6 @@
 cpl_error_code cr2res_dfs_set_groups(cpl_frameset *);
 char * cr2res_dfs_SPEC_colname(int, int) ;
 char * cr2res_dfs_SLIT_FUNC_colname(int, int) ;
-char * cr2res_dfs_TILT_colname(int) ;
+char * cr2res_dfs_SLIT_CURV_colname(int, int) ;
 
 #endif

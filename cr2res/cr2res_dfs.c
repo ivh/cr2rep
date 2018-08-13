@@ -88,7 +88,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_FLAT_BPM_PROCATG) ||
                 !strcmp(tag, CR2RES_EMISSION_LINES_PROCATG) ||
                 !strcmp(tag, CR2RES_UTIL_EXTRACT_1D_PROCATG) ||
-                !strcmp(tag, CR2RES_TILT_COEFFS_PROCATG)) {
+                !strcmp(tag, CR2RES_UTIL_SLIT_CURV_PROCATG)) {
             /* CALIB frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_CALIB);
         }
@@ -98,17 +98,18 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Get the TILT table column name for a given order
+  @brief    Get the SLIT_CURV table column name for a given order
   @param    order       The order number (1->) 
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_TILT_colname(int order)
+char * cr2res_dfs_SLIT_CURV_colname(int order, int trace)
 {
     int         order_loc ;
     if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_TILT_SUFFIX);
+    return cpl_sprintf("%02d_%02d_%s", order_loc, trace, 
+            CR2RES_COL_SLIT_CURV_SUFFIX);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -124,7 +125,8 @@ char * cr2res_dfs_SPEC_colname(int order, int trace)
 {
     int         order_loc ;
     if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_loc, trace,CR2RES_COL_SPEC_SUFFIX);
+    return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
+            CR2RES_COL_SPEC_SUFFIX);
 }
  
 /*----------------------------------------------------------------------------*/

@@ -41,7 +41,7 @@ noinst_HEADERS =    cr2res_bpm.h \
                     cr2res_io.h \
                     cr2res_pfits.h \
                     cr2res_qc.h \
-                    cr2res_slit_curvature.h \
+                    cr2res_slit_curv.h \
                     cr2res_trace.h \
                     cr2res_utils.h \
                     cr2res_wave.h
@@ -60,7 +60,7 @@ libcr2res_la_SOURCES =  cr2res_bpm.c \
                         cr2res_io.c \
                         cr2res_pfits.c \
                         cr2res_qc.c \
-                        cr2res_slit_curvature.c \
+                        cr2res_slit_curv.c \
                         cr2res_trace.c \
                         cr2res_utils.c \
                         cr2res_wave.c

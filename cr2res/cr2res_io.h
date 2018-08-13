@@ -80,11 +80,7 @@ cpl_image * cr2res_io_load_SLITPOS_MAP(
         const char  *   filename,
         int             detector);
 
-cpl_image * cr2res_io_load_TILT_MAP(
-        const char  *   filename,
-        int             detector);
-
-cpl_table * cr2res_io_load_TILT_POLY(
+cpl_table * cr2res_io_load_SLIT_CURV(
         const char  *   filename,
         int             detector);
 
@@ -217,23 +213,15 @@ int cr2res_io_save_SLITPOS_MAP(
         cpl_propertylist        **  ext_plist,
         const char              *   recipe);
 
-int cr2res_io_save_TILT_MAP(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        const cpl_parameterlist *   parlist,
-        hdrl_image              **  data,
-        const cpl_propertylist  *   qc_list,
-        cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
-
-int cr2res_io_save_TILT_POLY(
+int cr2res_io_save_SLIT_CURV(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
+        const char              *   procatg,
+        const char              *   recipe) ;
 
 int cr2res_io_save_SPLICED_1D(
         const char              *   filename,
