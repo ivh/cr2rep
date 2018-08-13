@@ -41,7 +41,7 @@ plugin_LTLIBRARIES = cr2res_cal_detlin.la \
                      cr2res_util_extract.la \
                      cr2res_util_genlines.la \
                      cr2res_util_normflat.la \
-                     cr2res_util_tilt.la \
+                     cr2res_util_slit_curvature.la \
                      cr2res_util_trace.la \
                      cr2res_util_wave.la 
 
@@ -85,10 +85,10 @@ cr2res_util_normflat_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
 cr2res_util_normflat_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
 cr2res_util_normflat_la_DEPENDENCIES = $(LIBCR2RES)
 
-cr2res_util_tilt_la_SOURCES = cr2res_util_tilt.c
-cr2res_util_tilt_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
-cr2res_util_tilt_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
-cr2res_util_tilt_la_DEPENDENCIES = $(LIBCR2RES)
+cr2res_util_slit_curvature_la_SOURCES = cr2res_util_slit_curvature.c
+cr2res_util_slit_curvature_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
+cr2res_util_slit_curvature_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
+cr2res_util_slit_curvature_la_DEPENDENCIES = $(LIBCR2RES)
 
 cr2res_util_trace_la_SOURCES = cr2res_util_trace.c
 cr2res_util_trace_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)

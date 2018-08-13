@@ -31,7 +31,7 @@
 #include <cpl.h>
 #include "hdrl.h"
 
-#include "cr2res_tilt.h"
+#include "cr2res_slit_curvature.h"
 #include "cr2res_utils.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
@@ -232,7 +232,6 @@ static int cr2res_util_tilt(
     cpl_table           *   out_tilt[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     int                 *   orders ;
-    double                  slit_cen_y ;
     int                     det_nr, nb_orders, tilt_degree ;
     cpl_polynomial      **  order_tilts ;
     char                *   out_file;
@@ -317,13 +316,11 @@ static int cr2res_util_tilt(
             cpl_msg_info(__func__, "Process Order %d", orders[i]) ;
             cpl_msg_indent_more() ;
 
-            /* Get the Slit center Position */
-            slit_cen_y = cr2res_pfits_get_ceny(plist, orders[i]) ;
-
             /* Call the Tilt Computation */
-            if ((order_tilts = cr2res_tilt(trace_wave_table, orders[i],
-                            slit_cen_y, display))==NULL) {
-                cpl_msg_error(__func__, "Cannot Compute Tilt") ;
+            if (cr2res_slit_curvature_compute_order(trace_wave_table, orders[i],
+                            display) == CPL_ERROR_NONE) {
+                cpl_msg_error(__func__, 
+                        "Cannot Compute Slit curvature for order %d",orders[i]) ;
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
                 continue ;
