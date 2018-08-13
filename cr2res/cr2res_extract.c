@@ -405,15 +405,12 @@ cpl_vector * cr2res_extract_EXTRACT1D_get_spectrum(
     return out ;
 }
 
+/* TODO: Add Proper Documentation */
 /*----------------------------------------------------------------------------*/
 /**
-  @brief   Main vertical slit decomposition wrapper with swath loop
-  @param trace_wave     The traces table
-  @return   psf_curve, as a cpl_image
-
-  This func takes a single image (contining many orders), and a *single*
-  order definition in the form of central y-corrds., plus the height.
-  Swath widht and oversampling are passed through.
+  @brief    TODO
+  @param 
+  @return
  */
 /*----------------------------------------------------------------------------*/
 cpl_image * cr2res_extract_meas_slitcurv(
@@ -425,7 +422,7 @@ cpl_image * cr2res_extract_meas_slitcurv(
     // load data
     int i, j, k, trace, ntraces;
     int nrows = cpl_table_get_nrow(trace_wave);
-    double _x, _y, _w;
+    double _y, _w;
     volatile cpl_error_code errcode;
     cpl_image * psf_curve = cpl_image_new(3, lenx, CPL_TYPE_DOUBLE);
 
@@ -439,9 +436,6 @@ cpl_image * cr2res_extract_meas_slitcurv(
         // Only one trace, i.e. no shear -> psf_curve eq 0
         return psf_curve;
     }
-
-    cpl_vector * x = cpl_vector_new(lenx);
-    for (i = 0; i < lenx; i++) cpl_vector_set(x, i, (double)i+1);
 
     cpl_polynomial * coef_slit = cpl_polynomial_new(1);
     cpl_matrix * matrix_xy = cpl_matrix_new(1, ntraces);
@@ -461,11 +455,10 @@ cpl_image * cr2res_extract_meas_slitcurv(
     }
 
     // for each point along the order, fit a line through the wavelengths
-    for (i = 0; i < lenx; i++) {
-        _x = cpl_vector_get(x, i);
+    for (i = 1; i <= lenx; i++) {
         for (k = 0; k < ntraces; k++){
-            _y = cpl_polynomial_eval_1d(line[k], _x, NULL);
-            _w = cpl_polynomial_eval_1d(wave[k], _x, NULL);
+            _y = cpl_polynomial_eval_1d(line[k], (double)i, NULL);
+            _w = cpl_polynomial_eval_1d(wave[k], (double)i, NULL);
 
             cpl_matrix_set(matrix_xy, 0, k, _y);
             cpl_vector_set(vec_w, k, _w);
@@ -473,10 +466,10 @@ cpl_image * cr2res_extract_meas_slitcurv(
         errcode = cpl_polynomial_fit(coef_slit, matrix_xy, NULL, vec_w,
                 NULL, FALSE, NULL, &maxdeg);
         pos = 1;
-        cpl_image_set(psf_curve, 2, i+1, cpl_polynomial_get_coeff(coef_slit, 
+        cpl_image_set(psf_curve, 2, i, cpl_polynomial_get_coeff(coef_slit, 
                     &pos));
         pos = 2;
-        cpl_image_set(psf_curve, 3, i+1, cpl_polynomial_get_coeff(coef_slit, 
+        cpl_image_set(psf_curve, 3, i, cpl_polynomial_get_coeff(coef_slit, 
                     &pos));
     }
 
@@ -486,7 +479,6 @@ cpl_image * cr2res_extract_meas_slitcurv(
     }
 
     // delete cpl pointers
-    cpl_vector_delete(x);
     cpl_matrix_delete(matrix_xy);
     cpl_vector_delete(vec_w);
     cpl_polynomial_delete(coef_slit);
@@ -1243,8 +1235,10 @@ static int cr2res_extract_slit_func_vert(
     double * sP_old = cpl_malloc(ncols*sizeof(double)); // double sP_old[ncols];
     double * Aij = cpl_malloc(ny*ny*sizeof(double)); // double Aij[ny*ny];
     double * bj = cpl_malloc(ny*sizeof(double)); // double bj[ny];
-    double * Adiag = cpl_malloc(ncols*3*sizeof(double)); // double Adiag[ncols*3];
-    double * omega = cpl_malloc(ny*nrows*ncols*sizeof(double)); // double omega[ny][nrows][ncols];
+    // double Adiag[ncols*3];
+    double * Adiag = cpl_malloc(ncols*3*sizeof(double)); 
+    // double omega[ny][nrows][ncols];
+    double * omega = cpl_malloc(ny*nrows*ncols*sizeof(double));
     // index as: [iy+(y*ny)+(x*ny*nrows)]
 
     /*
@@ -1266,12 +1260,10 @@ static int cr2res_extract_slit_func_vert(
             d1 = step;
         d2 = step - d1;
 
-        for(y=0; y<nrows; y++)
-        {
+        for(y=0; y<nrows; y++) {
             iy1+=osample;
             iy2+=osample;
-            for(iy=0; iy<ny; iy++)
-            {
+            for(iy=0; iy<ny; iy++) {
                 if(iy<iy1)                omega[iy+(y*ny)+(x*ny*nrows)] = 0.;
                 else if(iy==iy1)          omega[iy+(y*ny)+(x*ny*nrows)] = d1;
                 else if(iy>iy1 && iy<iy2) omega[iy+(y*ny)+(x*ny*nrows)] = step;
@@ -1283,21 +1275,17 @@ static int cr2res_extract_slit_func_vert(
 
     /* Loop through sL , sP reconstruction until convergence is reached */
     iter=0;
-    do
-    {
+    do {
         /* Compute slit function sL */
 
         /* Fill in SLE arrays */
         diag_tot=0.e0;
-        for(iy=0; iy<ny; iy++)
-        {
+        for(iy=0; iy<ny; iy++) {
             bj[iy]=0.e0;
-            for(jy=max(iy-osample,0); jy<=min(iy+osample,ny-1); jy++)
-            {
+            for(jy=max(iy-osample,0); jy<=min(iy+osample,ny-1); jy++) {
             /* printf("iy=%d jy=%d %d\n", iy, jy, iy+ny*(jy-iy+osample)); */
                 Aij[iy+ny*(jy-iy+osample)]=0.e0;
-                for(x=0; x<ncols; x++)
-                {
+                for(x=0; x<ncols; x++) {
                     sum=0.e0;
                     for(y=0; y<nrows; y++)
                         sum+=omega[iy+(y*ny)+(x*ny*nrows)] * 
@@ -1305,8 +1293,7 @@ static int cr2res_extract_slit_func_vert(
                     Aij[iy+ny*(jy-iy+osample)]+=sum*sP[x]*sP[x];
                 }
             }
-            for(x=0; x<ncols; x++)
-            {
+            for(x=0; x<ncols; x++) {
                 sum=0.e0;
                 for(y=0; y<nrows; y++)
                     sum+=omega[iy+(y*ny)+(x*ny*nrows)]*
@@ -1323,8 +1310,7 @@ static int cr2res_extract_slit_func_vert(
         /* Add regularization parts for the slit function */
         Aij[ny*osample]    +=lambda;           /* Main diagonal  */
         Aij[ny*(osample+1)]-=lambda;           /* Upper diagonal */
-        for(iy=1; iy<ny-1; iy++)
-        {
+        for(iy=1; iy<ny-1; iy++) {
             Aij[iy+ny*(osample-1)]-=lambda;      /* Lower diagonal */
             Aij[iy+ny*osample    ]+=lambda*2.e0; /* Main diagonal  */
             Aij[iy+ny*(osample+1)]-=lambda;      /* Upper diagonal */
@@ -1338,8 +1324,7 @@ static int cr2res_extract_slit_func_vert(
 
         /* Normalize the slit function */
         norm=0.e0;
-        for(iy=0; iy<ny; iy++)
-        {
+        for(iy=0; iy<ny; iy++) {
             sL[iy]=bj[iy];
             norm+=sL[iy];
         }
@@ -1347,15 +1332,12 @@ static int cr2res_extract_slit_func_vert(
         for(iy=0; iy<ny; iy++) sL[iy]/=norm;
 
         /* Compute spectrum sP */
-        for(x=0; x<ncols; x++)
-        {
+        for(x=0; x<ncols; x++) {
             Adiag[x+ncols]=0.e0;
             E[x]=0.e0;
-            for(y=0; y<nrows; y++)
-            {
+            for(y=0; y<nrows; y++) {
                 sum=0.e0;
-                for(iy=0; iy<ny; iy++)
-                {
+                for(iy=0; iy<ny; iy++) {
                     sum+=omega[iy+(y*ny)+(x*ny*nrows)]*sL[iy];
                 }
 
@@ -1672,8 +1654,7 @@ static int cr2res_extract_xi_zeta_tensors(
                                 m_zeta[xx][yy]++;
                             }
                         }
-                    }
-                    else if (ix1 > ix2) {
+                    } else if (ix1 > ix2) {
                         /* Subpixel iy shifts to the left from column x */
                         if (x + ix2 >= 0 && x + ix1 < ncols) {
                             xx = x + ix2;
