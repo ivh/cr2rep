@@ -537,7 +537,10 @@ cpl_polynomial * cr2res_get_trace_wave_poly(
     if (strcmp(poly_column, CR2RES_COL_WAVELENGTH) &&
             strcmp(poly_column, CR2RES_COL_UPPER) &&
             strcmp(poly_column, CR2RES_COL_LOWER) &&
-            strcmp(poly_column, CR2RES_COL_ALL)) return NULL ;
+            strcmp(poly_column, CR2RES_COL_ALL) &&
+            strcmp(poly_column, CR2RES_COL_SLIT_CURV_A) &&
+            strcmp(poly_column, CR2RES_COL_SLIT_CURV_B) &&
+            strcmp(poly_column, CR2RES_COL_SLIT_CURV_C)) return NULL ;
 
     /* Get Table index from order and trace */
     index = cr2res_get_trace_table_index(trace_wave, order, trace_nb) ;
@@ -600,7 +603,8 @@ cpl_vector * cr2res_trace_get_ycen(
             coeffs = cpl_table_get_array(trace, CR2RES_COL_ALL, i) ;
             if (coeffs == NULL) {
                 cpl_msg_warning(__func__,
-                    "Row %d should have our array, but error %d",i,cpl_error_get_code());
+                    "Row %d should have our array, but error %d", 
+                    i, cpl_error_get_code());
                 cpl_error_reset();
                 continue;
             }
@@ -898,7 +902,6 @@ int cr2res_trace_add_ord_tra_wav_curv_columns(
         cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_A, i, array_id);
         cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_B, i, array_zero);
         cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_C, i, array_zero);
-
     }
     cpl_array_delete(array_id) ;
     cpl_array_delete(array_zero) ;
