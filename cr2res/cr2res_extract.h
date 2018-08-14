@@ -83,6 +83,4 @@ cpl_vector * cr2res_extract_EXTRACT1D_get_spectrum(
         int             order,
         int             trace_nb) ;
 
-cpl_image * cr2res_extract_meas_slitcurv(cpl_table * trace_wave, int order, int lenx);
-
 #endif

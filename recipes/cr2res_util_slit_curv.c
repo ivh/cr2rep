@@ -372,7 +372,7 @@ static int cr2res_util_slit_curv(
     }
 
     /* Save the new SLIT_CURV table */
-    out_file=cpl_sprintf("%s_polynomials.fits", 
+    out_file=cpl_sprintf("%s_sit_curv.fits", 
             cr2res_get_base_name(cr2res_get_root_name(trace_wave_file)));
     cr2res_io_save_SLIT_CURV(out_file, frameset, parlist, slit_curv, NULL, 
             ext_plist, CR2RES_UTIL_SLIT_CURV_PROCATG, RECIPE_STRING) ;

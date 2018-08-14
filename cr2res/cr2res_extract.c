@@ -405,87 +405,6 @@ cpl_vector * cr2res_extract_EXTRACT1D_get_spectrum(
     return out ;
 }
 
-/* TODO: Add Proper Documentation */
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    TODO
-  @param 
-  @return
- */
-/*----------------------------------------------------------------------------*/
-cpl_image * cr2res_extract_meas_slitcurv(
-        cpl_table   *   trace_wave, 
-        int             order, 
-        int             lenx)
-{
-    // This is very much similar to cr2res_slit_pos in cr2res_utils
-    // load data
-    int i, j, k, trace, ntraces;
-    int nrows = cpl_table_get_nrow(trace_wave);
-    double _y, _w;
-    volatile cpl_error_code errcode;
-    cpl_image * psf_curve = cpl_image_new(3, lenx, CPL_TYPE_DOUBLE);
-
-    // Determine the number of traces for th egiven order
-    ntraces = 0;
-    for (i=0; i < nrows; i++)
-        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER,i,NULL)==order) 
-            ntraces++;
-
-    if (ntraces == 1){
-        // Only one trace, i.e. no shear -> psf_curve eq 0
-        return psf_curve;
-    }
-
-    cpl_polynomial * coef_slit = cpl_polynomial_new(1);
-    cpl_matrix * matrix_xy = cpl_matrix_new(1, ntraces);
-    cpl_vector * vec_w = cpl_vector_new(ntraces);
-    cpl_polynomial *wave[ntraces];
-    cpl_polynomial *line[ntraces];
-
-    cpl_size pos;
-    const cpl_size maxdeg = ntraces-1;
-
-    for (k = 0; k < ntraces; k++) {
-        // load wavelength polynomials, one per trace
-        line[k] = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_ALL, order,
-                k+1);
-        wave[k] = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH,
-                order, k+1);
-    }
-
-    // for each point along the order, fit a line through the wavelengths
-    for (i = 1; i <= lenx; i++) {
-        for (k = 0; k < ntraces; k++){
-            _y = cpl_polynomial_eval_1d(line[k], (double)i, NULL);
-            _w = cpl_polynomial_eval_1d(wave[k], (double)i, NULL);
-
-            cpl_matrix_set(matrix_xy, 0, k, _y);
-            cpl_vector_set(vec_w, k, _w);
-        }
-        errcode = cpl_polynomial_fit(coef_slit, matrix_xy, NULL, vec_w,
-                NULL, FALSE, NULL, &maxdeg);
-        pos = 1;
-        cpl_image_set(psf_curve, 2, i, cpl_polynomial_get_coeff(coef_slit, 
-                    &pos));
-        pos = 2;
-        cpl_image_set(psf_curve, 3, i, cpl_polynomial_get_coeff(coef_slit, 
-                    &pos));
-    }
-
-    for (k = 0; k < ntraces; k++){
-        cpl_polynomial_delete(line[k]);
-        cpl_polynomial_delete(wave[k]);   
-    }
-
-    // delete cpl pointers
-    cpl_matrix_delete(matrix_xy);
-    cpl_vector_delete(vec_w);
-    cpl_polynomial_delete(coef_slit);
-
-    return psf_curve;
-}
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief   Main vertical slit decomposition wrapper with swath loop
@@ -980,7 +899,9 @@ int cr2res_extract_slitdec_curved(
     err_rect = cr2res_image_cut_rectify(err_in, ycen, height);
     ycen_rest = cr2res_vector_get_rest(ycen);
 
-    PSF_curve = cr2res_extract_meas_slitcurv(trace_tab, order, lenx);
+    /* PSF_curve = cr2res_extract_meas_slitcurv(trace_tab, order, lenx);
+     * */
+    PSF_curve =  NULL ;
 
     /* Allocate */
     mask_sw = cpl_malloc(height * swath*sizeof(int));

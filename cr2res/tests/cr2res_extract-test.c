@@ -556,20 +556,6 @@ static void test_cr2res_slitdec_compare_vert_curved(void)
     hdrl_image_delete(img_hdrl);
 }
 
-static void test_cr2res_extract_meas_slitcurv(void)
-{
-    cpl_table * trace_wave = create_table_linear_increase(100, 20, NULL);
-    int order = 1;
-    int lenx = 100;
-
-    cpl_image * res;
-
-    res = cr2res_extract_meas_slitcurv(trace_wave, order, lenx);
-
-    cpl_table_delete(trace_wave);
-    cpl_image_delete(res);
-}
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Run the Unit tests
@@ -584,8 +570,6 @@ int main(void)
     //test_cr2res_slitdec_vert();
     test_cr2res_slitdec_curved();
     //test_cr2res_slitdec_compare_vert_curved();
-
-    // test_cr2res_extract_meas_slitcurv();
 
     return cpl_test_end(0);
 }
