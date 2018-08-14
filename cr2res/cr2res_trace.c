@@ -642,80 +642,27 @@ int cr2res_trace_get_height(
             cpl_size        order_nb,
             cpl_size        trace_nb)
 {
-    int    height;
-    cpl_polynomial ** polys;
+    int                 height;
+    cpl_polynomial  *   poly_upper ;
+    cpl_polynomial  *   poly_lower ;
 
+    /* Check entries */
     if (trace == NULL) return -1 ;
 
-    polys = cr2res_trace_wave_get_polynomials(trace, order_nb, trace_nb);
+    /* Get the trace edges */
+    poly_upper = cr2res_get_trace_wave_poly(trace, CR2RES_COL_UPPER, order_nb, 
+            trace_nb); 
+    poly_lower = cr2res_get_trace_wave_poly(trace, CR2RES_COL_LOWER, order_nb, 
+            trace_nb); 
+    if (poly_upper == NULL || poly_lower == NULL) return -1;
 
-    // no order/trace found
-    if (polys == NULL) return -1;
+    /* Compute the height */
+    height = cr2res_trace_compute_height(poly_upper, poly_lower, 
+            CR2RES_DETECTOR_SIZE);
 
-    height = cr2res_trace_compute_height(polys[0], polys[1], CR2RES_DETECTOR_SIZE);
-
-    cpl_polynomial_delete(polys[0]);
-    cpl_polynomial_delete(polys[1]);
-    cpl_free(polys);
-
+    cpl_polynomial_delete(poly_upper);
+    cpl_polynomial_delete(poly_lower);
     return height;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Select the upper and lower polynomials for the given order/trace
-  @param trace      TRACE table
-  @param order_nb   Wished order
-  @param trace_nb   Wished trace
-  @return   array of two polynomials or NULL in error case
-
-  The polynomials will need to be destroyed by the caller:
-  cpl_polynomial_delete(out[0]) ; -> Upper
-  cpl_polynomial_delete(out[1]) ; -> Lower
-  cpl_free(out) ;
-
- */
-/*----------------------------------------------------------------------------*/
-cpl_polynomial ** cr2res_trace_wave_get_polynomials(
-            cpl_table   *   trace,
-            cpl_size        order_nb,
-            cpl_size        trace_nb)
-{
-    cpl_polynomial  **  polys ;
-    const cpl_array *   coeffs ;
-    int             *   porders ;
-    int             *   ptraces ;
-    int                 nrows, i, found  ;
-    cpl_size            j ;
-
-    /* Check Entries */
-    if (trace == NULL) return NULL ;
-
-    /* Initialise */
-    nrows = cpl_table_get_nrow(trace) ;
-    porders = cpl_table_get_data_int(trace, CR2RES_COL_ORDER);
-    ptraces = cpl_table_get_data_int(trace, CR2RES_COL_TRACENB);
-
-    /* Allocate the returned pointer */
-    polys = cpl_malloc(2 * sizeof(cpl_polynomial*)) ;
-
-    /* Loop on the orders */
-    for (i=0 ; i<nrows ; i++) {
-        /* If order found */
-        if (porders[i] == order_nb && ptraces[i] == trace_nb) {
-            /* Get the Upper polynomial*/
-            coeffs = cpl_table_get_array(trace, CR2RES_COL_UPPER, i) ;
-            polys[0] = cr2res_convert_array_to_poly(coeffs) ;
-            /* Get the Lower polynomial*/
-            coeffs = cpl_table_get_array(trace, CR2RES_COL_LOWER, i) ;
-            polys[1] = cr2res_convert_array_to_poly(coeffs) ;
-            return polys ;
-        }
-    }
-
-    /* Order/trace not found */
-    cpl_free(polys) ;
-    return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/

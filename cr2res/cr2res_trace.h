@@ -68,6 +68,7 @@ cpl_size cr2res_get_trace_table_index(
         const cpl_table     *   trace_wave,
         int                     order,
         int                     trace_nb) ;
+
 cpl_size cr2res_get_traces_number(
         const cpl_table     *   trace_wave,
         int                     order) ;
@@ -82,11 +83,6 @@ int cr2res_trace_get_height(
             cpl_table   *   trace,
             cpl_size        order_nb,
             cpl_size        trace_nb);
-
-cpl_polynomial ** cr2res_trace_wave_get_polynomials(
-        cpl_table   *   trace,
-        cpl_size        order_nb,
-        cpl_size        trace_nb) ;
 
 cpl_vector * cr2res_trace_compute_middle(
         cpl_polynomial  *   trace1,

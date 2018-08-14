@@ -42,7 +42,6 @@ static void test_cr2res_trace_gen_image(void);
 static void test_cr2res_trace_get_order_numbers(void);
 static void test_cr2res_trace_get_ycen(void);
 static void test_cr2res_trace_get_height(void);
-static void test_cr2res_trace_wave_get_polynomials(void);
 static void test_cr2res_trace_compute_middle(void);
 static void test_cr2res_trace_compute_height(void);
 static void test_cr2res_trace_get_trace_ypos(void);
@@ -491,54 +490,6 @@ static void test_cr2res_trace_get_height(void)
 
     //deallocate memory
     cpl_table_delete(trace);
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Select the upper and lower polynomials for the given order/trace
-  @param trace      TRACE table
-  @param order_nb   Wished order
-  @param trace_nb   Wished trace
-  @return   array of two polynomials or NULL in error case
-
-  The polynomials will need to be destroyed by the caller:
-  cpl_polynomial_delete(out[0]) ; -> Upper
-  cpl_polynomial_delete(out[1]) ; -> Lower
-  cpl_free(out) ;
-
- */
-/*----------------------------------------------------------------------------*/
-static void test_cr2res_trace_wave_get_polynomials(void)
-{
-    //define input
-    cpl_table *trace = create_test_table();
-    cpl_size order_nb = 3;
-    cpl_size trace_nb = 1;
-    cpl_size power = 0;
-    cpl_polynomial **res;
-
-    //run test
-    cpl_test_null(cr2res_trace_wave_get_polynomials(NULL, order_nb, trace_nb));
-    cpl_test_null(cr2res_trace_wave_get_polynomials(trace, 100, trace_nb));
-    cpl_test_null(cr2res_trace_wave_get_polynomials(trace, order_nb, 5));
-
-    cpl_test(res = cr2res_trace_wave_get_polynomials(trace, order_nb, trace_nb));
-    //test output
-    // Upper | Lower
-    // 524.126, 0.0171958|  350.398, 0.0170009
-    power = 0;
-    cpl_test_abs(cpl_polynomial_get_coeff(res[0], &power), 524.126, DBL_EPSILON);
-    cpl_test_abs(cpl_polynomial_get_coeff(res[1], &power), 350.398, DBL_EPSILON);
-
-    power = 1;
-    cpl_test_abs(cpl_polynomial_get_coeff(res[0], &power), 0.0171958, DBL_EPSILON);
-    cpl_test_abs(cpl_polynomial_get_coeff(res[1], &power), 0.0170009, DBL_EPSILON);
-
-    //deallocate memory
-    cpl_table_delete(trace);
-    cpl_polynomial_delete(res[0]);
-    cpl_polynomial_delete(res[1]);
-    cpl_free(res);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1162,7 +1113,6 @@ int main(void)
     /* test_cr2res_trace_get_order_numbers(); */
     /* test_cr2res_trace_get_ycen(); */
     /* test_cr2res_trace_get_height(); */
-    /* test_cr2res_trace_wave_get_polynomials(); */
     /* test_cr2res_trace_compute_middle(); */
     /* test_cr2res_trace_compute_height(); */
     /* test_cr2res_trace_get_trace_ypos(); */
