@@ -334,7 +334,7 @@ static int cr2res_util_trace(
         cpl_msg_indent_less() ;
 
         /* Add The remaining Columns to the trace table */
-        if (cr2res_trace_add_order_trace_wavelength_columns(traces[det_nr-1],
+        if (cr2res_trace_add_ord_tra_wav_curv_columns(traces[det_nr-1],
                 flat_file, det_nr) != 0) {
             cpl_msg_warning(__func__, 
                     "Cannot complete the trace table - skip detector");

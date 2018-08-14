@@ -682,8 +682,7 @@ static int cr2res_cal_flat_reduce(
     cpl_msg_indent_less() ;
 
     /* Add The remaining Columns to the trace table */
-    cr2res_trace_add_order_trace_wavelength_columns(traces,
-            first_file, reduce_det) ;
+    cr2res_trace_add_ord_tra_wav_curv_columns(traces, first_file, reduce_det) ;
 
     /* Extract */
     nb_traces = cpl_table_get_nrow(traces) ;
