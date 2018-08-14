@@ -732,14 +732,25 @@ double cr2res_trace_get_trace_ypos(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief   Add ORDER, TRACE, WAVELENGTH columns to the plain trace table
+  @brief   Add additional columns to the plain trace 
+            table
   @param    traces          The plain traces table
   @param    file_for_wl     File used for WL information
   @param    det_nr          Detector
   @return   0 if ok
+  
+  The added columns are:
+    CR2RES_COL_ORDER
+    CR2RES_COL_TRACENB
+    CR2RES_COL_WAVELENGTH
+    CR2RES_COL_SLIT_CURV_A
+    CR2RES_COL_SLIT_CURV_B
+    CR2RES_COL_SLIT_CURV_C
+  The values are set as defaults
+  The resulting table is a proper TRACE_WAVE table
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_trace_add_order_trace_wavelength_columns(
+int cr2res_trace_add_ord_tra_wav_curv_columns(
         cpl_table           *   traces,
         const char          *   file_for_wl,
         int                     det_nr)
@@ -747,13 +758,12 @@ int cr2res_trace_add_order_trace_wavelength_columns(
     cpl_propertylist    *   plist_order_pos ;
     int                 *   orders ;
     cpl_array           *   wl_array ;
+    cpl_array           *   array_id ;
+    cpl_array           *   array_zero ;
     double                  y_pos ;
     int                     order, trace_nb, nb_orders, trace_id, i, j ;
 
     if (traces == NULL) return -1;
-
-    /* Add The Order column using the header */
-    cpl_table_new_column(traces, CR2RES_COL_ORDER, CPL_TYPE_INT) ;
 
     /* Load the Plist */
     plist_order_pos = cpl_propertylist_load(file_for_wl,
@@ -764,6 +774,9 @@ int cr2res_trace_add_order_trace_wavelength_columns(
         cpl_error_reset();
         return -1;
     }
+
+    /* Add The Order column using the header */
+    cpl_table_new_column(traces, CR2RES_COL_ORDER, CPL_TYPE_INT) ;
 
     /* Loop on the traces */
     for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
@@ -818,6 +831,33 @@ int cr2res_trace_add_order_trace_wavelength_columns(
             cpl_array_delete(wl_array) ;
         }
     }
+
+    /* Add the Slit Curvature Coefficients                                  */
+    /* A(X) = X, B(X) = 0, C(X) = 0, X:1->2048                              */
+    /* This means that for X=1024, the Slit curvature polynomial is:        */
+    /*           x = A(1024) + B(1024) * y + C(1024) *y^2                   */
+    /*      i.e. x = 1024                                                   */
+    /*      where x, y are the detector coordinates, (1,1) as Lower left    */
+    cpl_table_new_column_array(traces,CR2RES_COL_SLIT_CURV_A,CPL_TYPE_DOUBLE,2);
+    cpl_table_new_column_array(traces,CR2RES_COL_SLIT_CURV_B,CPL_TYPE_DOUBLE,2);
+    cpl_table_new_column_array(traces,CR2RES_COL_SLIT_CURV_C,CPL_TYPE_DOUBLE,2);
+    array_id = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
+    cpl_array_set(array_id, 0, 0.0) ;
+    cpl_array_set(array_id, 1, 1.0) ;
+    array_zero = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
+    cpl_array_set(array_zero, 0, 0.0) ;
+    cpl_array_set(array_zero, 1, 0.0) ;
+
+    /* Loop on the traces */
+    for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
+        cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_A, i, array_id);
+        cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_B, i, array_zero);
+        cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_C, i, array_zero);
+
+    }
+    cpl_array_delete(array_id) ;
+    cpl_array_delete(array_zero) ;
+
     return 0 ;
 }
 
