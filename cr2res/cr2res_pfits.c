@@ -336,17 +336,16 @@ int cr2res_pfits_get_order(
 /*----------------------------------------------------------------------------*/
 cr2res_decker cr2res_pfits_get_decker_position(const cpl_propertylist * plist)
 {
-    int         decker_value_2 ;
-    const char *    decker_value ;
+    int         decker_value ;
     decker_value = cpl_propertylist_get_int(plist, "ESO INS OPTI8 ENC");
     if (cpl_error_get_code() != CPL_ERROR_NONE) {
         cpl_error_reset();
         return CR2RES_DECKER_INVALID ;
     }
     /* TODO: enter proper encoder values */
-    if (decker_value[0] == 5010) return CR2RES_DECKER_NONE ;
-    if (decker_value[0] == 6010) return CR2RES_DECKER_1_3 ;
-    if (decker_value[0] == 7010) return CR2RES_DECKER_2_4 ;
+    if (decker_value == 5010) return CR2RES_DECKER_NONE ;
+    if (decker_value == 6010) return CR2RES_DECKER_1_3 ;
+    if (decker_value == 7010) return CR2RES_DECKER_2_4 ;
     return CR2RES_DECKER_INVALID ;
 }
 

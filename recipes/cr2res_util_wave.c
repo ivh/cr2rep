@@ -38,6 +38,7 @@
 #include "cr2res_dfs.h"
 #include "cr2res_io.h"
 #include "cr2res_extract.h"
+#include "cr2res_trace.h"
 #include "cr2res_wave.h"
 
 /*-----------------------------------------------------------------------------

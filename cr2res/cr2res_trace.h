@@ -58,6 +58,20 @@ int * cr2res_trace_get_order_numbers(
         cpl_table   *   trace, 
         int         *   nb_orders) ;
 
+cpl_polynomial * cr2res_get_trace_wave_poly(
+        const cpl_table     *   trace_wave,
+        const char          *   poly_column,
+        int                     order,
+        int                     trace_nb) ;
+
+cpl_size cr2res_get_trace_table_index(
+        const cpl_table     *   trace_wave,
+        int                     order,
+        int                     trace_nb) ;
+cpl_size cr2res_get_traces_number(
+        const cpl_table     *   trace_wave,
+        int                     order) ;
+
 cpl_vector * cr2res_trace_get_ycen(
             cpl_table   *   trace,
             cpl_size        order_nb,

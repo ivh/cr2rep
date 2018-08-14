@@ -54,7 +54,6 @@ static void test_cr2res_convert_order_to_idx(void);
 static void test_cr2res_convert_idx_to_order(void);
 static void test_cr2res_convert_array_to_poly(void);
 static void test_cr2res_convert_poly_to_array(void);
-static void test_cr2res_get_trace_table_orders(void);
 static void test_cr2res_detector_shotnoise_model(void);
 static void test_cr2res_demod(void);
 static void test_cr2res_fit_noise(void);
@@ -467,48 +466,6 @@ static void test_cr2res_extract_frameset(void)
     //this also deletes the frames
     cpl_frameset_delete(res);
     cpl_frameset_delete(in);
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-   @brief   Get the TRACE_WAVE table orders list
-   @param   tab         A TRACE_WAVE table
-   @param   nb_orders   The output array size
-   @return  the array of orders or NULL in error case
-    Needs to be deallocated with cpl_free
- */
-/*----------------------------------------------------------------------------*/
-static void test_cr2res_get_trace_table_orders(void)
-{
-    //define input
-    int n = 10;
-    int data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    cpl_table *trace_wave = cpl_table_new(n);
-    cpl_table_wrap_int(trace_wave, data, CR2RES_COL_ORDER); //what table do we need ?
-
-    int cur_order = cpl_table_get(trace_wave, CR2RES_COL_ORDER, 5, NULL);
-
-    cpl_test_eq(cur_order, 6);
-
-    int nb_orders = 10;
-    int *res;
-
-    //run test
-    cpl_test_null(cr2res_get_trace_table_orders(NULL, &nb_orders));
-    cpl_test_null(cr2res_get_trace_table_orders(trace_wave, NULL));
-
-    cpl_test(res = cr2res_get_trace_table_orders(trace_wave, &nb_orders));
-    cpl_test_eq(nb_orders, n);
-
-    //test output
-    //cpl_test_array_abs(res, data, DBL_EPSILON * n ); // This segfaults, unclear why.
-    for (int i = 0; i < n; i++)
-        cpl_test_eq(data[i], res[i]);
-
-    //deallocate memory
-    cpl_free(res);
-    cpl_table_unwrap(trace_wave, CR2RES_COL_ORDER);
-    cpl_table_delete(trace_wave);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -981,7 +938,7 @@ static void test_cr2res_slit_pos()
     cpl_table *tw_decker2 = cpl_table_load("CRIFORS_H24_F_decker2_trace.fits", chip, 0);
 
     int nb_orders;
-    int *orders = cr2res_get_trace_table_orders(tw_decker1, &nb_orders);
+    int *orders = cr2res_trace_get_order_numbers(tw_decker1, &nb_orders);
 
 
     cpl_polynomial *coef_wave[nb_orders];
@@ -1069,7 +1026,6 @@ int main(void)
     // test_cr2res_get_base_name();
     // test_cr2res_get_root_name();
     // test_cr2res_extract_frameset();
-    // test_cr2res_get_trace_table_orders();
     // test_cr2res_get_trace_table_index();
     // test_cr2res_get_trace_wave_poly();
     // test_cr2res_wlestimate_compute();

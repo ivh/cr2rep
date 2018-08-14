@@ -87,16 +87,6 @@ cpl_polynomial * cr2res_wlestimate_compute(
         double          wmin,
         double          wmax) ;
 
-cpl_polynomial * cr2res_get_trace_wave_poly(
-        const cpl_table     *   trace_wave,
-        const char          *   poly_column,
-        int                     order,
-        int                     trace_nb) ;
-cpl_size cr2res_get_trace_table_index(
-        const cpl_table     *   trace_wave,
-        int                     order,
-        int                     trace_nb) ;
-
 int cr2res_convert_order_to_idx(int order) ;
 int cr2res_convert_idx_to_order(int order_idx) ;
 
@@ -104,9 +94,6 @@ cpl_polynomial * cr2res_convert_array_to_poly(const cpl_array * arr) ;
 cpl_array * cr2res_convert_poly_to_array(
         const cpl_polynomial    *   poly,
         int                         size) ;
-int * cr2res_get_trace_table_orders(
-        const cpl_table     *   trace_wave,
-        int                 *   nb_orders) ;
 
 cpl_error_code cr2res_detector_shotnoise_model(
         const cpl_image *   ima_data,

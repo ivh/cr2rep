@@ -35,6 +35,7 @@
 #include "cr2res_io.h"
 #include "cr2res_pfits.h"
 #include "cr2res_utils.h"
+#include "cr2res_trace.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
@@ -67,10 +68,41 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
         int                     display)
 {
     cpl_polynomial  **  out_polys ;
-    int                 i ;
+    cpl_size            ntraces, i ;
+    cpl_polynomial  *   current_trace ;
+    cpl_polynomial  **  order_other_traces ;
+
+    /* Check Entries */
+    if (trace_wave == NULL) return NULL ;
+
+    /* Allocate Output array */
     out_polys = cpl_malloc(CR2RES_DETECTOR_SIZE * sizeof(cpl_polynomial*)) ;
+
+    /* Get the number of traces */
+    ntraces = cr2res_get_traces_number(trace_wave, order) ;
+
+
+
+
+
+
+    /* Loop on all x positiona */
     for (i=0 ; i<CR2RES_DETECTOR_SIZE ; i++) {
         out_polys[i] = cpl_polynomial_new(1) ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
     return out_polys ;
 }
