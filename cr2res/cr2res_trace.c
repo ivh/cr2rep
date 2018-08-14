@@ -129,9 +129,14 @@ cpl_table * cr2res_trace(
     /* Initialise */
 
     /* TODO This needs to come from a static calibration, each band */
+    /* Alternative: remove altogether and have single kernel size value */
     int                     trace_sep=80;
-    /* TODO Set to read-noise later, also input-para */
-    double                  thresh=100.0;
+
+    /* TODO Should be set to noise level*/
+    /* Best to calcule from input image, not relying on external value */
+    /* E.g. mask with thresh=0 once, measure noise in non-signal regions */
+    /* and do a second pass with this thresh.  */
+    double                  thresh=0.0;
 
     /* Apply detection */
     cpl_msg_info(__func__, "Detect the signal") ;
@@ -508,7 +513,7 @@ cpl_vector * cr2res_trace_get_ycen(
 
     // if no order found
     if (poly == NULL){
-        cpl_msg_warning(__func__, 
+        cpl_msg_warning(__func__,
                 "Cannot find trace %"CPL_SIZE_FORMAT" of order %"CPL_SIZE_FORMAT,
                 trace_nb, order_nb);
         return NULL;
