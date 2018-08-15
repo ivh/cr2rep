@@ -792,7 +792,6 @@ int cr2res_extract_slitdec_vert(
 int cr2res_extract_slitdec_curved(
         hdrl_image  *   img_hdrl,
         cpl_table   *   trace_tab,
-        cpl_vector  *   shear,
         int             order,
         int             trace_id,
         int             height,
@@ -838,10 +837,10 @@ int cr2res_extract_slitdec_curved(
     cpl_polynomial  **  slitcurves_sw;
 
     double              pixval, errval, img_median, norm, model_unc, img_unc,
-                        unc;
+                        unc, delta_tmp;
     int                 i, j, k, nswaths, halfswath, row, col, x, y, ny_os,
                         sw_start, sw_end, badpix, y_lower_limit, y_upper_limit,
-                        delta_x;
+                        delta_x, a, b, c;
 
     /* Check Entries */
     if (img_hdrl == NULL || trace_tab == NULL) return -1 ;
@@ -911,6 +910,20 @@ int cr2res_extract_slitdec_curved(
     slitcurve_C = cr2res_get_trace_wave_poly(trace_tab, CR2RES_COL_SLIT_CURV_C,
                     order, trace_id);
 
+    /* Maximum horizontal shift in detector pixels due to slit image curv. */
+	delta_x=1;
+	for (i=0; i<CR2RES_DETECTOR_SIZE; i+=64){
+		/* Do a coarse sweep through the order and evaluate the slitcurve */
+		/* polynomials at  +- height/2, update the value*/
+		a = cpl_polynomial_eval_1d(slitcurve_A, i, NULL);
+		b =	cpl_polynomial_eval_1d(slitcurve_B, i, NULL);
+		c =	cpl_polynomial_eval_1d(slitcurve_C, i, NULL);
+		delta_tmp = max( fabs(a+(c*height/2 + b)*height/2),
+				fabs(a+(c*height/-2 + b)*height/-2));
+		if (delta_tmp > delta_x) delta_x = (int)ceil(delta_tmp);
+	}
+	cpl_msg_debug(__func__, "Max delta_x from slit curvature is %d pix.", delta_x);
+
     /* Allocate */
     mask_sw = cpl_malloc(height * swath*sizeof(int));
     model_sw = cpl_malloc(height * swath*sizeof(double));
@@ -936,11 +949,6 @@ int cr2res_extract_slitdec_curved(
     for (j=0; j < ny_os; j++) cpl_vector_set(slitfu_sw, j, 0);
     slitfu_sw_data = cpl_vector_get_data(slitfu_sw);
     weights_sw = cpl_vector_new(swath);
-
-    /* Maximum horizontal shift in detector pixels due to slit image curv. */
-    // TODO remove shear
-    delta_x = max(fabs(cpl_vector_get_max(shear)),
-            fabs(cpl_vector_get_min(shear))) * height / 2 + 1;
 
     /* Pre-calculate the weights for overlapping swaths*/
     for (i=0; i < swath/2; i++) {

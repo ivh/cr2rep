@@ -49,7 +49,6 @@ int cr2res_extract_slitdec_vert(
 int cr2res_extract_slitdec_curved(
         hdrl_image  *   img_hdrl,
         cpl_table   *   trace_tab,
-        cpl_vector  *   shear,
         int             order,
         int             trace_id,
         int             height,
