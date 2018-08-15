@@ -24,6 +24,8 @@
 /*-----------------------------------------------------------------------------
                                 Includes
  -----------------------------------------------------------------------------*/
+#include <locale.h>
+#include <string.h>
 
 #include <cpl.h>
 #include "hdrl.h"
@@ -174,10 +176,10 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.sum_only",
-            CPL_TYPE_BOOL, "Flag to only sum along detector",
+    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.method",
+            CPL_TYPE_STRING, "Extraction method (SUM / OPT_VERT / OPT_CURV )",
             "cr2res.cr2res_util_extract", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "sum_only");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "method");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -257,12 +259,13 @@ static int cr2res_util_extract(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param;
-    int                     oversample, swath_width, sum_only,
+    int                     oversample, swath_width,
                             reduce_det, reduce_order, reduce_trace ;
     double                  smooth_slit ;
     cpl_frame           *   fr ;
     const char          *   science_file ;
     const char          *   trace_file ;
+    const char          *   sval ;
     char                *   out_file;
     hdrl_image          *   model_master[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slit_func_tab[CR2RES_NB_DETECTORS] ;
@@ -276,6 +279,7 @@ static int cr2res_util_extract(
     hdrl_image          *   science_hdrl;
     int                     det_nr, ext_nr, extr_height, nb_traces, trace_id,
                             order, i ;
+    cr2res_extr_method      extr_method;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -288,9 +292,6 @@ static int cr2res_util_extract(
             "cr2res.cr2res_util_extract.smooth_slit");
     smooth_slit = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.sum_only");
-    sum_only = cpl_parameter_get_bool(param);
-    param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_extract.detector");
     reduce_det = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
@@ -302,6 +303,18 @@ static int cr2res_util_extract(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_extract.height");
     extr_height = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_extract.method");
+    sval = cpl_parameter_get_string(param);
+    if (!strcmp(sval, ""))              extr_method = CR2RES_EXTR_OPT_VERT;
+    else if (!strcmp(sval, "OPT_VERT")) extr_method = CR2RES_EXTR_OPT_VERT;
+    else if (!strcmp(sval, "OPT_CURV")) extr_method = CR2RES_EXTR_OPT_CURV;
+    else if (!strcmp(sval, "SUM"))      extr_method = CR2RES_EXTR_SUM;
+    else {
+        cpl_msg_error(__func__, "Invalid Extraction Method specified");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1;
+    }
 
     /* Check Parameters */
     /* TODO */
@@ -404,10 +417,10 @@ static int cr2res_util_extract(
             cpl_msg_indent_more() ;
 
             /* Call the Extraction */
-            if (sum_only) {
+            if (extr_method == CR2RES_EXTR_SUM) {
                 /* Call the SUM ONLY extraction */
                 if (cr2res_extract_sum_vert(science_ima, trace_table, order,
-                            trace_id, extr_height, &(slit_func[i]), 
+                            trace_id, extr_height, &(slit_func[i]),
                             &(spectrum[i]), &model_tmp) != 0) {
                     cpl_msg_error(__func__, "Cannot (sum-)extract the trace") ;
                     slit_func[i] = NULL ;
@@ -417,15 +430,15 @@ static int cr2res_util_extract(
                     cpl_msg_indent_less() ;
                     continue ;
                 }
-            } else {
-                /* Call the SLIT DECOMPOSITION */
+            } else if (extr_method == CR2RES_EXTR_OPT_VERT) {
+                /* Call the vertical SLIT DECOMPOSITION */
                 science_hdrl = hdrl_image_create(science_ima, NULL);
                 if (cr2res_extract_slitdec_vert(science_hdrl, trace_table, order,
                             trace_id, extr_height, swath_width, oversample,
                             smooth_slit, &(slit_func[i]), &(spectrum[i]),
                             &model_tmp) != 0) {
-                    cpl_msg_error(__func__, 
-                            "Cannot (slitdec-) extract the trace") ;
+                    cpl_msg_error(__func__,
+                            "Cannot (slitdec-vert-) extract the trace") ;
                     slit_func[i] = NULL ;
                     spectrum[i] = NULL ;
                     model_tmp = NULL ;
@@ -433,7 +446,26 @@ static int cr2res_util_extract(
                     cpl_msg_indent_less() ;
                     continue ;
                 }
-            }
+            } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
+                /* Call the curved SLIT DECOMPOSITION */
+                science_hdrl = hdrl_image_create(science_ima, NULL);
+                if (cr2res_extract_slitdec_curved(science_hdrl, trace_table, order,
+                            trace_id, extr_height, swath_width, oversample,
+                            smooth_slit, &(slit_func[i]), &(spectrum[i]),
+                            &model_tmp) != 0) {
+                    cpl_msg_error(__func__,
+                            "Cannot (slitdec-curved-) extract the trace") ;
+                    slit_func[i] = NULL ;
+                    spectrum[i] = NULL ;
+                    model_tmp = NULL ;
+                    cpl_error_reset() ;
+                    cpl_msg_indent_less() ;
+                    continue ;
+                }
+            } else {
+				cpl_msg_error(__func__, "Extraction method unknown. This is a"
+										"bug in parameter checking above.");
+			}
 
             /* Update the model global image */
             if (model_tmp != NULL) {

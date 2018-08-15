@@ -49,6 +49,12 @@ typedef enum {
     CR2RES_DECKER_2_4
 } cr2res_decker ;
 
+typedef enum {
+    CR2RES_EXTR_SUM,
+    CR2RES_EXTR_OPT_VERT,
+    CR2RES_EXTR_OPT_CURV,
+} cr2res_extr_method ; 
+
 /*-----------------------------------------------------------------------------
                                        Prototypes
  -----------------------------------------------------------------------------*/
