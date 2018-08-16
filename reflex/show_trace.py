@@ -20,19 +20,19 @@ def compare_extract(flat, trace, extract, title=''):
         #ax.set_ylabel('trace')
         #ax.set_yticks([-1, 0, 1, 2, 3,4 ,5, 6, 7, 8, 9])
         ax.set_title('CHIP%s' % i)
-        
+
         edata = extract['CHIP%s' % i].data
         tdata = trace['CHIP%s' % i].data
         fdata = flat[i].data
-        
+
 
         if edata is None or tdata is None or fdata is None:
             print('No data for CHIP%s, skipping.' % i)
-            continue   
+            continue
 
         ax.imshow(fdata)
 
-        for alla, upper, lower, order, tracenb, wave in tdata:
+        for alla, upper, lower, order, tracenb, wave, curvA, curvB, curvC in tdata:
             pol = np.polyval(upper[::-1], X)
             ax.plot(X, pol, ':w')
 
@@ -52,14 +52,14 @@ def compare_extract(flat, trace, extract, title=''):
 
         data = np.empty((9, 2048))
         for j in range(2048):
-            data[:len(edata[j][:9]), j] = edata[j][:9] 
+            data[:len(edata[j][:9]), j] = edata[j][:9]
 
         for i, (alla, upper, lower, order, tracenb, wave) in enumerate(tdata[:9]):
             x = np.polyval(wave[::-1], X)
             y = data[i]
             ax.plot(x, y)
         #ax.imshow(data, aspect=50, interpolation='nearest')
-    
+
     plt.show()
 
 
@@ -78,15 +78,15 @@ def compare_extract2(flat, trace, extract, title=''):
         #ax.set_ylabel('trace')
         #ax.set_yticks([-1, 0, 1, 2, 3,4 ,5, 6, 7, 8, 9])
         ax.set_title('CHIP%s' % i)
-        
+
         edata = extract['CHIP%s' % i].data
         tdata = trace['CHIP%s' % i].data
         fdata = flat[i].data
-        
+
 
         if edata is None or tdata is None or fdata is None:
             print('No data for CHIP%s, skipping.' % i)
-            continue   
+            continue
 
         ax.imshow(fdata)
 
@@ -107,11 +107,11 @@ def compare_extract2(flat, trace, extract, title=''):
         ax = FIG.add_subplot(2, 3, i+3)
         ax.set_ylabel('trace')
         ax.set_yticks([-1, 0, 1, 2, 3,4 ,5, 6, 7, 8, 9])
-        
-        data = edata.view('>f8', np.ndarray).reshape((2048, -1)).swapaxes(0, 1)  
+
+        data = edata.view('>f8', np.ndarray).reshape((2048, -1)).swapaxes(0, 1)
 
         ax.imshow(data, aspect=50, interpolation='nearest')
-    
+
     plt.show()
 
 def compare(flat, trace):
@@ -134,7 +134,7 @@ def compare(flat, trace):
         if tdata is None:
             print('No data for CHIP%s, skipping.' % i)
             continue
-        for alla, upper, lower, order, tracenb, wave in tdata:
+        for alla, upper, lower, order, tracenb, wave, curvA, curvB, curvC in tdata:
             pol = np.polyval(upper[::-1], X)
             ax.plot(X, pol, ':w')
 
@@ -162,4 +162,4 @@ if __name__ == '__main__':
     print('Comparing trace %s to image %s' % (fname_trace, fname_flat))
     compare(fname_flat, fname_trace)
 
-    
+
