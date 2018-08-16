@@ -35,7 +35,8 @@
 cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
         cpl_table           *   trace_wave,
         int                     order,
-        int                     trace_nb,
+        int                     trace_id,
+        int                     max_curv_degree,
         int                     display) ;
 
 #endif

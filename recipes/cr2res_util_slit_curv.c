@@ -336,13 +336,14 @@ static int cr2res_util_slit_curv(
             /* Call the Slit Curvature Computation */
             if ((curvatures = cr2res_slit_curv_compute_order_trace(
                             trace_wave_in, order, trace_id, 
-                            display)) == NULL) {
-                cpl_msg_error(__func__, "Cannot Compute Slit curvature");
+                            display, curv_degree)) == NULL) {
+                cpl_msg_error(__func__, 
+                        "Cannot Compute Slit curvature for Order %d",
+                        order);
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
                 continue ;
             }
-
             /* Store the Solution in the table */
             col_name = cr2res_dfs_SLIT_CURV_colname(order, trace_id) ;
             cpl_table_new_column_array(slit_curv[det_nr-1], col_name, 
