@@ -921,12 +921,14 @@ int cr2res_extract_slitdec_curved(
 	delta_x=1;
 	for (i=0; i<CR2RES_DETECTOR_SIZE; i+=64){
 		/* Do a coarse sweep through the order and evaluate the slitcurve */
-		/* polynomials at  +- height/2, update the value*/
+		/* polynomials at  +- height/2, update the value. */
+        /* Note: The index i is subtracted from a because the polys have */
+        /* their origin at the edge of the full frame */
 		a = cpl_polynomial_eval_1d(slitcurve_A, i, NULL);
 		b =	cpl_polynomial_eval_1d(slitcurve_B, i, NULL);
 		c =	cpl_polynomial_eval_1d(slitcurve_C, i, NULL);
-		delta_tmp = max( fabs(a+(c*height/2 + b)*height/2),
-				fabs(a+(c*height/-2 + b)*height/-2));
+		delta_tmp = max( fabs(a-i+(c*height/2 + b)*height/2),
+				fabs(a-i+(c*height/-2 + b)*height/-2));
 		if (delta_tmp > delta_x) delta_x = (int)ceil(delta_tmp);
 	}
 	cpl_msg_debug(__func__, "Max delta_x from slit curvature is %d pix.", delta_x);
@@ -1004,11 +1006,11 @@ int cr2res_extract_slitdec_curved(
                 cpl_polynomial_eval_1d(slitcurve_B, col, NULL));
             pow = 0;
             cpl_polynomial_set_coeff(slitcurves_sw[col], &pow,
-                cpl_polynomial_eval_1d(slitcurve_A, col, NULL));
+                cpl_polynomial_eval_1d(slitcurve_A, col, NULL) - col);
+                /* subtract col because we want origin relative to here */
+            cpl_msg_debug(__func__, "A: %.1f %d", cpl_polynomial_eval_1d(slitcurve_A, col, NULL), col);
         }
 
-        // img_median = cpl_image_get_median(img_sw);
-        // for (j=0;j<ny_os;j++) cpl_vector_set(slitfu_sw,j,img_median);
         img_sw_data = cpl_image_get_data_double(img_sw);
         err_sw_data = cpl_image_get_data_double(err_sw);
         img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
