@@ -909,6 +909,13 @@ int cr2res_extract_slitdec_curved(
                     order, trace_id);
     slitcurve_C = cr2res_get_trace_wave_poly(trace_tab, CR2RES_COL_SLIT_CURV_C,
                     order, trace_id);
+    if ((slitcurve_A == NULL) || (slitcurve_B == NULL) || (slitcurve_C == NULL)){
+        cpl_msg_error(__func__, "No (or incomplete) slitcurve data found in trace table");
+        cpl_vector_delete(ycen);
+        cpl_vector_delete(bins_begin);
+        cpl_vector_delete(bins_end);
+        return -1;
+    }
 
     /* Maximum horizontal shift in detector pixels due to slit image curv. */
 	delta_x=1;
@@ -1108,7 +1115,7 @@ int cr2res_extract_slitdec_curved(
     cr2res_image_insert_rect(model_rect, ycen, img_out);
 
     // divide by nswaths to make the slitfu into the average over all swaths.
-    cpl_vector_divide_scalar(slitfu,nswaths);
+    cpl_vector_divide_scalar(slitfu, nswaths);
 
     // TODO: Update BPM in img_out
 
