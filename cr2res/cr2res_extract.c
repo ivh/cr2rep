@@ -919,7 +919,7 @@ int cr2res_extract_slitdec_curved(
 
     /* Maximum horizontal shift in detector pixels due to slit image curv. */
 	delta_x=1;
-	for (i=0; i<CR2RES_DETECTOR_SIZE; i+=64){
+	for (i=0; i<CR2RES_DETECTOR_SIZE; i+=swath/2){
 		/* Do a coarse sweep through the order and evaluate the slitcurve */
 		/* polynomials at  +- height/2, update the value. */
         /* Note: The index i is subtracted from a because the polys have */
@@ -1004,13 +1004,13 @@ int cr2res_extract_slitdec_curved(
                 cpl_polynomial_eval_1d(slitcurve_C, col, NULL));
 
             pow = 2;
-            cpl_polynomial_set_coeff(slitcurves_sw[col], &pow,
-                cpl_polynomial_eval_1d(slitcurve_C, col, NULL));
+            cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow,
+                cpl_polynomial_eval_1d(slitcurve_C, col-1, NULL));
             pow = 1;
-            cpl_polynomial_set_coeff(slitcurves_sw[col], &pow,
+            cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow,
                 cpl_polynomial_eval_1d(slitcurve_B, col, NULL));
             pow = 0;
-            cpl_polynomial_set_coeff(slitcurves_sw[col], &pow,
+            cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow,
                 cpl_polynomial_eval_1d(slitcurve_A, col, NULL) - col);
                 /* subtract col because we want origin relative to here */
         }
