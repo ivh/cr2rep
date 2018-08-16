@@ -273,12 +273,13 @@ static int cr2res_util_extract(
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_table ;
     cpl_image           *   science_ima ;
+    cpl_image           *   science_err ;
     cpl_bivector          **  spectrum ;
     cpl_vector          **  slit_func ;
     hdrl_image          *   model_tmp ;
     hdrl_image          *   science_hdrl;
     int                     det_nr, ext_nr, extr_height, nb_traces, trace_id,
-                            order, i ;
+                            order, i, ext_nr_err;
     cr2res_extr_method      extr_method;
 
     /* RETRIEVE INPUT PARAMETERS */
@@ -346,9 +347,10 @@ static int cr2res_util_extract(
         extract_tab[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
 
-        /* Get Extension Number */
+        /* Get Extension Numbers */
         ext_nr = cr2res_io_get_ext_idx(science_file, det_nr, 1) ;
         if (ext_nr < 0) continue ;
+        ext_nr_err = cr2res_io_get_ext_idx(science_file, det_nr, 0) ;
 
         /* Store the extenѕion header for product saving */
         ext_plist[det_nr-1] = cpl_propertylist_load(science_file, ext_nr) ;
@@ -384,11 +386,32 @@ static int cr2res_util_extract(
             continue ;
         }
 
+        /* Load the corresponding errors */
+        if (ext_nr_err > 0) {
+            cpl_msg_info(__func__, "Load the Errors") ;
+
+            /* Load the image */
+            if ((science_err = cpl_image_load(science_file, CPL_TYPE_FLOAT,
+                            0, ext_nr_err)) == NULL) {
+                cpl_table_delete(trace_table) ;
+                cpl_image_delete(science_ima);
+                cpl_msg_error(__func__, "Failed to load the error - skip detector");
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+            science_hdrl = hdrl_image_create(science_ima, science_err);
+            cpl_image_delete(science_err);
+        } else {
+            science_hdrl = hdrl_image_create(science_ima, NULL);
+        }
+
         /* Allocate Data containers */
         spectrum = cpl_malloc(nb_traces * sizeof(cpl_bivector *)) ;
         slit_func = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
         model_master[det_nr-1] = hdrl_image_create(science_ima, NULL) ;
         hdrl_image_mul_scalar(model_master[det_nr-1], (hdrl_value){0.0, 0.0}) ;
+        cpl_image_delete(science_ima);
 
         /* Loop over the traces and extract them */
         for (i=0 ; i<nb_traces ; i++) {
@@ -419,6 +442,7 @@ static int cr2res_util_extract(
             /* Call the Extraction */
             if (extr_method == CR2RES_EXTR_SUM) {
                 /* Call the SUM ONLY extraction */
+                // TODO: use the HDRL image and return error
                 if (cr2res_extract_sum_vert(science_ima, trace_table, order,
                             trace_id, extr_height, &(slit_func[i]),
                             &(spectrum[i]), &model_tmp) != 0) {
@@ -432,7 +456,6 @@ static int cr2res_util_extract(
                 }
             } else if (extr_method == CR2RES_EXTR_OPT_VERT) {
                 /* Call the vertical SLIT DECOMPOSITION */
-                science_hdrl = hdrl_image_create(science_ima, NULL);
                 if (cr2res_extract_slitdec_vert(science_hdrl, trace_table, order,
                             trace_id, extr_height, swath_width, oversample,
                             smooth_slit, &(slit_func[i]), &(spectrum[i]),
@@ -448,7 +471,6 @@ static int cr2res_util_extract(
                 }
             } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
                 /* Call the curved SLIT DECOMPOSITION */
-                science_hdrl = hdrl_image_create(science_ima, NULL);
                 if (cr2res_extract_slitdec_curved(science_hdrl, trace_table, order,
                             trace_id, extr_height, swath_width, oversample,
                             smooth_slit, &(slit_func[i]), &(spectrum[i]),
@@ -475,7 +497,7 @@ static int cr2res_util_extract(
 
             cpl_msg_indent_less() ;
         }
-        cpl_image_delete(science_ima) ;
+        hdrl_image_delete(science_hdrl) ;
 
         /* Create the slit_func_tab for the current detector */
         slit_func_tab[det_nr-1] = cr2res_extract_SLITFUNC_create(
