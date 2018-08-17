@@ -95,6 +95,7 @@
 
 /* For  CR2RES_FLAT_TRACE_WAVE_PROCATG */
 /*      CR2RES_UTIL_TRACE_WAVE_PROCATG */
+/*      CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG */
 /* Table with Traces polynomials, orders, trace_nb wavelengths */
 /*                  1 trace per Row */
 #define CR2RES_TRACE_WAVE_PROTYPE           "TRACE_WAVE"
@@ -155,6 +156,7 @@
 
 /* Produced by cr2res_util_slit_curv */
 #define CR2RES_UTIL_SLIT_CURV_PROCATG       "UTIL_SLIT_CURV"
+#define CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "UTIL_SLIT_CURV_TRACE_WAVE"
 
 /* TODO */
 /* Produced by cr2res_util_wave */

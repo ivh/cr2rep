@@ -39,4 +39,11 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
         int                     max_curv_degree,
         int                     display) ;
 
+int cr2res_slit_curv_fit_coefficients(
+        cpl_polynomial  **  curvatures,
+        int                 nb_polys,
+        cpl_polynomial  **  slit_polya,
+        cpl_polynomial  **  slit_polyb,
+        cpl_polynomial  **  slit_polyc) ;
+
 #endif

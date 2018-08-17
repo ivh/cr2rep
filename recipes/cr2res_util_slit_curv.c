@@ -235,10 +235,13 @@ static int cr2res_util_slit_curv(
     cpl_frame           *   fr ;
     cpl_polynomial      **  curvatures ;
     const char          *   trace_wave_file ;
-    cpl_table           *   trace_wave_in ;
     cpl_table           *   trace_wave[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slit_curv[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
+    cpl_polynomial      *   slit_polya ;
+    cpl_polynomial      *   slit_polyb ;
+    cpl_polynomial      *   slit_polyc ;
+    cpl_array           *   slit_array ;
     int                     det_nr, order, trace_id, nb_traces, curv_degree ;
     char                *   col_name ;
     char                *   out_file;
@@ -285,9 +288,9 @@ static int cr2res_util_slit_curv(
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
         /* Initialise */
-        trace_wave[det_nr-1] = NULL ;
         slit_curv[det_nr-1] = cpl_table_new(CR2RES_DETECTOR_SIZE) ;
         ext_plist[det_nr-1] = NULL ;
+        trace_wave[det_nr-1] = NULL ;
 
         /* Store the extenѕion header for product saving */
         ext_plist[det_nr-1] = cpl_propertylist_load(trace_wave_file,
@@ -301,22 +304,24 @@ static int cr2res_util_slit_curv(
 
         /* Load the TRACE_WAVE table of this detector */
         cpl_msg_info(__func__, "Load the TRACE_WAVE table") ;
-        if ((trace_wave_in = cr2res_io_load_TRACE_WAVE(trace_wave_file,
+        if ((trace_wave[det_nr-1] = cr2res_io_load_TRACE_WAVE(trace_wave_file,
                         det_nr)) == NULL) {
             cpl_msg_error(__func__,"Failed to load table - skip detector");
             cpl_error_reset() ;
             cpl_msg_indent_less() ;
             continue ;
         }
-        nb_traces = cpl_table_get_nrow(trace_wave_in) ;
+        nb_traces = cpl_table_get_nrow(trace_wave[det_nr-1]) ;
 
         /* Allocate Data containers */
 
         /* Loop over the traces and get the slit curvature */
         for (i=0 ; i<nb_traces ; i++) {
             /* Get Order and trace id */
-            order = cpl_table_get(trace_wave_in, CR2RES_COL_ORDER, i, NULL) ;
-            trace_id = cpl_table_get(trace_wave_in, CR2RES_COL_TRACENB,i,NULL) ;
+            order = cpl_table_get(trace_wave[det_nr-1], CR2RES_COL_ORDER, i, 
+                    NULL) ;
+            trace_id = cpl_table_get(trace_wave[det_nr-1], CR2RES_COL_TRACENB, 
+                    i, NULL) ;
 
             /* Check if this order needs to be skipped */
             if (reduce_order > -1 && order != reduce_order) {
@@ -335,7 +340,7 @@ static int cr2res_util_slit_curv(
 	
             /* Call the Slit Curvature Computation */
             if ((curvatures = cr2res_slit_curv_compute_order_trace(
-                            trace_wave_in, order, trace_id, 
+                            trace_wave[det_nr-1], order, trace_id, 
                             display, curv_degree)) == NULL) {
                 cpl_msg_error(__func__, 
                         "Cannot Compute Slit curvature for Order %d",
@@ -344,7 +349,29 @@ static int cr2res_util_slit_curv(
                 cpl_msg_indent_less() ;
                 continue ;
             }
-            /* Store the Solution in the table */
+
+            /* Fill the SLIT_CURVE_A/B/C for the current trace */
+            if (cr2res_slit_curv_fit_coefficients(curvatures,
+                        CR2RES_NB_DETECTORS,
+                        &slit_polya, &slit_polyb, &slit_polyc) == 0) {
+                slit_array = cr2res_convert_poly_to_array(slit_polya, 3) ;
+                cpl_polynomial_delete(slit_polya) ;
+                cpl_table_set_array(trace_wave[det_nr-1],
+                        CR2RES_COL_SLIT_CURV_A, i, slit_array) ;
+                cpl_array_delete(slit_array) ;
+                slit_array = cr2res_convert_poly_to_array(slit_polyb, 3) ;
+                cpl_polynomial_delete(slit_polyb) ;
+                cpl_table_set_array(trace_wave[det_nr-1],
+                        CR2RES_COL_SLIT_CURV_B, i, slit_array) ;
+                cpl_array_delete(slit_array) ;
+                slit_array = cr2res_convert_poly_to_array(slit_polyc, 3) ;
+                cpl_polynomial_delete(slit_polyc) ;
+                cpl_table_set_array(trace_wave[det_nr-1],
+                        CR2RES_COL_SLIT_CURV_C, i, slit_array) ;
+                cpl_array_delete(slit_array) ;
+            } 
+
+            /* Store the Solution in the table SLIT_CURV */
             col_name = cr2res_dfs_SLIT_CURV_colname(order, trace_id) ;
             cpl_table_new_column_array(slit_curv[det_nr-1], col_name, 
                     CPL_TYPE_DOUBLE, curv_degree+1) ; 
@@ -367,21 +394,27 @@ static int cr2res_util_slit_curv(
             cpl_free(curvatures) ; 
             cpl_msg_indent_less() ;
         }
-        cpl_table_delete(trace_wave_in) ;
-
         cpl_msg_indent_less() ;
     }
 
     /* Save the new SLIT_CURV table */
-    out_file=cpl_sprintf("%s_sit_curv.fits", 
+    out_file=cpl_sprintf("%s_slit_curv.fits", 
             cr2res_get_base_name(cr2res_get_root_name(trace_wave_file)));
     cr2res_io_save_SLIT_CURV(out_file, frameset, parlist, slit_curv, NULL, 
             ext_plist, CR2RES_UTIL_SLIT_CURV_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
+    /* Save the new TRACE_WAVE table */
+    out_file=cpl_sprintf("%s_trace_wave.fits", 
+            cr2res_get_base_name(cr2res_get_root_name(trace_wave_file)));
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, trace_wave, NULL, 
+            ext_plist, CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG,RECIPE_STRING) ;
+    cpl_free(out_file);
+
     /* Free and return */
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
         if (slit_curv[i] != NULL) cpl_table_delete(slit_curv[i]) ;
+        if (trace_wave[i] != NULL) cpl_table_delete(trace_wave[i]) ;
         if (ext_plist[i] != NULL)
             cpl_propertylist_delete(ext_plist[i]) ;
     }

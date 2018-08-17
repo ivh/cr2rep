@@ -111,8 +111,6 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
     /* Check Entries */
     if (trace_wave == NULL) return NULL ;
 
-    /* Initialise */
-
     /* Get the number of traces */
     ntraces = cr2res_get_nb_traces_with_wavelength(trace_wave, order) ;
     if (ntraces < 2) return NULL ;
@@ -160,7 +158,10 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
 
             /* Search for the next trace in the current order */
             if (cur_order != order || cur_trace_id == trace_id ||
-                    cur_wave_poly_in == NULL) continue ;
+                    cur_wave_poly_in == NULL) {
+                cpl_polynomial_delete(cur_wave_poly_in) ;
+                continue ;
+            }
 
             /* The current trace is used for the fit */
             idx++ ;
@@ -209,6 +210,30 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
     cpl_polynomial_delete(trace_in) ;
     cpl_polynomial_delete(wave_poly_in) ;
     return out_polys ;
+}
+
+/* TODO */
+/*----------------------------------------------------------------------------*/
+/**
+  @brief 
+  @param 
+  @return  
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_slit_curv_fit_coefficients(
+        cpl_polynomial  **  curvatures,
+        int                 nb_polys,
+        cpl_polynomial  **  slit_polya,
+        cpl_polynomial  **  slit_polyb,
+        cpl_polynomial  **  slit_polyc)
+{
+
+    *slit_polya = cpl_polynomial_new(1) ;
+    *slit_polyb = cpl_polynomial_new(1) ;
+    *slit_polyc = cpl_polynomial_new(1) ;
+
+    return 0 ;
+
 }
 
 /**@}*/
