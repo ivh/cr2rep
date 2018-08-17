@@ -62,10 +62,31 @@ static int cr2res_slit_curv_get_position(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief 
-  @param 
-  @return 
+  @brief Compute the slit curvature along a specific trace
+  @param trace_wave     The trace_wave table
+  @param order          The order number
+  @param trace_id       The trace_id number
+  @param max_curv_degree    The maximum degree for the slit curv polynomial
+  @param display        The flag used to display something
+  @return   An array of polynomials or NULL in error case
 
+  order and trace_id identify the trace along which the slit curve is computed.
+  For each x along the trace, the slit curvature Px is computed.
+  The wavelength ref_wl at the x position along the input trace is evaluated.
+  All other traces in the current order are used.
+  On each of these traces, the point (x,Y) on the trace that has the same 
+    wavelength as ref_wl is identified. 
+  All these points are along the slit and used to fit its shape.
+
+  The returned array contains potentially CR2RES_DETECTOR_SIZE
+  polynomials (1 for each x position in the detector). Each non-NULL 
+  polynomial needs to be deallocated (cpl_polynomial_delete()) and the
+  returned pointer needs to be freed (cpl_free()).
+
+  The polynomial number x Px gives the slit curvature:
+        X=Px(Y)
+  where (X,Y) are the detector position, (1, 1) being the lower left pixel.
+        Px is the polynomial to use along x
  */
 /*----------------------------------------------------------------------------*/
 cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
@@ -93,20 +114,21 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
     /* Initialise */
 
     /* Get the number of traces */
-    ntraces = cr2res_get_traces_number(trace_wave, order) ;
+    ntraces = cr2res_get_nb_traces_with_wavelength(trace_wave, order) ;
     if (ntraces < 2) return NULL ;
 
     /* Set the fitting polynomial degree */
     poly_degree = ntraces - 1 ;
     if (poly_degree > max_curv_degree) poly_degree = max_curv_degree ;
 
-    /* Get the input trace polynomial */
-    trace_in = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_ALL, order, 
-            trace_id) ;
-
     /* Get the input trace wavelength */
     wave_poly_in = cr2res_get_trace_wave_poly(trace_wave, 
             CR2RES_COL_WAVELENGTH, order, trace_id) ;
+    if (wave_poly_in == NULL) return NULL ;
+
+    /* Get the input trace polynomial */
+    trace_in = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_ALL, order, 
+            trace_id) ;
 
     /* Allocate Output array */
     out_polys = cpl_malloc(CR2RES_DETECTOR_SIZE * sizeof(cpl_polynomial*)) ;
@@ -133,9 +155,12 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
             /* Find the other traces of the same order */
             cur_order = cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL) ;
             cur_trace_id = cpl_table_get(trace_wave, CR2RES_COL_TRACENB,i,NULL);
+            cur_wave_poly_in = cr2res_get_trace_wave_poly(trace_wave, 
+                    CR2RES_COL_WAVELENGTH, order, cur_trace_id) ;
 
             /* Search for the next trace in the current order */
-            if (cur_order != order || cur_trace_id == trace_id) continue ;
+            if (cur_order != order || cur_trace_id == trace_id ||
+                    cur_wave_poly_in == NULL) continue ;
 
             /* The current trace is used for the fit */
             idx++ ;
@@ -143,8 +168,6 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
             /* Get the position on the current trace with a given wl */
             cur_trace_in=cr2res_get_trace_wave_poly(trace_wave,CR2RES_COL_ALL, 
                     order, cur_trace_id) ;
-            cur_wave_poly_in = cr2res_get_trace_wave_poly(trace_wave, 
-                    CR2RES_COL_WAVELENGTH, order, cur_trace_id) ;
             cur_x = cur_y = 1.0 ;
             if (cr2res_slit_curv_get_position(cur_trace_in, cur_wave_poly_in, 
                     ref_wl, &cur_x, &cur_y) == -1) {
@@ -192,9 +215,16 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief 
-  @param
-  @return  
+  @brief Get the (X,Y) image cordinate of a Wavelength on a trace
+  @param trace  The trace center position polynomial on which we search
+  @param wave   The wavelength polynomial of the trace
+  @param ref_wl The wavelength value
+  @param xpos   [out] The X position of the trace point with the ref_wl
+  @param ypos   [out] The Y position of the trace point with the ref_wl
+  @return   0 if ok, -1 in error case
+
+  The exact X position on the trace for which the wl is ref_wl is found
+  Y is computed using X and the trace polynomial.
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_slit_curv_get_position(
@@ -204,36 +234,29 @@ static int cr2res_slit_curv_get_position(
         double          *   xpos,
         double          *   ypos)
 {
-    cpl_size        x, cur_wl, tmp_wl ;
+    double          cur_wl, tmp_wl ;
+    cpl_size        x ;
 
     /* Check entries */
     if (trace == NULL || wave == NULL || xpos == NULL || ypos == NULL) 
         return -1 ;
 
-    /* Loop on the x positions */
-    for (x=1 ; x<=CR2RES_DETECTOR_SIZE ; x++) {
+    /* Loop on the x positions  */
+    for (x=0 ; x<=CR2RES_DETECTOR_SIZE+1 ; x++) {
         cur_wl = cpl_polynomial_eval_1d(wave, (double)x, NULL) ;
+        /* As soon as the WL is bigger than ref_wl, we keep X */
         if (cur_wl > ref_wl) break ;
     }
-    if (x == 1) *xpos = 1 ;
-    else if (x == CR2RES_DETECTOR_SIZE) *xpos = CR2RES_DETECTOR_SIZE ;
-    else {
-        tmp_wl = cpl_polynomial_eval_1d(wave, (double)(x-1), NULL) ;
 
-        /* Linear interpolation */
-        if (fabs(cur_wl-tmp_wl) < 1e-5)
-            *xpos = (double)x ;
-        else 
-            *xpos = (double)(x -((cur_wl-ref_wl) / (cur_wl-tmp_wl))) ;
-    }
+    tmp_wl = cpl_polynomial_eval_1d(wave, (double)(x-1), NULL) ;
+
+    /* Linear interpolation */
+    if (fabs(cur_wl-tmp_wl) < 1e-5)
+        *xpos = (double)x ;
+    else 
+        *xpos = (double)(x -((cur_wl-ref_wl) / (cur_wl-tmp_wl))) ;
 
     *ypos = cpl_polynomial_eval_1d(trace, *xpos, NULL) ;
-
-
-/* TODO : Debug - Results still seem weird */
-    /* printf("%g %g\n", *xpos, *ypos) ; */
-
-
     /* Check results */
     if (*xpos < 1 || *xpos > CR2RES_DETECTOR_SIZE ||
             *ypos < 1 || *ypos > CR2RES_DETECTOR_SIZE) {

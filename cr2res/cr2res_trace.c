@@ -461,7 +461,7 @@ int * cr2res_trace_get_order_numbers(
    @return  the number or traces in this order or -1 in error case
  */
 /*----------------------------------------------------------------------------*/
-cpl_size cr2res_get_traces_number(
+cpl_size cr2res_get_nb_traces(
         const cpl_table     *   trace_wave,
         int                     order)
 {
@@ -478,6 +478,39 @@ cpl_size cr2res_get_traces_number(
     for (i=0 ; i<nrows ; i++)
         if (cpl_table_get(trace_wave, CR2RES_COL_ORDER,i,NULL)==order)
             count ++ ;
+    return count ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+   @brief   Get the number of traces for a specified order that have a WL
+   @param   tab         A TRACE_WAVE table
+   @param   order       the order number
+   @return  the number or traces in this order or -1 in error case
+   Only Count the traces that have a valid Wavelength solution
+ */
+/*----------------------------------------------------------------------------*/
+cpl_size cr2res_get_nb_traces_with_wavelength(
+        const cpl_table     *   trace_wave,
+        int                     order)
+{
+    const cpl_array *   wave_array ;
+    cpl_size            nrows, i, count ;
+
+    /* Check Entries */
+    if (trace_wave == NULL) return -1 ;
+
+    /* Initialise */
+    count = 0 ;
+    nrows = cpl_table_get_nrow(trace_wave) ;
+
+    /* Loop on the table rows */
+    for (i=0 ; i<nrows ; i++) {
+        wave_array = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, i) ;
+        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL) == order &&
+                wave_array != NULL)
+            count ++ ;
+    }
     return count ;
 }
 
@@ -547,7 +580,8 @@ cpl_polynomial * cr2res_get_trace_wave_poly(
 
     /* Read the Table */
     wave_arr = cpl_table_get_array(trace_wave, poly_column, index) ;
-
+    if (wave_arr == NULL) return NULL ;
+        
     /* Convert to Polynomial */
     wave_poly = cr2res_convert_array_to_poly(wave_arr) ;
 

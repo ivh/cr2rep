@@ -69,7 +69,11 @@ cpl_size cr2res_get_trace_table_index(
         int                     order,
         int                     trace_nb) ;
 
-cpl_size cr2res_get_traces_number(
+cpl_size cr2res_get_nb_traces(
+        const cpl_table     *   trace_wave,
+        int                     order) ;
+
+cpl_size cr2res_get_nb_traces_with_wavelength(
         const cpl_table     *   trace_wave,
         int                     order) ;
 
