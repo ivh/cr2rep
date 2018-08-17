@@ -120,7 +120,7 @@ static cpl_image *create_image_linear_increase(int width, int height, double * s
             // periodic boundary conditions
             if (k < 1)     k = k + width;
             if (k > width) k = k - width;
-        
+
             spec = cpl_image_get(img, k, j, &k);
             cpl_image_set(img_tilt, i, j, spec);
         }
@@ -130,9 +130,9 @@ static cpl_image *create_image_linear_increase(int width, int height, double * s
 }
 
 static cpl_image * create_image_sinusoidal(
-        int         width, 
-        int         height, 
-        double  *   shear, 
+        int         width,
+        int         height,
+        double  *   shear,
         double      spec_in[width])
 {
     int k = 0;
@@ -141,7 +141,7 @@ static cpl_image * create_image_sinusoidal(
     double mu = height/2.;
     double spec = 0.;
     double slitf = 0.;
-    
+
     cpl_image * img = cpl_image_new(width, height, CPL_TYPE_DOUBLE);
     cpl_image * img_tilt = cpl_image_new(width, height, CPL_TYPE_DOUBLE);
 
@@ -163,7 +163,7 @@ static cpl_image * create_image_sinusoidal(
             // periodic boundary conditions
             if (k < 1)     k = k + width;
             if (k > width) k = k - width;
-        
+
             spec = cpl_image_get(img, k, j, &k);
             cpl_image_set(img_tilt, i, j, spec);
         }
@@ -173,8 +173,8 @@ static cpl_image * create_image_sinusoidal(
 }
 
 static cpl_table * create_table_linear_increase(
-        int         width, 
-        int         height, 
+        int         width,
+        int         height,
         double      shear)
 {
     int poly_order = 1;
@@ -328,45 +328,45 @@ static void test_cr2res_slitdec_vert_edge_cases(void)
     int res;
 
     // Test Edge cases
-    cpl_test_eq(-1, cr2res_extract_slitdec_vert(NULL, trace_table, order, trace, height, swath, 
+    cpl_test_eq(-1, cr2res_extract_slitdec_vert(NULL, trace_table, order, trace, height, swath,
                 oversample, smooth_slit, &slit_func, &spec, &model));
-    cpl_test_eq(-1, cr2res_extract_slitdec_vert(img_hdrl, NULL, order, trace, height, swath, 
+    cpl_test_eq(-1, cr2res_extract_slitdec_vert(img_hdrl, NULL, order, trace, height, swath,
                 oversample, smooth_slit, &slit_func, &spec, &model));
-    cpl_test_eq(-1, cr2res_extract_slitdec_vert(img_hdrl, trace_table, -10, trace, height, swath, 
+    cpl_test_eq(-1, cr2res_extract_slitdec_vert(img_hdrl, trace_table, -10, trace, height, swath,
                 oversample, smooth_slit, &slit_func, &spec, &model));
-    cpl_test_eq(-1, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, -3, height, swath, 
+    cpl_test_eq(-1, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, -3, height, swath,
                 oversample, smooth_slit, &slit_func, &spec, &model));
 
-    cpl_test_eq( 0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, 0, swath, 
+    cpl_test_eq( 0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, 0, swath,
                 oversample, smooth_slit, &slit_func, &spec, &model));
     cpl_vector_delete(slit_func);
     cpl_bivector_delete(spec);
     hdrl_image_delete(model);
 
-    cpl_test_eq( 0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, 10000, swath, 
+    cpl_test_eq( 0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, 10000, swath,
                 oversample, smooth_slit, &slit_func, &spec, &model));
     cpl_vector_delete(slit_func);
     cpl_bivector_delete(spec);
     hdrl_image_delete(model);
 
-    cpl_test_eq(-1, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, 0, 
+    cpl_test_eq(-1, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, 0,
                 oversample, smooth_slit, &slit_func, &spec, &model));
-    cpl_test_eq(-1, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, -1, 
+    cpl_test_eq(-1, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, -1,
                 oversample, smooth_slit, &slit_func, &spec, &model));
 
-    cpl_test_eq( 0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, 10000, 
+    cpl_test_eq( 0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, 10000,
                 oversample, smooth_slit, &slit_func, &spec, &model));
     cpl_vector_delete(slit_func);
     cpl_bivector_delete(spec);
     hdrl_image_delete(model);
 
-    cpl_test_eq( 0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, swath, 
+    cpl_test_eq( 0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, swath,
                 0, smooth_slit, &slit_func, &spec, &model));
     cpl_vector_delete(slit_func);
     cpl_bivector_delete(spec);
     hdrl_image_delete(model);
 
-    cpl_test_eq( 0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, swath, 
+    cpl_test_eq( 0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, swath,
                 -1, smooth_slit, &slit_func, &spec, &model));
     cpl_vector_delete(slit_func);
     cpl_bivector_delete(spec);
@@ -399,7 +399,7 @@ static void test_cr2res_slitdec_vert(void)
     hdrl_image * model;
     int res;
 
-    cpl_test_eq( 0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, swath, 
+    cpl_test_eq( 0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, swath,
                 oversample, smooth_slit, &slit_func, &spec, &model));
 
     // check results
@@ -465,13 +465,14 @@ static void test_cr2res_slitdec_curved(void)
     cpl_vector * spec_in_vec = cpl_vector_wrap(width, spec_in);
 
     int res;
-    cpl_test_eq(0, cr2res_extract_slitdec_curved(img_hdrl, trace_table, order, trace, height, 
+    cpl_test_eq(0,
+        cr2res_extract_slitdec_curved(img_hdrl, trace_table, order, trace, height,
                 swath, oversample, smooth_slit, &slit_func, &spec, &model));
 
     // // check results
     // cpl_vector_copy(cmp, cpl_bivector_get_x(spec));
     // cpl_vector_divide(cmp, spec_in_vec);
-    // double ratio0 = cpl_vector_get_median(cmp); 
+    // double ratio0 = cpl_vector_get_median(cmp);
     // double ratio = 0;
     // // for(int i = 20; i < width-20; i++) {
     // //     // shape of spectrum
@@ -535,9 +536,9 @@ static void test_cr2res_slitdec_compare_vert_curved(void)
 
     cpl_vector * cmp = cpl_vector_new(width);
 
-    cpl_test_eq(0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, swath, 
+    cpl_test_eq(0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, swath,
                 oversample, smooth_slit, &slit_func_vert, &spec_vert, &model_vert));
-    cpl_test_eq(0, cr2res_extract_slitdec_curved(img_hdrl, trace_table, order, trace, height, 
+    cpl_test_eq(0, cr2res_extract_slitdec_curved(img_hdrl, trace_table, order, trace, height,
                 swath, oversample, smooth_slit, &slit_func_curved, &spec_curved, &model_curved));
 
     cpl_vector_divide(cpl_bivector_get_x(spec_vert), cpl_bivector_get_x_const(spec_curved));
@@ -548,7 +549,7 @@ static void test_cr2res_slitdec_compare_vert_curved(void)
     }
 
     cpl_test_vector_abs(cpl_bivector_get_x(spec_vert), cmp, DBL_EPSILON * 10);
-    
+
 
 
     cpl_vector_save(cpl_bivector_get_x(spec_vert), "debug_spec_vert.fits", CPL_TYPE_DOUBLE, NULL,

@@ -998,11 +998,6 @@ int cr2res_extract_slitdec_curved(
             }
 
             /* set slit curvature polynomials */
-            cpl_msg_debug(__func__, "a,b,c: %.1f %.1f %.1f",
-                cpl_polynomial_eval_1d(slitcurve_A, col, NULL),
-                cpl_polynomial_eval_1d(slitcurve_B, col, NULL),
-                cpl_polynomial_eval_1d(slitcurve_C, col, NULL));
-
             pow = 2;
             cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow,
                 cpl_polynomial_eval_1d(slitcurve_C, col-1, NULL));
@@ -1012,7 +1007,7 @@ int cr2res_extract_slitdec_curved(
             pow = 0;
             cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow,
                 cpl_polynomial_eval_1d(slitcurve_A, col, NULL) - col);
-                /* subtract col because we want origin relative to here */
+              /* subtract col because we want origin relative to here */
         }
 
         img_sw_data = cpl_image_get_data_double(img_sw);
@@ -1255,7 +1250,6 @@ static int cr2res_extract_slit_func_vert(
         for(iy=0; iy<ny; iy++) {
             bj[iy]=0.e0;
             for(jy=max(iy-osample,0); jy<=min(iy+osample,ny-1); jy++) {
-            /* printf("iy=%d jy=%d %d\n", iy, jy, iy+ny*(jy-iy+osample)); */
                 Aij[iy+ny*(jy-iy+osample)]=0.e0;
                 for(x=0; x<ncols; x++) {
                     sum=0.e0;
@@ -1274,7 +1268,6 @@ static int cr2res_extract_slit_func_vert(
             }
             diag_tot+=Aij[iy+ny*osample];
         }
-        // printf("SUM : %e\n", sum);
 
         /* Scale regularization parameters */
         lambda=lambda_sL*diag_tot/ny;
@@ -1292,7 +1285,7 @@ static int cr2res_extract_slit_func_vert(
 
         /* Solve the system of equations */
         info=cr2res_extract_slitdec_bandsol(Aij, bj, ny, nd);
-        if(info) printf("info(sL)=%d\n", info);
+        if(info) cpl_msg_warning(__func__, "Bandsol exited with %d", info);
 
         /* Normalize the slit function */
         norm=0.e0;
@@ -2066,7 +2059,6 @@ static int cr2res_extract_slit_func_curved(
                     mask[y * ncols + x] = 1;
             }
         }
-        cpl_msg_debug(__func__, "iter=%d, dev=%g\n", iter, dev);
 
         /* Compute the change in the spectrum */
         sP_change = 0.e0;
