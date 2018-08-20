@@ -921,15 +921,17 @@ int cr2res_trace_add_ord_tra_wav_curv_columns(
     /*           x = A(1024) + B(1024) * y + C(1024) *y^2                   */
     /*      i.e. x = 1024                                                   */
     /*      where x, y are the detector coordinates, (1,1) as Lower left    */
-    cpl_table_new_column_array(traces,CR2RES_COL_SLIT_CURV_A,CPL_TYPE_DOUBLE,2);
-    cpl_table_new_column_array(traces,CR2RES_COL_SLIT_CURV_B,CPL_TYPE_DOUBLE,2);
-    cpl_table_new_column_array(traces,CR2RES_COL_SLIT_CURV_C,CPL_TYPE_DOUBLE,2);
-    array_id = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
+    cpl_table_new_column_array(traces,CR2RES_COL_SLIT_CURV_A,CPL_TYPE_DOUBLE,3);
+    cpl_table_new_column_array(traces,CR2RES_COL_SLIT_CURV_B,CPL_TYPE_DOUBLE,3);
+    cpl_table_new_column_array(traces,CR2RES_COL_SLIT_CURV_C,CPL_TYPE_DOUBLE,3);
+    array_id = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
     cpl_array_set(array_id, 0, 0.0) ;
     cpl_array_set(array_id, 1, 1.0) ;
-    array_zero = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
+    cpl_array_set(array_id, 2, 0.0) ;
+    array_zero = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
     cpl_array_set(array_zero, 0, 0.0) ;
     cpl_array_set(array_zero, 1, 0.0) ;
+    cpl_array_set(array_zero, 2, 0.0) ;
 
     /* Loop on the traces */
     for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {

@@ -227,13 +227,70 @@ int cr2res_slit_curv_fit_coefficients(
         cpl_polynomial  **  slit_polyb,
         cpl_polynomial  **  slit_polyc)
 {
+    cpl_polynomial  *   coeffs_fit ;
+    cpl_size            poly_degree ;
+    cpl_matrix      *   x_points ;
+    cpl_vector      *   y_points_a ;
+    cpl_vector      *   y_points_b ;
+    cpl_vector      *   y_points_c ;
+    double              coeff ;
+    cpl_size            i, power ;
 
+    /* Check Entries */
+    if (curvatures ==  NULL || slit_polya == NULL || slit_polyb == NULL
+            || slit_polyc == NULL) return -1 ;
+    
+    /* Initialise */
+    poly_degree = 2 ;
+
+    /* Create Objects */
+    x_points = cpl_matrix_new(1, nb_polys) ;
+    y_points_a = cpl_vector_new(nb_polys) ;
+    y_points_b = cpl_vector_new(nb_polys) ;
+    y_points_c = cpl_vector_new(nb_polys) ;
+
+    /* Loop on all polynomials */
+    for (i=0 ; i<nb_polys ; i++) {
+        cpl_matrix_set(x_points, 0, i, (double)(i+1)) ;
+
+        /* Retrieve the A coeeficient */
+        power = 0 ;
+        coeff = cpl_polynomial_get_coeff(curvatures[i], &power) ;
+        cpl_vector_set(y_points_a, i, coeff) ;
+        /* Retrieve the B coeeficient */
+        power = 1 ;
+        coeff = cpl_polynomial_get_coeff(curvatures[i], &power) ;
+        cpl_vector_set(y_points_b, i, coeff) ;
+        /* Retrieve the C coeeficient */
+        power = 2 ;
+        coeff = cpl_polynomial_get_coeff(curvatures[i], &power) ;
+        cpl_vector_set(y_points_c, i, coeff) ;
+    }
+
+    /* Create Objets */
     *slit_polya = cpl_polynomial_new(1) ;
-    *slit_polyb = cpl_polynomial_new(1) ;
-    *slit_polyc = cpl_polynomial_new(1) ;
+    power = 0 ; cpl_polynomial_set_coeff(*slit_polya, &power, 0.0) ;
+    power = 1 ; cpl_polynomial_set_coeff(*slit_polya, &power, 0.0) ;
+    power = 2 ; cpl_polynomial_set_coeff(*slit_polya, &power, 0.0) ;
+    *slit_polyb = cpl_polynomial_duplicate(*slit_polya) ;
+    *slit_polyc = cpl_polynomial_duplicate(*slit_polya) ;
+    
+    /* Compute the fit for a coefficients */
+    cpl_polynomial_fit(*slit_polya, x_points, NULL, y_points_a, 
+                    NULL, CPL_FALSE, NULL, &poly_degree) ;
+    cpl_vector_delete(y_points_a) ;
 
+    /* Compute the fit for b coefficients */
+    cpl_polynomial_fit(*slit_polyb, x_points, NULL, y_points_b, 
+                    NULL, CPL_FALSE, NULL, &poly_degree) ;
+    cpl_vector_delete(y_points_b) ;
+    
+    /* Compute the fit for c coefficients */
+    cpl_polynomial_fit(*slit_polyc, x_points, NULL, y_points_c, 
+                    NULL, CPL_FALSE, NULL, &poly_degree) ;
+    cpl_vector_delete(y_points_c) ;
+    cpl_matrix_delete(x_points) ;
     return 0 ;
-
 }
 
 /**@}*/

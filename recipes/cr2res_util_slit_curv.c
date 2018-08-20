@@ -352,7 +352,7 @@ static int cr2res_util_slit_curv(
 
             /* Fill the SLIT_CURVE_A/B/C for the current trace */
             if (cr2res_slit_curv_fit_coefficients(curvatures,
-                        CR2RES_NB_DETECTORS,
+                        CR2RES_DETECTOR_SIZE,
                         &slit_polya, &slit_polyb, &slit_polyc) == 0) {
                 slit_array = cr2res_convert_poly_to_array(slit_polya, 3) ;
                 cpl_polynomial_delete(slit_polya) ;

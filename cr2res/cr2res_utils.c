@@ -571,7 +571,7 @@ cpl_array * cr2res_convert_poly_to_array(
 
     /* Initialise */
     degree = cpl_polynomial_get_degree(poly) ;
-
+                        
     /* Check */
     if (size < degree+1) {
         cpl_msg_error(__func__,
@@ -581,6 +581,7 @@ cpl_array * cr2res_convert_poly_to_array(
 
     /* Create Output array */
 	out = cpl_array_new(size, CPL_TYPE_DOUBLE) ;
+    cpl_array_fill_window(out, 0, size, 0.0) ;
 
     /* Fill it  */
     for (i=0 ; i<=degree ; i++) {
