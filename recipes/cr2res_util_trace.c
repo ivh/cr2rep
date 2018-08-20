@@ -322,7 +322,7 @@ static int cr2res_util_trace(
         cpl_msg_info(__func__, "Compute the traces") ;
         cpl_msg_indent_more() ;
         if ((traces[det_nr-1] = cr2res_trace(flat_ima, smooth, opening, degree,
-                        min_cluster, split_traces)) == NULL) {
+                        min_cluster)) == NULL) {
             cpl_msg_warning(__func__,
                     "Cannot compute the trace - skip detector");
             cpl_error_reset() ;
@@ -334,7 +334,7 @@ static int cr2res_util_trace(
         cpl_msg_indent_less() ;
 
         /* Add The remaining Columns to the trace table */
-        if (cr2res_trace_add_ord_tra_wav_curv_columns(traces[det_nr-1],
+        if (cr2res_trace_add_extra_columns(traces[det_nr-1],
                 flat_file, det_nr) != 0) {
             cpl_msg_warning(__func__, 
                     "Cannot complete the trace table - skip detector");
@@ -344,6 +344,14 @@ static int cr2res_util_trace(
             traces[det_nr-1] = NULL ;
             cpl_msg_indent_less() ;
             continue ;
+        }
+
+        /* Only Split the traces when the trace table is complete */
+        if (split_traces) {
+            /* TODO */
+            cpl_msg_warning(__func__,
+                    "The traces splitting is not yet implemented");
+            /* Implement and Call cr2res_trace_split_traces() */
         }
 
         /* Debug Image */

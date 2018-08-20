@@ -68,7 +68,6 @@ static int cr2res_cal_detlin_reduce(
         double                  trace_smooth,
         int                     trace_opening,
         int                     trace_collapse,
-        int                     trace_split,
         int                     reduce_det,
         cpl_imagelist       **  coeffs,
         cpl_image           **  bpm,
@@ -204,13 +203,6 @@ static int cr2res_cal_detlin_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.trace_split",
-            CPL_TYPE_BOOL, "Split the traces when only 1 per order",
-            "cr2res.cr2res_cal_detlin", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_split");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
     p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
             "cr2res.cr2res_cal_detlin", 0);
@@ -274,7 +266,7 @@ static int cr2res_cal_detlin(
 {
     const cpl_parameter *   param ;
     int                     trace_degree, trace_min_cluster, trace_collapse,
-                            trace_opening, trace_split, reduce_det ;
+                            trace_opening, reduce_det ;
     double                  bpm_kappa, trace_smooth ;
     cpl_frameset        *   rawframes ;
     cpl_size            *   labels ;
@@ -310,9 +302,6 @@ static int cr2res_cal_detlin(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_detlin.trace_collapse");
     trace_collapse = cpl_parameter_get_bool(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_detlin.trace_split");
-    trace_split = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_detlin.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -368,7 +357,7 @@ static int cr2res_cal_detlin(
             /* Call the reduction function */
             if (cr2res_cal_detlin_reduce(rawframes_one, bpm_kappa,
                         trace_degree, trace_min_cluster, trace_smooth, 
-                        trace_opening, trace_collapse, trace_split,
+                        trace_opening, trace_collapse,
                         det_nr,
                         &coeffs_cube_one_setting,
                         &bpm_one_setting,
@@ -448,7 +437,6 @@ static int cr2res_cal_detlin_reduce(
         double                  trace_smooth,
         int                     trace_opening,
         int                     trace_collapse,
-        int                     trace_split,
         int                     reduce_det,
         cpl_imagelist       **  coeffs,
         cpl_image           **  bpm,
@@ -543,7 +531,7 @@ static int cr2res_cal_detlin_reduce(
     cpl_msg_indent_more() ;
     if ((traces = cr2res_trace(hdrl_image_get_image(collapsed), 
                     trace_smooth, trace_opening, trace_degree, 
-                    trace_min_cluster, trace_split)) == NULL) {
+                    trace_min_cluster)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the traces") ;
         cpl_imagelist_delete(imlist) ;
         cpl_vector_delete(dits); 

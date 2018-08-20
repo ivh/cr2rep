@@ -45,6 +45,10 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static cpl_array * cr2res_trace_get_slit_frac(
+        cpl_table       *   traces,
+        cpl_size            idx,
+        cr2res_decker       decker_pos) ;
 static cpl_mask * cr2res_trace_split_traces(
         cpl_mask    *   mask,
         cpl_table   *   trace_table) ;
@@ -88,7 +92,6 @@ static int cr2res_trace_extract_edges(
   @param    opening         Used for cleaning the mask
   @param    degree          Fitted polynomial degree
   @param    min_cluster     A trace must be bigger - discarded otherwise
-  @param    split_single_trace_orders   Flag to split traces
   @return The newly allocated trace table or NULL in error case
 
   A detection is applied to create a mask. This one is labelised.
@@ -111,12 +114,10 @@ cpl_table * cr2res_trace(
         double              smoothfactor,
         int                 opening,
         int                 degree,
-        int                 min_cluster,
-        int                 split_single_trace_orders)
+        int                 min_cluster)
 {
     cpl_mask        *   mask ;
     cpl_mask        *   mask_clean ;
-    cpl_mask        *   mask_split ;
     cpl_image       *   labels ;
     cpl_apertures   *   aperts ;
     cpl_table       *   clustertable ;
@@ -202,61 +203,6 @@ cpl_table * cr2res_trace(
         return NULL ;
     }
     cpl_table_delete(clustertable);
-
-    /* Split Single trace orders */
-    if (split_single_trace_orders) {
-        /* Create a new label image */
-        mask_split = cr2res_trace_split_traces(mask_clean, trace_table) ;
-        cpl_table_delete(trace_table) ;
-
-        /* Clean the traces in the image */
-        cpl_msg_info(__func__, "Splitted Traces cleaning") ;
-        cpl_mask_delete(mask_clean);
-        if ((mask_clean = cr2res_trace_clean(mask_split, opening,
-                        min_cluster)) == NULL) {
-            cpl_msg_error(__func__, "Cannot clean the splitted traces") ;
-            cpl_mask_delete(mask_split) ;
-            return NULL ;
-        }
-        cpl_mask_delete(mask_split) ;
-
-        /* Labelization */
-        cpl_msg_info(__func__, "Labelise the traces") ;
-        if ((labels = cpl_image_labelise_mask_create(mask_clean,
-                        &nlabels)) == NULL) {
-            cpl_msg_error(__func__, "Cannot labelise the splitted mask") ;
-            cpl_mask_delete(mask_clean);
-            return NULL ;
-        }
-
-        /* Analyse and dump traces */
-        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-            aperts = cpl_apertures_new_from_image(ima, labels);
-            cpl_apertures_dump(aperts, stdout) ;
-            cpl_apertures_delete(aperts) ;
-        }
-
-         /* Create cluster table needed for fitting */
-        clustertable = cr2res_trace_convert_labels_to_cluster(labels) ;
-
-        /* Debug Saving */
-        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-            cpl_image_save(labels, "debug_labels_split.fits",
-                    CPL_TYPE_INT, NULL, CPL_IO_CREATE);
-            cpl_table_save(clustertable, NULL, NULL,
-                    "debug_cluster_table_split.fits", CPL_IO_CREATE);
-        }
-        cpl_image_delete(labels) ;
-
-        /* Fit the traces */
-        if ((trace_table = cr2res_trace_fit_traces(clustertable,
-                        degree)) == NULL) {
-            cpl_msg_error(__func__, "Failed to Fit") ;
-            cpl_table_delete(clustertable);
-            return NULL ;
-        }
-        cpl_table_delete(clustertable);
-    }
     cpl_mask_delete(mask_clean);
 
     /* Debug Saving */
@@ -815,13 +761,16 @@ double cr2res_trace_get_trace_ypos(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief   Add additional columns to the plain trace 
+  @brief   Add extra columns to the plain trace 
             table
-  @param    traces          The plain traces table
-  @param    file_for_wl     File used for WL information
-  @param    det_nr          Detector
+  @param    traces      The plain traces table
+  @param    infile      File used for WL infos and Decker position
+  @param    det_nr      Detector
   @return   0 if ok
   
+  infile is the input file from which we use the header to get the
+  Wavelength and the Decker position.
+
   The added columns are:
     CR2RES_COL_ORDER
     CR2RES_COL_TRACENB
@@ -829,34 +778,42 @@ double cr2res_trace_get_trace_ypos(
     CR2RES_COL_SLIT_CURV_A
     CR2RES_COL_SLIT_CURV_B
     CR2RES_COL_SLIT_CURV_C
+    CR2RES_COL_SLIT_FRACTION
   The values are set as defaults
   The resulting table is a proper TRACE_WAVE table
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_trace_add_ord_tra_wav_curv_columns(
+int cr2res_trace_add_extra_columns(
         cpl_table           *   traces,
-        const char          *   file_for_wl,
+        const char          *   infile,
         int                     det_nr)
 {
-    cpl_propertylist    *   plist_order_pos ;
+    cpl_propertylist    *   ext_plist ;
+    cpl_propertylist    *   main_plist ;
     int                 *   orders ;
     cpl_array           *   wl_array ;
     cpl_array           *   array_id ;
     cpl_array           *   array_zero ;
+    cpl_array           *   array_neg ;
+    cpl_array           *   slit_frac ;
     double                  y_pos ;
+    cr2res_decker           decker_pos ;
     int                     order, trace_nb, nb_orders, trace_id, i, j ;
 
     if (traces == NULL) return -1;
 
     /* Load the Plist */
-    plist_order_pos = cpl_propertylist_load(file_for_wl,
-            cr2res_io_get_ext_idx(file_for_wl, det_nr, 1)) ;
-
-    // couldn't find anything
-    if (plist_order_pos == NULL){
+    main_plist = cpl_propertylist_load(infile, 0) ;
+    ext_plist = cpl_propertylist_load(infile,
+            cr2res_io_get_ext_idx(infile, det_nr, 1)) ;
+    if (ext_plist == NULL || main_plist == 0) {
         cpl_error_reset();
         return -1;
     }
+ 
+    /* Get the decker position */
+    decker_pos = cr2res_pfits_get_decker_position(main_plist) ;
+    cpl_propertylist_delete(main_plist) ;
 
     /* Add The Order column using the header */
     cpl_table_new_column(traces, CR2RES_COL_ORDER, CPL_TYPE_INT) ;
@@ -867,12 +824,12 @@ int cr2res_trace_add_ord_tra_wav_curv_columns(
         y_pos = cr2res_trace_get_trace_ypos(traces, i) ;
 
         /* Compute the trace order from the header */
-        order = cr2res_pfits_get_order(plist_order_pos, y_pos) ;
+        order = cr2res_pfits_get_order(ext_plist, y_pos) ;
 
         /* Store the Order in the table */
         cpl_table_set(traces, CR2RES_COL_ORDER, i, order);
     }
-    cpl_propertylist_delete(plist_order_pos) ;
+    cpl_propertylist_delete(ext_plist) ;
 
     /* Add The TraceNb column */
     cpl_table_new_column(traces, CR2RES_COL_TRACENB, CPL_TYPE_INT);
@@ -901,7 +858,7 @@ int cr2res_trace_add_ord_tra_wav_curv_columns(
         trace_id = cpl_table_get(traces, CR2RES_COL_TRACENB, i, NULL) ;
 
         /* Get the Wavelength estimates from the header */
-        if ((wl_array = cr2res_wave_get_estimate(file_for_wl, det_nr,
+        if ((wl_array = cr2res_wave_get_estimate(infile, det_nr,
                         order)) == NULL) {
             cpl_msg_warning(__func__,
                     "No Wavelength estimate for Detector %d / order %d",
@@ -942,11 +899,119 @@ int cr2res_trace_add_ord_tra_wav_curv_columns(
     cpl_array_delete(array_id) ;
     cpl_array_delete(array_zero) ;
 
+    /* Add the Slit Fraction position */
+    /* 0 is the Bottom of the slit, 1 is the Top. */
+    /* The 3 numbers correspond to the Lower, All, Upper trace positions */
+    cpl_table_new_column_array(traces,CR2RES_COL_SLIT_FRACTION, CPL_TYPE_DOUBLE,3);
+    array_neg = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
+    cpl_array_set(array_neg, 0, -1.0) ;
+    cpl_array_set(array_neg, 1, -1.0) ;
+    cpl_array_set(array_neg, 2, -1.0) ;
+    for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
+        /* Get the slit fraction array */
+        slit_frac = cr2res_trace_get_slit_frac(traces, i, decker_pos) ;
+        if (slit_frac == NULL) {
+            cpl_table_set_array(traces, CR2RES_COL_SLIT_FRACTION, i, array_neg);
+        } else { 
+            cpl_table_set_array(traces, CR2RES_COL_SLIT_FRACTION, i, slit_frac);
+            cpl_array_delete(slit_frac) ;
+        }
+    }
+    cpl_array_delete(array_neg) ;
     return 0 ;
 }
 
 /**@}*/
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the slit fraction position for a given trace
+  @param traces     The trace_wave file
+  @param idx        The index of the trace 
+  @param decker_pos The decker position
+  @return   the slit_frac array or NULL
+
+  The returned array contains 3 numbers between 0 and 1 identifing the low,
+  middle and high positions of the trace along the slit.
+  0 is for the slit bottom, 1 for the top.
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_array * cr2res_trace_get_slit_frac(
+        cpl_table       *   traces,
+        cpl_size            idx,
+        cr2res_decker       decker_pos)
+{
+    cpl_array       *   slit_frac ;
+    int                 order ;
+    cpl_size            nb_traces, other_idx, i ;
+    double              center_pos_curr, center_pos_other ;
+
+    /* Get the current trace order */
+    order = cpl_table_get(traces, CR2RES_COL_ORDER, idx, NULL) ;
+
+    /* Get the number of traces of this order */
+    nb_traces = cr2res_get_nb_traces(traces, order) ;
+
+    /* The number of traces and the decker positions need to be consistent */
+    if (nb_traces == 1 && decker_pos == CR2RES_DECKER_NONE) {
+        /* TRACE_OPEN */
+        slit_frac = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
+        cpl_array_set(slit_frac, 0, 0.0) ;
+        cpl_array_set(slit_frac, 1, 0.5) ;
+        cpl_array_set(slit_frac, 2, 1.0) ;
+    } else if (nb_traces == 2 && 
+            (decker_pos==CR2RES_DECKER_1_3 || decker_pos==CR2RES_DECKER_2_4)) {
+        /* DECKER - Identify if the trace is the lower or upper one */
+        center_pos_curr = cr2res_trace_get_trace_ypos(traces, idx) ;
+
+        /* Search the other trace */
+        other_idx = -1 ;
+        for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
+            if (cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL)==order &&
+                    i != idx) other_idx = i ; 
+        }
+        if (other_idx < 0) return NULL ;
+
+        /* Get the position of the other trace */
+        center_pos_other = cr2res_trace_get_trace_ypos(traces, other_idx) ;
+        
+        /* Write the result */
+        slit_frac = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
+        if (center_pos_curr < center_pos_other) {
+            /* Lower Trace */
+            if (decker_pos==CR2RES_DECKER_1_3) {
+                /* DECKER_1_3 */
+                cpl_array_set(slit_frac, 0, 0.250) ;
+                cpl_array_set(slit_frac, 1, 0.375) ;
+                cpl_array_set(slit_frac, 2, 0.500) ;
+            } else {
+                /* DECKER_2_4 */
+                cpl_array_set(slit_frac, 0, 0.000) ;
+                cpl_array_set(slit_frac, 1, 0.125) ;
+                cpl_array_set(slit_frac, 2, 0.250) ;
+            }
+        } else {
+            /* Upper Trace */
+            if (decker_pos==CR2RES_DECKER_1_3) {
+                /* DECKER_1_3 */
+                cpl_array_set(slit_frac, 0, 0.750) ;
+                cpl_array_set(slit_frac, 1, 0.875) ;
+                cpl_array_set(slit_frac, 2, 1.000) ;
+            } else {
+                /* DECKER_2_4 */
+                cpl_array_set(slit_frac, 0, 0.500) ;
+                cpl_array_set(slit_frac, 1, 0.625) ;
+                cpl_array_set(slit_frac, 2, 0.750) ;
+            }
+        }
+    } else {
+        /* Inconsistent */
+        slit_frac = NULL ;
+    }
+    return slit_frac ;
+}
+
+/* TODO */
 /*----------------------------------------------------------------------------*/
 /**
   @brief
@@ -1002,7 +1067,7 @@ static cpl_mask * cr2res_trace_split_traces(
         cpl_polynomial_delete(poly_upper) ;
         cpl_polynomial_delete(poly_lower) ;
     }
-    return out ; ;
+    return out ;
 }
 
 /*----------------------------------------------------------------------------*/

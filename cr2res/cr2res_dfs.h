@@ -36,9 +36,10 @@
 #define CR2RES_COL_ALL              "All"           /* pixel position */
 #define CR2RES_COL_ORDER            "Order"         /* 1 .. nborders */
 #define CR2RES_COL_TRACENB          "TraceNb"       /* 1 .. traces */
-#define CR2RES_COL_SLIT_CURV_A      "SlitPolyA"
-#define CR2RES_COL_SLIT_CURV_B      "SlitPolyB"
-#define CR2RES_COL_SLIT_CURV_C      "SlitPolyC"
+#define CR2RES_COL_SLIT_CURV_A      "SlitPolyA"     /* 3 Coefficients Poly */
+#define CR2RES_COL_SLIT_CURV_B      "SlitPolyB"     /* 3 Coefficients Poly */
+#define CR2RES_COL_SLIT_CURV_C      "SlitPolyC"     /* 3 Coefficients Poly */
+#define CR2RES_COL_SLIT_FRACTION    "SlitFraction"  /* Position on the Slit */
 
 /*** Clusters Table ***/
 #define CR2RES_COL_XS               "xs"            /* pixel position */

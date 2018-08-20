@@ -36,18 +36,12 @@ cpl_table * cr2res_trace(
         double              smoothfactor,
         int                 opening,
         int                 degree,
-        int                 min_cluster,
-        int                 split_single_trace_orders) ;
+        int                 min_cluster) ;
 
 cpl_mask * cr2res_trace_clean(
         cpl_mask    *   mask,
         int             opening,
         int             min_cluster) ;
-
-cpl_table * cr2res_trace_fit(
-        cpl_image   *   labels,
-        int             degree, 
-        int             split_single_trace_orders) ;
 
 cpl_image * cr2res_trace_gen_image(
         cpl_table   *   trace,
@@ -102,9 +96,9 @@ double cr2res_trace_get_trace_ypos(
         cpl_table   *   traces,
         int             idx) ;
 
-int cr2res_trace_add_ord_tra_wav_curv_columns(
+int cr2res_trace_add_extra_columns(
         cpl_table           *   traces,
-        const char          *   file_for_wl,
+        const char          *   infile,
         int                     det_nr) ;
 
 #endif
