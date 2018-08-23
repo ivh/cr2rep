@@ -540,9 +540,16 @@ static int cr2res_cal_flat(
             if (ext_plist[det_nr-1] != NULL) 
                 cpl_propertylist_delete(ext_plist[det_nr-1]) ;
         }
-
         cpl_msg_indent_less() ;
     }
+
+    /* Merge the Decker positions TRACE_WAVE files in a single one */
+    /* TODO */
+
+
+
+
+
     return (int)cpl_error_get_code();
 }
 
