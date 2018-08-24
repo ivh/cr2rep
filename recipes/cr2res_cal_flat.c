@@ -349,7 +349,10 @@ static int cr2res_cal_flat(
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   bpm_frame ;
     hdrl_image          *   master_flat[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   trace_wave[CR2RES_NB_DETECTORS] ;
+    cpl_table * trace_wave[CR2RES_NB_DECKER_POSITIONS][CR2RES_NB_DETECTORS] ;
+    cpl_table           *   merged ;
+    cpl_table           *   new_merged ;
+    cpl_table           *   trace_wave_merged[CR2RES_NB_DETECTORS];
     cpl_table           *   slit_func[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extract_1d[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   slit_model[CR2RES_NB_DETECTORS] ;
@@ -428,6 +431,10 @@ static int cr2res_cal_flat(
 
     /* Loop on the decker positions */
     for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
+        /* Initialise */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
+            trace_wave[i][det_nr-1] = NULL ;
+
         /* Get the Frames for the current decker position */
         rawframes = cr2res_extract_decker_frameset(frameset,
                 CR2RES_FLAT_RAW, decker_values[i]) ;
@@ -439,7 +446,6 @@ static int cr2res_cal_flat(
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             /* Initialise */
             master_flat[det_nr-1] = NULL ;
-            trace_wave[det_nr-1] = NULL ;
             slit_func[det_nr-1] = NULL ;
             extract_1d[det_nr-1] = NULL ;
             slit_model[det_nr-1] = NULL ;
@@ -461,7 +467,7 @@ static int cr2res_cal_flat(
                         extract_swath_width, extract_height, extract_smooth, 0,
                         det_nr, reduce_order, reduce_trace,
                         &(master_flat[det_nr-1]),
-                        &(trace_wave[det_nr-1]),
+                        &(trace_wave[i][det_nr-1]),
                         &(slit_func[det_nr-1]),
                         &(extract_1d[det_nr-1]),
                         &(slit_model[det_nr-1]),
@@ -504,7 +510,7 @@ static int cr2res_cal_flat(
 		out_file = cpl_sprintf("%s_%s_trace_wave.fits", RECIPE_STRING,
                 decker_desc[i]) ;
         cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist,
-                trace_wave, NULL, ext_plist, CR2RES_FLAT_TRACE_WAVE_PROCATG, 
+                trace_wave[i], NULL, ext_plist, CR2RES_FLAT_TRACE_WAVE_PROCATG, 
                 RECIPE_STRING) ;
 		cpl_free(out_file);
 
@@ -527,8 +533,6 @@ static int cr2res_cal_flat(
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             if (master_flat[det_nr-1] != NULL)
                 hdrl_image_delete(master_flat[det_nr-1]) ;
-            if (trace_wave[det_nr-1] != NULL)
-                cpl_table_delete(trace_wave[det_nr-1]) ;
             if (slit_func[det_nr-1] != NULL) 
                 cpl_table_delete(slit_func[det_nr-1]) ;
             if (extract_1d[det_nr-1] != NULL)
@@ -544,11 +548,51 @@ static int cr2res_cal_flat(
     }
 
     /* Merge the Decker positions TRACE_WAVE files in a single one */
-    /* TODO */
+    /*
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        if (trace_wave[0][det_nr-1] == NULL) 
+            merged = NULL ;
+        else
+            merged = cpl_table_duplicate(trace_wave[0][det_nr-1]) ;
+        for (i=1 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
+            new_merged = cr2res_trace_merge(merged, trace_wave[i][det_nr-1]) ;
+            if (new_merged == NULL) {
+                if (merged != NULL) {
+                    cpl_table_delete(merged) ;
+                    merged = NULL ;
+                }
+            } else {
+                if (merged != NULL) cpl_table_delete(merged) ;
+                merged = new_merged ;
+            }
+        }
+        trace_wave_merged[det_nr-1] = merged ;
+    }
+*/
+    /* Free the traces */
+    /*
+    for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) 
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) 
+            if (trace_wave[i][det_nr-1] != NULL)
+                cpl_table_delete(trace_wave[i][det_nr-1]) ;
 
+                */
 
+    /* TRACE_WAVE_MERGED */
+    /*
+       out_file = cpl_sprintf("%s_trace_wave_merged.fits", RECIPE_STRING) ;
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, trace_wave_merged,
+            NULL, NULL, CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG, 
+            RECIPE_STRING) ;
+    cpl_free(out_file);
 
+    */
 
+    /* Free the merged traces */
+    /*
+       if (trace_wave_merged[det_nr-1] != NULL)
+        cpl_table_delete(trace_wave_merged[det_nr-1]) ;
+        */
 
     return (int)cpl_error_get_code();
 }
@@ -609,6 +653,7 @@ static int cr2res_cal_flat_reduce(
     
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
+
 
     /* Get the Extension number */
     first_file = cpl_frame_get_filename(

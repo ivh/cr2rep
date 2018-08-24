@@ -52,6 +52,10 @@ int * cr2res_trace_get_order_numbers(
         cpl_table   *   trace, 
         int         *   nb_orders) ;
 
+cpl_table * cr2res_trace_merge(
+        const cpl_table     *   trace_wave1,
+        const cpl_table     *   trace_wave2) ;
+
 cpl_polynomial * cr2res_get_trace_wave_poly(
         const cpl_table     *   trace_wave,
         const char          *   poly_column,

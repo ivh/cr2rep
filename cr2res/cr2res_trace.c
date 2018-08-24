@@ -460,6 +460,21 @@ cpl_size cr2res_get_nb_traces_with_wavelength(
     return count ;
 }
 
+/* TODO */
+/*----------------------------------------------------------------------------*/
+/**
+   @brief   
+   @param  
+   @return
+ */
+/*----------------------------------------------------------------------------*/
+cpl_table * cr2res_trace_merge(
+        const cpl_table     *   trace_wave1,
+        const cpl_table     *   trace_wave2)
+{
+    return NULL ;
+}
+
 /*----------------------------------------------------------------------------*/
 /**
    @brief   Get the index in a TRACE_WAVE table
