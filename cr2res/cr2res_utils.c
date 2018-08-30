@@ -655,12 +655,20 @@ int cr2res_pol_load_images(const cpl_frameset *fs1, const cpl_frameset *fs2,
     // TODO does it matter?
     cpl_imagelist *imlist;
     imlist = cpl_imagelist_load_frameset(fs1, CPL_TYPE_FLOAT, 0, chip);
-    *sum1 = cpl_imagelist_collapse_create(imlist);
+    if ((*sum1 = cpl_imagelist_collapse_create(imlist)) == NULL){
+        cpl_imagelist_delete(imlist);
+        return -1;
+    };
     cpl_imagelist_delete(imlist);
 
     imlist = cpl_imagelist_load_frameset(fs2, CPL_TYPE_FLOAT, 0, chip);
-    *sum2 = cpl_imagelist_collapse_create(imlist);
+    if ((*sum2 = cpl_imagelist_collapse_create(imlist)) == NULL){
+        cpl_imagelist_delete(imlist);
+        return -1;
+    };
     cpl_imagelist_delete(imlist);
+
+    return 0;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -882,15 +890,15 @@ cpl_table * cr2res_demod(
             cpl_bivector_delete(trace_a_angle_2);
             cpl_bivector_delete(trace_b_angle_2);
         }
-        sprintf(column_name, "POL_X_%i", order);
+        sprintf(column_name, "POL_X_%d", (int)order);
         cpl_table_wrap_double(stokes, cpl_vector_get_data(sx), column_name);
         cpl_vector_unwrap(sx);
 
-        sprintf(column_name, "POL_I_%d", order);
+        sprintf(column_name, "POL_I_%d", (int)order);
         cpl_table_wrap_double(stokes, cpl_vector_get_data(si), column_name);
         cpl_vector_unwrap(si);
 
-        sprintf(column_name, "POL_N_%d", order);
+        sprintf(column_name, "POL_N_%d", (int)order);
         cpl_table_wrap_double(stokes, cpl_vector_get_data(sn), column_name);
         cpl_vector_unwrap(sn);
     }
