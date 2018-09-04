@@ -101,12 +101,8 @@ char * cr2res_io_create_extname(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Create wished EXTNAME */
-    /*
+    
     if (data)   wished_extname = cpl_sprintf("CHIP%d.INT1", detector) ;
-    else        wished_extname = cpl_sprintf("CHIP%dERR.INT1", detector) ;
-    */
-
-    if (data)   wished_extname = cpl_sprintf("CHIP%d", detector) ;
     else        wished_extname = cpl_sprintf("CHIP%dERR", detector) ;
 
     return wished_extname ;
