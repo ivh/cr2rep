@@ -30,7 +30,7 @@ def compare_extract(flat, trace, extract, title=''):
             print('No data for CHIP%s, skipping.' % i)
             continue
 
-        ax.imshow(fdata)
+        ax.imshow(fdata, origin='lower')
 
         for alla, upper, lower, order, tracenb, wave, curvA, curvB, curvC in tdata:
             pol = np.polyval(upper[::-1], X)
@@ -88,7 +88,7 @@ def compare_extract2(flat, trace, extract, title=''):
             print('No data for CHIP%s, skipping.' % i)
             continue
 
-        ax.imshow(fdata)
+        ax.imshow(fdata, origin='lower')
 
         for alla, upper, lower, order, tracenb, wave in tdata:
             pol = np.polyval(upper[::-1], X)
@@ -114,10 +114,10 @@ def compare_extract2(flat, trace, extract, title=''):
 
     plt.show()
 
-def compare(flat, trace):
+def compare(flatname, tracename):
     """ compare flat and trace """
-    flat = fits.open(flat)
-    trace = fits.open(trace)
+    flat = fits.open(flatname)
+    trace = fits.open(tracename)
     X = np.arange(2048)
     FIG = plt.figure(figsize=(10, 3.5))
 
@@ -127,20 +127,18 @@ def compare(flat, trace):
         ax.set_yticks([])
 
         fdata = flat[i].data
-        ax.imshow(fdata)
+        ax.imshow(fdata, origin='lower')
         axi = plt.axis()
 
 
-        try: tdata = trace['CHIP%s' % i].data
-        except KeyError: 
-            try: tdata = trace['CHIP%s.INT1' % i].data
-            except:
-                print('No extension CHIP%s (or .INT1), skipping.' % i)
-                continue
-            tdata = trace['CHIP%s.INT1' % i].data
-            if tdata is None:
-                print('Data for CHIP%s is empty, skipping.' % i)
-            
+        try: tdata = trace[i].data
+        except:
+            print('extension %s is missing, skipping.' % i)
+            continue
+        if tdata is None:
+            print('Data for CHIP%s is empty, skipping.' % i)
+            continue
+
         for alla, upper, lower, order, tracenb, wave, curvA, curvB, curvC, slitfrac in tdata:
             pol = np.polyval(upper[::-1], X)
             ax.plot(X, pol, ':w')
@@ -160,7 +158,9 @@ def compare(flat, trace):
 
 
     FIG.tight_layout(pad=0.02)
-    plt.show()
+    #plt.show()
+    figname = tracename.replace('.fits','.png')
+    plt.savefig(figname,dpi=120)
 
 
 if __name__ == '__main__':
