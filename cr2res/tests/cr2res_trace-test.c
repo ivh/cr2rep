@@ -265,7 +265,7 @@ static void test_cr2res_trace(void)
     /* NULL Input */
     //cpl_test_null(cr2res_trace(NULL, 1.0, 1, 6, 500, 0));
     // regular run
-    cpl_test(out = cr2res_trace(trace_ima, 1.0, 1, 2, 10, 0));
+    cpl_test(out = cr2res_trace(trace_ima, 1.0, 1, 2, 10));
     // test results?
 
     cpl_table_save(out, NULL, NULL, "TEST2.fits", CPL_IO_CREATE);

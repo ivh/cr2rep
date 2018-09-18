@@ -667,7 +667,6 @@ int cr2res_extract_slitdec_vert(
             cpl_vector_set(bins_end, i, sw_start + swath);
         }
 
-
         // first and last half swath are not weighted
         if (i==0){
             for (j = swath/2; j < swath; j++) {
@@ -967,6 +966,7 @@ int cr2res_extract_slitdec_curved(
     // normalize such that max(w)=1
     cpl_vector_divide_scalar(weights_sw,i+1);
 
+    // remove delta_x outermost weights and move them to the center 
     for (i=0; i < delta_x; i++){
         cpl_vector_set(weights_sw, i, 0);
         cpl_vector_set(weights_sw, swath - i - 1, 0);
@@ -1031,7 +1031,7 @@ int cr2res_extract_slitdec_curved(
         cr2res_extract_slit_func_curved(swath, height, oversample, img_sw_data,
                 err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit,
                 slitcurves_sw, delta_x,
-                slitfu_sw_data, spec_sw_data, model_sw, unc_sw, 0.0,
+                slitfu_sw_data, spec_sw_data, model_sw, unc_sw, 1e-4,
                 smooth_slit, 1e-7, 20);
 
         for (col=1; col<=swath; col++) {        // col is x-index in cut-out
@@ -1500,7 +1500,7 @@ static int cr2res_extract_xi_zeta_tensors(
            we only need to initialize iy1 and iy2 and keep incrementing them
            by osample.
          */
-        iy2 = osample - floor(ycen[x] / step) - 1;
+        iy2 = osample - floor(ycen[x] / step);
         iy1 = iy2 - osample;
 
         /*

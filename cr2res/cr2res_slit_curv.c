@@ -270,7 +270,7 @@ int cr2res_slit_curv_fit_coefficients(
     /* Create Objets */
     *slit_polya = cpl_polynomial_new(1) ;
     power = 0 ; cpl_polynomial_set_coeff(*slit_polya, &power, 0.0) ;
-    power = 1 ; cpl_polynomial_set_coeff(*slit_polya, &power, 0.0) ;
+    power = 1 ; cpl_polynomial_set_coeff(*slit_polya, &power, 1.0) ;
     power = 2 ; cpl_polynomial_set_coeff(*slit_polya, &power, 0.0) ;
     *slit_polyb = cpl_polynomial_duplicate(*slit_polya) ;
     *slit_polyc = cpl_polynomial_duplicate(*slit_polya) ;

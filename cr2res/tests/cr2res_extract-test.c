@@ -34,12 +34,35 @@
 #include <cr2res_dfs.h>
 #include <cr2res_extract.h>
 #include <cr2res_trace.h>
+#include <cr2res_slit_curv.h>
 
 static void test_cr2res_slitdec_vert_regression(void);
 static void test_cr2res_slitdec_vert_edge_cases(void);
 static void test_cr2res_slitdec_vert(void);
 static void test_cr2res_slitdec_compare_vert_curved(void);
 
+static cpl_table *load_table()
+{
+    cpl_table * table;
+    if (access("./tests/lamp_trace.fits", F_OK) != -1){
+        table = cpl_table_load("./tests/lamp_trace.fits", 1, 0);
+    } else{
+        table = cpl_table_load("./lamp_trace.fits", 1, 0);
+    }
+    return table;
+}
+
+static cpl_image *load_image()
+{
+    cpl_image * image;
+    if (access("./tests/XDGH.fits", F_OK) != -1){
+        image = cpl_image_load("./tests/XDGH.fits", CPL_TYPE_INT, 0, 1);
+    }
+    else{
+        image = cpl_image_load("./XDGH.fits", CPL_TYPE_INT, 0, 1);
+    }
+    return image;
+}
 
 static cpl_table *create_test_table()
 {
@@ -105,7 +128,7 @@ static cpl_image *create_image_linear_increase(int width, int height, double * s
     cpl_image * img_tilt = cpl_image_new(width, height, CPL_TYPE_DOUBLE);
 
     for(int i = 1; i <= width; i++) {
-        spec = i * step + min;
+        spec = i * step + min;       
         spec_in[i-1] = spec;
         for(int j = 1; j <= height; j++) {
             slitf =  exp(- (j - mu) * (j - mu) / (2. * sigma * sigma));
@@ -132,7 +155,6 @@ static cpl_image *create_image_linear_increase(int width, int height, double * s
 static cpl_image * create_image_sinusoidal(
         int         width,
         int         height,
-        double  *   shear,
         double      spec_in[width])
 {
     int k = 0;
@@ -143,7 +165,6 @@ static cpl_image * create_image_sinusoidal(
     double slitf = 0.;
 
     cpl_image * img = cpl_image_new(width, height, CPL_TYPE_DOUBLE);
-    cpl_image * img_tilt = cpl_image_new(width, height, CPL_TYPE_DOUBLE);
 
     for(int i = 1; i <= width; i++) {
         // Sinusoidal spectrum
@@ -156,10 +177,19 @@ static cpl_image * create_image_sinusoidal(
             cpl_image_set(img, i, j, spec * slitf);
         }
     }
-    //tilt image
+    return img;
+}
+
+cpl_image * apply_shear(cpl_image * img, int width, int height, double shear){
+    int k;
+    double mu = height * 0.5 + 1;
+    double spec;
+
+    cpl_image * img_tilt = cpl_image_new(width, height, CPL_TYPE_DOUBLE);
+
     for(int i = 1; i <= width; i++) {
         for(int j = 1; j <= height; j++) {
-            k = (int)(i + (j-mu) * shear[i]);
+            k = (int)(i + (j - mu) * shear);
             // periodic boundary conditions
             if (k < 1)     k = k + width;
             if (k > width) k = k - width;
@@ -169,6 +199,7 @@ static cpl_image * create_image_sinusoidal(
         }
     }
     cpl_image_delete(img);
+
     return img_tilt;
 }
 
@@ -195,11 +226,11 @@ static cpl_table * create_table_linear_increase(
     cpl_table_new_column_array(traces, CR2RES_COL_SLIT_CURV_C, CPL_TYPE_DOUBLE, 2);
 
 
-    cpl_array_set(array, 0, height * 0.25);
+    cpl_array_set(array, 0, height * 0.5);
     cpl_table_set_array(traces, CR2RES_COL_ALL, 0, array);
-    cpl_array_set(array, 0, height * 0.4);
+    cpl_array_set(array, 0, height * 0.8);
     cpl_table_set_array(traces, CR2RES_COL_UPPER, 0, array);
-    cpl_array_set(array, 0, height * 0.1);
+    cpl_array_set(array, 0, height * 0.2);
     cpl_table_set_array(traces, CR2RES_COL_LOWER, 0, array);
     cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH, 0, wl);
     cpl_table_set(traces, CR2RES_COL_ORDER, 0, 1);
@@ -207,22 +238,22 @@ static cpl_table * create_table_linear_increase(
 
     cpl_array_set(wl, 0, 10 - shear * height * 0.5);
 
-    cpl_array_set(array, 0, height * 0.75);
+    cpl_array_set(array, 0, height * 0.5);
     cpl_table_set_array(traces, CR2RES_COL_ALL, 1, array);
-    cpl_array_set(array, 0, height * 0.9);
+    cpl_array_set(array, 0, height * 0.8);
     cpl_table_set_array(traces, CR2RES_COL_UPPER, 1, array);
-    cpl_array_set(array, 0, height * 0.6);
+    cpl_array_set(array, 0, height * 0.2);
     cpl_table_set_array(traces, CR2RES_COL_LOWER, 1, array);
     cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH, 1, wl);
     cpl_table_set(traces, CR2RES_COL_ORDER, 1, 1);
     cpl_table_set(traces, CR2RES_COL_TRACENB, 1, 2);
 
     cpl_array_set(wl, 0, 0);
-    cpl_array_set(wl, 1, 0);
+    cpl_array_set(wl, 1, 1);
     cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_A, 0, wl);
     cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_A, 1, wl);
 
-    cpl_array_set(wl, 0, 0);
+    cpl_array_set(wl, 0, shear);
     cpl_array_set(wl, 1, 0);
     cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_B, 0, wl);
     cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_B, 1, wl);
@@ -448,15 +479,16 @@ static void test_cr2res_slitdec_curved(void)
     int oversample = 2;
     double smooth_slit = 10;
     double spec_in[width];
+    double const_shear = 1;
 
     cpl_vector * shear = cpl_vector_new(width);
-    //for (int k = 0; k < width; k++) cpl_vector_set(shear, k, (double)k/(double)width * 0.9);
-    for (int k = 0; k < width; k++) cpl_vector_set(shear, k, 0.);
+    for (int k = 0; k < width; k++) cpl_vector_set(shear, k, const_shear);
 
-    cpl_image * img_in = create_image_sinusoidal(width, height, cpl_vector_get_data(shear), spec_in);
+    cpl_image * img_in = create_image_sinusoidal(width, height, spec_in);
+    img_in = apply_shear(img_in, width, height, const_shear);
     //cpl_image * img_in = create_image_linear_increase(width, height, cpl_vector_get_data(shear), spec_in);
     hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
-    cpl_table * trace_table = create_table_linear_increase(width, height, 0.);
+    cpl_table * trace_table = create_table_linear_increase(width, height, const_shear);
 
     cpl_vector * slit_func;
     cpl_bivector * spec;
@@ -469,32 +501,32 @@ static void test_cr2res_slitdec_curved(void)
         cr2res_extract_slitdec_curved(img_hdrl, trace_table, order, trace, height,
                 swath, oversample, smooth_slit, &slit_func, &spec, &model));
 
-    // // check results
-    // cpl_vector_copy(cmp, cpl_bivector_get_x(spec));
-    // cpl_vector_divide(cmp, spec_in_vec);
-    // double ratio0 = cpl_vector_get_median(cmp);
-    // double ratio = 0;
-    // // for(int i = 20; i < width-20; i++) {
-    // //     // shape of spectrum
-    // //     ratio = cpl_bivector_get_x_data(spec)[i] / spec_in[i];
-    // //     cpl_test_abs(ratio, ratio0, 2);
+    // check results
+    cpl_vector_copy(cmp, cpl_bivector_get_x(spec));
+    cpl_vector_divide(cmp, spec_in_vec);
+    double ratio0 = cpl_vector_get_median(cmp);
+    double ratio = 0;
+    // for(int i = 20; i < width-20; i++) {
+    //     // shape of spectrum
+    //     ratio = cpl_bivector_get_x_data(spec)[i] / spec_in[i];
+    //     cpl_test_abs(ratio, ratio0, 2);
 
-    // //     //relative error
-    // //     ratio = cpl_bivector_get_y_data(spec)[i] / cpl_bivector_get_x_data(spec)[i];
-    // //     cpl_test_lt(ratio,  0.1);
-    // // }
+    //     //relative error
+    //     ratio = cpl_bivector_get_y_data(spec)[i] / cpl_bivector_get_x_data(spec)[i];
+    //     cpl_test_lt(ratio,  0.1);
+    // }
 
-    // ratio = cpl_vector_get_sum(slit_func) / oversample;
-    // // cpl_test_abs(ratio, 1, FLT_EPSILON);
+    ratio = cpl_vector_get_sum(slit_func) / oversample;
+    // cpl_test_abs(ratio, 1, FLT_EPSILON);
 
-    // cpl_vector_save(cpl_bivector_get_x(spec), "debug_spec.fits", CPL_TYPE_DOUBLE, NULL,
-    //     CPL_IO_CREATE);
-    // cpl_vector_save(cpl_bivector_get_y(spec), "debug_err.fits", CPL_TYPE_DOUBLE, NULL,
-    //     CPL_IO_CREATE);
-    // cpl_vector_save(slit_func, "debug_slitfunc.fits", CPL_TYPE_DOUBLE,
-    //     NULL, CPL_IO_CREATE);
-    // cpl_image_save(hdrl_image_get_image(model), "debug_model.fits", CPL_TYPE_FLOAT,
-    //     NULL, CPL_IO_CREATE);
+    cpl_vector_save(cpl_bivector_get_x(spec), "debug_spec.fits", CPL_TYPE_DOUBLE, NULL,
+        CPL_IO_CREATE);
+    cpl_vector_save(cpl_bivector_get_y(spec), "debug_err.fits", CPL_TYPE_DOUBLE, NULL,
+        CPL_IO_CREATE);
+    cpl_vector_save(slit_func, "debug_slitfunc.fits", CPL_TYPE_DOUBLE,
+        NULL, CPL_IO_CREATE);
+    cpl_image_save(hdrl_image_get_image(model), "debug_model.fits", CPL_TYPE_FLOAT,
+        NULL, CPL_IO_CREATE);
 
     // Free memory
     cpl_vector_delete(slit_func);
@@ -514,18 +546,20 @@ static void test_cr2res_slitdec_compare_vert_curved(void)
     int height = 20;
     int order = 1;
     int trace = 1;
-    int swath = 400;
-    int oversample = 2;
+    int swath = 200;
+    int oversample = 5;
     double smooth_slit = 10;
     double spec_in[width];
+    double const_shear = 1;
 
-    cpl_vector * shear = cpl_vector_new(width);
-    for (int k = 0; k < width; k++) cpl_vector_set(shear, k, 0.);
 
-    cpl_image * img_in = create_image_sinusoidal(width, height, cpl_vector_get_data(shear), spec_in);
+    cpl_image * img_in = create_image_sinusoidal(width, height, spec_in);
     //cpl_image * img_in = create_image_linear_increase(width, height, cpl_vector_get_data(shear), spec_in);
+    //cpl_image * img_in = load_image();
     hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
-    cpl_table * trace_table = create_table_linear_increase(width, height, 0.);
+    
+    cpl_table * trace_table = create_table_linear_increase(width, height, const_shear);
+    //cpl_table * trace_table = load_table();
 
     cpl_vector * slit_func_vert;
     cpl_bivector * spec_vert;
@@ -534,29 +568,46 @@ static void test_cr2res_slitdec_compare_vert_curved(void)
     cpl_bivector * spec_curved;
     hdrl_image * model_curved;
 
-    cpl_vector * cmp = cpl_vector_new(width);
 
     cpl_test_eq(0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, swath,
                 oversample, smooth_slit, &slit_func_vert, &spec_vert, &model_vert));
+    
+
+    img_in = apply_shear(img_in, width, height, const_shear);
+    hdrl_image_delete(img_hdrl);
+    img_hdrl = hdrl_image_create(img_in, NULL);
+
     cpl_test_eq(0, cr2res_extract_slitdec_curved(img_hdrl, trace_table, order, trace, height,
                 swath, oversample, smooth_slit, &slit_func_curved, &spec_curved, &model_curved));
-
-    cpl_vector_divide(cpl_bivector_get_x(spec_vert), cpl_bivector_get_x_const(spec_curved));
-
-    for(size_t i = 0; i < width; i++)
-    {
-        cpl_vector_set(cmp, i, cpl_bivector_get_x_data(spec_vert)[0]);
-    }
-
-    cpl_test_vector_abs(cpl_bivector_get_x(spec_vert), cmp, DBL_EPSILON * 10);
-
-
+    
 
     cpl_vector_save(cpl_bivector_get_x(spec_vert), "debug_spec_vert.fits", CPL_TYPE_DOUBLE, NULL,
         CPL_IO_CREATE);
 
+    cpl_vector_save(slit_func_vert, "debug_slitf_vert.fits", CPL_TYPE_DOUBLE, NULL,
+        CPL_IO_CREATE);
+
     cpl_vector_save(cpl_bivector_get_x(spec_curved), "debug_spec_curved.fits", CPL_TYPE_DOUBLE, NULL,
         CPL_IO_CREATE);
+
+
+    cpl_vector_save(slit_func_curved, "debug_slitf_curved.fits", CPL_TYPE_DOUBLE, NULL,
+        CPL_IO_CREATE);
+
+
+    // Compare vert and curved
+    // cpl_test_vector_abs(cpl_bivector_get_x(spec_vert), cpl_bivector_get_x(spec_curved), FLT_EPSILON);
+    // cpl_test_vector_abs(slit_func_vert, slit_func_curved, FLT_EPSILON);
+
+    int delta_x = const_shear * height * 0.5;
+    
+    cpl_test_abs(cpl_vector_get_sum(slit_func_curved), cpl_vector_get_sum(slit_func_vert), 1e-5);
+
+    for(int i = delta_x; i < width - delta_x; i++)
+    {
+        cpl_test_abs(cpl_bivector_get_x_data(spec_vert)[i] / cpl_bivector_get_x_data(spec_curved)[i], 1, 0.1);
+    }
+    
 
     // Free memory
     cpl_vector_delete(slit_func_vert);
@@ -567,8 +618,6 @@ static void test_cr2res_slitdec_compare_vert_curved(void)
     cpl_bivector_delete(spec_curved);
     hdrl_image_delete(model_curved);
 
-    cpl_vector_delete(shear);
-    cpl_vector_delete(cmp);
     cpl_image_delete(img_in);
     cpl_table_delete(trace_table);
     hdrl_image_delete(img_hdrl);
@@ -586,8 +635,8 @@ int main(void)
     //test_cr2res_slitdec_vert_edge_cases();
     //test_cr2res_slitdec_vert_regression();
     //test_cr2res_slitdec_vert();
-    test_cr2res_slitdec_curved();
-    //test_cr2res_slitdec_compare_vert_curved();
+    //test_cr2res_slitdec_curved();
+    test_cr2res_slitdec_compare_vert_curved();
 
     return cpl_test_end(0);
 }

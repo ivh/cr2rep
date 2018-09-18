@@ -1200,12 +1200,14 @@ int cr2res_slit_pos(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Function description
-  @param    param 1     Description
-  @param    param n     Description
-  @return   Returned value/pointer description
+  @brief    get a image of the slitposition (and wavelength) along the slit
+  @param    tw_decker_1     tracewave table for traces with decker 1
+  @param    tw_decker_2     tracewave_table for traces with decker 2
+  @param    slitpos         output image of slit positions
+  @param    wavelength      output image of wavelength
+  @return   return 0 if successful, -1 otherwise
 
-    DETAILED algorithm description
+  Uses the polynomials from cr2res_slit_pos to calculate the slit position and wavelength of each pixel 
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_slit_pos_image(
@@ -1214,7 +1216,7 @@ int cr2res_slit_pos_image(
         cpl_image   *   slitpos, 
         cpl_image   *   wavelength)
 {
-    volatile double w, s;
+    double w, s;
     int nb_orders;
     int *orders = cr2res_trace_get_order_numbers(tw_decker1, &nb_orders);
     cpl_free(orders);
