@@ -62,10 +62,12 @@ static int cr2res_extract_slit_func_vert(
          int         nrows,
          int         osample,
          double  *   im,
+         double  *   pix_unc,
          int     *   mask,
          double  *   ycen,
          double  *   sL,
          double  *   sP,
+         double  *   unc,
          double  *   model,
          double      lambda_sP,
          double      lambda_sL,
@@ -149,7 +151,7 @@ static int cr2res_extract_slitdec_adjust_swath(
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_extract_sum_vert(
-        cpl_image   *   img_in,
+        hdrl_image  *   hdrl_in,
         cpl_table   *   trace_tab,
         int             order,
         int             trace_id,
@@ -162,8 +164,11 @@ int cr2res_extract_sum_vert(
     cpl_vector      *   ycen ;
     cpl_image       *   img_tmp;
     cpl_image       *   img_1d;
+    const cpl_image       *   img_in;
+    const cpl_image       *   err_in;
     cpl_vector      *   spc;
     cpl_vector      *   slitfu;
+    cpl_vector      *   sigma;
     cpl_size            lenx, leny;
     int                 i, j;
     int                 ymin, ymax;
@@ -171,7 +176,10 @@ int cr2res_extract_sum_vert(
     cpl_type            imtyp;
 
     /* Check Entries */
-    if (img_in == NULL || trace_tab == NULL) return -1 ;
+    if (hdrl_in == NULL || trace_tab == NULL) return -1 ;
+
+    img_in = hdrl_image_get_image_const(hdrl_in);
+    err_in = hdrl_image_get_error_const(hdrl_in);
 
     /* use the same type as input for temp images below */
     imtyp = cpl_image_get_type(img_in);
@@ -214,6 +222,13 @@ int cr2res_extract_sum_vert(
     cpl_image_delete(img_1d);
     cpl_image_delete(img_tmp);
 
+    img_tmp = cpl_image_multiply_create(err_in, err_in);
+    img_1d = cpl_image_collapse_create(img_tmp, 0);
+    sigma = cpl_vector_new_from_image_row(img_1d, 1);
+    cpl_vector_sqrt(sigma);
+    cpl_image_delete(img_tmp);
+    cpl_image_delete(img_1d);
+
     // reconstruct the 2d image with the "model"
     img_tmp = cpl_image_new(lenx, leny, imtyp);
     ycen_int = cr2res_vector_get_int(ycen);
@@ -233,8 +248,7 @@ int cr2res_extract_sum_vert(
 
 
     *slit_func = slitfu;
-    cpl_vector * err_out = cpl_vector_new(cpl_vector_get_size(spc));
-    *spec = cpl_bivector_wrap_vectors(spc, err_out);
+    *spec = cpl_bivector_wrap_vectors(spc, sigma);
     *model = hdrl_image_create(img_tmp, NULL);
     cpl_image_delete(img_tmp);
 
@@ -461,32 +475,35 @@ int cr2res_extract_slitdec_vert(
     double          *   ycen_rest;
     double          *   ycen_sw;
     double          *   img_sw_data;
+    double          *   err_sw_data;
     double          *   spec_sw_data;
     double          *   slitfu_sw_data;
     double          *   model_sw;
     int             *   mask_sw;
+    double          *   unc_sw_data;
     const cpl_image *   img_in;
     const cpl_image *   err_in;
+    cpl_image       *   err_sw;
     cpl_image       *   img_sw;
     cpl_image       *   img_rect;
+    cpl_image       *   err_rect;
     cpl_image       *   model_rect;
     cpl_vector      *   ycen ;
     cpl_image       *   img_tmp;
     cpl_image       *   img_out;
-
     cpl_vector      *   spec_sw;
     cpl_vector      *   slitfu_sw;
     cpl_vector      *   spc;
     cpl_vector      *   slitfu;
+    cpl_vector      *   unc_sw;
     cpl_vector      *   weights_sw;
     cpl_vector      *   tmp_vec;
     cpl_vector      *   bins_begin;
     cpl_vector      *   bins_end;
-    cpl_vector      *   unc_background;
     cpl_vector      *   unc_decomposition;
     cpl_size            lenx, leny;
     cpl_type            imtyp;
-    double              pixval, img_median, unc, model_unc, img_unc, norm;
+    double              pixval, errval, img_median, unc, model_unc, img_unc, norm;
     int                 i, j, k, nswaths, row, col, x, y, ny_os,
                         sw_start, sw_end, badpix;
 
@@ -545,9 +562,10 @@ int cr2res_extract_slitdec_vert(
         return -1;
     }
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_image_save(img_rect, "debug_rectorder.fits", imtyp,
+        cpl_image_save(img_rect, "debug_rectorder_vert.fits", imtyp,
                 NULL, CPL_IO_CREATE);
     }
+    err_rect = cr2res_image_cut_rectify(err_in, ycen, height);
     ycen_rest = cr2res_vector_get_rest(ycen);
 
     // Work vectors
@@ -560,6 +578,9 @@ int cr2res_extract_slitdec_vert(
     model_sw = cpl_malloc(height*swath*sizeof(double));
     ycen_sw = cpl_malloc(swath*sizeof(double));
     img_sw = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
+    err_sw = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
+    unc_sw = cpl_vector_new(swath);
+
 
     weights_sw = cpl_vector_new(swath);
 
@@ -574,7 +595,11 @@ int cr2res_extract_slitdec_vert(
     // Local versions of return data
     slitfu = cpl_vector_new(ny_os);
     spc = cpl_vector_new(lenx);
-    for (j=0; j<lenx ; j++) cpl_vector_set(spc, j, 0.);
+    unc_decomposition = cpl_vector_new(lenx);
+    for (j=0; j<lenx ; j++){
+        cpl_vector_set(spc, j, 0.);
+        cpl_vector_set(unc_decomposition, j, 0.);
+    }
     img_out = cpl_image_new(lenx, leny, CPL_TYPE_DOUBLE);
     model_rect = cpl_image_new(lenx, height, CPL_TYPE_DOUBLE);
 
@@ -589,7 +614,9 @@ int cr2res_extract_slitdec_vert(
             x = sw_start + col;          // coords in large image
             for(y=1;y<=height;y++){
                 pixval = cpl_image_get(img_rect, x, y, &badpix);
+                errval = cpl_image_get(err_rect, x, y, &badpix);
                 cpl_image_set(img_sw, col, y, pixval);
+                cpl_image_set(err_sw, col, y, errval);
                 if(cpl_error_get_code() != CPL_ERROR_NONE)
                     cpl_msg_error(__func__, "%d %d %s",
                             x, y, cpl_error_get_where());
@@ -601,17 +628,20 @@ int cr2res_extract_slitdec_vert(
         }
 
         img_sw_data = cpl_image_get_data_double(img_sw);
+        err_sw_data = cpl_image_get_data_double(err_sw);
         img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
         spec_sw = cpl_vector_new_from_image_row(img_tmp,1);
+        unc_sw_data = cpl_vector_get_data(unc_sw);
+
         cpl_image_delete(img_tmp);
         spec_sw_data = cpl_vector_get_data(spec_sw);
         for (j=sw_start;j<sw_end;j++) ycen_sw[j-sw_start] = ycen_rest[j];
 
 
         /* Finally ready to call the slit-decomp */
-        cr2res_extract_slit_func_vert(swath, height, oversample, img_sw_data,
-                mask_sw, ycen_sw, slitfu_sw_data, spec_sw_data, model_sw,
-                0.0, smooth_slit, 1.0e-5, 20);
+        cr2res_extract_slit_func_vert(swath, height, oversample, img_sw_data, 
+                err_sw_data, mask_sw, ycen_sw, slitfu_sw_data, spec_sw_data,
+                model_sw, unc_sw_data, 0.0, smooth_slit, 1.0e-5, 20);
 
         for(col=1; col<=swath; col++){   // col is x-index in cut-out
             x = sw_start + col;          // coords in large image
@@ -660,6 +690,7 @@ int cr2res_extract_slitdec_vert(
         if (k != 0) {
             for (j= 0; j < swath - k; j++){
                 cpl_vector_set(spec_sw, j, cpl_vector_get(spec_sw, j + k));
+                cpl_vector_set(unc_sw, j, cpl_vector_get(unc_sw, j + k));
             }
             sw_start = cpl_vector_get(bins_begin, i-1) + swath / 2;
             cpl_vector_set(bins_begin, i, sw_start);
@@ -672,23 +703,31 @@ int cr2res_extract_slitdec_vert(
             for (j = swath/2; j < swath; j++) {
                 cpl_vector_set(spec_sw, j,
                     cpl_vector_get(spec_sw,j) * cpl_vector_get(weights_sw,j));
+                cpl_vector_set(unc_sw, j,
+                    cpl_vector_get(unc_sw,j) * cpl_vector_get(weights_sw,j));
             }
         }
         else if (i == nswaths - 1) {
             for (j = 0; j < swath / 2; j++) {
                 cpl_vector_set(spec_sw, j,
                 cpl_vector_get(spec_sw,j) * cpl_vector_get(weights_sw,j));
+
+                cpl_vector_set(unc_sw, j,
+                cpl_vector_get(unc_sw, j) * cpl_vector_get(weights_sw, j));
             }
         }
         else {
             /* Multiply by weights and add to output array */
             cpl_vector_multiply(spec_sw, weights_sw);
+            cpl_vector_multiply(unc_sw, weights_sw);
         }
 
         // Save swath to output vector
         for (j=sw_start;j<sw_end;j++) {
             cpl_vector_set(spc, j,
                 cpl_vector_get(spec_sw, j-sw_start) + cpl_vector_get(spc, j) );
+            cpl_vector_set(unc_decomposition, j, 
+                cpl_vector_get(unc_sw, j - sw_start) + cpl_vector_get(unc_decomposition, j));
         }
         cpl_vector_delete(spec_sw);
 
@@ -697,11 +736,13 @@ int cr2res_extract_slitdec_vert(
     cpl_vector_delete(weights_sw);
     cpl_vector_delete(bins_begin);
     cpl_vector_delete(bins_end);
+    cpl_vector_delete(unc_sw);
 
     cpl_free(mask_sw);
     cpl_free(model_sw);
     cpl_free(ycen_sw);
     cpl_image_delete(img_sw);
+    cpl_image_delete(err_sw);
 
     // insert model_rect into large frame
     cr2res_image_insert_rect(model_rect, ycen, img_out);
@@ -709,39 +750,10 @@ int cr2res_extract_slitdec_vert(
     // divide by nswaths to make the slitfu into the average over all swaths.
     cpl_vector_divide_scalar(slitfu, nswaths);
 
-    // TODO: Update BPM in img_out
-    // TODO: Calculate error and return it.
-    img_tmp = cpl_image_collapse_median_create(err_in, 0, 0, 0);
-    unc_background = cpl_vector_new_from_image_row(img_tmp, 1);
-    cpl_image_delete(img_tmp);
-
-    unc_decomposition = cpl_vector_new(lenx);
-    for (i = 1; i <= lenx; i++)
-    {
-        unc = 0.;
-        norm = 0.;
-        for (j = 1; j <= height; j++)
-        {
-            model_unc = cpl_image_get(model_rect, i, j, &badpix);
-            img_unc = cpl_image_get(img_rect, i, j, &badpix);
-            if (badpix == 0){
-                norm += 1;
-                unc += (model_unc - img_unc) * (model_unc - img_unc);
-            }
-        }
-        cpl_vector_set(unc_decomposition, i-1, sqrt(unc * height / norm));
-    }
-
-    cpl_vector_multiply(unc_background, unc_background);
-    cpl_vector_multiply(unc_decomposition, unc_decomposition);
-    cpl_vector_add(unc_decomposition, unc_background);
-    cpl_vector_sqrt(unc_decomposition);
-
-    cpl_vector_delete(unc_background);
-
     // TODO: Deallocate return arrays in case of error, return -1
     cpl_image_delete(img_rect);
     cpl_image_delete(model_rect);
+    cpl_image_delete(err_rect);
     cpl_vector_delete(ycen);
     cpl_free(ycen_rest);
 
@@ -809,7 +821,7 @@ int cr2res_extract_slitdec_curved(
     double          *   spec_sw_data;
     double          *   slitfu_sw_data;
     double          *   model_sw;
-    double          *   unc_sw;
+    double          *   unc_sw_data;
     int             *   mask_sw;
     const cpl_image *   img_in;
     const cpl_image *   err_in;
@@ -823,6 +835,7 @@ int cr2res_extract_slitdec_curved(
     cpl_image       *   img_out;
     cpl_vector      *   spec_sw;
     cpl_vector      *   slitfu_sw;
+    cpl_vector      *   unc_sw;
     cpl_vector      *   spc;
     cpl_vector      *   slitfu;
     cpl_vector      *   weights_sw;
@@ -895,7 +908,7 @@ int cr2res_extract_slitdec_curved(
         return -1;
     }
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_image_save(img_rect, "debug_rectorder.fits", imtyp,
+        cpl_image_save(img_rect, "debug_rectorder_curved.fits", imtyp,
                 NULL, CPL_IO_CREATE);
     }
     err_rect = cr2res_image_cut_rectify(err_in, ycen, height);
@@ -935,7 +948,7 @@ int cr2res_extract_slitdec_curved(
     /* Allocate */
     mask_sw = cpl_malloc(height * swath*sizeof(int));
     model_sw = cpl_malloc(height * swath*sizeof(double));
-    unc_sw = cpl_malloc(swath * sizeof(double));
+    unc_sw = cpl_vector_new(swath);
     img_sw = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
     err_sw = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
     ycen_sw = cpl_malloc(swath*sizeof(double));
@@ -947,10 +960,13 @@ int cr2res_extract_slitdec_curved(
     // Local versions of return data
     slitfu = cpl_vector_new(ny_os);
     spc = cpl_vector_new(lenx);
-    for (j=0; j<lenx ; j++) cpl_vector_set(spc, j, 0.);
+    unc_decomposition = cpl_vector_new(lenx);
+    for (j=0; j<lenx ; j++){
+        cpl_vector_set(spc, j, 0.);
+        cpl_vector_set(unc_decomposition, j, 0.);
+    }
     img_out = cpl_image_new(lenx, leny, CPL_TYPE_DOUBLE);
     model_rect = cpl_image_new(lenx, height, CPL_TYPE_DOUBLE);
-    unc_decomposition = cpl_vector_new(lenx);
 
     // Work vectors
     slitfu_sw = cpl_vector_new(ny_os);
@@ -1012,6 +1028,7 @@ int cr2res_extract_slitdec_curved(
 
         img_sw_data = cpl_image_get_data_double(img_sw);
         err_sw_data = cpl_image_get_data_double(err_sw);
+        unc_sw_data = cpl_vector_get_data(unc_sw);
         img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
         spec_sw = cpl_vector_new_from_image_row(img_tmp,1);
         cpl_image_delete(img_tmp);
@@ -1025,13 +1042,13 @@ int cr2res_extract_slitdec_curved(
             ycen_offset_sw[j] = (int) ycen_sw[j];
             y_lower_limit = min(y_lower_limit, (int) ycen_sw[j]);
         }
-        y_lower_limit = height / 2 + y_lower_limit-1;
+        y_lower_limit = height / 2 + y_lower_limit;
 
         /* Finally ready to call the slit-decomp */
         cr2res_extract_slit_func_curved(swath, height, oversample, img_sw_data,
                 err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit,
                 slitcurves_sw, delta_x,
-                slitfu_sw_data, spec_sw_data, model_sw, unc_sw, 1e-4,
+                slitfu_sw_data, spec_sw_data, model_sw, unc_sw_data, 1e-6,
                 smooth_slit, 1e-7, 20);
 
         for (col=1; col<=swath; col++) {        // col is x-index in cut-out
@@ -1079,6 +1096,7 @@ int cr2res_extract_slitdec_curved(
         if (k != 0) {
             for (j= 0; j < swath - k; j++){
                 cpl_vector_set(spec_sw, j, cpl_vector_get(spec_sw, j + k));
+                cpl_vector_set(unc_sw, j, cpl_vector_get(unc_sw, j + k));
             }
             sw_start = cpl_vector_get(bins_begin, i-1) + swath / 2;
             cpl_vector_set(bins_begin, i, sw_start);
@@ -1088,25 +1106,44 @@ int cr2res_extract_slitdec_curved(
 
         // first and last half swath are not weighted
         if (i==0){
+            for (j = 0; j < delta_x; j++)
+            {
+                cpl_vector_set(spec_sw, j, 0);
+                cpl_vector_set(unc_sw, j, 0.);
+            }
             for (j = swath/2; j < swath; j++) {
                 cpl_vector_set(spec_sw, j,
                     cpl_vector_get(spec_sw,j) * cpl_vector_get(weights_sw,j));
+                
+                cpl_vector_set(unc_sw, j,
+                    cpl_vector_get(unc_sw, j) * cpl_vector_get(weights_sw, j));
             }
         } else if (i == nswaths - 1) {
+            for (j = sw_end - sw_start - 1; j >= sw_end - sw_start - delta_x - 1; j--)
+            {
+                cpl_vector_set(spec_sw, j, 0);
+                cpl_vector_set(unc_sw, j, 0);
+            }
             for (j = 0; j < swath / 2; j++) {
                 cpl_vector_set(spec_sw, j,
                 cpl_vector_get(spec_sw,j) * cpl_vector_get(weights_sw,j));
+
+                cpl_vector_set(unc_sw, j,
+                cpl_vector_get(unc_sw,j) * cpl_vector_get(weights_sw,j));
             }
         } else {
             /* Multiply by weights and add to output array */
             cpl_vector_multiply(spec_sw, weights_sw);
+            cpl_vector_multiply(unc_sw, weights_sw);
         }
 
         // Save swath to output vector
         for (j=sw_start;j<sw_end;j++) {
             cpl_vector_set(spc, j,
-                cpl_vector_get(spec_sw, j-sw_start) + cpl_vector_get(spc, j) );
-            cpl_vector_set(unc_decomposition, j, unc_sw[j - sw_start]);
+                cpl_vector_get(spec_sw, j-sw_start) + cpl_vector_get(spc, j));
+            // just add weighted errors (instead of squared sum), as they are not independant
+            cpl_vector_set(unc_decomposition, j,
+                cpl_vector_get(unc_sw, j - sw_start) + cpl_vector_get(unc_decomposition, j));
         }
 
         cpl_vector_delete(spec_sw);
@@ -1130,7 +1167,7 @@ int cr2res_extract_slitdec_curved(
 
     cpl_free(mask_sw);
     cpl_free(model_sw);
-    cpl_free(unc_sw);
+    cpl_vector_delete(unc_sw);
     cpl_free(ycen_rest);
     cpl_free(ycen_sw);
     cpl_free(ycen_offset_sw);
@@ -1181,11 +1218,13 @@ static int cr2res_extract_slit_func_vert(
         int         nrows,
         int         osample,
         double  *   im,
+        double  *   pix_unc,
         int     *   mask,
         double  *   ycen,
         double  *   sL,
         double  *   sP,
         double  *   model,
+        double  *   unc,
         double      lambda_sP,
         double      lambda_sL,
         double      sP_stop,
@@ -1207,6 +1246,7 @@ static int cr2res_extract_slit_func_vert(
     // double omega[ny][nrows][ncols];
     double * omega = cpl_malloc(ny*nrows*ncols*sizeof(double));
     // index as: [iy+(y*ny)+(x*ny*nrows)]
+    double *p_bj   = cpl_malloc(ncols * sizeof(double));
 
     /*
       Construct the omega tensor. Normally it has the dimensionality of
@@ -1219,7 +1259,7 @@ static int cr2res_extract_slit_func_vert(
       pre-computed once.
       */
     for(x=0; x<ncols; x++) {
-        iy2 = floor((1.0 - ycen[x]) * osample) + 1;
+        iy2 = osample - floor(ycen[x] / step) - 1;
         iy1 = iy2 - osample;
 
         d1 = fmod(ycen[x], step);
@@ -1380,12 +1420,36 @@ static int cr2res_extract_slit_func_vert(
         /* Check the convergence */
     } while(iter++ < maxiter && sP_change > sP_stop*sP_max);
 
+    /* Uncertainty estimate */
+    for (x = 0; x < ncols; x++) {
+        unc[x] = 0.;
+        p_bj[x] = 0.;
+    }
+    for (x = 0; x < ncols; x++) {
+        // Loop through all pixels contributing to x
+        for (y = 0; y < nrows; y++) {
+            unc[x] += (im[y * ncols + x] - model[y * ncols + x]) *
+                (im[y * ncols + x] - model[y * ncols + x]) *
+                sL[y] * mask[y * ncols + x];
+            unc[x] += pix_unc[y * ncols + x] * pix_unc[y * ncols + x] *
+                sL[y] * mask[y * ncols + x];
+            // Norm
+            p_bj[x] += sL[y] * mask[y * ncols + x];
+        }
+        
+    }
+    for (x = 0; x < ncols; x++) {
+        unc[x] = sqrt(unc[x] / p_bj[x] * nrows);
+    }
+
+
     cpl_free(E);
     cpl_free(sP_old);
     cpl_free(omega);
     cpl_free(Aij);
     cpl_free(bj);
     cpl_free(Adiag);
+    cpl_free(p_bj);
 
     return 0;
 }
@@ -1436,7 +1500,8 @@ static int cr2res_extract_xi_zeta_tensors(
         int         m_zeta[ncols][nrows])
 {
     int     x, xx, y, yy, ix, ix1, ix2, iy, iy1, iy2;
-    double  step, delta, dy, w, d1, d2;
+    double  step, delta, dy, w, d1, d2, offset;
+    const cpl_size power = 1;
 
     /* Initialise */
     step = 1.e0 / osample;
@@ -1500,7 +1565,7 @@ static int cr2res_extract_xi_zeta_tensors(
            we only need to initialize iy1 and iy2 and keep incrementing them
            by osample.
          */
-        iy2 = osample - floor(ycen[x] / step);
+        iy2 = osample - floor(ycen[x] / step) - 1;
         iy1 = iy2 - osample;
 
         /*
@@ -1525,9 +1590,9 @@ static int cr2res_extract_xi_zeta_tensors(
            dy=(iy-(y_lower_lim+ycen[x])*osample)*step-0.5*step
          */
 
-        if (iy2 == 0)       d1 = step;  /* Case 1 */
-        else if (iy1 == 0)  d1 = 0.e0;  /* Case 2 */
-        else d1 = fmod(ycen[x], step);  /* Case 3: This is very clever */
+        d1 = fmod(ycen[x], step);
+        if (d1 == 0)
+            d1 = step;
         d2 = step - d1;
 
         /*
@@ -1584,7 +1649,8 @@ static int cr2res_extract_xi_zeta_tensors(
                 else                w = step;
                 dy += step;
                 //delta = (PSF_curve[1 + 3 * x] + PSF_curve[2 + 3 * x] * dy) * dy;
-                delta = cpl_polynomial_eval_1d(slitcurves[x],dy,NULL);
+                offset = - (0.5 - step) * cpl_polynomial_get_coeff(slitcurves[x], &power);
+                delta = cpl_polynomial_eval_1d(slitcurves[x], dy, NULL) + offset;
                 ix1 = delta;
                 ix2 = ix1 + signum(delta);
 
@@ -2087,7 +2153,7 @@ static int cr2res_extract_slit_func_curved(
                 unc[xx] += (im[y * ncols + x] - model[y * ncols + x]) *
                     (im[y * ncols + x] - model[y * ncols + x]) *
                     ww * mask[y * ncols + x];
-                unc[xx]+=pix_unc[y * ncols + x]*pix_unc[y * ncols + x] *
+                unc[xx] += pix_unc[y * ncols + x] * pix_unc[y * ncols + x] *
                     ww * mask[y * ncols + x];
                 // Norm
                 p_bj[xx] += ww * mask[y * ncols + x];
