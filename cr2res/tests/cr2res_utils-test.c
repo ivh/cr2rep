@@ -27,11 +27,14 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <cpl.h>
 #include <hdrl.h>
 #include <cr2res_utils.h>
 #include <cr2res_dfs.h>
 #include <cr2res_trace.h>
+#include <cr2res_wave.h>
+
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -59,7 +62,9 @@ static void test_cr2res_demod(void);
 static void test_cr2res_fit_noise(void);
 static void test_cr2res_slit_pos(void);
 static void test_cr2res_slit_pos_img(void);
+static void test_cr2res_splice_orders(void);
 static void test_cr2res_get_license(void);
+static void test_cr2res_wavecal_catalog(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -992,6 +997,142 @@ static void test_cr2res_slit_pos_img()
     cpl_image_delete(wavelength);
 }
 
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Splice orders onto a single wavelength grid
+  @param    trace_tables  a single tracetable with all traces, 
+                          and wavelength solutions to splice
+  @param    trace         which trace of each order to splice together
+  @return   0 if works, -1 otherwise
+ 
+  WARNING: If three (or more) orders overlap at the same wavelength, it will
+  probably be a problem
+  
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_splice_orders()
+{
+    cpl_table * trace_wave = create_test_table();
+    cpl_table * spectra = create_test_table();
+
+    int trace = 0;
+
+    cpl_test_zero(cr2res_splice_orders(trace_wave, spectra, trace));
+
+    cpl_table_delete(trace_wave);
+    cpl_table_delete(spectra);
+
+}
+
+// make a test line list catalog with just 2 lines
+static cpl_table * make_test_catalog()
+{
+    cpl_table * catalog = cpl_table_new(2);
+    cpl_table_new_column(catalog, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(catalog, CR2RES_COL_EMISSION, CPL_TYPE_DOUBLE);
+    //cpl_table_new_column(catalog, CR2RES_COL_WIDTH, CPL_TYPE_DOUBLE);
+
+    // from lines_thar.txt catalog
+    // 2.551218908614062912e+03 9.935860000000000127e+02
+    // 2.603302966671994909e+03 2.992800000000000082e+01
+
+    cpl_table_set_double(catalog, CR2RES_COL_WAVELENGTH, 0, 2.551218908614062912e+03);
+    cpl_table_set_double(catalog, CR2RES_COL_EMISSION, 0, 9.935860000000000127e+02);
+
+    cpl_table_set_double(catalog, CR2RES_COL_WAVELENGTH, 1, 2.603302966671994909e+03);
+    cpl_table_set_double(catalog, CR2RES_COL_EMISSION, 1, 2.992800000000000082e+01);
+
+    return catalog;
+}
+
+// make a test spectrum based on a line list catalog 
+static cpl_bivector * make_test_spectrum(cpl_table * catalog, double wmin, double wmax, int size)
+{
+    double wl, mu, line_em, sig;
+    double tmp;
+    int i, j;
+    cpl_bivector * spectrum = cpl_bivector_new(size);
+    cpl_vector * spec = cpl_bivector_get_x(spectrum);
+    cpl_vector * unc = cpl_bivector_get_y(spectrum);
+
+    for (i = 0; i < size; i++){
+        wl = wmin + i * (wmax - wmin) / (double)size;
+        tmp = 0;
+        for (j = 0; j < 2; j++){
+            mu = cpl_table_get_double(catalog, CR2RES_COL_WAVELENGTH, j, NULL);
+            line_em = cpl_table_get_double(catalog, CR2RES_COL_EMISSION, j, NULL);
+            sig = 10;
+            tmp += line_em * exp(- 1 * pow(wl - mu, 2) / (2 * pow(sig, 2))); 
+        }
+
+        cpl_vector_set(spec, i, tmp);
+        cpl_vector_set(unc, i, 0.01);
+    }
+
+    return spectrum;
+}
+
+static cpl_polynomial * make_test_polynomial(double wmin, double wmax, int size)
+{
+    cpl_polynomial * poly = cpl_polynomial_new(1);
+    cpl_size power = 0;
+
+    power = 0;
+    cpl_polynomial_set_coeff(poly, &power, wmin);
+    power = 1;
+    cpl_polynomial_set_coeff(poly, &power,(wmax - wmin)/size);
+
+    return poly;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Compute the wavelength polynomial based on a line spectrum 
+            and a reference catalog
+  @param    catalog        The reference catalog of known lines in the spectrum
+  @param    spectrum       Observed spectrum (and error)
+  @param    initial_guess  Initial guess for the wavelength solution
+  @param    window_size    The range of pixel to use for finding each line
+  @param    sigma_fit      Returns the uncertainties of the polynomial fit parameters
+                           (may be NULL)
+  @return   the fitted 1D wavelength polynomial or NULL in case of error
+
+  The returned polynomial must be deallocated with cpl_polynomial_delete()
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_wavecal_catalog()
+{
+    double wmin=2500, wmax=2650;
+    int size = 200;
+    cpl_table * catalog = make_test_catalog();
+    cpl_bivector * spectrum = make_test_spectrum(catalog, wmin, wmax, size);
+    cpl_polynomial * initial_guess = make_test_polynomial(wmin, wmax, size);
+    int window_size = 30;
+    cpl_vector * sigma_fit = cpl_vector_new(2);
+    cpl_polynomial * wavelength;
+    cpl_size power;
+
+    wavelength = cr2res_wave_catalog(catalog, spectrum, initial_guess, window_size, &sigma_fit);
+
+    cpl_test_nonnull(wavelength);
+    cpl_test_nonnull(sigma_fit);
+
+    // these values obviously need to be changed if the number of degrees is changed
+    power = 0;
+    cpl_test_abs(cpl_polynomial_get_coeff(wavelength, &power), wmin, 0.1);
+    power = 1;
+    cpl_test_abs(cpl_polynomial_get_coeff(wavelength, &power), (wmax-wmin)/(double)size, 0.001);
+
+
+    cpl_polynomial_delete(wavelength);
+    cpl_vector_delete(sigma_fit);
+    cpl_table_delete(catalog);
+    cpl_bivector_delete(spectrum);
+    cpl_polynomial_delete(initial_guess);
+}
+
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the pipeline copyright and license
@@ -1020,7 +1161,7 @@ int main(void)
     // test_cr2res_vector_get_rest();
     // test_cr2res_vector_get_int();
     // test_cr2res_polynomial_eval_vector();
-    test_cr2res_image_cut_rectify();
+    // test_cr2res_image_cut_rectify();
     // test_cr2res_image_insert_rect();
     // test_cr2res_threshold_spec();
     // test_cr2res_get_base_name();
@@ -1039,6 +1180,8 @@ int main(void)
     // test_cr2res_fit_noise();
     // test_cr2res_slit_pos();
     // test_cr2res_slit_pos_img();
+    // test_cr2res_splice_orders();
+    test_cr2res_wavecal_catalog();
 
     return cpl_test_end(0);
 }

@@ -771,4 +771,232 @@ hdrl_image * cr2res_wave_gen_wave_map(
     }
     return out ;
 }
+
+// Functions for polynomial fit in _wave_catalog()
+static int poly(const double x[], const double a[], double * result)
+{
+    int j;
+    int degree = a[0];
+
+    *result = 0;
+    for (j = degree; j > 0; j--){
+        *result = x[0] * (a[1 + j] + *result);
+    }
+    *result = *result + a[1];
+
+    return 0;
+}
+
+static int deriv_poly(const double x[], const double a[], double * result)
+{
+    int i, j;
+    const double degree = a[0];
+
+    result[0] = 0;
+    for (j = 0; j < degree + 1; j++){
+        result[j+1] = 1;
+        for (i = 0; i < j; i++){
+            result[j+1] *= x[0];
+        }
+    }
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Compute the wavelength polynomial based on a line spectrum 
+            and a reference catalog
+  @param    catalog        The reference catalog of known lines in the spectrum
+  @param    spectrum       Observed spectrum (and error)
+  @param    initial_guess  Initial guess for the wavelength solution
+  @param    window_size    The range of pixel to use for finding each line
+  @param    sigma_fit      Returns the uncertainties of the polynomial fit parameters
+                           (may be NULL)
+  @return   the fitted 1D wavelength polynomial or NULL in case of error
+
+  The returned polynomial must be deallocated with cpl_polynomial_delete()
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_wave_catalog(
+        cpl_table * catalog,
+        cpl_bivector * spectrum,
+        cpl_polynomial * initial_guess,
+        int window_size,
+        cpl_vector ** sigma_fit)
+{
+    if (catalog == NULL | spectrum == NULL | initial_guess == NULL) return NULL;
+    if (window_size <= 0) return NULL;
+
+    int poly_degree = cpl_polynomial_get_degree(initial_guess);
+    int n = cpl_table_get_nrow(catalog);
+
+    cpl_size i, j, k, spec_size;
+    int ngood = n;
+    double pixel_pos;
+    double * wave, red_chisq, *width;
+    const double *height;
+    cpl_vector * wave_vec, * pixel_vec, *width_vec, *flag_vec;
+    const cpl_vector *spec, *unc;
+    cpl_polynomial * result = cpl_polynomial_new(1);
+    cpl_matrix * cov;
+    cpl_error_code error;
+
+    // For gaussian fit of each line
+    // gauss = A * exp((x-mu)^2/(2*sig^2))
+    cpl_vector * x = cpl_vector_new(window_size);
+    cpl_vector * sigma_x = NULL;
+    cpl_vector * y = cpl_vector_new(window_size);
+    cpl_vector * sigma_y = cpl_vector_new(window_size);
+    double x0, sigma, area, offset;
+
+    // For polynomial fit
+    cpl_matrix * px;
+    cpl_matrix * sigma_px = NULL;
+    cpl_vector * py;
+    cpl_vector * sigma_py;
+    cpl_vector * pa = cpl_vector_new(poly_degree + 1 + 1);
+    // first parameter of polynomial fit is the number of degrees (the value is fixed though)
+    // the number of parameters is then polynomial degree + 1 (constant term) + 1 (number of degrees)
+    // i.e. pa = degrees, a0, a1, ...
+    cpl_vector_set(pa, 0, poly_degree);  
+    int *pia = cpl_malloc((poly_degree + 1 + 1) * sizeof(int));
+    pia[0] = 0;
+    for (i = 1; i < poly_degree + 1 + 1; i++){
+        pia[i] = 1;
+    }
+
+    spec = cpl_bivector_get_x_const(spectrum);
+    unc = cpl_bivector_get_y_const(spectrum);
+
+    // get line data from Table
+    wave = cpl_table_get_data_double(catalog, CR2RES_COL_WAVELENGTH);
+    height = cpl_table_get_data_double_const(catalog, CR2RES_COL_EMISSION);
+    // TODO width is not provided in the catalog at the moment, use half window size instead?
+    // width = cpl_table_get_data_double_const(catalog, "WIDTH");
+    width = cpl_malloc(n * sizeof(double));
+    for (i = 0; i < n; i++) width[i] = window_size/2;
+
+    // evaluate the initial wavelength solution for all pixels
+    // so that we can find the closest pixel position of each line
+    spec_size = cpl_vector_get_size(spec);
+    wave_vec = cpl_vector_new(spec_size);
+    for (i = 0; i< spec_size; i++){ 
+        cpl_vector_set(wave_vec, i, cpl_polynomial_eval_1d(initial_guess, i, NULL));
+    }
+    
+    // Prepare fit data vectors
+    pixel_vec = cpl_vector_new(n);
+    width_vec = cpl_vector_new(n);
+    flag_vec = cpl_vector_new(n);
+    cpl_vector_fill(flag_vec, 1);
+
+    // for each line fit a gaussian around guessed position
+    // and find actual pixel position
+    for (i = 0; i < n; i++){
+        // cut out a part of the spectrum around each line
+        // assumes that the wavelength vector is ascending !!!
+        pixel_pos = cpl_vector_find(wave_vec, wave[i]);
+        for (j = 0; j < window_size; j++){
+            // TODO error handling at borders
+            // current solution: use edge values, which is fine if the line is not on the border
+            k = j + pixel_pos - window_size / 2;
+            if (k < 0) k = 0;
+            if (k >= spec_size) k = spec_size;
+
+            cpl_vector_set(x, j, k);
+            cpl_vector_set(y, j, cpl_vector_get(spec, k));
+            cpl_vector_set(sigma_y, j, cpl_vector_get(unc, k));
+        }
+
+        // get initial guess for gaussian fit
+        area =  height[i];
+        x0 =  pixel_pos;
+        sigma = width[i];
+
+        error = cpl_vector_fit_gaussian(x, sigma_x, y, sigma_y, CPL_FIT_ALL, 
+                        &x0, &sigma, &area, &offset, NULL, &red_chisq, NULL);
+
+        // Set new pixel pos based on gaussian fit
+        cpl_vector_set(pixel_vec, i, x0);
+        // width == uncertainty of wavelength position?
+        cpl_vector_set(width_vec, i, sigma);
+        // if fit to bad set flag to 0(False) 
+        // TODO: when is fit bad?
+        if (error != CPL_ERROR_NONE | red_chisq > 100){
+            cpl_vector_set(flag_vec, i, 0);
+            ngood--;
+            cpl_error_reset();
+        }
+    }
+
+    // Set vectors/matrices for polyfit
+    // only need space for good lines, ignoring bad ones
+    px = cpl_matrix_new(ngood, 1);
+    py = cpl_vector_new(ngood);
+    sigma_py = cpl_vector_new(ngood);
+
+    k = 0;
+    for (i = 0; i < n; i++){
+        // Skip bad lines
+        if (cpl_vector_get(flag_vec, i) == 1){
+            cpl_matrix_set(px, k, 0, cpl_vector_get(pixel_vec, i));
+            cpl_vector_set(py, k, wave[i]);
+            cpl_vector_set(sigma_py, k, cpl_vector_get(width_vec, i));
+            k++;
+        }
+    }
+    
+    // initial guess for polynomial fit, based on passed initial guess
+    for (j = 0; j < poly_degree+1; j++){
+        cpl_vector_set(pa, j+1, cpl_polynomial_get_coeff(initial_guess, &j));
+    }
+
+    // I would use cpl_polynomial_fit, but that does not support error estimation
+    error = cpl_fit_lvmq(px, sigma_px, py, sigma_py, pa, pia, &poly, &deriv_poly,
+                        CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT, 
+                        CPL_FIT_LVMQ_MAXITER, NULL, NULL, &cov);
+
+    // errors of the fit are the square root of the diagonal of the covariance matrix
+    // assuming parameters are uncorrelated, better use the whole matrix
+    // errors on the wavelength are then given using standard error propagation
+    // s_wl**2 = s0**2 + s1**2 * x**2 + s2**2 * x**4 + ... si**2 * x**(2*i)
+    for (i = 0; i < poly_degree + 1; i++){
+        cpl_polynomial_set_coeff(result, &i, cpl_vector_get(pa, i+1));
+        if (sigma_fit != NULL)
+            cpl_vector_set(*sigma_fit, i, sqrt(cpl_matrix_get(cov, i+1, i+1)));
+    }
+
+    // cpl_matrix_dump(cov, NULL);
+
+    cpl_free(width);
+    
+    cpl_vector_delete(x);
+    cpl_vector_delete(y);
+    cpl_vector_delete(sigma_y);
+
+    cpl_matrix_delete(px);
+    cpl_vector_delete(py);
+    cpl_vector_delete(sigma_py);
+    cpl_vector_delete(pa);
+    cpl_free(pia);
+
+    cpl_vector_delete(wave_vec);
+    cpl_vector_delete(pixel_vec);
+    cpl_vector_delete(width_vec);
+    cpl_vector_delete(flag_vec);
+    cpl_matrix_delete(cov);
+
+
+    // in case something went wrong during fitting
+    if (error != CPL_ERROR_NONE){
+        cpl_polynomial_delete(result);
+        if (sigma_fit != NULL)
+            cpl_vector_delete(*sigma_fit);
+        return NULL;
+    }
+    return result;
+}
+
 /**@}*/

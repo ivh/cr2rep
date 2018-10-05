@@ -45,7 +45,7 @@ static void test_cr2res_trace_get_height(void);
 static void test_cr2res_trace_compute_middle(void);
 static void test_cr2res_trace_compute_height(void);
 static void test_cr2res_trace_get_trace_ypos(void);
-static void test_cr2res_trace_add_ord_tra_wav_curv_columns(void);
+// static void test_cr2res_trace_add_ord_tra_wav_curv_columns(void);
 static void test_cr2res_trace_split_traces(void);
 static void test_cr2res_trace_signal_detect(void);
 static void test_cr2res_trace_fit_traces(void);
@@ -612,64 +612,64 @@ static void test_cr2res_trace_get_trace_ypos(void)
     cpl_table_delete(traces);
 }
 
-/*----------------------------------------------------------------------------*/
-/**
-  @brief   Add ORDER, TRACE, WAVELENGTH columns to the plain trace table
-  @param    traces          The plain traces table
-  @param    file_for_wl     File used for WL information
-  @param    det_nr          Detector
-  @return   0 if ok
- */
-/*----------------------------------------------------------------------------*/
-static void test_cr2res_trace_add_ord_tra_wav_curv_columns(void)
-{
-    //define input
-    cpl_table *traces = create_test_table();
-    cpl_table_erase_column(traces, CR2RES_COL_ORDER);
-    cpl_table *tmp = cpl_table_duplicate(traces);
-    char *file_for_wl = "test_table.fits";
-    int det_nr = 1;
-    int res;
-    const cpl_array *wl;
-    double cmp1[] = {0, 1441.46160481499, 1479.3948049417, 1519.37844831851, 1561.58340521624, 1606.20007393671, 1653.44125258191, 1703.54553296318, 1756.78133086827};
-    double cmp2[] = {0, 0.00482202129878357, 0.00494891659611621, 0.00508267109871028, 0.00522385640701021, 0.00537310944721049, 0.00553114207801171, 0.00569875244401075, 0.00587683845788956};
+// /*----------------------------------------------------------------------------*/
+// /**
+//   @brief   Add ORDER, TRACE, WAVELENGTH columns to the plain trace table
+//   @param    traces          The plain traces table
+//   @param    file_for_wl     File used for WL information
+//   @param    det_nr          Detector
+//   @return   0 if ok
+//  */
+// /*----------------------------------------------------------------------------*/
+// static void test_cr2res_trace_add_ord_tra_wav_curv_columns(void)
+// {
+//     //define input
+//     cpl_table *traces = create_test_table();
+//     cpl_table_erase_column(traces, CR2RES_COL_ORDER);
+//     cpl_table *tmp = cpl_table_duplicate(traces);
+//     char *file_for_wl = "test_table.fits";
+//     int det_nr = 1;
+//     int res;
+//     const cpl_array *wl;
+//     double cmp1[] = {0, 1441.46160481499, 1479.3948049417, 1519.37844831851, 1561.58340521624, 1606.20007393671, 1653.44125258191, 1703.54553296318, 1756.78133086827};
+//     double cmp2[] = {0, 0.00482202129878357, 0.00494891659611621, 0.00508267109871028, 0.00522385640701021, 0.00537310944721049, 0.00553114207801171, 0.00569875244401075, 0.00587683845788956};
 
-    //run test
-    cpl_test_eq(-1, cr2res_trace_add_ord_tra_wav_curv_columns(NULL, file_for_wl, det_nr));
+//     //run test
+//     cpl_test_eq(-1, cr2res_trace_add_ord_tra_wav_curv_columns(NULL, file_for_wl, det_nr));
 
-    cpl_test_eq(-1, cr2res_trace_add_ord_tra_wav_curv_columns(tmp, "invalid_path", det_nr));
-    cpl_table_delete(tmp);
-    tmp = cpl_table_duplicate(traces);
+//     cpl_test_eq(-1, cr2res_trace_add_ord_tra_wav_curv_columns(tmp, "invalid_path", det_nr));
+//     cpl_table_delete(tmp);
+//     tmp = cpl_table_duplicate(traces);
 
-    cpl_test_eq(-1, cr2res_trace_add_ord_tra_wav_curv_columns(tmp, file_for_wl, 10));
-    cpl_table_delete(tmp);
-    tmp = cpl_table_duplicate(traces);
+//     cpl_test_eq(-1, cr2res_trace_add_ord_tra_wav_curv_columns(tmp, file_for_wl, 10));
+//     cpl_table_delete(tmp);
+//     tmp = cpl_table_duplicate(traces);
 
-    cpl_test_eq(-1, cr2res_trace_add_ord_tra_wav_curv_columns(tmp, file_for_wl, -1));
-    cpl_table_delete(tmp);
-    tmp = cpl_table_duplicate(traces);
+//     cpl_test_eq(-1, cr2res_trace_add_ord_tra_wav_curv_columns(tmp, file_for_wl, -1));
+//     cpl_table_delete(tmp);
+//     tmp = cpl_table_duplicate(traces);
 
-    cpl_test_eq(0, cr2res_trace_add_ord_tra_wav_curv_columns(traces, file_for_wl, det_nr));
-    //test output
-    //cpl_table_save(traces, NULL, NULL, "new_table.fits", CPL_IO_CREATE);
+//     cpl_test_eq(0, cr2res_trace_add_ord_tra_wav_curv_columns(traces, file_for_wl, det_nr));
+//     //test output
+//     //cpl_table_save(traces, NULL, NULL, "new_table.fits", CPL_IO_CREATE);
 
-    wl = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, 0);
-    cpl_test_abs(cpl_array_get(wl, 0, 0), 0, FLT_EPSILON);
-    cpl_test_error(CPL_ERROR_NULL_INPUT);
-    cpl_test_abs(cpl_array_get(wl, 1, 0), 0, FLT_EPSILON);
-    cpl_test_error(CPL_ERROR_NULL_INPUT);
+//     wl = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, 0);
+//     cpl_test_abs(cpl_array_get(wl, 0, 0), 0, FLT_EPSILON);
+//     cpl_test_error(CPL_ERROR_NULL_INPUT);
+//     cpl_test_abs(cpl_array_get(wl, 1, 0), 0, FLT_EPSILON);
+//     cpl_test_error(CPL_ERROR_NULL_INPUT);
 
-    for (int i = 1; i < 9; i++)
-    {
-        wl = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, i);
-        cpl_test_abs(cpl_array_get(wl, 0, 0), cmp1[i], FLT_EPSILON);
-        cpl_test_abs(cpl_array_get(wl, 1, 0), cmp2[i], FLT_EPSILON);
-    }
+//     for (int i = 1; i < 9; i++)
+//     {
+//         wl = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, i);
+//         cpl_test_abs(cpl_array_get(wl, 0, 0), cmp1[i], FLT_EPSILON);
+//         cpl_test_abs(cpl_array_get(wl, 1, 0), cmp2[i], FLT_EPSILON);
+//     }
 
-    //deallocate memory
-    cpl_table_delete(traces);
-    cpl_table_delete(tmp);
-}
+//     //deallocate memory
+//     cpl_table_delete(traces);
+//     cpl_table_delete(tmp);
+// }
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -1116,7 +1116,7 @@ int main(void)
     /* test_cr2res_trace_compute_middle(); */
     /* test_cr2res_trace_compute_height(); */
     /* test_cr2res_trace_get_trace_ypos(); */
-    /* test_cr2res_trace_add_ord_tra_wav_curv_columns(); */
+    /* // test_cr2res_trace_add_ord_tra_wav_curv_columns(); */
     /* test_cr2res_trace_split_traces(); */
     /* test_cr2res_trace_signal_detect(); */
     /* test_cr2res_trace_fit_traces(); */

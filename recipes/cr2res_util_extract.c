@@ -443,7 +443,7 @@ static int cr2res_util_extract(
             if (extr_method == CR2RES_EXTR_SUM) {
                 /* Call the SUM ONLY extraction */
                 // TODO: use the HDRL image and return error
-                if (cr2res_extract_sum_vert(science_ima, trace_table, order,
+                if (cr2res_extract_sum_vert(science_hdrl, trace_table, order,
                             trace_id, extr_height, &(slit_func[i]),
                             &(spectrum[i]), &model_tmp) != 0) {
                     cpl_msg_error(__func__, "Cannot (sum-)extract the trace") ;

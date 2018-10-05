@@ -51,6 +51,7 @@
 
 /* EXTRACT_1D Table */
 #define CR2RES_COL_SPEC_SUFFIX      "SPEC"          /* Intensity */
+#define CR2RES_COL_ERROR_SUFFIX     "ERR"           /* Uncertainty */
 
 /* SLIT_CURV Table */
 #define CR2RES_COL_SLIT_CURV_SUFFIX "SLIT_CURV"     /* Polynomial */
@@ -179,6 +180,7 @@
 
 cpl_error_code cr2res_dfs_set_groups(cpl_frameset *);
 char * cr2res_dfs_SPEC_colname(int, int) ;
+char * cr2res_dfs_SPEC_ERR_colname(int, int);
 char * cr2res_dfs_SLIT_FUNC_colname(int, int) ;
 char * cr2res_dfs_SLIT_CURV_colname(int, int) ;
 

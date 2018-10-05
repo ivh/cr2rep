@@ -214,6 +214,7 @@ static cpl_table * create_table_linear_increase(
     cpl_table_new_column_array(traces, CR2RES_COL_SLIT_CURV_B, CPL_TYPE_DOUBLE, 2);
     cpl_table_new_column_array(traces, CR2RES_COL_SLIT_CURV_C, CPL_TYPE_DOUBLE, 2);
 
+    height += 1;
 
 
     cpl_array_set(array, 0, height * 0.5);
@@ -535,11 +536,13 @@ static void test_cr2res_slitdec_compare_vert_curved(void)
     int order = 1;
     int trace = 1;
     int swath = 200;
-    int oversample = 5;
+    int oversample = 10;
     double smooth_slit = 10;
     double spec_in[width];
     double const_shear = 1;
 
+    // NOTE that for oversampling > 1, the curved spectrum will be off by 1/oversample * shear pixels
+    // because the model here does not allow for subpixels to change
 
     //cpl_image * img_in = create_image_sinusoidal(width, height * 2, spec_in);
     cpl_image * img_in = create_image_linear_increase(width, height * 2, spec_in);
@@ -624,11 +627,11 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    //test_cr2res_slitdec_vert_edge_cases();
-    //test_cr2res_slitdec_vert_regression();
-    //test_cr2res_slitdec_vert();
-    test_cr2res_slitdec_curved();
-    //test_cr2res_slitdec_compare_vert_curved();
+    // test_cr2res_slitdec_vert_edge_cases();
+    // test_cr2res_slitdec_vert_regression();
+    // test_cr2res_slitdec_vert();
+    // test_cr2res_slitdec_curved();
+    // test_cr2res_slitdec_compare_vert_curved();
 
     return cpl_test_end(0);
 }

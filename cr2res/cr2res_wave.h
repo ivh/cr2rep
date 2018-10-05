@@ -82,4 +82,11 @@ cpl_array * cr2res_wave_get_estimate(
 hdrl_image * cr2res_wave_gen_wave_map(
         const cpl_table *   trace_wave) ;
 
+cpl_polynomial * cr2res_wave_catalog(
+        cpl_table * catalog,
+        cpl_bivector * spectrum,
+        cpl_polynomial * initial_guess,
+        int window_size,
+        cpl_vector ** sigma_fit);
+
 #endif

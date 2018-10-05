@@ -269,7 +269,7 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
 {
     cpl_table       *   out ;
     char            *   col_name ;
-    const double    *   pspec ;
+    const double    *   pspec , * perr;
     int                 nrows, all_null, i, order, trace_id, nb_traces ;
 
     /* Check entries */
@@ -300,6 +300,9 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
         col_name = cr2res_dfs_SPEC_colname(order, trace_id) ;
         cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
         cpl_free(col_name) ;
+        col_name = cr2res_dfs_SPEC_ERR_colname(order, trace_id) ;
+        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+        cpl_free(col_name) ;
     }
 
     /* Fill the table */
@@ -308,8 +311,12 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
             order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
             trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
             pspec = cpl_bivector_get_x_data_const(spectrum[i]) ;
+            perr = cpl_bivector_get_y_data_const(spectrum[i]);
             col_name = cr2res_dfs_SPEC_colname(order, trace_id) ;
             cpl_table_copy_data_double(out, col_name, pspec) ;
+            cpl_free(col_name) ;
+            col_name = cr2res_dfs_SPEC_ERR_colname(order, trace_id) ;
+            cpl_table_copy_data_double(out, col_name, perr) ;
             cpl_free(col_name) ;
         }
     }
@@ -1649,8 +1656,8 @@ static int cr2res_extract_xi_zeta_tensors(
                 else                w = step;
                 dy += step;
                 //delta = (PSF_curve[1 + 3 * x] + PSF_curve[2 + 3 * x] * dy) * dy;
-                offset = - (0.5 - step) * cpl_polynomial_get_coeff(slitcurves[x], &power);
-                delta = cpl_polynomial_eval_1d(slitcurves[x], dy, NULL) + offset;
+                //offset = - (0.5 - step) * cpl_polynomial_get_coeff(slitcurves[x], &power);
+                delta = cpl_polynomial_eval_1d(slitcurves[x], dy, NULL);
                 ix1 = delta;
                 ix2 = ix1 + signum(delta);
 
