@@ -44,7 +44,7 @@
 /*** Clusters Table ***/
 #define CR2RES_COL_XS               "xs"            /* pixel position */
 #define CR2RES_COL_YS               "ys"            /* pixel position */
-#define CR2RES_COL_CLUSTERS         "clusterѕ"      /* cluster label */
+#define CR2RES_COL_CLUSTERS         "clusters"      /* cluster label */
 
 /* SLIT_FUNC Table */
 #define CR2RES_COL_SLIT_FUNC_SUFFIX "SLIT_FUNC"     /* Intensity */
