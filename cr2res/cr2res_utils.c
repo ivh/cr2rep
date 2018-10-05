@@ -1306,7 +1306,7 @@ int cr2res_splice_orders(cpl_table * trace_wave, cpl_table * spectra, int trace)
         j  = cr2res_get_trace_table_index(trace_wave, orders[i], trace);
         // Get wavelength
         wave1 = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, j);
-        tmp1 = cpl_array_get_data_double(wave1);
+        tmp1 = cpl_array_get_data_double_const(wave1);
         wave[i] = cpl_vector_wrap(n1, tmp1);
         
         // Get Spectrum
@@ -1325,7 +1325,7 @@ int cr2res_splice_orders(cpl_table * trace_wave, cpl_table * spectra, int trace)
         // ???
 
         // find order with largest signal
-        median = cpl_array_get_median(spec);
+        median = cpl_vector_get_median(spec[i]);
         if (median > maximum){
             central = i;
             maximum = median;
@@ -1335,7 +1335,7 @@ int cr2res_splice_orders(cpl_table * trace_wave, cpl_table * spectra, int trace)
         tmp4 = cpl_vector_new(n1);
         cpl_vector_copy(tmp4, spec[i]);
         cpl_vector_divide(tmp4, cont[i]);
-        median = cpl_vector_median(tmp4);
+        median = cpl_vector_get_median(tmp4);
         cpl_vector_multiply_scalar(cont[i], median);
     }
 
