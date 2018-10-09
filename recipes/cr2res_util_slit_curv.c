@@ -342,7 +342,7 @@ static int cr2res_util_slit_curv(
             if ((curvatures = cr2res_slit_curv_compute_order_trace(
                             trace_wave[det_nr-1], order, trace_id, 
                             display, curv_degree)) == NULL) {
-                cpl_msg_error(__func__, 
+                cpl_msg_warning(__func__, 
                         "Cannot Compute Slit curvature for Order %d",
                         order);
                 cpl_error_reset() ;

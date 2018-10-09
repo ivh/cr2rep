@@ -221,27 +221,27 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_smooth",
             CPL_TYPE_DOUBLE, "Length of the smoothing kernel",
-            "cr2res.cr2res_cal_flat", 5.0);
+            "cr2res.cr2res_cal_flat", 2.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_smooth");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_opening",
             CPL_TYPE_BOOL, "Use a morphological opening to rejoin clusters",
-            "cr2res.cr2res_cal_flat", FALSE);
+            "cr2res.cr2res_cal_flat", TRUE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_opening");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
-            "cr2res.cr2res_cal_flat", 10);
+            "cr2res.cr2res_cal_flat", 2);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_oversample");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_swath_width",
-            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_cal_flat", 64);
+            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_cal_flat", 24);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_swath_width");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -763,8 +763,8 @@ static int cr2res_cal_flat_reduce(
 		if (extract_sum_only) {
 			/* Call the SUM ONLY extraction */
 			if (cr2res_extract_sum_vert(collapsed, 
-                                traces, order, trace_id, extract_height, 
-                                &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
+                        traces, order, trace_id, extract_height, 
+                        &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
 				cpl_msg_error(__func__, "Cannot (sum-)extract the trace") ;
 				slit_func_vec[i] = NULL ;
 				spectrum[i] = NULL ;

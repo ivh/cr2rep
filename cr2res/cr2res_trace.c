@@ -917,7 +917,8 @@ int cr2res_trace_add_extra_columns(
     /* Add the Slit Fraction position */
     /* 0 is the Bottom of the slit, 1 is the Top. */
     /* The 3 numbers correspond to the Lower, All, Upper trace positions */
-    cpl_table_new_column_array(traces,CR2RES_COL_SLIT_FRACTION, CPL_TYPE_DOUBLE,3);
+    cpl_table_new_column_array(traces,CR2RES_COL_SLIT_FRACTION, 
+            CPL_TYPE_DOUBLE,3);
     array_neg = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
     cpl_array_set(array_neg, 0, -1.0) ;
     cpl_array_set(array_neg, 1, -1.0) ;
@@ -1153,7 +1154,7 @@ static cpl_mask * cr2res_trace_signal_detect(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Fit a polynomial on the different traces (center and edges)
+  @brief Fit a polynomial on the different traces (center and edges)
   @param clustertable   The table holding the traces pixels with their labels
   @param degree         Fitting polynomial degree
   @return   A newly allocated table or NULL in error case
