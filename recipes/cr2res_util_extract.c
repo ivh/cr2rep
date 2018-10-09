@@ -307,7 +307,7 @@ static int cr2res_util_extract(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_extract.method");
     sval = cpl_parameter_get_string(param);
-    if (!strcmp(sval, ""))              extr_method = CR2RES_EXTR_OPT_VERT;
+    if (!strcmp(sval, ""))              extr_method = CR2RES_EXTR_OPT_CURV;
     else if (!strcmp(sval, "OPT_VERT")) extr_method = CR2RES_EXTR_OPT_VERT;
     else if (!strcmp(sval, "OPT_CURV")) extr_method = CR2RES_EXTR_OPT_CURV;
     else if (!strcmp(sval, "SUM"))      extr_method = CR2RES_EXTR_SUM;
