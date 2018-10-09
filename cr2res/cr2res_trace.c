@@ -790,6 +790,7 @@ double cr2res_trace_get_trace_ypos(
     CR2RES_COL_ORDER
     CR2RES_COL_TRACENB
     CR2RES_COL_WAVELENGTH
+    CR2RES_COL_WAVELENGTH_ERROR
     CR2RES_COL_SLIT_CURV_A
     CR2RES_COL_SLIT_CURV_B
     CR2RES_COL_SLIT_CURV_C
@@ -863,8 +864,11 @@ int cr2res_trace_add_extra_columns(
     }
     cpl_free(orders) ;
 
-    /* Add The Wavelength column using the header */
-    cpl_table_new_column_array(traces, CR2RES_COL_WAVELENGTH,CPL_TYPE_DOUBLE,2);
+    /* Add The Wavelength(_Error) column using the header */
+    cpl_table_new_column_array(traces, CR2RES_COL_WAVELENGTH,
+            CPL_TYPE_DOUBLE, 2) ;
+    cpl_table_new_column_array(traces, CR2RES_COL_WAVELENGTH_ERROR, 
+            CPL_TYPE_DOUBLE, 2) ;
 
     /* Loop on the traces */
     for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
@@ -880,9 +884,16 @@ int cr2res_trace_add_extra_columns(
                     det_nr, order) ;
             cpl_error_reset() ;
             cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH, i, NULL);
+            cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH_ERROR, i, NULL);
         } else {
             /* Store the Wavelength in the table */
             cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH, i, wl_array);
+            cpl_array_delete(wl_array) ;
+
+            wl_array = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
+            cpl_array_set(wl_array, 0, CR2RES_WAVELENGTH_ERROR_DEFAULT) ;
+            cpl_array_set(wl_array, 1, CR2RES_WAVELENGTH_ERROR_DEFAULT) ;
+            cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH_ERROR,i,wl_array);
             cpl_array_delete(wl_array) ;
         }
     }

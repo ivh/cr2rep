@@ -71,16 +71,12 @@ static char cr2res_util_wave_description[] =
 "   * extracted.fits " CR2RES_COMMAND_LINE "\n"
 "   * trace_wave.fits " CR2RES_COMMAND_LINE "\n"
 "   * static_calib.fits (optional) " CR2RES_COMMAND_LINE "\n"
-"The extracted.fits (e.g. created by cr2res_util_extract) header is used \n"
-"to determine the kind of data we are to calibrate: LAMP, GAS or ETALON. \n"
-"This kind can be overwritten with the option --data_type.\n"
-"LAMP data is reduced with Cross Correlation with a emission lines catalog.\n"
-"GAS data is reduced with Cross Correlation with a template spectrum.\n"
-"ETALON data is reduced with the ETALON method, and does not require any\n"
-"static calibration file.\n"
-"The option --line_fitting can be used to replace the Cross-Correlation\n"
-"method with a lines identification and fitting algorithm. This is only\n"
-"applicable for the LAMP data type.\n"
+"Four different methods are offered by the utility. They are controlled\n"
+"by the --method parameter:\n"
+"   XCORR:  Cross Correlation with a emission lines catalog (default)\n"
+"   LINE1D: Line identification and fitting for each 1D spectra\n"
+"   LINE2D: Line identification and fitting for all 1D spectra at once\n"
+"   ETALON: Does not require any static calibration file.\n"
 "The recipe produces the following products:\n"
 "   * TRACE_WAVE\n"
 "   * WAVE_MAP\n"
@@ -186,15 +182,15 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.data_type",
-            CPL_TYPE_STRING, "Data Type (LAMP / GAS / ETALON)",
-            "cr2res.cr2res_util_wave", "");
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "data_type");
+    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.method",
+            CPL_TYPE_STRING, "Data Type (XCORR / LINE1D / LINE2D / ETALON)",
+            "cr2res.cr2res_util_wave", "XCORR");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "method");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.wl_shift",
-            CPL_TYPE_DOUBLE, "Wavelength shift (A) to apply to the guess",
+            CPL_TYPE_DOUBLE, "Wavelength shift (nm) to apply to the guess",
             "cr2res.cr2res_util_wave", 0.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_shift");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
@@ -204,13 +200,6 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
             CPL_TYPE_STRING, "Estimated wavelength start and end",
             "cr2res.cr2res_util_wave", "-1.0, -1.0");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_est");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.line_fitting",
-            CPL_TYPE_BOOL, "Use Lines Fitting (only for LAMP)",
-            "cr2res.cr2res_util_wave", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "line_fitting");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -283,7 +272,7 @@ static int cr2res_util_wave(
 {
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
-                            line_fitting, degree, display ;
+                            degree, display ;
     cpl_frame           *   fr ;
     const char          *   sval ;
     cr2res_wavecal_type     wavecal_type ;
@@ -292,12 +281,13 @@ static int cr2res_util_wave(
     const char          *   static_calib_file ;
     char                *   out_file;
     cpl_array           *   wl_array ;
+    cpl_array           *   wl_err_array ;
     cpl_table           *   out_trace_wave[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_wave_table ;
     cpl_table           *   extracted_table ;
-    cpl_vector          *   extracted_vec ;
+    cpl_bivector        *   extracted_vec ;
     cpl_polynomial      *   init_guess ;
     cpl_polynomial      *   wave_sol ;
     double                  wstart, wend, wl_shift ;
@@ -310,6 +300,7 @@ static int cr2res_util_wave(
     wavecal_type = CR2RES_UNSPECIFIED ;
     wstart = wend = -1.0 ;
     wl_shift = 0.0 ;
+    wl_err_array = NULL ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -325,11 +316,12 @@ static int cr2res_util_wave(
             "cr2res.cr2res_util_wave.trace_nb");
     reduce_trace = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_wave.data_type");
+            "cr2res.cr2res_util_wave.method");
     sval = cpl_parameter_get_string(param) ;
-    if (!strcmp(sval, ""))              wavecal_type = CR2RES_UNSPECIFIED ;
-    else if (!strcmp(sval, "LAMP"))     wavecal_type = CR2RES_LAMP ;
-    else if (!strcmp(sval, "GAS"))      wavecal_type = CR2RES_GAS ;
+    if (!strcmp(sval, "XCORR"))         wavecal_type = CR2RES_XCORR ;
+    else if (!strcmp(sval, "LINE1D"))   wavecal_type = CR2RES_LINE1D ;
+    /* TODO : add support for 2D */
+    /* else if (!strcmp(sval, "LINE2D"))   wavecal_type = CR2RES_LINE2D ; */
     else if (!strcmp(sval, "ETALON"))   wavecal_type = CR2RES_ETALON ;
     else {
         cpl_msg_error(__func__, "Invalid Data Type specified");
@@ -346,14 +338,10 @@ static int cr2res_util_wave(
             "cr2res.cr2res_util_wave.wl_shift");
     wl_shift = cpl_parameter_get_double(param) ;
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_wave.line_fitting");
-    line_fitting = cpl_parameter_get_bool(param) ;
-    param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.display");
     display = cpl_parameter_get_bool(param) ;
 
     /* Check Parameters */
-    /* TODO */
     if (degree < 0) {
         cpl_msg_error(__func__, "The degree needs to be >= 0");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -379,22 +367,21 @@ static int cr2res_util_wave(
         static_calib_file = NULL ;
     }
     if (trace_wave_file==NULL || extracted_file==NULL) {
-        cpl_msg_error(__func__, "The utility needs iat least 2 files as input");
+        cpl_msg_error(__func__, "The utility needs at least 2 files as input");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
 
     /* Get Data Type */
     if (wavecal_type == CR2RES_UNSPECIFIED) {
-        /* TODO  */
         /* Get the wavecal_type from the input extracted spectrum possible */
         cpl_msg_error(__func__, "Please use the --data_type option") ;
         return -1 ;
     }
-    if ((wavecal_type == CR2RES_LAMP || wavecal_type == CR2RES_GAS) &&
-            static_calib_file == NULL) {
+    if ((wavecal_type == CR2RES_XCORR || wavecal_type == CR2RES_LINE1D || 
+                wavecal_type == CR2RES_LINE2D) && static_calib_file == NULL) {
         cpl_msg_error(__func__,
-                "The static calibration file is needed for LAMP or GAS");
+                "The catalog file is needed for XCORR/LINE1D/LINE2D");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
@@ -446,6 +433,12 @@ static int cr2res_util_wave(
         cpl_table_new_column_array(out_trace_wave[det_nr-1],
                 CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, degree+1) ;
 
+        /* Clear the Wavelength Error column */
+        cpl_table_erase_column(out_trace_wave[det_nr-1], 
+                CR2RES_COL_WAVELENGTH_ERROR) ;
+        cpl_table_new_column_array(out_trace_wave[det_nr-1],
+                CR2RES_COL_WAVELENGTH_ERROR, CPL_TYPE_DOUBLE, 2) ;
+
         /* Loop over the traces spectra */
         for (i=0 ; i<nb_traces ; i++) {
             /* Initialise */
@@ -483,7 +476,7 @@ static int cr2res_util_wave(
                             CR2RES_COL_WAVELENGTH, order, trace_id)) == NULL) {
                 cpl_msg_error(__func__, "Cannot get the initial guess") ;
                 cpl_msg_indent_less() ;
-                cpl_vector_delete(extracted_vec) ;
+                cpl_bivector_delete(extracted_vec) ;
                 continue ;
             }
 
@@ -495,17 +488,17 @@ static int cr2res_util_wave(
             }
 
             /* Call the Wavelength Calibration */
-            if ((wave_sol = cr2res_wave(extracted_vec, init_guess, wavecal_type,
-                            line_fitting, static_calib_file, degree,
-                            display))==NULL) {
+            if ((wave_sol = cr2res_wave_1d(extracted_vec, init_guess, 
+                            wavecal_type, static_calib_file, degree, display,
+                            &wl_err_array)) == NULL) {
                 cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
                 cpl_polynomial_delete(init_guess) ;
-                cpl_vector_delete(extracted_vec) ;
+                cpl_bivector_delete(extracted_vec) ;
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
                 continue ;
             }
-            cpl_vector_delete(extracted_vec) ;
+            cpl_bivector_delete(extracted_vec) ;
             cpl_polynomial_delete(init_guess) ;
 
             /* Store the Solution in the table */
@@ -515,6 +508,11 @@ static int cr2res_util_wave(
                 cpl_table_set_array(out_trace_wave[det_nr-1],
                         CR2RES_COL_WAVELENGTH, i, wl_array);
                 cpl_array_delete(wl_array) ;
+            }
+            if (wl_err_array != NULL) {
+                cpl_table_set_array(out_trace_wave[det_nr-1],
+                        CR2RES_COL_WAVELENGTH_ERROR, i, wl_err_array);
+                cpl_array_delete(wl_err_array) ;
             }
             cpl_msg_indent_less() ;
         }
@@ -553,7 +551,6 @@ static int cr2res_util_wave(
             hdrl_image_delete(out_wave_map[i]) ;
         }
     }
-
     return (int)cpl_error_get_code();
 }
 

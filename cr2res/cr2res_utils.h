@@ -36,13 +36,6 @@
 #define CR2RES_DETECTOR_SIZE            2048
 
 typedef enum {
-    CR2RES_LAMP,
-    CR2RES_GAS,
-    CR2RES_ETALON,
-    CR2RES_UNSPECIFIED
-} cr2res_wavecal_type ;
-
-typedef enum {
     CR2RES_DECKER_INVALID,
     CR2RES_DECKER_NONE,
     CR2RES_DECKER_1_3,
