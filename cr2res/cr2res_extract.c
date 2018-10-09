@@ -1055,7 +1055,7 @@ int cr2res_extract_slitdec_curved(
         cr2res_extract_slit_func_curved(swath, height, oversample, img_sw_data,
                 err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit,
                 slitcurves_sw, delta_x,
-                slitfu_sw_data, spec_sw_data, model_sw, unc_sw_data, 1e-6,
+                slitfu_sw_data, spec_sw_data, model_sw, unc_sw_data, 0.,
                 smooth_slit, 1e-7, 20);
 
         for (col=1; col<=swath; col++) {        // col is x-index in cut-out
