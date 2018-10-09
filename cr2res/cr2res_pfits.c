@@ -106,7 +106,7 @@ double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order)
     if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN MIN%02d", order_loc) ;
+    key_name = cpl_sprintf("ESO INS WLEN MIN%d", order_loc) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
