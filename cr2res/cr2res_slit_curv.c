@@ -185,7 +185,7 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
         slit_curve = cpl_polynomial_new(1) ;
 
         if (abort_fit) {
-            cpl_msg_warning(__func__, "Abort the fit for x=%"CPL_SIZE_FORMAT, 
+            cpl_msg_debug(__func__, "Abort the fit for x=%"CPL_SIZE_FORMAT, 
                     ref_x) ;
             /* Use the vertical Slit Polynomial */
             power = 0 ;
