@@ -763,8 +763,8 @@ static int cr2res_cal_flat_reduce(
 		if (extract_sum_only) {
 			/* Call the SUM ONLY extraction */
 			if (cr2res_extract_sum_vert(collapsed, 
-                                traces, order, trace_id, extract_height, 
-                                &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
+                        traces, order, trace_id, extract_height, 
+                        &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
 				cpl_msg_error(__func__, "Cannot (sum-)extract the trace") ;
 				slit_func_vec[i] = NULL ;
 				spectrum[i] = NULL ;
