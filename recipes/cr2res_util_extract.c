@@ -426,13 +426,11 @@ static int cr2res_util_extract(
 
             /* Check if this order needs to be skipped */
             if (reduce_order > -1 && order != reduce_order) {
-                cpl_msg_indent_less() ;
                 continue ;
             }
 
             /* Check if this trace needs to be skipped */
             if (reduce_trace > -1 && trace_id != reduce_trace) {
-                cpl_msg_indent_less() ;
                 continue ;
             }
 
