@@ -29,39 +29,65 @@
 #include "cr2res_utils.h"
 
 /*-----------------------------------------------------------------------------
+                                    Define
+ -----------------------------------------------------------------------------*/
+
+#define CR2RES_WAVELENGTH_ERROR_DEFAULT     0.05
+
+typedef enum {
+    CR2RES_XCORR,
+    CR2RES_LINE1D,
+    CR2RES_LINE2D,
+    CR2RES_ETALON,
+    CR2RES_UNSPECIFIED
+} cr2res_wavecal_type ;
+
+/*-----------------------------------------------------------------------------
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-cpl_polynomial * cr2res_wave(
-        cpl_vector          *   spectrum,
-        cpl_polynomial      *   initial_guess,
+cpl_polynomial * cr2res_wave_1d(
+        cpl_bivector        *   spectrum,
+        cpl_polynomial      *   wavesol_init,
         cr2res_wavecal_type     wavecal_type,
-        int                     line_fitting,
         const char          *   static_file,
         int                     degree,
-        int                 	display) ;
+        int                     display,
+        cpl_array           **  wavelength_error) ;
+
 cpl_polynomial * cr2res_wave_xcorr(
-        cpl_vector      *   spectrum,
+        cpl_bivector    *   spectrum,
         cpl_polynomial  *   initial_guess,
         int                 wl_error,
         cpl_bivector    *   lines_list,
         int                 degree,
         int                 display) ;
+
 cpl_polynomial * cr2res_wave_line_fitting(
-        cpl_vector      *   spectrum,
+        cpl_bivector    *   spectrum,
         cpl_polynomial  *   initial_guess,
-        cpl_table       *   catalog) ;
+        cpl_bivector    *   lines_list,
+        int                 window_size,
+        int                 degree,
+        int                 display,
+        cpl_vector      **  sigma_fit,
+        cpl_array       **  wavelength_error) ;
 
 cpl_polynomial * cr2res_wave_etalon(
-        cpl_vector      *   spectrum,
-        cpl_polynomial  *   initial_guess) ;
+        cpl_bivector    *   spectrum,
+        cpl_polynomial  *   wavesol_init,
+        cpl_array       **  wavelength_error) ;
+
 cpl_vector * cr2res_wave_etalon_measure_fringes(cpl_vector * spectrum);
+
 double cr2res_wave_etalon_get_x0(
         cpl_vector * peaks, 
         cpl_polynomial * initial_guess);
+
 double cr2res_wave_etalon_get_D(
         cpl_vector * peaks, 
         cpl_polynomial * initial_guess);
+
 cpl_bivector * cr2res_wave_etalon_assign_fringes(
             const cpl_vector      * peaks_found,
             const cpl_vector      * peaks_should);
@@ -81,12 +107,5 @@ cpl_array * cr2res_wave_get_estimate(
 
 hdrl_image * cr2res_wave_gen_wave_map(
         const cpl_table *   trace_wave) ;
-
-cpl_polynomial * cr2res_wave_catalog(
-        cpl_table * catalog,
-        cpl_bivector * spectrum,
-        cpl_polynomial * initial_guess,
-        int window_size,
-        cpl_vector ** sigma_fit);
 
 #endif

@@ -393,37 +393,50 @@ cpl_table * cr2res_extract_SLITFUNC_create(
   @return   the spectrum or NULL
  */
 /*----------------------------------------------------------------------------*/
-cpl_vector * cr2res_extract_EXTRACT1D_get_spectrum(
+cpl_bivector * cr2res_extract_EXTRACT1D_get_spectrum(
         cpl_table   *   tab,
         int             order,
         int             trace_nb)
 {
-    cpl_vector  *   out ;
-    char        *   col_name ;
-    double      *   pcol ;
-    double      *   pout ;
-    int             i, tab_size ;
+    cpl_bivector    *   out ;
+    char            *   spec_name ;
+    char            *   spec_err_name ;
+    double          *   pspec ;
+    double          *   pspec_err ;
+    double          *   pxout ;
+    double          *   pyout ;
+    int                 i, tab_size ;
 
     /* Check entries */
     if (tab == NULL) return NULL ;
 
-    /* Col name */
-    col_name = cr2res_dfs_SPEC_colname(order, trace_nb) ;
-
-    /* Get the column */
-    if ((pcol = cpl_table_get_data_double(tab, col_name)) == NULL) {
-        cpl_msg_error(__func__, "Cannot find the extracted spectrum") ;
-        cpl_free(col_name) ;
+    /* Get the Spectrum */
+    spec_name = cr2res_dfs_SPEC_colname(order, trace_nb) ;
+    if ((pspec = cpl_table_get_data_double(tab, spec_name)) == NULL) {
+        cpl_msg_error(__func__, "Cannot find the spectrum") ;
+        cpl_free(spec_name) ;
         return NULL ;
     }
-    cpl_free(col_name) ;
+    cpl_free(spec_name) ;
+
+    /* Get the Spectrum Error */
+    spec_err_name = cr2res_dfs_SPEC_ERR_colname(order, trace_nb) ;
+    if ((pspec_err = cpl_table_get_data_double(tab, spec_err_name)) == NULL) {
+        cpl_msg_error(__func__, "Cannot find the spectrum error") ;
+        cpl_free(spec_err_name) ;
+        return NULL ;
+    }
+    cpl_free(spec_err_name) ;
 
     /* Create the output vector */
     tab_size = cpl_table_get_nrow(tab) ;
-    out = cpl_vector_new(tab_size) ;
-    pout = cpl_vector_get_data(out) ;
-    for (i=-0 ; i<tab_size ; i++)
-        pout[i] = pcol[i] ;
+    out = cpl_bivector_new(tab_size) ;
+    pxout = cpl_bivector_get_x_data(out) ;
+    pyout = cpl_bivector_get_y_data(out) ;
+    for (i=0 ; i<tab_size ; i++) {
+        pxout[i] = pspec[i] ;
+        pyout[i] = pspec_err[i] ;
+    }
 
     return out ;
 }

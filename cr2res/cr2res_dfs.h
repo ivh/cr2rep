@@ -30,6 +30,7 @@
 #define CR2RES_COL_EMISSION         "Emission"      /* No Unit */
 /*** EMISSION_LINES and TRACE_WAVE Table ***/
 #define CR2RES_COL_WAVELENGTH       "Wavelength"    /* In Nanometers */
+#define CR2RES_COL_WAVELENGTH_ERROR "Wavelength_Error"  /* In Nanometers */
 /*** TRACE_WAVE Table ***/
 #define CR2RES_COL_UPPER            "Upper"         /* pixel position */
 #define CR2RES_COL_LOWER            "Lower"         /* pixel position */
