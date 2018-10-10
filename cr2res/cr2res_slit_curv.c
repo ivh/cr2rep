@@ -320,6 +320,138 @@ int cr2res_slit_curv_fit_coefficients(
     return 0 ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Compute the slit_curv map from the trace_wave table
+  @param    trace_wave      The trace wave table
+  @return   the slit_curv_map image or NULL in error case
+
+  The returned image must be deallocated with hdrl_image_delete()
+ */
+/*----------------------------------------------------------------------------*/
+hdrl_image * cr2res_slit_curv_gen_map(
+        const cpl_table *   trace_wave)
+{
+    hdrl_image      *   out ;
+    cpl_image       *   out_ima ;
+    double          *   pout_ima ;
+    const cpl_array *   tmp_array ;
+    cpl_polynomial  *   slit_poly_a ;
+    cpl_polynomial  *   slit_poly_b ;
+    cpl_polynomial  *   slit_poly_c ;
+    cpl_polynomial  *   upper_poly ;
+    cpl_polynomial  *   lower_poly ;
+    cpl_polynomial  *   slit_curv_poly ;
+    double              upper_pos, lower_pos, x_slit_pos, value ;
+    cpl_size            i, j, k, nrows, nx, ny, x_int ;
+
+    /* Check Entries */
+    if (trace_wave == NULL) return NULL ;
+
+    /* Initialise */
+    nrows = cpl_table_get_nrow(trace_wave) ;
+    value = 10000. ;
+
+    /* Create the image */
+    out = hdrl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE) ;
+    out_ima = hdrl_image_get_image(out) ;
+    nx = cpl_image_get_size_x(out_ima) ;
+    ny = cpl_image_get_size_y(out_ima) ;
+    pout_ima = cpl_image_get_data_double(out_ima) ;
+
+    /* Loop on the traces */
+    for (k=0 ; k<nrows ; k++) {
+        /* Get the Slit curvature for the trace */
+        tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_A, k) ;
+        slit_poly_a = cr2res_convert_array_to_poly(tmp_array) ;
+        tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_B, k) ;
+        slit_poly_b = cr2res_convert_array_to_poly(tmp_array) ;
+        tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_C, k) ;
+        slit_poly_c = cr2res_convert_array_to_poly(tmp_array) ;
+
+        if (slit_poly_a != NULL && slit_poly_b != NULL && slit_poly_c != NULL) {
+            /* Get the Upper Polynomial */
+            tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_UPPER, k) ;
+            upper_poly = cr2res_convert_array_to_poly(tmp_array) ;
+
+            /* Get the Lower Polynomial */
+            tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_LOWER, k) ;
+            lower_poly = cr2res_convert_array_to_poly(tmp_array) ;
+
+            /* Check if all Polynomials are available */
+            if (upper_poly == NULL || lower_poly == NULL) {
+                if (upper_poly != NULL) cpl_polynomial_delete(upper_poly) ;
+                if (lower_poly != NULL) cpl_polynomial_delete(lower_poly) ;
+                cpl_msg_warning(__func__, "Cannot get UPPER/LOWER information");
+                cpl_polynomial_delete(slit_poly_a) ;
+                cpl_polynomial_delete(slit_poly_b) ;
+                cpl_polynomial_delete(slit_poly_c) ;
+                continue ;
+            }
+
+            /* Set the Pixels in the trace */
+            for (i=0 ; i<nx ; i++) {
+                if (((i+1) % 50) != 0) continue ;
+                /* Create the slit curvature polynomial at position i+1 */
+                slit_curv_poly = cr2res_slit_curv_build_poly(slit_poly_a, 
+                        slit_poly_b, slit_poly_c, i+1) ;
+
+                upper_pos = cpl_polynomial_eval_1d(upper_poly, i+1, NULL) ;
+                lower_pos = cpl_polynomial_eval_1d(lower_poly, i+1, NULL) ;
+                for (j=0 ; j<ny ; j++) {
+                    if (j+1 >= lower_pos && j+1 <= upper_pos) {
+                        x_slit_pos = cpl_polynomial_eval_1d(slit_curv_poly, 
+                                j+1, NULL) ;
+                        x_int = (cpl_size)x_slit_pos ;
+                        pout_ima[(x_int-1)+j*nx] = value ;
+                    }
+                }
+                cpl_polynomial_delete(slit_curv_poly) ;
+            }
+            cpl_polynomial_delete(slit_poly_a) ;
+            cpl_polynomial_delete(slit_poly_b) ;
+            cpl_polynomial_delete(slit_poly_c) ;
+            cpl_polynomial_delete(upper_poly) ;
+            cpl_polynomial_delete(lower_poly) ;
+        } else {
+            if (slit_poly_a != NULL) cpl_polynomial_delete(slit_poly_a) ; 
+            if (slit_poly_b != NULL) cpl_polynomial_delete(slit_poly_b) ; 
+            if (slit_poly_c != NULL) cpl_polynomial_delete(slit_poly_c) ; 
+        }
+    }
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Create the slit curvature polynomial for x position
+  @param slit_poly_a	Polynomial for the a coefficient
+  @param slit_poly_b	Polynomial for the b coefficient
+  @param slit_poly_c	Polynomial for the c coefficient
+  @param x              The x position (1->2048)
+  @return   the slit curvture polynomial or NULL in error case
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_slit_curv_build_poly(
+        cpl_polynomial  *   slit_poly_a,
+        cpl_polynomial  *   slit_poly_b,
+        cpl_polynomial  *   slit_poly_c,
+        cpl_size            x)
+{
+    cpl_polynomial  *   out ;
+    cpl_size            power ;
+
+    /* Generate the slit curvature polynomial */
+   	out = cpl_polynomial_new(1) ;
+    power = 0 ; cpl_polynomial_set_coeff(out, &power, 
+            cpl_polynomial_eval_1d(slit_poly_a, x, NULL)) ;
+    power = 1 ; cpl_polynomial_set_coeff(out, &power, 
+            cpl_polynomial_eval_1d(slit_poly_b, x, NULL)) ;
+    power = 2 ; cpl_polynomial_set_coeff(out, &power, 
+            cpl_polynomial_eval_1d(slit_poly_c, x, NULL)) ;
+    return out ;
+}
+
 /**@}*/
 
 /*----------------------------------------------------------------------------*/

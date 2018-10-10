@@ -236,6 +236,7 @@ static int cr2res_util_slit_curv(
     cpl_polynomial      **  curvatures ;
     const char          *   trace_wave_file ;
     cpl_table           *   trace_wave[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   slit_curv_map[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slit_curv[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_polynomial      *   slit_polya ;
@@ -289,6 +290,7 @@ static int cr2res_util_slit_curv(
 
         /* Initialise */
         slit_curv[det_nr-1] = cpl_table_new(CR2RES_DETECTOR_SIZE) ;
+		slit_curv_map[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
         trace_wave[det_nr-1] = NULL ;
 
@@ -388,14 +390,20 @@ static int cr2res_util_slit_curv(
             cpl_free(curvatures) ; 
             cpl_msg_indent_less() ;
         }
+
+        /* Generate the SLIT CURV Map */
+        slit_curv_map[det_nr-1] =
+            cr2res_slit_curv_gen_map(trace_wave[det_nr-1]) ;
+
         cpl_msg_indent_less() ;
     }
 
-
-
-
-
-
+    /* Save the SLIT_CURV_MAP */
+    out_file = cpl_sprintf("%s_slit_curv_map.fits",
+            cr2res_get_base_name(cr2res_get_root_name(trace_wave_file)));
+    cr2res_io_save_SLIT_CURV_MAP(out_file, frameset, parlist, slit_curv_map,
+            NULL, ext_plist, CR2RES_UTIL_SLIT_CURV_MAP_PROCATG, RECIPE_STRING) ;
+    cpl_free(out_file);
 
     /* Save the new SLIT_CURV table */
     out_file=cpl_sprintf("%s_slit_curv.fits", 
@@ -415,6 +423,8 @@ static int cr2res_util_slit_curv(
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
         if (slit_curv[i] != NULL) cpl_table_delete(slit_curv[i]) ;
         if (trace_wave[i] != NULL) cpl_table_delete(trace_wave[i]) ;
+        if (slit_curv_map[i] != NULL) 
+            hdrl_image_delete(slit_curv_map[i]) ;
         if (ext_plist[i] != NULL)
             cpl_propertylist_delete(ext_plist[i]) ;
     }

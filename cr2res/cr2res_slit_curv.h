@@ -46,4 +46,13 @@ int cr2res_slit_curv_fit_coefficients(
         cpl_polynomial  **  slit_polyb,
         cpl_polynomial  **  slit_polyc) ;
 
+hdrl_image * cr2res_slit_curv_gen_map(
+        const cpl_table *   trace_wave) ;
+
+cpl_polynomial * cr2res_slit_curv_build_poly(
+        cpl_polynomial  *   slit_poly_a,
+        cpl_polynomial  *   slit_poly_b,
+        cpl_polynomial  *   slit_poly_c,
+        cpl_size            x) ;
+
 #endif

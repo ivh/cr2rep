@@ -122,7 +122,9 @@
 
 /* For CR2RES_UTIL_WAVE_MAP_PROCATG */
 #define CR2RES_WAVE_MAP_PROTYPE             "WAVE_MAP"
-
+  
+/* For CR2RES_UTIL_SLIT_CURV_MAP_PROCATG */
+#define CR2RES_SLIT_CURV_MAP_PROTYPE        "SLIT_CURV_MAP"
 
 /*************************************/
 /* Define here the PRO.CATG keywords */
@@ -165,6 +167,7 @@
 #define CR2RES_UTIL_MASTER_FLAT_PROCATG     "UTIL_MASTER_FLAT"
 
 /* Produced by cr2res_util_slit_curv */
+#define CR2RES_UTIL_SLIT_CURV_MAP_PROCATG   "UTIL_SLIT_CURV_MAP"
 #define CR2RES_UTIL_SLIT_CURV_PROCATG       "UTIL_SLIT_CURV"
 #define CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "UTIL_SLIT_CURV_TRACE_WAVE"
 

@@ -867,7 +867,7 @@ int cr2res_io_save_SLIT_CURV_MAP(
 {
     return cr2res_io_save_image(filename, allframes, parlist,
             data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
-            procatg, CR2RES_SLIT_CURV_PROTYPE) ;
+            procatg, CR2RES_SLIT_CURV_MAP_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
