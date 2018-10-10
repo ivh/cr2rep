@@ -869,7 +869,7 @@ int cr2res_extract_slitdec_curved(
     cpl_polynomial  **  slitcurves_sw;
 
     double              pixval, errval, img_median, norm, model_unc, img_unc,
-                        unc, delta_tmp;
+                        unc, delta_tmp, tmp_a, tmp_b, tmp_c, tmp_y;
     int                 i, j, k, nswaths, halfswath, row, col, x, y, ny_os,
                         sw_start, sw_end, badpix, y_lower_limit, y_upper_limit,
                         delta_x, a, b, c;
@@ -1034,16 +1034,20 @@ int cr2res_extract_slitdec_curved(
             }
 
             /* set slit curvature polynomials */
+            /* and shift the polynomial to the central line */
+            /* subtract col because we want origin relative to here */
+            tmp_a = cpl_polynomial_eval_1d(slitcurve_A, col, NULL) - col;
+            tmp_b = cpl_polynomial_eval_1d(slitcurve_B, col, NULL);
+            tmp_c = cpl_polynomial_eval_1d(slitcurve_C, col, NULL);
+            tmp_y = cpl_vector_get(ycen, col);
             pow = 2;
-            cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow,
-                cpl_polynomial_eval_1d(slitcurve_C, col-1, NULL));
+            cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow, tmp_c);
             pow = 1;
             cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow,
-                cpl_polynomial_eval_1d(slitcurve_B, col, NULL));
+                tmp_b + 2. * tmp_c * tmp_y);
             pow = 0;
             cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow,
-                cpl_polynomial_eval_1d(slitcurve_A, col, NULL) - col);
-              /* subtract col because we want origin relative to here */
+                tmp_a + tmp_b * tmp_y + tmp_c * tmp_y * tmp_y);
         }
 
         img_sw_data = cpl_image_get_data_double(img_sw);
