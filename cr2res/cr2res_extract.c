@@ -869,10 +869,10 @@ int cr2res_extract_slitdec_curved(
     cpl_polynomial  **  slitcurves_sw;
 
     double              pixval, errval, img_median, norm, model_unc, img_unc,
-                        unc, delta_tmp;
+                        unc, delta_tmp, a, b, c, yc;
     int                 i, j, k, nswaths, halfswath, row, col, x, y, ny_os,
                         sw_start, sw_end, badpix, y_lower_limit, y_upper_limit,
-                        delta_x, a, b, c;
+                        delta_x;
 
     /* Check Entries */
     if (img_hdrl == NULL || trace_tab == NULL) return -1 ;
@@ -959,14 +959,20 @@ int cr2res_extract_slitdec_curved(
 		a = cpl_polynomial_eval_1d(slitcurve_A, i, NULL);
 		b =	cpl_polynomial_eval_1d(slitcurve_B, i, NULL);
 		c =	cpl_polynomial_eval_1d(slitcurve_C, i, NULL);
-        y = cpl_vector_get(ycen, i-1);
+        yc = cpl_vector_get(ycen, i-1);
 
         // shift polynomial to local frame
-        // a = a - i + y * b + y * y * c; // a = 0
-        b = b + y * c;
+        a = a - i + yc * b + yc * yc * c; // a = 0
+        b += 2 * yc * c;
+        // cpl_msg_debug(__func__, "a: %f", a);
+        // cpl_msg_debug(__func__, "b: %f", b);
+        // cpl_msg_debug(__func__, "c: %f", c);
+        // cpl_msg_debug(__func__, "h: %d", height);
+        // cpl_msg_debug(__func__, "d: %f", b * height * 0.5);
 
-		delta_tmp = max( fabs((c*height/2 + b)*height/2),
-				fabs((c*height/-2 + b)*height/-2));
+
+		delta_tmp = max( fabs(a + (c*height/2. + b)*height/2.),
+				fabs(a + (c*height/-2. + b)*height/-2.));
 		if (delta_tmp > delta_x) delta_x = (int)ceil(delta_tmp);
 	}
 	cpl_msg_debug(__func__, "Max delta_x from slit curvature is %d pix.", delta_x);
