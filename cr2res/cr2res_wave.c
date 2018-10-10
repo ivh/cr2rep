@@ -342,7 +342,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
     int window_size = 10 ;
 
     /* Check Entries */
-    if (spectrum == NULL || wavesol_init == NULL || lines_list == NULL) 
+    if (spectrum == NULL || wavesol_init == NULL || lines_list == NULL || wave_error_init == NULL) 
         return NULL;
     if (window_size <= 0) return NULL;
 
@@ -441,8 +441,8 @@ cpl_polynomial * cr2res_wave_line_fitting(
         // get initial guess for gaussian fit
         cpl_vector_set(a, 0, pixel_pos);
         cpl_vector_set(a, 1, width[i]);
-        cpl_vector_set(a, 2, height[i]); // should be area
-        cpl_vector_set(a, 3, 0);
+        cpl_vector_set(a, 2, height[i]);
+        cpl_vector_set(a, 3, cpl_vector_get_min(y));
         
         error = cpl_fit_lvmq(x, sigma_x, y, sigma_y, a, ia, &gauss, &gauss_derivative,
                         CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT, 
@@ -454,7 +454,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
         cpl_vector_set(width_vec, i, cpl_vector_get(a, 1));
         // if fit to bad set flag to 0(False) 
         // TODO: when is fit bad?
-        if (error != CPL_ERROR_NONE | red_chisq > 100){
+        if (error != CPL_ERROR_NONE){
             cpl_vector_set(flag_vec, i, 0);
             ngood--;
             cpl_error_reset();
@@ -1074,7 +1074,7 @@ static int deriv_poly(const double x[], const double a[], double * result)
 
    This function computes
 
-   @em a3 +  @em a2 / sqrt(2 pi @em a1^2) *
+   @em a3 +  @em a2 *
    exp( -(@em x0 - @em a0)^2/(2 @em a1^2)).
 
    where @em a0, ..., @em a3 are the first four elements of @em a, and @em
@@ -1094,9 +1094,7 @@ static int gauss(const double x[], const double a[], double *result)
         const double A = a[2];
         const double B = a[3];
 
-        *result = B +
-            A/(CPL_MATH_SQRT2PI * fabs(sigma)) *
-            exp(- (x[0] - my)*(x[0] - my)
+        *result = B + A * exp(- (x[0] - my)*(x[0] - my)
                 / (2*sigma*sigma));
 
     } else {
@@ -1120,7 +1118,7 @@ static int gauss(const double x[], const double a[], double *result)
 
    This function computes the partial derivatives of
    @em f(@em x0,@em a) =
-   @em a3 +  @em a2 / sqrt(2 pi @em a1^2) *
+   @em a3 +  @em a2  *
    exp( -(@em x0 - @em a0)^2/(2 @em a1^2))
    with respect to @em a0, ..., @em a3.
    On successful evaluation, the i'th element of the @em result vector
@@ -1152,12 +1150,10 @@ static int gauss_derivative(const double x[], const double a[], double result[])
          */
 
 
-        const double factor = exp( -(x[0] - my)*(x[0] - my)/(2.0*sigma*sigma) )
-            / (CPL_MATH_SQRT2PI * fabs(sigma));
+        const double factor = exp( -(x[0] - my)*(x[0] - my)/(2.0*sigma*sigma) );
 
         result[0] = A * factor * (x[0]-my) / (sigma*sigma);
-        result[1] = A * factor * ((x[0]-my)*(x[0]-my) / (sigma*sigma) - 1)
-            / sigma;
+        result[1] = A * factor * ((x[0]-my)*(x[0]-my) / (sigma*sigma*sigma));
         result[2] = factor;
         result[3] = 1.0;
 
