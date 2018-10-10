@@ -48,6 +48,9 @@
 
 static int poly(const double x[], const double a[], double * result) ;
 static int deriv_poly(const double x[], const double a[], double * result) ;
+static int gauss(const double x[], const double a[], double * result) ;
+static int gauss_derivative(const double x[], const double a[], double * result) ;
+
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -358,11 +361,13 @@ cpl_polynomial * cr2res_wave_line_fitting(
     cpl_error_code error;
 
     // For gaussian fit of each line
-    // gauss = A * exp((x-mu)^2/(2*sig^2))
-    cpl_vector * x = cpl_vector_new(window_size);
-    cpl_vector * sigma_x = NULL;
+    // gauss = A * exp((x-mu)^2/(2*sig^2)) + cont
+    cpl_matrix * x = cpl_matrix_new(window_size, 1);
+    cpl_matrix * sigma_x = NULL;
     cpl_vector * y = cpl_vector_new(window_size);
     cpl_vector * sigma_y = cpl_vector_new(window_size);
+    cpl_vector * a = cpl_vector_new(4);
+    int ia[] = {1, 1, 1, 1};
     double x0, sigma, area, offset;
 
     // For polynomial fit
@@ -424,7 +429,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
                 break;
             }
 
-            cpl_vector_set(x, j, k);
+            cpl_matrix_set(x, j, 0, k);
             cpl_vector_set(y, j, cpl_vector_get(spec, k));
             cpl_vector_set(sigma_y, j, cpl_vector_get(unc, k));
         }
@@ -434,17 +439,19 @@ cpl_polynomial * cr2res_wave_line_fitting(
             continue;
         }
         // get initial guess for gaussian fit
-        area =  height[i];
-        x0 =  pixel_pos;
-        sigma = width[i];
-
-        error = cpl_vector_fit_gaussian(x, sigma_x, y, sigma_y, CPL_FIT_ALL, 
-                        &x0, &sigma, &area, &offset, NULL, &red_chisq, NULL);
+        cpl_vector_set(a, 0, pixel_pos);
+        cpl_vector_set(a, 1, width[i]);
+        cpl_vector_set(a, 2, height[i]); // should be area
+        cpl_vector_set(a, 3, 0);
+        
+        error = cpl_fit_lvmq(x, sigma_x, y, sigma_y, a, ia, &gauss, &gauss_derivative,
+                        CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT, 
+                        CPL_FIT_LVMQ_MAXITER, NULL, &red_chisq, NULL);
 
         // Set new pixel pos based on gaussian fit
-        cpl_vector_set(pixel_vec, i, x0);
+        cpl_vector_set(pixel_vec, i, cpl_vector_get(a, 0));
         // width == uncertainty of wavelength position?
-        cpl_vector_set(width_vec, i, sigma);
+        cpl_vector_set(width_vec, i, cpl_vector_get(a, 1));
         // if fit to bad set flag to 0(False) 
         // TODO: when is fit bad?
         if (error != CPL_ERROR_NONE | red_chisq > 100){
@@ -517,9 +524,10 @@ cpl_polynomial * cr2res_wave_line_fitting(
 
     cpl_free(width);
     
-    cpl_vector_delete(x);
+    cpl_matrix_delete(x);
     cpl_vector_delete(y);
     cpl_vector_delete(sigma_y);
+    cpl_vector_delete(a);
 
     cpl_matrix_delete(px);
     cpl_vector_delete(py);
@@ -1052,5 +1060,116 @@ static int deriv_poly(const double x[], const double a[], double * result)
     return 0;
 }
 
+// following two are shamelessly taken from cpl_vector_fit_gauss
+
+/*----------------------------------------------------------------------------*/
+/**
+   @internal
+   @brief   Evaluate a gaussian
+   @param   x             The evaluation point
+   @param   a             The parameters defining the gaussian
+   @param   result        The function value
+
+   @return  0 iff okay.
+
+   This function computes
+
+   @em a3 +  @em a2 / sqrt(2 pi @em a1^2) *
+   exp( -(@em x0 - @em a0)^2/(2 @em a1^2)).
+
+   where @em a0, ..., @em a3 are the first four elements of @em a, and @em
+   x0 is the first element of @em x .
+
+   The function fails iff @em a1 is zero and @em x0 is equal to @em a0.
+
+*/
+/*----------------------------------------------------------------------------*/
+static int gauss(const double x[], const double a[], double *result)
+{
+    const double my    = a[0];
+    const double sigma = a[1];
+
+    if (sigma != 0.0) {
+
+        const double A = a[2];
+        const double B = a[3];
+
+        *result = B +
+            A/(CPL_MATH_SQRT2PI * fabs(sigma)) *
+            exp(- (x[0] - my)*(x[0] - my)
+                / (2*sigma*sigma));
+
+    } else {
+
+        /* Dirac's delta function */
+        *result = x[0] != my ? 0.0 : DBL_MAX;
+    }
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+   @internal
+   @brief   Evaluate the derivatives of a gaussian
+   @param   x             The evaluation point
+   @param   a             The parameters defining the gaussian
+   @param   result        The derivatives wrt to parameters
+
+   @return  0 iff okay.
+
+   This function computes the partial derivatives of
+   @em f(@em x0,@em a) =
+   @em a3 +  @em a2 / sqrt(2 pi @em a1^2) *
+   exp( -(@em x0 - @em a0)^2/(2 @em a1^2))
+   with respect to @em a0, ..., @em a3.
+   On successful evaluation, the i'th element of the @em result vector
+   contains df/da_i.
+
+   The function never returns failure.
+
+*/
+/*----------------------------------------------------------------------------*/
+static int gauss_derivative(const double x[], const double a[], double result[])
+{
+
+    if (a[1] != 0.0) {
+
+        const double my    = a[0];
+        const double sigma = a[1];
+        const double A     = a[2];
+        /* a[3] not used */
+
+        /* f(x) = B + A/sqrt(2 pi s^2) exp(-(x-my)^2/2s^2)
+         *
+         * df/d(my) = A/sqrt(2 pi s^2) exp(-(x-my)^2/2s^2) * (x-my)  / s^2
+         *          = A * fac. * (x-my)  / s^2
+         * df/ds    = A/sqrt(2 pi s^2) exp(-(x-my)^2/2s^2) * ((x-my)^2/s^3 - 1/s)
+         *          = A * fac. * ((x-my)^2 / s^2 - 1) / s
+         * df/dA    = 1/sqrt(2 pi s^2) exp(-(x-my)^2/2s^2)
+         *          = fac.
+         * df/dB    = 1
+         */
+
+
+        const double factor = exp( -(x[0] - my)*(x[0] - my)/(2.0*sigma*sigma) )
+            / (CPL_MATH_SQRT2PI * fabs(sigma));
+
+        result[0] = A * factor * (x[0]-my) / (sigma*sigma);
+        result[1] = A * factor * ((x[0]-my)*(x[0]-my) / (sigma*sigma) - 1)
+            / sigma;
+        result[2] = factor;
+        result[3] = 1.0;
+
+    } else {
+        /* Derivative of Dirac's delta function */
+        result[0] = 0.0;
+        result[1] = 0.0;
+        result[2] = 0.0;
+        result[3] = 0.0;
+    }
+
+    return 0;
+}
 
 /**@}*/
