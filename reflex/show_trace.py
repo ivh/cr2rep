@@ -32,7 +32,7 @@ def compare_extract(flat, trace, extract, title=''):
 
         ax.imshow(fdata, origin='lower')
 
-        for alla, upper, lower, order, tracenb, wave, curvA, curvB, curvC in tdata:
+        for alla, upper, lower, order, tracenb, wave, waverr, curvA, curvB, curvC in tdata:
             pol = np.polyval(upper[::-1], X)
             ax.plot(X, pol, ':w')
 
@@ -139,7 +139,7 @@ def compare(flatname, tracename):
             print('Data for CHIP%s is empty, skipping.' % i)
             continue
 
-        for alla, upper, lower, order, tracenb, wave, curvA, curvB, curvC, slitfrac in tdata:
+        for alla, upper, lower, order, tracenb, wave, waverr, curvA, curvB, curvC, slitfrac in tdata:
             pol = np.polyval(upper[::-1], X)
             ax.plot(X, pol, ':w')
 
