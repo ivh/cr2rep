@@ -74,11 +74,13 @@ cpl_image * cr2res_io_load_SLIT_MODEL(
 
 cpl_image * cr2res_io_load_WAVE_MAP(
         const char  *   filename,
-        int             detector);
+        int             detector,
+        int             data);
 
-cpl_image * cr2res_io_load_SLITPOS_MAP(
+cpl_image * cr2res_io_load_SLIT_CURV_MAP(
         const char  *   filename,
-        int             detector);
+        int             detector,
+        int             data) ;
 
 cpl_table * cr2res_io_load_SLIT_CURV(
         const char  *   filename,
@@ -202,16 +204,18 @@ int cr2res_io_save_WAVE_MAP(
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
+        const char              *   procatg,
+        const char              *   recipe) ;
 
-int cr2res_io_save_SLITPOS_MAP(
+int cr2res_io_save_SLIT_CURV_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
+        const char              *   procatg,
+        const char              *   recipe) ;
 
 int cr2res_io_save_SLIT_CURV(
         const char              *   filename,

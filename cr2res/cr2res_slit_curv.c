@@ -115,6 +115,9 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
     ntraces = cr2res_get_nb_traces_with_wavelength(trace_wave, order) ;
     if (ntraces < 2) return NULL ;
 
+    cpl_msg_debug(__func__, "%"CPL_SIZE_FORMAT" traces in the current order", 
+            ntraces) ;
+
     /* Set the fitting polynomial degree */
     poly_degree = ntraces - 1 ;
     if (poly_degree > max_curv_degree) poly_degree = max_curv_degree ;
@@ -136,8 +139,6 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
 
         /* Get the Wavelength on the input trace */
         ref_wl = cpl_polynomial_eval_1d(wave_poly_in, (double)ref_x, NULL) ;
-
-        /* Create Objects */
         x_points = cpl_matrix_new(1, ntraces) ;
         y_points = cpl_vector_new(ntraces) ;
 
@@ -147,6 +148,11 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
         cpl_matrix_set(x_points, 0, idx, ref_y) ;
         cpl_vector_set(y_points, idx, (double)ref_x) ;
 
+        if (display == ref_x)
+            cpl_msg_debug(__func__, 
+                    "[REF. TRACE] Order/Trace: %d/%d - (x,y,wl)=(%g, %g, %g)", 
+                    order, trace_id, (double)ref_x, ref_y, ref_wl) ;
+
         /* Store the other traces points */
         abort_fit = 0 ;
         for (i=0 ; i<cpl_table_get_nrow(trace_wave) ; i++) {
@@ -154,12 +160,13 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
             cur_order = cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL) ;
             cur_trace_id = cpl_table_get(trace_wave, CR2RES_COL_TRACENB,i,NULL);
             cur_wave_poly_in = cr2res_get_trace_wave_poly(trace_wave, 
-                    CR2RES_COL_WAVELENGTH, order, cur_trace_id) ;
+                    CR2RES_COL_WAVELENGTH, cur_order, cur_trace_id) ;
 
             /* Search for the next trace in the current order */
             if (cur_order != order || cur_trace_id == trace_id ||
                     cur_wave_poly_in == NULL) {
-                cpl_polynomial_delete(cur_wave_poly_in) ;
+                if (cur_wave_poly_in != NULL)
+                    cpl_polynomial_delete(cur_wave_poly_in) ;
                 continue ;
             }
 
@@ -175,6 +182,12 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
                 /* Cannot get the position for this wavelength - abort */
                 abort_fit = 1 ;
             }
+
+            if (display == ref_x)
+                cpl_msg_debug(__func__, 
+                    "             Order/Trace: %d/%d - (x,y,wl)=(%g, %g, %g)", 
+                    cur_order, cur_trace_id, cur_x, cur_y, ref_wl) ;
+
             cpl_polynomial_delete(cur_trace_in) ;
             cpl_polynomial_delete(cur_wave_poly_in) ;
             cpl_matrix_set(x_points, 0, idx, cur_y) ;
@@ -190,6 +203,7 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
             /* Use the vertical Slit Polynomial */
             power = 0 ;
             cpl_polynomial_set_coeff(slit_curve, &power, (double)ref_x) ;
+            cpl_error_reset() ;
         } else if (cpl_polynomial_fit(slit_curve, x_points, NULL, y_points, 
                     NULL, CPL_FALSE, NULL, &poly_degree) != CPL_ERROR_NONE) {
             cpl_msg_warning(__func__, "Cannot fit the slit") ;
@@ -200,6 +214,19 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
             power = 0 ;
             cpl_polynomial_set_coeff(slit_curve, &power, (double)ref_x) ;
         }
+
+        if (display == ref_x) {
+            cpl_msg_debug(__func__, "X points:") ;
+            if (cpl_msg_get_level() == CPL_MSG_DEBUG) 
+                cpl_matrix_dump(x_points, stdout) ;
+            cpl_msg_debug(__func__, "Y points:") ;
+            if (cpl_msg_get_level() == CPL_MSG_DEBUG) 
+                cpl_vector_dump(y_points, stdout);
+            cpl_msg_debug(__func__, "Slit curve:") ;
+            if (cpl_msg_get_level() == CPL_MSG_DEBUG) 
+                cpl_polynomial_dump(slit_curve, stdout) ;
+        }
+
         /* Clean */
         cpl_matrix_delete(x_points) ;
         cpl_vector_delete(y_points) ;

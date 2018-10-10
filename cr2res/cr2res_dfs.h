@@ -99,6 +99,7 @@
 /* For  CR2RES_FLAT_TRACE_WAVE_PROCATG */
 /*      CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG */
 /*      CR2RES_UTIL_TRACE_WAVE_PROCATG */
+/*      CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG */
 /*      CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG */
 /* Table with Traces polynomials, orders, trace_nb wavelengths */
 /*                  1 trace per Row */
@@ -118,6 +119,10 @@
 
 /* For  CR2RES_CALIB_COLLAPSED_PROCATG */
 #define CR2RES_CALIB_COLLAPSED_PROTYPE      "CALIB_COLLAPSED"
+
+/* For CR2RES_UTIL_WAVE_MAP_PROCATG */
+#define CR2RES_WAVE_MAP_PROTYPE             "WAVE_MAP"
+
 
 /*************************************/
 /* Define here the PRO.CATG keywords */
@@ -163,10 +168,9 @@
 #define CR2RES_UTIL_SLIT_CURV_PROCATG       "UTIL_SLIT_CURV"
 #define CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "UTIL_SLIT_CURV_TRACE_WAVE"
 
-/* TODO */
 /* Produced by cr2res_util_wave */
-#define CR2RES_WAVE_COEFFS_PROCATG          "WAVE_COEFFS"
-#define CR2RES_WAVE_MAP_PROCATG             "WAVE_MAP"
+#define CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "UTIL_WAVE_TRACE_WAVE"
+#define CR2RES_UTIL_WAVE_MAP_PROCATG        "UTIL_WAVE_MAP"
 
 /* Define here the DO.CATG keywords */
 #define CR2RES_COMMAND_LINE                 "COMMAND_LINE"

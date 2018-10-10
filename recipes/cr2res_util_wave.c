@@ -325,7 +325,7 @@ static int cr2res_util_wave(
     /* else if (!strcmp(sval, "LINE2D"))   wavecal_type = CR2RES_LINE2D ; */
     else if (!strcmp(sval, "ETALON"))   wavecal_type = CR2RES_ETALON ;
     else {
-        cpl_msg_error(__func__, "Invalid Method specified");
+        cpl_msg_error(__func__, "Invalid Data Type specified");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1;
     }
@@ -545,14 +545,15 @@ static int cr2res_util_wave(
     out_file = cpl_sprintf("%s_wave.fits",
             cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
     cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, out_trace_wave,
-            NULL, ext_plist, CR2RES_UTIL_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
+            NULL, ext_plist, CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG, 
+            RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Save the Wave Map */
     out_file = cpl_sprintf("%s_wave_map.fits",
             cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
     cr2res_io_save_WAVE_MAP(out_file, frameset, parlist, out_wave_map,
-            NULL, ext_plist, RECIPE_STRING) ;
+            NULL, ext_plist, CR2RES_UTIL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free and return */

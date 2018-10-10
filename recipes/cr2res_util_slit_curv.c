@@ -171,8 +171,8 @@ static int cr2res_util_slit_curv_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_slit_curv.display",
-            CPL_TYPE_BOOL, "Flag for display",
-            "cr2res.cr2res_util_slit_curv", FALSE);
+            CPL_TYPE_INT, "X value to display (1->2048)",
+            "cr2res.cr2res_util_slit_curv", 0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -263,7 +263,7 @@ static int cr2res_util_slit_curv(
     reduce_trace = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_slit_curv.display");
-    display = cpl_parameter_get_bool(param) ;
+    display = cpl_parameter_get_int(param) ;
  
     /* Check Parameters */
     /* TODO */
@@ -324,14 +324,10 @@ static int cr2res_util_slit_curv(
                     i, NULL) ;
 
             /* Check if this order needs to be skipped */
-            if (reduce_order > -1 && order != reduce_order) {
-                continue ;
-            }
+            if (reduce_order > -1 && order != reduce_order) continue ;
 
             /* Check if this trace needs to be skipped */
-            if (reduce_trace > -1 && trace_id != reduce_trace) {
-                continue ;
-            }
+            if (reduce_trace > -1 && trace_id != reduce_trace) continue ;
 
             cpl_msg_info(__func__, "Process Order %d/Trace %d",order,trace_id) ;
             cpl_msg_indent_more() ;
@@ -339,7 +335,7 @@ static int cr2res_util_slit_curv(
             /* Call the Slit Curvature Computation */
             if ((curvatures = cr2res_slit_curv_compute_order_trace(
                             trace_wave[det_nr-1], order, trace_id, 
-                            display, curv_degree)) == NULL) {
+                            curv_degree, display)) == NULL) {
                 cpl_msg_warning(__func__, 
                         "Cannot Compute Slit curvature for Order %d",
                         order);
@@ -394,6 +390,12 @@ static int cr2res_util_slit_curv(
         }
         cpl_msg_indent_less() ;
     }
+
+
+
+
+
+
 
     /* Save the new SLIT_CURV table */
     out_file=cpl_sprintf("%s_slit_curv.fits", 
