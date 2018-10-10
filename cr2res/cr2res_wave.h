@@ -49,6 +49,7 @@ typedef enum {
 cpl_polynomial * cr2res_wave_1d(
         cpl_bivector        *   spectrum,
         cpl_polynomial      *   wavesol_init,
+        const cpl_array     *   wave_error_init,
         cr2res_wavecal_type     wavecal_type,
         const char          *   static_file,
         int                     degree,
@@ -65,9 +66,9 @@ cpl_polynomial * cr2res_wave_xcorr(
 
 cpl_polynomial * cr2res_wave_line_fitting(
         cpl_bivector    *   spectrum,
-        cpl_polynomial  *   initial_guess,
+        cpl_polynomial  *   wavesol_init,
+        const cpl_array *   wave_error_init,
         cpl_bivector    *   lines_list,
-        int                 window_size,
         int                 degree,
         int                 display,
         cpl_vector      **  sigma_fit,

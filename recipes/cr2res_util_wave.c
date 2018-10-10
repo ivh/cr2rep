@@ -288,7 +288,8 @@ static int cr2res_util_wave(
     cpl_table           *   trace_wave_table ;
     cpl_table           *   extracted_table ;
     cpl_bivector        *   extracted_vec ;
-    cpl_polynomial      *   init_guess ;
+    cpl_polynomial      *   wave_guess ;
+    const cpl_array     *   wave_error_guess ;
     cpl_polynomial      *   wave_sol ;
     double                  wstart, wend, wl_shift ;
     int                     det_nr, nb_traces, trace_id, order, i ;
@@ -469,37 +470,50 @@ static int cr2res_util_wave(
                 continue ;
             }
 
-            /* Get the initial guess */
+            /* Get the wavelength guess */
             if (wstart > 0.0 && wend > 0.0) {
-                init_guess = cr2res_wlestimate_compute(wstart, wend) ;
-            } else if ((init_guess=cr2res_get_trace_wave_poly(trace_wave_table,
+                wave_guess = cr2res_wlestimate_compute(wstart, wend) ;
+                wave_error_guess = NULL ;
+            } else {
+                if ((wave_guess=cr2res_get_trace_wave_poly(trace_wave_table,
                             CR2RES_COL_WAVELENGTH, order, trace_id)) == NULL) {
-                cpl_msg_error(__func__, "Cannot get the initial guess") ;
-                cpl_msg_indent_less() ;
-                cpl_bivector_delete(extracted_vec) ;
-                continue ;
+                    cpl_msg_error(__func__, "Cannot get the WL guess") ;
+                    cpl_msg_indent_less() ;
+                    cpl_bivector_delete(extracted_vec) ;
+                    continue ;
+                }
+                if ((wave_error_guess = cpl_table_get_array(trace_wave_table, 
+                        CR2RES_COL_WAVELENGTH_ERROR, 
+                        cr2res_get_trace_table_index(trace_wave_table, 
+                            order, trace_id))) == NULL) {
+                    cpl_msg_error(__func__, "Cannot get the WL ERROR guess") ;
+                    cpl_msg_indent_less() ;
+                    cpl_bivector_delete(extracted_vec) ;
+                    cpl_polynomial_delete(wave_guess) ;
+                    continue ;
+                }
             }
 
             /* Apply the shift */
             if (fabs(wl_shift) > 1e-3) {
                 const cpl_size power = 0;
-                cpl_polynomial_set_coeff(init_guess, &power,
-                        cpl_polynomial_get_coeff(init_guess, &power)+wl_shift) ;
+                cpl_polynomial_set_coeff(wave_guess, &power,
+                        cpl_polynomial_get_coeff(wave_guess, &power)+wl_shift) ;
             }
 
             /* Call the Wavelength Calibration */
-            if ((wave_sol = cr2res_wave_1d(extracted_vec, init_guess, 
-                            wavecal_type, static_calib_file, degree, display,
-                            &wl_err_array)) == NULL) {
+            if ((wave_sol = cr2res_wave_1d(extracted_vec, wave_guess, 
+                            wave_error_guess, wavecal_type, static_calib_file, 
+                            degree, display, &wl_err_array)) == NULL) {
                 cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
-                cpl_polynomial_delete(init_guess) ;
+                cpl_polynomial_delete(wave_guess) ;
                 cpl_bivector_delete(extracted_vec) ;
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
                 continue ;
             }
             cpl_bivector_delete(extracted_vec) ;
-            cpl_polynomial_delete(init_guess) ;
+            cpl_polynomial_delete(wave_guess) ;
 
             /* Store the Solution in the table */
             wl_array = cr2res_convert_poly_to_array(wave_sol, degree+1) ;

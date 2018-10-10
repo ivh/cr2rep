@@ -61,7 +61,8 @@ static int deriv_poly(const double x[], const double a[], double * result) ;
 /**
   @brief    1D Wavelength Calibration
   @param    spectrum        Extracted spectrum
-  @param    wavesol_init    Initial Guess wavelength solution
+  @param    wavesol_init    Initial wavelength solution
+  @param    wave_error_init Initial wavelength error (can be NULL)
   @param    catalog         Line catalog or template spectrum or NULL
   @param    degree          The polynomial degree of the solution
   @param    display         Flag to display results
@@ -73,6 +74,7 @@ static int deriv_poly(const double x[], const double a[], double * result) ;
 cpl_polynomial * cr2res_wave_1d(
         cpl_bivector        *   spectrum,
         cpl_polynomial      *   wavesol_init,
+        const cpl_array     *   wave_error_init,
         cr2res_wavecal_type     wavecal_type,
         const char          *   static_file,
         int                     degree,
@@ -107,7 +109,7 @@ cpl_polynomial * cr2res_wave_1d(
                 ref_spectrum, degree, display) ;
     } else if (wavecal_type == CR2RES_LINE1D) {
         solution = cr2res_wave_line_fitting(spectrum, wavesol_init, 
-                simple_ref_spectrum, 10, degree, display, NULL, 
+                wave_error_init, simple_ref_spectrum, degree, display, NULL, 
                 wavelength_error) ;
     } else if (wavecal_type == CR2RES_ETALON) {
         solution = cr2res_wave_etalon(spectrum, wavesol_init, wavelength_error);
@@ -309,9 +311,9 @@ cpl_polynomial * cr2res_wave_xcorr(
   @brief    Compute the wavelength polynomial based on a line spectrum 
             and a reference catalog by finding lines and fitting
   @param    spectrum        Observed spectrum (and error)
-  @param    initial_guess   Initial guess for the wavelength solution
+  @param    wavesol_init    Initial wavelength solution
+  @param    wave_error_init Initial wavelength error (can be NULL)
   @param    lines_list      Lines List (flux, wavelengths)
-  @param    window_size     The range of pixel to use for finding each line
   @param    degree          The polynomial degree
   @param    display         Flag to display results
   @param    sigma_fit       [out] uncertainties of the polynomial fit 
@@ -324,9 +326,9 @@ cpl_polynomial * cr2res_wave_xcorr(
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_wave_line_fitting(
         cpl_bivector    *   spectrum,
-        cpl_polynomial  *   initial_guess,
+        cpl_polynomial  *   wavesol_init,
+        const cpl_array *   wave_error_init,
         cpl_bivector    *   lines_list,
-        int                 window_size,
         int                 degree,
         int                 display,
         cpl_vector      **  sigma_fit,
@@ -337,13 +339,15 @@ cpl_polynomial * cr2res_wave_line_fitting(
     /* TODO : Use the passed degree parameter */
     /* TODO : Use the passed display parameter */
     /* TODO : Pb with poly / deriv_poly */
+    /* TODO : set window_size using the wave_error_init */
+    int window_size = 10 ;
 
     /* Check Entries */
-    if (spectrum == NULL || initial_guess == NULL || lines_list == NULL) 
+    if (spectrum == NULL || wavesol_init == NULL || lines_list == NULL) 
         return NULL;
     if (window_size <= 0) return NULL;
 
-    int poly_degree = cpl_polynomial_get_degree(initial_guess);
+    int poly_degree = cpl_polynomial_get_degree(wavesol_init);
     int n = cpl_bivector_get_size(lines_list);
 
     cpl_size i, j, k, spec_size;
@@ -397,7 +401,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
     spec_size = cpl_vector_get_size(spec);
     wave_vec = cpl_vector_new(spec_size);
     for (i = 0; i< spec_size; i++){ 
-        cpl_vector_set(wave_vec, i, cpl_polynomial_eval_1d(initial_guess, i, NULL));
+        cpl_vector_set(wave_vec, i, cpl_polynomial_eval_1d(wavesol_init, i, NULL));
     }
     
     // Prepare fit data vectors
@@ -464,7 +468,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
     
     // initial guess for polynomial fit, based on passed initial guess
     for (j = 0; j < poly_degree+1; j++){
-        cpl_vector_set(pa, j+1, cpl_polynomial_get_coeff(initial_guess, &j));
+        cpl_vector_set(pa, j+1, cpl_polynomial_get_coeff(wavesol_init, &j));
     }
 
     // I would use cpl_polynomial_fit, but that does not support error estimation
