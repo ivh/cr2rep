@@ -237,7 +237,9 @@ static cpl_table * create_table_linear_increase(
     cpl_table_set(traces, CR2RES_COL_ORDER, 1, 1);
     cpl_table_set(traces, CR2RES_COL_TRACENB, 1, 2);
 
-    cpl_array_set(wl, 0, 0);
+    double yc = height * 0.5;
+
+    cpl_array_set(wl, 0, - yc * shear);
     cpl_array_set(wl, 1, 1);
     cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_A, 0, wl);
     cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_A, 1, wl);
@@ -594,7 +596,7 @@ static void test_cr2res_slitdec_compare_vert_curved(void)
     // cpl_test_vector_abs(cpl_bivector_get_x(spec_vert), cpl_bivector_get_x(spec_curved), FLT_EPSILON);
     // cpl_test_vector_abs(slit_func_vert, slit_func_curved, FLT_EPSILON);
 
-    int delta_x = const_shear * height * 0.5;
+    int delta_x = const_shear * (height) *0.5;
     
     cpl_test_abs(cpl_vector_get_sum(slit_func_curved), cpl_vector_get_sum(slit_func_vert), 1e-5);
 
@@ -631,7 +633,7 @@ int main(void)
     // test_cr2res_slitdec_vert_regression();
     // test_cr2res_slitdec_vert();
     // test_cr2res_slitdec_curved();
-    // test_cr2res_slitdec_compare_vert_curved();
+    test_cr2res_slitdec_compare_vert_curved();
 
     return cpl_test_end(0);
 }
