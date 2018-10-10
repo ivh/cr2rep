@@ -64,7 +64,7 @@ static void test_cr2res_slit_pos(void);
 static void test_cr2res_slit_pos_img(void);
 static void test_cr2res_splice_orders(void);
 static void test_cr2res_get_license(void);
-static void test_cr2res_wavecal_catalog(void);
+static void test_cr2res_wave_line_fitting(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -1101,22 +1101,57 @@ static cpl_polynomial * make_test_polynomial(double wmin, double wmax, int size)
   The returned polynomial must be deallocated with cpl_polynomial_delete()
  */
 /*----------------------------------------------------------------------------*/
-static void test_cr2res_wavecal_catalog()
+static void test_cr2res_wave_line_fitting()
 {
     double wmin=2500, wmax=2650;
     int size = 200;
     cpl_table * catalog = make_test_catalog();
+    cpl_bivector * linelist;
     cpl_bivector * spectrum = make_test_spectrum(catalog, wmin, wmax, size);
     cpl_polynomial * initial_guess = make_test_polynomial(wmin, wmax, size);
     int window_size = 30;
+    int degree = 1;
+    int display = 0; // False
     cpl_vector * sigma_fit = cpl_vector_new(2);
+    cpl_array * wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
     cpl_polynomial * wavelength;
     cpl_size power;
 
-    wavelength = cr2res_wave_catalog(catalog, spectrum, initial_guess, window_size, &sigma_fit);
+    int len_linelist = cpl_table_get_nrow(catalog);
+    cpl_vector * tmp_w = cpl_vector_wrap(len_linelist, cpl_table_get_data_double(catalog, CR2RES_COL_WAVELENGTH));
+    cpl_vector * tmp_h = cpl_vector_wrap(len_linelist, cpl_table_get_data_double(catalog, CR2RES_COL_EMISSION));
+    linelist = cpl_bivector_wrap_vectors(tmp_w, tmp_h);
+
+    // bad inputs
+    wavelength = cr2res_wave_line_fitting(NULL, initial_guess, linelist, window_size, degree, display, &sigma_fit, &wavelength_error);
+    cpl_test_null(wavelength);
+    
+    wavelength = cr2res_wave_line_fitting(spectrum, NULL, linelist, window_size, degree, display, &sigma_fit, &wavelength_error);
+    cpl_test_null(wavelength);
+
+    wavelength = cr2res_wave_line_fitting(spectrum, initial_guess, NULL, window_size, degree, display, &sigma_fit, &wavelength_error);
+    cpl_test_null(wavelength);
+
+    wavelength = cr2res_wave_line_fitting(spectrum, initial_guess, linelist, 0, degree, display, &sigma_fit, &wavelength_error);
+    cpl_test_null(wavelength);
+
+    // optional NULL inputs
+    wavelength = cr2res_wave_line_fitting(spectrum, initial_guess, linelist, window_size, degree, display, NULL, NULL);
+    cpl_test_nonnull(wavelength);
+    cpl_polynomial_delete(wavelength);
+
+    // to many polynomial degrees
+    wavelength = cr2res_wave_line_fitting(spectrum, initial_guess, linelist, window_size, 5, display, &sigma_fit, &wavelength_error);
+    cpl_test_null(wavelength);
+    cpl_test_nonnull(sigma_fit);
+    cpl_test_nonnull(wavelength_error);
+
+    // regular run
+    wavelength = cr2res_wave_line_fitting(spectrum, initial_guess, linelist, window_size, degree, display, &sigma_fit, &wavelength_error);
 
     cpl_test_nonnull(wavelength);
     cpl_test_nonnull(sigma_fit);
+    cpl_test_nonnull(wavelength_error);
 
     // these values obviously need to be changed if the number of degrees is changed
     power = 0;
@@ -1124,7 +1159,15 @@ static void test_cr2res_wavecal_catalog()
     power = 1;
     cpl_test_abs(cpl_polynomial_get_coeff(wavelength, &power), (wmax-wmin)/(double)size, 0.001);
 
+    // Fitting two points with a first order polynomial -> perfect fit
+    cpl_test_abs(cpl_array_get_double(wavelength_error, 0, NULL), 0, DBL_EPSILON);
+    cpl_test_abs(cpl_array_get_double(wavelength_error, 1, NULL), 0, DBL_EPSILON);
 
+
+    cpl_bivector_unwrap_vectors(linelist);
+    cpl_vector_unwrap(tmp_h);
+    cpl_vector_unwrap(tmp_w);
+    cpl_array_delete(wavelength_error);
     cpl_polynomial_delete(wavelength);
     cpl_vector_delete(sigma_fit);
     cpl_table_delete(catalog);
@@ -1181,7 +1224,7 @@ int main(void)
     // test_cr2res_slit_pos();
     // test_cr2res_slit_pos_img();
     // test_cr2res_splice_orders();
-    test_cr2res_wavecal_catalog();
+    test_cr2res_wave_line_fitting();
 
     return cpl_test_end(0);
 }

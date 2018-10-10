@@ -316,7 +316,7 @@ cpl_polynomial * cr2res_wave_xcorr(
   @param    display         Flag to display results
   @param    sigma_fit       [out] uncertainties of the polynomial fit 
                             parameters (may be NULL)
-  @param    wavelength_error [out] array of wave_mean_error, wave_max_error
+  @param    wavelength_error [out] array of wave_mean_error, wave_max_error (may be NULL)
   @return  Wavelength solution, i.e. polynomial that translates pixel
             values to wavelength.
   The returned polynomial must be deallocated with cpl_polynomial_delete()
@@ -333,8 +333,6 @@ cpl_polynomial * cr2res_wave_line_fitting(
         cpl_array       **  wavelength_error)
 {
 
-    /* TODO : Fill the passed wavelength_error */
-    /* TODO : Use the passed degree parameter */
     /* TODO : Use the passed display parameter */
     /* TODO : Pb with poly / deriv_poly */
 
@@ -343,7 +341,6 @@ cpl_polynomial * cr2res_wave_line_fitting(
         return NULL;
     if (window_size <= 0) return NULL;
 
-    int poly_degree = cpl_polynomial_get_degree(initial_guess);
     int n = cpl_bivector_get_size(lines_list);
 
     cpl_size i, j, k, spec_size;
@@ -353,6 +350,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
     const double *height;
     cpl_vector * wave_vec, * pixel_vec, *width_vec, *flag_vec;
     const cpl_vector *spec, *unc;
+    cpl_vector * diff;
     cpl_polynomial * result = cpl_polynomial_new(1);
     cpl_matrix * cov;
     cpl_error_code error;
@@ -370,14 +368,14 @@ cpl_polynomial * cr2res_wave_line_fitting(
     cpl_matrix * sigma_px = NULL;
     cpl_vector * py;
     cpl_vector * sigma_py;
-    cpl_vector * pa = cpl_vector_new(poly_degree + 1 + 1);
+    cpl_vector * pa = cpl_vector_new(degree + 1 + 1);
     // first parameter of polynomial fit is the number of degrees (the value is fixed though)
     // the number of parameters is then polynomial degree + 1 (constant term) + 1 (number of degrees)
     // i.e. pa = degrees, a0, a1, ...
-    cpl_vector_set(pa, 0, poly_degree);  
-    int *pia = cpl_malloc((poly_degree + 1 + 1) * sizeof(int));
+    cpl_vector_set(pa, 0, degree);  
+    int *pia = cpl_malloc((degree + 1 + 1) * sizeof(int));
     pia[0] = 0;
-    for (i = 1; i < poly_degree + 1 + 1; i++){
+    for (i = 1; i < degree + 1 + 1; i++){
         pia[i] = 1;
     }
 
@@ -416,14 +414,23 @@ cpl_polynomial * cr2res_wave_line_fitting(
             // TODO error handling at borders
             // current solution: use edge values, which is fine if the line is not on the border
             k = j + pixel_pos - window_size / 2;
-            if (k < 0) k = 0;
-            if (k >= spec_size) k = spec_size;
+            if (k < 0 | k >= spec_size){
+                // if the window reaches outside the spectrum
+                // don't use the line  
+                ngood--;
+                cpl_vector_set(flag_vec, i, 0);
+                break;
+            }
 
             cpl_vector_set(x, j, k);
             cpl_vector_set(y, j, cpl_vector_get(spec, k));
             cpl_vector_set(sigma_y, j, cpl_vector_get(unc, k));
         }
 
+        if (cpl_vector_get(flag_vec, i) == 0){ 
+            // if the line was flagged as bad, skip the fit
+            continue;
+        }
         // get initial guess for gaussian fit
         area =  height[i];
         x0 =  pixel_pos;
@@ -463,7 +470,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
     }
     
     // initial guess for polynomial fit, based on passed initial guess
-    for (j = 0; j < poly_degree+1; j++){
+    for (j = 0; j < degree+1; j++){
         cpl_vector_set(pa, j+1, cpl_polynomial_get_coeff(initial_guess, &j));
     }
 
@@ -472,17 +479,39 @@ cpl_polynomial * cr2res_wave_line_fitting(
                         CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT, 
                         CPL_FIT_LVMQ_MAXITER, NULL, NULL, &cov);
 
-    // errors of the fit are the square root of the diagonal of the covariance matrix
-    // assuming parameters are uncorrelated, better use the whole matrix
-    // errors on the wavelength are then given using standard error propagation
-    // s_wl**2 = s0**2 + s1**2 * x**2 + s2**2 * x**4 + ... si**2 * x**(2*i)
-    for (i = 0; i < poly_degree + 1; i++){
-        cpl_polynomial_set_coeff(result, &i, cpl_vector_get(pa, i+1));
-        if (sigma_fit != NULL)
-            cpl_vector_set(*sigma_fit, i, sqrt(cpl_matrix_get(cov, i+1, i+1)));
-    }
+    if (error == CPL_ERROR_NONE){
+        // Everything is fine
 
-    // cpl_matrix_dump(cov, NULL);
+        // if there are not enough data points left for the polynomial fit
+        // the lvmq fit will complain about a singular matrix
+
+        // errors of the fit are the square root of the diagonal of the covariance matrix
+        // assuming parameters are uncorrelated, better use the whole matrix
+        // errors on the wavelength are then given using standard error propagation
+        // s_wl**2 = s0**2 + s1**2 * x**2 + s2**2 * x**4 + ... si**2 * x**(2*i)
+        for (i = 0; i < degree + 1; i++){
+            cpl_polynomial_set_coeff(result, &i, cpl_vector_get(pa, i+1));
+            if (sigma_fit != NULL)
+                cpl_vector_set(*sigma_fit, i, sqrt(cpl_matrix_get(cov, i+1, i+1)));
+        }
+
+        if (wavelength_error != NULL){
+            // Calculate absolute difference between polynomial and catalog value for each line
+            // use px and py, so that only good lines are used
+            diff = cpl_vector_new(ngood);
+            //*wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+            for (i = 0; i < ngood; i++){
+                cpl_vector_set(diff, i, abs(
+                    cpl_polynomial_eval_1d(result, cpl_matrix_get(px, i, 0), NULL) 
+                    - cpl_vector_get(py, i)));
+            }
+            // Set wavelength_error to mean and max difference
+            cpl_array_set_double(*wavelength_error, 0, cpl_vector_get_mean(diff));
+            cpl_array_set_double(*wavelength_error, 1, cpl_vector_get_max(diff));
+
+            cpl_vector_delete(diff);
+        }
+    }
 
     cpl_free(width);
     
@@ -506,8 +535,9 @@ cpl_polynomial * cr2res_wave_line_fitting(
     // in case something went wrong during fitting
     if (error != CPL_ERROR_NONE){
         cpl_polynomial_delete(result);
-        if (sigma_fit != NULL)
-            cpl_vector_delete(*sigma_fit);
+        cpl_error_reset();
+        // if (sigma_fit != NULL)
+        //     cpl_vector_delete(*sigma_fit);
         return NULL;
     }
     return result;
