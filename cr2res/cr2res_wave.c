@@ -386,7 +386,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
 
     // get line data 
     wave = cpl_bivector_get_x_data(lines_list);
-    height = cpl_bivector_get_x_data_const(lines_list);
+    height = cpl_bivector_get_y_data_const(lines_list);
     // TODO width is not provided in the catalog at the moment, 
     // use half window size instead?
     width = cpl_malloc(n * sizeof(double));
