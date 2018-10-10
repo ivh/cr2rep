@@ -335,8 +335,6 @@ cpl_polynomial * cr2res_wave_line_fitting(
         cpl_array       **  wavelength_error)
 {
 
-    /* TODO : Use the passed display parameter */
-    /* TODO : Pb with poly / deriv_poly */
     /* TODO : set window_size using the wave_error_init */
     int window_size = 10 ;
 
