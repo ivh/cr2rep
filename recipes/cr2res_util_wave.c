@@ -325,7 +325,7 @@ static int cr2res_util_wave(
     /* else if (!strcmp(sval, "LINE2D"))   wavecal_type = CR2RES_LINE2D ; */
     else if (!strcmp(sval, "ETALON"))   wavecal_type = CR2RES_ETALON ;
     else {
-        cpl_msg_error(__func__, "Invalid Data Type specified");
+        cpl_msg_error(__func__, "Invalid Method specified");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1;
     }

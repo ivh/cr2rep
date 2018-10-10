@@ -562,7 +562,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
 
     The method involves these steps:
     * Identify lines (thresholding)
-    * Determine line centers (ceter of gravity or gauss fit, needs testing)
+    * Determine line centers (gauss fit)
     * Subtract x-coods from subsequent lines, i.e. measure d many times
         d is the distance between fringes in pixels, assumed to be constant
     * Determine mis-counts in fringes, by looking at outliers in d-distribution,
@@ -579,33 +579,50 @@ cpl_polynomial * cr2res_wave_etalon(
         cpl_array       **  wavelength_error)
 {
     cpl_bivector *  is_should;
-    cpl_vector  *   peaks_found;
-    cpl_vector  *   peaks_should;
-	double			trueD, x0;
-    int             npeaks, i;
+    cpl_vector  *   xi;
+    cpl_vector  *   li;
+    cpl_vector  *   mi;
+    cpl_vector  *   li_true;
+	double			l0, trueD;
+    int             nxi, i;
 
-    /* TODO: Fill the wavelength_error */
-    peaks_found = cr2res_wave_etalon_measure_fringes(
+    xi = cr2res_wave_etalon_measure_fringes(
             cpl_bivector_get_x(spectrum));
-    npeaks=cpl_vector_get_size(peaks_found);
+    nxi=cpl_vector_get_size(xi);
 
-    x0 = cr2res_wave_etalon_get_x0(peaks_found, wavesol_init);
-	trueD = cr2res_wave_etalon_get_D(peaks_found, wavesol_init);
+    /* apply initial solution to get lambda_i*/
+    li = cr2res_polynomial_eval_vector(wavesol_init, xi);
 
-    peaks_should = cpl_vector_new(npeaks);
-    for (i=0; i<npeaks; i++) {
-        cpl_vector_set(peaks_should, i, x0 + (trueD*i));
+    /* */
+    mi = cpl_vector_new(nxi);
+    cpl_vector_set(mi,0,1.0);
+    l0 = cpl_vector_get(li,0);
+    for (i=0; i<nxi; i++){
+        cpl_vector_set(mi,i, cpl_vector_get(li,i) / l0);
+
     }
-
-    is_should = cr2res_wave_etalon_assign_fringes(peaks_found, peaks_should);
-
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
-        cpl_bivector_dump(is_should, stdout);
+        cpl_vector_dump(mi,stdout);
     }
 
+	trueD = cr2res_wave_etalon_get_D(li);
+    cpl_msg_debug(__func__,"trueD: %e", trueD);
+
+    li_true = cpl_vector_new(nxi);
+    for (i=0; i<nxi; i++) {
+        cpl_vector_set(li_true, i, (trueD*i));
+    }
+
+    is_should = cr2res_wave_etalon_assign_fringes(xi, li_true);
+
+  
+
+/* TODO: Fill the wavelength_error */
+    
     cpl_bivector_delete(is_should);
-    cpl_vector_delete(peaks_found);
-    cpl_vector_delete(peaks_should);
+    cpl_vector_delete(xi);
+    cpl_vector_delete(li);
+    cpl_vector_delete(mi);
     return NULL ;
 }
 
@@ -618,8 +635,8 @@ cpl_polynomial * cr2res_wave_etalon(
 /*----------------------------------------------------------------------------*/
 
 cpl_bivector * cr2res_wave_etalon_assign_fringes(
-            const cpl_vector      * peaks_found,
-            const cpl_vector      * peaks_should)
+            const cpl_vector      * xi,
+            const cpl_vector      * li_true)
 {
     int i, j, n;
     int * best_idx;
@@ -628,14 +645,14 @@ cpl_bivector * cr2res_wave_etalon_assign_fringes(
     cpl_vector * is;
     cpl_vector * should;
 
-    n = cpl_vector_get_size(peaks_should);
+    n = cpl_vector_get_size(li_true);
     best_idx = (int *)cpl_malloc(n*sizeof(int));
     is_should = cpl_bivector_new(n);
     is = cpl_bivector_get_x(is_should);
     should = cpl_bivector_get_y(is_should);
     for (i=0; i<n; i++) {
-        x = cpl_vector_get(peaks_found,i);
-        j = cpl_vector_find(peaks_should, x);
+        x = cpl_vector_get(xi,i);
+        j = cpl_vector_find(li_true, x);
         best_idx[i] = j;
         cpl_vector_set(is,i,x);
         cpl_vector_set(should,i,j);
@@ -645,32 +662,32 @@ cpl_bivector * cr2res_wave_etalon_assign_fringes(
 }
 /*----------------------------------------------------------------------------*/
 /**
-  @brief Find the true D from fringe statistics
+  @brief Find x0
   @param
   @return
  */
 /*----------------------------------------------------------------------------*/
 
 double cr2res_wave_etalon_get_x0(
-            cpl_vector      * peaks,
+            cpl_vector      * xi,
             cpl_polynomial  * wavesol_init)
 {
     double x0, D;
-    cpl_vector * waves;
+    cpl_vector * li;
     cpl_vector * xs;
     int i, n;
 
-    D = cr2res_wave_etalon_get_D(peaks,wavesol_init);
-    waves = cr2res_polynomial_eval_vector(wavesol_init, peaks);
+    li = cr2res_polynomial_eval_vector(wavesol_init, xi);
+    D = cr2res_wave_etalon_get_D(li);
 
-    n = cpl_vector_get_size(peaks);
+    n = cpl_vector_get_size(xi);
     for (i=0; i<n; i++) {
-        cpl_vector_set(xs, i, cpl_vector_get(waves,i)-(i*D) );
+        cpl_vector_set(xs, i, cpl_vector_get(li,i)-(i*D) );
     }
 
     x0 = cpl_vector_get_median(xs);
 
-    cpl_vector_delete(waves);
+    cpl_vector_delete(li);
     cpl_vector_delete(xs);
     return x0;
 }
@@ -683,28 +700,25 @@ double cr2res_wave_etalon_get_x0(
 /*----------------------------------------------------------------------------*/
 
 double cr2res_wave_etalon_get_D(
-            cpl_vector      * peaks,
-            cpl_polynomial  * wavesol_init)
+            cpl_vector      * li)
 {
 	int				i;
-	cpl_size		num_peaks;
+	cpl_size		nxi;
     double      	trueD=-1.0;
 	cpl_vector	*	diffs;
-	cpl_vector	*	waves;
 
-	num_peaks = cpl_vector_get_size(peaks);
-    waves = cr2res_polynomial_eval_vector(wavesol_init, peaks);
-	diffs = cpl_vector_new(num_peaks-1);
-	for (i=1; i<num_peaks; i++){
+	nxi = cpl_vector_get_size(li);
+	diffs = cpl_vector_new(nxi-1);
+	for (i=1; i<nxi; i++){
 		cpl_vector_set(diffs,i-1,
-			cpl_vector_get(waves,i) - cpl_vector_get(waves,i-1) );
+			cpl_vector_get(li,i) - cpl_vector_get(li,i-1) );
 	}
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
         cpl_table   *   tab;
-        tab = cpl_table_new(num_peaks-1);
+        tab = cpl_table_new(nxi-1);
         cpl_table_new_column(tab, "wavediff", CPL_TYPE_DOUBLE) ;
-        for(i=0; i<num_peaks-1; i++) {
+        for(i=0; i<nxi-1; i++) {
             cpl_table_set_double(tab, "wavediff", i, cpl_vector_get(diffs, i));
         }
 
@@ -719,7 +733,6 @@ double cr2res_wave_etalon_get_D(
 
     trueD = cpl_vector_get_median(diffs);
 	cpl_vector_delete(diffs);
-	cpl_vector_delete(waves);
     return trueD;
 }
 
@@ -743,9 +756,9 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
     cpl_vector  *   X_all, *X_peak;
     int             i, j, k ;
     int             numD = 0 ;
-    int             smooth = 70 ;   // TODO: make free parameter?
+    int             smooth = 35 ;   // TODO: make free parameter?
                                     // interfringe ~30 in Y, ~70 in K
-    int             thresh = 1 ;   // TODO: derive from read-out noise
+    double          thresh = 1.0 ;   // TODO: derive from read-out noise
     int             max_num_peaks = 256 ;
     int             max_len_peak = 256 ;
     int             min_len_peak = 5 ; //TODO: tweak or make parameter?;
@@ -767,8 +780,8 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
     peaks = cpl_array_new(max_num_peaks, CPL_TYPE_DOUBLE);
 
     /* X-axis to cut out from for each peak */
-    X_all = cpl_vector_new(max_len_peak);
-    for (i=0; i<max_len_peak; i++) cpl_vector_set(X_all, i, (double)i+1) ;
+    X_all = cpl_vector_new(nx);
+    for (i=1; i<=nx; i++) cpl_vector_set(X_all, i, (double)i+1) ;
 
     for (i=0; i < nx; i++){
         j = 0;
@@ -779,7 +792,7 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
         if (j < min_len_peak) continue;
         //cpl_msg_debug(__func__, "Peak length j=%d at i=%d",j,i);
         cur_peak = cpl_vector_extract(spec_thresh, i-j, i, 1) ;
-        X_peak = cpl_vector_extract(X_all, 0, j, 1) ;
+        X_peak = cpl_vector_extract(X_all, i-j, i, 1) ;
 
         if (cpl_vector_fit_gaussian(X_peak, NULL, cur_peak, NULL, CPL_FIT_ALL,
                                 &x0, &sigma, &area, &offset,
@@ -790,8 +803,6 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
             continue;
         }
 
-        // Shift x0 to absolute position
-        x0 += i-j ;
         //cpl_msg_debug(__func__,"Fit: %.2f, %.2f, %.2f, %.2f",
         //                            x0, sigma, area, offset);
         if ((k = cpl_array_count_invalid(peaks)) <1)
@@ -803,10 +814,10 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
         cpl_vector_delete(X_peak);
     }
 
-    /* Copy into output array, treating first element outside the loop */
+    /* Copy into output array */
     k = max_num_peaks - cpl_array_count_invalid(peaks);
     peak_vec = cpl_vector_new(k) ;
-    for (i=1; i<k; i++)
+    for (i=0; i<k; i++)
         cpl_vector_set(peak_vec, i, cpl_array_get(peaks, i, NULL) );
 
     cpl_vector_delete(spec_thresh) ;

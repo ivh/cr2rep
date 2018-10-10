@@ -82,12 +82,11 @@ cpl_polynomial * cr2res_wave_etalon(
 cpl_vector * cr2res_wave_etalon_measure_fringes(cpl_vector * spectrum);
 
 double cr2res_wave_etalon_get_x0(
-        cpl_vector * peaks, 
+        cpl_vector * xi, 
         cpl_polynomial * initial_guess);
 
 double cr2res_wave_etalon_get_D(
-        cpl_vector * peaks, 
-        cpl_polynomial * initial_guess);
+        cpl_vector * peaks);
 
 cpl_bivector * cr2res_wave_etalon_assign_fringes(
             const cpl_vector      * peaks_found,
