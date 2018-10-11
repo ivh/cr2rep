@@ -338,13 +338,19 @@ cpl_polynomial * cr2res_wave_line_fitting(
         cpl_array       **  wavelength_error)
 {
 
-    /* TODO : set window_size using the wave_error_init */
-    int window_size = 10 ;
 
     /* Check Entries */
     if (spectrum == NULL || wavesol_init == NULL || lines_list == NULL || wave_error_init == NULL) 
         return NULL;
-    if (window_size <= 0) return NULL;
+
+    cpl_size power = 1;
+    int window_size;
+    /* set window_size using the wave_error_init, scaled by the initial guess */
+    if (cpl_array_get_double(wave_error_init, 1, NULL) > 0){
+        window_size = 2 * ceil(cpl_array_get_double(wave_error_init, 1, NULL) /
+                            fabs(cpl_polynomial_get_coeff(wavesol_init, &power)));
+
+    } else window_size = 10;
 
     int n = cpl_bivector_get_size(lines_list);
 

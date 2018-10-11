@@ -1113,8 +1113,8 @@ static void test_cr2res_wave_line_fitting()
     int degree = 1;
     int display = 0; // False
     cpl_array * wave_error_init = cpl_array_new(2, CPL_TYPE_DOUBLE);
-    cpl_array_set_double(wave_error_init, 0, -1);
-    cpl_array_set_double(wave_error_init, 1, -1);
+    cpl_array_set_double(wave_error_init, 0, 3.1);
+    cpl_array_set_double(wave_error_init, 1, 3.5);
 
     cpl_vector * sigma_fit = cpl_vector_new(2);
     cpl_array * wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);

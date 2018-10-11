@@ -596,7 +596,7 @@ static void test_cr2res_slitdec_compare_vert_curved(void)
     // cpl_test_vector_abs(cpl_bivector_get_x(spec_vert), cpl_bivector_get_x(spec_curved), FLT_EPSILON);
     // cpl_test_vector_abs(slit_func_vert, slit_func_curved, FLT_EPSILON);
 
-    int delta_x = const_shear * (height) *0.5;
+    int delta_x = const_shear * (height) * 0.5 + 1;
     
     cpl_test_abs(cpl_vector_get_sum(slit_func_curved), cpl_vector_get_sum(slit_func_vert), 1e-5);
 
