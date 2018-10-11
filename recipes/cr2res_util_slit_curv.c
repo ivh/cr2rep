@@ -414,7 +414,7 @@ static int cr2res_util_slit_curv(
     cpl_free(out_file);
 
     /* Save the new TRACE_WAVE table */
-    out_file=cpl_sprintf("%s_trace_wave.fits", 
+    out_file=cpl_sprintf("%s_trace.fits", 
             cr2res_get_base_name(cr2res_get_root_name(trace_wave_file)));
     cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, trace_wave, NULL, 
             ext_plist, CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG,RECIPE_STRING) ;
