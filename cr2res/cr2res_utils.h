@@ -107,8 +107,6 @@ cpl_polynomial * cr2res_fit_noise(cpl_image *img, cpl_table *trace_wave, cpl_siz
 int cr2res_slit_pos(cpl_table *tw_decker1, cpl_table *tw_decker2, cpl_polynomial **coef_slit, cpl_polynomial **coef_wave);
 int cr2res_slit_pos_image(cpl_table *tw_decker1, cpl_table *tw_decker2, cpl_image *slitpos, cpl_image *wavelength);
 
-int cr2res_splice_orders(cpl_table *trace_wave, cpl_table * spectra, int trace);
-
 const char * cr2res_get_license(void) ;
 
 #endif
