@@ -395,7 +395,8 @@ static int cr2res_util_extract(
                             0, ext_nr_err)) == NULL) {
                 cpl_table_delete(trace_table) ;
                 cpl_image_delete(science_ima);
-                cpl_msg_error(__func__, "Failed to load the error - skip detector");
+                cpl_msg_error(__func__, 
+                        "Failed to load the error - skip detector");
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
                 continue ;
