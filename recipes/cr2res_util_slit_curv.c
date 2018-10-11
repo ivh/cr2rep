@@ -393,7 +393,8 @@ static int cr2res_util_slit_curv(
 
         /* Generate the SLIT CURV Map */
         slit_curv_map[det_nr-1] =
-            cr2res_slit_curv_gen_map(trace_wave[det_nr-1]) ;
+            cr2res_slit_curv_gen_map(trace_wave[det_nr-1], reduce_order,
+                    reduce_trace, 50, 0) ;
 
         cpl_msg_indent_less() ;
     }

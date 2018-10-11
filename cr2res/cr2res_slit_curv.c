@@ -323,14 +323,22 @@ int cr2res_slit_curv_fit_coefficients(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Compute the slit_curv map from the trace_wave table
-  @param    trace_wave      The trace wave table
+  @param trace_wave     The trace wave table
+  @param order          The order number
+  @param trace_id       The trace_id number
+  @param spacing_pixels The space in pixels between the traces
+  @param full_trace     Draw on the full detector or only in the trace
   @return   the slit_curv_map image or NULL in error case
 
   The returned image must be deallocated with hdrl_image_delete()
  */
 /*----------------------------------------------------------------------------*/
 hdrl_image * cr2res_slit_curv_gen_map(
-        const cpl_table *   trace_wave)
+        const cpl_table *   trace_wave,
+        int                 order,
+        int                 trace_id,
+        int                 spacing_pixels,
+        int                 full_trace)
 {
     hdrl_image      *   out ;
     cpl_image       *   out_ima ;
@@ -342,8 +350,9 @@ hdrl_image * cr2res_slit_curv_gen_map(
     cpl_polynomial  *   upper_poly ;
     cpl_polynomial  *   lower_poly ;
     cpl_polynomial  *   slit_curv_poly ;
-    double              upper_pos, lower_pos, x_slit_pos, value ;
-    cpl_size            i, j, k, nrows, nx, ny, x_int ;
+    int                 cur_order, cur_trace_id ;
+    double              upper_pos, lower_pos, x_slit_pos, value, val1, val2 ;
+    cpl_size            i, j, k, nrows, nx, ny, x1, x2, ref_x ;
 
     /* Check Entries */
     if (trace_wave == NULL) return NULL ;
@@ -361,6 +370,11 @@ hdrl_image * cr2res_slit_curv_gen_map(
 
     /* Loop on the traces */
     for (k=0 ; k<nrows ; k++) {
+        /* Only specified order / trace */
+        cur_order = cpl_table_get(trace_wave, CR2RES_COL_ORDER, k, NULL) ;
+        cur_trace_id = cpl_table_get(trace_wave, CR2RES_COL_TRACENB,k,NULL);
+        if (cur_order != order || cur_trace_id == trace_id) continue ;
+
         /* Get the Slit curvature for the trace */
         tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_A, k) ;
         slit_poly_a = cr2res_convert_array_to_poly(tmp_array) ;
@@ -391,19 +405,32 @@ hdrl_image * cr2res_slit_curv_gen_map(
 
             /* Set the Pixels in the trace */
             for (i=0 ; i<nx ; i++) {
-                if (((i+1) % 50) != 0) continue ;
+                ref_x = i+1 ;
+                if ((ref_x % spacing_pixels) != 0) continue ;
+
+                cpl_msg_debug(__func__, 
+                        "Process Order/Trace: %d/%d - ref_x=%g", 
+                        order, trace_id, (double)ref_x) ;
+
                 /* Create the slit curvature polynomial at position i+1 */
                 slit_curv_poly = cr2res_slit_curv_build_poly(slit_poly_a, 
-                        slit_poly_b, slit_poly_c, i+1) ;
+                        slit_poly_b, slit_poly_c, ref_x) ;
 
-                upper_pos = cpl_polynomial_eval_1d(upper_poly, i+1, NULL) ;
-                lower_pos = cpl_polynomial_eval_1d(lower_poly, i+1, NULL) ;
+                upper_pos = cpl_polynomial_eval_1d(upper_poly, ref_x, NULL) ;
+                lower_pos = cpl_polynomial_eval_1d(lower_poly, ref_x, NULL) ;
                 for (j=0 ; j<ny ; j++) {
-                    if (j+1 >= lower_pos && j+1 <= upper_pos) {
+                    if ((j+1 >= lower_pos && j+1 <= upper_pos) || full_trace) {
                         x_slit_pos = cpl_polynomial_eval_1d(slit_curv_poly, 
                                 j+1, NULL) ;
-                        x_int = (cpl_size)x_slit_pos ;
-                        pout_ima[(x_int-1)+j*nx] = value ;
+                        x1 = (cpl_size)x_slit_pos ;
+                        x2 = x1 + 1 ;
+                        val1 = value * (x2-x_slit_pos) ;
+                        val2 = value - val1 ;
+                        cpl_msg_debug(__func__, 
+                                "%d %d (%g) / %d %d (%g)\n", 
+                                x1-1, j, val1, x2-1, j, val2) ;
+                        if (x1>=1 && x1<=nx) pout_ima[(x1-1)+j*nx] = val1 ;
+                        if (x2>=1 && x2<=nx) pout_ima[(x2-1)+j*nx] = val2 ;
                     }
                 }
                 cpl_polynomial_delete(slit_curv_poly) ;
