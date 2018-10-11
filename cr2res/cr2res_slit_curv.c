@@ -239,12 +239,15 @@ cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
     return out_polys ;
 }
 
-/* TODO */
 /*----------------------------------------------------------------------------*/
 /**
-  @brief 
-  @param 
-  @return  
+  @brief    Fit the Polynomials coefficients
+  @param curvatures     An array of degree 2 polynomials (3 coeffs)
+  @param nb_polys       Number of passed polynomials
+  @param slit_polya     [out] The fitted polynomial for a coefficients
+  @param slit_polyb     [out] The fitted polynomial for b coefficients
+  @param slit_polyc     [out] The fitted polynomial for c coefficients
+  @return  0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_slit_curv_fit_coefficients(
@@ -324,8 +327,8 @@ int cr2res_slit_curv_fit_coefficients(
 /**
   @brief    Compute the slit_curv map from the trace_wave table
   @param trace_wave     The trace wave table
-  @param order          The order number
-  @param trace_id       The trace_id number
+  @param order          The order number or -1 for all
+  @param trace_id       The trace_id number or -1 for all
   @param spacing_pixels The space in pixels between the traces
   @param full_trace     Draw on the full detector or only in the trace
   @return   the slit_curv_map image or NULL in error case
@@ -373,7 +376,8 @@ hdrl_image * cr2res_slit_curv_gen_map(
         /* Only specified order / trace */
         cur_order = cpl_table_get(trace_wave, CR2RES_COL_ORDER, k, NULL) ;
         cur_trace_id = cpl_table_get(trace_wave, CR2RES_COL_TRACENB,k,NULL);
-        if (cur_order != order || cur_trace_id == trace_id) continue ;
+        if (order > -1 && order != cur_order) continue ;
+        if (trace_id > -1 && trace_id != cur_trace_id) continue ;
 
         /* Get the Slit curvature for the trace */
         tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_A, k) ;
@@ -410,7 +414,7 @@ hdrl_image * cr2res_slit_curv_gen_map(
 
                 cpl_msg_debug(__func__, 
                         "Process Order/Trace: %d/%d - ref_x=%g", 
-                        order, trace_id, (double)ref_x) ;
+                        cur_order, cur_trace_id, (double)ref_x) ;
 
                 /* Create the slit curvature polynomial at position i+1 */
                 slit_curv_poly = cr2res_slit_curv_build_poly(slit_poly_a, 
@@ -427,7 +431,7 @@ hdrl_image * cr2res_slit_curv_gen_map(
                         val1 = value * (x2-x_slit_pos) ;
                         val2 = value - val1 ;
                         cpl_msg_debug(__func__, 
-                                "%d %d (%g) / %d %d (%g)\n", 
+                                "%"CPL_SIZE_FORMAT" %"CPL_SIZE_FORMAT" (%g) / %"CPL_SIZE_FORMAT" %"CPL_SIZE_FORMAT" (%g)", 
                                 x1-1, j, val1, x2-1, j, val2) ;
                         if (x1>=1 && x1<=nx) pout_ima[(x1-1)+j*nx] = val1 ;
                         if (x2>=1 && x2<=nx) pout_ima[(x2-1)+j*nx] = val2 ;

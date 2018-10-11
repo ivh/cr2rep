@@ -426,14 +426,10 @@ static int cr2res_util_extract(
             trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
 
             /* Check if this order needs to be skipped */
-            if (reduce_order > -1 && order != reduce_order) {
-                continue ;
-            }
+            if (reduce_order > -1 && order != reduce_order) continue ;
 
             /* Check if this trace needs to be skipped */
-            if (reduce_trace > -1 && trace_id != reduce_trace) {
-                continue ;
-            }
+            if (reduce_trace > -1 && trace_id != reduce_trace) continue ;
 
             cpl_msg_info(__func__, "Process Order %d/Trace %d",order,trace_id) ;
             cpl_msg_indent_more() ;

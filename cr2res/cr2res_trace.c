@@ -460,19 +460,60 @@ cpl_size cr2res_get_nb_traces_with_wavelength(
     return count ;
 }
 
-/* TODO */
 /*----------------------------------------------------------------------------*/
 /**
-   @brief   
-   @param  
-   @return
+   @brief   Merge 2 trace_wave tables 
+   @param  trace_wave1  Table to merge
+   @param  trace_wave2  Table to merge
+   @return  a newly allocated trace_wave table or NULL in error case
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_merge(
         const cpl_table     *   trace_wave1,
         const cpl_table     *   trace_wave2)
 {
-    return NULL ;
+    cpl_table       *   merged;
+    int             *   orders ;
+    int                 norders, my_order, j, cur_trace_id ;
+    cpl_size            i, nrows ;
+    
+    /* Check Entries */
+    if (trace_wave1 == NULL || trace_wave2 == NULL) return NULL ;
+    nrows = cpl_table_get_nrow(trace_wave1) ;
+
+    /* Create the merged table */
+    merged = cpl_table_duplicate(trace_wave1) ;
+
+    /* Merge the tables */
+    if (cpl_table_insert(merged, trace_wave2, nrows) != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Failed merging the tables") ;
+        cpl_table_delete(merged) ;
+        return NULL ;
+    }
+
+    /* Recompute the merged table size */
+    nrows = cpl_table_get_nrow(merged) ;
+
+    /* Get the orders information */
+	orders = cr2res_trace_get_order_numbers(merged, &norders) ;
+
+    /* Update the trace_id Information */
+    /* Loop on the orders */
+    for (j=0 ; j<norders ; j++) {
+        /* Initialise the trace ID */
+        cur_trace_id = 1 ;
+
+        /* Loop on the table */
+        for (i=0 ; i<nrows ; i++) {
+            /* Each time the curent order is encountered, update the trace id  */
+            if (cpl_table_get(merged, CR2RES_COL_ORDER, i, NULL)==orders[j]) {
+                cpl_table_set(merged, CR2RES_COL_TRACENB, i, cur_trace_id);
+                cur_trace_id++ ;
+            }
+        }
+    }
+    cpl_free(orders) ;
+    return merged ;
 }
 
 /*----------------------------------------------------------------------------*/
