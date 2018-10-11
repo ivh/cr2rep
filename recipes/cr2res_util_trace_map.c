@@ -35,6 +35,8 @@
 #include "cr2res_dfs.h"
 #include "cr2res_io.h"
 #include "cr2res_trace.h"
+#include "cr2res_wave.h"
+#include "cr2res_slit_curv.h"
 
 /*-----------------------------------------------------------------------------
                                 Define
@@ -226,6 +228,7 @@ static int cr2res_util_trace_map(
     cpl_frame           *   fr ;
     const char          *   trace_file ;
     char                *   out_file;
+    cpl_image           *   img_tmp ;
     hdrl_image          *   wl_maps[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   trace_maps[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   slit_curve_maps[CR2RES_NB_DETECTORS] ;
@@ -294,9 +297,20 @@ static int cr2res_util_trace_map(
             continue ;
         }
 
-        wl_maps[det_nr-1] = NULL ;
-        trace_maps[det_nr-1] = NULL ;
-        slit_curve_maps[det_nr-1] = NULL ;
+        /* Create WAVE_MAP */
+        wl_maps[det_nr-1] =
+            cr2res_wave_gen_wave_map(trace_table) ;
+
+        /* Create TRACE MAP */
+        img_tmp = cr2res_trace_gen_image(trace_table,
+                CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE) ;
+        trace_maps[det_nr-1] = hdrl_image_create(img_tmp, NULL);
+        cpl_image_delete(img_tmp);
+       
+        /* Create SLIT_CURVE MAP */
+        slit_curve_maps[det_nr-1] =
+            cr2res_slit_curv_gen_map(trace_table, reduce_order,
+                    reduce_trace, 50, 0) ;
 
         cpl_table_delete(trace_table) ;
         cpl_msg_indent_less() ;
@@ -313,13 +327,13 @@ static int cr2res_util_trace_map(
     out_file = cpl_sprintf("%s_wave.fits",
                     cr2res_get_base_name(cr2res_get_root_name(trace_file)));
     cr2res_io_save_WAVE_MAP(out_file, frameset, parlist, wl_maps, 
-            NULL, ext_plist, CR2RES_UTIL_TRACE_MAP_SLIT_CURVE_PROCATG, 
+            NULL, ext_plist, CR2RES_UTIL_TRACE_MAP_WL_PROCATG, 
             RECIPE_STRING);
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_trace.fits",
                     cr2res_get_base_name(cr2res_get_root_name(trace_file)));
-    cr2res_io_save_WAVE_MAP(out_file, frameset, parlist, wl_maps, 
+    cr2res_io_save_WAVE_MAP(out_file, frameset, parlist, trace_maps, 
             NULL, ext_plist, CR2RES_UTIL_TRACE_MAP_TRACE_PROCATG, 
             RECIPE_STRING);
     cpl_free(out_file);
