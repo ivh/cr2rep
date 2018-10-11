@@ -980,6 +980,7 @@ int cr2res_trace_add_extra_columns(
         slit_frac = cr2res_trace_get_slit_frac(traces, i, decker_pos) ;
         if (slit_frac == NULL) {
             cpl_table_set_array(traces, CR2RES_COL_SLIT_FRACTION, i, array_neg);
+            cpl_msg_warning(__func__, "Cannot assign slit fraction.");
         } else { 
             cpl_table_set_array(traces, CR2RES_COL_SLIT_FRACTION, i, slit_frac);
             cpl_array_delete(slit_frac) ;
