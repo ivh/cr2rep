@@ -5,119 +5,16 @@ from astropy.io import fits
 import numpy as np
 import matplotlib.pyplot as plt
 
-def compare_extract(flat, trace, extract, title=''):
-    """ compare flat and trace """
-    flat = fits.open(flat)
-    trace = fits.open(trace)
-    extract = fits.open(extract)
-    X = np.arange(2048)
-    FIG = plt.figure(figsize=(10, 3.5))
-    FIG.suptitle(title)
-
-    for i in [1, 2, 3]:
-        ax = FIG.add_subplot(2, 3, i)
-        #ax.set_xticks([])
-        #ax.set_ylabel('trace')
-        #ax.set_yticks([-1, 0, 1, 2, 3,4 ,5, 6, 7, 8, 9])
-        ax.set_title('CHIP%s' % i)
-
-        edata = extract['CHIP%s' % i].data
-        tdata = trace['CHIP%s' % i].data
-        fdata = flat[i].data
-
-
-        if edata is None or tdata is None or fdata is None:
-            print('No data for CHIP%s, skipping.' % i)
-            continue
-
-        ax.imshow(fdata, origin='lower')
-
-        for alla, upper, lower, order, tracenb, wave, waverr, curvA, curvB, curvC in tdata:
-            pol = np.polyval(upper[::-1], X)
-            ax.plot(X, pol, ':w')
-
-            pol = np.polyval(lower[::-1], X)
-            ax.plot(X, pol, ':w')
-
-            pol = np.polyval(alla[::-1], X)
-            ax.plot(X, pol, '--w')
-            if np.isnan(pol[1024]):
-                continue
-            ax.text(1024, pol[1024], '%s-%s' % (order, tracenb), color='w', horizontalalignment='center',
-                    verticalalignment='center', size=13)
-
-        ax = FIG.add_subplot(2, 3, i+3)
-        ax.set_xlabel('wavelength [nm]')
-        ax.set_ylabel('intensity [a.u.]')
-
-        data = np.empty((9, 2048))
-        for j in range(2048):
-            data[:len(edata[j][:9]), j] = edata[j][:9]
-
-        for i, (alla, upper, lower, order, tracenb, wave) in enumerate(tdata[:9]):
-            x = np.polyval(wave[::-1], X)
-            y = data[i]
-            ax.plot(x, y)
-        #ax.imshow(data, aspect=50, interpolation='nearest')
-
-    plt.show()
-
-
-def compare_extract2(flat, trace, extract, title=''):
-    """ compare flat and trace """
-    flat = fits.open(flat)
-    trace = fits.open(trace)
-    extract = fits.open(extract)
-    X = np.arange(2048)
-    FIG = plt.figure(figsize=(10, 3.5))
-    FIG.suptitle(title)
-
-    for i in [1, 2, 3]:
-        ax = FIG.add_subplot(2, 3, i)
-        #ax.set_xticks([])
-        #ax.set_ylabel('trace')
-        #ax.set_yticks([-1, 0, 1, 2, 3,4 ,5, 6, 7, 8, 9])
-        ax.set_title('CHIP%s' % i)
-
-        edata = extract['CHIP%s' % i].data
-        tdata = trace['CHIP%s' % i].data
-        fdata = flat[i].data
-
-
-        if edata is None or tdata is None or fdata is None:
-            print('No data for CHIP%s, skipping.' % i)
-            continue
-
-        ax.imshow(fdata, origin='lower')
-
-        for alla, upper, lower, order, tracenb, wave in tdata:
-            pol = np.polyval(upper[::-1], X)
-            ax.plot(X, pol, ':w')
-
-            pol = np.polyval(lower[::-1], X)
-            ax.plot(X, pol, ':w')
-
-            pol = np.polyval(alla[::-1], X)
-            ax.plot(X, pol, '--w')
-            if np.isnan(pol[1024]):
-                continue
-            ax.text(1024, pol[1024], '%s-%s' % (order, tracenb), color='w', horizontalalignment='center',
-                    verticalalignment='center', size=13)
-
-        ax = FIG.add_subplot(2, 3, i+3)
-        ax.set_ylabel('trace')
-        ax.set_yticks([-1, 0, 1, 2, 3,4 ,5, 6, 7, 8, 9])
-
-        data = edata.view('>f8', np.ndarray).reshape((2048, -1)).swapaxes(0, 1)
-
-        ax.imshow(data, aspect=50, interpolation='nearest')
-
-    plt.show()
-
-def compare(flatname, tracename):
-    """ compare flat and trace """
-    flat = fits.open(flatname)
-    trace = fits.open(tracename)
+def compare(fname_trace, fname_img=None, fname_spec=None):
+    """ compare img and trace """
+    trace = fits.open(fname_trace)
+    if fname_img:
+        img = fits.open(fname_img)
+        linecol = 'w'
+    else: linecol= 'k'
+    if fname_spec:
+        spec = fits.open(fname_spec)
+        
     X = np.arange(2048)
     FIG = plt.figure(figsize=(10, 3.5))
 
@@ -126,11 +23,10 @@ def compare(flatname, tracename):
         ax.set_xticks([])
         ax.set_yticks([])
 
-        fdata = flat[i].data
-        ax.imshow(fdata, origin='lower')
-        axi = plt.axis()
-
-
+        if fname_img:
+            imgdata = img[i].data
+            ax.imshow(imgdata, origin='lower')
+        
         try: tdata = trace[i].data
         except:
             print('extension %s is missing, skipping.' % i)
@@ -139,34 +35,42 @@ def compare(flatname, tracename):
             print('Data for CHIP%s is empty, skipping.' % i)
             continue
 
-        for alla, upper, lower, order, tracenb, wave, waverr, curvA, curvB, curvC, slitfrac in tdata:
-            pol = np.polyval(upper[::-1], X)
-            ax.plot(X, pol, ':w')
+        for t in tdata:
+            upper = t['Upper']
+            lower = t['Lower']
+            alla = t['All']
+            slitfrac = t['SlitFraction']
+            order = t['Order']
 
-            pol = np.polyval(lower[::-1], X)
-            ax.plot(X, pol, ':w')
+            pol = np.polyval(t['Upper'][::-1], X)
+            ax.plot(X, pol, ':'+linecol)
 
-            pol = np.polyval(alla[::-1], X)
-            ax.plot(X, pol, '--w')
+            pol = np.polyval(t['Lower'][::-1], X)
+            ax.plot(X, pol, ':'+linecol)
+
+            pol = np.polyval(t['All'][::-1], X)
+            ax.plot(X, pol, '--'+linecol)
             if np.isnan(pol[1024]):
                 continue
-            ax.text(1024, pol[1024], '%s-%s' % (order, tracenb), color='w', horizontalalignment='center',
-                    verticalalignment='center', size=13)
-            #print('order: %s, y: %s' % (tracenb, pol[1024]))
-
-        plt.axis(axi)
+            ax.text(1024, pol[1024], 'order: %s\ntrace: %s\nslitfrac: %.2f %.2f %.2f' % (t['order'], t['TraceNb'], *t['SlitFraction']), color=linecol, horizontalalignment='center',
+                    verticalalignment='center', size=11)
 
 
     FIG.tight_layout(pad=0.02)
-    #plt.show()
-    figname = tracename.replace('.fits','.png')
-    plt.savefig(figname,dpi=120)
+    plt.show()
+    #figname = fname_trace.replace('.fits','.png')
+    #plt.savefig(figname,dpi=120)
 
 
 if __name__ == '__main__':
-    fname_flat = sys.argv[1]
-    fname_trace = sys.argv[2]
-    print('Comparing trace %s to image %s' % (fname_trace, fname_flat))
-    compare(fname_flat, fname_trace)
+    fname_trace, fname_img, fname_spec = (None,)*3
+    if len(sys.argv) > 1:
+        fname_trace = sys.argv[1]
+    if len(sys.argv) > 2:
+        fname_img = sys.argv[2]
+    if len(sys.argv) > 3:    
+        fname_spec = sys.argv[3]
+
+    compare(fname_trace, fname_img, fname_spec)
 
 
