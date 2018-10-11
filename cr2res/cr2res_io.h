@@ -72,6 +72,11 @@ cpl_image * cr2res_io_load_SLIT_MODEL(
         int             detector,
         int             data);
 
+cpl_image * cr2res_io_load_TRACE_MAP(
+        const char  *   filename,
+        int             detector,
+        int             data) ;
+
 cpl_image * cr2res_io_load_WAVE_MAP(
         const char  *   filename,
         int             detector,

@@ -365,6 +365,24 @@ cpl_image * cr2res_io_load_SLIT_MODEL(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Load an image from a TRACE_MAP
+  @param    filename    The FITS file name
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
+  @param    data        1 for the data image, 0 for the error
+  @return   A float image or NULL in error case. The returned object
+              needs to be deallocated
+ */
+/*----------------------------------------------------------------------------*/
+cpl_image * cr2res_io_load_TRACE_MAP(
+        const char  *   filename,
+        int             detector,
+        int             data)
+{
+    return NULL ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Load an image from a WAVE_MAP
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
@@ -810,6 +828,35 @@ int cr2res_io_save_SLIT_MODEL(
     return cr2res_io_save_image(filename, allframes, parlist,
             data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, procatg, 
             CR2RES_SLIT_MODEL_PROTYPE) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a TRACE_MAP
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    data        The data images to save (DATA and ERROR per detector)
+  @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
+  @param    procatg     The PRO CATG value
+  @param    recipe      The recipe name
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_TRACE_MAP(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        hdrl_image              **  data,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
+        const char              *   recipe)
+{
+    return cr2res_io_save_image(filename, allframes, parlist,
+            data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
+            procatg, CR2RES_TRACE_MAP_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/

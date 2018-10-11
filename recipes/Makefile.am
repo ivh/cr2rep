@@ -43,6 +43,7 @@ plugin_LTLIBRARIES = cr2res_cal_detlin.la \
                      cr2res_util_normflat.la \
                      cr2res_util_slit_curv.la \
                      cr2res_util_trace.la \
+                     cr2res_util_trace_map.la \
                      cr2res_util_wave.la 
 
 cr2res_cal_detlin_la_SOURCES = cr2res_cal_detlin.c
@@ -94,6 +95,11 @@ cr2res_util_trace_la_SOURCES = cr2res_util_trace.c
 cr2res_util_trace_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
 cr2res_util_trace_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
 cr2res_util_trace_la_DEPENDENCIES = $(LIBCR2RES)
+
+cr2res_util_trace_map_la_SOURCES = cr2res_util_trace_map.c
+cr2res_util_trace_map_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
+cr2res_util_trace_map_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
+cr2res_util_trace_map_la_DEPENDENCIES = $(LIBCR2RES)
 
 cr2res_util_wave_la_SOURCES = cr2res_util_wave.c
 cr2res_util_wave_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
