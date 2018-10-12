@@ -29,6 +29,9 @@
 #include <math.h>
 #include <cpl.h>
 
+#include "cr2res_dfs.h"
+#include "cr2res_utils.h"
+#include "cr2res_trace.h"
 #include "cr2res_splice.h"
 
 /*----------------------------------------------------------------------------*/
