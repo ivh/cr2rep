@@ -64,6 +64,7 @@ static int gauss_derivative(const double x[], const double a[], double * result)
 /**
   @brief    1D Wavelength Calibration
   @param    spectrum        Extracted spectrum
+  @param    spectrum        Extracted spectrum error
   @param    wavesol_init    Initial wavelength solution
   @param    wave_error_init Initial wavelength error (can be NULL)
   @param    catalog         Line catalog or template spectrum or NULL
@@ -76,6 +77,7 @@ static int gauss_derivative(const double x[], const double a[], double * result)
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_wave_1d(
         cpl_bivector        *   spectrum,
+        cpl_bivector        *   spectrum_err,
         cpl_polynomial      *   wavesol_init,
         const cpl_array     *   wave_error_init,
         cr2res_wavecal_type     wavecal_type,
@@ -90,7 +92,8 @@ cpl_polynomial * cr2res_wave_1d(
     int                 wl_error ;
 
     /* Check Inputs */
-    if (spectrum == NULL || wavesol_init == NULL) return NULL ;
+    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL) 
+        return NULL ;
     if ((wavecal_type == CR2RES_XCORR || wavecal_type == CR2RES_LINE1D) && 
             static_file == NULL) return NULL ;
 
@@ -111,9 +114,9 @@ cpl_polynomial * cr2res_wave_1d(
         solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error, 
                 ref_spectrum, degree, display) ;
     } else if (wavecal_type == CR2RES_LINE1D) {
-        solution = cr2res_wave_line_fitting(spectrum, wavesol_init, 
-                wave_error_init, simple_ref_spectrum, degree, display, NULL, 
-                wavelength_error) ;
+        solution = cr2res_wave_line_fitting(spectrum, spectrum_err, 
+                wavesol_init, wave_error_init, simple_ref_spectrum, degree, 
+                display, NULL, wavelength_error) ;
     } else if (wavecal_type == CR2RES_ETALON) {
         solution = cr2res_wave_etalon(spectrum, wavesol_init, wavelength_error);
     }
@@ -181,18 +184,18 @@ cpl_polynomial * cr2res_wave_xcorr(
         cpl_msg_indent_more() ;
         /* Subrtract the low frequency part */
         if ((filtered=cpl_vector_filter_median_create(
-                        cpl_bivector_get_x(spectrum),
+                        cpl_bivector_get_y(spectrum),
                         filt_size))==NULL){
             cpl_msg_error(__func__, "Cannot filter the spectrum") ;
-            spec_clean = cpl_vector_duplicate(cpl_bivector_get_x(spectrum)) ;
+            spec_clean = cpl_vector_duplicate(cpl_bivector_get_y(spectrum)) ;
         } else {
-            spec_clean = cpl_vector_duplicate(cpl_bivector_get_x(spectrum)) ;
+            spec_clean = cpl_vector_duplicate(cpl_bivector_get_y(spectrum)) ;
             cpl_vector_subtract(spec_clean, filtered) ;
             cpl_vector_delete(filtered) ;
         }
         cpl_msg_indent_less() ;
     } else {
-        spec_clean = cpl_vector_duplicate(cpl_bivector_get_x(spectrum)) ;
+        spec_clean = cpl_vector_duplicate(cpl_bivector_get_y(spectrum)) ;
     }
 
     /* Remove Negative values */
@@ -206,12 +209,6 @@ cpl_polynomial * cr2res_wave_xcorr(
         cpl_plot_bivector(
                 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Emission';",
                 "t 'Catalog Spectrum' w impulses", "", lines_list);
-        /* Plot Extracted Spectrum */
-        /*
-        cpl_plot_vector(
-    "set grid;set xlabel 'Position (Pixel)';set ylabel 'Intensity (ADU/sec)';",
-                "t 'Extracted spectrum' w lines", "", spectrum);
-        */
         /* Plot Extracted Spectrum */
         cpl_plot_vector(
     "set grid;set xlabel 'Position (Pixel)';set ylabel 'Intensity (ADU/sec)';",
@@ -313,7 +310,8 @@ cpl_polynomial * cr2res_wave_xcorr(
 /**
   @brief    Compute the wavelength polynomial based on a line spectrum 
             and a reference catalog by finding lines and fitting
-  @param    spectrum        Observed spectrum (and error)
+  @param    spectrum        Observed spectrum 
+  @param    spectrum_err    Observed spectrum error
   @param    wavesol_init    Initial wavelength solution
   @param    wave_error_init Initial wavelength error (can be NULL)
   @param    lines_list      Lines List (flux, wavelengths)
@@ -329,6 +327,7 @@ cpl_polynomial * cr2res_wave_xcorr(
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_wave_line_fitting(
         cpl_bivector    *   spectrum,
+        cpl_bivector    *   spectrum_err,
         cpl_polynomial  *   wavesol_init,
         const cpl_array *   wave_error_init,
         cpl_bivector    *   lines_list,
@@ -337,10 +336,9 @@ cpl_polynomial * cr2res_wave_line_fitting(
         cpl_vector      **  sigma_fit,
         cpl_array       **  wavelength_error)
 {
-
-
     /* Check Entries */
-    if (spectrum == NULL || wavesol_init == NULL || lines_list == NULL || wave_error_init == NULL) 
+    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL || 
+            lines_list == NULL || wave_error_init == NULL) 
         return NULL;
 
     cpl_size power = 1;
@@ -392,8 +390,8 @@ cpl_polynomial * cr2res_wave_line_fitting(
         pia[i] = 1;
     }
 
-    spec = cpl_bivector_get_x_const(spectrum);
-    unc = cpl_bivector_get_y_const(spectrum);
+    spec = cpl_bivector_get_y_const(spectrum);
+    unc = cpl_bivector_get_y_const(spectrum_err);
 
     // get line data 
     wave = cpl_bivector_get_x_data(lines_list);
@@ -601,7 +599,7 @@ cpl_polynomial * cr2res_wave_etalon(
     int             nxi, i;
 
     xi = cr2res_wave_etalon_measure_fringes(
-            cpl_bivector_get_x(spectrum));
+            cpl_bivector_get_y(spectrum));
     nxi=cpl_vector_get_size(xi);
 
     /* apply initial solution to get lambda_i*/

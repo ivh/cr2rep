@@ -269,7 +269,10 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
 {
     cpl_table       *   out ;
     char            *   col_name ;
-    const double    *   pspec , * perr;
+    const double    *   pspec ;
+    const double    *   perr ;
+    cpl_vector      *   wave_vec ;
+    const double    *   pwl ;
     int                 nrows, all_null, i, order, trace_id, nb_traces ;
 
     /* Check entries */
@@ -297,10 +300,16 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
     for (i=0 ; i<nb_traces ; i++) {
         order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
         trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
+        /* Create SPEC column */
         col_name = cr2res_dfs_SPEC_colname(order, trace_id) ;
         cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
         cpl_free(col_name) ;
+        /* Create SPEC_ERR column */
         col_name = cr2res_dfs_SPEC_ERR_colname(order, trace_id) ;
+        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+        cpl_free(col_name) ;
+        /* Create WAVELENGTH column */
+        col_name = cr2res_dfs_WAVELENGTH_colname(order, trace_id) ;
         cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
         cpl_free(col_name) ;
     }
@@ -312,12 +321,27 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
             trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
             pspec = cpl_bivector_get_x_data_const(spectrum[i]) ;
             perr = cpl_bivector_get_y_data_const(spectrum[i]);
+            /* Fill SPEC column */
             col_name = cr2res_dfs_SPEC_colname(order, trace_id) ;
             cpl_table_copy_data_double(out, col_name, pspec) ;
             cpl_free(col_name) ;
+            /* Fill SPEC_ERR column */
             col_name = cr2res_dfs_SPEC_ERR_colname(order, trace_id) ;
             cpl_table_copy_data_double(out, col_name, perr) ;
             cpl_free(col_name) ;
+
+            /* Compute Wavelength column */
+            wave_vec = cr2res_trace_get_wl(trace_table, order, trace_id,
+                    CR2RES_DETECTOR_SIZE);
+            if (wave_vec == NULL) 
+                wave_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE) ;
+            pwl = cpl_vector_get_data(wave_vec) ;
+
+            /* Fill WAVELENGTH column */
+            col_name = cr2res_dfs_WAVELENGTH_colname(order, trace_id) ;
+            cpl_table_copy_data_double(out, col_name, pwl) ;
+            cpl_free(col_name) ;
+            cpl_vector_delete(wave_vec) ;
         }
     }
     return out ;
@@ -386,59 +410,79 @@ cpl_table * cr2res_extract_SLITFUNC_create(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Get a Spectrum from the EXTRACT_1D table
+  @brief    Get a Spectrum and its error from the EXTRACT_1D table
   @param    tab         the EXTRACT_1D table
   @param    order       the order
   @param    trace_nb    the wished trace
-  @return   the spectrum or NULL
+  @param    spec        [out] The wavelength/spectrum bivector
+  @param    spec_err    [out] The wavelength/spectrum error bivector
+  @return   O if ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
-cpl_bivector * cr2res_extract_EXTRACT1D_get_spectrum(
-        cpl_table   *   tab,
-        int             order,
-        int             trace_nb)
+int cr2res_extract_EXTRACT1D_get_spectrum(
+        cpl_table       *   tab,
+        int                 order,
+        int                 trace_nb,
+        cpl_bivector    **  spec,
+        cpl_bivector    **  spec_err)
 {
-    cpl_bivector    *   out ;
     char            *   spec_name ;
+    char            *   wave_name ;
     char            *   spec_err_name ;
     double          *   pspec ;
+    double          *   pwave ;
     double          *   pspec_err ;
-    double          *   pxout ;
-    double          *   pyout ;
+    double          *   pxspec ;
+    double          *   pyspec ;
+    double          *   pxspec_err ;
+    double          *   pyspec_err ;
     int                 i, tab_size ;
 
     /* Check entries */
-    if (tab == NULL) return NULL ;
+    if (tab == NULL || spec == NULL || spec_err == NULL) return -1 ;
 
     /* Get the Spectrum */
     spec_name = cr2res_dfs_SPEC_colname(order, trace_nb) ;
     if ((pspec = cpl_table_get_data_double(tab, spec_name)) == NULL) {
         cpl_msg_error(__func__, "Cannot find the spectrum") ;
         cpl_free(spec_name) ;
-        return NULL ;
+        return -1 ;
     }
     cpl_free(spec_name) ;
+
+    /* Get the Wavelength */
+    wave_name = cr2res_dfs_WAVELENGTH_colname(order, trace_nb) ;
+    if ((pwave = cpl_table_get_data_double(tab, wave_name)) == NULL) {
+        cpl_msg_error(__func__, "Cannot find the wavelength") ;
+        cpl_free(wave_name) ;
+        return -1 ;
+    }
+    cpl_free(wave_name) ;
 
     /* Get the Spectrum Error */
     spec_err_name = cr2res_dfs_SPEC_ERR_colname(order, trace_nb) ;
     if ((pspec_err = cpl_table_get_data_double(tab, spec_err_name)) == NULL) {
         cpl_msg_error(__func__, "Cannot find the spectrum error") ;
         cpl_free(spec_err_name) ;
-        return NULL ;
+        return -1 ;
     }
     cpl_free(spec_err_name) ;
 
-    /* Create the output vector */
+    /* Create the output */
     tab_size = cpl_table_get_nrow(tab) ;
-    out = cpl_bivector_new(tab_size) ;
-    pxout = cpl_bivector_get_x_data(out) ;
-    pyout = cpl_bivector_get_y_data(out) ;
+    *spec = cpl_bivector_new(tab_size) ;
+    *spec_err = cpl_bivector_new(tab_size) ;
+    pxspec = cpl_bivector_get_x_data(*spec) ;
+    pyspec = cpl_bivector_get_y_data(*spec) ;
+    pxspec_err = cpl_bivector_get_x_data(*spec_err) ;
+    pyspec_err = cpl_bivector_get_y_data(*spec_err) ;
     for (i=0 ; i<tab_size ; i++) {
-        pxout[i] = pspec[i] ;
-        pyout[i] = pspec_err[i] ;
+        pxspec[i] = pwave[i] ;
+        pyspec[i] = pspec[i] ;
+        pxspec_err[i] = pwave[i] ;
+        pyspec_err[i] = pspec_err[i] ;
     }
-
-    return out ;
+    return 0 ;
 }
 
 /*----------------------------------------------------------------------------*/

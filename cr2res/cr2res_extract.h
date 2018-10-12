@@ -77,9 +77,11 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
         cpl_bivector    **  spectrum,
         cpl_table       *   trace_table) ;
 
-cpl_bivector * cr2res_extract_EXTRACT1D_get_spectrum(
-        cpl_table   *   tab,
-        int             order,
-        int             trace_nb) ;
+int cr2res_extract_EXTRACT1D_get_spectrum(
+        cpl_table       *   tab,
+        int                 order,
+        int                 trace_nb,
+        cpl_bivector    **  spec,
+        cpl_bivector    **  spec_err) ;
 
 #endif

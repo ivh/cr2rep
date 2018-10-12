@@ -52,7 +52,8 @@
 
 /* EXTRACT_1D Table */
 #define CR2RES_COL_SPEC_SUFFIX      "SPEC"          /* Intensity */
-#define CR2RES_COL_ERROR_SUFFIX     "ERR"           /* Uncertainty */
+#define CR2RES_COL_ERROR_SUFFIX     "ERR"           /* Error */
+#define CR2RES_COL_WL_SUFFIX        "WL"            /* Wavelength */
 
 /* SLIT_CURV Table */
 #define CR2RES_COL_SLIT_CURV_SUFFIX "SLIT_CURV"     /* Polynomial */
@@ -85,6 +86,8 @@
 /* For  CR2RES_FLAT_EXTRACT_1D_PROCATG */
 /*      CR2RES_UTIL_EXTRACT_1D_PROCATG */
 /* Table with columns cr2res_dfs_SPEC_colname() */
+/*                    cr2res_dfs_WAVELENGTH_colname() */
+/*                    cr2res_dfs_SPEC_ERR_colname() */
 #define CR2RES_EXTRACT_1D_PROTYPE           "EXTRACT_1D"
 
 /* For  CR2RES_FLAT_SLIT_MODEL_PROCATG */
@@ -198,6 +201,7 @@
 
 cpl_error_code cr2res_dfs_set_groups(cpl_frameset *);
 char * cr2res_dfs_SPEC_colname(int, int) ;
+char * cr2res_dfs_WAVELENGTH_colname(int, int);
 char * cr2res_dfs_SPEC_ERR_colname(int, int);
 char * cr2res_dfs_SLIT_FUNC_colname(int, int) ;
 char * cr2res_dfs_SLIT_CURV_colname(int, int) ;

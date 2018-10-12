@@ -208,22 +208,26 @@ static int cr2res_util_splice(
         cpl_frameset            *   frameset,
         const cpl_parameterlist *   parlist)
 {
-    cpl_frameset    *       trace_fset ;
-    cpl_frameset    *       extracted_fset ;
-    cpl_frameset    *       blaze_fset ;
-    cpl_size                nframes, i ;
+    cpl_frameset        *   trace_fset ;
+    cpl_frameset        *   extracted_fset ;
+    cpl_frameset        *   blaze_fset ;
     const char          *   trace_file ;
     const char          *   extracted_file ;
     const char          *   blaze_file ;
-
-
-
-    char                *   out_file;
-    cpl_table           *   spliced[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   trace_table ;        
+    cpl_table           *   extracted_table ;        
+    cpl_table           *   blaze_table ;        
+    cpl_table           **  trace_tables ;
+    cpl_table           **  blaze_tables ;
+    cpl_table           **  extracted_tables ;
+    cpl_bivector        *   spliced ;
+    cpl_bivector        *   spliced_err ;
+    cpl_table           *   spliced_table ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   trace_table ;
-    int                     det_nr, ext_nr, extr_height, nb_traces, trace_id,
-                            order, i, ext_nr_err;
+    char                *   out_file;
+    cpl_size                nframes, i ;
+    int                     ext_nr_trace, ext_nr_blaze, ext_nr_extracted, 
+                            det_nr, nb_det ;
 
     /* RETRIEVE INPUT PARAMETERS */
 
@@ -247,7 +251,7 @@ static int cr2res_util_splice(
     /* Tests the Inputs */
     if (trace_fset==NULL || extracted_fset==NULL || blaze_fset==NULL) {
         cpl_msg_error(__func__, "Missing Inputs") ;
-        if (trace_fset != NULL) cpl_frameset_delete(ẗrace_fset) ;
+        if (trace_fset != NULL) cpl_frameset_delete(trace_fset) ;
         if (extracted_fset != NULL) cpl_frameset_delete(extracted_fset) ;
         if (blaze_fset != NULL) cpl_frameset_delete(blaze_fset) ;
         return -1 ;
@@ -256,13 +260,16 @@ static int cr2res_util_splice(
     if (cpl_frameset_get_size(extracted_fset) != nframes ||
             cpl_frameset_get_size(blaze_fset) != nframes) {
         cpl_msg_error(__func__, "Inconsistent Inputs") ;
-        cpl_frameset_delete(ẗrace_fset) ;
+        cpl_frameset_delete(trace_fset) ;
         cpl_frameset_delete(extracted_fset) ;
         cpl_frameset_delete(blaze_fset) ;
         return -1 ;
     }
 
+    /* Count the number of detector to process */
+
     /* Loop over the Frames */
+    nb_det = 0 ;
     for (i=0 ; i<nframes; i++) {
 
         /* Get the File names */
@@ -281,74 +288,122 @@ static int cr2res_util_splice(
             ext_nr_extracted = cr2res_io_get_ext_idx(extracted_file, det_nr, 1);
             ext_nr_blaze = cr2res_io_get_ext_idx(blaze_file, det_nr, 1) ;
 
-            if (ext_nr < 0) continue ;
-
-            /* Store the extenѕion header for product saving */
-            ext_plist[det_nr-1] = cpl_propertylist_load(science_file, ext_nr) ;
-
-            /* Compute only one detector */
-            if (reduce_det != 0 && det_nr != reduce_det) continue ;
-
-            cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
-            cpl_msg_indent_more() ;
-
-            /* Load the trace table of this detector */
-            cpl_msg_info(__func__, "Load the trace table") ;
-            if ((trace_table = cr2res_io_load_TRACE_WAVE(trace_file,
-                            det_nr)) == NULL) {
-                cpl_msg_error(__func__,
-                        "Failed to get trace table - skip detector");
-                cpl_error_reset() ;
-                cpl_msg_indent_less() ;
+            /* Skіp if any detector is missing */
+            if (ext_nr_trace<0 || ext_nr_extracted<0 || ext_nr_blaze<0) 
                 continue ;
-            }
-            nb_traces = cpl_table_get_nrow(trace_table) ;
 
-            /* Allocate Data containers */
-            spectrum = cpl_malloc(nb_traces * sizeof(cpl_bivector *)) ;
-            slit_func = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
-            model_master[det_nr-1] = hdrl_image_create(science_ima, NULL) ;
-            hdrl_image_mul_scalar(model_master[det_nr-1], (hdrl_value){0.0, 0.0}) ;
-            cpl_image_delete(science_ima);
+            /* Try loading */
+            trace_table = cr2res_io_load_TRACE_WAVE(trace_file, det_nr);
+            blaze_table = cr2res_io_load_EXTRACT_1D(blaze_file, det_nr);
+            extracted_table = cr2res_io_load_EXTRACT_1D(extracted_file, det_nr);
 
+            /* Increase counter if ok */
+            if (trace_table!=NULL && blaze_table!=NULL && extracted_table!=NULL)
+                nb_det++ ;
 
-
-
-
-
-
-
-
-            cpl_msg_indent_less() ;
+            if (trace_table!= NULL) cpl_table_delete(trace_table);
+            if (blaze_table!= NULL) cpl_table_delete(blaze_table);
+            if (extracted_table!= NULL) cpl_table_delete(extracted_table);
         }
+    }
+
+    cpl_msg_info(__func__, "Loading %d Detectors for splicing", nb_det) ;
+
+    /* Allocate Data containers */
+    blaze_tables = cpl_malloc(nb_det * sizeof(cpl_table*)) ;
+    extracted_tables = cpl_malloc(nb_det * sizeof(cpl_table*)) ;
+    trace_tables = cpl_malloc(nb_det * sizeof(cpl_table*)) ;
+
+    /* Load the inputs */
+    /* Loop over the Frames */
+    nb_det = 0 ;
+    for (i=0 ; i<nframes; i++) {
+        /* Get the File names */
+        trace_file = cpl_frame_get_filename(
+                cpl_frameset_get_position(trace_fset, i)) ;
+        extracted_file = cpl_frame_get_filename(
+                cpl_frameset_get_position(extracted_fset, i)) ;
+        blaze_file = cpl_frame_get_filename(
+                cpl_frameset_get_position(blaze_fset, i)) ;
+
+        /* Loop over the detectors */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+
+            /* Get Extension Numbers */
+            ext_nr_trace = cr2res_io_get_ext_idx(trace_file, det_nr, 1) ;
+            ext_nr_extracted = cr2res_io_get_ext_idx(extracted_file, det_nr, 1);
+            ext_nr_blaze = cr2res_io_get_ext_idx(blaze_file, det_nr, 1) ;
+
+            /* Skіp if any detector is missing */
+            if (ext_nr_trace<0 || ext_nr_extracted<0 || ext_nr_blaze<0) 
+                continue ;
+
+            /* Load */
+            trace_table = cr2res_io_load_TRACE_WAVE(trace_file, det_nr);
+            blaze_table = cr2res_io_load_EXTRACT_1D(blaze_file, det_nr);
+            extracted_table = cr2res_io_load_EXTRACT_1D(extracted_file, det_nr);
+
+            /* Increase counter if ok */
+            if (trace_table!=NULL && blaze_table!=NULL && 
+                    extracted_table!=NULL) {
+                trace_tables[nb_det] = trace_table;
+                extracted_tables[nb_det] = extracted_table;
+                blaze_tables[nb_det] = blaze_table;
+                nb_det++ ;
+            } else {
+                if (trace_table!= NULL) cpl_table_delete(trace_table);
+                if (blaze_table!= NULL) cpl_table_delete(blaze_table);
+                if (extracted_table!= NULL) cpl_table_delete(extracted_table);
+            }
+        }
+    }
+
+    /* Call the splicing */
+    if (cr2res_splice(extracted_tables, blaze_tables, trace_tables,
+                nb_det, &spliced, &spliced_err)) {
+        cpl_msg_error(__func__, "Splicing Error"); 
+        spliced_table = NULL ;
+    } else {
+        /* Store the spliced in an EXTRACT_1D table */
+        spliced_table = cpl_table_new(3) ;
+
+        /* Free the bivectors */
+        cpl_bivector_delete(spliced) ;
+        cpl_bivector_delete(spliced_err) ;
+    }
+    /* Deallocate */
+    for (i=0 ; i<nb_det ; i++) {
+        cpl_table_delete(blaze_tables[i]) ;
+        cpl_table_delete(extracted_tables[i]) ;
+        cpl_table_delete(trace_tables[i]) ;
+    }
+    cpl_free(blaze_tables) ;
+    cpl_free(extracted_tables) ;
+    cpl_free(trace_tables) ;
 
 
 
 
-
-
-}
-
-
-
-
+    /* Store the extenѕion header for product saving */
+    /*
+    ext_plist[det_nr-1] = cpl_propertylist_load(science_file, ext_nr) ;
+    */
 
     /* Save the Products */
-    out_file = cpl_sprintf("%s_extrModel.fits",
+    /*
+    out_file = cpl_sprintf("%s_spliced.fits",
                     cr2res_get_base_name(cr2res_get_root_name(science_file)));
     cr2res_io_save_SLIT_MODEL(out_file, frameset,
             parlist, model_master, NULL, ext_plist,
             CR2RES_UTIL_SLIT_MODEL_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
+    */
+
+
 
     /* Free and return */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        if (ext_plist[det_nr-1] != NULL)
-            cpl_propertylist_delete(ext_plist[det_nr-1]) ;
-        cpl_table_delete(slit_func_tab[det_nr-1]) ;
-        cpl_table_delete(extract_tab[det_nr-1]) ;
-        hdrl_image_delete(model_master[det_nr-1]) ;
-    }
+    cpl_table_delete(spliced_table) ;
+
     return (int)cpl_error_get_code();
 }
 

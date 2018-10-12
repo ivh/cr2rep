@@ -45,13 +45,31 @@
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Main splicing function
-  @param
-  @param
-  @param
-  @param
-  @return 
+  @param    extracted   List of extracted tables
+  @param    blaze       List of blaze tables
+  @param    trace_wave  List of trace_wave
+  @param    ninputs     Size of the input lists
+  @param    spliced     [out] Spliced spectrum
+  @param    spliced_err [out] Spliced spectrum error
+  @return   0 if ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
+int cr2res_splice(
+        cpl_table       **  extracted_1d,
+        cpl_table       **  blaze,
+        cpl_table       **  trace_wave,
+        int                 ninputs,
+        cpl_bivector    **  spliced,
+        cpl_bivector    **  spliced_err)
+{
+    /* TODO */
+    *spliced = cpl_bivector_new(3) ;
+    *spliced_err = cpl_bivector_new(3) ;
+    return 0 ;
+}
+
+
+
 int cr2res_splice_orders(
         cpl_table   *   trace_wave, 
         cpl_table   *   spectra, 

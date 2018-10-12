@@ -35,6 +35,14 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
+int cr2res_splice(
+        cpl_table       **  extracted_1d,
+        cpl_table       **  blaze,
+        cpl_table       **  trace_wave,
+        int                 ninputs,
+        cpl_bivector    **  spliced,
+        cpl_bivector    **  spliced_err) ;
+
 int cr2res_splice_orders(
         cpl_table   *   trace_wave,
         cpl_table   *   spectra,
