@@ -635,6 +635,45 @@ cpl_polynomial * cr2res_get_trace_wave_poly(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief   Get the Wavelength vector from a TRACE_WAVE table
+  @param   trace_wave  A TRACE_WAVE table
+  @param   order       Wished order
+  @param   trace_nb    Wished trace number
+  @param   size    Output vector size
+  @return  The newly created vector or NULL in error case
+  The returned object must be de allocated with cpl_vector_delete()
+ */
+/*----------------------------------------------------------------------------*/
+cpl_vector * cr2res_trace_get_wl(
+        const cpl_table *   trace_wave,
+        int                 order,
+        int                 trace_nb,
+        int                 size)
+{
+    cpl_vector      *    out ;
+    cpl_polynomial  *    wl_poly;
+
+    /* Check Inputs */
+    if (trace_wave == NULL || size < 1) return NULL ;
+
+    /* Get the Wavelength polynomial */
+    wl_poly = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH, 
+            order, trace_nb) ;
+    if (wl_poly == NULL) return NULL ;
+
+    /* Allocate output */
+    out = cpl_vector_new(size) ;
+    if (cpl_vector_fill_polynomial(out, wl_poly, 1, 1) != CPL_ERROR_NONE) {
+        cpl_vector_delete(out);
+        cpl_polynomial_delete(wl_poly);
+        return NULL;
+    }
+    cpl_polynomial_delete(wl_poly);
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Retrieves the middle (All) polynomial from trace table and evaluates
   @param    trace   TRACE table
   @param    order_nb   Wished order
@@ -652,62 +691,23 @@ cpl_vector * cr2res_trace_get_ycen(
             int             size)
 {
     cpl_vector      *    out ;
-    cpl_polynomial  *    poly;
-    int                  nrows, i, found  ;
-    int             *    porders ;
-    int             *    ptraces ;
-    const cpl_array *    coeffs;
-
-    /* Initialize */
-    /* poly is not necessarly initialized in the for loop !!! */
-    /* If not initialized here, it might be used uninitialised  */
-    /* by cpl_vector_fill_polynomial() and cause a seg fault */
-    poly = NULL ;
+    cpl_polynomial  *    pos_poly;
 
     if (trace == NULL || size < 1) return NULL ;
 
-    nrows = cpl_table_get_nrow(trace) ;
+    /* Get the Positions polynomial */
+    pos_poly = cr2res_get_trace_wave_poly(trace, CR2RES_COL_ALL, 
+            order_nb, trace_nb) ;
+    if (pos_poly == NULL) return NULL ;
 
-    // prevent reading garbage if invalid data in table
-    cpl_table_fill_invalid_int(trace, CR2RES_COL_ORDER, -1);
-    cpl_table_fill_invalid_int(trace, CR2RES_COL_TRACENB, -1);
-    porders = cpl_table_get_data_int(trace, CR2RES_COL_ORDER);
-    ptraces = cpl_table_get_data_int(trace, CR2RES_COL_TRACENB);
-
-    /* Loop on the orders */
-    for (i=0 ; i<nrows ; i++) {
-        /* If order found */
-        if (porders[i] == order_nb && ptraces[i] == trace_nb) {
-            /* Get the polynomial*/
-            coeffs = cpl_table_get_array(trace, CR2RES_COL_ALL, i) ;
-            if (coeffs == NULL) {
-                cpl_msg_warning(__func__,
-                    "Row %d should have our array, but error %d", 
-                    i, cpl_error_get_code());
-                cpl_error_reset();
-                continue;
-            }
-            poly = cr2res_convert_array_to_poly(coeffs) ;
-            break; // The first one is enough.
-        }
-    }
-
-    // if no order found
-    if (poly == NULL){
-        cpl_msg_warning(__func__,
-                "Cannot find trace %"CPL_SIZE_FORMAT" of order %"CPL_SIZE_FORMAT,
-                trace_nb, order_nb);
-        return NULL;
-    }
-
+    /* Allocate output */
     out = cpl_vector_new(size) ;
-    if (cpl_vector_fill_polynomial(out, poly, 1, 1) != CPL_ERROR_NONE) {
+    if (cpl_vector_fill_polynomial(out, pos_poly, 1, 1) != CPL_ERROR_NONE) {
         cpl_vector_delete(out);
+        cpl_polynomial_delete(pos_poly);
         return NULL;
-    };
-
-    cpl_polynomial_delete(poly);
-
+    }
+    cpl_polynomial_delete(pos_poly);
     return out ;
 }
 
