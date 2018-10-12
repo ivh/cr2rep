@@ -429,6 +429,49 @@ cpl_size cr2res_get_nb_traces(
 
 /*----------------------------------------------------------------------------*/
 /**
+   @brief   Get the trace numbers for a specified order
+   @param   tab         A TRACE_WAVE table
+   @param   order       the order number
+   @param   nb_traces   [out] number of traces
+   @return  the trace numbers, or NULL in error cases
+
+  return value must be freed with cpl_free
+
+ */
+/*----------------------------------------------------------------------------*/
+int * cr2res_get_trace_numbers(
+        const cpl_table * trace_wave,
+        int               order,
+        int *             nb_traces)
+{
+    cpl_size nrows, i, k;
+    int number_traces;
+    int * traces;
+    /* Check Entries */
+    if (trace_wave == NULL) return NULL ;
+
+    number_traces = cr2res_get_nb_traces(trace_wave, order);
+    if (number_traces == -1) return NULL ;
+
+
+    /* Initialise */
+    k = 0;
+    nrows = cpl_table_get_nrow(trace_wave) ;
+    traces = cpl_malloc(number_traces * sizeof(int));
+
+    /* Loop on the table rows */
+    for (i=0 ; i<nrows ; i++)
+        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER,i,NULL)==order)
+            traces[k] = i;
+            k++;
+
+    if (nb_traces != NULL) nb_traces = number_traces;
+
+    return traces;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
    @brief   Get the number of traces for a specified order that have a WL
    @param   tab         A TRACE_WAVE table
    @param   order       the order number

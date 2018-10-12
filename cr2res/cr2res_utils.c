@@ -1268,6 +1268,233 @@ int cr2res_slit_pos_image(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Create a trace at given slit position with given height, based on table data
+  @param    trace_wave     trace wave table
+  @param    slit_pos       fractional slit position (0-1)
+  @param    height         fractional height (0-1)
+  @param    order          order to split
+  @param    trace          trace to split
+  @param    bottom         [out] subtrace bottom polynomial coefficients
+  @param    center         [out] subtrace center polynomial coefficients
+  @param    top            [out] subtrace top polynomial coefficients
+  @param    fraction       [out] subtrace polynomial fractions
+  @return   0 on success, -1 on failure
+
+  fits a 2nd order polynomial to the three coefficients of LOWER, ALL, UPPER order trace polynomials
+  and evaluates them at slit_pos - height, slit_pos, and slit_pos + height
+
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_util_get_subtrace(cpl_table * trace_wave, double slit_pos, double height, int order,
+                            cpl_array ** bottom, cpl_array ** center, cpl_array ** top,
+                            cpl_array ** fraction, cpl_array ** wave){
+   
+    // check input values
+    if (slit_pos < 0 | slit_pos > 1) return -1;
+    // get trace numbers
+    int nb_traces;
+    int * traces;
+    traces = cr2res_trace_get_trace_numbers(trace_wave, order, &nb_traces);
+    if (traces == NULL) return NULL;
+    
+    const cpl_array * bounds[3], *old_fraction, *old_wave;
+    double res;
+    cpl_size power, i, j, k, ndegree;
+    
+    cpl_matrix * samppos;
+    cpl_vector *fitvals;
+    cpl_polynomial * poly;
+
+    cpl_size mindeg = 2;
+    cpl_size maxdeg = 5;
+    cpl_error_code error;
+
+    
+    // interpolate order tracing
+    j = cr2res_get_trace_table_index(trace_wave, order, traces[0]);
+    ndegree = cpl_table_get_column_dimension(trace_wave, CR2RES_COL_ALL, j);
+
+    *bottom = cpl_array_new(ndegree, CPL_TYPE_DOUBLE);
+    *top = cpl_array_new(ndegree, CPL_TYPE_DOUBLE);
+    *center = cpl_array_new(ndegree, CPL_TYPE_DOUBLE);
+    *fraction = cpl_array_new(ndegree, CPL_TYPE_DOUBLE);
+
+    samppos = cpl_matrix_new(3 * nb_traces, 1);
+    fitvals = cpl_vector_new(3 * nb_traces);
+    poly = cpl_polynomial_new(1);
+
+
+    for (i = 0; i < ndegree; i++){
+        for (k = 0; k < nb_traces; k++){
+            j = cr2res_get_trace_table_index(trace_wave, order, traces[k]);
+
+            bounds[0] = cpl_table_get_array(trace_wave, CR2RES_COL_LOWER, j);
+            bounds[1] = cpl_table_get_array(trace_wave, CR2RES_COL_ALL, j);
+            bounds[2] = cpl_table_get_array(trace_wave, CR2RES_COL_UPPER, j);
+            old_fraction = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_FRACTION, j);
+
+            for (j = 0; j < 3; j++){
+                res = cpl_array_get_double(old_fraction, 0, NULL);
+                if (res == -1) res = 0.5 * j; // bottom: 0, center: 0.5, top: 1
+                cpl_matrix_set(samppos, k * 3 + j, 0, res);
+                cpl_vector_set(fitvals, k * 3 + j, cpl_array_get_double(bounds[j], i, NULL));
+            }
+        }
+
+        error = cpl_polynomial_fit(poly, samppos, NULL, fitvals, NULL, 1, &mindeg, &maxdeg);
+        
+        res = cpl_polynomial_eval_1d(poly, slit_pos, NULL);
+        cpl_array_set_double(*center, i, res);
+
+        res = cpl_polynomial_eval_1d(poly, slit_pos + height, NULL);
+        cpl_array_set_double(*top, i, res);
+
+        res = cpl_polynomial_eval_1d(poly, slit_pos - height, NULL);
+        cpl_array_set_double(*bottom, i, res);
+        
+    }
+    cpl_matrix_delete(samppos);
+    cpl_vector_delete(fitvals);
+    cpl_polynomial_delete(poly);
+
+    cpl_array_set_double(*fraction, 0, slit_pos-height);
+    cpl_array_set_double(*fraction, 1, slit_pos);
+    cpl_array_set_double(*fraction, 2, slit_pos+height);
+
+    // interpolate wavelength solution
+    j = cr2res_get_trace_table_index(trace_wave, order, traces[0]);
+    ndegree = cpl_table_get_column_dimension(trace_wave, CR2RES_COL_WAVELENGTH, j);
+    *wave = cpl_array_new(ndegree, CPL_TYPE_DOUBLE);
+
+    samppos = cpl_matrix_new(nb_traces, 1);
+    fitvals = cpl_vector_new(nb_traces);
+    poly = cpl_polynomial_new(1);
+
+    if (nb_traces == 1){
+        old_wave = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, j);
+        cpl_array_copy_data_double(*wave, old_wave);
+    } else{
+        for (i = 0; i < ndegree; i++){
+            for (k = 0; k < nb_traces; k++){
+                j = cr2res_get_trace_table_index(trace_wave, order, traces[k]);
+                old_fraction = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_FRACTION, j);
+                old_wave = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, j);
+
+                res = cpl_array_get_double(old_fraction, 0, NULL);
+                if (res == -1) res = 0.5 * j; // bottom: 0, center: 0.5, top: 1
+
+                cpl_matrix_set(samppos, k, 0, res);
+                cpl_vector_set(fitvals, k, cpl_array_get_double(old_wave, i, NULL));
+            }
+            error = cpl_polynomial_fit(poly, samppos, NULL, fitvals, NULL, 1, &mindeg, &maxdeg);
+            
+            res = cpl_polynomial_eval_1d(poly, slit_pos, NULL);
+            cpl_array_set_double(*wave, i, res);
+        }
+    }
+
+
+    cpl_matrix_delete(samppos);
+    cpl_vector_delete(fitvals);
+    cpl_polynomial_delete(poly);
+
+    if (error != CPL_ERROR_NONE){
+        cpl_array_delete(*bottom);
+        cpl_array_delete(*center);
+        cpl_array_delete(*top);
+        cpl_array_delete(*fraction);
+        cpl_array_delete(*wave);
+        return -1;
+    }
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Split a trace into several sub traces
+  @param    trace_wave       trace wave table
+  @param    order            order to split
+  @param    trace            trace to split
+  @param    nb_subtraces     number of subtraces to create
+  @param    sub_trace_wave   [out] trace_wave table with only the new sub traces
+  @return   0 on success, -1 on failure
+
+  Sub traces are created by evenly splitting the existing trace, 
+  so that no subtraces overlap
+
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_util_split_order(cpl_table * trace_wave, int order, int nb_subtraces, cpl_table ** sub_trace_wave){
+
+    cpl_size i, table_index;
+    cpl_array * bottom, *center, *top, *fraction, *wave, *tmp, *tmp2;
+    const cpl_array *wave_err, *slit_a, *slit_b, *slit_c;
+    double height = 1. / (nb_subtraces * 2.);
+    double pos;
+    int res;
+
+    if (trace_wave == NULL | nb_subtraces <= 0 | sub_trace_wave == NULL) return -1;
+
+    // Expand the trace table to fit the new data
+    *sub_trace_wave = cpl_table_new(nb_subtraces);
+    cpl_table_copy_structure(*sub_trace_wave, trace_wave);
+
+    // Prepare data to fill the other columns of the table
+    i = cr2res_get_trace_table_index(trace_wave, order, 1);
+    wave_err = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH_ERROR, i);
+    slit_a = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_A, i);
+    slit_b = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_B, i);
+    slit_c = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_C, i);
+
+    for (i = 0; i < nb_subtraces; i++){
+        pos = height + 2 * height * i; // center of first subtrace is one height above bottom
+        res = cr2res_util_get_subtrace(trace_wave, pos, height, order, &bottom, &center, &top, &fraction, &wave);
+        if (res == -1) break; // if something went wrong stop here
+
+        // attach new trace information to the bottom of the table
+        table_index = i;
+        cpl_table_set_int(*sub_trace_wave, CR2RES_COL_ORDER, table_index, order);
+        // Traces start counting at 1
+        cpl_table_set_int(*sub_trace_wave, CR2RES_COL_TRACENB, table_index, i + 1);
+
+        // Assign interpolated data
+        cpl_table_set_array(*sub_trace_wave, CR2RES_COL_ALL, table_index, center);
+        cpl_table_set_array(*sub_trace_wave, CR2RES_COL_LOWER, table_index, bottom);
+        cpl_table_set_array(*sub_trace_wave, CR2RES_COL_UPPER, table_index, top);
+        cpl_table_set_array(*sub_trace_wave, CR2RES_COL_SLIT_FRACTION, table_index, fraction);
+        cpl_table_set_array(*sub_trace_wave, CR2RES_COL_WAVELENGTH, table_index, wave);
+
+        // keep wavelength error from original order
+        cpl_table_set_array(*sub_trace_wave, CR2RES_COL_WAVELENGTH_ERROR, table_index, wave_err);
+
+        // set slit polynomials to default values for now
+        cpl_table_set_array(*sub_trace_wave, CR2RES_COL_SLIT_CURV_A, table_index, slit_a);
+        cpl_table_set_array(*sub_trace_wave, CR2RES_COL_SLIT_CURV_B, table_index, slit_b);
+        cpl_table_set_array(*sub_trace_wave, CR2RES_COL_SLIT_CURV_C, table_index, slit_c);
+
+        // Clean up data
+        cpl_array_delete(bottom);
+        cpl_array_delete(center);
+        cpl_array_delete(top);
+        cpl_array_delete(fraction);
+    }
+
+    cpl_array_unwrap(tmp);
+    cpl_array_unwrap(tmp2);
+
+
+    if (res == -1)
+    {
+        // return to original size
+        cpl_table_delete(sub_trace_wave);
+        return -1;
+    }
+    return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get the pipeline copyright and license
   @return   The copyright and license string
 
