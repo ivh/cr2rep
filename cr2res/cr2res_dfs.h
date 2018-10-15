@@ -59,6 +59,10 @@
 #define CR2RES_COL_SLIT_CURV_SUFFIX "SLIT_CURV"     /* Polynomial */
 
 /* SPLICED_1D Table */
+#define CR2RES_COL_SPLICED_SPEC     "SPLICED_SPEC"  /* Intensity */
+#define CR2RES_COL_SPLICED_ERROR    "SPLICED_ERR"   /* Error */
+#define CR2RES_COL_SPLICED_WL       "SPLICED_WL"    /* Wavelength */
+
 /* EXTRACT_2D Table */
 /* EXTRACT_POL Table */
 /******************************************/

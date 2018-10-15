@@ -465,7 +465,7 @@ int * cr2res_get_trace_numbers(
             traces[k] = i;
             k++;
 
-    if (nb_traces != NULL) nb_traces = number_traces;
+    if (nb_traces != NULL) *nb_traces = number_traces;
 
     return traces;
 }

@@ -406,14 +406,16 @@ static int cr2res_util_splice(
         spliced_table = NULL ;
     } else {
         /* Store the spliced in an EXTRACT_1D table */
-        spliced_table = cpl_table_new(3) ;
+        spliced_table = cr2res_splice_SPLICED_create(spliced, spliced_err) ;
 
         /* Free the bivectors */
         cpl_bivector_delete(spliced) ;
         cpl_bivector_delete(spliced_err) ;
 
         /* Save the table */
-
+        if (spliced_table == NULL) {
+            cpl_msg_error(__func__, "Failed to create the SPLICED table");
+        } else {
 /*
         out_file = cpl_sprintf("%s_spliced.fits",
                         cr2res_get_base_name(cr2res_get_root_name(science_file)));
@@ -423,6 +425,7 @@ static int cr2res_util_splice(
         cpl_free(out_file);
 */
             cpl_table_delete(spliced_table) ;
+        }
     }
 
     /* Free and return */
