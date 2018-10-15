@@ -224,7 +224,7 @@ static int cr2res_util_splice(
     cpl_bivector        *   spliced_err ;
     cpl_table           *   spliced_table ;
     cpl_error_code          ret ;
-    cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   ext_plist ;
     char                *   out_file;
     cpl_size                nframes, i ;
     int                     ext_nr_trace, ext_nr_blaze, ext_nr_extracted, 
@@ -385,7 +385,6 @@ static int cr2res_util_splice(
         }
     }
     cpl_frameset_delete(trace_fset) ;
-    cpl_frameset_delete(extracted_fset) ;
     cpl_frameset_delete(blaze_fset) ;
 
     /* Call the splicing */
@@ -405,8 +404,8 @@ static int cr2res_util_splice(
         cpl_msg_error(__func__, "Splicing Error"); 
         spliced_table = NULL ;
     } else {
-        /* Store the spliced in an EXTRACT_1D table */
-        spliced_table = cr2res_splice_SPLICED_create(spliced, spliced_err) ;
+        /* Store the spliced in a SPLICED table */
+        spliced_table = cr2res_splice_SPLICED_1D_create(spliced, spliced_err) ;
 
         /* Free the bivectors */
         cpl_bivector_delete(spliced) ;
@@ -416,19 +415,22 @@ static int cr2res_util_splice(
         if (spliced_table == NULL) {
             cpl_msg_error(__func__, "Failed to create the SPLICED table");
         } else {
-/*
-        out_file = cpl_sprintf("%s_spliced.fits",
-                        cr2res_get_base_name(cr2res_get_root_name(science_file)));
-        cr2res_io_save_SLIT_MODEL(out_file, frameset,
-                parlist, model_master, NULL, ext_plist,
-                CR2RES_UTIL_SLIT_MODEL_PROCATG, RECIPE_STRING) ;
-        cpl_free(out_file);
-*/
+            extracted_file = cpl_frame_get_filename(
+                    cpl_frameset_get_position(extracted_fset, 0)) ;
+            ext_plist = cpl_propertylist_load(extracted_file, 1) ; 
+            out_file = cpl_sprintf("%s_spliced.fits",
+                    cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
+            cr2res_io_save_SPLICED_1D(out_file, frameset, parlist, 
+                    spliced_table, NULL, ext_plist, 
+                    CR2RES_UTIL_SPLICE_SPLICED_1D_PROCATG, RECIPE_STRING) ;
+            cpl_free(out_file);
+            cpl_propertylist_delete(ext_plist);
             cpl_table_delete(spliced_table) ;
         }
     }
 
     /* Free and return */
+    cpl_frameset_delete(extracted_fset) ;
     return (int)cpl_error_get_code();
 }
 

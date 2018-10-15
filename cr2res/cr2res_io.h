@@ -236,10 +236,11 @@ int cr2res_io_save_SPLICED_1D(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_table               **  tables,
+        cpl_table               *   spliced_1d,
         const cpl_propertylist  *   qc_list,
-        cpl_propertylist        **  ext_plist,
-        const char              *   recipe);
+        cpl_propertylist        *   ext_plist,
+        const char              *   procatg,
+        const char              *   recipe) ;
 
 int cr2res_io_save_EXTRACT_2D(
         const char              *   filename,

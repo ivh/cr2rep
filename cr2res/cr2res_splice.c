@@ -339,13 +339,13 @@ int cr2res_splice_orders(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Create the SPLICED table to be saved
+  @brief    Create the SPLICED_1D table to be saved
   @param    spectrum        The extracted spectra of the different orders
   @param    spectrum_error  The spectrum error
-  @return   the SPLICED table or NULL
+  @return   the SPLICED_1D table or NULL
  */
 /*----------------------------------------------------------------------------*/
-cpl_table * cr2res_splice_SPLICED_create(
+cpl_table * cr2res_splice_SPLICED_1D_create(
         cpl_bivector    *   spectrum,
         cpl_bivector    *   spectrum_error)
 {
@@ -366,19 +366,19 @@ cpl_table * cr2res_splice_SPLICED_create(
     /* Create the table */
     out = cpl_table_new(nbins);
 
-    /* Create SPLICED_SPEC columns */
-    cpl_table_new_column(out, CR2RES_COL_SPLICED_WL, CPL_TYPE_DOUBLE);
-    cpl_table_new_column(out, CR2RES_COL_SPLICED_SPEC, CPL_TYPE_DOUBLE);
-    cpl_table_new_column(out, CR2RES_COL_SPLICED_ERROR, CPL_TYPE_DOUBLE);
+    /* Create SPLICED_1D_SPEC columns */
+    cpl_table_new_column(out, CR2RES_COL_SPLICED_1D_WL, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(out, CR2RES_COL_SPLICED_1D_SPEC, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(out, CR2RES_COL_SPLICED_1D_ERROR, CPL_TYPE_DOUBLE);
 
     /* Fill the table */
     pwl = cpl_bivector_get_x_data_const(spectrum) ;
     pspec = cpl_bivector_get_y_data_const(spectrum) ;
     perr = cpl_bivector_get_y_data_const(spectrum_error);
 
-    cpl_table_copy_data_double(out, CR2RES_COL_SPLICED_WL, pwl) ;
-    cpl_table_copy_data_double(out, CR2RES_COL_SPLICED_SPEC, perr) ;
-    cpl_table_copy_data_double(out, CR2RES_COL_SPLICED_ERROR, pspec) ;
+    cpl_table_copy_data_double(out, CR2RES_COL_SPLICED_1D_WL, pwl) ;
+    cpl_table_copy_data_double(out, CR2RES_COL_SPLICED_1D_SPEC, perr) ;
+    cpl_table_copy_data_double(out, CR2RES_COL_SPLICED_1D_ERROR, pspec) ;
 
     return out ;
 }

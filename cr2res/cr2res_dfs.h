@@ -59,9 +59,9 @@
 #define CR2RES_COL_SLIT_CURV_SUFFIX "SLIT_CURV"     /* Polynomial */
 
 /* SPLICED_1D Table */
-#define CR2RES_COL_SPLICED_SPEC     "SPLICED_SPEC"  /* Intensity */
-#define CR2RES_COL_SPLICED_ERROR    "SPLICED_ERR"   /* Error */
-#define CR2RES_COL_SPLICED_WL       "SPLICED_WL"    /* Wavelength */
+#define CR2RES_COL_SPLICED_1D_SPEC  "SPLICED_1D_SPEC"  /* Intensity */
+#define CR2RES_COL_SPLICED_1D_ERROR "SPLICED_1D_ERR"   /* Error */
+#define CR2RES_COL_SPLICED_1D_WL    "SPLICED_1D_WL"    /* Wavelength */
 
 /* EXTRACT_2D Table */
 /* EXTRACT_POL Table */
@@ -93,6 +93,9 @@
 /*                    cr2res_dfs_WAVELENGTH_colname() */
 /*                    cr2res_dfs_SPEC_ERR_colname() */
 #define CR2RES_EXTRACT_1D_PROTYPE           "EXTRACT_1D"
+
+/* For CR2RES_UTIL_SPLICE_SPLICED_1D_PROCATG */
+#define CR2RES_SPLICED_1D_PROTYPE              "SPLICED_1D"
 
 /* For  CR2RES_FLAT_SLIT_MODEL_PROCATG */
 /*      CR2RES_UTIL_SLIT_MODEL_PROCATG */
@@ -191,6 +194,9 @@
 #define CR2RES_UTIL_TRACE_MAP_SLIT_CURVE_PROCATG "UTIL_TRACE_MAP_SLIT_CURVE"
 #define CR2RES_UTIL_TRACE_MAP_WL_PROCATG    "UTIL_TRACE_MAP_WL"
 #define CR2RES_UTIL_TRACE_MAP_TRACE_PROCATG "UTIL_TRACE_MAP_TRACE"
+
+/* Produced by cr2res_util_splice */
+#define CR2RES_UTIL_SPLICE_SPLICED_1D_PROCATG   "UTIL_SPLICE_SPLICED_1D"
 
 /* Define here the DO.CATG keywords */
 #define CR2RES_COMMAND_LINE                 "COMMAND_LINE"

@@ -72,6 +72,16 @@ static int cr2res_io_save_table(
         const char              *   recipe,
         const char              *   procatg,
         const char              *   protype) ;
+static int cr2res_io_save_one_table(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               *   tab,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        *   ext_plist,
+        const char              *   recipe,
+        const char              *   procatg,
+        const char              *   protype) ;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -474,7 +484,19 @@ cpl_table * cr2res_io_load_SPLICED_1D(
         const char  *   filename,
         int             detector)
 {
-    return NULL ;
+    int                     wished_ext_nb ;
+
+    /* Check entries */
+    if (filename == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
+
+    /* The wished extension was not found */
+    if (wished_ext_nb < 0) return NULL ;
+
+    return cpl_table_load(filename, wished_ext_nb, 1);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -926,6 +948,7 @@ int cr2res_io_save_SLIT_CURV_MAP(
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
   @param    ext_plist   The extensions property lists
+  @param    procatg     The PRO CATG value
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -950,9 +973,10 @@ int cr2res_io_save_SLIT_CURV(
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    parlist     The recipe input parameters
-  @param    tables      The tables to save (1 per detector)
+  @param    spliced_1d  The table to save
   @param    qc_list     The QC parameters
-  @param    ext_plist   The extensions property lists
+  @param    ext_plist   The extension property list
+  @param    procatg     The PRO CATG value
   @param    recipe      The recipe name
   @return   0 if ok, -1 in error case
  */
@@ -961,12 +985,14 @@ int cr2res_io_save_SPLICED_1D(
         const char              *   filename,
         cpl_frameset            *   allframes,
         const cpl_parameterlist *   parlist,
-        cpl_table               **  tables,
+        cpl_table               *   spliced_1d,
         const cpl_propertylist  *   qc_list,
-        cpl_propertylist        **  ext_plist,
+        cpl_propertylist        *   ext_plist,
+        const char              *   procatg,
         const char              *   recipe)
 {
-    return -1 ;
+    return cr2res_io_save_one_table(filename, allframes, parlist, spliced_1d,
+            qc_list, ext_plist, recipe, procatg, CR2RES_SPLICED_1D_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1116,6 +1142,67 @@ static int cr2res_io_save_table(
         }
         cpl_propertylist_delete(ext_head) ;
     }
+    return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Save a single extension table
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    parlist     The recipe input parameters
+  @param    tab         The table to save
+  @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property list
+  @param    recipe      The recipe name
+  @param    procatg     PRO.CATG
+  @param    protype     PRO.TYPE
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_io_save_one_table(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               *   tab,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        *   ext_plist,
+        const char              *   recipe,
+        const char              *   procatg,
+        const char              *   protype)
+{
+    cpl_propertylist    *   pro_list ;
+    cpl_propertylist    *   ext_head ;
+    int                     i ;
+
+    /* Test entries */
+    if (allframes == NULL || filename == NULL || ext_plist == NULL) return -1 ;
+
+    /* Add the PRO keys */
+    if (qc_list != NULL) pro_list = cpl_propertylist_duplicate(qc_list) ;
+    else pro_list = cpl_propertylist_new() ;
+
+    /* Add PRO Keys */
+    cpl_propertylist_append_string(pro_list, CPL_DFS_PRO_CATG, procatg) ;
+    cpl_propertylist_append_string(pro_list, CPL_DFS_PRO_TYPE, protype) ;
+
+    /* Create the first extension header */
+	ext_head = cpl_propertylist_duplicate(ext_plist);
+	cpl_propertylist_erase(ext_head, "EXTNAME");
+    cpl_propertylist_update_string(ext_head, "EXTNAME", "TODO") ;
+
+    /* Save the first extension */
+	if (cpl_dfs_save_table(allframes, NULL, parlist, allframes, NULL,
+				tab, ext_head, recipe, pro_list, NULL,
+				PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
+		cpl_msg_error(__func__, "Cannot save the first extension table") ;
+		cpl_propertylist_delete(ext_head) ;
+		cpl_propertylist_delete(pro_list) ;
+		return -1 ;
+	}
+    cpl_propertylist_delete(ext_head) ;
+    cpl_propertylist_delete(pro_list) ;
+
     return 0 ;
 }
 
