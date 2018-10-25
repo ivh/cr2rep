@@ -62,9 +62,7 @@ static void test_cr2res_demod(void);
 static void test_cr2res_fit_noise(void);
 static void test_cr2res_slit_pos(void);
 static void test_cr2res_slit_pos_img(void);
-static void test_cr2res_splice_orders(void);
 static void test_cr2res_get_license(void);
-static void test_cr2res_wave_line_fitting(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -998,187 +996,6 @@ static void test_cr2res_slit_pos_img()
 }
 
 
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Splice orders onto a single wavelength grid
-  @param    trace_tables  a single tracetable with all traces, 
-                          and wavelength solutions to splice
-  @param    trace         which trace of each order to splice together
-  @return   0 if works, -1 otherwise
- 
-  WARNING: If three (or more) orders overlap at the same wavelength, it will
-  probably be a problem
-  
- */
-/*----------------------------------------------------------------------------*/
-static void test_cr2res_splice_orders()
-{
-    cpl_table * trace_wave = create_test_table();
-    cpl_table * spectra = create_test_table();
-
-    int trace = 0;
-
-    cpl_test_zero(cr2res_splice_orders(trace_wave, spectra, trace));
-
-    cpl_table_delete(trace_wave);
-    cpl_table_delete(spectra);
-
-}
-
-// make a test line list catalog with just 2 lines
-static cpl_table * make_test_catalog()
-{
-    cpl_table * catalog = cpl_table_new(2);
-    cpl_table_new_column(catalog, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE);
-    cpl_table_new_column(catalog, CR2RES_COL_EMISSION, CPL_TYPE_DOUBLE);
-    //cpl_table_new_column(catalog, CR2RES_COL_WIDTH, CPL_TYPE_DOUBLE);
-
-    // from lines_thar.txt catalog
-    // 2.551218908614062912e+03 9.935860000000000127e+02
-    // 2.603302966671994909e+03 2.992800000000000082e+01
-
-    cpl_table_set_double(catalog, CR2RES_COL_WAVELENGTH, 0, 2.551218908614062912e+03);
-    cpl_table_set_double(catalog, CR2RES_COL_EMISSION, 0, 9.935860000000000127e+02);
-
-    cpl_table_set_double(catalog, CR2RES_COL_WAVELENGTH, 1, 2.603302966671994909e+03);
-    cpl_table_set_double(catalog, CR2RES_COL_EMISSION, 1, 2.992800000000000082e+01);
-
-    return catalog;
-}
-
-// make a test spectrum based on a line list catalog 
-static cpl_bivector * make_test_spectrum(cpl_table * catalog, double wmin, double wmax, int size)
-{
-    double wl, mu, line_em, sig;
-    double tmp;
-    int i, j;
-    cpl_bivector * spectrum = cpl_bivector_new(size);
-    cpl_vector * spec = cpl_bivector_get_x(spectrum);
-    cpl_vector * unc = cpl_bivector_get_y(spectrum);
-
-    for (i = 0; i < size; i++){
-        wl = wmin + i * (wmax - wmin) / (double)size;
-        tmp = 0;
-        for (j = 0; j < 2; j++){
-            mu = cpl_table_get_double(catalog, CR2RES_COL_WAVELENGTH, j, NULL);
-            line_em = cpl_table_get_double(catalog, CR2RES_COL_EMISSION, j, NULL);
-            sig = 2;
-            tmp += line_em * exp(- 1 * pow(wl - mu, 2) / (2 * pow(sig, 2))); 
-        }
-
-        cpl_vector_set(spec, i, tmp);
-        cpl_vector_set(unc, i, 0.01);
-    }
-
-    return spectrum;
-}
-
-static cpl_polynomial * make_test_polynomial(double wmin, double wmax, int size)
-{
-    cpl_polynomial * poly = cpl_polynomial_new(1);
-    cpl_size power = 0;
-
-    power = 0;
-    cpl_polynomial_set_coeff(poly, &power, wmin);
-    power = 1;
-    cpl_polynomial_set_coeff(poly, &power,(wmax - wmin)/size);
-
-    return poly;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Compute the wavelength polynomial based on a line spectrum 
-            and a reference catalog
-  @param    catalog        The reference catalog of known lines in the spectrum
-  @param    spectrum       Observed spectrum (and error)
-  @param    initial_guess  Initial guess for the wavelength solution
-  @param    window_size    The range of pixel to use for finding each line
-  @param    sigma_fit      Returns the uncertainties of the polynomial fit parameters
-                           (may be NULL)
-  @return   the fitted 1D wavelength polynomial or NULL in case of error
-
-  The returned polynomial must be deallocated with cpl_polynomial_delete()
- */
-/*----------------------------------------------------------------------------*/
-static void test_cr2res_wave_line_fitting()
-{
-    double wmin=2500, wmax=2650;
-    int size = 200;
-    cpl_table * catalog = make_test_catalog();
-    cpl_bivector * linelist;
-    cpl_bivector * spectrum = make_test_spectrum(catalog, wmin, wmax, size);
-    cpl_polynomial * initial_guess = make_test_polynomial(wmin, wmax, size);
-    int window_size = 30;
-    int degree = 1;
-    int display = 0; // False
-    cpl_array * wave_error_init = cpl_array_new(2, CPL_TYPE_DOUBLE);
-    cpl_array_set_double(wave_error_init, 0, 3.1);
-    cpl_array_set_double(wave_error_init, 1, 3.5);
-
-    cpl_vector * sigma_fit = cpl_vector_new(2);
-    cpl_array * wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
-    cpl_polynomial * wavelength;
-    cpl_size power;
-
-    int len_linelist = cpl_table_get_nrow(catalog);
-    cpl_vector * tmp_w = cpl_vector_wrap(len_linelist, cpl_table_get_data_double(catalog, CR2RES_COL_WAVELENGTH));
-    cpl_vector * tmp_h = cpl_vector_wrap(len_linelist, cpl_table_get_data_double(catalog, CR2RES_COL_EMISSION));
-    linelist = cpl_bivector_wrap_vectors(tmp_w, tmp_h);
-
-    // bad inputs
-    wavelength = cr2res_wave_line_fitting(NULL, initial_guess, wave_error_init, linelist, degree, display, &sigma_fit, &wavelength_error);
-    cpl_test_null(wavelength);
-    
-    wavelength = cr2res_wave_line_fitting(spectrum, NULL, wave_error_init, linelist, degree, display, &sigma_fit, &wavelength_error);
-    cpl_test_null(wavelength);
-
-    wavelength = cr2res_wave_line_fitting(spectrum, initial_guess, NULL, linelist, degree, display, &sigma_fit, &wavelength_error);
-    cpl_test_null(wavelength);
-
-    wavelength = cr2res_wave_line_fitting(spectrum, initial_guess, wave_error_init, NULL, degree, display, &sigma_fit, &wavelength_error);
-    cpl_test_null(wavelength);
-
-    // optional NULL inputs
-    wavelength = cr2res_wave_line_fitting(spectrum, initial_guess, wave_error_init, linelist, degree, display, NULL, NULL);
-    cpl_test_nonnull(wavelength);
-    cpl_polynomial_delete(wavelength);
-
-    // to many polynomial degrees
-    wavelength = cr2res_wave_line_fitting(spectrum, initial_guess, wave_error_init, linelist, 5, display, &sigma_fit, &wavelength_error);
-    cpl_test_null(wavelength);
-    cpl_test_nonnull(sigma_fit);
-    cpl_test_nonnull(wavelength_error);
-
-    // regular run
-    wavelength = cr2res_wave_line_fitting(spectrum, initial_guess, wave_error_init, linelist, degree, display, &sigma_fit, &wavelength_error);
-
-    cpl_test_nonnull(wavelength);
-    cpl_test_nonnull(sigma_fit);
-    cpl_test_nonnull(wavelength_error);
-
-    // these values obviously need to be changed if the number of degrees is changed
-    power = 0;
-    cpl_test_abs(cpl_polynomial_get_coeff(wavelength, &power), wmin, 0.2);
-    power = 1;
-    cpl_test_abs(cpl_polynomial_get_coeff(wavelength, &power), (wmax-wmin)/(double)size, 0.01);
-
-    // Fitting two points with a first order polynomial -> perfect fit
-    cpl_test_abs(cpl_array_get_double(wavelength_error, 0, NULL), 0, DBL_EPSILON);
-    cpl_test_abs(cpl_array_get_double(wavelength_error, 1, NULL), 0, DBL_EPSILON);
-
-
-    cpl_bivector_unwrap_vectors(linelist);
-    cpl_vector_unwrap(tmp_h);
-    cpl_vector_unwrap(tmp_w);
-    cpl_array_delete(wavelength_error);
-    cpl_polynomial_delete(wavelength);
-    cpl_vector_delete(sigma_fit);
-    cpl_table_delete(catalog);
-    cpl_bivector_delete(spectrum);
-    cpl_polynomial_delete(initial_guess);
-    cpl_array_delete(wave_error_init);
-}
 
 
 /*----------------------------------------------------------------------------*/
@@ -1228,8 +1045,6 @@ int main(void)
     // test_cr2res_fit_noise();
     // test_cr2res_slit_pos();
     // test_cr2res_slit_pos_img();
-    // test_cr2res_splice_orders();
-    test_cr2res_wave_line_fitting();
 
     return cpl_test_end(0);
 }

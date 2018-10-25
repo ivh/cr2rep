@@ -37,17 +37,25 @@ LDADD = $(LIBCR2RES) $(LIBCPLDFS) $(LIBCPLUI) $(LIBCPLDRS) $(LIBCPLCORE) $(HDRL_
 check_PROGRAMS = cr2res_trace-test \
                  cr2res_utils-test \
                  cr2res_qc-test \
-                 cr2res_extract-test
+                 cr2res_extract-test \
+                 cr2res_splice-test \
+                 cr2res_wave-test
 
 cr2res_trace_test_SOURCES = cr2res_trace-test.c
 cr2res_utils_test_SOURCES = cr2res_utils-test.c
 cr2res_qc_test_SOURCES = cr2res_qc-test.c
 cr2res_extract_test_SOURCES = cr2res_extract-test.c
+cr2res_splice_test_SOURCES = cr2res_splice-test.c
+cr2res_wave_test_SOURCES = cr2res_wave-test.c
+
 
 cr2res_trace_test_DEPENDENCIES = $(LIBCR2RES)
 cr2res_utils_test_DEPENDENCIES = $(LIBCR2RES)
 cr2res_qc_test_DEPENDENCIES = $(LIBCR2RES)
 cr2res_extract_test_DEPENDENCIES = $(LIBCR2RES)
+cr2res_splice_test_DEPENDENCIES = $(LIBCR2RES)
+cr2res_wave_test_DEPENDENCIES = $(LIBCR2RES)
+
 
 # Be sure to reexport important environment variables.
 TESTS_ENVIRONMENT = MAKE="$(MAKE)" CC="$(CC)" CFLAGS="$(CFLAGS)" \

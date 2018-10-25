@@ -76,6 +76,19 @@ cpl_polynomial * cr2res_wave_line_fitting(
         cpl_vector      **  sigma_fit,
         cpl_array       **  wavelength_error) ;
 
+cpl_polynomial * cr2res_wave_line_fitting_2D(
+        cpl_bivector    **   spectrum,
+        cpl_bivector    **   spectrum_err,
+        cpl_polynomial  **   wavesol_init,
+        const cpl_array **   wave_error_init,
+        cpl_bivector    *    lines_list,
+        cpl_vector      *    orders,
+        int                  norders,
+        const cpl_size  *    degree,
+        int                  display,
+        cpl_vector      **   sigma_fit,
+        cpl_array       **   wavelength_error);
+
 cpl_polynomial * cr2res_wave_etalon(
         cpl_bivector    *   spectrum,
         cpl_polynomial  *   wavesol_init,

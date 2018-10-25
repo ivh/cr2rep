@@ -44,9 +44,16 @@ int cr2res_splice(
         cpl_bivector    **  spliced_err) ;
 
 int cr2res_splice_orders(
-        cpl_table   *   trace_wave,
-        cpl_table   *   spectra,
-        int             trace) ;
+        cpl_vector   **  wave,
+        cpl_vector   **  spec,
+        cpl_vector   **  uncs,
+        cpl_vector   **  cont, 
+        int              nspectra,
+        cpl_bivector **  spliced[],
+        cpl_bivector **  spliced_err[],
+        cpl_vector   **  spectrum_order,
+        cpl_bivector **  first,
+        cpl_bivector **  last);
 
 cpl_table * cr2res_splice_SPLICED_1D_create(
         cpl_bivector    *   spectrum,

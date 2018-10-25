@@ -462,7 +462,7 @@ int * cr2res_get_trace_numbers(
     /* Loop on the table rows */
     for (i=0 ; i<nrows ; i++)
         if (cpl_table_get(trace_wave, CR2RES_COL_ORDER,i,NULL)==order)
-            traces[k] = i;
+            traces[k] = cpl_table_get(trace_wave, CR2RES_COL_TRACENB, i, NULL);
             k++;
 
     if (nb_traces != NULL) *nb_traces = number_traces;

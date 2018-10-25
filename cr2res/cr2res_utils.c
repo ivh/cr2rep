@@ -1294,8 +1294,8 @@ int cr2res_util_get_subtrace(cpl_table * trace_wave, double slit_pos, double hei
     // get trace numbers
     int nb_traces;
     int * traces;
-    traces = cr2res_trace_get_trace_numbers(trace_wave, order, &nb_traces);
-    if (traces == NULL) return NULL;
+    traces = cr2res_get_trace_numbers(trace_wave, order, &nb_traces);
+    if (traces == NULL) return -1;
     
     const cpl_array * bounds[3], *old_fraction, *old_wave;
     double res;
@@ -1372,7 +1372,7 @@ int cr2res_util_get_subtrace(cpl_table * trace_wave, double slit_pos, double hei
 
     if (nb_traces == 1){
         old_wave = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, j);
-        cpl_array_copy_data_double(*wave, old_wave);
+        cpl_array_copy_data_double(*wave, cpl_array_get_data_double_const(old_wave));
     } else{
         for (i = 0; i < ndegree; i++){
             for (k = 0; k < nb_traces; k++){
@@ -1487,7 +1487,7 @@ int cr2res_util_split_order(cpl_table * trace_wave, int order, int nb_subtraces,
     if (res == -1)
     {
         // return to original size
-        cpl_table_delete(sub_trace_wave);
+        cpl_table_delete(*sub_trace_wave);
         return -1;
     }
     return 0;
