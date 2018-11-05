@@ -178,7 +178,7 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.method",
             CPL_TYPE_STRING, "Extraction method (SUM / OPT_VERT / OPT_CURV )",
-            "cr2res.cr2res_util_extract", FALSE);
+            "cr2res.cr2res_util_extract", "OPT_CURV");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "method");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
