@@ -75,7 +75,8 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_DARK_RAW) ||
                 !strcmp(tag, CR2RES_FLAT_RAW) ||
                 !strcmp(tag, CR2RES_BPM_PROTYPE) ||
-                !strcmp(tag, CR2RES_DETLIN_RAW)) {
+                !strcmp(tag, CR2RES_DETLIN_RAW) ||
+                !strcmp(tag, CR2RES_OBS1D_RAW)) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
         } else if (!strcmp(tag, CR2RES_DETLIN_COEFFS_PROCATG) ||
