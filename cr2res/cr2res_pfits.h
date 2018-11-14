@@ -31,6 +31,8 @@
                                    Functions prototypes
  -----------------------------------------------------------------------------*/
 
+const char * cr2res_pfits_get_procatg(const cpl_propertylist *) ;
+const char * cr2res_pfits_get_protype(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_wlen_id(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
 

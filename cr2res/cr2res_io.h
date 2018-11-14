@@ -42,6 +42,15 @@ char * cr2res_io_create_extname(
         int             detector,
         int             data) ;
 
+cpl_table * cr2res_load_table_check(
+        const char  *   in,
+        int             extnum,
+        int             order,
+        int             trace,
+        const char  *   protype,
+        int             pmin,
+        int             pmax) ;
+
 cpl_bivector * cr2res_io_load_EMISSION_LINES(
         const char  *   filename) ;
 

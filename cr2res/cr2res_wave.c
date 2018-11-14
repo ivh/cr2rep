@@ -309,6 +309,8 @@ cpl_polynomial * cr2res_wave_xcorr(
         } else {
 			/* Plot */
 			irplib_wlxcorr_plot_spc_table(spc_table, "XC", 0, 0) ;
+
+            /* TODO : Return the table as a product CR2RES_PROTYPE_XCORR */
 			cpl_table_delete(spc_table) ;
         }
     }

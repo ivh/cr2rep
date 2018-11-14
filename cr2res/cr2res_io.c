@@ -34,11 +34,15 @@
 
 #include "cr2res_io.h"
 #include "cr2res_dfs.h"
+#include "cr2res_pfits.h"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_table_check_column(
+        const cpl_table     *   tab,
+        const char          *   col) ;
 static int cr2res_io_save_imagelist(
         const char              *   filename,
         cpl_frameset            *   allframes,
@@ -167,6 +171,120 @@ int cr2res_io_get_ext_idx(
 /*----------------------------------------------------------------------------*/
 /*--------------------       LOADING FUNCTIONS       -------------------------*/
 /*----------------------------------------------------------------------------*/
+
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Check that the passed file is the proper one and load it
+  @param    in          the input file
+  @param    extnum      the detector
+  @param    order       only when relevant
+  @param    trace       only when relevant
+  @param    protype     the expected pro.type
+  @param    pmin        the first pixel to load (-1 if all)
+  @param    pmax        the last pixel to load (-1 if all)
+  @return   the loaded table or NULL if not the proper one.
+  
+  The function checks the PRO TYPE, and that the expected columns are there
+ */
+/*----------------------------------------------------------------------------*/
+cpl_table * cr2res_load_table_check(
+        const char  *   in,
+        int             extnum,
+        int             order,
+        int             trace,
+        const char  *   protype,
+        int             pmin,
+        int             pmax)
+{
+    cpl_table           *   out ;
+    cpl_table           *   out_tmp ;
+    cpl_propertylist    *   plist ;
+    const char          *   sval ;
+    char                *   checked_col ;
+    int                     nok ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+    if (protype == NULL) return NULL ;
+    if (extnum < 1 || extnum > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Check that the file contains the proper PRO.TYPE */
+    if ((plist=cpl_propertylist_load(in, 0)) == NULL) {
+        cpl_msg_error(__func__, "getting header from file %s", in);
+        return NULL ;
+    }
+    if ((sval = cr2res_pfits_get_protype(plist)) == NULL) {
+        cpl_msg_error(__func__, "No PRO.TYPE in file %s", in);
+        cpl_propertylist_delete(plist) ;
+        return NULL ;
+    }
+    if (strcmp(sval, protype)) {
+        cpl_propertylist_delete(plist) ;
+        return NULL ;
+    }
+    cpl_propertylist_delete(plist) ;
+    
+    /* Load the table */
+    if ((out = cpl_table_load(in, extnum, 0)) == NULL) {
+        cpl_msg_error(__func__, "Cannot load %s as a table", in) ;
+        return NULL ;
+    }
+
+    /* Check that the columns are there */
+    nok = 0 ;
+    if (!strcmp(protype, CR2RES_PROTYPE_CATALOG)) {
+        nok += cr2res_table_check_column(out, CR2RES_COL_WAVELENGTH) ;
+        nok += cr2res_table_check_column(out, CR2RES_COL_EMISSION) ;
+    } else if (!strcmp(protype, CR2RES_EXTRACT_1D_PROTYPE)) {
+        checked_col = cr2res_dfs_SPEC_colname(order, trace) ;
+        nok += cr2res_table_check_column(out, checked_col) ;
+        cpl_free(checked_col);
+
+        checked_col = cr2res_dfs_WAVELENGTH_colname(order, trace) ;
+        nok += cr2res_table_check_column(out, checked_col) ;
+        cpl_free(checked_col);
+
+        checked_col = cr2res_dfs_SPEC_ERR_colname(order, trace) ;
+        nok += cr2res_table_check_column(out, checked_col) ;
+        cpl_free(checked_col);
+    } else if (!strcmp(protype, CR2RES_SLIT_FUNC_PROTYPE)) {
+        cpl_msg_error(__func__, 
+                "TODO : Add support for "CR2RES_SLIT_FUNC_PROTYPE) ;
+        cpl_table_delete(out) ;
+        return NULL ;
+    } else if (!strcmp(protype, CR2RES_SPLICED_1D_PROTYPE)) {
+        cpl_msg_error(__func__, 
+                "TODO : Add support for "CR2RES_SPLICED_1D_PROTYPE) ;
+        cpl_table_delete(out) ;
+        return NULL ;
+    } else if (!strcmp(protype, CR2RES_PROTYPE_XCORR)) {
+        nok += cr2res_table_check_column(out, IRPLIB_WLXCORR_COL_WAVELENGTH) ;
+        nok += cr2res_table_check_column(out, IRPLIB_WLXCORR_COL_CAT_INIT) ;
+        nok += cr2res_table_check_column(out, IRPLIB_WLXCORR_COL_CAT_FINAL) ;
+        nok += cr2res_table_check_column(out, IRPLIB_WLXCORR_COL_OBS) ;
+    } else {
+        cpl_msg_error(__func__, "Unsupported PRO.TYPE: %s", protype) ;
+        cpl_table_delete(out) ;
+        return NULL ;
+    }
+
+    /* Check if ok */
+    if (nok > 0) {
+        cpl_table_delete(out) ;
+        return NULL ;
+    }
+
+    /* Select only between pmin and pmax */
+    if (pmin>0 && pmax>0 && pmax >= pmin && pmax <= cpl_table_get_nrow(out)) {
+        out_tmp = cpl_table_extract(out, pmin, pmax-pmin+1) ;
+        if (out_tmp != NULL) {
+            cpl_table_delete(out) ;
+            out = out_tmp ;
+        }
+    }
+    return out ;
+}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -1382,3 +1500,16 @@ static int cr2res_io_save_imagelist(
 
 	return 0 ;
 }
+
+static int cr2res_table_check_column(
+        const cpl_table     *   tab,
+        const char          *   col)
+{
+    int         ret ;
+    if (!cpl_table_has_column(tab, col)) {
+        cpl_msg_error(__func__, "Column %s is missing", col) ;
+        ret = 1 ;
+    } else ret = 0 ;
+    return ret ;
+}
+

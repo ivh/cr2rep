@@ -141,6 +141,13 @@
 /* For CR2RES_UTIL_TRACE_MAP_TRACE_PROCATG */
 #define CR2RES_TRACE_MAP_PROTYPE            "TRACE_MAP"
 
+/* For CR2RES_UTIL_WAVE_XCORR_PROCATG */
+/* Col: IRPLIB_WLXCORR_COL_WAVELENGTH   */
+/*      IRPLIB_WLXCORR_COL_CAT_INIT     */
+/*      IRPLIB_WLXCORR_COL_CAT_FINAL    */
+/*      IRPLIB_WLXCORR_COL_OBS          */
+#define CR2RES_PROTYPE_XCORR        		"XCORR"
+
 /*************************************/
 /* Define here the PRO.CATG keywords */
 /*************************************/
@@ -189,6 +196,7 @@
 /* Produced by cr2res_util_wave */
 #define CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "UTIL_WAVE_TRACE_WAVE"
 #define CR2RES_UTIL_WAVE_MAP_PROCATG        "UTIL_WAVE_MAP"
+#define CR2RES_UTIL_WAVE_XCORR_PROCATG      "UTIL_WAVE_XCORR"
 
 /* Produced by cr2res_util_trace_maps */
 #define CR2RES_UTIL_TRACE_MAP_SLIT_CURVE_PROCATG "UTIL_TRACE_MAP_SLIT_CURVE"
