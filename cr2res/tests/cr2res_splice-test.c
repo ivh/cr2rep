@@ -252,7 +252,7 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    // cr2res_splice_orders_test();
+    cr2res_splice_orders_test();
     cr2res_splice_test();
 
     return cpl_test_end(0);

@@ -612,6 +612,8 @@ int cr2res_extract_slitdec_vert(
                     bins_end)) == -1){
         cpl_msg_error(__func__, "Cannot calculate swath size");
         cpl_vector_delete(ycen);
+        cpl_vector_delete(bins_begin);
+        cpl_vector_delete(bins_end);
         return -1;
     }
     nswaths = cpl_vector_get_size(bins_begin);

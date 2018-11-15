@@ -411,8 +411,8 @@ int main(void)
     // test_cr2res_qc_dark_stddev();
     // test_cr2res_qc_trace_count_orders();
     // test_cr2res_qc_trace_count_traces();
-    // test_cr2res_qc_trace_get_ypos();
-    // test_cr2res_qc_wave_zeropoint();
+    test_cr2res_qc_trace_get_ypos();
+    test_cr2res_qc_wave_zeropoint();
 
     return cpl_test_end(0);
 }

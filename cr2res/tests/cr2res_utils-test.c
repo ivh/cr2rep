@@ -781,7 +781,7 @@ static void test_cr2res_detector_shotnoise_model(void)
     cpl_test_error(CPL_ERROR_NULL_INPUT);
     cpl_test_eq(CPL_ERROR_ILLEGAL_INPUT, cr2res_detector_shotnoise_model(ima_data, 0, ron, &ima_errs));
     cpl_test_error(CPL_ERROR_ILLEGAL_INPUT);
-    cpl_test_eq(CPL_ERROR_ILLEGAL_INPUT, cr2res_detector_shotnoise_model(ima_data, gain, 0, &ima_errs));
+    cpl_test_eq(CPL_ERROR_ILLEGAL_INPUT, cr2res_detector_shotnoise_model(ima_data, gain, -1, &ima_errs));
     cpl_test_error(CPL_ERROR_ILLEGAL_INPUT);
     cpl_test_eq(CPL_ERROR_NULL_INPUT, cr2res_detector_shotnoise_model(ima_data, gain, ron, NULL));
     cpl_test_error(CPL_ERROR_NULL_INPUT);
@@ -866,7 +866,7 @@ static void test_cr2res_demod(void)
     cpl_test_abs(0., cpl_table_get_column_max(res, "POL_X_7"), DBL_EPSILON);
     cpl_test_abs(0., cpl_table_get_column_max(res, "POL_N_7"), DBL_EPSILON);
     // Stokes I mean value from previous run
-    cpl_test_abs(12494.8323090149976, cpl_table_get_column_mean(res, "POL_I_7"), DBL_EPSILON);
+    cpl_test_abs(15919.8, cpl_table_get_column_mean(res, "POL_I_7"), 0.1);
 
     // Save results for comparison
     cpl_table_save(res, NULL, NULL, "./demod_table.fits", CPL_IO_CREATE);
@@ -1023,28 +1023,28 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    // test_cr2res_vector_get_rest();
-    // test_cr2res_vector_get_int();
-    // test_cr2res_polynomial_eval_vector();
-    // test_cr2res_image_cut_rectify();
-    // test_cr2res_image_insert_rect();
-    // test_cr2res_threshold_spec();
-    // test_cr2res_get_base_name();
-    // test_cr2res_get_root_name();
-    // test_cr2res_extract_frameset();
-    // test_cr2res_get_trace_table_index();
-    // test_cr2res_get_trace_wave_poly();
-    // test_cr2res_wlestimate_compute();
-    // test_cr2res_convert_order_to_idx();
-    // test_cr2res_convert_idx_to_order();
-    // test_cr2res_convert_array_to_poly();
-    // test_cr2res_convert_poly_to_array();
-    // test_cr2res_detector_shotnoise_model();
-    // test_cr2res_get_license();
-    // test_cr2res_demod();
-    // test_cr2res_fit_noise();
-    // test_cr2res_slit_pos();
-    // test_cr2res_slit_pos_img();
+    test_cr2res_vector_get_rest();
+    test_cr2res_vector_get_int();
+    test_cr2res_polynomial_eval_vector();
+    test_cr2res_image_cut_rectify();
+    test_cr2res_image_insert_rect();
+    test_cr2res_threshold_spec();
+    test_cr2res_get_base_name();
+    test_cr2res_get_root_name();
+    test_cr2res_extract_frameset();
+    test_cr2res_get_trace_table_index();
+    test_cr2res_get_trace_wave_poly();
+    test_cr2res_wlestimate_compute();
+    test_cr2res_convert_order_to_idx();
+    test_cr2res_convert_idx_to_order();
+    test_cr2res_convert_array_to_poly();
+    test_cr2res_convert_poly_to_array();
+    test_cr2res_detector_shotnoise_model();
+    test_cr2res_get_license();
+    test_cr2res_demod();
+    test_cr2res_fit_noise();
+    test_cr2res_slit_pos();
+    test_cr2res_slit_pos_img();
 
     return cpl_test_end(0);
 }

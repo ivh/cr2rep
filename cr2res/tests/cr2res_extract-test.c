@@ -40,6 +40,7 @@ static void test_cr2res_slitdec_vert_regression(void);
 static void test_cr2res_slitdec_vert_edge_cases(void);
 static void test_cr2res_slitdec_vert(void);
 static void test_cr2res_slitdec_compare_vert_curved(void);
+static void test_cr2res_slitdec_errors(void);
 
 static cpl_table *load_table()
 {
@@ -330,11 +331,9 @@ static void test_cr2res_slitdec_vert_regression(void)
 
 static void test_cr2res_slitdec_vert_edge_cases(void)
 {
-    int width = 100;
-    int height = 20;
+    int width = 2000;
+    int height = 50;
     double spec_in[width];
-    double shear[width];
-    for (int k =0; k < width; k++) shear[k] = 0;
     cpl_image * img_in = create_image_linear_increase(width, height, spec_in);
     hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
     cpl_table * trace_table = create_table_linear_increase(width, height, 0);
@@ -620,6 +619,43 @@ static void test_cr2res_slitdec_compare_vert_curved(void)
     hdrl_image_delete(img_hdrl);
 }
 
+static void test_cr2res_slitdec_errors(void){
+    int width = 1000;
+    int height = 21;
+    int order = 1;
+    int trace = 1;
+    int swath = 200;
+    int oversample = 1;
+    double smooth_slit = 10;
+    double spec_in[width];
+
+    cpl_vector * slit_func, *error;
+    cpl_bivector * spec;
+    hdrl_image * model;
+
+    cpl_image * img_in = create_image_linear_increase(width, height * 2, spec_in);
+    cpl_image * err_in = cpl_image_new(width, height, CPL_TYPE_DOUBLE);
+    cpl_image_add_scalar(err_in, 1);
+    hdrl_image * img_hdrl = hdrl_image_create(img_in, err_in);
+    cpl_table * trace_table = create_table_linear_increase(width, height * 2, 0);
+
+    cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, swath,
+                oversample, smooth_slit, &slit_func, &spec, &model);
+
+    error = cpl_bivector_get_y(spec);
+
+    // Free memory
+    cpl_vector_delete(slit_func);
+    cpl_vector_delete(error);
+    cpl_bivector_delete(spec);
+    hdrl_image_delete(model);
+
+    cpl_table_delete(trace_table);
+    cpl_image_delete(img_in);
+    cpl_image_delete(err_in);
+    hdrl_image_delete(img_hdrl);
+}
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Run the Unit tests
@@ -629,11 +665,12 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    // test_cr2res_slitdec_vert_edge_cases();
+    test_cr2res_slitdec_vert_edge_cases();
     // test_cr2res_slitdec_vert_regression();
-    // test_cr2res_slitdec_vert();
-    // test_cr2res_slitdec_curved();
+    test_cr2res_slitdec_vert();
+    test_cr2res_slitdec_curved();
     test_cr2res_slitdec_compare_vert_curved();
+    // test_cr2res_slitdec_errors();
 
     return cpl_test_end(0);
 }

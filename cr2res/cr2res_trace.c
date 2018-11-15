@@ -622,6 +622,7 @@ cpl_polynomial * cr2res_get_trace_wave_poly(
 
     /* Get Table index from order and trace */
     index = cr2res_get_trace_table_index(trace_wave, order, trace_nb) ;
+    if (index == -1) return NULL;
 
     /* Read the Table */
     wave_arr = cpl_table_get_array(trace_wave, poly_column, index) ;

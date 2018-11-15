@@ -438,7 +438,7 @@ static void test_cr2res_trace_get_ycen(void)
     cpl_vector *res;
     //run test
     cpl_test_null(cr2res_trace_get_ycen(NULL, order_nb, trace_nb, size));
-    cpl_test_null(cr2res_trace_get_ycen(trace, 100, trace_nb, size)); // XXX
+    cpl_test_null(cr2res_trace_get_ycen(trace, 100, trace_nb, size));
     cpl_test_null(cr2res_trace_get_ycen(trace, order_nb, 5, size));
     cpl_test_null(cr2res_trace_get_ycen(trace, order_nb, trace_nb, -1));
 
@@ -449,7 +449,7 @@ static void test_cr2res_trace_get_ycen(void)
         // values from test table
         data[i] = 437.881 + (i + 1) * 0.0172448;
     }
-    cmp = cpl_vector_wrap(2048, data);
+    cmp = cpl_vector_wrap(size, data);
 
     // Run that sould not fail, compare output
     cpl_test(res = cr2res_trace_get_ycen(trace, order_nb, trace_nb, size));
@@ -1107,24 +1107,24 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    //test_cr2res_trace();
-    /* test_cr2res_trace_clean(); */
-    /* test_cr2res_trace_gen_image(); */
-    /* test_cr2res_trace_get_order_numbers(); */
-    /* test_cr2res_trace_get_ycen(); */
-    /* test_cr2res_trace_get_height(); */
-    /* test_cr2res_trace_compute_middle(); */
-    /* test_cr2res_trace_compute_height(); */
-    /* test_cr2res_trace_get_trace_ypos(); */
-    /* // test_cr2res_trace_add_ord_tra_wav_curv_columns(); */
-    /* test_cr2res_trace_split_traces(); */
-    /* test_cr2res_trace_signal_detect(); */
-    /* test_cr2res_trace_fit_traces(); */
-    /* test_cr2res_trace_fit_trace(); */
-    /* test_cr2res_trace_convert_cluster_to_labels(); */
-    /* test_cr2res_trace_convert_labels_to_cluster(); */
-    /* test_cr2res_trace_clean_blobs(); */
-    /* test_cr2res_trace_extract_edges(); */
+    test_cr2res_trace();
+    test_cr2res_trace_clean();
+    test_cr2res_trace_gen_image();
+    test_cr2res_trace_get_order_numbers();
+    test_cr2res_trace_get_ycen();
+    test_cr2res_trace_get_height();
+    test_cr2res_trace_compute_middle();
+    test_cr2res_trace_compute_height();
+    test_cr2res_trace_get_trace_ypos();
+    // test_cr2res_trace_add_ord_tra_wav_curv_columns();
+    test_cr2res_trace_split_traces();
+    test_cr2res_trace_signal_detect();
+    test_cr2res_trace_fit_traces();
+    test_cr2res_trace_fit_trace();
+    test_cr2res_trace_convert_cluster_to_labels();
+    test_cr2res_trace_convert_labels_to_cluster();
+    test_cr2res_trace_clean_blobs();
+    test_cr2res_trace_extract_edges();
 
     return cpl_test_end(0);
 }
