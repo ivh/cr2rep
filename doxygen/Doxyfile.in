@@ -669,7 +669,8 @@ WARN_LOGFILE           =
 # with spaces.
 
 INPUT                  = ../recipes \
-                         ../hdrl
+                         #../hdrl \
+                         ../cr2res \
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is
@@ -718,8 +719,8 @@ EXCLUDE_SYMLINKS       = NO
 # for example use the pattern */test/*
 
 EXCLUDE_PATTERNS       = */CVS/* \
-                         */test/* \
-                         */tests/* \
+#                         */test/* \
+#                         */tests/* \
                          EXAMPLE_PATH \
                          =
 
