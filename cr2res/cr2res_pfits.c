@@ -99,14 +99,7 @@ const char * cr2res_pfits_get_wlen_id(const cpl_propertylist * plist)
 /*----------------------------------------------------------------------------*/
 double cr2res_pfits_get_dit(const cpl_propertylist * plist)
 {
-    double dit;
-    if ((dit = cpl_propertylist_get_double(plist, "ESO DET DIT")) == 0) {
-        cpl_msg_warning(__func__, "Cannot get DET.DIT, using alternative DET.SEQ1.DIT.");
-        cpl_error_reset();
-        dit = cpl_propertylist_get_double(plist, "ESO DET SEQ1 DIT");
-        cpl_msg_debug(__func__,"DIT: %.2f",dit);
-    }  ;
-    return dit;
+    return cpl_propertylist_get_double(plist, "ESO DET SEQ1 DIT")  ;
 }
 
 /*----------------------------------------------------------------------------*/
