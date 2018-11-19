@@ -777,7 +777,7 @@ static int cr2res_cal_flat_reduce(
 			}
 		} else {
 			/* Call the SLIT DECOMPOSITION */
-			if (cr2res_extract_slitdec_vert(
+			if (cr2res_extract_slitdec_curved(
                         collapsed, 
                         traces, order, trace_id, extract_height, 
                         extract_swath_width, extract_oversample, 
