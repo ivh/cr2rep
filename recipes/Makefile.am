@@ -36,6 +36,7 @@ noinst_HEADERS =
 plugin_LTLIBRARIES = cr2res_cal_detlin.la \
                      cr2res_cal_dark.la \
                      cr2res_cal_flat.la \
+                     cr2res_obs_1d.la \
                      cr2res_util_bpm_split.la \
                      cr2res_util_calib.la \
                      cr2res_util_extract.la \
@@ -62,6 +63,11 @@ cr2res_cal_flat_la_SOURCES = cr2res_cal_flat.c
 cr2res_cal_flat_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
 cr2res_cal_flat_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
 cr2res_cal_flat_la_DEPENDENCIES = $(LIBCR2RES)
+
+cr2res_obs_1d_la_SOURCES = cr2res_obs_1d.c
+cr2res_obs_1d_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
+cr2res_obs_1d_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
+cr2res_obs_1d_la_DEPENDENCIES = $(LIBCR2RES)
 
 cr2res_util_bpm_split_la_SOURCES = cr2res_util_bpm_split.c
 cr2res_util_bpm_split_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
