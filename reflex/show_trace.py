@@ -14,7 +14,7 @@ def compare(fname_trace, fname_img=None, fname_spec=None):
     else: linecol= 'k'
     if fname_spec:
         spec = fits.open(fname_spec)
-        
+
     X = np.arange(2048)
     FIG = plt.figure(figsize=(10, 3.5))
 
@@ -25,8 +25,8 @@ def compare(fname_trace, fname_img=None, fname_spec=None):
 
         if fname_img:
             imgdata = img[i].data
-            ax.imshow(imgdata, origin='lower')
-        
+            ax.imshow(imgdata, origin='lower',vmax=imgdata.max()*0.2)
+
         try: tdata = trace[i].data
         except:
             print('extension %s is missing, skipping.' % i)
@@ -52,8 +52,8 @@ def compare(fname_trace, fname_img=None, fname_spec=None):
             ax.plot(X, pol, '--'+linecol)
             if np.isnan(pol[1024]):
                 continue
-            ax.text(1024, pol[1024], 'order: %s\ntrace: %s\nslitfrac: %.2f %.2f %.2f' % (t['order'], t['TraceNb'], *t['SlitFraction']), color=linecol, horizontalalignment='center',
-                    verticalalignment='center', size=11)
+            #ax.text(1024, pol[1024], 'order: %s\ntrace: %s\nslitfrac: %.2f %.2f %.2f' % (t['order'], t['TraceNb'], *t['SlitFraction']), color=linecol, horizontalalignment='center',
+            #        verticalalignment='center', size=11)
 
 
     FIG.tight_layout(pad=0.02)
@@ -68,7 +68,7 @@ if __name__ == '__main__':
         fname_trace = sys.argv[1]
     if len(sys.argv) > 2:
         fname_img = sys.argv[2]
-    if len(sys.argv) > 3:    
+    if len(sys.argv) > 3:
         fname_spec = sys.argv[3]
 
     compare(fname_trace, fname_img, fname_spec)
