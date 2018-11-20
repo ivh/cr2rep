@@ -51,6 +51,15 @@ static int deriv_poly(const double x[], const double a[], double * result) ;
 static int gauss(const double x[], const double a[], double * result) ;
 static int gauss_derivative(const double x[], const double a[], double * result) ;
 
+cpl_polynomial  * polyfit_1d(
+    cpl_matrix  * px, 
+    cpl_vector  * py,
+    cpl_vector  * sigma_py,
+    int degree, 
+    const cpl_polynomial * solution_init,
+    cpl_array   ** wavelength_error,
+    cpl_vector  ** sigma_fit,
+    cpl_matrix  ** cov);
 
 int cr2res_wave_extract_lines(
     cpl_bivector    *   spectrum,
@@ -104,9 +113,9 @@ cpl_polynomial * cr2res_wave_1d(
     int                 wl_error ;
 
     /* Check Inputs */
-    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL) 
+    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL)
         return NULL ;
-    if ((wavecal_type == CR2RES_XCORR || wavecal_type == CR2RES_LINE1D) && 
+    if ((wavecal_type == CR2RES_XCORR || wavecal_type == CR2RES_LINE1D) &&
             static_file == NULL) return NULL ;
 
     /* Initialise */
@@ -115,7 +124,7 @@ cpl_polynomial * cr2res_wave_1d(
     *wavelength_error = NULL ;
 
     /* Create the lines spectrum from the lines list */
-    ref_spectrum = cr2res_wave_gen_lines_spectrum(static_file, wavesol_init, 
+    ref_spectrum = cr2res_wave_gen_lines_spectrum(static_file, wavesol_init,
             wl_error) ;
 
     /* Just Extract the lines from the catalog */
@@ -123,16 +132,16 @@ cpl_polynomial * cr2res_wave_1d(
 
     /* Switch on the possible methods */
     if (wavecal_type == CR2RES_XCORR) {
-        solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error, 
+        solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error,
                 ref_spectrum, degree, display) ;
     } else if (wavecal_type == CR2RES_LINE1D) {
-        solution = cr2res_wave_line_fitting(spectrum, spectrum_err, 
-                wavesol_init, wave_error_init, simple_ref_spectrum, degree, 
+        solution = cr2res_wave_line_fitting(spectrum, spectrum_err,
+                wavesol_init, wave_error_init, simple_ref_spectrum, degree,
                 display, NULL, wavelength_error) ;
     } else if (wavecal_type == CR2RES_ETALON) {
-        solution = cr2res_wave_etalon(spectrum, wavesol_init, wavelength_error);
+        solution = cr2res_wave_etalon(spectrum, spectrum_err, wavesol_init, degree, wavelength_error);
     }
-        
+
     if (ref_spectrum != NULL) cpl_bivector_delete(ref_spectrum) ;
     if (simple_ref_spectrum != NULL) cpl_bivector_delete(simple_ref_spectrum) ;
 
@@ -320,6 +329,22 @@ cpl_polynomial * cr2res_wave_xcorr(
     return sol ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  Extract line positions in spectrum
+  @param    spectrum        Input spectrum
+  @param    spectrum_err    Input spectrum error
+  @param    wavesol_init    Starting wavelength solution
+  @param    wl_error        Max error in pixels of the initial guess
+  @param    lines_list      Lines List (flux, wavelengths)
+  @param    degree          The polynomial degree
+  @param    display         Flag to display results
+  @return  Wavelength solution, i.e. polynomial that translates pixel
+            values to wavelength.
+
+    TODO: Summarize method
+ */
+/*----------------------------------------------------------------------------*/
 int cr2res_wave_extract_lines(
     cpl_bivector    *   spectrum,
     cpl_bivector    *   spectrum_err,
@@ -334,7 +359,7 @@ int cr2res_wave_extract_lines(
 {
 
     /* Check Entries */
-    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL || 
+    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL ||
             lines_list == NULL || wave_error_init == NULL){
         return -1;
     }
@@ -382,14 +407,14 @@ int cr2res_wave_extract_lines(
     // so that we can find the closest pixel position of each line
     spec_size = cpl_vector_get_size(spec);
     wave_vec = cpl_vector_new(spec_size);
-    for (i = 0; i< spec_size; i++){ 
+    for (i = 0; i< spec_size; i++){
         cpl_vector_set(wave_vec, i, cpl_polynomial_eval_1d(wavesol_init, i, NULL));
     }
 
-    // get line data 
+    // get line data
     wave = cpl_bivector_get_x_data(lines_list);
     height = cpl_bivector_get_y_data_const(lines_list);
-    // TODO width is not provided in the catalog at the moment, 
+    // TODO width is not provided in the catalog at the moment,
     // use half window size instead?
     width = window_size/2;
 
@@ -403,7 +428,7 @@ int cr2res_wave_extract_lines(
             k = j + pixel_pos - window_size / 2;
             if (k < 0 | k >= spec_size){
                 // if the window reaches outside the spectrum
-                // don't use the line  
+                // don't use the line
                 ngood--;
                 cpl_vector_set(flag_vec, i, 0);
                 break;
@@ -414,7 +439,7 @@ int cr2res_wave_extract_lines(
             cpl_vector_set(sigma_y, j, cpl_vector_get(unc, k));
         }
 
-        if (cpl_vector_get(flag_vec, i) == 0){ 
+        if (cpl_vector_get(flag_vec, i) == 0){
             // if the line was flagged as bad, skip the fit
             continue;
         }
@@ -423,16 +448,16 @@ int cr2res_wave_extract_lines(
         cpl_vector_set(a, 1, width);
         cpl_vector_set(a, 2, height[i]);
         cpl_vector_set(a, 3, cpl_vector_get_min(y));
-        
+
         error = cpl_fit_lvmq(x, sigma_x, y, sigma_y, a, ia, &gauss, &gauss_derivative,
-                        CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT, 
+                        CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT,
                         CPL_FIT_LVMQ_MAXITER, NULL, &red_chisq, NULL);
 
         // Set new pixel pos based on gaussian fit
         cpl_vector_set(pixel_vec, i, cpl_vector_get(a, 0));
         // width == uncertainty of wavelength position?
         cpl_vector_set(width_vec, i, cpl_vector_get(a, 1));
-        // if fit to bad set flag to 0(False) 
+        // if fit to bad set flag to 0(False)
         // TODO: when is fit bad?
         if (error != CPL_ERROR_NONE){
             cpl_vector_set(flag_vec, i, 0);
@@ -457,7 +482,7 @@ int cr2res_wave_extract_lines(
             k++;
         }
     }
-    
+
     cpl_matrix_delete(x);
     cpl_vector_delete(y);
     cpl_vector_delete(sigma_y);
@@ -474,16 +499,16 @@ int cr2res_wave_extract_lines(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Compute the wavelength polynomial based on a line spectrum 
+  @brief    Compute the wavelength polynomial based on a line spectrum
             and a reference catalog by finding lines and fitting
-  @param    spectrum        Observed spectrum 
+  @param    spectrum        Observed spectrum
   @param    spectrum_err    Observed spectrum error
   @param    wavesol_init    Initial wavelength solution
   @param    wave_error_init Initial wavelength error (can be NULL)
   @param    lines_list      Lines List (flux, wavelengths)
   @param    degree          The polynomial degree
   @param    display         Flag to display results
-  @param    sigma_fit       [out] uncertainties of the polynomial fit 
+  @param    sigma_fit       [out] uncertainties of the polynomial fit
                             parameters (may be NULL)
   @param    wavelength_error [out] array of wave_mean_error, wave_max_error (may be NULL)
   @return  Wavelength solution, i.e. polynomial that translates pixel
@@ -503,101 +528,31 @@ cpl_polynomial * cr2res_wave_line_fitting(
         cpl_array       **  wavelength_error)
 {
     /* Check Entries */
-    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL || 
-            lines_list == NULL || wave_error_init == NULL) 
+    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL ||
+            lines_list == NULL || wave_error_init == NULL)
         return NULL;
 
-    cpl_size power = 1;
-
-    int n = cpl_bivector_get_size(lines_list);
-
-    cpl_size i, j, k, spec_size;
-
-    cpl_vector * diff;
-    cpl_polynomial * result = cpl_polynomial_new(1);
-    cpl_matrix * cov;
-    cpl_error_code error;
-
     // For polynomial fit
+    cpl_polynomial * result;
+    cpl_matrix * cov;
     cpl_matrix * px;
-    cpl_matrix * sigma_px = NULL;
     cpl_vector * py;
     cpl_vector * sigma_py;
-    cpl_vector * pa = cpl_vector_new(degree + 1 + 1);
-    // first parameter of polynomial fit is the number of degrees (the value is fixed though)
-    // the number of parameters is then polynomial degree + 1 (constant term) + 1 (number of degrees)
-    // i.e. pa = degrees, a0, a1, ...
-    cpl_vector_set(pa, 0, degree);  
-    int *pia = cpl_malloc((degree + 1 + 1) * sizeof(int));
-    pia[0] = 0;
-    for (i = 1; i < degree + 1 + 1; i++){
-        pia[i] = 1;
-    }
 
     // extract line data in 1 spectrum
     cr2res_wave_extract_lines(spectrum, spectrum_err, wavesol_init, wave_error_init, lines_list, display, &px, &py, &sigma_py);
-    
-    // initial guess for polynomial fit, based on passed initial guess
-    for (j = 0; j < degree+1; j++){
-        cpl_vector_set(pa, j+1, cpl_polynomial_get_coeff(wavesol_init, &j));
-    }
 
-    // I would use cpl_polynomial_fit, but that does not support error estimation
-    error = cpl_fit_lvmq(px, sigma_px, py, sigma_py, pa, pia, &poly, &deriv_poly,
-                        CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT, 
-                        CPL_FIT_LVMQ_MAXITER, NULL, NULL, &cov);
+    // fit polynomial to data points
+    result = polyfit_1d(px, py, sigma_py, degree, wavesol_init, wavelength_error, sigma_fit, &cov);
 
-    if (error == CPL_ERROR_NONE){
-        // Everything is fine
-
-        // if there are not enough data points left for the polynomial fit
-        // the lvmq fit will complain about a singular matrix
-
-        // errors of the fit are the square root of the diagonal of the covariance matrix
-        // assuming parameters are uncorrelated, better use the whole matrix
-        // errors on the wavelength are then given using standard error propagation
-        // s_wl**2 = s0**2 + s1**2 * x**2 + s2**2 * x**4 + ... si**2 * x**(2*i)
-        for (i = 0; i < degree + 1; i++){
-            cpl_polynomial_set_coeff(result, &i, cpl_vector_get(pa, i+1));
-            if (sigma_fit != NULL)
-                cpl_vector_set(*sigma_fit, i, sqrt(cpl_matrix_get(cov, i+1, i+1)));
-        }
-
-        if (wavelength_error != NULL){
-            // Calculate absolute difference between polynomial and catalog value for each line
-            // use px and py, so that only good lines are used
-            diff = cpl_vector_new(cpl_vector_get_size(py));
-            //*wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
-            for (i = 0; i < cpl_vector_get_size(py); i++){
-                cpl_vector_set(diff, i, abs(
-                    cpl_polynomial_eval_1d(result, cpl_matrix_get(px, i, 0), NULL) 
-                    - cpl_vector_get(py, i)));
-            }
-            // Set wavelength_error to mean and max difference
-            cpl_array_set_double(*wavelength_error, 0, cpl_vector_get_mean(diff));
-            cpl_array_set_double(*wavelength_error, 1, cpl_vector_get_max(diff));
-
-            cpl_vector_delete(diff);
-        }
-    }
-    
     cpl_matrix_delete(px);
     cpl_vector_delete(py);
     cpl_vector_delete(sigma_py);
-    cpl_vector_delete(pa);
-    cpl_free(pia);
 
-    cpl_matrix_delete(cov);
-
-
-    // in case something went wrong during fitting
-    if (error != CPL_ERROR_NONE){
-        cpl_polynomial_delete(result);
-        cpl_error_reset();
-        // if (sigma_fit != NULL)
-        //     cpl_vector_delete(*sigma_fit);
-        return NULL;
+    if (result != NULL){
+        cpl_matrix_delete(cov);
     }
+
     return result;
 }
 
@@ -605,9 +560,9 @@ cpl_polynomial * cr2res_wave_line_fitting(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Compute the 2D wavelength polynomial based on a line spectrum 
+  @brief    Compute the 2D wavelength polynomial based on a line spectrum
             and a reference catalog by finding lines and fitting
-  @param    spectrum        list of Observed spectrum 
+  @param    spectrum        list of Observed spectrum
   @param    spectrum_err    list of Observed spectrum error
   @param    wavesol_init    list of Initial wavelength solution
   @param    wave_error_init list of Initial wavelength error
@@ -616,7 +571,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
   @param    norders         number of orders
   @param    degree          The polynomial degrees ([0] wavelength, [1] order)
   @param    display         Flag to display results
-  @param    sigma_fit       [out] uncertainties of the polynomial fit 
+  @param    sigma_fit       [out] uncertainties of the polynomial fit
                             parameters (may be NULL)
   @param    wavelength_error [out] array of wave_mean_error, wave_max_error (may be NULL)
   @return  Wavelength solution, i.e. polynomial that translates pixel
@@ -641,9 +596,9 @@ cpl_polynomial * cr2res_wave_line_fitting_2D(
         cpl_array       **   wavelength_error)
 {
     /* Check Entries */
-    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL || 
+    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL ||
             lines_list == NULL || wave_error_init == NULL || orders == NULL ||
-            norders <= 0 || degree == NULL) 
+            norders <= 0 || degree == NULL)
         return NULL;
 
 
@@ -701,7 +656,7 @@ cpl_polynomial * cr2res_wave_line_fitting_2D(
 
         for (j = 0; j < new; j++){
             cpl_vector_set(py, old + j, cpl_vector_get(tmp_y, j));
-            cpl_vector_set(sigma_py, old + j, cpl_vector_get(tmp_sigma, j));        
+            cpl_vector_set(sigma_py, old + j, cpl_vector_get(tmp_sigma, j));
             cpl_matrix_set(px, 0, old + j, cpl_matrix_get(tmp_x, j, 0));
             cpl_matrix_set(px, 1, old + j, cpl_vector_get(orders, i));
         }
@@ -718,7 +673,7 @@ cpl_polynomial * cr2res_wave_line_fitting_2D(
 
     // I would use cpl_polynomial_fit, but that does not support error estimation
     // error = cpl_fit_lvmq(px, sigma_px, py, sigma_py, pa, pia, &poly, &deriv_poly,
-    //                     CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT, 
+    //                     CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT,
     //                     CPL_FIT_LVMQ_MAXITER, NULL, NULL, &cov);
 
     error = cpl_polynomial_fit(result, px, NULL, py, NULL, TRUE, NULL, degree);
@@ -750,7 +705,7 @@ cpl_polynomial * cr2res_wave_line_fitting_2D(
                 cpl_vector_set(pos, 1, cpl_matrix_get(px, i, 1));
 
                 cpl_vector_set(diff, i, abs(
-                    cpl_polynomial_eval(result, pos) 
+                    cpl_polynomial_eval(result, pos)
                     - cpl_vector_get(py, i)));
             }
             // Set wavelength_error to mean and max difference
@@ -761,14 +716,10 @@ cpl_polynomial * cr2res_wave_line_fitting_2D(
             cpl_vector_delete(pos);
         }
     }
-    
+
     cpl_matrix_delete(px);
     cpl_vector_delete(py);
     cpl_vector_delete(sigma_py);
-    // cpl_vector_delete(pa);
-    // cpl_free(pia);
-
-    // cpl_matrix_delete(cov);
 
 
     // in case something went wrong during fitting
@@ -811,7 +762,9 @@ cpl_polynomial * cr2res_wave_line_fitting_2D(
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_wave_etalon(
         cpl_bivector    *   spectrum,
+        cpl_bivector    *   spectrum_err,
         cpl_polynomial  *   wavesol_init,
+        int                 degree,
         cpl_array       **  wavelength_error)
 {
     cpl_bivector *  is_should;
@@ -822,44 +775,55 @@ cpl_polynomial * cr2res_wave_etalon(
 	double			l0, trueD;
     int             nxi, i;
 
+    // Find etalon peaks xi in spectrum
+    // TODO: Use Spectrum Error
     xi = cr2res_wave_etalon_measure_fringes(
-            cpl_bivector_get_y(spectrum));
+            cpl_bivector_get_y(spectrum)); 
     nxi=cpl_vector_get_size(xi);
 
-    /* apply initial solution to get lambda_i*/
+    /* apply initial solution to get wavelength li at each point xi*/
     li = cr2res_polynomial_eval_vector(wavesol_init, xi);
 
-    /* */
+    /* mi = li / l0 */
     mi = cpl_vector_new(nxi);
-    cpl_vector_set(mi,0,1.0);
     l0 = cpl_vector_get(li,0);
     for (i=0; i<nxi; i++){
         cpl_vector_set(mi,i, cpl_vector_get(li,i) / l0);
-
     }
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
         cpl_vector_dump(mi,stdout);
     }
 
+    /* Calculate delta lambda between peaks */
 	trueD = cr2res_wave_etalon_get_D(li);
     cpl_msg_debug(__func__,"trueD: %e", trueD);
 
+    /* Set vector with correct wavelength values */
+    // TODO what about missing peaks
     li_true = cpl_vector_new(nxi);
     for (i=0; i<nxi; i++) {
-        cpl_vector_set(li_true, i, (trueD*i));
+        cpl_vector_set(li_true, i, l0 + (trueD*i));
     }
 
+    // Fix missing values, outliers etc.
     is_should = cr2res_wave_etalon_assign_fringes(xi, li_true);
+    cpl_bivector_dump(is_should, stdout);
 
-  
+    // TODO return polynomial fit to xi, is_should
+    cpl_matrix * px = cpl_matrix_wrap(nxi, 1, cpl_vector_get_data(xi));
+    cpl_polynomial * result = polyfit_1d(px, li_true, NULL, 
+                degree, wavesol_init, wavelength_error, NULL, NULL);
 
-/* TODO: Fill the wavelength_error */
-    
+    /* TODO: Fill the wavelength_error */
+
+    cpl_matrix_unwrap(px);
+    cpl_vector_delete(li_true);
+
     cpl_bivector_delete(is_should);
     cpl_vector_delete(xi);
     cpl_vector_delete(li);
     cpl_vector_delete(mi);
-    return NULL ;
+    return result;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1010,6 +974,8 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
         cpl_vector_save(spec_thresh, "debug_thresh.fits", CPL_TYPE_DOUBLE,
                 NULL, CPL_IO_CREATE);
+        cpl_vector_save(spectrum, "debug_spectrum.fits", CPL_TYPE_DOUBLE,
+                NULL, CPL_IO_CREATE);
     }
 
     /*Output array, values are invalid until set.*/
@@ -1021,12 +987,12 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
 
     for (i=0; i < nx; i++){
         j = 0;
-        while ( (spec_i = cpl_vector_get(spec_thresh, i)) > 0 ) {
+        while ( (spec_i = cpl_vector_get(spec_thresh, i)) > -1 ) {
             j++;
             i++;
         }
         if (j < min_len_peak) continue;
-        //cpl_msg_debug(__func__, "Peak length j=%d at i=%d",j,i);
+        // cpl_msg_debug(__func__, "Peak length j=%d at i=%d",j,i);
         cur_peak = cpl_vector_extract(spec_thresh, i-j, i, 1) ;
         X_peak = cpl_vector_extract(X_all, i-j, i, 1) ;
 
@@ -1036,6 +1002,7 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
             cpl_msg_warning(__func__, "Fit at j=%d i=%d failed",j,i);
             cpl_vector_delete(cur_peak);
             cpl_vector_delete(X_peak);
+            cpl_error_reset();
             continue;
         }
 
@@ -1255,6 +1222,115 @@ hdrl_image * cr2res_wave_gen_wave_map(
         }
     }
     return out ;
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Fit a 1D polynomial to data px, py, sigma_py
+  @param    px              X data, i.e. pixel positions
+  @param    py              Y data, i.e. wavelengths
+  @param    sigma_py        Y error, i.e. uncertainty on each wavelength
+  @param    degree          Degree of the polynomial fit
+  @param    solution_init   Initial solution of the polynomial fit
+  @param    wavelength_error [out] array of wave_mean_error, wave_max_error (may be NULL)
+  @param    sigma_fit       [out] uncertainties of the polynomial fit
+                            parameters (may be NULL)
+  @param    cov             Covariance matrix of the polynomial fit (may be NULL if sigma_fit is NULL)
+
+  @return  Wavelength solution, i.e. polynomial that translates pixel
+            values to wavelength.
+  The returned polynomial must be deallocated with cpl_polynomial_delete()
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * polyfit_1d(
+        cpl_matrix * px, 
+        cpl_vector * py,
+        cpl_vector *sigma_py,
+        int degree,
+        const cpl_polynomial * solution_init,
+        cpl_array ** wavelength_error,
+        cpl_vector ** sigma_fit,
+        cpl_matrix ** cov)
+{
+
+    // For polynomial fit
+    cpl_vector * diff;
+    cpl_polynomial * result = cpl_polynomial_new(1);
+    cpl_matrix * sigma_px = NULL;
+    cpl_vector * pa = cpl_vector_new(degree + 1 + 1);
+    cpl_error_code error;
+    cpl_size i, j;
+    int *pia;
+    
+    // first parameter of polynomial fit is the number of degrees (the value is fixed though)
+    // the number of parameters is then polynomial degree + 1 (constant term) + 1 (number of degrees)
+    // i.e. pa = degrees, a0, a1, ...
+    cpl_vector_set(pa, 0, degree);
+    pia = cpl_malloc((degree + 1 + 1) * sizeof(int));
+    pia[0] = 0;
+    for (i = 1; i < degree + 1 + 1; i++){
+        pia[i] = 1;
+    }
+
+    // initial guess for polynomial fit, based on passed initial guess
+    for (j = 0; j < degree+1; j++){
+        cpl_vector_set(pa, j+1, cpl_polynomial_get_coeff(solution_init, &j));
+    }
+
+    // polynomial fit of px, py
+    // with px: line pixel, py: line wavelength
+    // I would use cpl_polynomial_fit, but that does not support error estimation
+    error = cpl_fit_lvmq(px, sigma_px, py, sigma_py, pa, pia, &poly, &deriv_poly,
+                        CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT,
+                        CPL_FIT_LVMQ_MAXITER, NULL, NULL, cov);
+
+
+    if (error == CPL_ERROR_NONE){
+        // Everything is fine
+
+        // if there are not enough data points left for the polynomial fit
+        // the lvmq fit will complain about a singular matrix
+
+        // errors of the fit are the square root of the diagonal of the covariance matrix
+        // assuming parameters are uncorrelated, better use the whole matrix
+        // errors on the wavelength are then given using standard error propagation
+        // s_wl**2 = s0**2 + s1**2 * x**2 + s2**2 * x**4 + ... si**2 * x**(2*i)
+        for (i = 0; i < degree + 1; i++){
+            cpl_polynomial_set_coeff(result, &i, cpl_vector_get(pa, i+1));
+            if (sigma_fit != NULL)
+                cpl_vector_set(*sigma_fit, i, sqrt(cpl_matrix_get(*cov, i+1, i+1)));
+        }
+
+        if (wavelength_error != NULL){
+            // Calculate absolute difference between polynomial and catalog value for each line
+            // use px and py, so that only good lines are used
+            diff = cpl_vector_new(cpl_vector_get_size(py));
+            //*wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+            for (i = 0; i < cpl_vector_get_size(py); i++){
+                cpl_vector_set(diff, i, abs(
+                    cpl_polynomial_eval_1d(result, cpl_matrix_get(px, i, 0), NULL)
+                    - cpl_vector_get(py, i)));
+            }
+            // Set wavelength_error to mean and max difference
+            cpl_array_set_double(*wavelength_error, 0, cpl_vector_get_mean(diff));
+            cpl_array_set_double(*wavelength_error, 1, cpl_vector_get_max(diff));
+
+            cpl_vector_delete(diff);
+        }
+    }
+
+
+    cpl_vector_delete(pa);
+    cpl_free(pia);
+
+    if (error != CPL_ERROR_NONE){
+        cpl_polynomial_delete(result);
+        cpl_error_reset();
+        return NULL;
+    }
+
+    return result;
 }
 
 // Functions for polynomial fit in _wave_catalog()

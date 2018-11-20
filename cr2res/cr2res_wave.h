@@ -91,7 +91,9 @@ cpl_polynomial * cr2res_wave_line_fitting_2D(
 
 cpl_polynomial * cr2res_wave_etalon(
         cpl_bivector    *   spectrum,
+        cpl_bivector    *   spectrum_err,
         cpl_polynomial  *   wavesol_init,
+        int                 degree,
         cpl_array       **  wavelength_error) ;
 
 cpl_vector * cr2res_wave_etalon_measure_fringes(cpl_vector * spectrum);

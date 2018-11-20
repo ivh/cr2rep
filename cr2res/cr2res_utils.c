@@ -1085,6 +1085,9 @@ int cr2res_slit_pos(
         cpl_polynomial  **  coef_slit, 
         cpl_polynomial  **  coef_wave)
 {
+
+    if (tw_decker1 == NULL | tw_decker2 == NULL | coef_slit == NULL | coef_wave == NULL) return -1;
+
     // load data
     int i, j, k;
     int order;
@@ -1100,7 +1103,11 @@ int cr2res_slit_pos(
     int *unique_orders_2 = cr2res_trace_get_order_numbers(tw_decker1, 
             &nb_orders_2);
 
-    if (nb_orders_1 != nb_orders_2) return -1;
+    if (nb_orders_1 != nb_orders_2){
+        cpl_free(unique_orders_1);
+        cpl_free(unique_orders_2);
+        return -1;
+    }
 
     volatile cpl_error_code errcode;
 
@@ -1216,6 +1223,9 @@ int cr2res_slit_pos_image(
         cpl_image   *   slitpos, 
         cpl_image   *   wavelength)
 {
+
+    if (tw_decker1 == NULL | tw_decker2 == NULL | slitpos == NULL | wavelength == NULL) return -1;
+
     double w, s;
     int nb_orders;
     int *orders = cr2res_trace_get_order_numbers(tw_decker1, &nb_orders);
@@ -1224,7 +1234,9 @@ int cr2res_slit_pos_image(
     cpl_polynomial *coef_slit[nb_orders];
     cpl_polynomial *coef_wave[nb_orders];
 
-    cr2res_slit_pos(tw_decker1, tw_decker2, coef_slit, coef_wave);
+    if (-1 == cr2res_slit_pos(tw_decker1, tw_decker2, coef_slit, coef_wave)){
+        return -1;
+    }
 
     //slitpos = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, 
     //              CPL_TYPE_DOUBLE);

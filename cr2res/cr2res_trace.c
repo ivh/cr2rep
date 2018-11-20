@@ -234,6 +234,7 @@ cpl_mask * cr2res_trace_clean(
 
     /* Check entries */
     if (mask == NULL) return NULL ;
+    if ((opening != 0) & (opening != 1)) return NULL;
 
     /* Apply a opening to join horizontally the close clusters */
     if (opening) {
@@ -1127,7 +1128,7 @@ static cpl_array * cr2res_trace_get_slit_frac(
 /* TODO */
 /*----------------------------------------------------------------------------*/
 /**
-  @brief
+  @brief Creates a mask for the trace pixels based on known polynomials
   @param
   @return
  */
@@ -1280,6 +1281,7 @@ static cpl_table * cr2res_trace_fit_traces(
 
     /* Check entries */
     if (clustertable == NULL) return NULL ;
+    if (degree < 0) return NULL;
 
     /* Create the output table */
     nclusters = cpl_table_get_column_max(clustertable, CR2RES_COL_CLUSTERS);
@@ -1514,6 +1516,7 @@ static cpl_mask * cr2res_trace_clean_blobs(
 
     /* Check entries */
     if (mask == NULL) return NULL ;
+    if (min_cluster < 0) return NULL;
 
     /* Labelise */
     if ((labels = cpl_image_labelise_mask_create(mask, &nlabels)) == NULL) {
