@@ -230,43 +230,31 @@ static cpl_table *create_cluster_table(void)
     return cluster;
 }
 
-/* cpl_test_null(out); */
 /**
-  @brief  Main function for running all parts of the trace algorithm
-  @param    ima             input image
-  @param    smoothfactor    Used for detection
-  @param    opening         Used for cleaning the mask
-  @param    degree          Fitted polynomial degree
-  @param    min_cluster     A trace must be bigger - discarded otherwise
-  @param    split_single_trace_orders   Flag to split traces
-  @return The newly allocated trace table or NULL in error case
-
-  A detection is applied to create a mask. This one is labelised.
-  The function converts the label image in the proper cluster table in
-  trace to call the traces fitting function.
-  The cluster table contains the label image information in the form of
-  a table. One column per pixel. The columns are xs (pixel x position),
-  ys (pixel y position) and cluster (label number).
-  The returned table contains 1 line per trace. Each line has 3 polynomials
-  (All, Upper and Lower).
-    For example with degree 1 :
-                 All|               Upper|               Lower|
-  24.3593, 0.0161583|  34.6822, 0.0164165|  14.0261, 0.0159084|
-  225.479, 0.0167469|  236.604, 0.0168986|  214.342, 0.0166058|
-   436.94, 0.0173438|   448.436, 0.017493|   425.423, 0.017203|
+  @brief  Test missing input data cases and simple regular case for order tracing with trace
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace(void)
 {
     cpl_image *trace_ima = create_test_image();
     cpl_table *out;
+    const cpl_array *all;
 
     // run tests
     /* NULL Input */
-    //cpl_test_null(cr2res_trace(NULL, 1.0, 1, 6, 500, 0));
+    cpl_test_null(cr2res_trace(NULL, 1.0, 1, 2, 10));
+    cpl_test_null(cr2res_trace(trace_ima, -1.0, 1, 2, 10));
+    cpl_test_null(cr2res_trace(trace_ima, 1.0, -1, 2, 10));
+    cpl_test_null(cr2res_trace(trace_ima, 1.0, 1, -1, 10));
+    cpl_test_null(cr2res_trace(trace_ima, 1.0, 1, 2, -10));
+
     // regular run
     cpl_test(out = cr2res_trace(trace_ima, 1.0, 1, 2, 10));
-    // test results?
+    // test results
+    all = cpl_table_get_array(out, CR2RES_COL_ALL, 0);
+    cpl_test_abs(cpl_array_get(all, 0, NULL), 55.4330769821645, 1e-6);
+    cpl_test_abs(cpl_array_get(all, 1, NULL), 0.00799261499507187, 1e-6);
+    cpl_test_abs(cpl_array_get(all, 2, NULL), -8.96079546069073E-09, 1e-6);
 
     cpl_table_save(out, NULL, NULL, "TEST2.fits", CPL_IO_CREATE);
     // debug output
@@ -277,11 +265,7 @@ static void test_cr2res_trace(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Clean small blobs
-  @param    mask        input mask with small blobs
-  @param    opening     Flag to apply opening filtering to the traces
-  @param    min_cluster Remove all clusters smaller than this
-  @return A newly allocated mask or NULL in error case
+  @brief    Test the removal of small blobs from 6x6 sample grid
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_clean(void)
@@ -315,34 +299,21 @@ static void test_cr2res_trace_clean(void)
     //                          0, 0, 0, 0, 0, 0,
     //                          0, 0, 0, 0, 0, 0};
     cpl_mask *cmp = cpl_mask_wrap(6, 6, data_cmp);
-    /* test_cr2res_trace_labelize() ; */
 
     cpl_test_null(cr2res_trace_clean(NULL, opening, min_cluster));
     cpl_test(res = cr2res_trace_clean(mask, opening, min_cluster));
     cpl_mask_save(res, "res.fits", NULL, CPL_IO_CREATE);
-    /* test_cr2res_trace_fit() ; */
     cpl_test_eq_mask(cmp, res);
-    /* test_cr2res_trace_compare() ; */
     cpl_mask_unwrap(mask);
     cpl_mask_unwrap(cmp);
     cpl_mask_delete(res);
 }
-/* test_cr2res_trace_combine() ; */
-/* test_cr2res_trace_gen_image() ; */
+
 /**
-  @brief    Make an image out of the trace solution
-  @param trace  The trace table
-  @param nx     X size of the produced image
-  @param ny     Y size of the produced image
-  @return   A newly allocated image or NULL in error case
-  The returned INT image is of size nx x ny, is filled with -1. The
-  polynomials of the different trace edges are used to fill the traces with
-  the value of the order.
+  @brief    Test the generated image by comparing a small 10x10 patch to the expected result
  */
-/* test_cr2res_trace_get_order_numbers() ; */
 static void test_cr2res_trace_gen_image(void)
 {
-    /* test_cr2res_trace_open_get_polynomials() ; */
     int nx = 2048;
     int ny = 2048;
     cpl_image *res;
@@ -363,7 +334,6 @@ static void test_cr2res_trace_gen_image(void)
     cpl_image *cmp = cpl_image_wrap(10, 10, CPL_TYPE_INT, data);
     cpl_table *trace = create_test_table();
 
-    /* test_cr2res_trace_compute_middle() ; */
     //run test
     // Null tests
     cpl_test_null(cr2res_trace_gen_image(NULL, nx, ny));
@@ -385,13 +355,7 @@ static void test_cr2res_trace_gen_image(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Count and return the order numbers in a trace table
-  @param    trace       trace table
-  @param    nb_orders   [output] number of orders
-  @return   newly allocated int array
-
-  The int array will need to be freed by the caller. Its size iѕ
-  nb_orders. It contains the list of orders found in the trace table.
+  @brief   Extracted order numbers are compared with known input table
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_get_order_numbers(void)
@@ -417,14 +381,7 @@ static void test_cr2res_trace_get_order_numbers(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Retrieves the middle (All) polynomial from trace table and evaluates
-  @param    trace   TRACE table
-  @param    order_nb   Wished order
-  @param    trace_nb   Wished trace
-  @param    size    Output vector size
-  @return
-  The returned vector contains the poly evaluation reszult on vector from 1 to
-  size. It needs to be destryed by the caller.
+  @brief    Run trace_get_ycen with linear input data and check that results are also linear
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_get_ycen(void)
@@ -464,11 +421,7 @@ static void test_cr2res_trace_get_ycen(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Computes the average height (pix) of an order, from trace polys.
-  @param    trace   TRACE table
-  @param    order_nb   Wished order
-  @param    trace_nb   Wished trace
-  @return   height in pixels
+  @brief     Run trace_get_height and compare with expected result
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_get_height(void)
@@ -494,15 +447,7 @@ static void test_cr2res_trace_get_height(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Computes the positions between 2 trace polynomials
-  @param    poly1   First trace
-  @param    poly2   Second trace
-  @param    size    Output vector size
-  @return
-  The returned vector contains the pixel positions of the middle of the
-  2 traces.
-  The nth vector value is trace1(n) + trace2(n) / 2
-  n=1 for the first value
+  @brief    Use two linear polynomials as input data and compare trace_compute_middle with expected result
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_compute_middle(void)
@@ -542,14 +487,7 @@ static void test_cr2res_trace_compute_middle(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Computes extraction height between 2 trace polynomials
-  @param trace1         First trace
-  @param trace2         Second trace
-  @param vector_size    detector x size
-  @return   The average height between 2 polynomials or -1 in error case
-
-  The returned int is the rounded-up mean difference between the two
-  input polynomials, evaluated on a vector from 1 to vector_size.
+  @brief    Use two linear polynomials as input data and compare trace_compute_height with expected result
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_compute_height(void)
@@ -586,10 +524,7 @@ static void test_cr2res_trace_compute_height(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Compute the y position of the trace
-  @param traces     The traces table
-  @param idx        The index of the trace row
-  @return   The y position of the center of the trace
+  @brief    Check result of trace_get_trace_ypos against expected result from input data
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_get_trace_ypos(void)
@@ -673,9 +608,7 @@ static void test_cr2res_trace_get_trace_ypos(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief
-  @param
-  @return
+  @brief Test a small 10x10 patch of the result to expected result based on trace table polynomials
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_split_traces(void)
@@ -725,17 +658,7 @@ static void test_cr2res_trace_split_traces(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Detect the Traces signal
-  @param image          The input image with the traces
-  @param trace_sep       The approximate number of pixels between 2 traces
-  @param smoothfactor   Mult. factor for the low pass filter kernel size
-  @param thresh         The threshold used for detection
-  @return   A newly allocated mask or NULL in error case.
-
-  The returned mask identifies the pixels belonging to a trace
-  The input image is smoothed, subtracted to the result, and a simple
-  thresholding is applied. The smoothing kernel size is
-  trace_sep*smoothfactor x 1
+  @brief    Test a small 10x10 patch of the result to expected result based on trace image
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_signal_detect(void)
@@ -782,17 +705,7 @@ static void test_cr2res_trace_signal_detect(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Fit a polynomial on the different traces (center and edges)
-  @param clustertable   The table holding the traces pixels with their labels
-  @param degree         Fitting polynomial degree
-  @return   A newly allocated table or NULL in error case
-
-  The function loops over the traces labels. For each of them, it
-  identifies the upper and lower edges and fits a polynomial to them. It
-  also fits a polynomial using all the pixels of the trace.
-
-  The returned table contains 1 line per trace. Each line has 3 polynomials
-  (All, Upper and Lower).
+  @brief    Compare fitted trace polynomial to expected result from simple input data with few points
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_fit_traces(void)
@@ -813,7 +726,7 @@ static void test_cr2res_trace_fit_traces(void)
 
     //run test
     cpl_test_null(cr2res_trace_fit_traces(NULL, degree));
-    //cpl_test_null(cr2res_trace_fit_traces(clustertable, -5));
+    cpl_test_null(cr2res_trace_fit_traces(cluster, -5));
 
     cpl_test(res = cr2res_trace_fit_traces(cluster, degree));
     //test output
@@ -851,17 +764,7 @@ static void test_cr2res_trace_fit_traces(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Simple fitting
-  @param table  Table containing all the pixels to fit
-  @param degree Fitting polynomial degree
-  @return   A newly allocated array or NULL in error case
-
-  The pixels in the input table (columns are xs, ys, clusters) are all
-  used for the fitting of a polynomial of degree degree. The clusters
-  column is IGNORED.
-  If the x range of pixels does not exceed 1500 pixels, a linear fit is
-  applied.
-  The polynomial coefficients are returned in an array.
+  @brief    Test fit of trace polynomial based on large number of points in a single trace and compare to expected result
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_fit_trace(void)
@@ -896,14 +799,7 @@ static void test_cr2res_trace_fit_trace(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Convert cluster table to labels image
-  @param cluster    A cluster table (xs, ys, cluster)
-  @param nx         X size of the returned label image
-  @param ny         Y size of the returned label image
-  @return   A newly allocated INT image or NULL in error case
-
-  A new label image is created from the cluster table. Each entry in the
-  cluster table is used to set a pixel in the label image.
+  @brief    Check that small 5x5 image is created properly based on simple input dataset
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_convert_cluster_to_labels(void)
@@ -953,13 +849,7 @@ static void test_cr2res_trace_convert_cluster_to_labels(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Convert Labels image to the cluster table
-  @param labels     The label image
-  @return   A newly allocated cluster table or NULL in error case
-
-  The cluster table contains the label image information in the form of
-  a table. One column per pixel. The columns are xs (pixel x position),
-  ys (pixel y position) and cluster (label number).
+  @brief    Check that small 5x5 image is converted to correct table of data points
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_convert_labels_to_cluster(void)
@@ -997,10 +887,8 @@ static void test_cr2res_trace_convert_labels_to_cluster(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Cleans small size group of pixels from a mask
-  @param mask           Input mask
-  @param min_cluster    Size of clusters under which they need to be removed
-  @return   A newly allocated mask or NULL in error case
+  @brief   Check the removal of small clusters in small 4x4 patch
+
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_clean_blobs(void)
@@ -1021,13 +909,16 @@ static void test_cr2res_trace_clean_blobs(void)
 
     //run test
     cpl_test_null(cr2res_trace_clean_blobs(NULL, min_cluster));
+    cpl_test_null(cr2res_trace_clean_blobs(mask, -1));
+
     // if min_cluster <= 0 nothing changes
-    cpl_test(res = cr2res_trace_clean_blobs(mask, -1));
+    cpl_test(res = cr2res_trace_clean_blobs(mask, 0));
     cpl_test_eq_mask(res, mask);
     cpl_mask_delete(res);
 
     cpl_test(res = cr2res_trace_clean_blobs(mask, min_cluster));
     //test output
+    //small blob of size 2 removed
     cpl_test_eq_mask(res, cmp);
 
     //deallocate memory
@@ -1038,14 +929,7 @@ static void test_cr2res_trace_clean_blobs(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  Extracts pixels on the upper and lower edges of a trace
-  @param pixels_table       Input cluster table with a single trace
-  @param edge_lower_table   [output] Lower edge pixels table
-  @param edge_upper_table   [output] Upper edge pixels table
-  @return   0 if ok, -1 otherwise
-
-  For each found x in the input cluster table, the min and max y are
-  used for adding an entry in the 2 output cluster tables.
+  @brief  Test that edge pixels are identified correctly in small sample case
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace_extract_edges(void)

@@ -386,10 +386,7 @@ static void test_cr2res_get_root_name(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-   @brief   Extract the filename for the first frame of the given tag
-   @param   in      A non-empty frameset
-   @param   tag     The tag of the requested file
-   @return  Pointer to the file
+   @brief   Create a frameset two frames, with different tags, and check that only the correct one is recovered
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_extract_filename(void)
@@ -473,11 +470,7 @@ static void test_cr2res_extract_frameset(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-   @brief   Get the index in a TRACE_WAVE table
-   @param   tab         A TRACE_WAVE table
-   @param   order       the order number
-   @param   trace_nb    the trace number
-   @return  the row index or -1 in error case
+   @brief   Create a table and check if the same index is recovered
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_get_trace_table_index(void)
@@ -525,12 +518,7 @@ static void test_cr2res_get_trace_table_index(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-   @brief   Get the Wavelength polynomial from a TRACE_WAVE table
-   @param   tab     A TRACE_WAVE table
-   @param   poly_column CR2RES_COL_WAVELENGTH, CR2RES_COL_UPPER,
-                        CR2RES_COL_LOWER or CR2RES_COL_ALL
-   @return  The newly created polynomial or NULL in error case
-   The returned object must be de allocated with cpl_polynomial_delete
+   @brief   Create a table and check if the same polynomial is recovered
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_get_trace_wave_poly(void)
@@ -568,12 +556,7 @@ static void test_cr2res_get_trace_wave_poly(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Compute the polynomial from boundaries
-  @param    wmin    First pixel wavelength
-  @param    wmax    Last pixel wavelength
-  @return   the polynomial or NULL in error case
-
-  The returned polynomial must be deallocated with cpl_polynomial_delete
+  @brief    Use a simple wavelength range to check the estimate, which is just a linear polynomial
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_wlestimate_compute(void)
@@ -599,6 +582,7 @@ static void test_cr2res_wlestimate_compute(void)
     //deallocate memory
     cpl_polynomial_delete(res);
 
+    // Test invalid wavelength ranges
     wmin = 5000;
     wmax = 4047;
     cpl_test_null(cr2res_wlestimate_compute(wmin, wmax));
@@ -610,10 +594,7 @@ static void test_cr2res_wlestimate_compute(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Convert the order to the keyword index
-  @param    order   Order (-49 to 50)
-  @return   the order index or a negative value in error case
-            (00 to 99)
+  @brief    Test different edge cases of the conversion
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_convert_order_to_idx(void)
@@ -637,9 +618,7 @@ static void test_cr2res_convert_order_to_idx(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Convert the keyword index to the order
-  @param    order_idx   the order index (00 to 99)
-  @return   Order (-50 to 50)
+  @brief    Test different edge cases of the conversion
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_convert_idx_to_order(void)
@@ -663,10 +642,7 @@ static void test_cr2res_convert_idx_to_order(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-   @brief   Convert an array to polynomial
-   @param  	arr		An array
-   @return  The newly created polynomial or NULL
-   The returned object must be de allocated with cpl_polynomial_delete
+   @brief   Check that the coefficients stay the same
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_convert_array_to_poly(void)
@@ -699,11 +675,7 @@ static void test_cr2res_convert_array_to_poly(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-   @brief   Convert a  polynomial to array
-   @param  	poly    A polynomial
-   @param   size    The requested array size
-   @return  The newly created array or NULL
-   The returned object must be de allocated with cpl_array_delete
+   @brief   Check that the coefficients stay the same
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_convert_poly_to_array(void)
@@ -734,47 +706,29 @@ static void test_cr2res_convert_poly_to_array(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief   compute photon count error in [ADU]
-  @param   ima_data in [ADU]
-  @param   gain detector's gain in [e- / ADU]
-  @param   ron  detector's read out noise in [ADU]
-  @param   ima_errs output error image in [ADU]
-  @return  cpl_error_code
-  @note ima_errs need to be deallocated
-        ima_data must contain the photon counts with no offsets
-        this usually means the image must be overscan and bias corrected
-        Then the shot noise can be calculated from the poissonian distribution
-        as sqrt(electron-counts). To this (transformed back into ADUs) the
-        readout noise is added in quadrature.
-  @doc
-  error is computed with standard formula
-
-  \f$ err_{ADU} = \sqrt{ \frac{ counts }{ gain } + ron^{ 2 } } \f$
-
-  If an image value is negative the associated error is set to RON
+  @brief   Create a sample image with uniform count and check the result
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_detector_shotnoise_model(void)
 {
     //define input
-    cpl_image *ima_data = cpl_image_new(5, 12, CPL_TYPE_INT);
+    const double count = 1;
     const double gain = 7;
     const double ron = 3;
+    const double err = sqrt(count/gain + ron * ron);
+    int width = 5;
+    int height = 12;
+ 
+    cpl_image *ima_data = cpl_image_new(width, height, CPL_TYPE_INT);
+    cpl_image_add_scalar(ima_data, count);
+    cpl_image_set(ima_data, 1, 1, -1); // set first pixel to negative to check behaviour
+
     cpl_image *ima_errs;
     cpl_error_code res;
-    int cmpdata[] = {3, 3, 3, 3, 3,
-                     3, 3, 3, 3, 3,
-                     3, 3, 3, 3, 3,
-                     3, 3, 3, 3, 3,
-                     3, 3, 3, 3, 3,
-                     3, 3, 3, 3, 3,
-                     3, 3, 3, 3, 3,
-                     3, 3, 3, 3, 3,
-                     3, 3, 3, 3, 3,
-                     3, 3, 3, 3, 3,
-                     3, 3, 3, 3, 3,
-                     3, 3, 3, 3, 3};
-    cpl_image *compare = cpl_image_wrap_int(5, 12, cmpdata);
+
+    cpl_image * compare = cpl_image_new(width, height, CPL_TYPE_INT);
+    cpl_image_add_scalar(compare, err);
+    cpl_image_set(compare, 1, 1, ron);
 
     //run test
     cpl_test_eq(CPL_ERROR_NULL_INPUT, cr2res_detector_shotnoise_model(NULL, gain, ron, &ima_errs));
@@ -793,7 +747,7 @@ static void test_cr2res_detector_shotnoise_model(void)
     //deallocate memory
     cpl_image_delete(ima_data);
     cpl_image_delete(ima_errs);
-    cpl_image_unwrap(compare);
+    cpl_image_delete(compare);
 }
 
 static cpl_table *create_test_table()
@@ -842,9 +796,8 @@ static cpl_image *create_test_image()
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief
-  @param
-  @return
+  @brief Use two identical images (loaded from sample data) as input.
+         Check that Stokes X and N == 0, Stokes I == previous results.
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_demod(void)
@@ -858,6 +811,10 @@ static void test_cr2res_demod(void)
     cpl_table * res;
 
     // run test
+    cpl_test_null(cr2res_demod(NULL, sum2_hdrl, trace_wave));
+    cpl_test_null(cr2res_demod(sum1_hdrl, NULL, trace_wave));
+    cpl_test_null(cr2res_demod(sum1_hdrl, sum2_hdrl, NULL));
+
     cpl_test(res = cr2res_demod(sum1_hdrl, sum2_hdrl, trace_wave));
 
     // Check values
@@ -881,6 +838,11 @@ static void test_cr2res_demod(void)
     return;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Load sample image as input and compare with previous results
+ */
+/*----------------------------------------------------------------------------*/
 static void test_cr2res_fit_noise(void)
 {
     // Define all variables
@@ -922,9 +884,9 @@ static void test_cr2res_fit_noise(void)
     cpl_test_polynomial_abs(res, cmp, 1e-4);
 
     // save polynomial for plotting and/or comparison
-    FILE * file = fopen("fit_noise.txt", "w");
-    cpl_polynomial_dump(res, file);
-    fclose(file);
+    // FILE * file = fopen("fit_noise.txt", "w");
+    // cpl_polynomial_dump(res, file);
+    // fclose(file);
 
     // delete cpl objects
     cpl_table_delete(trace_wave);
@@ -934,6 +896,11 @@ static void test_cr2res_fit_noise(void)
     return;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Load sample data and check if it runs
+ */
+/*----------------------------------------------------------------------------*/
 static void test_cr2res_slit_pos()
 {
     int chip = 2;
@@ -947,6 +914,13 @@ static void test_cr2res_slit_pos()
     cpl_polynomial *coef_wave[nb_orders];
     cpl_polynomial *coef_slit[nb_orders];
 
+    // test NULL input
+    cpl_test_eq(-1, cr2res_slit_pos(NULL, tw_decker2, coef_slit, coef_wave));
+    cpl_test_eq(-1, cr2res_slit_pos(tw_decker1, NULL, coef_slit, coef_wave));
+    cpl_test_eq(-1, cr2res_slit_pos(tw_decker1, tw_decker2, NULL, coef_wave));
+    cpl_test_eq(-1, cr2res_slit_pos(tw_decker1, tw_decker2, coef_slit, NULL));
+
+    // normal run
     cpl_test_eq(0, cr2res_slit_pos(tw_decker1, tw_decker2, coef_slit, coef_wave));
 
     cpl_table_delete(tw_decker1);
@@ -975,6 +949,11 @@ static void test_cr2res_slit_pos()
     cpl_free(orders);
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Load sample data and check if it runs
+ */
+/*----------------------------------------------------------------------------*/
 static void test_cr2res_slit_pos_img()
 {
     int chip = 2;
@@ -983,6 +962,13 @@ static void test_cr2res_slit_pos_img()
 
     cpl_image *slitpos = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
     cpl_image *wavelength = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
+
+
+    cpl_test_eq(-1, cr2res_slit_pos_image(NULL, tw_decker2, slitpos, wavelength));
+    cpl_test_eq(-1, cr2res_slit_pos_image(tw_decker1, NULL, slitpos, wavelength));
+    cpl_test_eq(-1, cr2res_slit_pos_image(tw_decker1, tw_decker2, NULL, wavelength));
+    cpl_test_eq(-1, cr2res_slit_pos_image(tw_decker1, tw_decker2, slitpos, NULL));
+
 
     cpl_test_eq(0, cr2res_slit_pos_image(tw_decker1, tw_decker2, slitpos, wavelength));
 

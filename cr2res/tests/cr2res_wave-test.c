@@ -41,6 +41,8 @@
 
 static void test_cr2res_wave_line_fitting(void);
 static void test_cr2res_wave_line_fitting_2d(void);
+static void test_cr2res_wave_etalon(void);
+
 
 
 /*----------------------------------------------------------------------------*/
@@ -106,6 +108,29 @@ static cpl_bivector * make_test_spectrum(cpl_table * catalog, double wmin, doubl
     return spectrum;
 }
 
+static cpl_bivector * make_test_etalon_spectrum(int size, double freq, cpl_bivector ** spectrum_err)
+{
+    cpl_bivector * spectrum = cpl_bivector_new(size);
+    *spectrum_err = cpl_bivector_new(size);
+
+    cpl_vector * wave1 = cpl_bivector_get_x(spectrum);
+    cpl_vector * wave2 = cpl_bivector_get_x(*spectrum_err);
+
+    cpl_vector * spec = cpl_bivector_get_y(spectrum);
+    cpl_vector * unc = cpl_bivector_get_y(*spectrum_err);
+
+
+    for (int i = 0; i < size; i++){
+        cpl_vector_set(spec, i, fabs(sin(i * freq)));
+        cpl_vector_set(unc, i, 1);
+        cpl_vector_set(wave1, i, i);
+        cpl_vector_set(wave2, i, i);
+
+    }
+    return spectrum;
+
+}
+
 // make a simple linear polynomial from wmin to wmax
 static cpl_polynomial * make_test_polynomial(double wmin, double wmax, int size)
 {
@@ -123,17 +148,7 @@ static cpl_polynomial * make_test_polynomial(double wmin, double wmax, int size)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Compute the wavelength polynomial based on a line spectrum 
-            and a reference catalog
-  @param    catalog        The reference catalog of known lines in the spectrum
-  @param    spectrum       Observed spectrum (and error)
-  @param    initial_guess  Initial guess for the wavelength solution
-  @param    window_size    The range of pixel to use for finding each line
-  @param    sigma_fit      Returns the uncertainties of the polynomial fit parameters
-                           (may be NULL)
-  @return   the fitted 1D wavelength polynomial or NULL in case of error
-
-  The returned polynomial must be deallocated with cpl_polynomial_delete()
+  @brief    Make a sample wavecal spectrum with two lines, and check that we get the right linear fit
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_wave_line_fitting()
@@ -229,6 +244,11 @@ static void test_cr2res_wave_line_fitting()
 }
 
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Use two identical orders, with two lines each, and check that the result is still linear
+ */
+/*----------------------------------------------------------------------------*/
 static void test_cr2res_wave_line_fitting_2d()
 {   
     int i, norders = 5;
@@ -282,7 +302,35 @@ static void test_cr2res_wave_line_fitting_2d()
             linelist, orders, norders, degree, display, NULL, NULL);
 
     // Check output
-    cpl_polynomial_dump(wavelength, stdout);
+    // cpl_polynomial_dump(wavelength, stdout);
+    // #----- 2 dimensional polynomial -----
+    // 1.dim.power  2.dim.power  coefficient
+    //     0            0      2500
+    //     1            0      0.75
+    //     0            1      -1.04049e-12
+    //     0            2      2.48754e-13
+    //     1            2      1.07764e-16
+    //     1            1      -4.31057e-16
+    // #------------------------------------
+
+    // first two are the linear component in x direction
+    cpl_size idx[2] = {0, 0};
+    cpl_test_abs(wmin, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    idx[0] = 1;
+    cpl_test_abs((wmax-wmin)/(double)size, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    // all others should be 0 (or close to it), as there is no y dependance
+    idx[0] = 0;
+    idx[1] = 1;
+    cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    idx[0] = 0;
+    idx[1] = 2;
+    cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    idx[0] = 1;
+    idx[1] = 2;
+    cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    idx[0] = 1;
+    idx[1] = 1;
+    cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
 
     // Free Memory
     cpl_free(degree);
@@ -306,6 +354,45 @@ static void test_cr2res_wave_line_fitting_2d()
 
 }
 
+static void test_cr2res_wave_etalon(void){
+    
+    cpl_bivector * spectrum;
+    cpl_bivector * spectrum_err;
+    cpl_array * error;
+    cpl_polynomial * initial;
+    cpl_polynomial * result;
+    cpl_size power;
+
+    double wmin = 500;
+    double wmax = 600;
+    int size = 2000;
+    int degree = 1;
+
+    spectrum = make_test_etalon_spectrum(size, 0.1, &spectrum_err);
+    initial = make_test_polynomial(wmin, wmax, size);
+    
+    error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+    cpl_array_set_double(error, 0, 3.1);
+    cpl_array_set_double(error, 1, 3.5);
+
+    result = cr2res_wave_etalon(spectrum, spectrum_err, initial, degree, &error);
+
+    // these values obviously need to be changed if the number of degrees is changed
+    power = 0;
+    cpl_test_abs(cpl_polynomial_get_coeff(result, &power), wmin, 0.2);
+    power = 1;
+    cpl_test_abs(cpl_polynomial_get_coeff(result, &power), (wmax-wmin)/(double)size, 0.01);
+
+
+    cpl_bivector_delete(spectrum);
+    cpl_bivector_delete(spectrum_err);
+    cpl_array_delete(error);
+    cpl_polynomial_delete(initial);
+    cpl_polynomial_delete(result);
+}
+
+
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Run the Unit tests
@@ -317,6 +404,7 @@ int main(void)
 
     test_cr2res_wave_line_fitting();
     test_cr2res_wave_line_fitting_2d();
+    test_cr2res_wave_etalon();
 
     return cpl_test_end(0);
 }

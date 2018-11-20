@@ -385,9 +385,9 @@ static void test_cr2res_qc_wave_zeropoint(void)
     int res;
     int y0 = 660;
 
-    cpl_test_eq(-1, cr2res_qc_trace_get_ypos(NULL, order, trace));
-    cpl_test_eq(-1, cr2res_qc_trace_get_ypos(tracewave, -10, trace));
-    cpl_test_eq(-1, cr2res_qc_trace_get_ypos(tracewave, order, -1));
+    cpl_test_eq(-1, cr2res_qc_wave_zeropoint(NULL, order, trace));
+    cpl_test_eq(-1, cr2res_qc_wave_zeropoint(tracewave, -10, trace));
+    cpl_test_eq(-1, cr2res_qc_wave_zeropoint(tracewave, order, -1));
 
     cpl_test(res = cr2res_qc_wave_zeropoint(tracewave, order, trace));
     cpl_test_eq(res, y0);
