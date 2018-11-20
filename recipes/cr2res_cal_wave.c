@@ -1,3 +1,4 @@
+
 /*
  * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
@@ -25,16 +26,20 @@
                                 Includes
  -----------------------------------------------------------------------------*/
 
+#include <locale.h>
+#include <string.h>
+
 #include <cpl.h>
+#include <math.h>
+#include "hdrl.h"
 
 #include "cr2res_utils.h"
-#include "cr2res_calib.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
-#include "cr2res_bpm.h"
-#include "cr2res_trace.h"
-#include "cr2res_extract.h"
 #include "cr2res_io.h"
+#include "cr2res_extract.h"
+#include "cr2res_trace.h"
+#include "cr2res_wave.h"
 
 /*-----------------------------------------------------------------------------
                                 Define
@@ -56,18 +61,13 @@ static int cr2res_cal_wave_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
+        const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
-        int                     calib_cosmics_corr,
-        int                     extract_oversample,
-        int                     extract_swath_width,
-        int                     extract_height,
-        double                  extract_smooth,
-        int                     extract_sum_only,
+        const cpl_frame     *   trace_wave_frame,
+        const cpl_frame     *   lines_frame,
         int                     reduce_det,
-        hdrl_image          **  combineda,
-        hdrl_image          **  combinedb,
-        cpl_table           **  extracta,
-        cpl_table           **  extractb,
+        cpl_table           **  out_trace_wave,
+        hdrl_image          **  out_wave_map,
         cpl_propertylist    **  ext_plist) ;
 static int cr2res_cal_wave_create(cpl_plugin *);
 static int cr2res_cal_wave_exec(cpl_plugin *);
@@ -79,18 +79,13 @@ static int cr2res_cal_wave(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_cal_wave_description[] =
-"CRIRES+ 1d Observation recipe\n"
+"CRIRES+ wavelength calibration recipe\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw-file.fits " CR2RES_OBS_1D_RAW"\n"
-"detlin.fits " CR2RES_DETLIN_COEFFS_PROTYPE "\n"
-"master_dark.fits " CR2RES_MASTER_DARK_PROTYPE "\n"
-"bpm.fits " CR2RES_BPM_PROTYPE "\n"
-"trace_wave.fits " CR2RES_TRACE_WAVE_PROTYPE "\n"
-" The recipe produces the following products:\n"
-"cr2res_cal_wave_extractA.fits " CR2RES_OBS_1D_EXTRACTA_PROCATG "\n"
-"cr2res_cal_wave_extractB.fits " CR2RES_OBS_1D_EXTRACTB_PROCATG "\n"
-"cr2res_cal_wave_combinedA.fits " CR2RES_OBS_1D_COMBINEDA_PROCATG "\n"
-"cr2res_cal_wave_combinedB.fits " CR2RES_OBS_1D_COMBINEDB_PROCATG "\n"
+"raw-file.fits " CR2RES_WAVE_RAW "\n"
+"lines.fits " CR2RES_EMISSION_LINES_PROCATG "\n"
+"The recipe produces the following products:\n"
+"cr2res_cal_wave_trace.fits " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "\n"
+"cr2res_cal_wave_map.fits " CR2RES_CAL_WAVE_MAP_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -99,13 +94,21 @@ static char cr2res_cal_wave_description[] =
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Build the list of available plugins, for this module. 
+  @defgroup cr2res_cal_wave    Wavelength Calibration
+ */
+/*----------------------------------------------------------------------------*/
+
+/**@{*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Build the list of available plugins, for this module.
   @param    list    the plugin list
   @return   0 if everything is ok, 1 otherwise
   @note     Only this function is exported
 
-  Create the recipe instance and make it available to the application using the 
-  interface. 
+  Create the recipe instance and make it available to the application using the
+  interface.
  */
 /*----------------------------------------------------------------------------*/
 int cpl_plugin_get_info(cpl_pluginlist * list)
@@ -118,31 +121,33 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
                     "cr2res_cal_wave",
-                    "1D Observation recipe",
+                    "Wavelength Calibration",
                     cr2res_cal_wave_description,
-                    "Thomas Marquart, Yves Jung",
+                    "Ansgar Wehrhahn, Thomas Marquart, Yves Jung",
                     PACKAGE_BUGREPORT,
                     cr2res_get_license(),
                     cr2res_cal_wave_create,
                     cr2res_cal_wave_exec,
-                    cr2res_cal_wave_destroy)) {    
+                    cr2res_cal_wave_destroy)) {
         cpl_msg_error(cpl_func, "Plugin initialization failed");
-        (void)cpl_error_set_where(cpl_func);                          
-        return 1;                                               
-    }                                                    
+        (void)cpl_error_set_where(cpl_func);
+        return 1;
+    }
 
-    if (cpl_pluginlist_append(list, plugin)) {                 
+    if (cpl_pluginlist_append(list, plugin)) {
         cpl_msg_error(cpl_func, "Error adding plugin to list");
-        (void)cpl_error_set_where(cpl_func);                         
-        return 1;                                              
-    }                                                          
-    
+        (void)cpl_error_set_where(cpl_func);
+        return 1;
+    }
+
     return 0;
 }
 
+/**@}*/
+
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Setup the recipe options    
+  @brief    Setup the recipe options
   @param    plugin  the plugin
   @return   0 if everything is ok
 
@@ -151,8 +156,8 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_wave_create(cpl_plugin * plugin)
 {
-    cpl_recipe          *   recipe ;
-    cpl_parameter       *   p ;
+    cpl_recipe    * recipe;
+    cpl_parameter * p;
 
     /* Check that the plugin is part of a valid recipe */
     if (cpl_plugin_get_type(plugin) == CPL_PLUGIN_TYPE_RECIPE)
@@ -164,34 +169,6 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_oversample",
-            CPL_TYPE_INT, "factor by which to oversample the extraction",
-            "cr2res.cr2res_cal_wave", 2);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_oversample");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_swath_width",
-            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_cal_wave", 24);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_swath_width");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_height",
-            CPL_TYPE_INT, "Extraction height",
-            "cr2res.cr2res_cal_wave", -1);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_height");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_smooth",
-            CPL_TYPE_DOUBLE,
-            "Smoothing along the slit (1 for high S/N, 5 for low)",
-            "cr2res.cr2res_cal_wave", 1.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
             "cr2res.cr2res_cal_wave", 0);
@@ -213,6 +190,33 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.wl_shift",
+            CPL_TYPE_DOUBLE, "Wavelength shift (nm) to apply to the guess",
+            "cr2res.cr2res_cal_wave", 0.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_shift");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.wl_est",
+            CPL_TYPE_STRING, "Estimated wavelength start and end",
+            "cr2res.cr2res_cal_wave", "-1.0, -1.0");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_est");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.degree",
+            CPL_TYPE_INT, "Wavelegth Polynomial degree",
+            "cr2res.cr2res_cal_wave", 3);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "degree");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.display",
+            CPL_TYPE_BOOL, "Flag for display",
+            "cr2res.cr2res_cal_wave", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
     return 0;
 }
 
@@ -267,39 +271,35 @@ static int cr2res_cal_wave(
         cpl_frameset            *   frameset,
         const cpl_parameterlist *   parlist)
 {
-    const cpl_parameter *   param ;
-    int                     extract_oversample, extract_swath_width,
-                            extract_height, reduce_det, reduce_order, 
-                            reduce_trace ;
-    double                  extract_smooth ;
+    const cpl_parameter *   param;
+    int                     reduce_det, reduce_order, reduce_trace,
+                            degree, display ;
+    double                  wstart, wend, wl_shift ;
+    const char          *   sval ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
+    const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
     const cpl_frame     *   trace_wave_frame ;
-    hdrl_image          *   combineda[CR2RES_NB_DETECTORS] ;
-    hdrl_image          *   combinedb[CR2RES_NB_DETECTORS] ;
-    cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   extracta[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   extractb[CR2RES_NB_DETECTORS] ;
+    const cpl_frame     *   lines_frame ;
     char                *   out_file;
-    int                     i, det_nr; 
+    cpl_table           *   out_trace_wave[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
+    int                     det_nr, order, i ;
+
+    /* Needed for sscanf() */
+    setlocale(LC_NUMERIC, "C");
 
     /* Initialise */
+    wstart = wend = -1.0 ;
+    wl_shift = 0.0 ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_wave.extract_oversample");
-    extract_oversample = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_wave.extract_swath_width");
-    extract_swath_width = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_wave.extract_height");
-    extract_height = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_wave.extract_smooth");
-    extract_smooth = cpl_parameter_get_double(param);
+            "cr2res.cr2res_cal_wave.degree");
+    degree = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -309,55 +309,79 @@ static int cr2res_cal_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.trace_nb");
     reduce_trace = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_wave.wl_est");
+    sval = cpl_parameter_get_string(param) ;
+     if (sscanf(sval, "%lg,%lg", &wstart, &wend) != 2) {
+        return -1 ;
+    }
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_wave.wl_shift");
+    wl_shift = cpl_parameter_get_double(param) ;
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_wave.display");
+    display = cpl_parameter_get_bool(param) ;
+
+    /* Check Parameters */
+    if (degree < 0) {
+        cpl_msg_error(__func__, "The degree needs to be >= 0");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
 
     /* Identify the RAW and CALIB frames in the input frameset */
-    if (cr2res_dfs_set_groups(frameset)) {
+    if (cr2res_dfs_set_groups(frameset) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot identify RAW and CALIB frames") ;
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
-	
-    /* Get Calibration frames */
+
+    /* Retrieve calibration data */
     detlin_frame = cpl_frameset_find_const(frameset,
             CR2RES_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
-            CR2RES_MASTER_DARK_PROCATG) ; 
+            CR2RES_MASTER_DARK_PROCATG) ;
+    master_flat_frame = cpl_frameset_find_const(frameset,
+            CR2RES_FLAT_MASTER_FLAT_PROCATG) ;
     bpm_frame = cpl_frameset_find_const(frameset,
             CR2RES_FLAT_BPM_PROCATG) ;
     trace_wave_frame = cpl_frameset_find_const(frameset,
             CR2RES_FLAT_TRACE_WAVE_PROCATG) ;
+    lines_frame = cpl_frameset_find_const(frameset,
+            CR2RES_EMISSION_LINES_PROCATG) ;
+    if (lines_frame == NULL || trace_wave_frame == NULL) {
+        cpl_msg_error(__func__, "The recipe needs a catalog and a trace");
+        return -1 ;
+    }
 
-    /* Get the Frames for the current decker position */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_OBS_1D_RAW) ;
+    /* Get the RAW Frames */
+    rawframes = cr2res_extract_frameset(frameset, CR2RES_WAVE_RAW) ;
     if (rawframes == NULL) {
         cpl_msg_error(__func__, "Could not find RAW frames") ;
+        return -1 ;
     }
-    cpl_msg_indent_more() ;
 
-    /* Loop on the detectors */
+    /* Loop over the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+
         /* Initialise */
-        combineda[det_nr-1] = NULL ;
-        combinedb[det_nr-1] = NULL ;
-        extracta[det_nr-1] = NULL ;
-        extractb[det_nr-1] = NULL ;
+        out_trace_wave[det_nr-1] = NULL ;
+        out_wave_map[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) continue ;
-    
-        cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
+
+        cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
         cpl_msg_indent_more() ;
 
+
         /* Call the reduction function */
-        if (cr2res_cal_wave_reduce(rawframes, detlin_frame, 
-                    master_dark_frame, bpm_frame, 0,
-                    extract_oversample, extract_swath_width, extract_height, 
-                    extract_smooth, 0, det_nr,
-                    &(combineda[det_nr-1]),
-                    &(combinedb[det_nr-1]),
-                    &(extracta[det_nr-1]),
-                    &(extractb[det_nr-1]),
+        if (cr2res_cal_wave_reduce(rawframes, detlin_frame,
+                    master_dark_frame, master_flat_frame, bpm_frame,
+                    trace_wave_frame, lines_frame, det_nr,
+                    &(out_trace_wave[det_nr-1]),
+                    &(out_wave_map[det_nr-1]),
                     &(ext_plist[det_nr-1])) == -1) {
             cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
         }
@@ -366,31 +390,25 @@ static int cr2res_cal_wave(
     cpl_frameset_delete(rawframes) ;
 
     /* Ѕave Products */
-
-    /* Extracted A */
-    out_file = cpl_sprintf("%s_extractedA.fits", RECIPE_STRING) ;
-    cr2res_io_save_EXTRACT_1D(out_file, frameset, parlist, extracta, NULL,
-            ext_plist, CR2RES_OBS_1D_EXTRACTA_PROCATG, RECIPE_STRING) ;
+    out_file = cpl_sprintf("%s_wave.fits", RECIPE_STRING) ;
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, out_trace_wave,
+            NULL, ext_plist, CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG, 
+            RECIPE_STRING) ;
     cpl_free(out_file);
 
-    /* Free */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        if (combineda[det_nr-1] != NULL)
-            hdrl_image_delete(combineda[det_nr-1]) ;
-        if (combinedb[det_nr-1] != NULL)
-            hdrl_image_delete(combinedb[det_nr-1]) ;
-        if (extracta[det_nr-1] != NULL) 
-            cpl_table_delete(extracta[det_nr-1]) ;
-        if (extractb[det_nr-1] != NULL) 
-            cpl_table_delete(extractb[det_nr-1]) ;
-        if (ext_plist[det_nr-1] != NULL) 
-            cpl_propertylist_delete(ext_plist[det_nr-1]) ;
+    /* Free and return */
+    for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
+        if (ext_plist[i] != NULL)
+            cpl_propertylist_delete(ext_plist[i]) ;
+        if (out_trace_wave[i] != NULL)
+            cpl_table_delete(out_trace_wave[i]) ;
+        if (out_wave_map[i] != NULL) {
+            hdrl_image_delete(out_wave_map[i]) ;
+        }
     }
-    cpl_msg_indent_less() ;
-
     return (int)cpl_error_get_code();
 }
- 
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief  
@@ -402,42 +420,27 @@ static int cr2res_cal_wave_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
+        const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
-        int                     calib_cosmics_corr,
-        int                     extract_oversample,
-        int                     extract_swath_width,
-        int                     extract_height,
-        double                  extract_smooth,
-        int                     extract_sum_only,
+        const cpl_frame     *   trace_wave_frame,
+        const cpl_frame     *   lines_frame,
         int                     reduce_det,
-        hdrl_image          **  combineda,
-        hdrl_image          **  combinedb,
-        cpl_table           **  extracta,
-        cpl_table           **  extractb,
+        cpl_table           **  out_trace_wave,
+        hdrl_image          **  out_wave_map,
         cpl_propertylist    **  ext_plist)
 {
-
-
-        
     cpl_image * img = cpl_image_new(1024, 1024, CPL_TYPE_FLOAT);
     cpl_table * tab = cpl_table_new(1024) ;
 
-    *combineda = hdrl_image_create(img, img); 
-    *combinedb = hdrl_image_create(img, img); 
-
-    *extracta = cpl_table_duplicate(tab) ;
-    *extractb = cpl_table_duplicate(tab) ;
+    *out_wave_map = hdrl_image_create(img, img);
+    *out_trace_wave = cpl_table_duplicate(tab) ;
 
     cpl_image_delete(img) ;
     cpl_table_delete(tab) ;
 
+    cpl_msg_warning(__func__,
+            "The recipe is not implemented - Results are fake") ;
 
-
-
-
-
-
-
-
+    return 0 ;
 }
 

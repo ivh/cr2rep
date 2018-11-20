@@ -332,7 +332,7 @@ static int cr2res_obs_1d(
     trace_wave_frame = cpl_frameset_find_const(frameset,
             CR2RES_FLAT_TRACE_WAVE_PROCATG) ;
 
-    /* Get the Frames for the current decker position */
+    /* Get the RAW Frames */
     rawframes = cr2res_extract_frameset(frameset, CR2RES_OBS_1D_RAW) ;
     if (rawframes == NULL) {
         cpl_msg_error(__func__, "Could not find RAW frames") ;

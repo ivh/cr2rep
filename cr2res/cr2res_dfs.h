@@ -125,6 +125,7 @@
 /*      CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG */
 /*      CR2RES_UTIL_TRACE_WAVE_PROCATG */
 /*      CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG */
+/*      CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG */
 /*      CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG */
 /* Table with Traces polynomials, orders, trace_nb wavelengths */
 /*                  1 trace per Row */
@@ -146,6 +147,7 @@
 #define CR2RES_CALIB_COLLAPSED_PROTYPE      "CALIB_COLLAPSED"
 
 /* For CR2RES_UTIL_WAVE_MAP_PROCATG */
+/*     CR2RES_CAL_WAVE_MAP_PROCATG */
 /*     CR2RES_UTIL_TRACE_MAP_WL_PROCATG */
 #define CR2RES_WAVE_MAP_PROTYPE             "WAVE_MAP"
   
@@ -182,6 +184,10 @@
 #define CR2RES_FLAT_TRACE_WAVE_PROCATG      "FLAT_TRACE_WAVE"
 #define CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "FLAT_TRACE_WAVE_MERGED"
 #define CR2RES_FLAT_MASTER_FLAT_PROCATG     "FLAT_MASTER_FLAT"
+
+/* Produced by cr2res_util_wave */
+#define CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG  "WAVE_TRACE_WAVE"
+#define CR2RES_CAL_WAVE_MAP_PROCATG         "WAVE_MAP"
 
 /* Produced by cr2res_obs_1d */
 #define CR2RES_OBS_1D_EXTRACTA_PROCATG      "OBS_1D_EXTRACTA"
@@ -241,6 +247,7 @@
 #define CR2RES_DETLIN_RAW                   "DETLIN"
 #define CR2RES_DARK_RAW                     "DARK"
 #define CR2RES_FLAT_RAW                     "FLAT"
+#define CR2RES_WAVE_RAW                     "WAVE"
 #define CR2RES_CALIB_RAW                    "CALIB"
 #define CR2RES_OBS_1D_RAW                   "OBS_1D"
 #define CR2RES_OBS_2D_RAW                   "OBS_2D"
