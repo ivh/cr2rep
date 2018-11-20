@@ -64,7 +64,8 @@
 #define CR2RES_COL_SPLICED_1D_WL    "SPLICED_1D_WL"    /* Wavelength */
 
 /* EXTRACT_2D Table */
-/* EXTRACT_POL Table */
+#define CR2RES_COL_2D_TODO          "2D_TODO"
+
 /******************************************/
 
 /*************************************/
@@ -89,16 +90,24 @@
 
 /* For  CR2RES_FLAT_EXTRACT_1D_PROCATG */
 /*      CR2RES_UTIL_EXTRACT_1D_PROCATG */
-/*      CR2RES_OBS1D_EXTRACTA_PROCATG */
-/*      CR2RES_OBS1D_EXTRACTB_PROCATG */
+/*      CR2RES_OBS_1D_EXTRACTA_PROCATG */
+/*      CR2RES_OBS_1D_EXTRACTB_PROCATG */
+/*      CR2RES_OBS_POL_EXTRACTA_PROCATG */
+/*      CR2RES_OBS_POL_EXTRACTB_PROCATG */
 /* Table with columns cr2res_dfs_SPEC_colname() */
 /*                    cr2res_dfs_WAVELENGTH_colname() */
 /*                    cr2res_dfs_SPEC_ERR_colname() */
 #define CR2RES_EXTRACT_1D_PROTYPE           "EXTRACT_1D"
 
-/* For  CR2RES_OBS1D_COMBINEDA_PROCATG */
-/*      CR2RES_OBS1D_COMBINEDB_PROCATG */
-#define CR2RES_OBS1D_COMBINED_PROTYPE       "OBS1D_COMBINED"
+/* For  CR2RES_OBS_2D_EXTRACT_PROCATG */
+/* Table with columns CR2RES_COL_2D_TODO  */
+#define CR2RES_EXTRACT_2D_PROTYPE           "EXTRACT_2D"
+
+/* For  CR2RES_OBS_1D_COMBINEDA_PROCATG */
+/*      CR2RES_OBS_1D_COMBINEDB_PROCATG */
+/*      CR2RES_OBS_POL_COMBINEDA_PROCATG */
+/*      CR2RES_OBS_POL_COMBINEDB_PROCATG */
+#define CR2RES_COMBINED_PROTYPE             "COMBINED"
 
 /* For CR2RES_UTIL_SPLICE_SPLICED_1D_PROCATG */
 #define CR2RES_SPLICED_1D_PROTYPE           "SPLICED_1D"
@@ -174,11 +183,20 @@
 #define CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "FLAT_TRACE_WAVE_MERGED"
 #define CR2RES_FLAT_MASTER_FLAT_PROCATG     "FLAT_MASTER_FLAT"
 
-/* Produced by cr2res_obs_1d_ */
-#define CR2RES_OBS1D_EXTRACTA_PROCATG       "OBS1D_EXTRACTA"
-#define CR2RES_OBS1D_EXTRACTB_PROCATG       "OBS1D_EXTRACTB"
-#define CR2RES_OBS1D_COMBINEDA_PROCATG      "OBS1D_COMBINEDA"
-#define CR2RES_OBS1D_COMBINEDB_PROCATG      "OBS1D_COMBINEDB"
+/* Produced by cr2res_obs_1d */
+#define CR2RES_OBS_1D_EXTRACTA_PROCATG      "OBS_1D_EXTRACTA"
+#define CR2RES_OBS_1D_EXTRACTB_PROCATG      "OBS_1D_EXTRACTB"
+#define CR2RES_OBS_1D_COMBINEDA_PROCATG     "OBS_1D_COMBINEDA"
+#define CR2RES_OBS_1D_COMBINEDB_PROCATG     "OBS_1D_COMBINEDB"
+
+/* Produced by cr2res_obs_2d */
+#define CR2RES_OBS_2D_EXTRACT_PROCATG       "OBS_2D_EXTRACT"
+
+/* Produced by cr2res_obs_pol */
+#define CR2RES_OBS_POL_EXTRACTA_PROCATG     "OBS_POL_EXTRACTA"
+#define CR2RES_OBS_POL_EXTRACTB_PROCATG     "OBS_POL_EXTRACTB"
+#define CR2RES_OBS_POL_COMBINEDA_PROCATG    "OBS_POL_COMBINEDA"
+#define CR2RES_OBS_POL_COMBINEDB_PROCATG    "OBS_POL_COMBINEDB"
 
 /* Produced by cr2res_util_genlines */
 #define CR2RES_EMISSION_LINES_PROCATG       "EMISSION_LINES"
@@ -224,7 +242,9 @@
 #define CR2RES_DARK_RAW                     "DARK"
 #define CR2RES_FLAT_RAW                     "FLAT"
 #define CR2RES_CALIB_RAW                    "CALIB"
-#define CR2RES_OBS1D_RAW                    "OBS1D"
+#define CR2RES_OBS_1D_RAW                   "OBS_1D"
+#define CR2RES_OBS_2D_RAW                   "OBS_2D"
+#define CR2RES_OBS_POL_RAW                  "OBS_POL"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes

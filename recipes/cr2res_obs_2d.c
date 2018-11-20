@@ -40,7 +40,7 @@
                                 Define
  -----------------------------------------------------------------------------*/
 
-#define RECIPE_STRING "cr2res_obs_1d"
+#define RECIPE_STRING "cr2res_obs_2d"
 
 /*-----------------------------------------------------------------------------
                              Plugin registration
@@ -52,47 +52,35 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
-static int cr2res_obs_1d_reduce(
+static int cr2res_obs_2d_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
-        int                     calib_cosmics_corr,
-        int                     extract_oversample,
-        int                     extract_swath_width,
-        int                     extract_height,
-        double                  extract_smooth,
-        int                     extract_sum_only,
         int                     reduce_det,
-        hdrl_image          **  combineda,
-        hdrl_image          **  combinedb,
-        cpl_table           **  extracta,
-        cpl_table           **  extractb,
+        cpl_table           **  extract,
         cpl_propertylist    **  ext_plist) ;
-static int cr2res_obs_1d_create(cpl_plugin *);
-static int cr2res_obs_1d_exec(cpl_plugin *);
-static int cr2res_obs_1d_destroy(cpl_plugin *);
-static int cr2res_obs_1d(cpl_frameset *, const cpl_parameterlist *);
+
+static int cr2res_obs_2d_create(cpl_plugin *);
+static int cr2res_obs_2d_exec(cpl_plugin *);
+static int cr2res_obs_2d_destroy(cpl_plugin *);
+static int cr2res_obs_2d(cpl_frameset *, const cpl_parameterlist *);
 
 /*-----------------------------------------------------------------------------
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_obs_1d_description[] =
-"CRIRES+ 1d Observation recipe\n"
+static char cr2res_obs_2d_description[] =
+"CRIRES+ 2d Observation recipe\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw-file.fits " CR2RES_OBS_1D_RAW"\n"
+"raw-file.fits " CR2RES_OBS_2D_RAW"\n"
 "detlin.fits " CR2RES_DETLIN_COEFFS_PROTYPE "\n"
 "master_dark.fits " CR2RES_MASTER_DARK_PROTYPE "\n"
-"master_flat.fits " CR2RES_MASTER_FLAT_PROTYPE "\n"
 "bpm.fits " CR2RES_BPM_PROTYPE "\n"
 "trace_wave.fits " CR2RES_TRACE_WAVE_PROTYPE "\n"
 " The recipe produces the following products:\n"
-"cr2res_obs_1d_extractA.fits " CR2RES_OBS_1D_EXTRACTA_PROCATG "\n"
-"cr2res_obs_1d_extractB.fits " CR2RES_OBS_1D_EXTRACTB_PROCATG "\n"
-"cr2res_obs_1d_combinedA.fits " CR2RES_OBS_1D_COMBINEDA_PROCATG "\n"
-"cr2res_obs_1d_combinedB.fits " CR2RES_OBS_1D_COMBINEDB_PROCATG "\n"
+"cr2res_obs_2d_extract.fits " CR2RES_OBS_2D_EXTRACT_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -119,15 +107,15 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CPL_PLUGIN_API,
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
-                    "cr2res_obs_1d",
-                    "1D Observation recipe",
-                    cr2res_obs_1d_description,
+                    "cr2res_obs_2d",
+                    "2D Observation recipe",
+                    cr2res_obs_2d_description,
                     "Thomas Marquart, Yves Jung",
                     PACKAGE_BUGREPORT,
                     cr2res_get_license(),
-                    cr2res_obs_1d_create,
-                    cr2res_obs_1d_exec,
-                    cr2res_obs_1d_destroy)) {    
+                    cr2res_obs_2d_create,
+                    cr2res_obs_2d_exec,
+                    cr2res_obs_2d_destroy)) {    
         cpl_msg_error(cpl_func, "Plugin initialization failed");
         (void)cpl_error_set_where(cpl_func);                          
         return 1;                                               
@@ -151,7 +139,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
   Defining the command-line/configuration parameters for the recipe.
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_obs_1d_create(cpl_plugin * plugin)
+static int cr2res_obs_2d_create(cpl_plugin * plugin)
 {
     cpl_recipe          *   recipe ;
     cpl_parameter       *   p ;
@@ -166,51 +154,23 @@ static int cr2res_obs_1d_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_1d.extract_oversample",
-            CPL_TYPE_INT, "factor by which to oversample the extraction",
-            "cr2res.cr2res_obs_1d", 2);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_oversample");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_1d.extract_swath_width",
-            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_obs_1d", 24);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_swath_width");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_1d.extract_height",
-            CPL_TYPE_INT, "Extraction height",
-            "cr2res.cr2res_obs_1d", -1);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_height");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_1d.extract_smooth",
-            CPL_TYPE_DOUBLE,
-            "Smoothing along the slit (1 for high S/N, 5 for low)",
-            "cr2res.cr2res_obs_1d", 1.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_1d.detector",
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_2d.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
-            "cr2res.cr2res_obs_1d", 0);
+            "cr2res.cr2res_obs_2d", 0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "detector");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_1d.order",
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_2d.order",
             CPL_TYPE_INT, "Only reduce the specified order",
-            "cr2res.cr2res_obs_1d", -1);
+            "cr2res.cr2res_obs_2d", -1);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "order");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_1d.trace_nb",
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_2d.trace_nb",
             CPL_TYPE_INT, "Only reduce the specified trace number",
-            "cr2res.cr2res_obs_1d", -1);
+            "cr2res.cr2res_obs_2d", -1);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_nb");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -225,7 +185,7 @@ static int cr2res_obs_1d_create(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_obs_1d_exec(cpl_plugin * plugin)
+static int cr2res_obs_2d_exec(cpl_plugin * plugin)
 {
     cpl_recipe  *recipe;
 
@@ -234,7 +194,7 @@ static int cr2res_obs_1d_exec(cpl_plugin * plugin)
         recipe = (cpl_recipe *)plugin;
     else return -1;
 
-    return cr2res_obs_1d(recipe->frames, recipe->parameters);
+    return cr2res_obs_2d(recipe->frames, recipe->parameters);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -244,7 +204,7 @@ static int cr2res_obs_1d_exec(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_obs_1d_destroy(cpl_plugin * plugin)
+static int cr2res_obs_2d_destroy(cpl_plugin * plugin)
 {
     cpl_recipe *recipe;
 
@@ -265,26 +225,21 @@ static int cr2res_obs_1d_destroy(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_obs_1d(
+static int cr2res_obs_2d(
         cpl_frameset            *   frameset,
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     extract_oversample, extract_swath_width,
-                            extract_height, reduce_det, reduce_order, 
+    int                     reduce_det, reduce_order, 
                             reduce_trace ;
-    double                  extract_smooth ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
     const cpl_frame     *   trace_wave_frame ;
-    hdrl_image          *   combineda[CR2RES_NB_DETECTORS] ;
-    hdrl_image          *   combinedb[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   extracta[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   extractb[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   extract[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
     int                     i, det_nr; 
 
@@ -292,25 +247,13 @@ static int cr2res_obs_1d(
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_obs_1d.extract_oversample");
-    extract_oversample = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_obs_1d.extract_swath_width");
-    extract_swath_width = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_obs_1d.extract_height");
-    extract_height = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_obs_1d.extract_smooth");
-    extract_smooth = cpl_parameter_get_double(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_obs_1d.detector");
+            "cr2res.cr2res_obs_2d.detector");
     reduce_det = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_obs_1d.order");
+            "cr2res.cr2res_obs_2d.order");
     reduce_order = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_obs_1d.trace_nb");
+            "cr2res.cr2res_obs_2d.trace_nb");
     reduce_trace = cpl_parameter_get_int(param);
 
     /* Identify the RAW and CALIB frames in the input frameset */
@@ -343,10 +286,7 @@ static int cr2res_obs_1d(
     /* Loop on the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         /* Initialise */
-        combineda[det_nr-1] = NULL ;
-        combinedb[det_nr-1] = NULL ;
-        extracta[det_nr-1] = NULL ;
-        extractb[det_nr-1] = NULL ;
+        extract[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
 
         /* Compute only one detector */
@@ -356,14 +296,9 @@ static int cr2res_obs_1d(
         cpl_msg_indent_more() ;
 
         /* Call the reduction function */
-        if (cr2res_obs_1d_reduce(rawframes, detlin_frame, 
-                    master_dark_frame, master_flat_frame, bpm_frame, 0,
-                    extract_oversample, extract_swath_width, extract_height, 
-                    extract_smooth, 0, det_nr,
-                    &(combineda[det_nr-1]),
-                    &(combinedb[det_nr-1]),
-                    &(extracta[det_nr-1]),
-                    &(extractb[det_nr-1]),
+        if (cr2res_obs_2d_reduce(rawframes, detlin_frame, 
+                    master_dark_frame, master_flat_frame, bpm_frame, det_nr,
+                    &(extract[det_nr-1]),
                     &(ext_plist[det_nr-1])) == -1) {
             cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
         }
@@ -373,22 +308,16 @@ static int cr2res_obs_1d(
 
     /* Ѕave Products */
 
-    /* Extracted A */
-    out_file = cpl_sprintf("%s_extractedA.fits", RECIPE_STRING) ;
-    cr2res_io_save_EXTRACT_1D(out_file, frameset, parlist, extracta, NULL,
-            ext_plist, CR2RES_OBS_1D_EXTRACTA_PROCATG, RECIPE_STRING) ;
+    /* Extracted */
+    out_file = cpl_sprintf("%s_extracted.fits", RECIPE_STRING) ;
+    cr2res_io_save_EXTRACT_1D(out_file, frameset, parlist, extract, NULL,
+            ext_plist, CR2RES_OBS_2D_EXTRACT_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        if (combineda[det_nr-1] != NULL)
-            hdrl_image_delete(combineda[det_nr-1]) ;
-        if (combinedb[det_nr-1] != NULL)
-            hdrl_image_delete(combinedb[det_nr-1]) ;
-        if (extracta[det_nr-1] != NULL) 
-            cpl_table_delete(extracta[det_nr-1]) ;
-        if (extractb[det_nr-1] != NULL) 
-            cpl_table_delete(extractb[det_nr-1]) ;
+        if (extract[det_nr-1] != NULL) 
+            cpl_table_delete(extract[det_nr-1]) ;
         if (ext_plist[det_nr-1] != NULL) 
             cpl_propertylist_delete(ext_plist[det_nr-1]) ;
     }
@@ -404,40 +333,25 @@ static int cr2res_obs_1d(
   @return  
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_obs_1d_reduce(
+static int cr2res_obs_2d_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
-        int                     calib_cosmics_corr,
-        int                     extract_oversample,
-        int                     extract_swath_width,
-        int                     extract_height,
-        double                  extract_smooth,
-        int                     extract_sum_only,
         int                     reduce_det,
-        hdrl_image          **  combineda,
-        hdrl_image          **  combinedb,
-        cpl_table           **  extracta,
-        cpl_table           **  extractb,
+        cpl_table           **  extract,
         cpl_propertylist    **  ext_plist)
 {
-    cpl_image * img = cpl_image_new(1024, 1024, CPL_TYPE_FLOAT);
     cpl_table * tab = cpl_table_new(1024) ;
 
-    *combineda = hdrl_image_create(img, img); 
-    *combinedb = hdrl_image_create(img, img); 
 
-    *extracta = cpl_table_duplicate(tab) ;
-    *extractb = cpl_table_duplicate(tab) ;
+    *extract = cpl_table_duplicate(tab) ;
 
-    cpl_image_delete(img) ;
     cpl_table_delete(tab) ;
 
-    cpl_msg_warning(__func__, 
+    cpl_msg_warning(__func__,
             "The recipe is not implemented - Results are fake") ;
-
     return 0 ;
 }
 
