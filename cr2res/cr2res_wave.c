@@ -138,7 +138,7 @@ cpl_polynomial * cr2res_wave_1d(
     /* Create the lines spectrum from the lines list */
     ref_spectrum = cr2res_wave_gen_lines_spectrum(static_file, wavesol_init,
             wl_error) ;
-
+            
     /* Just Extract the lines from the catalog */
     simple_ref_spectrum = cr2res_io_load_EMISSION_LINES(static_file) ;
 
@@ -556,7 +556,8 @@ int cr2res_wave_extract_lines(
   @param    display         Flag to display results
   @param    sigma_fit       [out] uncertainties of the polynomial fit
                             parameters (may be NULL)
-  @param    wavelength_error [out] array of wave_mean_error, wave_max_error (may be NULL)
+  @param    wavelength_error [out] array of wave_mean_error, wave_max_error (may be NULL),
+                            if pointer to NULL, will create cpl_array which needs to be deleted
   @return  Wavelength solution, i.e. polynomial that translates pixel
             values to wavelength.
   The returned polynomial must be deallocated with cpl_polynomial_delete()
@@ -1358,7 +1359,8 @@ cpl_polynomial * polyfit_1d(
             // Calculate absolute difference between polynomial and catalog value for each line
             // use px and py, so that only good lines are used
             diff = cpl_vector_new(cpl_vector_get_size(py));
-            //*wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+            if (*wavelength_error == NULL)
+                *wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
             for (i = 0; i < cpl_vector_get_size(py); i++){
                 cpl_vector_set(diff, i, abs(
                     cpl_polynomial_eval_1d(result, cpl_matrix_get(px, i, 0), NULL)
