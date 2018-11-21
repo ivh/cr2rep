@@ -503,12 +503,6 @@ int cr2res_wave_extract_lines(
             cpl_error_reset();
             continue;
         }
-        // cpl_msg_debug(__func__, "Pixel Guess %f", pixel_pos);
-        // cpl_msg_debug(__func__, "Pixel Fit   %f", pixel_new);
-        // cpl_msg_debug(__func__, "Height Guess %f", cpl_vector_get_max(y));
-        // cpl_msg_debug(__func__, "Height Fit   %f", cpl_vector_get(a, 2));
-        // cpl_msg_debug(__func__, "Width Guess %f", width);
-        // cpl_msg_debug(__func__, "Width Fit   %f", cpl_vector_get(a, 1));
     }
 
     cpl_msg_debug(__func__, "Using %lli out of %lli lines", ngood, npossible);
@@ -579,8 +573,6 @@ cpl_polynomial * cr2res_wave_line_fitting(
             lines_list == NULL)
         return NULL;
 
-    cpl_msg_info(__func__, "LINE 1D Wavecal");
-
     // For polynomial fit
     cpl_polynomial * result;
     cpl_matrix * cov;
@@ -596,8 +588,6 @@ cpl_polynomial * cr2res_wave_line_fitting(
     }
     // fit polynomial to data points
     result = polyfit_1d(px, py, sigma_py, degree, wavesol_init, wavelength_error, sigma_fit, &cov);
-
-    cpl_msg_info(__func__, "LINE 1D Wavecal");
 
     cpl_matrix_delete(px);
     cpl_vector_delete(py);
@@ -842,14 +832,14 @@ cpl_polynomial * cr2res_wave_etalon(
     li = cr2res_polynomial_eval_vector(wavesol_init, xi);
 
     /* mi = li / l0 */
-    mi = cpl_vector_new(nxi);
-    l0 = cpl_vector_get(li,0);
-    for (i=0; i<nxi; i++){
-        cpl_vector_set(mi,i, cpl_vector_get(li,i) / l0);
-    }
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
-        cpl_vector_dump(mi,stdout);
-    }
+    // mi = cpl_vector_new(nxi);
+    // l0 = cpl_vector_get(li,0);
+    // for (i=0; i<nxi; i++){
+    //     cpl_vector_set(mi,i, cpl_vector_get(li,i) / l0);
+    // }
+    // if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+    //     cpl_vector_dump(mi,stdout);
+    // }
 
     /* Calculate delta lambda between peaks */
 	trueD = cr2res_wave_etalon_get_D(li);
@@ -865,7 +855,7 @@ cpl_polynomial * cr2res_wave_etalon(
 
     // For each peak find the closest expected wavelength value
     is_should = cr2res_wave_etalon_assign_fringes(li, li_true);
-    cpl_bivector_dump(is_should, stdout);
+    // cpl_bivector_dump(is_should, stdout);
 
     // polynomial fit to points, xi, li
     px = cpl_matrix_wrap(nxi, 1, cpl_vector_get_data(xi));
@@ -1361,14 +1351,19 @@ cpl_polynomial * polyfit_1d(
             diff = cpl_vector_new(cpl_vector_get_size(py));
             if (*wavelength_error == NULL)
                 *wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+
+
             for (i = 0; i < cpl_vector_get_size(py); i++){
-                cpl_vector_set(diff, i, abs(
+                cpl_vector_set(diff, i, fabs(
                     cpl_polynomial_eval_1d(result, cpl_matrix_get(px, i, 0), NULL)
                     - cpl_vector_get(py, i)));
             }
             // Set wavelength_error to mean and max difference
             cpl_array_set_double(*wavelength_error, 0, cpl_vector_get_mean(diff));
             cpl_array_set_double(*wavelength_error, 1, cpl_vector_get_max(diff));
+
+            cpl_msg_debug(__func__, "Wave Error Mean: %g", cpl_array_get(*wavelength_error, 0, NULL));
+            cpl_msg_debug(__func__, "Wave Error Max : %g", cpl_array_get(*wavelength_error, 1, NULL));
 
             cpl_vector_delete(diff);
         }
