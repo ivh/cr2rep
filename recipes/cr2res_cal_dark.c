@@ -70,9 +70,9 @@ static char cr2res_cal_dark_description[] =
 "CRIRES+ dark recipe\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
 "raw-file.fits " CR2RES_DARK_RAW "\n"
-" The recipe produces the following products for each different DIT found:\n"
-"cr2res_cal_dark_master_DIT.fits " CR2RES_MASTER_DARK_PROCATG "\n"
-"cr2res_cal_dark_bpm_DIT.fits " CR2RES_DARK_BPM_PROCATG "\n"
+" The recipe produces the following products for each DITxNDIT found:\n"
+"cr2res_cal_dark_master_DITxNDIT.fits " CR2RES_MASTER_DARK_PROCATG "\n"
+"cr2res_cal_dark_bpm_DITxNDIT.fits " CR2RES_DARK_BPM_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -345,7 +345,7 @@ static int cr2res_cal_dark(
         return -1 ;
     }
 
-    /* Labelise the raw frames with the DIT */
+    /* Labelise the raw frames with the DITxNDIT */
     if ((labels = cpl_frameset_labelise(rawframes, cr2res_cal_dark_compare,
                 &nlabels)) == NULL) {
         cpl_msg_error(__func__, "Cannot labelise input frames") ;
@@ -524,7 +524,8 @@ static int cr2res_cal_dark(
 
         /* Save the results */
         /* MASTER DARK */
-        filename = cpl_sprintf("%s_dit_%g_master.fits", RECIPE_STRING, dit); 
+        filename = cpl_sprintf("%s_%gx%d_master.fits", 
+                RECIPE_STRING, dit, ndit); 
         if (cr2res_io_save_MASTER_DARK(filename, raw_one, parlist, master_darks,
                     NULL, ext_plist, CR2RES_MASTER_DARK_PROCATG, 
                     RECIPE_STRING) != 0) {
@@ -550,7 +551,8 @@ static int cr2res_cal_dark(
         cpl_free(filename) ;
 
         /* BPM */
-        filename = cpl_sprintf("%s_dit_%g_bpm.fits", RECIPE_STRING, dit); 
+        filename = cpl_sprintf("%s_%gx%d_bpm.fits", 
+                RECIPE_STRING, dit, ndit); 
         if (cr2res_io_save_BPM(filename, raw_one, parlist, bpms, NULL,
                     ext_plist, CR2RES_DARK_BPM_PROCATG, RECIPE_STRING) != 0) {
             cpl_frameset_delete(rawframes) ;
@@ -609,6 +611,7 @@ static int cr2res_cal_dark_compare(
     cpl_propertylist    *   plist1 ;
     cpl_propertylist    *   plist2 ;
     double                  dval1, dval2 ;
+    int                     ival1, ival2 ;
 
     /* Test entries */
     if (frame1==NULL || frame2==NULL) return -1 ;
@@ -643,6 +646,17 @@ static int cr2res_cal_dark_compare(
         return -1 ;
     }
     if (fabs(dval1-dval2) > 1e-3) comparison = 0 ;
+
+    /* Compare the NDIT used */
+    ival1 = cr2res_pfits_get_ndit(plist1) ;
+    ival2 = cr2res_pfits_get_ndit(plist2) ;
+    if (cpl_error_get_code()) {
+        cpl_msg_error(__func__, "Cannot get the NDIT");
+        cpl_propertylist_delete(plist1) ;
+        cpl_propertylist_delete(plist2) ;
+        return -1 ;
+    }
+    if (ival1 != ival2) comparison = 0 ;
 
     cpl_propertylist_delete(plist1) ;
     cpl_propertylist_delete(plist2) ;
