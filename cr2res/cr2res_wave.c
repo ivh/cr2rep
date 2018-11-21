@@ -812,7 +812,7 @@ cpl_polynomial * cr2res_wave_etalon(
     cpl_bivector *  is_should;
     cpl_vector  *   xi;
     cpl_vector  *   li;
-    cpl_vector  *   mi;
+    // cpl_vector  *   mi;
     cpl_vector  *   li_true;
     cpl_matrix  *   px;
     cpl_polynomial * result;
@@ -831,16 +831,6 @@ cpl_polynomial * cr2res_wave_etalon(
     /* apply initial solution to get wavelength li at each point xi*/
     li = cr2res_polynomial_eval_vector(wavesol_init, xi);
 
-    /* mi = li / l0 */
-    // mi = cpl_vector_new(nxi);
-    // l0 = cpl_vector_get(li,0);
-    // for (i=0; i<nxi; i++){
-    //     cpl_vector_set(mi,i, cpl_vector_get(li,i) / l0);
-    // }
-    // if (cpl_msg_get_level() == CPL_MSG_DEBUG){
-    //     cpl_vector_dump(mi,stdout);
-    // }
-
     /* Calculate delta lambda between peaks */
 	trueD = cr2res_wave_etalon_get_D(li);
     cpl_msg_debug(__func__,"trueD: %e", trueD);
@@ -855,7 +845,6 @@ cpl_polynomial * cr2res_wave_etalon(
 
     // For each peak find the closest expected wavelength value
     is_should = cr2res_wave_etalon_assign_fringes(li, li_true);
-    // cpl_bivector_dump(is_should, stdout);
 
     // polynomial fit to points, xi, li
     px = cpl_matrix_wrap(nxi, 1, cpl_vector_get_data(xi));
@@ -868,7 +857,7 @@ cpl_polynomial * cr2res_wave_etalon(
     cpl_bivector_delete(is_should);
     cpl_vector_delete(xi);
     cpl_vector_delete(li);
-    cpl_vector_delete(mi);
+
     return result;
 }
 
@@ -1026,7 +1015,7 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
 
     /* X-axis to cut out from for each peak */
     X_all = cpl_vector_new(nx);
-    for (i=1; i<=nx; i++) cpl_vector_set(X_all, i, (double)i+1) ;
+    for (i=0; i<nx; i++) cpl_vector_set(X_all, i, (double)i+1) ;
 
     for (i=0; i < nx; i++){
         j = 0;
