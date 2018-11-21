@@ -71,7 +71,7 @@ XFAIL_TESTS =
 
 # We need to remove any files that the above tests created.
 clean-local: 
-	$(RM) *.log *.paf .logfile
+	$(RM) *.fits *.log *.paf .logfile
 
 
 
