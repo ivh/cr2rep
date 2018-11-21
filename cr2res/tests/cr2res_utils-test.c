@@ -254,6 +254,7 @@ static void test_cr2res_image_insert_rect(void)
 static void test_cr2res_polynomial_eval_vector(void)
 {
     int i;
+    cpl_size power;
     double p0 = 1.1, p1 = 2.2, p2 = 3.3;
     double d, val;
     int n = 100;
@@ -262,12 +263,12 @@ static void test_cr2res_polynomial_eval_vector(void)
     cpl_vector *res;
     cpl_polynomial *poly = cpl_polynomial_new(1);
 
-    i = 0;
-    cpl_polynomial_set_coeff(poly, (cpl_size *)&i, p0);
-    i = 1;
-    cpl_polynomial_set_coeff(poly, (cpl_size *)&i, p1);
-    i = 2;
-    cpl_polynomial_set_coeff(poly, (cpl_size *)&i, p2);
+    power = 0;
+    cpl_polynomial_set_coeff(poly, &power, p0);
+    power = 1;
+    cpl_polynomial_set_coeff(poly, &power, p1);
+    power = 2;
+    cpl_polynomial_set_coeff(poly, &power, p2);
 
     for (i = 0; i < n; i++)
     {

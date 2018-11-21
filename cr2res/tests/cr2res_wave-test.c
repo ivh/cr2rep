@@ -53,6 +53,35 @@ static void test_cr2res_wave_etalon(void);
 /*----------------------------------------------------------------------------*/
 /**@{*/
 
+static cpl_bivector * load_etalon()
+{
+    cpl_table * table;
+    double * data;
+    cpl_size n;
+    cpl_bivector * result;
+    cpl_vector * wave, *spec;
+
+    if (access("./tests/etalon.fits", F_OK) != -1){
+        table = cpl_table_load("./tests/etalon.fits", 1, 0);
+    } else{
+        table = cpl_table_load("./etalon.fits", 1, 0);
+    }
+
+    n = cpl_table_get_nrow(table);
+    data = cpl_table_get_data_double(table, "99_04_SPEC");
+
+    result = cpl_bivector_new(n);
+    wave = cpl_bivector_get_x(result);    
+    spec = cpl_bivector_get_y(result);
+
+    for (cpl_size i = 0; i < n; i++){
+        cpl_vector_set(spec, i, data[i]);
+    }
+
+    cpl_table_delete(table);
+
+    return result;
+}
 
 // make a test line list catalog with just 2 lines
 static cpl_table * make_test_catalog()
@@ -242,6 +271,170 @@ static void test_cr2res_wave_line_fitting()
     cpl_polynomial_delete(initial_guess);
     cpl_array_delete(wave_error_init);
 }
+
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Use two identical orders, with two lines each, and check that the result is still linear
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_wave_line_fitting_2d()
+{   
+    int i, norders = 5;
+    double wmin=2500, wmax=2650;
+    int size = 200;
+    // Make test data
+    cpl_table * catalog = make_test_catalog();
+    cpl_bivector * linelist;
+    cpl_bivector * spectrum_err;
+    cpl_bivector * spectrum = make_test_spectrum(catalog, wmin, wmax, size, &spectrum_err);
+    cpl_polynomial * initial_guess = make_test_polynomial(wmin, wmax, size);
+    cpl_vector * orders = cpl_vector_new(norders);
+    int display = FALSE; // False
+    cpl_array * wave_error_init = cpl_array_new(2, CPL_TYPE_DOUBLE);
+    cpl_array_set_double(wave_error_init, 0, 3.1);
+    cpl_array_set_double(wave_error_init, 1, 3.5);
+
+    cpl_vector * sigma_fit = cpl_vector_new(2);
+    cpl_array * wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+    cpl_polynomial * wavelength;
+    cpl_size power;
+
+    int len_linelist = cpl_table_get_nrow(catalog);
+    cpl_vector * tmp_w = cpl_vector_wrap(len_linelist, 
+        cpl_table_get_data_double(catalog, CR2RES_COL_WAVELENGTH));
+    cpl_vector * tmp_h = cpl_vector_wrap(len_linelist, 
+        cpl_table_get_data_double(catalog, CR2RES_COL_EMISSION));
+    linelist = cpl_bivector_wrap_vectors(tmp_w, tmp_h);
+
+    cpl_size * degree = cpl_malloc(2 * sizeof(cpl_size));
+    degree[0] = 1; // polynomial degree in wavelength direction
+    degree[1] = 2; // polynomial degree in order direction
+
+    // Make lists that contain the same spectrum several times
+    cpl_bivector ** spec = cpl_malloc(norders * sizeof(cpl_bivector*));
+    cpl_bivector ** spec_err = cpl_malloc(norders * sizeof(cpl_bivector*));
+    cpl_polynomial ** guess = cpl_malloc(norders * sizeof(cpl_polynomial*));
+    const cpl_array ** init_error = cpl_malloc(norders * sizeof(cpl_array*));
+
+    for (i = 0; i < norders; i++){
+        cpl_vector_set(orders, i, i);
+
+        spec[i] = spectrum;
+        spec_err[i] = spectrum_err;
+        guess[i] = initial_guess;
+        init_error[i] = wave_error_init;
+    }
+
+    // Run function
+    wavelength = cr2res_wave_line_fitting_2D(spec, spec_err, guess, init_error,
+            linelist, orders, norders, degree, display, NULL, NULL);
+
+    // Check output
+    // cpl_polynomial_dump(wavelength, stdout);
+    // #----- 2 dimensional polynomial -----
+    // 1.dim.power  2.dim.power  coefficient
+    //     0            0      2500
+    //     1            0      0.75
+    //     0            1      -1.04049e-12
+    //     0            2      2.48754e-13
+    //     1            2      1.07764e-16
+    //     1            1      -4.31057e-16
+    // #------------------------------------
+
+    // first two are the linear component in x direction
+    cpl_size idx[2] = {0, 0};
+    cpl_test_abs(wmin, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    idx[0] = 1;
+    cpl_test_abs((wmax-wmin)/(double)size, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    // all others should be 0 (or close to it), as there is no y dependance
+    idx[0] = 0;
+    idx[1] = 1;
+    cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    idx[0] = 0;
+    idx[1] = 2;
+    cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    idx[0] = 1;
+    idx[1] = 2;
+    cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    idx[0] = 1;
+    idx[1] = 1;
+    cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+
+    // Free Memory
+    cpl_free(degree);
+    cpl_vector_delete(orders);
+    cpl_bivector_unwrap_vectors(linelist);
+    cpl_vector_unwrap(tmp_h);
+    cpl_vector_unwrap(tmp_w);
+    cpl_array_delete(wavelength_error);
+    cpl_polynomial_delete(wavelength);
+    cpl_vector_delete(sigma_fit);
+    cpl_table_delete(catalog);
+    cpl_bivector_delete(spectrum);
+    cpl_bivector_delete(spectrum_err);
+    cpl_polynomial_delete(initial_guess);
+    cpl_array_delete(wave_error_init);
+
+    cpl_free(spec);
+    cpl_free(spec_err);
+    cpl_free(guess);
+    cpl_free(init_error);
+
+}
+
+static void test_cr2res_wave_etalon(void){
+    
+    cpl_bivector * spectrum;
+    cpl_bivector * spectrum_err;
+    cpl_array * error;
+    cpl_polynomial * initial;
+    cpl_polynomial * result;
+    cpl_size power;
+
+    double wmin = 500;
+    double wmax = 600;
+    int size = 2000;
+    int degree = 1;
+
+    spectrum = make_test_etalon_spectrum(size, 0.1, &spectrum_err);
+
+    // Remove one peak
+    for(int i = 100; i < 150; i++)
+    {
+        cpl_vector_set(cpl_bivector_get_y(spectrum), i, 0);
+    }
+    
+
+    // Add a peak
+    for(int i = 1462; i < 1493 ; i++)
+    {
+        cpl_vector_set(cpl_bivector_get_y(spectrum), i, 1);
+    }
+
+
+    initial = make_test_polynomial(wmin, wmax, size);
+    
+    error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+    cpl_array_set_double(error, 0, 3.1);
+    cpl_array_set_double(error, 1, 3.5);
+
+    result = cr2res_wave_etalon(spectrum, spectrum_err, initial, degree, &error);
+
+    // these values obviously need to be changed if the number of degrees is changed
+    power = 0;
+    cpl_test_abs(cpl_polynomial_get_coeff(result, &power), wmin, 0.2);
+    power = 1;
+    cpl_test_abs(cpl_polynomial_get_coeff(result, &power), (wmax-wmin)/(double)size, 0.01);
+
+
+    cpl_bivector_delete(spectrum);
+    cpl_bivector_delete(spectrum_err);
+    cpl_array_delete(error);
+    cpl_polynomial_delete(initial);
+    cpl_polynomial_delete(result);
+}
+
 
 
 /*----------------------------------------------------------------------------*/

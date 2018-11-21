@@ -237,9 +237,6 @@ static void cr2res_splice_test(){
     cpl_table_delete(trace_wave);
     cpl_table_delete(blaze);
     cpl_table_delete(spectra);
-    cpl_bivector_delete(spliced);
-    cpl_bivector_delete(spliced_err);
-
 
 }
 

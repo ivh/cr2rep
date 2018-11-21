@@ -1422,6 +1422,7 @@ int cr2res_util_get_subtrace(cpl_table * trace_wave, double slit_pos, double hei
     return 0;
 }
 
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Split a trace into several sub traces

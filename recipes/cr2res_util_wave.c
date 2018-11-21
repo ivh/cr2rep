@@ -204,7 +204,7 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.degree",
-            CPL_TYPE_INT, "Wavelegth Polynomial degree",
+            CPL_TYPE_INT, "Wavelength Polynomial degree",
             "cr2res.cr2res_util_wave", 3);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "degree");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
@@ -475,14 +475,14 @@ static int cr2res_util_wave(
             /* Get the wavelength guess */
             if (wstart > 0.0 && wend > 0.0) {
                 wave_guess = cr2res_wlestimate_compute(wstart, wend) ;
-                wave_error_guess = NULL ;
+                wave_error_guess = NULL;
             } else {
                 if ((wave_guess=cr2res_get_trace_wave_poly(trace_wave_table,
                             CR2RES_COL_WAVELENGTH, order, trace_id)) == NULL) {
                     cpl_msg_error(__func__, "Cannot get the WL guess") ;
-                    cpl_msg_indent_less() ;
-                    cpl_bivector_delete(extracted_bivec) ;
-                    cpl_bivector_delete(extracted_err_bivec) ;
+                    cpl_msg_indent_less();
+                    cpl_bivector_delete(extracted_bivec);
+                    cpl_bivector_delete(extracted_err_bivec);
                     continue ;
                 }
                 if ((wave_error_guess = cpl_table_get_array(trace_wave_table, 
