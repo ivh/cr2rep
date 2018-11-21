@@ -231,7 +231,7 @@ static int cr2res_util_calib(
     double                  raw_dit ;
     int                     i, det_nr, wished_ext_nb; 
 
-    /* Initiaise */
+    /* Initialise */
 
 
     /* RETRIEVE INPUT PARAMETERS */
@@ -264,6 +264,7 @@ static int cr2res_util_calib(
     if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
         cpl_msg_error(__func__, "Cannot find any RAW file") ;
         cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
+        if (rawframes!= NULL) cpl_frameset_delete(rawframes) ;
         return -1 ;
     }
 
@@ -287,11 +288,18 @@ static int cr2res_util_calib(
             cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
             cpl_msg_indent_more() ;
 
-            /* Load the image list (with 1 image) */
-            ilist = cpl_imagelist_new() ;
-
             /* Load the image to calibrate */
             wished_ext_nb = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
+            if (wished_ext_nb < 0) {
+                cpl_msg_warning(__func__, 
+                        "Cannot identifiy the extention for detector %d",
+                        det_nr) ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+            
+            /* Load the image list (with 1 image) */
+            ilist = cpl_imagelist_new() ;
             ima = cpl_image_load(cur_fname, CPL_TYPE_FLOAT, 0, wished_ext_nb);
             cpl_imagelist_set(ilist, ima, 0) ;
 
@@ -305,8 +313,9 @@ static int cr2res_util_calib(
                         master_flat_frame, master_dark_frame, bpm_frame, 
                         detlin_frame, raw_dit) == -1) {
                 cpl_msg_warning(__func__, "Failed to calibrate") ;
+                cpl_msg_indent_less() ;
+                continue ;
             }
-            cpl_msg_indent_less() ;
 
             /* Put ilist in calibrated */
             calibrated[det_nr-1] = hdrl_image_create(
@@ -315,10 +324,11 @@ static int cr2res_util_calib(
 
             /* Create the header */
             ext_plist[det_nr-1]=cpl_propertylist_load(cur_fname,wished_ext_nb);
+
+            cpl_msg_indent_less() ;
         }
 
         /* Ѕave Products */
-
         /* CALIBRATED */
 		out_file=cpl_sprintf("%s_calibrated.fits", 
                 cr2res_get_base_name(cur_fname)) ;
@@ -336,6 +346,9 @@ static int cr2res_util_calib(
         }
         cpl_msg_indent_less() ;
     }
+
+    /* Free and return */
+    cpl_frameset_delete(rawframes) ;
     return (int)cpl_error_get_code();
 }
 
