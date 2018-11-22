@@ -389,13 +389,15 @@ int cr2res_wave_extract_lines(
         } else window_size = 15;
     }
     cpl_size i, j, k, ngood, spec_size, npossible;
-    double pixel_pos, pixel_new, red_chisq;
+    double pixel_pos, pixel_new, red_chisq, dbl, res;
     int n = cpl_bivector_get_size(lines_list);
     cpl_error_code error;
     cpl_vector * wave_vec, * pixel_vec, *width_vec, *flag_vec;
     const cpl_vector *spec, *unc;
     double * wave, width;
     const double *height;
+    cpl_vector * fit, *fit_x;
+    const cpl_vector ** plot;
 
     // For gaussian fit of each line
     // gauss = A * exp((x-mu)^2/(2*sig^2)) + cont
@@ -502,6 +504,34 @@ int cr2res_wave_extract_lines(
             ngood--;
             cpl_error_reset();
             continue;
+        }
+
+        /* Display */
+        if (display) {
+            /* Plot Observation and Fit */
+            // TODO: Currently this will create a plot window for each line
+            // afaik, to get them all in one plot, one needs to save all the fits
+            // and then run one big plot_vectors (maybe bivectors) command with set multiplot
+            // alternatively create a file for each line, instead of plot window
+            plot = cpl_malloc(3 * sizeof(cpl_vector*));
+            fit = cpl_vector_new(window_size);
+            fit_x = cpl_vector_new(window_size);
+
+            for (j = 0; j < window_size; j++){
+                dbl = cpl_matrix_get(x, j, 0);
+                gauss(&dbl, cpl_vector_get_data_const(a), &res);
+                cpl_vector_set(fit, j, res);
+                cpl_vector_set(fit_x, j, dbl);
+            }
+            plot[0] = fit_x;
+            plot[1] = y;
+            plot[2] = fit;
+            cpl_plot_vectors(
+            "set terminal wxt 2;set grid;set xlabel 'Position (Pixel)';set ylabel 'Intensity (ADU/sec)';",
+                "title 'Observed' w lines", "q", plot, 3);
+            cpl_vector_delete(fit);
+            cpl_free(plot);
+            cpl_error_reset();
         }
     }
 
