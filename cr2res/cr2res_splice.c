@@ -82,7 +82,7 @@ int cr2res_splice(
         cpl_bivector    **  spliced,
         cpl_bivector    **  spliced_err)
 {
-    int i, j, k, trace, nspectra, nb_orders, nb_traces;
+    int i, j, k, trace, nspectra, nb_orders, nb_traces, sucess;
     int * orders, * traces;
     int count = 0;
     // trace determines which trace to get from the table
@@ -100,6 +100,7 @@ int cr2res_splice(
     cpl_vector ** uncs;
     cpl_vector ** cont;
 
+
     // Count total number of spectra
     nspectra = 0;
     for (i = 0; i < ninputs; i++){
@@ -111,13 +112,16 @@ int cr2res_splice(
             // Count number of orders with the requested trace
             orders = cr2res_trace_get_order_numbers(trace_wave[i], &nb_orders);
             for (j = 0; j < nb_orders; j++){
-                if (cr2res_get_trace_table_index(trace_wave[i], orders[j], trace) != -1){
+                if ((k = cr2res_get_trace_table_index(trace_wave[i], orders[j], trace)) != -1){
                     nspectra++;
                 }
             }
             cpl_free(orders);
         }
     }
+
+    cpl_msg_info(__func__, "Number of segments: %i", nspectra);
+
 
     // Prepare data vectors
     wave = cpl_malloc(nspectra * sizeof(cpl_vector *));
@@ -134,9 +138,12 @@ int cr2res_splice(
                 traces = cr2res_get_trace_numbers(trace_wave[i], orders[j], &nb_traces);
                 for (k = 0; k < nb_traces; k++)
                 {
-                    cr2res_extract_data(trace_wave[i], blaze[i], extracted_1d[i], 
+                    sucess = cr2res_extract_data(trace_wave[i], blaze[i], extracted_1d[i], 
                         orders[j], traces[k], &wave[count], &spec[count], &uncs[count], &cont[count]);
-                    count++;
+                    if (sucess == 0){
+                        count++;
+                    }
+
                 }
                 cpl_free(traces);
             }
@@ -153,8 +160,12 @@ int cr2res_splice(
         cpl_free(orders);
     }
 
+    nspectra = count;
+    cpl_msg_info(__func__, "%i segments with data found", nspectra);
+
     // Splice orders, but keep them seperate
     cr2res_splice_orders(wave, spec, uncs, cont, nspectra, &sp, &sp_err, &sp_order, &first, &last);
+
     // Combine orders into one big spectrum
     cr2res_combine_spectra(sp, sp_err, sp_order, first, last, nspectra, spliced, spliced_err);
 
@@ -170,7 +181,7 @@ int cr2res_splice(
     cpl_free(sp);
     cpl_free(sp_err);
 
-    for (i = 0; i < count; i++){
+    for (i = 0; i < nspectra; i++){
         // spec, uncs, cont were just wrapping table data
         // while wave, is its own data (the evaluated polynomial)
         cpl_vector_delete(wave[i]);
@@ -183,6 +194,10 @@ int cr2res_splice(
     cpl_free(uncs);
     cpl_free(cont);
 
+    if (cpl_error_get_code() == CPL_ERROR_DIVISION_BY_ZERO){
+        cpl_msg_warning(__func__, "Division by Zero encountered. Resetting Error State");
+        cpl_error_reset();
+    }
     return 0 ;
 }
 
@@ -212,28 +227,56 @@ int cr2res_extract_data(
 
     // Get wavelength
     wave1 = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, j);
+    if (wave1 == NULL){
+        cpl_msg_warning(__func__, "Order %i, Trace %i", order, trace);
+        cpl_msg_warning(__func__, "Wavelength Array not set");
+        return -1;
+    }
     wave_poly = cr2res_convert_array_to_poly(wave1);
     *wave = cpl_vector_new(n);
     for (k = 0; k < n; k++) cpl_vector_set(*wave, k, cpl_polynomial_eval_1d(wave_poly, k, NULL));
     cpl_polynomial_delete(wave_poly);
 
     // Get Spectrum
-    colname = cr2res_dfs_SPEC_colname(order, trace);        
+    colname = cr2res_dfs_SPEC_colname(order, trace);
     tmp1 = cpl_table_get_data_double(spectra, colname);
-    *spec = cpl_vector_wrap(n, tmp1);
     cpl_free(colname);
+
+    if (tmp1 == NULL){
+        cpl_msg_warning(__func__, "Order %i, Trace %i", order, trace);
+        cpl_msg_warning(__func__, "Spectrum not set");
+        cpl_vector_delete(*wave);
+        return -1;
+    }
+    *spec = cpl_vector_wrap(n, tmp1);
+
 
     // Get Uncertainties
     colname = cr2res_dfs_SPEC_ERR_colname(order, trace);
     tmp1 = cpl_table_get_data_double(spectra, colname);
-    *uncs = cpl_vector_wrap(n, tmp1);
     cpl_free(colname);
+    if (tmp1 == NULL){
+        cpl_msg_warning(__func__, "Order %i, Trace %i", order, trace);
+        cpl_msg_warning(__func__, "Error not set");
+        cpl_vector_delete(*wave);
+        cpl_vector_unwrap(*spec);
+        return -1;
+    }
+    *uncs = cpl_vector_wrap(n, tmp1);
 
     // Get Continuum
     colname = cr2res_dfs_SPEC_colname(order, trace);
     tmp1 = cpl_table_get_data_double(blaze, colname);
-    *cont = cpl_vector_wrap(n, tmp1);
     cpl_free(colname);
+    if (tmp1 == NULL){
+        cpl_msg_warning(__func__, "Order %i, Trace %i", order, trace);
+        cpl_msg_warning(__func__, "Blaze not set");
+        cpl_vector_delete(*wave);
+        cpl_vector_unwrap(*spec);
+        cpl_vector_unwrap(*uncs);
+        return -1;
+    }
+    *cont = cpl_vector_wrap(n, tmp1);
 
     return 0;
 }
@@ -343,6 +386,7 @@ int cr2res_splice_orders(
     int n = CR2RES_DETECTOR_SIZE;
     double maximum = 0;
     double minW0, minW1, maxW0, maxW1;
+    cpl_size minW0pos, minW1pos, maxW0pos, maxW1pos;
     double wgt0, wgt1;
     // temporary work arrays
     char * colname;
@@ -384,10 +428,17 @@ int cr2res_splice_orders(
         // scale all orders to spec/cont = 1
         tmp4 = cpl_vector_new(n);
         cpl_vector_copy(tmp4, spec[i]);
-        cpl_vector_divide(tmp4, cont[i]);
+        for (j=0; j < cpl_vector_get_size(tmp4); j++)
+        {
+            if (cpl_vector_get(tmp4, j) != 0){
+                cpl_vector_set(tmp4, j, cpl_vector_get(tmp4, j) / cpl_vector_get(cont[i], 4));
+            }
+        }
+        // cpl_vector_divide(tmp4, cont[i]);
         median = cpl_vector_get_median(tmp4);
         cpl_vector_multiply_scalar(cont[i], median);
         cpl_vector_delete(tmp4);
+
     }
 
     // Determine order of orders (wavelength sections)
@@ -417,10 +468,22 @@ int cr2res_splice_orders(
         c1 = cont[iord1];
 
         // Calculate overlap
-        minW1 = cpl_vector_get_min(w1);
-        minW0 = cpl_vector_get_min(w0);
-        maxW1 = cpl_vector_get_max(w1);
-        maxW0 = cpl_vector_get_max(w0);
+        // If the extraction was curved, the border points should be 0
+        // with the number of points depending on the curvature
+        minW1pos = cpl_vector_get_minpos(w1);
+        minW0pos = cpl_vector_get_minpos(w0);
+        maxW1pos = cpl_vector_get_maxpos(w1);
+        maxW0pos = cpl_vector_get_maxpos(w0);
+
+        while (cpl_vector_get(s1, minW1pos) == 0)   minW1pos++;
+        while (cpl_vector_get(s0, minW0pos) == 0)   minW0pos++;
+        while (cpl_vector_get(s1, maxW1pos) == 0)   maxW1pos--;
+        while (cpl_vector_get(s0, maxW0pos) == 0)   maxW0pos--;
+        
+        minW1 = cpl_vector_get(w1, minW1pos);
+        minW0 = cpl_vector_get(w0, minW0pos);
+        maxW1 = cpl_vector_get(w1, maxW1pos);
+        maxW0 = cpl_vector_get(w0, maxW0pos);
 
         // indices of the first and last overlaping value
         first0 = -1;
@@ -452,6 +515,7 @@ int cr2res_splice_orders(
                 last1 = j;
             }
         }
+        cpl_msg_debug(__func__, "Overlap: %i, %i", overlap0, overlap1);
 
         // TODO check the order of values and stuff
         // It should be:
@@ -464,7 +528,6 @@ int cr2res_splice_orders(
         cpl_vector_set(cpl_bivector_get_y(*last), iord0, last0);
         cpl_vector_set(cpl_bivector_get_x(*first), iord1, first1);
         cpl_vector_set(cpl_bivector_get_x(*last), iord1, last1);
-
 
         // extract overlapping wavelength vectors
         // point to the latter parts of the wavelength vector, no need for copies

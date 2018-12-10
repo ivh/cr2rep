@@ -388,8 +388,11 @@ static int cr2res_util_splice(
     cpl_frameset_delete(blaze_fset) ;
 
     /* Call the splicing */
+
     ret = cr2res_splice(extracted_tables, blaze_tables, trace_tables,
             nb_det, &spliced, &spliced_err) ;
+
+
     /* Deallocate */
     for (i=0 ; i<nb_det ; i++) {
         cpl_table_delete(blaze_tables[i]) ;
