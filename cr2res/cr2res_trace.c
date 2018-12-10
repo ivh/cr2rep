@@ -423,8 +423,9 @@ cpl_size cr2res_get_nb_traces(
 
     /* Loop on the table rows */
     for (i=0 ; i<nrows ; i++)
-        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER,i,NULL)==order)
+        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL)==order){
             count ++ ;
+        }
     return count ;
 }
 
@@ -462,11 +463,17 @@ int * cr2res_get_trace_numbers(
 
     /* Loop on the table rows */
     for (i=0 ; i<nrows ; i++)
-        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER,i,NULL)==order)
+        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL)==order)
+        {
             traces[k] = cpl_table_get(trace_wave, CR2RES_COL_TRACENB, i, NULL);
             k++;
+        }
 
     if (nb_traces != NULL) *nb_traces = number_traces;
+
+    if (k != number_traces){
+        cpl_msg_warning(__func__, "Not all expected traces found");
+    }
 
     return traces;
 }

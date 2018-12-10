@@ -70,19 +70,8 @@ int cr2res_wave_extract_lines(
     int                 display,
     cpl_matrix      **  px,
     cpl_vector      **  py,
-    cpl_vector      **  sigma_py);
-
-
-int cr2res_wave_extract_lines(
-    cpl_bivector    *   spectrum,
-    cpl_bivector    *   spectrum_err,
-    cpl_polynomial  *   wavesol_init,
-    const cpl_array *   wave_error_init,
-    cpl_bivector    *   lines_list,
-    int                 display,
-    cpl_matrix      **  px,
-    cpl_vector      **  py,
-    cpl_vector      **  sigma_py);
+    cpl_vector      **  sigma_py,
+    cpl_vector      **  heights);
 
 
 /*----------------------------------------------------------------------------*/
@@ -366,7 +355,8 @@ int cr2res_wave_extract_lines(
     int                 display,
     cpl_matrix      **  px,
     cpl_vector      **  py,
-    cpl_vector      **  sigma_py
+    cpl_vector      **  sigma_py,
+    cpl_vector      **  heights
     )
 {
 
@@ -380,7 +370,7 @@ int cr2res_wave_extract_lines(
     int window_size;
     /* set window_size using the wave_error_init, scaled by the initial guess */
 
-    if (wave_error_init == NULL) window_size = 15;
+    if (wave_error_init == NULL) window_size = 30;
     else{
         if (cpl_array_get_double(wave_error_init, 1, NULL) > 0){
         window_size = 2 * ceil(cpl_array_get_double(wave_error_init, 1, NULL) /
@@ -392,12 +382,13 @@ int cr2res_wave_extract_lines(
     double pixel_pos, pixel_new, red_chisq, dbl, res;
     int n = cpl_bivector_get_size(lines_list);
     cpl_error_code error;
-    cpl_vector * wave_vec, * pixel_vec, *width_vec, *flag_vec;
+    cpl_vector * wave_vec, * pixel_vec, *width_vec, *flag_vec, *height_vec;
     const cpl_vector *spec, *unc;
     double * wave, width;
     const double *height;
     cpl_vector * fit, *fit_x;
     const cpl_vector ** plot;
+    if (heights != NULL) *heights = cpl_vector_new(n);
 
     // For gaussian fit of each line
     // gauss = A * exp((x-mu)^2/(2*sig^2)) + cont
@@ -414,12 +405,13 @@ int cr2res_wave_extract_lines(
 
     // Prepare fit data vectors
     pixel_vec = cpl_vector_new(n);
+    height_vec = cpl_vector_new(n);
     width_vec = cpl_vector_new(n);
     flag_vec = cpl_vector_new(n);
     cpl_vector_fill(flag_vec, 1);
 
     // The number of good lines, start with all
-    ngood = n;
+    ngood = 0;
     // The number of possible lines to fit, for debugging only
     npossible = 0;
 
@@ -445,7 +437,6 @@ int cr2res_wave_extract_lines(
         // skip lines that are outside this wavelength region
         if (wave[i] < cpl_vector_get(wave_vec, 0) | 
             wave[i] > cpl_vector_get(wave_vec, spec_size-1)){
-            ngood--;
             cpl_vector_set(flag_vec, i, 0);
             continue;
         }
@@ -460,7 +451,6 @@ int cr2res_wave_extract_lines(
             if (k < 0 | k >= spec_size){
                 // if the window reaches outside the spectrum
                 // don't use the line
-                ngood--;
                 cpl_vector_set(flag_vec, i, 0);
                 break;
             }
@@ -490,6 +480,8 @@ int cr2res_wave_extract_lines(
         cpl_vector_set(pixel_vec, i, pixel_new);
         // width == uncertainty of wavelength position?
         cpl_vector_set(width_vec, i, cpl_vector_get(a, 1));
+        cpl_vector_set(height_vec, i, cpl_vector_get(a, 2));
+
         // if fit to bad set flag to 0(False)
         // fit is bad, when 
         // 1) it caused an error
@@ -497,14 +489,14 @@ int cr2res_wave_extract_lines(
         // 3) the gaussian is centered outside the window   
         // 4) the fitted height is negative    
 
-        if (error != CPL_ERROR_NONE | red_chisq > 10 |
+        if (error != CPL_ERROR_NONE | red_chisq > 100 |
             fabs(pixel_new - pixel_pos) > window_size |
             cpl_vector_get(a, 2) < 0){
             cpl_vector_set(flag_vec, i, 0);
-            ngood--;
             cpl_error_reset();
             continue;
         }
+        ngood++;
 
         /* Display */
         if (display) {
@@ -521,13 +513,14 @@ int cr2res_wave_extract_lines(
                 dbl = cpl_matrix_get(x, j, 0);
                 gauss(&dbl, cpl_vector_get_data_const(a), &res);
                 cpl_vector_set(fit, j, res);
+                // dbl = cpl_polynomial_eval_1d(wavesol_init, dbl, NULL);
                 cpl_vector_set(fit_x, j, dbl);
             }
             plot[0] = fit_x;
             plot[1] = y;
             plot[2] = fit;
             cpl_plot_vectors(
-            "set terminal wxt 2;set grid;set xlabel 'Position (Pixel)';set ylabel 'Intensity (ADU/sec)';",
+            "set grid;set xlabel 'Position (Pixel)';set ylabel 'Intensity (ADU/sec)';",
                 "title 'Observed' w lines", "q", plot, 3);
             cpl_vector_delete(fit);
             cpl_free(plot);
@@ -550,6 +543,7 @@ int cr2res_wave_extract_lines(
             cpl_matrix_set(*px, k, 0, cpl_vector_get(pixel_vec, i));
             cpl_vector_set(*py, k, wave[i]);
             cpl_vector_set(*sigma_py, k, fabs(cpl_vector_get(width_vec, i)));
+            if (heights != NULL) cpl_vector_set(*heights, k, cpl_vector_get(height_vec, i));
             k++;
         }
     }
@@ -562,6 +556,8 @@ int cr2res_wave_extract_lines(
     cpl_vector_delete(pixel_vec);
     cpl_vector_delete(width_vec);
     cpl_vector_delete(flag_vec);
+    cpl_vector_delete(height_vec);
+
 
     return 0;
 }
@@ -609,9 +605,10 @@ cpl_polynomial * cr2res_wave_line_fitting(
     cpl_matrix * px;
     cpl_vector * py;
     cpl_vector * sigma_py;
+    cpl_vector * heights;
 
     // extract line data in 1 spectrum
-    if (0 != cr2res_wave_extract_lines(spectrum, spectrum_err, wavesol_init, wave_error_init, lines_list, display, &px, &py, &sigma_py))
+    if (0 != cr2res_wave_extract_lines(spectrum, spectrum_err, wavesol_init, wave_error_init, lines_list, display, &px, &py, &sigma_py, &heights))
     {
         cpl_msg_error(__func__, "Can't extract lines");
         return NULL;
@@ -619,6 +616,38 @@ cpl_polynomial * cr2res_wave_line_fitting(
     // fit polynomial to data points
     result = polyfit_1d(px, py, sigma_py, degree, wavesol_init, wavelength_error, sigma_fit, &cov);
 
+    if (display){
+        cpl_size n = cpl_bivector_get_size(spectrum);
+        cpl_size nlines = cpl_vector_get_size(py);
+        const cpl_bivector ** plot = cpl_malloc(2 * sizeof(cpl_bivector*));
+
+        cpl_vector * wave = cpl_bivector_get_x(spectrum);
+        // for (cpl_size i = 0; i < n; i++) cpl_vector_set(wave, i, i);
+        for (cpl_size i = 0; i < n; i++) cpl_vector_set(wave, i, cpl_polynomial_eval_1d(result, i, NULL));
+
+
+        cpl_bivector * lines = cpl_bivector_new(nlines);
+        cpl_vector * pos = cpl_bivector_get_x(lines);
+        cpl_vector * val = cpl_bivector_get_y(lines);
+
+        for (cpl_size i = 0; i < nlines; i++){
+            // cpl_vector_set(pos, i, cpl_matrix_get(px, i, 0)); // Pixel
+            cpl_vector_set(pos, i, cpl_vector_get(py, i)); // Wavelength
+            cpl_vector_set(val, i, cpl_vector_get(heights, i));        
+        }
+        plot[0] = spectrum;
+        plot[1] = lines;
+
+        const char* options[] = {"title 'Observed' w lines", "title 'Lines' w points"};
+
+        cpl_plot_bivectors("set grid;set xlabel 'Position (Wavelength)';set ylabel 'Intensity (ADU/sec)';",
+                         options , "", plot, 2);
+
+        cpl_bivector_delete(lines);
+        cpl_free(plot);
+    }
+
+    cpl_vector_delete(heights);
     cpl_matrix_delete(px);
     cpl_vector_delete(py);
     cpl_vector_delete(sigma_py);
@@ -707,7 +736,7 @@ cpl_polynomial * cr2res_wave_line_fitting_2D(
     for (i = 0; i < norders; i++){
         // extract line data in 1 spectrum
         cr2res_wave_extract_lines(spectrum[i], spectrum_err[i], wavesol_init[i],
-            wave_error_init[i], lines_list, display, &tmp_x, &tmp_y, &tmp_sigma);
+            wave_error_init[i], lines_list, display, &tmp_x, &tmp_y, &tmp_sigma, NULL);
 
         // append new data onto existing vectors/matrices
         new = cpl_vector_get_size(tmp_y);
