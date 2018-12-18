@@ -124,6 +124,7 @@ int cr2res_io_save_EMISSION_LINES(
 int cr2res_io_save_MASTER_DARK(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  master_darks,
         const cpl_propertylist  *   qc_list,
@@ -134,6 +135,7 @@ int cr2res_io_save_MASTER_DARK(
 int cr2res_io_save_DETLIN_COEFFS(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_imagelist           **  coeffs,
         const cpl_propertylist  *   qc_list,
@@ -144,6 +146,7 @@ int cr2res_io_save_DETLIN_COEFFS(
 int cr2res_io_save_BPM(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_image               **  bpms,
         const cpl_propertylist  *   qc_list,
@@ -154,6 +157,7 @@ int cr2res_io_save_BPM(
 int cr2res_io_save_MASTER_FLAT(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  master_flats,
         const cpl_propertylist  *   qc_list,
@@ -164,6 +168,7 @@ int cr2res_io_save_MASTER_FLAT(
 int cr2res_io_save_CALIBRATED(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  calib_collapsed,
         const cpl_propertylist  *   qc_list,
@@ -174,6 +179,7 @@ int cr2res_io_save_CALIBRATED(
 int cr2res_io_save_TRACE_WAVE(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
@@ -184,6 +190,7 @@ int cr2res_io_save_TRACE_WAVE(
 int cr2res_io_save_EXTRACT_1D(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
@@ -194,6 +201,7 @@ int cr2res_io_save_EXTRACT_1D(
 int cr2res_io_save_SLIT_FUNC(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  slit_func,
         const cpl_propertylist  *   qc_list,
@@ -204,6 +212,7 @@ int cr2res_io_save_SLIT_FUNC(
 int cr2res_io_save_SLIT_MODEL(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
@@ -214,6 +223,7 @@ int cr2res_io_save_SLIT_MODEL(
 int cr2res_io_save_WAVE_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
@@ -224,6 +234,7 @@ int cr2res_io_save_WAVE_MAP(
 int cr2res_io_save_SLIT_CURV_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
@@ -234,6 +245,7 @@ int cr2res_io_save_SLIT_CURV_MAP(
 int cr2res_io_save_SLIT_CURV(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
@@ -244,6 +256,7 @@ int cr2res_io_save_SLIT_CURV(
 int cr2res_io_save_SPLICED_1D(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               *   spliced_1d,
         const cpl_propertylist  *   qc_list,
@@ -254,6 +267,7 @@ int cr2res_io_save_SPLICED_1D(
 int cr2res_io_save_EXTRACT_2D(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               *   table,
         const cpl_propertylist  *   qc_list,
@@ -262,6 +276,7 @@ int cr2res_io_save_EXTRACT_2D(
 int cr2res_io_save_EXTRACT_POL(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,

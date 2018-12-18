@@ -481,56 +481,58 @@ static int cr2res_cal_flat(
             }
             cpl_msg_indent_less() ;
         }
-        cpl_frameset_delete(rawframes) ;
 
         /* Ѕave Products */
 
         /* SLIT_MODEL */
 		out_file = cpl_sprintf("%s_%s_slit_model.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-		cr2res_io_save_SLIT_MODEL(out_file, frameset, parlist, slit_model, 
-                NULL, ext_plist[i], CR2RES_FLAT_SLIT_MODEL_PROCATG, 
+		cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist, 
+                slit_model, NULL, ext_plist[i], CR2RES_FLAT_SLIT_MODEL_PROCATG, 
                 RECIPE_STRING) ;
 		cpl_free(out_file);
 
         /* BLAZE */
 		out_file = cpl_sprintf("%s_%s_blaze.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, parlist, extract_1d, NULL,
-                ext_plist[i], CR2RES_FLAT_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
+		cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract_1d, NULL, ext_plist[i], CR2RES_FLAT_EXTRACT_1D_PROCATG,
+                RECIPE_STRING) ;
 		cpl_free(out_file);
 
         /* MASTER_FLAT */
 		out_file = cpl_sprintf("%s_%s_master_flat.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-        cr2res_io_save_MASTER_FLAT(out_file, frameset, parlist, master_flat, 
-                NULL, ext_plist[i], CR2RES_FLAT_MASTER_FLAT_PROCATG, 
+        cr2res_io_save_MASTER_FLAT(out_file, frameset, rawframes, parlist, 
+                master_flat, NULL, ext_plist[i], CR2RES_FLAT_MASTER_FLAT_PROCATG, 
                 RECIPE_STRING) ;
 		cpl_free(out_file);
 
         /* TRACE_WAVE */
 		out_file = cpl_sprintf("%s_%s_trace_wave.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-        cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, trace_wave[i], 
-                NULL, ext_plist[i], CR2RES_FLAT_TRACE_WAVE_PROCATG, 
-                RECIPE_STRING) ;
+        cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist, 
+                trace_wave[i], NULL, ext_plist[i], 
+                CR2RES_FLAT_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
         /* SLIT_FUNC */
 		out_file = cpl_sprintf("%s_%s_slit_func.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-		cr2res_io_save_SLIT_FUNC(out_file, frameset, parlist, slit_func, NULL, 
-                ext_plist[i], CR2RES_FLAT_SLIT_FUNC_PROCATG, RECIPE_STRING) ;
+		cr2res_io_save_SLIT_FUNC(out_file, frameset, rawframes, parlist, 
+                slit_func, NULL, ext_plist[i], CR2RES_FLAT_SLIT_FUNC_PROCATG, 
+                RECIPE_STRING) ;
 		cpl_free(out_file);
 
         /* BPM */
         out_file = cpl_sprintf("%s_%s_master_bpm.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-        cr2res_io_save_BPM(out_file, frameset, parlist, bpm, NULL, ext_plist[i],
-                CR2RES_FLAT_BPM_PROCATG, RECIPE_STRING) ;
+        cr2res_io_save_BPM(out_file, frameset, rawframes, parlist, bpm, NULL, 
+                ext_plist[i], CR2RES_FLAT_BPM_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
         /* Free */
+        cpl_frameset_delete(rawframes) ;
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             if (master_flat[det_nr-1] != NULL)
                 hdrl_image_delete(master_flat[det_nr-1]) ;
@@ -586,9 +588,9 @@ static int cr2res_cal_flat(
 
     /* Save TRACE_WAVE_MERGED */
     out_file = cpl_sprintf("%s_trace_wave_merged.fits", RECIPE_STRING) ;
-    cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, trace_wave_merged,
-            NULL, ext_plist[0], CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG, 
-            RECIPE_STRING) ;
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
+            trace_wave_merged, NULL, ext_plist[0], 
+            CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free extensions */

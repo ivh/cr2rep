@@ -46,6 +46,7 @@ static int cr2res_table_check_column(
 static int cr2res_io_save_imagelist(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_imagelist           **  data,
         const cpl_propertylist  *   qc_list,
@@ -58,6 +59,7 @@ static int cr2res_io_save_imagelist(
 static int cr2res_io_save_image(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
@@ -69,6 +71,7 @@ static int cr2res_io_save_image(
 static int cr2res_io_save_table(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  slit_func,
         const cpl_propertylist  *   qc_list,
@@ -79,6 +82,7 @@ static int cr2res_io_save_table(
 static int cr2res_io_save_one_table(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               *   tab,
         const cpl_propertylist  *   qc_list,
@@ -175,7 +179,7 @@ int cr2res_io_get_ext_idx(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Check that the passed file is the proper one and load it
+  @brief    Read the PRO.TYPE and load the table accordingly
   @param    in          the input file
   @param    extnum      the detector
   @param    order       only when relevant
@@ -697,6 +701,7 @@ int cr2res_io_save_EMISSION_LINES(
 /**
   @brief    Save a MASTER_DARK
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    filename    The FITS file name
   @param    parlist     The recipe input parameters
   @param    master_darks  The data/error master darks (1 per detector)
@@ -710,6 +715,7 @@ int cr2res_io_save_EMISSION_LINES(
 int cr2res_io_save_MASTER_DARK(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  master_darks,
         const cpl_propertylist  *   qc_list,
@@ -717,7 +723,7 @@ int cr2res_io_save_MASTER_DARK(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_image(filename, allframes, parlist,
+    return cr2res_io_save_image(filename, allframes, inframes, parlist,
             master_darks, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
             procatg, CR2RES_MASTER_DARK_PROTYPE) ;
 }
@@ -726,6 +732,7 @@ int cr2res_io_save_MASTER_DARK(
 /**
   @brief    Save a DETLIN COEFFS
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    filename    The FITS file name
   @param    parlist     The recipe input parameters
   @param    coeffs      The detlin coefficients (1 per detector)
@@ -739,6 +746,7 @@ int cr2res_io_save_MASTER_DARK(
 int cr2res_io_save_DETLIN_COEFFS(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_imagelist           **  coeffs,
         const cpl_propertylist  *   qc_list,
@@ -746,7 +754,7 @@ int cr2res_io_save_DETLIN_COEFFS(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_imagelist(filename, allframes, parlist,
+    return cr2res_io_save_imagelist(filename, allframes, inframes, parlist,
             coeffs, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
             procatg, CR2RES_DETLIN_COEFFS_PROTYPE) ;
 }
@@ -756,6 +764,7 @@ int cr2res_io_save_DETLIN_COEFFS(
   @brief    Save a BPM
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    bpms        The BPMs (1 per detector)
   @param    qc_list     The QC parameters
@@ -769,6 +778,7 @@ int cr2res_io_save_DETLIN_COEFFS(
 int cr2res_io_save_BPM(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_image               **  bpms,
         const cpl_propertylist  *   qc_list,
@@ -788,7 +798,7 @@ int cr2res_io_save_BPM(
     }
 
     /* Save */
-    ret = cr2res_io_save_image(filename, allframes, parlist,
+    ret = cr2res_io_save_image(filename, allframes, inframes, parlist,
             hdrl_bpms, qc_list, ext_plist, CPL_TYPE_INT, recipe,
             procatg, CR2RES_BPM_PROTYPE) ;
 
@@ -804,6 +814,7 @@ int cr2res_io_save_BPM(
   @brief    Save a CALIBRATED frame
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    calib_collapsed The data/error (1 per detector)
   @param    qc_list     The QC parameters
@@ -816,6 +827,7 @@ int cr2res_io_save_BPM(
 int cr2res_io_save_CALIBRATED(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  calib_collapsed,
         const cpl_propertylist  *   qc_list,
@@ -823,7 +835,7 @@ int cr2res_io_save_CALIBRATED(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_image(filename, allframes, parlist,
+    return cr2res_io_save_image(filename, allframes, inframes, parlist,
             calib_collapsed, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
             procatg, CR2RES_CALIBRATED_PROTYPE) ;
 }
@@ -833,6 +845,7 @@ int cr2res_io_save_CALIBRATED(
   @brief    Save a MASTER_FLAT
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    master_flats The data/error FLATs (1 per detector)
   @param    qc_list     The QC parameters
@@ -845,6 +858,7 @@ int cr2res_io_save_CALIBRATED(
 int cr2res_io_save_MASTER_FLAT(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  master_flats,
         const cpl_propertylist  *   qc_list,
@@ -852,7 +866,7 @@ int cr2res_io_save_MASTER_FLAT(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_image(filename, allframes, parlist,
+    return cr2res_io_save_image(filename, allframes, inframes, parlist,
             master_flats, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
             procatg, CR2RES_MASTER_FLAT_PROTYPE) ;
 }
@@ -862,6 +876,7 @@ int cr2res_io_save_MASTER_FLAT(
   @brief    Save a TRACE_WAVE
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
@@ -874,6 +889,7 @@ int cr2res_io_save_MASTER_FLAT(
 int cr2res_io_save_TRACE_WAVE(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
@@ -881,7 +897,7 @@ int cr2res_io_save_TRACE_WAVE(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_table(filename, allframes, parlist, tables,
+    return cr2res_io_save_table(filename, allframes, inframes, parlist, tables,
             qc_list, ext_plist, recipe, procatg, CR2RES_TRACE_WAVE_PROTYPE) ;
 }
 
@@ -890,6 +906,7 @@ int cr2res_io_save_TRACE_WAVE(
   @brief    Save a 1D extracted spectrum   
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
@@ -902,6 +919,7 @@ int cr2res_io_save_TRACE_WAVE(
 int cr2res_io_save_EXTRACT_1D(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
@@ -909,7 +927,7 @@ int cr2res_io_save_EXTRACT_1D(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_table(filename, allframes, parlist, tables,
+    return cr2res_io_save_table(filename, allframes, inframes, parlist, tables,
             qc_list, ext_plist, recipe, procatg, CR2RES_EXTRACT_1D_PROTYPE) ;
 }
 
@@ -918,6 +936,7 @@ int cr2res_io_save_EXTRACT_1D(
   @brief    Save a SLIT_FUNC
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    data        The tables to save (1 per detector)
   @param    qc_list     The QC parameters
@@ -930,6 +949,7 @@ int cr2res_io_save_EXTRACT_1D(
 int cr2res_io_save_SLIT_FUNC(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  slit_func,
         const cpl_propertylist  *   qc_list,
@@ -937,8 +957,9 @@ int cr2res_io_save_SLIT_FUNC(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_table(filename, allframes, parlist, slit_func,
-            qc_list, ext_plist, recipe, procatg, CR2RES_SLIT_FUNC_PROTYPE) ;
+    return cr2res_io_save_table(filename, allframes, inframes, parlist, 
+            slit_func, qc_list, ext_plist, recipe, procatg, 
+            CR2RES_SLIT_FUNC_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -946,6 +967,7 @@ int cr2res_io_save_SLIT_FUNC(
   @brief    Save a SLIT_MODEL
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    data        The data images to save (DATA and ERROR per detector)
   @param    qc_list     The QC parameters
@@ -958,6 +980,7 @@ int cr2res_io_save_SLIT_FUNC(
 int cr2res_io_save_SLIT_MODEL(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
@@ -965,7 +988,7 @@ int cr2res_io_save_SLIT_MODEL(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_image(filename, allframes, parlist,
+    return cr2res_io_save_image(filename, allframes, inframes, parlist,
             data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, procatg, 
             CR2RES_SLIT_MODEL_PROTYPE) ;
 }
@@ -975,6 +998,7 @@ int cr2res_io_save_SLIT_MODEL(
   @brief    Save a TRACE_MAP
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    data        The data images to save (DATA and ERROR per detector)
   @param    qc_list     The QC parameters
@@ -987,6 +1011,7 @@ int cr2res_io_save_SLIT_MODEL(
 int cr2res_io_save_TRACE_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
@@ -994,7 +1019,7 @@ int cr2res_io_save_TRACE_MAP(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_image(filename, allframes, parlist,
+    return cr2res_io_save_image(filename, allframes, inframes, parlist,
             data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
             procatg, CR2RES_TRACE_MAP_PROTYPE) ;
 }
@@ -1004,6 +1029,7 @@ int cr2res_io_save_TRACE_MAP(
   @brief    Save a WAVE_MAP
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    data        The data images to save (DATA and ERROR per detector)
   @param    qc_list     The QC parameters
@@ -1016,6 +1042,7 @@ int cr2res_io_save_TRACE_MAP(
 int cr2res_io_save_WAVE_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
@@ -1023,7 +1050,7 @@ int cr2res_io_save_WAVE_MAP(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_image(filename, allframes, parlist,
+    return cr2res_io_save_image(filename, allframes, inframes, parlist,
             data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
             procatg, CR2RES_WAVE_MAP_PROTYPE) ;
 }
@@ -1033,6 +1060,7 @@ int cr2res_io_save_WAVE_MAP(
   @brief    Save a SLIT_CURV_MAP
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    data        The data images to save (DATA and ERROR per detector)
   @param    qc_list     The QC parameters
@@ -1045,6 +1073,7 @@ int cr2res_io_save_WAVE_MAP(
 int cr2res_io_save_SLIT_CURV_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
@@ -1052,7 +1081,7 @@ int cr2res_io_save_SLIT_CURV_MAP(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_image(filename, allframes, parlist,
+    return cr2res_io_save_image(filename, allframes, inframes, parlist,
             data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
             procatg, CR2RES_SLIT_CURV_MAP_PROTYPE) ;
 }
@@ -1062,6 +1091,7 @@ int cr2res_io_save_SLIT_CURV_MAP(
   @brief    Save a SLIT_CURV
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    tables      The tables to save (1 per detector)
   @param    qc_list     The QC parameters
@@ -1074,6 +1104,7 @@ int cr2res_io_save_SLIT_CURV_MAP(
 int cr2res_io_save_SLIT_CURV(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
@@ -1081,7 +1112,7 @@ int cr2res_io_save_SLIT_CURV(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_table(filename, allframes, parlist, tables,
+    return cr2res_io_save_table(filename, allframes, inframes, parlist, tables,
             qc_list, ext_plist, recipe, procatg, CR2RES_SLIT_CURV_PROTYPE) ;
 }
 
@@ -1090,6 +1121,7 @@ int cr2res_io_save_SLIT_CURV(
   @brief    Save a SPLICED_1D
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    spliced_1d  The table to save
   @param    qc_list     The QC parameters
@@ -1102,6 +1134,7 @@ int cr2res_io_save_SLIT_CURV(
 int cr2res_io_save_SPLICED_1D(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               *   spliced_1d,
         const cpl_propertylist  *   qc_list,
@@ -1109,7 +1142,7 @@ int cr2res_io_save_SPLICED_1D(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_one_table(filename, allframes, parlist, spliced_1d,
+    return cr2res_io_save_one_table(filename, allframes, inframes, parlist, spliced_1d,
             qc_list, ext_plist, recipe, procatg, CR2RES_SPLICED_1D_PROTYPE) ;
 }
 
@@ -1118,6 +1151,7 @@ int cr2res_io_save_SPLICED_1D(
   @brief    Save a EXTRACT_2D
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    table       The table to save
   @param    qc_list     The QC parameters
@@ -1128,6 +1162,7 @@ int cr2res_io_save_SPLICED_1D(
 int cr2res_io_save_EXTRACT_2D(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               *   table,
         const cpl_propertylist  *   qc_list,
@@ -1152,6 +1187,7 @@ int cr2res_io_save_EXTRACT_2D(
 int cr2res_io_save_EXTRACT_POL(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
@@ -1168,6 +1204,7 @@ int cr2res_io_save_EXTRACT_POL(
   @brief    Save a multi extension table
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    tab         The tables to save (1 per detector)
   @param    qc_list     The QC parameters
@@ -1181,6 +1218,7 @@ int cr2res_io_save_EXTRACT_POL(
 static int cr2res_io_save_table(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tab,
         const cpl_propertylist  *   qc_list,
@@ -1218,7 +1256,7 @@ static int cr2res_io_save_table(
 
     /* Save the first extension */
     if (tab[0] != NULL) {
-        if (cpl_dfs_save_table(allframes, NULL, parlist, allframes, NULL,
+        if (cpl_dfs_save_table(allframes, NULL, parlist, inframes, NULL,
                     tab[0], ext_head, recipe, pro_list, NULL,
                     PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Cannot save the first extension table") ;
@@ -1228,7 +1266,7 @@ static int cr2res_io_save_table(
         }
     } else {
         if (cpl_dfs_save_propertylist(allframes, NULL, parlist,
-                    allframes, NULL, recipe, pro_list, NULL, PACKAGE "/"
+                    inframes, NULL, recipe, pro_list, NULL, PACKAGE "/"
                     PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Cannot save the empty HDU") ;
             cpl_propertylist_delete(ext_head) ;
@@ -1268,6 +1306,7 @@ static int cr2res_io_save_table(
   @brief    Save a single extension table
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    tab         The table to save
   @param    qc_list     The QC parameters
@@ -1281,6 +1320,7 @@ static int cr2res_io_save_table(
 static int cr2res_io_save_one_table(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_table               *   tab,
         const cpl_propertylist  *   qc_list,
@@ -1310,7 +1350,7 @@ static int cr2res_io_save_one_table(
     cpl_propertylist_update_string(ext_head, "EXTNAME", "TODO") ;
 
     /* Save the first extension */
-	if (cpl_dfs_save_table(allframes, NULL, parlist, allframes, NULL,
+	if (cpl_dfs_save_table(allframes, NULL, parlist, inframes, NULL,
 				tab, ext_head, recipe, pro_list, NULL,
 				PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
 		cpl_msg_error(__func__, "Cannot save the first extension table") ;
@@ -1329,6 +1369,7 @@ static int cr2res_io_save_one_table(
   @brief    Save a multi extension images
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    data        The images to save (data and error per detector)
   @param    qc_list     The QC parameters
@@ -1343,6 +1384,7 @@ static int cr2res_io_save_one_table(
 static int cr2res_io_save_image(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
         const cpl_propertylist  *   qc_list,
@@ -1367,8 +1409,8 @@ static int cr2res_io_save_image(
     cpl_propertylist_update_string(qclist_loc, CPL_DFS_PRO_TYPE, protype);
 
     /* Create the Primary Data Unit without data */
-    if (cpl_dfs_save_image(allframes, NULL, parlist, allframes, NULL, NULL,
-                type, recipe, qclist_loc, NULL,
+    if (cpl_dfs_save_propertylist(allframes, NULL, parlist, inframes, NULL, 
+                recipe, qclist_loc, NULL,
                 PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot save the empty primary HDU") ;
         cpl_propertylist_delete(qclist_loc) ;
@@ -1417,6 +1459,7 @@ static int cr2res_io_save_image(
   @brief    Save a multi extension imagelists
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
   @param    parlist     The recipe input parameters
   @param    data        The imagelists to save (only data for the moment)
   @param    qc_list     The QC parameters
@@ -1431,6 +1474,7 @@ static int cr2res_io_save_image(
 static int cr2res_io_save_imagelist(
         const char              *   filename,
         cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         cpl_imagelist           **  data,
         const cpl_propertylist  *   qc_list,
@@ -1454,8 +1498,8 @@ static int cr2res_io_save_imagelist(
     cpl_propertylist_update_string(qclist_loc, CPL_DFS_PRO_TYPE, protype);
 
     /* Create the Primary Data Unit without data */
-    if (cpl_dfs_save_image(allframes, NULL, parlist, allframes, NULL, NULL,
-                type, recipe, qclist_loc, NULL,
+    if (cpl_dfs_save_propertylist(allframes, NULL, parlist, inframes, NULL,
+                recipe, qclist_loc, NULL,
                 PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot save the empty primary HDU") ;
         cpl_propertylist_delete(qclist_loc) ;

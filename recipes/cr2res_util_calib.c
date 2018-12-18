@@ -332,7 +332,7 @@ static int cr2res_util_calib(
         /* CALIBRATED */
 		out_file=cpl_sprintf("%s_calibrated.fits", 
                 cr2res_get_base_name(cur_fname)) ;
-        cr2res_io_save_CALIBRATED(out_file, frameset, parlist,
+        cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
                 calibrated, NULL, ext_plist, CR2RES_CALIBRATED_PROCATG, 
                 RECIPE_STRING) ;
 		cpl_free(out_file);

@@ -271,19 +271,19 @@ static int cr2res_util_normflat(
             }
             cpl_msg_indent_less() ;
         }
-        cpl_frameset_delete(rawframes) ;
 
         /* Ѕave Products */
 
         /* MASTER_FLAT */
 		out_file = cpl_sprintf("%s_%s_master_flat.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-        cr2res_io_save_MASTER_FLAT(out_file, frameset, parlist,
+        cr2res_io_save_MASTER_FLAT(out_file, frameset, rawframes, parlist,
                 master_flat, NULL, ext_plist, CR2RES_UTIL_MASTER_FLAT_PROCATG, 
                 RECIPE_STRING) ;
 		cpl_free(out_file);
 
         /* Free */
+        cpl_frameset_delete(rawframes) ;
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             if (master_flat[det_nr-1] != NULL)
                 hdrl_image_delete(master_flat[det_nr-1]) ;

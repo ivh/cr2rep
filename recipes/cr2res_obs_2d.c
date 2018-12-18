@@ -304,17 +304,17 @@ static int cr2res_obs_2d(
         }
         cpl_msg_indent_less() ;
     }
-    cpl_frameset_delete(rawframes) ;
 
     /* Ѕave Products */
 
     /* Extracted */
     out_file = cpl_sprintf("%s_extracted.fits", RECIPE_STRING) ;
-    cr2res_io_save_EXTRACT_1D(out_file, frameset, parlist, extract, NULL,
-            ext_plist, CR2RES_OBS_2D_EXTRACT_PROCATG, RECIPE_STRING) ;
+    cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extract,
+            NULL, ext_plist, CR2RES_OBS_2D_EXTRACT_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free */
+    cpl_frameset_delete(rawframes) ;
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         if (extract[det_nr-1] != NULL) 
             cpl_table_delete(extract[det_nr-1]) ;

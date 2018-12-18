@@ -345,7 +345,7 @@ static int cr2res_cal_dark(
         return -1 ;
     }
 
-    /* Labelise the raw frames with the DITxNDIT */
+    /* Labelise the raw frames with the different settings */
     if ((labels = cpl_frameset_labelise(rawframes, cr2res_cal_dark_compare,
                 &nlabels)) == NULL) {
         cpl_msg_error(__func__, "Cannot labelise input frames") ;
@@ -361,7 +361,7 @@ static int cr2res_cal_dark(
         raw_one = cpl_frameset_extract(rawframes, labels, (cpl_size)l) ;
         nb_frames = cpl_frameset_get_size(raw_one) ;
 
-        /* Get the current DIT */
+        /* Get the current setting */
         plist = cpl_propertylist_load(cpl_frame_get_filename(
                     cpl_frameset_get_position(raw_one, 0)), 0) ;
         dit = cr2res_pfits_get_dit(plist) ;
@@ -371,7 +371,7 @@ static int cr2res_cal_dark(
         cpl_msg_info(__func__, "Process DIT %g / %d", dit, ndit) ;
         cpl_msg_indent_more() ;
 
-        /* Loop on the extensions */
+        /* Loop on the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             cpl_msg_info(__func__, "Process Detector nb %i", det_nr) ;
             cpl_msg_indent_more() ;
@@ -526,8 +526,8 @@ static int cr2res_cal_dark(
         /* MASTER DARK */
         filename = cpl_sprintf("%s_%gx%d_master.fits", 
                 RECIPE_STRING, dit, ndit); 
-        if (cr2res_io_save_MASTER_DARK(filename, raw_one, parlist, master_darks,
-                    NULL, ext_plist, CR2RES_MASTER_DARK_PROCATG, 
+        if (cr2res_io_save_MASTER_DARK(filename, frameset, raw_one, parlist, 
+                    master_darks, NULL, ext_plist, CR2RES_MASTER_DARK_PROCATG, 
                     RECIPE_STRING) != 0) {
             cpl_frameset_delete(rawframes) ;
             cpl_frameset_delete(raw_one) ;
@@ -553,7 +553,7 @@ static int cr2res_cal_dark(
         /* BPM */
         filename = cpl_sprintf("%s_%gx%d_bpm.fits", 
                 RECIPE_STRING, dit, ndit); 
-        if (cr2res_io_save_BPM(filename, raw_one, parlist, bpms, NULL,
+        if (cr2res_io_save_BPM(filename, frameset, raw_one, parlist, bpms, NULL,
                     ext_plist, CR2RES_DARK_BPM_PROCATG, RECIPE_STRING) != 0) {
             cpl_frameset_delete(rawframes) ;
             cpl_frameset_delete(raw_one) ;

@@ -369,17 +369,17 @@ static int cr2res_obs_pol(
         }
         cpl_msg_indent_less() ;
     }
-    cpl_frameset_delete(rawframes) ;
 
     /* Ѕave Products */
 
     /* Extracted A */
     out_file = cpl_sprintf("%s_extractedA.fits", RECIPE_STRING) ;
-    cr2res_io_save_EXTRACT_1D(out_file, frameset, parlist, extracta, NULL,
-            ext_plist, CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING) ;
+    cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extracta,
+            NULL, ext_plist, CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free */
+    cpl_frameset_delete(rawframes) ;
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         if (combineda[det_nr-1] != NULL)
             hdrl_image_delete(combineda[det_nr-1]) ;

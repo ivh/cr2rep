@@ -271,15 +271,17 @@ static int cr2res_cal_detlin(
     cpl_frameset        *   rawframes ;
     cpl_size            *   labels ;
     cpl_size                nlabels ;
-    cpl_frameset        *   rawframes_one ;
+    cpl_frameset        *   raw_one ;
+    char                *   setting_id ;
     cpl_imagelist       *   coeffs[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_imagelist       *   coeffs_cube_one_setting ;
     cpl_image           *   bpm_one_setting ;
     cpl_propertylist    *   ext_plist_one_setting ;
+    cpl_propertylist    *   plist ;
     char                *   out_file;
-    int                     i, det_nr; 
+    int                     i, l, det_nr; 
 
     /* Initialise */
 
@@ -322,49 +324,52 @@ static int cr2res_cal_detlin(
         return -1 ;
     }
 
-    /* Labelise all input frames */
+    /* Labelise the raw frames with the different settings*/
     if ((labels = cpl_frameset_labelise(rawframes, cr2res_cal_detlin_compare,
                 &nlabels)) == NULL) {
         cpl_msg_error(__func__, "Cannot labelise input frames") ;
         cpl_frameset_delete(rawframes) ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
 
-    /* Initialise */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+    /* Loop on the settings */
+    for (l=0 ; l<(int)nlabels ; l++) {
+        /* Get the frames for the current setting */
+        raw_one = cpl_frameset_extract(rawframes, labels, (cpl_size)l) ;
 
-        /* Initialise */
-        coeffs[det_nr-1] = NULL ;
-        bpm[det_nr-1] = NULL ;
-        ext_plist[det_nr-1] = NULL ;
+        /* Get the current setting */
+        plist = cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position(raw_one, 0)), 0) ;
+        setting_id = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
+        cpl_propertylist_delete(plist) ;
 
-        /* Compute only one detector */
-        if (reduce_det != 0 && det_nr != reduce_det) continue ;
-    
-        cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
+        cpl_msg_info(__func__, "Process SETTING %s", setting_id) ;
         cpl_msg_indent_more() ;
 
-        /* Extract settings and reduce each of them */
-        for (i=0 ; i<(int)nlabels ; i++) {
-            /* Reduce data set nb i */
-            cpl_msg_info(__func__, "Reduce data set %d / %"CPL_SIZE_FORMAT,
-                    i+1, nlabels);
+        /* Loop on the detectors */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
             cpl_msg_indent_more() ;
-            
-            /* Get the rawframes for this label */
-            rawframes_one=cpl_frameset_extract(rawframes, labels, (cpl_size)i) ;
 
+            /* Initialise */
+            coeffs[det_nr-1] = NULL ;
+            bpm[det_nr-1] = NULL ;
+            ext_plist[det_nr-1] = NULL ;
+
+            /* Compute only one detector */
+            if (reduce_det != 0 && det_nr != reduce_det) continue ;
+    
             /* Call the reduction function */
-            if (cr2res_cal_detlin_reduce(rawframes_one, bpm_kappa,
+            if (cr2res_cal_detlin_reduce(raw_one, bpm_kappa,
                         trace_degree, trace_min_cluster, trace_smooth, 
-                        trace_opening, trace_collapse,
-                        det_nr,
+                        trace_opening, trace_collapse, det_nr,
                         &coeffs_cube_one_setting,
                         &bpm_one_setting,
                         &ext_plist_one_setting) == -1) {
                 cpl_msg_warning(__func__, 
-                        "Failed to reduce det %d / setting %d", 
-                        det_nr, i+1);
+                        "Failed to reduce SETTING %s / det %d", 
+                        setting_id, det_nr);
             } else {
                 if (coeffs[det_nr-1] == NULL || bpm[det_nr-1] == NULL) {
                     /* Create the output BPM and the output COEFFS */
@@ -384,38 +389,40 @@ static int cr2res_cal_detlin(
                 cpl_image_delete(bpm_one_setting) ;
                 cpl_propertylist_delete(ext_plist_one_setting) ;
             }
-            cpl_frameset_delete(rawframes_one) ;
             cpl_msg_indent_less() ;
         }
+
+        /* Save the products */
+
+        /* BPM */
+        out_file = cpl_sprintf("%s_%s_bpm.fits", RECIPE_STRING, setting_id) ;
+        cr2res_io_save_BPM(out_file, frameset, raw_one, parlist, bpm, NULL, 
+                ext_plist, CR2RES_DETLIN_BPM_PROCATG, RECIPE_STRING) ;
+        cpl_free(out_file);
+
+        /* COEFFS */
+        out_file = cpl_sprintf("%s_%s_coeffs.fits", RECIPE_STRING, setting_id) ;
+        cr2res_io_save_DETLIN_COEFFS(out_file, frameset, raw_one, parlist, 
+                coeffs, NULL, ext_plist, CR2RES_DETLIN_COEFFS_PROCATG, 
+                RECIPE_STRING) ;
+        cpl_free(out_file);
+
+        cpl_frameset_delete(raw_one) ;
+
+        /* Free */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            if (coeffs[det_nr-1] != NULL) 
+                cpl_imagelist_delete(coeffs[det_nr-1]) ;
+            if (bpm[det_nr-1] != NULL) 
+                cpl_image_delete(bpm[det_nr-1]) ;
+            if (ext_plist[det_nr-1] != NULL) 
+                cpl_propertylist_delete(ext_plist[det_nr-1]) ;
+        }
+        cpl_free(setting_id) ;
         cpl_msg_indent_less() ;
     }
     cpl_frameset_delete(rawframes) ;
     cpl_free(labels) ;
-
-    /* Ѕave Products */
-
-    /* BPM */
-    out_file = cpl_sprintf("%s_bpm.fits", RECIPE_STRING) ;
-    cr2res_io_save_BPM(out_file, frameset, parlist,
-            bpm, NULL, ext_plist, CR2RES_DETLIN_BPM_PROCATG, RECIPE_STRING) ;
-    cpl_free(out_file);
-
-    /* COEFFS */
-    out_file = cpl_sprintf("%s_coeffs.fits", RECIPE_STRING) ;
-    cr2res_io_save_DETLIN_COEFFS(out_file, frameset, parlist,
-            coeffs, NULL, ext_plist, CR2RES_DETLIN_COEFFS_PROCATG, 
-            RECIPE_STRING) ;
-    cpl_free(out_file);
-
-    /* Free */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        if (coeffs[det_nr-1] != NULL) 
-            cpl_imagelist_delete(coeffs[det_nr-1]) ;
-        if (bpm[det_nr-1] != NULL) 
-            cpl_image_delete(bpm[det_nr-1]) ;
-        if (ext_plist[det_nr-1] != NULL) 
-            cpl_propertylist_delete(ext_plist[det_nr-1]) ;
-    }
 
     cpl_msg_indent_less() ;
 

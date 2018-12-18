@@ -280,7 +280,7 @@ static int cr2res_util_bpm_split(
         for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {
             out_file=cpl_sprintf("%s_splitted_%d.fits", 
                     cr2res_get_base_name(cur_fname), bpm_types[j]) ;
-            cr2res_io_save_BPM(out_file, frameset, parlist,
+            cr2res_io_save_BPM(out_file, frameset, frameset, parlist,
                     splitted_bpms[j], NULL, ext_plist, 
                     CR2RES_UTIL_BPM_SPLIT_PROCATG, RECIPE_STRING) ;
             cpl_free(out_file);

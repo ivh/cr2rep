@@ -551,15 +551,15 @@ static int cr2res_util_wave(
     /* Save the new trace_wave table */
     out_file = cpl_sprintf("%s_wave.fits",
             cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
-    cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, out_trace_wave,
-            NULL, ext_plist, CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG, 
-            RECIPE_STRING) ;
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
+            out_trace_wave, NULL, ext_plist, 
+            CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Save the Wave Map */
     out_file = cpl_sprintf("%s_wave_map.fits",
             cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
-    cr2res_io_save_WAVE_MAP(out_file, frameset, parlist, out_wave_map,
+    cr2res_io_save_WAVE_MAP(out_file, frameset, frameset, parlist, out_wave_map,
             NULL, ext_plist, CR2RES_UTIL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 

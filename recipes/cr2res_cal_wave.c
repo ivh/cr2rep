@@ -387,16 +387,16 @@ static int cr2res_cal_wave(
         }
         cpl_msg_indent_less() ;
     }
-    cpl_frameset_delete(rawframes) ;
 
     /* Ѕave Products */
     out_file = cpl_sprintf("%s_wave.fits", RECIPE_STRING) ;
-    cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, out_trace_wave,
-            NULL, ext_plist, CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG, 
-            RECIPE_STRING) ;
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist, 
+            out_trace_wave, NULL, ext_plist, 
+            CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free and return */
+    cpl_frameset_delete(rawframes) ;
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
         if (ext_plist[i] != NULL)
             cpl_propertylist_delete(ext_plist[i]) ;

@@ -423,7 +423,7 @@ static int cr2res_util_splice(
             ext_plist = cpl_propertylist_load(extracted_file, 1) ; 
             out_file = cpl_sprintf("%s_spliced.fits",
                     cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
-            cr2res_io_save_SPLICED_1D(out_file, frameset, parlist, 
+            cr2res_io_save_SPLICED_1D(out_file, frameset,  frameset, parlist, 
                     spliced_table, NULL, ext_plist, 
                     CR2RES_UTIL_SPLICE_SPLICED_1D_PROCATG, RECIPE_STRING) ;
             cpl_free(out_file);

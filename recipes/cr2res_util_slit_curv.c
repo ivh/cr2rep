@@ -402,22 +402,24 @@ static int cr2res_util_slit_curv(
     /* Save the SLIT_CURV_MAP */
     out_file = cpl_sprintf("%s_slit_curv_map.fits",
             cr2res_get_base_name(cr2res_get_root_name(trace_wave_file)));
-    cr2res_io_save_SLIT_CURV_MAP(out_file, frameset, parlist, slit_curv_map,
-            NULL, ext_plist, CR2RES_UTIL_SLIT_CURV_MAP_PROCATG, RECIPE_STRING) ;
+    cr2res_io_save_SLIT_CURV_MAP(out_file, frameset, frameset, parlist, 
+            slit_curv_map, NULL, ext_plist, CR2RES_UTIL_SLIT_CURV_MAP_PROCATG, 
+            RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Save the new SLIT_CURV table */
     out_file=cpl_sprintf("%s_slit_curv.fits", 
             cr2res_get_base_name(cr2res_get_root_name(trace_wave_file)));
-    cr2res_io_save_SLIT_CURV(out_file, frameset, parlist, slit_curv, NULL, 
-            ext_plist, CR2RES_UTIL_SLIT_CURV_PROCATG, RECIPE_STRING) ;
+    cr2res_io_save_SLIT_CURV(out_file, frameset, frameset, parlist, slit_curv, 
+            NULL, ext_plist, CR2RES_UTIL_SLIT_CURV_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Save the new TRACE_WAVE table */
     out_file=cpl_sprintf("%s_trace.fits", 
             cr2res_get_base_name(cr2res_get_root_name(trace_wave_file)));
-    cr2res_io_save_TRACE_WAVE(out_file, frameset, parlist, trace_wave, NULL, 
-            ext_plist, CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG,RECIPE_STRING) ;
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
+            trace_wave, NULL, ext_plist, 
+            CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free and return */
