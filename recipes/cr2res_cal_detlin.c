@@ -276,9 +276,6 @@ static int cr2res_cal_detlin(
     cpl_imagelist       *   coeffs[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
-    cpl_imagelist       *   coeffs_cube_one_setting ;
-    cpl_image           *   bpm_one_setting ;
-    cpl_propertylist    *   ext_plist_one_setting ;
     cpl_propertylist    *   plist ;
     char                *   out_file;
     int                     i, l, det_nr; 
@@ -350,7 +347,6 @@ static int cr2res_cal_detlin(
         /* Loop on the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
-            cpl_msg_indent_more() ;
 
             /* Initialise */
             coeffs[det_nr-1] = NULL ;
@@ -361,55 +357,39 @@ static int cr2res_cal_detlin(
             if (reduce_det != 0 && det_nr != reduce_det) continue ;
     
             /* Call the reduction function */
+            cpl_msg_indent_more() ;
             if (cr2res_cal_detlin_reduce(raw_one, bpm_kappa,
                         trace_degree, trace_min_cluster, trace_smooth, 
                         trace_opening, trace_collapse, det_nr,
-                        &coeffs_cube_one_setting,
-                        &bpm_one_setting,
-                        &ext_plist_one_setting) == -1) {
+                        &(coeffs[det_nr-1]),
+                        &(bpm[det_nr-1]),
+                        &(ext_plist[det_nr-1])) == -1) {
                 cpl_msg_warning(__func__, 
                         "Failed to reduce SETTING %s / det %d", 
                         setting_id, det_nr);
-            } else {
-                if (coeffs[det_nr-1] == NULL || bpm[det_nr-1] == NULL) {
-                    /* Create the output BPM and the output COEFFS */
-                    coeffs[det_nr-1] = 
-                        cpl_imagelist_duplicate(coeffs_cube_one_setting) ;
-                    bpm[det_nr-1] = cpl_image_duplicate(bpm_one_setting) ;
-                } else {
-                    /* Update the output BPM and the output COEFFS */
-                    cr2res_cal_detlin_update(bpm[det_nr-1], bpm_one_setting,
-                            coeffs[det_nr-1], coeffs_cube_one_setting) ;
-                }
-                if (ext_plist[det_nr-1] == NULL)
-                    ext_plist[det_nr-1] = 
-                        cpl_propertylist_duplicate(ext_plist_one_setting);
-
-                cpl_imagelist_delete(coeffs_cube_one_setting) ;
-                cpl_image_delete(bpm_one_setting) ;
-                cpl_propertylist_delete(ext_plist_one_setting) ;
-            }
+            } 
             cpl_msg_indent_less() ;
         }
 
         /* Save the products */
 
         /* BPM */
-        out_file = cpl_sprintf("%s_%s_bpm.fits", RECIPE_STRING, setting_id) ;
+        out_file = cpl_sprintf("%s_%c_bpm.fits", RECIPE_STRING,
+                setting_id[0]) ;
         cr2res_io_save_BPM(out_file, frameset, raw_one, parlist, bpm, NULL, 
                 ext_plist, CR2RES_DETLIN_BPM_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
         /* COEFFS */
-        out_file = cpl_sprintf("%s_%s_coeffs.fits", RECIPE_STRING, setting_id) ;
+        out_file = cpl_sprintf("%s_%c_coeffs.fits", RECIPE_STRING,
+                setting_id[0]) ;
         cr2res_io_save_DETLIN_COEFFS(out_file, frameset, raw_one, parlist, 
                 coeffs, NULL, ext_plist, CR2RES_DETLIN_COEFFS_PROCATG, 
                 RECIPE_STRING) ;
         cpl_free(out_file);
 
-        cpl_frameset_delete(raw_one) ;
-
         /* Free */
+        cpl_frameset_delete(raw_one) ;
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             if (coeffs[det_nr-1] != NULL) 
                 cpl_imagelist_delete(coeffs[det_nr-1]) ;
@@ -423,8 +403,6 @@ static int cr2res_cal_detlin(
     }
     cpl_frameset_delete(rawframes) ;
     cpl_free(labels) ;
-
-    cpl_msg_indent_less() ;
 
     return (int)cpl_error_get_code();
 }
@@ -503,14 +481,15 @@ static int cr2res_cal_detlin_reduce(
         cpl_vector_set(dits, i, cr2res_pfits_get_dit(plist)) ;
         cpl_propertylist_delete(plist) ;
     }
-    /* cpl_vector_dump(dits, stdout) ; */
+            
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) cpl_vector_dump(dits, stdout) ;
 
     /* Load the extension header for saving */
     plist = cpl_propertylist_load(first_file, ext_nr) ;
     if (plist == NULL) return -1 ;
 
     if (trace_collapse) {
-        /* Collapse */
+        /* Collapse all input images */
         cpl_msg_info(__func__, "Collapse the input images") ;
         cpl_msg_indent_more() ;
         if ((collapsed_ima = cpl_imagelist_collapse_create(imlist)) == NULL) {
@@ -521,7 +500,9 @@ static int cr2res_cal_detlin_reduce(
             cpl_msg_indent_less() ;
             return -1 ;
         }
+        cpl_msg_indent_less() ;
     } else {
+        /* Only use the first image */
         collapsed_ima = cpl_image_duplicate(cpl_imagelist_get(imlist, 0)) ;
     }
 
@@ -531,7 +512,6 @@ static int cr2res_cal_detlin_reduce(
     /* Create the HDRL collapsed */
     collapsed = hdrl_image_create(collapsed_ima, NULL) ;
     cpl_image_delete(collapsed_ima) ;
-    cpl_msg_indent_less() ;
 
     /* Compute traces */
     cpl_msg_info(__func__, "Compute the traces") ;
@@ -619,8 +599,10 @@ static int cr2res_cal_detlin_reduce(
             }
         }
     }
+    cpl_msg_indent_less() ;
 
     /* Use the second coefficient stats for the BPM detection */
+    cpl_msg_info(__func__, "BPM detection") ;
     cur_coeffs = cpl_imagelist_get(coeffs_loc, 1) ;
     pcur_coeffs = cpl_image_get_data_float(cur_coeffs) ;
     bpm_mask = cpl_mask_new(nx, ny) ;
@@ -716,6 +698,9 @@ static int cr2res_cal_detlin_compare(
     return comparison ;
 }
 
+
+
+/* TODO: Move/Use this function in cr2res_util_merge_detlin */
 /*----------------------------------------------------------------------------*/
 /**
   @brief Only pixels not yet computed (CR2RES_BPM_OUTOFORDER) are updated
