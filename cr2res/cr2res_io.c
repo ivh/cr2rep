@@ -40,6 +40,9 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static cpl_imagelist * cr2res_hdrl_to_cpl_list(
+        const hdrl_imagelist    *   in, 
+        int                         data) ;
 static int cr2res_table_check_column(
         const cpl_table     *   tab,
         const char          *   col) ;
@@ -48,7 +51,7 @@ static int cr2res_io_save_imagelist(
         cpl_frameset            *   allframes,
         cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           **  data,
+        hdrl_imagelist          **  data,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
         cpl_type                    type,
@@ -748,7 +751,7 @@ int cr2res_io_save_DETLIN_COEFFS(
         cpl_frameset            *   allframes,
         cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           **  coeffs,
+        hdrl_imagelist          **  coeffs,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
         const char              *   procatg,
@@ -1476,7 +1479,7 @@ static int cr2res_io_save_imagelist(
         cpl_frameset            *   allframes,
         cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
-        cpl_imagelist           **  data,
+        hdrl_imagelist          **  data,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
         cpl_type                    type,
@@ -1485,6 +1488,8 @@ static int cr2res_io_save_imagelist(
         const char              *   protype)
 {
     cpl_propertylist    *   qclist_loc ;
+    cpl_imagelist       *   list_data ;
+    cpl_imagelist       *   list_noise ;
     char          		*   wished_extname ;
     int                     det_nr ;
 
@@ -1510,6 +1515,16 @@ static int cr2res_io_save_imagelist(
 
     /* Save the extensions */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+
+        /* Extract separately data / noise */
+        if (data[det_nr-1] == NULL) {
+            list_data = list_noise = NULL ;
+        } else {
+            list_data = cr2res_hdrl_to_cpl_list(data[det_nr-1], 1) ;
+            list_noise = cr2res_hdrl_to_cpl_list(data[det_nr-1], 0) ;
+        }
+
+        /* Prepare header */
         if (ext_plist[det_nr-1] == NULL) {
             qclist_loc = cpl_propertylist_new();
         } else {
@@ -1520,29 +1535,71 @@ static int cr2res_io_save_imagelist(
         /* Save the DATA */
         wished_extname = cr2res_io_create_extname(det_nr, 1) ;
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", wished_extname) ;
-
-        if (data[det_nr-1] == NULL) {
+        if (list_data == NULL) {
             cpl_propertylist_save(qclist_loc, filename, CPL_IO_EXTEND) ;
         } else {                        
-            cpl_imagelist_save(data[det_nr-1], filename, type, qclist_loc, 
+            cpl_imagelist_save(list_data, filename, type, qclist_loc, 
                     CPL_IO_EXTEND) ;
+            cpl_imagelist_delete(list_data) ;
         }
         cpl_free(wished_extname) ;
 
         /* Save the NOISE */
         wished_extname = cr2res_io_create_extname(det_nr, 0) ;
         cpl_propertylist_update_string(qclist_loc, "EXTNAME", wished_extname) ;
-        if (data[det_nr-1] == NULL) {
+        if (list_noise == NULL) {
             cpl_propertylist_save(qclist_loc, filename, CPL_IO_EXTEND) ;
         } else {                        
-            cpl_imagelist_save(data[det_nr-1], filename, type, qclist_loc, 
+            cpl_imagelist_save(list_noise, filename, type, qclist_loc, 
                     CPL_IO_EXTEND) ;
+            cpl_imagelist_delete(list_noise) ;
         }
         cpl_propertylist_delete(qclist_loc) ;
         cpl_free(wished_extname) ;
     }
 
 	return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Create a cpl_imagelist from the data/error of a hdrl_imagelist
+  @param    in      the hdrl_imageḻist
+  @param    data    1 -> data, 0 -> error
+  @return  the newly allocated cpl_imageelist
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_imagelist * cr2res_hdrl_to_cpl_list(
+        const hdrl_imagelist    *   in, 
+        int                         data) 
+{
+    cpl_imagelist       *   out ;
+    const hdrl_image    *   cur_im ;
+    const cpl_image     *   cur_cpl_im ;
+    cpl_size            i ;
+
+    /* Check Entries */
+    if (in == NULL) return NULL ;
+    if (data != 0 && data != 1) return NULL ;
+
+    /* Create output list */
+    out = cpl_imagelist_new() ;
+    for (i=0 ; i< hdrl_imagelist_get_size(in) ; i++) {
+        cur_im = hdrl_imagelist_get(in, i) ;
+        if (data == 1) cur_cpl_im = hdrl_image_get_image_const(cur_im) ;
+        if (data == 0) cur_cpl_im = hdrl_image_get_error_const(cur_im) ;
+
+        cpl_imagelist_set(out, cpl_image_duplicate(cur_cpl_im),
+                cpl_imagelist_get_size(out)) ;
+    }
+
+    /* Check output */
+    if (hdrl_imagelist_get_size(in) != cpl_imagelist_get_size(out)) {
+        cpl_imagelist_delete(out) ;
+        return NULL ;
+    }
+    /* Return  */
+    return out ;
 }
 
 static int cr2res_table_check_column(
