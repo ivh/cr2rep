@@ -447,11 +447,15 @@ static int cr2res_cal_detlin_reduce(
     cpl_polynomial      *   fit1d ;
 	cpl_matrix			*	samppos ;
     cpl_vector          *   fitvals ;
+    cpl_vector          *   fit_residuals ;
     cpl_boolean             sampsym ;
     cpl_mask            *   bpm_mask ;
     int                     i, j, k, idx, ext_nr, order, trace_id, nx, ny ;
     cpl_size                max_degree, l ;
     double                  low_thresh, high_thresh, median, sigma ;
+    int                     qc_nb_bad, qc_nbfailed, qc_nbsuccess,
+                            qc_min_level, qc_max_level ;
+    double                  qc_median, qc_fitquality, qc_gain ;
     
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
@@ -551,6 +555,9 @@ static int cr2res_cal_detlin_reduce(
     cpl_msg_indent_more() ;
 
     /* Loop on the traces pixels */
+    qc_nbfailed = 0 ;
+    qc_nbsuccess = 0 ;
+    qc_fitquality = 0.0 ;
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
             idx = i + j*nx ;
@@ -580,13 +587,21 @@ static int cr2res_cal_detlin_reduce(
                         cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
                         pcur_coeffs = cpl_image_get_data_float(cur_coeffs) ;
                         pcur_coeffs[idx] = 0.0 ;
-                    }
+                    } 
+                    qc_nbfailed++ ;
                     cpl_error_reset() ;
-
                     continue ;
                 }
+                qc_nbsuccess++;
+
+                /* Compute the residuals */
+                fit_residuals = cpl_vector_new(cpl_vector_get_size(dits)) ;
+                cpl_vector_fill_polynomial_fit_residual(fit_residuals,
+                        fitvals, NULL, fit1d, samppos, NULL) ;
+                qc_fitquality += cpl_vector_get_median(fit_residuals) ;
                 cpl_matrix_unwrap(samppos) ;
                 cpl_vector_delete(fitvals) ;
+                cpl_vector_delete(fit_residuals) ;
 
                 /* Store the Coefficients in the output image list */
                 pbpm_loc[idx] = 0 ;
@@ -599,6 +614,7 @@ static int cr2res_cal_detlin_reduce(
             }
         }
     }
+    if (qc_nbsuccess > 0) qc_fitquality /= qc_nbsuccess ;
     cpl_msg_indent_less() ;
 
     /* Use the second coefficient stats for the BPM detection */
@@ -617,6 +633,7 @@ static int cr2res_cal_detlin_reduce(
 
     low_thresh = median - bpm_kappa * sigma ;
     high_thresh = median + bpm_kappa * sigma ;
+    qc_nb_bad = 0;
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
             idx = i + j*nx ;
@@ -624,9 +641,27 @@ static int cr2res_cal_detlin_reduce(
                     (pcur_coeffs[idx] < low_thresh || 
                      pcur_coeffs[idx] > high_thresh)) {
                 pbpm_loc[idx] = CR2RES_BPM_DETLIN ;
+                qc_nb_bad ++ ;
             }
         }
     }
+
+    /* Add QC parameters */
+    cpl_propertylist_append_int(plist, "ESO QC DETLIN NBBAD", qc_nb_bad) ;
+    cpl_propertylist_append_int(plist, "ESO QC DETLIN NBFAILED", qc_nbfailed) ;
+    cpl_propertylist_append_int(plist, "ESO QC DETLIN NBSUCCESS",qc_nbsuccess) ;
+    cpl_propertylist_append_double(plist, "ESO QC DETLIN FIT_QUALITY", 
+            qc_fitquality) ;
+    /*
+    qc_median = 0.0 ;
+    cpl_propertylist_append_double(plist, "ESO QC DETLIN MEDIAN", qc_median) ;
+    qc_gain = 0.0 ;
+    cpl_propertylist_append_double(plist, "ESO QC DETLIN GAIN", qc_gain) ;
+    qc_min_level = 0 ;
+    cpl_propertylist_append_int(plist, "ESO QC DETLIN MIN_LEVEL",qc_min_level) ;
+    qc_max_level = 0 ;
+    cpl_propertylist_append_int(plist, "ESO QC DETLIN MAX_LEVEL",qc_max_level) ;
+    */
 
     /* Free */
     cpl_image_delete(trace_image) ;
