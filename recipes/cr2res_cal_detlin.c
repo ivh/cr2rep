@@ -32,6 +32,7 @@
 #include "cr2res_calib.h"
 #include "cr2res_pfits.h"
 #include "cr2res_trace.h"
+#include "cr2res_qc.h"
 #include "cr2res_dfs.h"
 #include "cr2res_bpm.h"
 #include "cr2res_io.h"
@@ -455,11 +456,10 @@ static int cr2res_cal_detlin_reduce(
     cpl_mask            *   bpm_mask ;
     int                     i, j, k, idx, ext_nr, order, trace_id, nx, ny ;
     cpl_size                max_degree, l ;
-    double                  low_thresh, high_thresh, median, sigma,
-                            median_residuals ;
-    int                     qc_nb_bad, qc_nbfailed, qc_nbsuccess,
+    double                  low_thresh, high_thresh, median, sigma ;
+    int                     qc_nb_bad, qc_nbfailed, qc_nbsuccess ;
+    double                  qc_median, qc_fitquality, qc_gain,
                             qc_min_level, qc_max_level ;
-    double                  qc_median, qc_fitquality, qc_gain ;
     
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
@@ -564,7 +564,6 @@ static int cr2res_cal_detlin_reduce(
     /* Loop on the traces pixels */
     qc_nbfailed = 0 ;
     qc_nbsuccess = 0 ;
-    qc_fitquality = 0.0 ;
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
             idx = i + j*nx ;
@@ -608,8 +607,6 @@ static int cr2res_cal_detlin_reduce(
                 fit_residuals = cpl_vector_new(cpl_vector_get_size(dits)) ;
                 cpl_vector_fill_polynomial_fit_residual(fit_residuals,
                         fitvals, NULL, fit1d, samppos, NULL) ;
-                median_residuals = cpl_vector_get_median(fit_residuals) ;
-                qc_fitquality += median_residuals ;
                 cpl_matrix_unwrap(samppos) ;
                 cpl_vector_delete(fitvals) ;
                 cpl_vector_delete(fit_residuals) ;
@@ -622,13 +619,13 @@ static int cr2res_cal_detlin_reduce(
                     pcur_coeffs[idx] = cpl_polynomial_get_coeff(fit1d, &l) ;
                     cur_errors = cpl_imagelist_get(errors_loc, l) ;
                     pcur_errors = cpl_image_get_data_float(cur_errors) ;
-                    pcur_errors[idx] = median_residuals ;
+                    /* TODO : Store error */
+                    pcur_errors[idx] = 0.0 ;
                 }
                 cpl_polynomial_delete(fit1d) ;
             }
         }
     }
-    if (qc_nbsuccess > 0) qc_fitquality /= qc_nbsuccess ;
     cpl_msg_indent_less() ;
 
     /* Use the second coefficient stats for the BPM detection */
@@ -660,22 +657,25 @@ static int cr2res_cal_detlin_reduce(
         }
     }
 
-    /* Add QC parameters */
+    /* Compute the QC parameters */
+    /* TODO : pass the proper inputs */
+    qc_fitquality = 0.0;
+    qc_median = cr2res_qc_detlin_median(coeffs_loc) ;
+    qc_gain = cr2res_qc_detlin_gain(coeffs_loc) ;
+    cr2res_qc_detlin_min_max_level(NULL, &qc_min_level, &qc_max_level) ;
+
+    /* Store the QC parameters in the plist */
     cpl_propertylist_append_int(plist, "ESO QC DETLIN NBBAD", qc_nb_bad) ;
     cpl_propertylist_append_int(plist, "ESO QC DETLIN NBFAILED", qc_nbfailed) ;
     cpl_propertylist_append_int(plist, "ESO QC DETLIN NBSUCCESS",qc_nbsuccess) ;
     cpl_propertylist_append_double(plist, "ESO QC DETLIN FIT_QUALITY", 
             qc_fitquality) ;
-    /*
-    qc_median = 0.0 ;
     cpl_propertylist_append_double(plist, "ESO QC DETLIN MEDIAN", qc_median) ;
-    qc_gain = 0.0 ;
     cpl_propertylist_append_double(plist, "ESO QC DETLIN GAIN", qc_gain) ;
-    qc_min_level = 0 ;
-    cpl_propertylist_append_int(plist, "ESO QC DETLIN MIN_LEVEL",qc_min_level) ;
-    qc_max_level = 0 ;
-    cpl_propertylist_append_int(plist, "ESO QC DETLIN MAX_LEVEL",qc_max_level) ;
-    */
+    cpl_propertylist_append_double(plist, "ESO QC DETLIN MIN_LEVEL",
+            qc_min_level) ;
+    cpl_propertylist_append_double(plist, "ESO QC DETLIN MAX_LEVEL",
+            qc_max_level) ;
 
     /* Free */
     cpl_image_delete(trace_image) ;

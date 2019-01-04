@@ -30,6 +30,7 @@
                            Functions prototypes
  -----------------------------------------------------------------------------*/
 
+/* DARK */
 double cr2res_dark_qc_ron(
         const cpl_image     *   ima1,
         const cpl_image     *   ima2,
@@ -37,6 +38,17 @@ double cr2res_dark_qc_ron(
         int                     nsamples,
         int                     ndit) ;
 
+/* DETLIN */
+double cr2res_qc_detlin_median(
+        const cpl_imagelist     *   coeffs) ;
+double cr2res_qc_detlin_gain(
+        const cpl_imagelist     *   coeffs) ;
+int cr2res_qc_detlin_min_max_level(
+        const cpl_image     *   ima,
+        double              *   min_level,
+        double              *   max_level) ;
+
+/* FLAT */
 double cr2res_qc_flat_lamp_ints(
         const cpl_image     *   ima) ;
 double cr2res_qc_flat_mean_level(

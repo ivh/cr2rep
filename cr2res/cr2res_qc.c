@@ -85,6 +85,82 @@ double cr2res_dark_qc_ron(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Computes the detlin median non linearity 
+  @param    coeffs  The detector non linearity coefficients
+  @return   The computed median or -1.0 in error case
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_detlin_median(
+        const cpl_imagelist     *   coeffs)
+{
+    double      qc_detlin_median ;
+
+    /* Check Entries */
+    if (coeffs == NULL) return -1.0 ;
+
+    /* Initialise */
+    qc_detlin_median = -1.0 ;
+
+    /* TODO */
+    
+    return qc_detlin_median ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the detlin gain
+  @param    coeffs  The detector non linearity coefficients
+  @return   The computed gain or -1.0 in error case
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_detlin_gain(
+        const cpl_imagelist     *   coeffs)
+{
+    double      qc_detlin_gain ;
+
+    /* Check Entries */
+    if (coeffs == NULL) return -1.0 ;
+
+    /* Initialise */
+    qc_detlin_gain = -1.0 ;
+
+    /* TODO */
+    
+    return qc_detlin_gain ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the detlin min and max level
+  @param    ima         input image
+  @param    min_level   [out] The computed min level
+  @param    max_level   [out] The computed max level
+  @return   0 if ok, -1 otherwise
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_qc_detlin_min_max_level(
+        const cpl_image     *   ima,
+        double              *   min_level,
+        double              *   max_level)
+{
+    double      min_level_loc, max_level_loc ;
+
+    /* Check Entries */
+    if (ima == NULL || min_level == NULL || max_level == NULL) return -1 ;
+
+    /* Initialise */
+    *min_level = -1.0 ;
+    *max_level = -1.0 ;
+
+    /* TODO */
+    
+    *min_level = min_level_loc ;
+    *max_level = max_level_loc ;
+    return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Computes the total lamp intensity over a limited spectral region
   @param    ima     input image
   @return   The computed intensity or -1.0 in error case
