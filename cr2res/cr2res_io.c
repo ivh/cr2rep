@@ -122,8 +122,8 @@ char * cr2res_io_create_extname(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Create wished EXTNAME */
-    
-    if (data)   wished_extname = cpl_sprintf("CHIP%d.INT1", detector) ;
+    /* If this changes, update warning message in cr2res_io_get_ext_idx() */
+    if (data)   wished_extname = cpl_sprintf("CHIP%d", detector) ;
     else        wished_extname = cpl_sprintf("CHIP%dERR", detector) ;
 
     return wished_extname ;
@@ -171,6 +171,12 @@ int cr2res_io_get_ext_idx(
         cpl_propertylist_delete(pl) ;
     }
     cpl_free(wished_extname) ;
+
+    /* EXTNAME expectation */
+    if (wished_ext_nb < 0) {
+        cpl_msg_warning(__func__,
+                "EXTNAME is supposed to match CHIP[1|2|3] or CHIP[1|2|3]ERR") ;
+    }
 
     return wished_ext_nb ;
 }
@@ -370,13 +376,15 @@ cpl_image * cr2res_io_load_MASTER_DARK(
   @brief    Load an image from a BPM
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
+  @param    data        1 for the data image, 0 for the error
   @return   An integer type image or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
 cpl_image * cr2res_io_load_BPM(
         const char  *   filename,
-        int             detector)
+        int             detector,
+        int             data)
 {
     int     wished_ext_nb ;
 
@@ -385,7 +393,7 @@ cpl_image * cr2res_io_load_BPM(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Get the extension number for this detector */
-    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, data) ;
 
     /* The wished extension was not found */
     if (wished_ext_nb < 0) return NULL ;
@@ -398,6 +406,7 @@ cpl_image * cr2res_io_load_BPM(
   @brief    Load the detlin coefficients
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
+  @param    data        1 for the data image, 0 for the error
   @return   A float image list with the polynomial coefficients for each
               pixel of the wished detector. The returned object list
               needs to be deallocated
@@ -405,7 +414,8 @@ cpl_image * cr2res_io_load_BPM(
 /*----------------------------------------------------------------------------*/
 cpl_imagelist * cr2res_io_load_DETLIN_COEFFS(
         const char  *   filename,
-        int             detector)
+        int             detector,
+        int             data)
 {
     int     wished_ext_nb ;
 
@@ -414,7 +424,7 @@ cpl_imagelist * cr2res_io_load_DETLIN_COEFFS(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Get the extension number for this detector */
-    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, data) ;
 
     /* The wished extension was not found */
     if (wished_ext_nb < 0) return NULL ;

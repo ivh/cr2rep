@@ -57,7 +57,7 @@
   @return   the RON or -1 in error case
  */
 /*----------------------------------------------------------------------------*/
-double cr2res_qc_ron(
+double cr2res_dark_qc_ron(
         const cpl_image     *   ima1,
         const cpl_image     *   ima2,
         int                     hsize,
@@ -83,44 +83,147 @@ double cr2res_qc_ron(
     return norm*ron ;
 }
 
-/*---------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 /**
-* @brief    get the central y position of a given trace and order
-* @param    tracewave    table with traces as polynomials
-* @param    order        order to get values for
-* @param    trace        trace of that order
-* @return   ycen         y value of central pixel of trace and order
-*/
-/*---------------------------------------------------------------------------*/
-int cr2res_qc_trace_get_ypos(cpl_table * tracewave, int order, int trace)
+  @brief    Computes the total lamp intensity over a limited spectral region
+  @param    ima     input image
+  @return   The computed intensity or -1.0 in error case
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_flat_lamp_ints(
+        const cpl_image     *   ima)
 {
-    cpl_vector *center = cr2res_trace_get_ycen(tracewave, order, trace, CR2RES_DETECTOR_SIZE);
-    
-    if (center == NULL) return -1;
+    double      qc_lamp_ints ;
 
-    int ycen = cpl_vector_get(center, CR2RES_DETECTOR_SIZE/2-1);
-    cpl_vector_delete(center);
-    return ycen;
+    /* Check Entries */
+    if (ima == NULL) return -1.0 ;
+
+    /* Initialise */
+    qc_lamp_ints = -1.0 ;
+
+    /* TODO */
+    
+    return qc_lamp_ints ;
 }
 
-/*---------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 /**
-* @brief    get the zeropoint (i.e. y(x=0)) for a given order and trace 
-* @param    tracewave    table with traces as polynomials
-* @param    order        order to get values for
-* @param    trace        trace of that order
-* @return   y0           y position of the center leftmost pixel of the trace and order
-*/
-/*---------------------------------------------------------------------------*/
-double cr2res_qc_wave_zeropoint(cpl_table * tracewave, int order, int trace)
+  @brief    Computes the mean relative background level
+  @param    ima     input image
+  @return   The computed level or -1.0 in error case
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_flat_mean_level(
+        const cpl_image     *   ima)
 {
-    cpl_vector *center = cr2res_trace_get_ycen(tracewave, order, trace, 1);
- 
-    if (center == NULL) return -1;
+    double      qc_mean_level ;
 
-    int y0 = cpl_vector_get(center, 0);
-    cpl_vector_delete(center);
-    return y0;
+    /* Check Entries */
+    if (ima == NULL) return -1.0 ;
+
+    /* Initialise */
+    qc_mean_level = -1.0 ;
+
+    /* TODO */
+    
+    return qc_mean_level ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the median SNR per pixel
+  @param    ima     input image
+  @return   The computed median SNR or -1.0 in error case
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_flat_med_snr(
+        const cpl_image     *   ima)
+{
+    double      qc_med_snr ;
+
+    /* Check Entries */
+    if (ima == NULL) return -1.0 ;
+
+    /* Initialise */
+    qc_med_snr = -1.0 ;
+
+    /* TODO */
+    
+    return qc_med_snr ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the mean and median flux
+  @param    ima     input image
+  @param    mean_flux   [out] The computed mean flux
+  @param    med_flux    [out] The computed median flux
+  @return   0 if ok, -1 otherwise
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_qc_flat_mean_med_flux(
+        const cpl_image     *   ima,
+        double              *   mean_flux,
+        double              *   med_flux)
+{
+    double      mean_flux_loc, med_flux_loc ;
+
+    /* Check Entries */
+    if (ima == NULL || mean_flux == NULL || med_flux == NULL) return -1 ;
+
+    /* Initialise */
+    *mean_flux = -1.0 ;
+    *med_flux = -1.0 ;
+
+    /* TODO */
+    
+    *mean_flux = mean_flux_loc ;
+    *med_flux = med_flux_loc ;
+    return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the mean Y coord of the central order 
+  @param    trace   the trace table
+  @return   The computed Y coordinate or -1.0 in error case
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_flat_trace_center_y(
+        const cpl_table     *   trace)
+{
+    double      qc_trace_center_y ;
+
+    /* Check Entries */
+    if (trace == NULL) return -1.0 ;
+
+    /* Initialise */
+    qc_trace_center_y = -1.0 ;
+
+    /* TODO */
+    
+    return qc_trace_center_y ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the number of overexposed pixels in the first raw frame
+  @param    ima     the first raw image
+  @return   the computed number or -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_qc_flat_nb_overexposed(
+        const cpl_image     *   ima)
+{
+    int     qc_overexposed ;
+
+    /* Check Entries */
+    if (ima == NULL) return -1 ;
+
+    /* Initialise */
+    qc_overexposed = -1 ;
+    
+    return qc_overexposed ;
 }
 
 /**@}*/

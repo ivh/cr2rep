@@ -134,7 +134,7 @@ int cr2res_calib_chip_list(
         /* Load the detlin coeffs */
         cpl_msg_info(__func__, "Load the Non-Linearity coefficients") ;
         if ((calib_list = cr2res_io_load_DETLIN_COEFFS(
-                        cpl_frame_get_filename(detlin), chip)) == NULL) {
+                        cpl_frame_get_filename(detlin), chip, 1)) == NULL) {
             cpl_msg_error(__func__, "Cannot load the detlin") ;
             return -1 ;
         }

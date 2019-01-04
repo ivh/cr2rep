@@ -482,11 +482,11 @@ static int cr2res_cal_dark(
             
             /* QCs from RAW */
             if (hdrl_imagelist_get_size(dark_cube) >= 3) {
-                ron1 = cr2res_qc_ron(
+                ron1 = cr2res_dark_qc_ron(
                         hdrl_image_get_image(hdrl_imagelist_get(dark_cube,0)), 
                         hdrl_image_get_image(hdrl_imagelist_get(dark_cube,1)), 
                         ron_hsize, ron_nsamples, ndit) ;
-                ron2 = cr2res_qc_ron(
+                ron2 = cr2res_dark_qc_ron(
                         hdrl_image_get_image(hdrl_imagelist_get(dark_cube,1)), 
                         hdrl_image_get_image(hdrl_imagelist_get(dark_cube,2)), 
                         ron_hsize, ron_nsamples, ndit) ;

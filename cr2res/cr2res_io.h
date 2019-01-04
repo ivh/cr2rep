@@ -61,11 +61,13 @@ cpl_image * cr2res_io_load_MASTER_DARK(
 
 cpl_image * cr2res_io_load_BPM(
         const char  *   filename,
-        int             detector);
+        int             detector,
+        int             data) ;
 
 cpl_imagelist * cr2res_io_load_DETLIN_COEFFS(
         const char  *   filename,
-        int             detector);
+        int             detector,
+        int             data) ;
 
 cpl_image * cr2res_io_load_MASTER_FLAT(
         const char  *   filename,

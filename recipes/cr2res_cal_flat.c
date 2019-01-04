@@ -31,6 +31,7 @@
 #include "cr2res_calib.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
+#include "cr2res_qc.h"
 #include "cr2res_flat.h"
 #include "cr2res_bpm.h"
 #include "cr2res_trace.h"
@@ -350,7 +351,8 @@ static int cr2res_cal_flat(
     const cpl_frame     *   bpm_frame ;
     hdrl_image          *   master_flat[CR2RES_NB_DETECTORS] ;
     cpl_table * trace_wave[CR2RES_NB_DECKER_POSITIONS][CR2RES_NB_DETECTORS] ;
-    cpl_propertylist * ext_plist[CR2RES_NB_DECKER_POSITIONS][CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   
+        ext_plist[CR2RES_NB_DECKER_POSITIONS][CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_wave_merged[CR2RES_NB_DETECTORS];
     cpl_table           *   merged ;
     cpl_table           *   trace_wave1 ;
@@ -658,12 +660,13 @@ static int cr2res_cal_flat_reduce(
     cpl_table           *   slit_func_tab ;
     cpl_table           *   extract_tab ;
     hdrl_image          *   model_tmp ;
-    double                  dit ;
-    int                     i, ext_nr, nb_traces, order, trace_id ;
-    
+    double                  dit, qc_lamp_ints, qc_mean_level, qc_mean_flux, 
+                            qc_med_flux, qc_med_snr, qc_trace_centery ;
+    int                     i, ext_nr, nb_traces, order, trace_id,
+                            qc_overexposed, qc_nbbad ;
+   
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
-
 
     /* Get the Extension number */
     first_file = cpl_frame_get_filename(
@@ -842,7 +845,7 @@ static int cr2res_cal_flat_reduce(
     if (bpm_frame != NULL) {
         if ((bpm_im = cr2res_io_load_BPM(
                         cpl_frame_get_filename(bpm_frame),
-                        reduce_det)) == NULL) {
+                        reduce_det, 1)) == NULL) {
             cpl_msg_warning(__func__, "Failed to Load the Master BPM") ;
         }
     }
@@ -865,7 +868,29 @@ static int cr2res_cal_flat_reduce(
         cpl_msg_indent_less() ;
         return -1 ;
     }
+
+    /* Compute the QC parameters */
+    /* TODO : pass the proper inputs */
+    qc_lamp_ints = cr2res_qc_flat_lamp_ints(NULL) ;
+    qc_mean_level = cr2res_qc_flat_mean_level(NULL) ;
+    cr2res_qc_flat_mean_med_flux(NULL, &qc_mean_flux, &qc_med_flux) ;
+    qc_med_snr = cr2res_qc_flat_med_snr(NULL) ;
+    qc_overexposed = cr2res_qc_flat_nb_overexposed(NULL) ;
+    qc_trace_centery = cr2res_qc_flat_trace_center_y(NULL) ;
+    qc_nbbad = cpl_mask_count(bpm_flat) ;
+
     cpl_mask_delete(bpm_flat) ;
+
+    /* Store the QC parameters in the plist */
+    cpl_propertylist_append_double(plist, "ESO QC LAMP INTS", qc_lamp_ints) ;
+    cpl_propertylist_append_double(plist, "ESO QC MEAN LEVEL", qc_mean_level) ;
+    cpl_propertylist_append_double(plist, "ESO QC MEAN FLUX", qc_mean_flux) ;
+    cpl_propertylist_append_double(plist, "ESO QC MEDIAN FLUX", qc_med_flux) ;
+    cpl_propertylist_append_double(plist, "ESO QC MED SNR", qc_med_snr) ;
+    cpl_propertylist_append_int(plist, "ESO QC OVEREXPOSED", qc_overexposed) ;
+    cpl_propertylist_append_double(plist, "ESO QC TRACE CENTERY", 
+            qc_trace_centery) ;
+    cpl_propertylist_append_int(plist, "ESO QC FLAT NBBAD", qc_nbbad) ;
 
     /* Return the results */
     *trace_wave = traces ;

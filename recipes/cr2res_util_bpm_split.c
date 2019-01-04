@@ -257,7 +257,7 @@ static int cr2res_util_bpm_split(
             cpl_msg_indent_more() ;
 
             /* Load the image to calibrate */
-            ima = cr2res_io_load_BPM(cur_fname, det_nr);
+            ima = cr2res_io_load_BPM(cur_fname, det_nr, 1);
 
             /* Loop on the BPM types */
             for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {

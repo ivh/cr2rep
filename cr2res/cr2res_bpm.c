@@ -195,7 +195,7 @@ int cr2res_bpm_correct_image(
     if (chip < 1 || chip > CR2RES_NB_DETECTORS) return -1 ;
 
     /* Load the bpm */
-    if ((bpm_im = cr2res_io_load_BPM(bpm, chip)) == NULL) {
+    if ((bpm_im = cr2res_io_load_BPM(bpm, chip, 1)) == NULL) {
         cpl_msg_error(__func__, "Cannot load the bpm") ;
         return -1 ;
     }

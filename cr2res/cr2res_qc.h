@@ -30,15 +30,28 @@
                            Functions prototypes
  -----------------------------------------------------------------------------*/
 
-double cr2res_qc_ron(
+double cr2res_dark_qc_ron(
         const cpl_image     *   ima1,
         const cpl_image     *   ima2,
         int                     hsize,
         int                     nsamples,
         int                     ndit) ;
 
-int cr2res_qc_trace_get_ypos(cpl_table * tracewave, int order, int trace);
-double cr2res_qc_wave_zeropoint(cpl_table * tracewave, int order, int trace);
+double cr2res_qc_flat_lamp_ints(
+        const cpl_image     *   ima) ;
+double cr2res_qc_flat_mean_level(
+        const cpl_image     *   ima) ;
+double cr2res_qc_flat_med_snr(
+        const cpl_image     *   ima) ;
+int cr2res_qc_flat_mean_med_flux(
+        const cpl_image     *   ima,
+        double              *   mean_flux,
+        double              *   med_flux) ;
+double cr2res_qc_flat_trace_center_y(
+        const cpl_table     *   trace) ;
+int cr2res_qc_flat_nb_overexposed(
+        const cpl_image     *   ima) ;
+
 
 #endif
 
