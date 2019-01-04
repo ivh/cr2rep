@@ -299,6 +299,8 @@ int cr2res_qc_flat_nb_overexposed(
     /* Initialise */
     qc_overexposed = -1 ;
     
+    /* TODO */
+    
     return qc_overexposed ;
 }
 
