@@ -646,9 +646,11 @@ static int cr2res_cal_flat_reduce(
         cpl_propertylist    **  ext_plist)
 {
     const char          *   first_file ;
-    cpl_imagelist       *   imlist ;
+    hdrl_imagelist      *   imlist ;
+    hdrl_image          *   cur_ima ;
+    hdrl_image          *   cur_ima_calib ;
     hdrl_image          *   collapsed ;
-    cpl_image           *   collapsed_ima ;
+    cpl_image           *   contrib ;
     cpl_propertylist    *   plist ;
     hdrl_image          *   master_flat_loc ;
     cpl_image           *   bpm_im ;
@@ -683,7 +685,7 @@ static int cr2res_cal_flat_reduce(
     if (plist == NULL) return -1 ;
 
     /* Load the image list */
-    imlist = cpl_imagelist_load_frameset(rawframes, CPL_TYPE_FLOAT, 1, ext_nr) ;
+    imlist = cr2res_io_load_RAW_list(rawframes, reduce_det) ;
     if (imlist == NULL) {
         cpl_msg_error(__func__, "Failed to Load the images") ;
         cpl_propertylist_delete(plist);
@@ -693,31 +695,42 @@ static int cr2res_cal_flat_reduce(
     /* Calibrate the Data */
     cpl_msg_info(__func__, "Calibrate the input images") ;
     cpl_msg_indent_more() ;
-    if (cr2res_calib_chip_list(imlist, reduce_det, calib_cosmics_corr, NULL,
-                master_dark_frame, bpm_frame, detlin_frame, dit) != 0) {
-        cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
-        cpl_propertylist_delete(plist);
-        cpl_imagelist_delete(imlist) ;
-        cpl_msg_indent_less() ;
-        return -1 ;
+
+    /* Loop on the images */
+    for (i=0 ; i<hdrl_imagelist_get_size(imlist) ; i++) {
+        cur_ima = hdrl_imagelist_get(imlist, i) ;
+
+        /* Calibrate */
+        if ((cur_ima_calib = cr2res_calib_image(cur_ima, reduce_det, 
+                        calib_cosmics_corr, NULL, master_dark_frame, 
+                        bpm_frame, detlin_frame, dit)) == NULL) {
+            cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
+            cpl_propertylist_delete(plist);
+            hdrl_imagelist_delete(imlist) ;
+            cpl_msg_indent_less() ;
+            return -1 ;
+        } else {
+            /* Replace the calibrated image in the list */
+            hdrl_image_delete(cur_ima) ;
+            cur_ima = cur_ima_calib ;
+        }
     }
     cpl_msg_indent_less() ;
 
     /* Collapse */
     cpl_msg_info(__func__, "Collapse the input images") ;
     cpl_msg_indent_more() ;
-    if ((collapsed_ima = cpl_imagelist_collapse_create(imlist)) == NULL) {
+
+    if (hdrl_imagelist_collapse_mean(imlist, &collapsed, &contrib) !=
+            CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Failed to Calibrate and collapse") ;
         cpl_propertylist_delete(plist);
-        cpl_imagelist_delete(imlist) ;
+        hdrl_imagelist_delete(imlist) ;
         cpl_msg_indent_less() ;
         return -1 ;
     }
-    cpl_imagelist_delete(imlist) ;
-
-    /* Create the HDRL collapsed */
-    collapsed = hdrl_image_create(collapsed_ima, NULL) ;
-    cpl_image_delete(collapsed_ima) ;
+    hdrl_imagelist_delete(imlist) ;
+    cpl_image_delete(contrib) ;
     cpl_msg_indent_less() ;
 
     /* Compute traces */

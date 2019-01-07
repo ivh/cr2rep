@@ -222,9 +222,8 @@ static int cr2res_util_calib(
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
-    cpl_imagelist       *   ilist ;
-    cpl_image           *   ima ;
     cpl_propertylist    *   plist ;
+    hdrl_image          *   cur_ima ;
     hdrl_image          *   calibrated[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
@@ -288,41 +287,28 @@ static int cr2res_util_calib(
             cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
             cpl_msg_indent_more() ;
 
-            /* Load the image to calibrate */
-            wished_ext_nb = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
-            if (wished_ext_nb < 0) {
-                cpl_msg_warning(__func__, 
-                        "Cannot identifiy the extention for detector %d",
-                        det_nr) ;
-                cpl_msg_indent_less() ;
-                continue ;
-            }
-            
-            /* Load the image list (with 1 image) */
-            ilist = cpl_imagelist_new() ;
-            ima = cpl_image_load(cur_fname, CPL_TYPE_FLOAT, 0, wished_ext_nb);
-            cpl_imagelist_set(ilist, ima, 0) ;
-
             /* Get the DIT for the dark correction */
             plist = cpl_propertylist_load(cur_fname, 0);
             raw_dit = cr2res_pfits_get_dit(plist) ;
             cpl_propertylist_delete(plist) ;
 
+            /* Load the image to calibrate */
+            cur_ima = cr2res_io_load_RAW(cur_fname, det_nr) ;
+
             /* Call the reduction function */
-            if (cr2res_calib_chip_list(ilist, det_nr, calib_cosmics_corr, 
-                        master_flat_frame, master_dark_frame, bpm_frame, 
-                        detlin_frame, raw_dit) == -1) {
+            if ((calibrated[det_nr-1] = cr2res_calib_image(cur_ima, det_nr, 
+                            calib_cosmics_corr, master_flat_frame, 
+                            master_dark_frame, bpm_frame, detlin_frame, 
+                            raw_dit)) == NULL) {
                 cpl_msg_warning(__func__, "Failed to calibrate") ;
+                hdrl_image_delete(cur_ima) ;
                 cpl_msg_indent_less() ;
                 continue ;
-            }
-
-            /* Put ilist in calibrated */
-            calibrated[det_nr-1] = hdrl_image_create(
-                    cpl_imagelist_get(ilist, 0), NULL);
-            cpl_imagelist_delete(ilist) ;
+            } 
+            hdrl_image_delete(cur_ima) ;
 
             /* Create the header */
+            wished_ext_nb = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
             ext_plist[det_nr-1]=cpl_propertylist_load(cur_fname,wished_ext_nb);
 
             cpl_msg_indent_less() ;

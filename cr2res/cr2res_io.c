@@ -185,6 +185,84 @@ int cr2res_io_get_ext_idx(
 /*--------------------       LOADING FUNCTIONS       -------------------------*/
 /*----------------------------------------------------------------------------*/
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Load an hdrl image list from a RAW frameset
+  @param    fset        The input frame set
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
+  @return   A float hdrl imagelist or NULL in error case. The returned object
+              needs to be deallocated
+    The returned hdrl image list contains the list of all data images
+    for a given detector from a list of input RAW files.
+    The HDRL image error is empty.
+ */
+/*----------------------------------------------------------------------------*/
+hdrl_imagelist * cr2res_io_load_RAW_list(
+        const cpl_frameset  *   in,
+        int                     detector)
+{
+    const char      *   first_file ;
+    hdrl_imagelist  *   out ;
+    cpl_imagelist   *   data ;
+    int                 ext_nr ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+    if (cpl_frameset_get_size(in) < 1) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    first_file = cpl_frame_get_filename(cpl_frameset_get_position_const(in,0)) ;
+    ext_nr = cr2res_io_get_ext_idx(first_file, detector, 1) ;
+
+    /* The wished extension was not found */
+    if (ext_nr < 0) return NULL ;
+    
+    /* Load the image list */
+    data = cpl_imagelist_load_frameset(in, CPL_TYPE_FLOAT, 1, ext_nr) ;
+    out = hdrl_imagelist_create(data, NULL) ;
+    if (data != NULL) cpl_imagelist_delete(data) ;
+
+    /* Return  */
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Load an hdrl image from a RAW file
+  @param    fname       The input file name
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
+  @return   A float hdrl image or NULL in error case. 
+            The returned object needs to be deallocated
+ */
+/*----------------------------------------------------------------------------*/
+hdrl_image * cr2res_io_load_RAW(
+        const char  *   in,
+        int             detector)
+{
+    const char      *   first_file ;
+    hdrl_image      *   out ;
+    cpl_image       *   data ;
+    int                 ext_nr ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    ext_nr = cr2res_io_get_ext_idx(in, detector, 1) ;
+
+    /* The wished extension was not found */
+    if (ext_nr < 0) return NULL ;
+    
+    /* Load the image */
+    data = cpl_image_load(in, CPL_TYPE_FLOAT, 0, ext_nr) ;
+    out = hdrl_image_create(data, NULL) ;
+    if (data != NULL) cpl_image_delete(data) ;
+
+    /* Return  */
+    return out ;
+}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -341,35 +419,6 @@ cpl_bivector * cr2res_io_load_EMISSION_LINES(
     cpl_table_delete(lines_tab) ;
     return lines ;
 }
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Load an image from a MASTER_DARK
-  @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @param    data        1 for the data image, 0 for the error
-  @return   A float type image or NULL in error case. The returned object
-              needs to be deallocated
- */
-/*----------------------------------------------------------------------------*/
-cpl_image * cr2res_io_load_MASTER_DARK(
-        const char  *   filename,
-        int             detector,
-        int             data)
-{
-    int     wished_ext_nb ;
-
-    /* Check entries */
-    if (filename == NULL) return NULL ;
-    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
-
-    /* Get the extension number for this detector */
-    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, data) ;
-
-    /* The wished extension was not found */
-    if (wished_ext_nb < 0) return NULL ;
-
-    return cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb);
-}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -403,63 +452,123 @@ cpl_image * cr2res_io_load_BPM(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Load an image from a MASTER_DARK
+  @param    filename    The FITS file name
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
+  @return   A float type hdrl image or NULL in error case. The returned object
+              needs to be deallocated
+ */
+/*----------------------------------------------------------------------------*/
+hdrl_image * cr2res_io_load_MASTER_DARK(
+        const char  *   filename,
+        int             detector)
+{
+    hdrl_image  *   master_dark ;
+    cpl_image   *   data ;
+    cpl_image   *   error ;
+    int             wished_ext_nb_data, wished_ext_nb_error ;
+
+    /* Check entries */
+    if (filename == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
+    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
+
+    /* The wished extension was not found */
+    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
+    
+    /* Load the images */
+    data = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_data);
+    error = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_error);
+    master_dark = hdrl_image_create(data, error) ;
+    if (data != NULL) cpl_image_delete(data) ;
+    if (error != NULL) cpl_image_delete(error) ;
+
+    /* Return  */
+    return master_dark ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Load the detlin coefficients
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @param    data        1 for the data image, 0 for the error
   @return   A float image list with the polynomial coefficients for each
               pixel of the wished detector. The returned object list
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
-cpl_imagelist * cr2res_io_load_DETLIN_COEFFS(
+hdrl_imagelist * cr2res_io_load_DETLIN_COEFFS(
         const char  *   filename,
-        int             detector,
-        int             data)
+        int             detector)
 {
-    int     wished_ext_nb ;
+    hdrl_imagelist      *   detlin_coeffs ;
+    cpl_imagelist       *   data ;
+    cpl_imagelist       *   error ;
+    int                     wished_ext_nb_data, wished_ext_nb_error ;
 
     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Get the extension number for this detector */
-    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, data) ;
+    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
+    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
 
     /* The wished extension was not found */
-    if (wished_ext_nb < 0) return NULL ;
+    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
+    
+    /* Load the images lists */
+    data = cpl_imagelist_load(filename, CPL_TYPE_FLOAT, wished_ext_nb_data);
+    error = cpl_imagelist_load(filename, CPL_TYPE_FLOAT, wished_ext_nb_error);
+    detlin_coeffs = hdrl_imagelist_create(data, error) ;
+    if (data != NULL) cpl_imagelist_delete(data) ;
+    if (error != NULL) cpl_imagelist_delete(error) ;
 
-    return cpl_imagelist_load(filename, CPL_TYPE_FLOAT, wished_ext_nb);
+    /* Return  */
+    return detlin_coeffs ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load an image from a MASTER_FLAT
+  @brief    Load an hdrl image from a MASTER_FLAT
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @param    data        1 for the data image, 0 for the error
-  @return   A float image or NULL in error case. The returned object
+  @return   A float hdrl image or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
-cpl_image * cr2res_io_load_MASTER_FLAT(
+hdrl_image * cr2res_io_load_MASTER_FLAT(
         const char  *   filename,
-        int             detector,
-        int             data)
+        int             detector)
 {
-    int     wished_ext_nb ;
+    hdrl_image  *   master_flat ;
+    cpl_image   *   data ;
+    cpl_image   *   error ;
+    int             wished_ext_nb_data, wished_ext_nb_error ;
 
     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Get the extension number for this detector */
-    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, data) ;
+    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
+    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
 
     /* The wished extension was not found */
-    if (wished_ext_nb < 0) return NULL ;
+    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
+    
+    /* Load the images */
+    data = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_data);
+    error = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_error);
+    master_flat = hdrl_image_create(data, error) ;
+    if (data != NULL) cpl_image_delete(data) ;
+    if (error != NULL) cpl_image_delete(error) ;
 
-    return cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb);
+    /* Return  */
+    return master_flat ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1576,7 +1685,7 @@ static int cr2res_io_save_imagelist(
   @brief Create a cpl_imagelist from the data/error of a hdrl_imagelist
   @param    in      the hdrl_imageḻist
   @param    data    1 -> data, 0 -> error
-  @return  the newly allocated cpl_imageelist
+  @return  the newly allocated cpl_imagelist
  */
 /*----------------------------------------------------------------------------*/
 static cpl_imagelist * cr2res_hdrl_to_cpl_list(

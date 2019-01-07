@@ -35,8 +35,8 @@
                                 Prototypes
  -----------------------------------------------------------------------------*/
 
-int cr2res_calib_chip_list(
-        cpl_imagelist       *   ilist,
+hdrl_image * cr2res_calib_image(
+        const hdrl_image    *   in,
         int                     chip,
         int                     cosmics_corr,
         const cpl_frame     *   flat,

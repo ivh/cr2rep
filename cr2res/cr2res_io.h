@@ -33,14 +33,22 @@
                                    Functions prototypes
  -----------------------------------------------------------------------------*/
 
+char * cr2res_io_create_extname(
+        int             detector,
+        int             data) ;
+
 int cr2res_io_get_ext_idx(
         const char  *   filename,
         int             detector,
         int             data) ;
 
-char * cr2res_io_create_extname(
-        int             detector,
-        int             data) ;
+hdrl_imagelist * cr2res_io_load_RAW_list(
+        const cpl_frameset  *   in,
+        int                     detector) ;
+
+hdrl_image * cr2res_io_load_RAW(
+        const char  *   in,
+        int             detector) ;
 
 cpl_table * cr2res_load_table_check(
         const char  *   in,
@@ -54,25 +62,22 @@ cpl_table * cr2res_load_table_check(
 cpl_bivector * cr2res_io_load_EMISSION_LINES(
         const char  *   filename) ;
 
-cpl_image * cr2res_io_load_MASTER_DARK(
-        const char  *   filename,
-        int             detector,
-        int             data);
-
 cpl_image * cr2res_io_load_BPM(
         const char  *   filename,
         int             detector,
         int             data) ;
 
-cpl_imagelist * cr2res_io_load_DETLIN_COEFFS(
+hdrl_image * cr2res_io_load_MASTER_DARK(
         const char  *   filename,
-        int             detector,
-        int             data) ;
+        int             detector) ;
 
-cpl_image * cr2res_io_load_MASTER_FLAT(
+hdrl_imagelist * cr2res_io_load_DETLIN_COEFFS(
         const char  *   filename,
-        int             detector,
-        int             data);
+        int             detector) ;
+
+hdrl_image * cr2res_io_load_MASTER_FLAT(
+        const char  *   filename,
+        int             detector) ;
 
 cpl_table * cr2res_io_load_TRACE_WAVE(
         const char  *   filename,
