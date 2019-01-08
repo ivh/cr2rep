@@ -996,7 +996,7 @@ int cr2res_extract_slitdec_curved(
     }
 
     /* Maximum horizontal shift in detector pixels due to slit image curv. */
-	delta_x=1;
+	delta_x=0;
 	for (i=1; i<=lenx; i+=swath/2){
 		/* Do a coarse sweep through the order and evaluate the slitcurve */
 		/* polynomials at  +- height/2, update the value. */

@@ -232,11 +232,13 @@ static void cr2res_splice_test(){
         cpl_test(cpl_bivector_get_y_data(spliced_err)[i] <= 0.1);
     }
 
-    cpl_bivector_dump(spliced_err, NULL);
+    cpl_bivector_dump(spliced, NULL);
 
     cpl_table_delete(trace_wave);
     cpl_table_delete(blaze);
     cpl_table_delete(spectra);
+    cpl_bivector_delete(spliced);
+    cpl_bivector_delete(spliced_err);
 
 }
 
@@ -249,8 +251,8 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    /* cr2res_splice_orders_test(); */
-    /* cr2res_splice_test(); */
+    cr2res_splice_orders_test();
+    cr2res_splice_test();
 
     return cpl_test_end(0);
 }
