@@ -720,10 +720,9 @@ static int cr2res_cal_flat_reduce(
     /* Collapse */
     cpl_msg_info(__func__, "Collapse the input images") ;
     cpl_msg_indent_more() ;
-
     if (hdrl_imagelist_collapse_mean(imlist, &collapsed, &contrib) !=
             CPL_ERROR_NONE) {
-        cpl_msg_error(__func__, "Failed to Calibrate and collapse") ;
+        cpl_msg_error(__func__, "Failed to Collapse") ;
         cpl_propertylist_delete(plist);
         hdrl_imagelist_delete(imlist) ;
         cpl_msg_indent_less() ;

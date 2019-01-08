@@ -83,25 +83,21 @@ cpl_table * cr2res_io_load_TRACE_WAVE(
         const char  *   filename,
         int             detector);
 
-cpl_image * cr2res_io_load_SLIT_MODEL(
+hdrl_image * cr2res_io_load_SLIT_MODEL(
         const char  *   filename,
-        int             detector,
-        int             data);
+        int             detector) ;
 
-cpl_image * cr2res_io_load_TRACE_MAP(
+hdrl_image * cr2res_io_load_TRACE_MAP(
         const char  *   filename,
-        int             detector,
-        int             data) ;
+        int             detector) ;
 
-cpl_image * cr2res_io_load_WAVE_MAP(
+hdrl_image * cr2res_io_load_WAVE_MAP(
         const char  *   filename,
-        int             detector,
-        int             data);
+        int             detector) ;
 
-cpl_image * cr2res_io_load_SLIT_CURV_MAP(
+hdrl_image * cr2res_io_load_SLIT_CURV_MAP(
         const char  *   filename,
-        int             detector,
-        int             data) ;
+        int             detector) ;
 
 cpl_table * cr2res_io_load_SLIT_CURV(
         const char  *   filename,

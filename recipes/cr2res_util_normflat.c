@@ -311,9 +311,9 @@ static int cr2res_util_normflat_reduce(
         cpl_propertylist    **  ext_plist)
 {
     const char          *   first_file ;
-    cpl_imagelist       *   imlist ;
+    hdrl_imagelist      *   imlist ;
     hdrl_image          *   collapsed ;
-    cpl_image           *   collapsed_ima ;
+    cpl_image           *   contrib ;
     cpl_propertylist    *   plist ;
     hdrl_image          *   master_flat_loc ;
     int                     i, ext_nr ;
@@ -331,7 +331,7 @@ static int cr2res_util_normflat_reduce(
     if (plist == NULL) return -1 ;
 
     /* Load the image list */
-    imlist = cpl_imagelist_load_frameset(rawframes, CPL_TYPE_FLOAT, 1, ext_nr) ;
+    imlist = cr2res_io_load_RAW_list(rawframes, reduce_det) ;
     if (imlist == NULL) {
         cpl_msg_error(__func__, "Failed to Load the images") ;
         cpl_propertylist_delete(plist);
@@ -341,31 +341,33 @@ static int cr2res_util_normflat_reduce(
     /* Collapse */
     cpl_msg_info(__func__, "Collapse the input images") ;
     cpl_msg_indent_more() ;
-    if ((collapsed_ima = cpl_imagelist_collapse_create(imlist)) == NULL) {
-        cpl_msg_error(__func__, "Failed to Calibrate and collapse") ;
+    if (hdrl_imagelist_collapse_mean(imlist, &collapsed, &contrib) !=
+            CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Failed to Collapse") ;
         cpl_propertylist_delete(plist);
-        cpl_imagelist_delete(imlist) ;
+        hdrl_imagelist_delete(imlist) ;
         cpl_msg_indent_less() ;
         return -1 ;
     }
-    cpl_imagelist_delete(imlist) ;
-
-    /* Create the HDRL collapsed */
-    collapsed = hdrl_image_create(collapsed_ima, NULL) ;
-    cpl_image_delete(collapsed_ima) ;
+    hdrl_imagelist_delete(imlist) ;
+    cpl_image_delete(contrib) ;
     cpl_msg_indent_less() ;
 
     /* Load the Model master */
-    /* TODO */
-    /* slit_model_ima = cr2res_io_load_SLIT_MODEL( */
-    const hdrl_image  * model_master = NULL ;
+    if ((slit_model = cr2res_io_load_SLIT_MODEL(slitmodel_frame,
+                    reduce_det)) == NULL) {
+        cpl_msg_error(__func__, "Cannot load the slit model") ;
+        cpl_propertylist_delete(plist);
+        hdrl_image_delete(collapsed) ;
+        return -1 ;
+    }
+    hdrl_image_delete(slit_model) ;
 
     /* Compute the Master flat */
     cpl_msg_info(__func__, "Compute the master flat") ;
     cpl_msg_indent_more() ;
     if ((master_flat_loc = cr2res_master_flat(collapsed, 
-                    model_master, -1.0, -1.0, -1.0,
-                    NULL)) == NULL) {
+                    slit_model, -1.0, -1.0, -1.0, NULL)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the Master Flat") ;
         cpl_propertylist_delete(plist);
         hdrl_image_delete(collapsed) ;

@@ -586,7 +586,7 @@ cpl_table * cr2res_io_load_TRACE_WAVE(
 {
     int                     wished_ext_nb ;
 
-    /* Check entries */
+    /* check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
@@ -601,74 +601,162 @@ cpl_table * cr2res_io_load_TRACE_WAVE(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load an image from a SLIT MODEL
+  @brief    Load an hdrl image from a SLIT MODEL
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @param    data        1 for the data image, 0 for the error
-  @return   A float image or NULL in error case. The returned object
+  @return   A float hdrl image or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
-cpl_image * cr2res_io_load_SLIT_MODEL(
+hdrl_image * cr2res_io_load_SLIT_MODEL(
         const char  *   filename,
-        int             detector,
-        int             data)
+        int             detector) 
 {
-    return NULL ;
+    hdrl_image  *   slit_model ;
+    cpl_image   *   data ;
+    cpl_image   *   error ;
+    int             wished_ext_nb_data, wished_ext_nb_error ;
+
+    /* Check entries */
+    if (filename == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
+    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
+
+    /* The wished extension was not found */
+    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
+    
+    /* Load the images */
+    data = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_data);
+    error = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_error);
+    slit_model = hdrl_image_create(data, error) ;
+    if (data != NULL) cpl_image_delete(data) ;
+    if (error != NULL) cpl_image_delete(error) ;
+
+    /* Return  */
+    return slit_model ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load an image from a TRACE_MAP
+  @brief    Load an hdrl image from a TRACE_MAP
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @param    data        1 for the data image, 0 for the error
-  @return   A float image or NULL in error case. The returned object
+  @return   A float hdrl image or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
-cpl_image * cr2res_io_load_TRACE_MAP(
+hdrl_image * cr2res_io_load_TRACE_MAP(
         const char  *   filename,
-        int             detector,
-        int             data)
+        int             detector)
 {
-    return NULL ;
+    hdrl_image  *   trace_map ;
+    cpl_image   *   data ;
+    cpl_image   *   error ;
+    int             wished_ext_nb_data, wished_ext_nb_error ;
+
+    /* Check entries */
+    if (filename == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
+    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
+
+    /* The wished extension was not found */
+    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
+    
+    /* Load the images */
+    data = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_data);
+    error = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_error);
+    trace_map = hdrl_image_create(data, error) ;
+    if (data != NULL) cpl_image_delete(data) ;
+    if (error != NULL) cpl_image_delete(error) ;
+
+    /* Return  */
+    return trace_map ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load an image from a WAVE_MAP
+  @brief    Load an hdrl image from a WAVE_MAP
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @param    data        1 for the data image, 0 for the error
-  @return   A float image or NULL in error case. The returned object
+  @return   A float hdrl image or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
-cpl_image * cr2res_io_load_WAVE_MAP(
+hdrl_image * cr2res_io_load_WAVE_MAP(
         const char  *   filename,
-        int             detector,
-        int             data)
+        int             detector)
 {
-    return NULL ;
+    hdrl_image  *   wave_map ;
+    cpl_image   *   data ;
+    cpl_image   *   error ;
+    int             wished_ext_nb_data, wished_ext_nb_error ;
+
+    /* Check entries */
+    if (filename == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
+    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
+
+    /* The wished extension was not found */
+    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
+    
+    /* Load the images */
+    data = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_data);
+    error = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_error);
+    wave_map = hdrl_image_create(data, error) ;
+    if (data != NULL) cpl_image_delete(data) ;
+    if (error != NULL) cpl_image_delete(error) ;
+
+    /* Return  */
+    return wave_map ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load an image from a SLIT_CURV_MAP
+  @brief    Load an hdrl image from a SLIT_CURV_MAP
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @param    data        1 for the data image, 0 for the error
-  @return   A float image or NULL in error case. The returned object
+  @return   A float hdrl image or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
-cpl_image * cr2res_io_load_SLIT_CURV_MAP(
+hdrl_image * cr2res_io_load_SLIT_CURV_MAP(
         const char  *   filename,
-        int             detector,
-        int             data)
+        int             detector)
 {
-    return NULL ;
+    hdrl_image  *   slit_curv_map ;
+    cpl_image   *   data ;
+    cpl_image   *   error ;
+    int             wished_ext_nb_data, wished_ext_nb_error ;
+
+    /* Check entries */
+    if (filename == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
+    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
+
+    /* The wished extension was not found */
+    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
+    
+    /* Load the images */
+    data = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_data);
+    error = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_error);
+    slit_curv_map = hdrl_image_create(data, error) ;
+    if (data != NULL) cpl_image_delete(data) ;
+    if (error != NULL) cpl_image_delete(error) ;
+
+    /* Return  */
+    return slit_curv_map ;
 }
 
 /*----------------------------------------------------------------------------*/
