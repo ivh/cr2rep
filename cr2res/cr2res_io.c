@@ -123,8 +123,8 @@ char * cr2res_io_create_extname(
 
     /* Create wished EXTNAME */
     /* If this changes, update warning message in cr2res_io_get_ext_idx() */
-    if (data)   wished_extname = cpl_sprintf("CHIP%d", detector) ;
-    else        wished_extname = cpl_sprintf("CHIP%dERR", detector) ;
+    if (data)   wished_extname = cpl_sprintf("CHIP%d.INT1", detector) ;
+    else        wished_extname = cpl_sprintf("CHIP%dERR.INT1", detector) ;
 
     return wished_extname ;
 }
