@@ -437,7 +437,6 @@ static int cr2res_util_extract(
             /* Call the Extraction */
             if (extr_method == CR2RES_EXTR_SUM) {
                 /* Call the SUM ONLY extraction */
-                // TODO: use the HDRL image and return error
                 if (cr2res_extract_sum_vert(science_hdrl, trace_table, order,
                             trace_id, extr_height, &(slit_func[i]),
                             &(spectrum[i]), &model_tmp) != 0) {
@@ -451,10 +450,10 @@ static int cr2res_util_extract(
                 }
             } else if (extr_method == CR2RES_EXTR_OPT_VERT) {
                 /* Call the vertical SLIT DECOMPOSITION */
-                if (cr2res_extract_slitdec_vert(science_hdrl, trace_table, order,
-                            trace_id, extr_height, swath_width, oversample,
-                            smooth_slit, &(slit_func[i]), &(spectrum[i]),
-                            &model_tmp) != 0) {
+                if (cr2res_extract_slitdec_vert(science_hdrl, trace_table, 
+                            order, trace_id, extr_height, swath_width, 
+                            oversample, smooth_slit, &(slit_func[i]), 
+                            &(spectrum[i]), &model_tmp) != 0) {
                     cpl_msg_error(__func__,
                             "Cannot (slitdec-vert-) extract the trace") ;
                     slit_func[i] = NULL ;
@@ -466,10 +465,10 @@ static int cr2res_util_extract(
                 }
             } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
                 /* Call the curved SLIT DECOMPOSITION */
-                if (cr2res_extract_slitdec_curved(science_hdrl, trace_table, order,
-                            trace_id, extr_height, swath_width, oversample,
-                            smooth_slit, &(slit_func[i]), &(spectrum[i]),
-                            &model_tmp) != 0) {
+                if (cr2res_extract_slitdec_curved(science_hdrl, trace_table, 
+                            order, trace_id, extr_height, swath_width, 
+                            oversample, smooth_slit, &(slit_func[i]), 
+                            &(spectrum[i]), &model_tmp) != 0) {
                     cpl_msg_error(__func__,
                             "Cannot (slitdec-curved-) extract the trace") ;
                     slit_func[i] = NULL ;
@@ -479,17 +478,13 @@ static int cr2res_util_extract(
                     cpl_msg_indent_less() ;
                     continue ;
                 }
-            } else {
-				cpl_msg_error(__func__, "Extraction method unknown. This is a"
-										"bug in parameter checking above.");
-			}
+            }
 
             /* Update the model global image */
             if (model_tmp != NULL) {
                 hdrl_image_add_image(model_master[det_nr-1], model_tmp) ;
                 hdrl_image_delete(model_tmp) ;
             }
-
             cpl_msg_indent_less() ;
         }
         hdrl_image_delete(science_hdrl) ;

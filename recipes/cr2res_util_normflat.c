@@ -313,6 +313,7 @@ static int cr2res_util_normflat_reduce(
     const char          *   first_file ;
     hdrl_imagelist      *   imlist ;
     hdrl_image          *   collapsed ;
+    hdrl_image          *   slit_model ;
     cpl_image           *   contrib ;
     cpl_propertylist    *   plist ;
     hdrl_image          *   master_flat_loc ;
@@ -354,14 +355,14 @@ static int cr2res_util_normflat_reduce(
     cpl_msg_indent_less() ;
 
     /* Load the Model master */
-    if ((slit_model = cr2res_io_load_SLIT_MODEL(slitmodel_frame,
+    if ((slit_model = cr2res_io_load_SLIT_MODEL(
+                    cpl_frame_get_filename(slitmodel_frame),
                     reduce_det)) == NULL) {
         cpl_msg_error(__func__, "Cannot load the slit model") ;
         cpl_propertylist_delete(plist);
         hdrl_image_delete(collapsed) ;
         return -1 ;
     }
-    hdrl_image_delete(slit_model) ;
 
     /* Compute the Master flat */
     cpl_msg_info(__func__, "Compute the master flat") ;
@@ -371,10 +372,12 @@ static int cr2res_util_normflat_reduce(
         cpl_msg_error(__func__, "Failed compute the Master Flat") ;
         cpl_propertylist_delete(plist);
         hdrl_image_delete(collapsed) ;
+        hdrl_image_delete(slit_model) ;
         cpl_msg_indent_less() ;
         return -1 ;
     }
     cpl_msg_indent_less() ;
+    hdrl_image_delete(slit_model) ;
     hdrl_image_delete(collapsed) ;
 
     /* Return the results */

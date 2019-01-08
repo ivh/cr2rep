@@ -280,13 +280,14 @@ static int cr2res_cal_dark(
     hdrl_imagelist      *   dark_cube ;
     cpl_mask            *   my_bpm ;
     const char          *   fname ;
-    cpl_image           *   ima_data ;
+    hdrl_image          *   ima_data ;
+    hdrl_image          *   ima_data_err ;
     cpl_image           *   ima_err ;
-    hdrl_image          *   hdrl_ima ;
+
     hdrl_image          *   master;
     cpl_image           *   contrib_map;
     char                *   filename ;
-    int                     nb_frames, i, l, ext_nr, det_nr, nb_bad ;
+    int                     nb_frames, i, l, det_nr, nb_bad ;
 
     /* RETRIEVE INPUT PARAMETERS */
     /* --detector */
@@ -393,12 +394,8 @@ static int cr2res_cal_dark(
                 cpl_msg_info(__func__, "Load Image from File %s / Detector %i", 
                         fname, det_nr) ;
 
-                /* Get Extension Number */
-                ext_nr =  cr2res_io_get_ext_idx(fname, det_nr, 1) ;
-
                 /* Load the image */
-                if ((ima_data = cpl_image_load(fname, CPL_TYPE_FLOAT, 0,
-                                ext_nr)) == NULL) {
+                if ((ima_data = cr2res_io_load_RAW(fname, det_nr)) == NULL) {
                     cpl_msg_error(__func__, 
                             "Cannot load image from File %s / Detector %d", 
                             fname, det_nr) ;
@@ -428,17 +425,18 @@ static int cr2res_cal_dark(
                     cpl_free(labels);
                     cpl_frameset_delete(raw_one) ;
                     hdrl_imagelist_delete(dark_cube) ;
-                    cpl_image_delete(ima_data); 
+                    hdrl_image_delete(ima_data); 
                     return -1 ;
                 }
 
-                /* Store Data and Error together in an hdrl image */
-                hdrl_ima = hdrl_image_create(ima_data, ima_err);
-                cpl_image_delete(ima_data);
-                cpl_image_delete(ima_err);
+                /* Set the new error image */
+                ima_data_err =
+                    hdrl_image_create(hdrl_image_get_image(ima_data), ima_err);
+                cpl_image_delete(ima_err) ;
+                hdrl_image_delete(ima_data) ;
                 
                 /* Store the hdrl image in the dark_cube */
-                hdrl_imagelist_set(dark_cube, hdrl_ima, i);
+                hdrl_imagelist_set(dark_cube, ima_data_err, i);
             }
 
             /* Get the proper collapsing function and do frames combination */
