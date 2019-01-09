@@ -175,7 +175,7 @@ int cr2res_io_get_ext_idx(
     /* EXTNAME expectation */
     if (wished_ext_nb < 0) {
         cpl_msg_warning(__func__,
-                "EXTNAME is supposed to match CHIP[1|2|3] or CHIP[1|2|3]ERR") ;
+        "EXTNAME is supposed to match CHIPn.INT1 or CHIPnERR.INT1 (n=1/2/3)") ;
     }
 
     return wished_ext_nb ;
