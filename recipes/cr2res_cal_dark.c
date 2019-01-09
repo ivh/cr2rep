@@ -413,7 +413,8 @@ static int cr2res_cal_dark(
                 /* Create the noise image */
                 cpl_msg_info(__func__, "Create the associated Noise image");
                 ron = 0.0 ;
-                if (cr2res_detector_shotnoise_model(ima_data, gain, ron,
+                if (cr2res_detector_shotnoise_model(
+                            hdrl_image_get_image(ima_data), gain, ron,
                             &ima_err) != CPL_ERROR_NONE) {
                     cpl_free(labels);
                     cpl_msg_error(__func__, "Cannot create the Noise image") ;
