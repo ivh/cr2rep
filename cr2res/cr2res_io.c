@@ -195,6 +195,8 @@ int cr2res_io_get_ext_idx(
     The returned hdrl image list contains the list of all data images
     for a given detector from a list of input RAW files.
     The HDRL image error is empty.
+  This function load RAW files (where the error is missing), but also
+  any file with image extensions and the proper EXTNAME convention
  */
 /*----------------------------------------------------------------------------*/
 hdrl_imagelist * cr2res_io_load_RAW_list(
@@ -204,7 +206,8 @@ hdrl_imagelist * cr2res_io_load_RAW_list(
     const char      *   first_file ;
     hdrl_imagelist  *   out ;
     cpl_imagelist   *   data ;
-    int                 ext_nr ;
+    cpl_imagelist   *   err ;
+    int                 ext_nr_data, ext_nr_err ;
 
     /* Check entries */
     if (in == NULL) return NULL ;
@@ -213,15 +216,18 @@ hdrl_imagelist * cr2res_io_load_RAW_list(
 
     /* Get the extension number for this detector */
     first_file = cpl_frame_get_filename(cpl_frameset_get_position_const(in,0)) ;
-    ext_nr = cr2res_io_get_ext_idx(first_file, detector, 1) ;
+    ext_nr_data = cr2res_io_get_ext_idx(first_file, detector, 1) ;
+    ext_nr_err = cr2res_io_get_ext_idx(first_file, detector, 0) ;
 
     /* The wished extension was not found */
-    if (ext_nr < 0) return NULL ;
+    if (ext_nr_data < 0) return NULL ;
     
     /* Load the image list */
-    data = cpl_imagelist_load_frameset(in, CPL_TYPE_FLOAT, 1, ext_nr) ;
-    out = hdrl_imagelist_create(data, NULL) ;
+    data = cpl_imagelist_load_frameset(in, CPL_TYPE_FLOAT, 1, ext_nr_data) ;
+    err = cpl_imagelist_load_frameset(in, CPL_TYPE_FLOAT, 1, ext_nr_err) ;
+    out = hdrl_imagelist_create(data, err) ;
     if (data != NULL) cpl_imagelist_delete(data) ;
+    if (err != NULL) cpl_imagelist_delete(err) ;
 
     /* Return  */
     return out ;
@@ -234,6 +240,8 @@ hdrl_imagelist * cr2res_io_load_RAW_list(
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A float hdrl image or NULL in error case. 
             The returned object needs to be deallocated
+  This function load RAW files (where the error is missing), but also
+  any file with image extensions and the proper EXTNAME convention
  */
 /*----------------------------------------------------------------------------*/
 hdrl_image * cr2res_io_load_RAW(
@@ -243,22 +251,26 @@ hdrl_image * cr2res_io_load_RAW(
     const char      *   first_file ;
     hdrl_image      *   out ;
     cpl_image       *   data ;
-    int                 ext_nr ;
+    cpl_image       *   err ;
+    int                 ext_nr_data, ext_nr_err ;
 
     /* Check entries */
     if (in == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Get the extension number for this detector */
-    ext_nr = cr2res_io_get_ext_idx(in, detector, 1) ;
+    /* Get the extension numbers for this detector */
+    ext_nr_data = cr2res_io_get_ext_idx(in, detector, 1) ;
+    ext_nr_err = cr2res_io_get_ext_idx(in, detector, 0) ;
 
     /* The wished extension was not found */
-    if (ext_nr < 0) return NULL ;
+    if (ext_nr_data < 0) return NULL ;
     
     /* Load the image */
-    data = cpl_image_load(in, CPL_TYPE_FLOAT, 0, ext_nr) ;
-    out = hdrl_image_create(data, NULL) ;
+    data = cpl_image_load(in, CPL_TYPE_FLOAT, 0, ext_nr_data) ;
+    err = cpl_image_load(in, CPL_TYPE_FLOAT, 0, ext_nr_err) ;
+    out = hdrl_image_create(data, err) ;
     if (data != NULL) cpl_image_delete(data) ;
+    if (err != NULL) cpl_image_delete(err) ;
 
     /* Return  */
     return out ;

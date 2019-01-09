@@ -246,7 +246,7 @@ static int cr2res_util_trace(
     double                  smooth ;
     const char          *   flat_file ;
     char                *   out_file;
-    cpl_image           *   flat_ima ;
+    hdrl_image          *   flat_ima ;
     cpl_image           *   debug_ima ;
     int                     det_nr ;
     cpl_table           *   traces[CR2RES_NB_DETECTORS] ;
@@ -309,10 +309,8 @@ static int cr2res_util_trace(
 
         /* Load the image in which the orders are to extract*/
         cpl_msg_info(__func__, "Load the Image") ;
-        if ((flat_ima = cpl_image_load(flat_file, CPL_TYPE_FLOAT, 0, 
-                        cr2res_io_get_ext_idx(flat_file, det_nr, 1))) == NULL) {
-            cpl_msg_warning(__func__,
-                    "Cannot load the image - skip detector");
+        if ((flat_ima = cr2res_io_load_RAW(flat_file, det_nr)) == NULL) {
+            cpl_msg_warning(__func__, "Cannot load the image - skip detector");
             cpl_error_reset() ;
             cpl_msg_indent_less() ;
             continue ;
@@ -321,12 +319,11 @@ static int cr2res_util_trace(
         /* Get the traces */
         cpl_msg_info(__func__, "Compute the traces") ;
         cpl_msg_indent_more() ;
-        if ((traces[det_nr-1] = cr2res_trace(flat_ima, smooth, opening, degree,
-                        min_cluster)) == NULL) {
-            cpl_msg_warning(__func__,
-                    "Cannot compute the trace - skip detector");
+        if ((traces[det_nr-1] = cr2res_trace(hdrl_image_get_image(flat_ima), 
+                        smooth, opening, degree, min_cluster)) == NULL) {
+            cpl_msg_warning(__func__, "Cannot compute trace - skip detector");
             cpl_error_reset() ;
-            cpl_image_delete(flat_ima) ;
+            hdrl_image_delete(flat_ima) ;
             cpl_msg_indent_less() ;
             cpl_msg_indent_less() ;
             continue ;
@@ -339,7 +336,7 @@ static int cr2res_util_trace(
             cpl_msg_warning(__func__, 
                     "Cannot complete the trace table - skip detector");
             cpl_error_reset() ;
-            cpl_image_delete(flat_ima) ;
+            hdrl_image_delete(flat_ima) ;
             cpl_table_delete(traces[det_nr-1]) ;
             traces[det_nr-1] = NULL ;
             cpl_msg_indent_less() ;
@@ -357,13 +354,13 @@ static int cr2res_util_trace(
         /* Debug Image */
         if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
             debug_ima = cr2res_trace_gen_image(traces[det_nr-1],
-                    cpl_image_get_size_x(flat_ima),
-                    cpl_image_get_size_y(flat_ima)) ;
+                    hdrl_image_get_size_x(flat_ima),
+                    hdrl_image_get_size_y(flat_ima)) ;
             cpl_image_save(debug_ima, "debug_trace_image.fits",
                     CPL_BPP_IEEE_FLOAT, NULL, CPL_IO_CREATE) ;
             cpl_image_delete(debug_ima) ;
         }
-        cpl_image_delete(flat_ima) ;
+        hdrl_image_delete(flat_ima) ;
         cpl_msg_indent_less() ;
     }
 

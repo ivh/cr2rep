@@ -272,14 +272,12 @@ static int cr2res_util_extract(
     cpl_table           *   extract_tab[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_table ;
-    cpl_image           *   science_ima ;
-    cpl_image           *   science_err ;
-    cpl_bivector          **  spectrum ;
+    cpl_bivector        **  spectrum ;
     cpl_vector          **  slit_func ;
     hdrl_image          *   model_tmp ;
     hdrl_image          *   science_hdrl;
     int                     det_nr, ext_nr, extr_height, nb_traces, trace_id,
-                            order, i, ext_nr_err;
+                            order, i ;
     cr2res_extr_method      extr_method;
 
     /* RETRIEVE INPUT PARAMETERS */
@@ -347,12 +345,9 @@ static int cr2res_util_extract(
         extract_tab[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
 
-        /* Get Extension Numbers */
+        /* Store the extenѕion header for product saving */
         ext_nr = cr2res_io_get_ext_idx(science_file, det_nr, 1) ;
         if (ext_nr < 0) continue ;
-        ext_nr_err = cr2res_io_get_ext_idx(science_file, det_nr, 0) ;
-
-        /* Store the extenѕion header for product saving */
         ext_plist[det_nr-1] = cpl_propertylist_load(science_file, ext_nr) ;
 
         /* Compute only one detector */
@@ -377,8 +372,7 @@ static int cr2res_util_extract(
         cpl_msg_info(__func__, "Load the Image") ;
 
         /* Load the image */
-        if ((science_ima = cpl_image_load(science_file, CPL_TYPE_FLOAT,
-                        0, ext_nr)) == NULL) {
+        if ((science_hdrl = cr2res_io_load_RAW(science_file, det_nr)) == NULL) {
             cpl_table_delete(trace_table) ;
             cpl_msg_error(__func__, "Failed to load the image - skip detector");
             cpl_error_reset() ;
@@ -386,33 +380,11 @@ static int cr2res_util_extract(
             continue ;
         }
 
-        /* Load the corresponding errors */
-        if (ext_nr_err > 0) {
-            cpl_msg_info(__func__, "Load the Errors") ;
-
-            /* Load the image */
-            if ((science_err = cpl_image_load(science_file, CPL_TYPE_FLOAT,
-                            0, ext_nr_err)) == NULL) {
-                cpl_table_delete(trace_table) ;
-                cpl_image_delete(science_ima);
-                cpl_msg_error(__func__, 
-                        "Failed to load the error - skip detector");
-                cpl_error_reset() ;
-                cpl_msg_indent_less() ;
-                continue ;
-            }
-            science_hdrl = hdrl_image_create(science_ima, science_err);
-            cpl_image_delete(science_err);
-        } else {
-            science_hdrl = hdrl_image_create(science_ima, NULL);
-        }
-
         /* Allocate Data containers */
         spectrum = cpl_malloc(nb_traces * sizeof(cpl_bivector *)) ;
         slit_func = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
-        model_master[det_nr-1] = hdrl_image_create(science_ima, NULL) ;
+        model_master[det_nr-1] = hdrl_image_duplicate(science_hdrl) ;
         hdrl_image_mul_scalar(model_master[det_nr-1], (hdrl_value){0.0, 0.0}) ;
-        cpl_image_delete(science_ima);
 
         /* Loop over the traces and extract them */
         for (i=0 ; i<nb_traces ; i++) {
