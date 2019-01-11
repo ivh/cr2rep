@@ -182,9 +182,11 @@ int cr2res_io_get_ext_idx(
 
     /* EXTNAME expectation */
     if (wished_ext_nb < 0) {
-        cpl_msg_warning(__func__,
+        /* Warning only for data - error are sometimeѕ optional */
+        if (data == 1)
+            cpl_msg_warning(__func__,
         "EXTNAME is supposed to match CHIPn.INT1 or CHIPnERR.INT1 (n=1/2/3)") ;
-    }
+    } 
 
     return wished_ext_nb ;
 }
@@ -226,7 +228,10 @@ hdrl_image * cr2res_io_load_image(
     
     /* Load the image */
     data = cpl_image_load(in, CPL_TYPE_FLOAT, 0, ext_nr_data) ;
-    err = cpl_image_load(in, CPL_TYPE_FLOAT, 0, ext_nr_err) ;
+    if (ext_nr_err >= 0) 
+        err = cpl_image_load(in, CPL_TYPE_FLOAT, 0, ext_nr_err) ;
+    else    
+        err = NULL ;
     out = hdrl_image_create(data, err) ;
     if (data != NULL) cpl_image_delete(data) ;
     if (err != NULL) cpl_image_delete(err) ;
@@ -268,7 +273,10 @@ hdrl_imagelist * cr2res_io_load_image_list(
     
     /* Load the image list */
     data = cpl_imagelist_load(in, CPL_TYPE_FLOAT, wished_ext_nb_data);
-    error = cpl_imagelist_load(in, CPL_TYPE_FLOAT, wished_ext_nb_error);
+    if (wished_ext_nb_error >= 0) 
+        error = cpl_imagelist_load(in, CPL_TYPE_FLOAT, wished_ext_nb_error);
+    else 
+        error = NULL ;
     out = hdrl_imagelist_create(data, error) ;
     if (data != NULL) cpl_imagelist_delete(data) ;
     if (error != NULL) cpl_imagelist_delete(error) ;
@@ -315,7 +323,10 @@ hdrl_imagelist * cr2res_io_load_image_list_from_set(
     
     /* Load the image list */
     data = cpl_imagelist_load_frameset(in, CPL_TYPE_FLOAT, 1, ext_nr_data) ;
-    err = cpl_imagelist_load_frameset(in, CPL_TYPE_FLOAT, 1, ext_nr_err) ;
+    if (ext_nr_err >= 0) 
+        err = cpl_imagelist_load_frameset(in, CPL_TYPE_FLOAT, 1, ext_nr_err) ;
+    else 
+        err = NULL ;
     out = hdrl_imagelist_create(data, err) ;
     if (data != NULL) cpl_imagelist_delete(data) ;
     if (err != NULL) cpl_imagelist_delete(err) ;
@@ -430,25 +441,15 @@ cpl_image * cr2res_io_load_BPM(
         int             detector,
         int             data)
 {
-    cpl_propertylist    *   plist ;
     int                     wished_ext_nb ;
-    const char          *   protype ;
-    const char          *   expected_protype = CR2RES_BPM_PROTYPE ;
 
     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Check the PRO.TYPE */
-    plist = cpl_propertylist_load(filename, 0) ;
-    protype = cr2res_pfits_get_protype(plist) ;
-    if (strcmp(protype, expected_protype)) {
-        cpl_msg_error(__func__, "Unexpected PRO.TYPE: %s != %s",
-                protype, expected_protype) ;
-        cpl_propertylist_delete(plist) ;
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_BPM_PROTYPE))
         return NULL ;
-    }
-    cpl_propertylist_delete(plist) ;
 
     /* Get the extension number for this detector */
     wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, data) ;
@@ -472,25 +473,15 @@ hdrl_image * cr2res_io_load_MASTER_DARK(
         const char  *   filename,
         int             detector)
 {
-    cpl_propertylist    *   plist ;
-    const char          *   protype ;
-    const char          *   expected_protype = CR2RES_MASTER_DARK_PROTYPE ;
     hdrl_image          *   master_dark ;
 
     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Check the PRO.TYPE */
-    plist = cpl_propertylist_load(filename, 0) ;
-    protype = cr2res_pfits_get_protype(plist) ;
-    if (strcmp(protype, expected_protype)) {
-        cpl_msg_error(__func__, "Unexpected PRO.TYPE: %s != %s",
-                protype, expected_protype) ;
-        cpl_propertylist_delete(plist) ;
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_MASTER_DARK_PROTYPE))
         return NULL ;
-    }
-    cpl_propertylist_delete(plist) ;
 
     /* Load */
     master_dark = cr2res_io_load_image(filename, detector) ;
