@@ -93,6 +93,7 @@ static int cr2res_io_save_one_table(
         cpl_table               *   tab,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        *   ext_plist,
+        const char              *   extname,
         const char              *   recipe,
         const char              *   procatg,
         const char              *   protype) ;
@@ -126,13 +127,8 @@ char * cr2res_io_create_extname(
 
     /* Create wished EXTNAME */
     /* If this changes, update warning message in cr2res_io_get_ext_idx() */
-    /* TODO - SHOULD BE : */
     if (data)   wished_extname = cpl_sprintf("CHIP%d.INT1", detector) ;
     else        wished_extname = cpl_sprintf("CHIP%dERR.INT1", detector) ;
-    /* TODO : 
-    if (data)   wished_extname = cpl_sprintf("CHIP%d", detector) ;
-    else        wished_extname = cpl_sprintf("CHIP%dERR", detector) ;
-    */
 
     return wished_extname ;
 }
@@ -486,7 +482,12 @@ hdrl_image * cr2res_io_load_MASTER_DARK(
     /* Load */
     master_dark = cr2res_io_load_image(filename, detector) ;
 
-    /* TODO - return NULL if data or error is missing */
+    /* Error must exist */
+    if (hdrl_image_get_error(master_dark) == NULL) {
+        cpl_msg_error(__func__, "The error is missing") ;
+        hdrl_image_delete(master_dark) ;
+        return NULL ;
+    }
 
     /* Return  */
     return master_dark ;
@@ -519,7 +520,7 @@ hdrl_imagelist * cr2res_io_load_DETLIN_COEFFS(
     /* Load */
     detlin_coeffs = cr2res_io_load_image_list(filename, detector) ;
 
-    /* TODO - return NULL if data or error is missing */
+    /* TODO - Error must exist */
 
     /* Return  */
     return detlin_coeffs ;
@@ -551,7 +552,12 @@ hdrl_image * cr2res_io_load_MASTER_FLAT(
     /* Load */
     master_flat = cr2res_io_load_image(filename, detector) ;
 
-    /* TODO - return NULL if data or error is missing */
+    /* Error must exist */
+    if (hdrl_image_get_error(master_flat) == NULL) {
+        cpl_msg_error(__func__, "The error is missing") ;
+        hdrl_image_delete(master_flat) ;
+        return NULL ;
+    }
 
     /* Return  */
     return master_flat ;
@@ -613,7 +619,12 @@ hdrl_image * cr2res_io_load_SLIT_MODEL(
     /* Load */
     slit_model = cr2res_io_load_image(filename, detector) ;
 
-    /* TODO - return NULL if data or error is missing */
+    /* Error must exist */
+    if (hdrl_image_get_error(slit_model) == NULL) {
+        cpl_msg_error(__func__, "The error is missing") ;
+        hdrl_image_delete(slit_model) ;
+        return NULL ;
+    }
 
     /* Return  */
     return slit_model ;
@@ -1316,8 +1327,9 @@ int cr2res_io_save_SPLICED_1D(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_one_table(filename, allframes, inframes, parlist, spliced_1d,
-            qc_list, ext_plist, recipe, procatg, CR2RES_SPLICED_1D_PROTYPE) ;
+    return cr2res_io_save_one_table(filename, allframes, inframes, parlist, 
+            spliced_1d, qc_list, ext_plist, "SPLICED", recipe, procatg, 
+            CR2RES_SPLICED_1D_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1486,6 +1498,7 @@ static int cr2res_io_save_table(
   @param    qc_list     The QC parameters
   @param    ext_plist   The extensions property list
   @param    recipe      The recipe name
+  @param    extname     The extension name
   @param    procatg     PRO.CATG
   @param    protype     PRO.TYPE
   @return   0 if ok, -1 in error case
@@ -1499,6 +1512,7 @@ static int cr2res_io_save_one_table(
         cpl_table               *   tab,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        *   ext_plist,
+        const char              *   extname,
         const char              *   recipe,
         const char              *   procatg,
         const char              *   protype)
@@ -1508,7 +1522,8 @@ static int cr2res_io_save_one_table(
     int                     i ;
 
     /* Test entries */
-    if (allframes == NULL || filename == NULL || ext_plist == NULL) return -1 ;
+    if (allframes == NULL || filename == NULL || ext_plist == NULL ||
+            extname == NULL) return -1 ;
 
     /* Add the PRO keys */
     if (qc_list != NULL) pro_list = cpl_propertylist_duplicate(qc_list) ;
@@ -1521,7 +1536,7 @@ static int cr2res_io_save_one_table(
     /* Create the first extension header */
 	ext_head = cpl_propertylist_duplicate(ext_plist);
 	cpl_propertylist_erase(ext_head, "EXTNAME");
-    cpl_propertylist_update_string(ext_head, "EXTNAME", "TODO") ;
+    cpl_propertylist_update_string(ext_head, "EXTNAME", extname) ;
 
     /* Save the first extension */
 	if (cpl_dfs_save_table(allframes, NULL, parlist, inframes, NULL,
