@@ -293,7 +293,7 @@ static int cr2res_util_calib(
             cpl_propertylist_delete(plist) ;
 
             /* Load the image to calibrate */
-            cur_ima = cr2res_io_load_RAW(cur_fname, det_nr) ;
+            cur_ima = cr2res_io_load_image(cur_fname, det_nr) ;
 
             /* Call the reduction function */
             if ((calibrated[det_nr-1] = cr2res_calib_image(cur_ima, det_nr, 

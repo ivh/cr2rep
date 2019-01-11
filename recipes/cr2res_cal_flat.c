@@ -685,7 +685,7 @@ static int cr2res_cal_flat_reduce(
     if (plist == NULL) return -1 ;
 
     /* Load the image list */
-    imlist = cr2res_io_load_RAW_list(rawframes, reduce_det) ;
+    imlist = cr2res_io_load_image_list_from_set(rawframes, reduce_det) ;
     if (imlist == NULL) {
         cpl_msg_error(__func__, "Failed to Load the images") ;
         cpl_propertylist_delete(plist);

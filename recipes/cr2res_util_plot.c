@@ -252,22 +252,15 @@ static int cr2res_util_plot(
 {
     const cpl_parameter *   param;
     int                     pmin, pmax, reduce_det, reduce_trace,
-                            reduce_order, adjust, ext_nr;
+                            reduce_order, adjust ;
     const char          *   fname ;
     const char          *   fname_opt ;
-
     const char          *   title ;
-    const char          *   sval ;
+    const char          *   procatg ;
+    const char          *   protype ;
     cpl_propertylist    *   plist ;
     cpl_table           *   tab ;
     cpl_table           *   tab_opt ;
-    cpl_array           *   wave ;
-    cpl_array           *   flux ;
-    cpl_vector          *   wave_vec ;
-    cpl_vector          *   flux_vec ;
-    cpl_bivector        *   flux_biv ;
-    const char          *   wave_col ;
-    int                     i ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -306,53 +299,48 @@ static int cr2res_util_plot(
         fname_opt = NULL ;
     }
 
+    /* Load the table */
+    tab = cr2res_load_table(fname, reduce_det, pmin, pmax) ;
+    tab_opt = cr2res_load_table(fname_opt, reduce_det, pmin, pmax) ;
+    if (tab == NULL) {
+        cpl_msg_error(__func__, "Cannot load the first input table") ;
+        return -1 ;
+    }
+
+    /* Read the PRO.TYPE */
+    plist = cpl_propertylist_load(fname, 0) ;
+    protype = cr2res_pfits_get_protype(plist) ;
+
     /* CR2RES_PROTYPE_CATALOG */
-    tab = cr2res_load_table_check(fname, 1, -1, -1, CR2RES_PROTYPE_CATALOG, 
-            pmin, pmax) ;
-    if (tab != NULL) {
-        plist = cpl_propertylist_load(fname, 0) ;
-        sval = cr2res_pfits_get_procatg(plist) ;
+    if (!strcmp(protype, CR2RES_PROTYPE_CATALOG)) {
         /* CR2RES_EMISSION_LINES_PROCATG */
-        if (!strcmp(sval, CR2RES_EMISSION_LINES_PROCATG))
+        if (!strcmp(procatg, CR2RES_EMISSION_LINES_PROCATG))
             title = "t 'Emission lines' w lines" ;
         /* Default */
         else        
             title = "t 'signal' w lines" ;
-        cpl_propertylist_delete(plist) ;
 
         /* Plot */
         cpl_plot_column(
                 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Emission';",
                 title, "", tab, CR2RES_COL_WAVELENGTH, CR2RES_COL_EMISSION) ;
-        cpl_table_delete(tab) ;
     }
  
     /* CR2RES_EXTRACT_1D_PROTYPE */
-
-    /* Get the extension number */
-    ext_nr = cr2res_io_get_ext_idx(fname, reduce_det, 1) ;
-    tab = cr2res_load_table_check(fname, ext_nr, reduce_order, reduce_trace,
-            CR2RES_EXTRACT_1D_PROTYPE, pmin, pmax) ;
-    if (fname_opt != NULL) {
-        ext_nr = cr2res_io_get_ext_idx(fname_opt, reduce_det, 1) ;
-        tab_opt = cr2res_load_table_check(fname_opt, ext_nr, reduce_order, 
-                reduce_trace, CR2RES_EXTRACT_1D_PROTYPE, pmin, pmax) ;
-    } else {
-        tab_opt = NULL ;
-    }
-    if (tab != NULL) {
+    if (!strcmp(protype, CR2RES_EXTRACT_1D_PROTYPE)) {
         cr2res_util_plot_spec_1d(tab, tab_opt, adjust, reduce_order, 
                 reduce_trace) ;
-        cpl_table_delete(tab) ;
-        if (tab_opt != NULL) cpl_table_delete(tab_opt) ;
     }
 
    /* CR2RES_PROTYPE_XCORR */
-    tab = cr2res_load_table_check(fname, reduce_det, -1, -1, 
-            CR2RES_PROTYPE_XCORR, pmin, pmax) ;
-    if (tab != NULL) {
+    if (!strcmp(protype, CR2RES_PROTYPE_XCORR)) {
         irplib_wlxcorr_plot_spc_table(tab, "", 1, 5) ;
     }
+
+    /* Delete */
+    cpl_table_delete(tab) ;
+    if (tab_opt != NULL) cpl_table_delete(tab_opt) ;
+    cpl_propertylist_delete(plist) ;
 
     /* Return */
     if (cpl_error_get_code()) 

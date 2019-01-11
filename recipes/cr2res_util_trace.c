@@ -309,7 +309,7 @@ static int cr2res_util_trace(
 
         /* Load the image in which the orders are to extract*/
         cpl_msg_info(__func__, "Load the Image") ;
-        if ((flat_ima = cr2res_io_load_RAW(flat_file, det_nr)) == NULL) {
+        if ((flat_ima = cr2res_io_load_image(flat_file, det_nr)) == NULL) {
             cpl_msg_warning(__func__, "Cannot load the image - skip detector");
             cpl_error_reset() ;
             cpl_msg_indent_less() ;

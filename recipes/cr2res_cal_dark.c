@@ -395,7 +395,7 @@ static int cr2res_cal_dark(
                         fname, det_nr) ;
 
                 /* Load the image */
-                if ((ima_data = cr2res_io_load_RAW(fname, det_nr)) == NULL) {
+                if ((ima_data = cr2res_io_load_image(fname, det_nr)) == NULL) {
                     cpl_msg_error(__func__, 
                             "Cannot load image from File %s / Detector %d", 
                             fname, det_nr) ;

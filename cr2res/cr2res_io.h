@@ -42,20 +42,21 @@ int cr2res_io_get_ext_idx(
         int             detector,
         int             data) ;
 
-hdrl_imagelist * cr2res_io_load_RAW_list(
-        const cpl_frameset  *   in,
-        int                     detector) ;
-
-hdrl_image * cr2res_io_load_RAW(
+hdrl_image * cr2res_io_load_image(
         const char  *   in,
         int             detector) ;
 
-cpl_table * cr2res_load_table_check(
+hdrl_imagelist * cr2res_io_load_image_list(
         const char  *   in,
-        int             extnum,
-        int             order,
-        int             trace,
-        const char  *   protype,
+        int             detector) ;
+
+hdrl_imagelist * cr2res_io_load_image_list_from_set(
+        const cpl_frameset  *   in,
+        int                     detector) ;
+
+cpl_table * cr2res_load_table(
+        const char  *   in,
+        int             det_nr,
         int             pmin,
         int             pmax) ;
 
@@ -112,9 +113,6 @@ cpl_table * cr2res_io_load_SPLICED_1D(
         int             detector);
 
 cpl_table * cr2res_io_load_EXTRACT_2D(
-        const char  *   filename);
-
-cpl_table * cr2res_io_load_EXTRACT_POL(
         const char  *   filename,
         int             detector);
 

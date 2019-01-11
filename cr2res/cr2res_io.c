@@ -40,6 +40,9 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_io_check_pro_type(
+        const char  *   filename,
+        const char  *   expected_protype) ;
 static cpl_imagelist * cr2res_hdrl_to_cpl_list(
         const hdrl_imagelist    *   in, 
         int                         data) ;
@@ -123,8 +126,12 @@ char * cr2res_io_create_extname(
 
     /* Create wished EXTNAME */
     /* If this changes, update warning message in cr2res_io_get_ext_idx() */
+    /* TODO - SHOULD BE : 
     if (data)   wished_extname = cpl_sprintf("CHIP%d.INT1", detector) ;
     else        wished_extname = cpl_sprintf("CHIP%dERR.INT1", detector) ;
+    */
+    if (data)   wished_extname = cpl_sprintf("CHIP%d", detector) ;
+    else        wished_extname = cpl_sprintf("CHIP%dERR", detector) ;
 
     return wished_extname ;
 }
@@ -187,19 +194,102 @@ int cr2res_io_get_ext_idx(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load an hdrl image list from a RAW frameset
+  @brief    Load an hdrl image from a image file
+  @param    fname       The input file name
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
+  @return   A float hdrl image or NULL in error case. 
+            The returned object needs to be deallocated
+  This function load imageѕ files (also where the error is missing)
+  with the proper EXTNAME convention
+ */
+/*----------------------------------------------------------------------------*/
+hdrl_image * cr2res_io_load_image(
+        const char  *   in,
+        int             detector)
+{
+    hdrl_image      *   out ;
+    cpl_image       *   data ;
+    cpl_image       *   err ;
+    int                 ext_nr_data, ext_nr_err ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension numbers for this detector */
+    ext_nr_data = cr2res_io_get_ext_idx(in, detector, 1) ;
+    ext_nr_err = cr2res_io_get_ext_idx(in, detector, 0) ;
+
+    /* The wished extension was not found */
+    if (ext_nr_data < 0) return NULL ;
+    
+    /* Load the image */
+    data = cpl_image_load(in, CPL_TYPE_FLOAT, 0, ext_nr_data) ;
+    err = cpl_image_load(in, CPL_TYPE_FLOAT, 0, ext_nr_err) ;
+    out = hdrl_image_create(data, err) ;
+    if (data != NULL) cpl_image_delete(data) ;
+    if (err != NULL) cpl_image_delete(err) ;
+
+    /* Return  */
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Load an hdrl image list from a cube file
+  @param    fname       The input file name
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
+  @return   A float hdrl image list or NULL in error case. 
+            The returned object needs to be deallocated
+  This function loads image list from a cube (also where the error is missing)
+  with the proper EXTNAME convention
+ */
+/*----------------------------------------------------------------------------*/
+hdrl_imagelist * cr2res_io_load_image_list(
+        const char  *   in,
+        int             detector)
+{
+    hdrl_imagelist  *   out ;
+    cpl_imagelist   *   data ;
+    cpl_imagelist   *   error ;
+    int                 wished_ext_nb_data, wished_ext_nb_error ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Get the extension number for this detector */
+    wished_ext_nb_data = cr2res_io_get_ext_idx(in, detector, 1) ;
+    wished_ext_nb_error = cr2res_io_get_ext_idx(in, detector, 0) ;
+
+    /* The wished extension was not found */
+    if (wished_ext_nb_data < 0) return NULL ;
+    
+    /* Load the image list */
+    data = cpl_imagelist_load(in, CPL_TYPE_FLOAT, wished_ext_nb_data);
+    error = cpl_imagelist_load(in, CPL_TYPE_FLOAT, wished_ext_nb_error);
+    out = hdrl_imagelist_create(data, error) ;
+    if (data != NULL) cpl_imagelist_delete(data) ;
+    if (error != NULL) cpl_imagelist_delete(error) ;
+
+    /* Return  */
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Load an hdrl image list from an images frameset
   @param    fset        The input frame set
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A float hdrl imagelist or NULL in error case. The returned object
               needs to be deallocated
-    The returned hdrl image list contains the list of all data images
-    for a given detector from a list of input RAW files.
-    The HDRL image error is empty.
-  This function load RAW files (where the error is missing), but also
-  any file with image extensions and the proper EXTNAME convention
+  The returned hdrl image list contains the list of all data images
+  for a given detector from a list of input image frames
+  This function load imageѕ files (also where the error is missing)
+  with the proper EXTNAME convention
  */
 /*----------------------------------------------------------------------------*/
-hdrl_imagelist * cr2res_io_load_RAW_list(
+hdrl_imagelist * cr2res_io_load_image_list_from_set(
         const cpl_frameset  *   in,
         int                     detector)
 {
@@ -235,146 +325,34 @@ hdrl_imagelist * cr2res_io_load_RAW_list(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load an hdrl image from a RAW file
-  @param    fname       The input file name
-  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A float hdrl image or NULL in error case. 
-            The returned object needs to be deallocated
-  This function load RAW files (where the error is missing), but also
-  any file with image extensions and the proper EXTNAME convention
- */
-/*----------------------------------------------------------------------------*/
-hdrl_image * cr2res_io_load_RAW(
-        const char  *   in,
-        int             detector)
-{
-    const char      *   first_file ;
-    hdrl_image      *   out ;
-    cpl_image       *   data ;
-    cpl_image       *   err ;
-    int                 ext_nr_data, ext_nr_err ;
-
-    /* Check entries */
-    if (in == NULL) return NULL ;
-    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
-
-    /* Get the extension numbers for this detector */
-    ext_nr_data = cr2res_io_get_ext_idx(in, detector, 1) ;
-    ext_nr_err = cr2res_io_get_ext_idx(in, detector, 0) ;
-
-    /* The wished extension was not found */
-    if (ext_nr_data < 0) return NULL ;
-    
-    /* Load the image */
-    data = cpl_image_load(in, CPL_TYPE_FLOAT, 0, ext_nr_data) ;
-    err = cpl_image_load(in, CPL_TYPE_FLOAT, 0, ext_nr_err) ;
-    out = hdrl_image_create(data, err) ;
-    if (data != NULL) cpl_image_delete(data) ;
-    if (err != NULL) cpl_image_delete(err) ;
-
-    /* Return  */
-    return out ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Read the PRO.TYPE and load the table accordingly
+  @brief    Load the table accordingly
   @param    in          the input file
-  @param    extnum      the detector
-  @param    order       only when relevant
-  @param    trace       only when relevant
-  @param    protype     the expected pro.type
+  @param    det_nr      the detector number
   @param    pmin        the first pixel to load (-1 if all)
   @param    pmax        the last pixel to load (-1 if all)
-  @return   the loaded table or NULL if not the proper one.
-  
-  The function checks the PRO TYPE, and that the expected columns are there
+  @return   the loaded table or NULL in error case
  */
 /*----------------------------------------------------------------------------*/
-cpl_table * cr2res_load_table_check(
+cpl_table * cr2res_load_table(
         const char  *   in,
-        int             extnum,
-        int             order,
-        int             trace,
-        const char  *   protype,
+        int             det_nr,
         int             pmin,
         int             pmax)
 {
-    cpl_table           *   out ;
-    cpl_table           *   out_tmp ;
-    cpl_propertylist    *   plist ;
-    const char          *   sval ;
-    char                *   checked_col ;
-    int                     nok ;
+    cpl_table   *   out ;
+    cpl_table   *   out_tmp ;
+    int             ext_nr ;
 
     /* Check entries */
     if (in == NULL) return NULL ;
-    if (protype == NULL) return NULL ;
-    if (extnum < 1 || extnum > CR2RES_NB_DETECTORS) return NULL ;
+    if (det_nr < 1 || det_nr > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Check that the file contains the proper PRO.TYPE */
-    if ((plist=cpl_propertylist_load(in, 0)) == NULL) {
-        cpl_msg_error(__func__, "getting header from file %s", in);
-        return NULL ;
-    }
-    if ((sval = cr2res_pfits_get_protype(plist)) == NULL) {
-        cpl_msg_error(__func__, "No PRO.TYPE in file %s", in);
-        cpl_propertylist_delete(plist) ;
-        return NULL ;
-    }
-    if (strcmp(sval, protype)) {
-        cpl_propertylist_delete(plist) ;
-        return NULL ;
-    }
-    cpl_propertylist_delete(plist) ;
-    
+    /* Get the extension number for this detector */
+    ext_nr = cr2res_io_get_ext_idx(in, det_nr, 1) ;
+
     /* Load the table */
-    if ((out = cpl_table_load(in, extnum, 0)) == NULL) {
+    if ((out = cpl_table_load(in, det_nr, 0)) == NULL) {
         cpl_msg_error(__func__, "Cannot load %s as a table", in) ;
-        return NULL ;
-    }
-
-    /* Check that the columns are there */
-    nok = 0 ;
-    if (!strcmp(protype, CR2RES_PROTYPE_CATALOG)) {
-        nok += cr2res_table_check_column(out, CR2RES_COL_WAVELENGTH) ;
-        nok += cr2res_table_check_column(out, CR2RES_COL_EMISSION) ;
-    } else if (!strcmp(protype, CR2RES_EXTRACT_1D_PROTYPE)) {
-        checked_col = cr2res_dfs_SPEC_colname(order, trace) ;
-        nok += cr2res_table_check_column(out, checked_col) ;
-        cpl_free(checked_col);
-
-        checked_col = cr2res_dfs_WAVELENGTH_colname(order, trace) ;
-        nok += cr2res_table_check_column(out, checked_col) ;
-        cpl_free(checked_col);
-
-        checked_col = cr2res_dfs_SPEC_ERR_colname(order, trace) ;
-        nok += cr2res_table_check_column(out, checked_col) ;
-        cpl_free(checked_col);
-    } else if (!strcmp(protype, CR2RES_SLIT_FUNC_PROTYPE)) {
-        cpl_msg_error(__func__, 
-                "TODO : Add support for "CR2RES_SLIT_FUNC_PROTYPE) ;
-        cpl_table_delete(out) ;
-        return NULL ;
-    } else if (!strcmp(protype, CR2RES_SPLICED_1D_PROTYPE)) {
-        cpl_msg_error(__func__, 
-                "TODO : Add support for "CR2RES_SPLICED_1D_PROTYPE) ;
-        cpl_table_delete(out) ;
-        return NULL ;
-    } else if (!strcmp(protype, CR2RES_PROTYPE_XCORR)) {
-        nok += cr2res_table_check_column(out, IRPLIB_WLXCORR_COL_WAVELENGTH) ;
-        nok += cr2res_table_check_column(out, IRPLIB_WLXCORR_COL_CAT_INIT) ;
-        nok += cr2res_table_check_column(out, IRPLIB_WLXCORR_COL_CAT_FINAL) ;
-        nok += cr2res_table_check_column(out, IRPLIB_WLXCORR_COL_OBS) ;
-    } else {
-        cpl_msg_error(__func__, "Unsupported PRO.TYPE: %s", protype) ;
-        cpl_table_delete(out) ;
-        return NULL ;
-    }
-
-    /* Check if ok */
-    if (nok > 0) {
-        cpl_table_delete(out) ;
         return NULL ;
     }
 
@@ -408,6 +386,10 @@ cpl_bivector * cr2res_io_load_EMISSION_LINES(
 
     /* Check Entries */
     if (filename == NULL) return NULL ;
+
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_PROTYPE_CATALOG))
+        return NULL ;
 
     /* Initialise */
     log_flag = 0 ;
@@ -447,11 +429,25 @@ cpl_image * cr2res_io_load_BPM(
         int             detector,
         int             data)
 {
-    int     wished_ext_nb ;
+    cpl_propertylist    *   plist ;
+    int                     wished_ext_nb ;
+    const char          *   protype ;
+    const char          *   expected_protype = CR2RES_BPM_PROTYPE ;
 
     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Check the PRO.TYPE */
+    plist = cpl_propertylist_load(filename, 0) ;
+    protype = cr2res_pfits_get_protype(plist) ;
+    if (strcmp(protype, expected_protype)) {
+        cpl_msg_error(__func__, "Unexpected PRO.TYPE: %s != %s",
+                protype, expected_protype) ;
+        cpl_propertylist_delete(plist) ;
+        return NULL ;
+    }
+    cpl_propertylist_delete(plist) ;
 
     /* Get the extension number for this detector */
     wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, data) ;
@@ -475,28 +471,30 @@ hdrl_image * cr2res_io_load_MASTER_DARK(
         const char  *   filename,
         int             detector)
 {
-    hdrl_image  *   master_dark ;
-    cpl_image   *   data ;
-    cpl_image   *   error ;
-    int             wished_ext_nb_data, wished_ext_nb_error ;
+    cpl_propertylist    *   plist ;
+    const char          *   protype ;
+    const char          *   expected_protype = CR2RES_MASTER_DARK_PROTYPE ;
+    hdrl_image          *   master_dark ;
 
     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Get the extension number for this detector */
-    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
-    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
+    /* Check the PRO.TYPE */
+    plist = cpl_propertylist_load(filename, 0) ;
+    protype = cr2res_pfits_get_protype(plist) ;
+    if (strcmp(protype, expected_protype)) {
+        cpl_msg_error(__func__, "Unexpected PRO.TYPE: %s != %s",
+                protype, expected_protype) ;
+        cpl_propertylist_delete(plist) ;
+        return NULL ;
+    }
+    cpl_propertylist_delete(plist) ;
 
-    /* The wished extension was not found */
-    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
-    
-    /* Load the images */
-    data = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_data);
-    error = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_error);
-    master_dark = hdrl_image_create(data, error) ;
-    if (data != NULL) cpl_image_delete(data) ;
-    if (error != NULL) cpl_image_delete(error) ;
+    /* Load */
+    master_dark = cr2res_io_load_image(filename, detector) ;
+
+    /* TODO - return NULL if data or error is missing */
 
     /* Return  */
     return master_dark ;
@@ -517,27 +515,19 @@ hdrl_imagelist * cr2res_io_load_DETLIN_COEFFS(
         int             detector)
 {
     hdrl_imagelist      *   detlin_coeffs ;
-    cpl_imagelist       *   data ;
-    cpl_imagelist       *   error ;
-    int                     wished_ext_nb_data, wished_ext_nb_error ;
 
     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Get the extension number for this detector */
-    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
-    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_DETLIN_COEFFS_PROTYPE))
+        return NULL ;
 
-    /* The wished extension was not found */
-    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
-    
-    /* Load the images lists */
-    data = cpl_imagelist_load(filename, CPL_TYPE_FLOAT, wished_ext_nb_data);
-    error = cpl_imagelist_load(filename, CPL_TYPE_FLOAT, wished_ext_nb_error);
-    detlin_coeffs = hdrl_imagelist_create(data, error) ;
-    if (data != NULL) cpl_imagelist_delete(data) ;
-    if (error != NULL) cpl_imagelist_delete(error) ;
+    /* Load */
+    detlin_coeffs = cr2res_io_load_image_list(filename, detector) ;
+
+    /* TODO - return NULL if data or error is missing */
 
     /* Return  */
     return detlin_coeffs ;
@@ -556,28 +546,20 @@ hdrl_image * cr2res_io_load_MASTER_FLAT(
         const char  *   filename,
         int             detector)
 {
-    hdrl_image  *   master_flat ;
-    cpl_image   *   data ;
-    cpl_image   *   error ;
-    int             wished_ext_nb_data, wished_ext_nb_error ;
+    hdrl_image          *   master_flat ;
 
     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Get the extension number for this detector */
-    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
-    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_MASTER_FLAT_PROTYPE))
+        return NULL ;
 
-    /* The wished extension was not found */
-    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
-    
-    /* Load the images */
-    data = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_data);
-    error = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_error);
-    master_flat = hdrl_image_create(data, error) ;
-    if (data != NULL) cpl_image_delete(data) ;
-    if (error != NULL) cpl_image_delete(error) ;
+    /* Load */
+    master_flat = cr2res_io_load_image(filename, detector) ;
+
+    /* TODO - return NULL if data or error is missing */
 
     /* Return  */
     return master_flat ;
@@ -596,19 +578,21 @@ cpl_table * cr2res_io_load_TRACE_WAVE(
         const char  *   filename,
         int             detector)
 {
-    int                     wished_ext_nb ;
+    cpl_table           *   trace_wave_tab ;
 
-    /* check entries */
+     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Get the extension number for this detector */
-    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_TRACE_WAVE_PROTYPE))
+        return NULL ;
 
-    /* The wished extension was not found */
-    if (wished_ext_nb < 0) return NULL ;
+    /* Load the table */
+    trace_wave_tab = cr2res_load_table(filename, detector, -1, -1) ;
 
-    return cpl_table_load(filename, wished_ext_nb, 1);
+    /* Return  */
+    return trace_wave_tab ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -624,28 +608,20 @@ hdrl_image * cr2res_io_load_SLIT_MODEL(
         const char  *   filename,
         int             detector) 
 {
-    hdrl_image  *   slit_model ;
-    cpl_image   *   data ;
-    cpl_image   *   error ;
-    int             wished_ext_nb_data, wished_ext_nb_error ;
+    hdrl_image          *   slit_model ;
 
-    /* Check entries */
+     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Get the extension number for this detector */
-    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
-    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_SLIT_MODEL_PROTYPE))
+        return NULL ;
 
-    /* The wished extension was not found */
-    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
-    
-    /* Load the images */
-    data = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_data);
-    error = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_error);
-    slit_model = hdrl_image_create(data, error) ;
-    if (data != NULL) cpl_image_delete(data) ;
-    if (error != NULL) cpl_image_delete(error) ;
+    /* Load */
+    slit_model = cr2res_io_load_image(filename, detector) ;
+
+    /* TODO - return NULL if data or error is missing */
 
     /* Return  */
     return slit_model ;
@@ -664,28 +640,18 @@ hdrl_image * cr2res_io_load_TRACE_MAP(
         const char  *   filename,
         int             detector)
 {
-    hdrl_image  *   trace_map ;
-    cpl_image   *   data ;
-    cpl_image   *   error ;
-    int             wished_ext_nb_data, wished_ext_nb_error ;
+    hdrl_image          *   trace_map ;
 
-    /* Check entries */
+     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Get the extension number for this detector */
-    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
-    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_TRACE_MAP_PROTYPE))
+        return NULL ;
 
-    /* The wished extension was not found */
-    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
-    
-    /* Load the images */
-    data = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_data);
-    error = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_error);
-    trace_map = hdrl_image_create(data, error) ;
-    if (data != NULL) cpl_image_delete(data) ;
-    if (error != NULL) cpl_image_delete(error) ;
+    /* Load */
+    trace_map = cr2res_io_load_image(filename, detector) ;
 
     /* Return  */
     return trace_map ;
@@ -704,28 +670,18 @@ hdrl_image * cr2res_io_load_WAVE_MAP(
         const char  *   filename,
         int             detector)
 {
-    hdrl_image  *   wave_map ;
-    cpl_image   *   data ;
-    cpl_image   *   error ;
-    int             wished_ext_nb_data, wished_ext_nb_error ;
+    hdrl_image          *   wave_map ;
 
     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Get the extension number for this detector */
-    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
-    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_WAVE_MAP_PROTYPE))
+        return NULL ;
 
-    /* The wished extension was not found */
-    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
-    
-    /* Load the images */
-    data = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_data);
-    error = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_error);
-    wave_map = hdrl_image_create(data, error) ;
-    if (data != NULL) cpl_image_delete(data) ;
-    if (error != NULL) cpl_image_delete(error) ;
+    /* Load */
+    wave_map = cr2res_io_load_image(filename, detector) ;
 
     /* Return  */
     return wave_map ;
@@ -744,28 +700,18 @@ hdrl_image * cr2res_io_load_SLIT_CURV_MAP(
         const char  *   filename,
         int             detector)
 {
-    hdrl_image  *   slit_curv_map ;
-    cpl_image   *   data ;
-    cpl_image   *   error ;
-    int             wished_ext_nb_data, wished_ext_nb_error ;
+    hdrl_image          *   slit_curv_map ;
 
     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Get the extension number for this detector */
-    wished_ext_nb_data = cr2res_io_get_ext_idx(filename, detector, 1) ;
-    wished_ext_nb_error = cr2res_io_get_ext_idx(filename, detector, 0) ;
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_SLIT_CURV_MAP_PROTYPE))
+        return NULL ;
 
-    /* The wished extension was not found */
-    if (wished_ext_nb_data < 0 || wished_ext_nb_error < 0) return NULL ;
-    
-    /* Load the images */
-    data = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_data);
-    error = cpl_image_load(filename, CPL_TYPE_FLOAT, 0, wished_ext_nb_error);
-    slit_curv_map = hdrl_image_create(data, error) ;
-    if (data != NULL) cpl_image_delete(data) ;
-    if (error != NULL) cpl_image_delete(error) ;
+    /* Load */
+    slit_curv_map = cr2res_io_load_image(filename, detector) ;
 
     /* Return  */
     return slit_curv_map ;
@@ -784,7 +730,21 @@ cpl_table * cr2res_io_load_SLIT_CURV(
         const char  *   filename,
         int             detector)
 {
-    return NULL ;
+    cpl_table           *   slit_curv_tab ;
+
+    /* Check entries */
+    if (filename == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_SLIT_CURV_PROTYPE))
+        return NULL ;
+
+    /* Load the table */
+    slit_curv_tab = cr2res_load_table(filename, detector, -1, -1) ;
+
+    /* Return  */
+    return slit_curv_tab ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -800,19 +760,21 @@ cpl_table * cr2res_io_load_EXTRACT_1D(
         const char  *   filename,
         int             detector)
 {
-    int                     wished_ext_nb ;
+    cpl_table           *   extract_1D_tab ;
 
     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Get the extension number for this detector */
-    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_EXTRACT_1D_PROTYPE))
+        return NULL ;
 
-    /* The wished extension was not found */
-    if (wished_ext_nb < 0) return NULL ;
+    /* Load the table */
+    extract_1D_tab = cr2res_load_table(filename, detector, -1, -1) ;
 
-    return cpl_table_load(filename, wished_ext_nb, 1);
+    /* Return  */
+    return extract_1D_tab ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -828,49 +790,47 @@ cpl_table * cr2res_io_load_SPLICED_1D(
         const char  *   filename,
         int             detector)
 {
-    int                     wished_ext_nb ;
+    cpl_table           *   spliced_1D_tab ;
 
     /* Check entries */
     if (filename == NULL) return NULL ;
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
-    /* Get the extension number for this detector */
-    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_SPLICED_1D_PROTYPE))
+        return NULL ;
 
-    /* The wished extension was not found */
-    if (wished_ext_nb < 0) return NULL ;
+    /* Load the table */
+    spliced_1D_tab = cr2res_load_table(filename, detector, -1, -1) ;
 
-    return cpl_table_load(filename, wished_ext_nb, 1);
+    /* Return  */
+    return spliced_1D_tab ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Load a table from a EXTRACT_2D
   @param    filename    The FITS file name
-  @return   A table or NULL in error case. The returned object
-              needs to be deallocated
- */
-/*----------------------------------------------------------------------------*/
-cpl_table * cr2res_io_load_EXTRACT_2D(
-        const char  *   filename)
-{
-    return NULL ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Load a table from a EXTRACT_POL
-  @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A table or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
-cpl_table * cr2res_io_load_EXTRACT_POL(
+cpl_table * cr2res_io_load_EXTRACT_2D(
         const char  *   filename,
         int             detector)
 {
-    return NULL ;
+    cpl_table           *   extract_2D_tab ;
+
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_EXTRACT_2D_PROTYPE))
+        return NULL ;
+
+    /* Load the table */
+    extract_2D_tab = cr2res_load_table(filename, detector, -1, -1) ;
+
+    /* Return  */
+    return extract_2D_tab ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1831,5 +1791,28 @@ static int cr2res_table_check_column(
         ret = 1 ;
     } else ret = 0 ;
     return ret ;
+}
+
+static int cr2res_io_check_pro_type(
+        const char  *   filename,
+        const char  *   expected_protype)
+{
+    cpl_propertylist    *   plist ;
+    const char          *   protype ;
+
+    /* Check entries */
+    if (filename == NULL) return -1 ;
+
+    /* Check the PRO.TYPE */
+    plist = cpl_propertylist_load(filename, 0) ;
+    protype = cr2res_pfits_get_protype(plist) ;
+    if (strcmp(protype, expected_protype)) {
+        cpl_msg_error(__func__, "Unexpected PRO.TYPE: %s != %s",
+                protype, expected_protype) ;
+        cpl_propertylist_delete(plist) ;
+        return 0 ;
+    }
+    cpl_propertylist_delete(plist) ;
+    return 1 ;
 }
 

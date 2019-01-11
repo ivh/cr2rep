@@ -372,7 +372,7 @@ static int cr2res_util_extract(
         cpl_msg_info(__func__, "Load the Image") ;
 
         /* Load the image */
-        if ((science_hdrl = cr2res_io_load_RAW(science_file, det_nr)) == NULL) {
+        if ((science_hdrl = cr2res_io_load_image(science_file, det_nr))==NULL) {
             cpl_table_delete(trace_table) ;
             cpl_msg_error(__func__, "Failed to load the image - skip detector");
             cpl_error_reset() ;
