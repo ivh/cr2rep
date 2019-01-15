@@ -45,8 +45,8 @@ static void test_cr2res_qc_test1(void);
 // static void test_cr2res_qc_dark_stddev(void);
 // static void test_cr2res_qc_trace_count_orders(void);
 // static void test_cr2res_qc_trace_count_traces(void);
-static void test_cr2res_qc_trace_get_ypos(void);
-static void test_cr2res_qc_wave_zeropoint(void);
+// static void test_cr2res_qc_trace_get_ypos(void);
+// static void test_cr2res_qc_wave_zeropoint(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -341,59 +341,59 @@ static cpl_image *create_test_image(void)
 //     cpl_table_delete(tracewave);
 // }
 
-/*---------------------------------------------------------------------------*/
-/**
-* @brief    get the central y position of a given trace and order
-* @param    tracewave    table with traces as polynomials
-* @param    order        order to get values for
-* @param    trace        trace of that order
-* @return   ycen         y value of central pixel of trace and order
-*/
-/*---------------------------------------------------------------------------*/
-static void test_cr2res_qc_trace_get_ypos(void)
-{
-    cpl_table *tracewave = create_test_table();
-    int order = 4;
-    int trace = 1;
-    int res;
-    int ycen = 679;
+// /*---------------------------------------------------------------------------*/
+// /**
+// * @brief    get the central y position of a given trace and order
+// * @param    tracewave    table with traces as polynomials
+// * @param    order        order to get values for
+// * @param    trace        trace of that order
+// * @return   ycen         y value of central pixel of trace and order
+// */
+// /*---------------------------------------------------------------------------*/
+// static void test_cr2res_qc_trace_get_ypos(void)
+// {
+//     cpl_table *tracewave = create_test_table();
+//     int order = 4;
+//     int trace = 1;
+//     int res;
+//     int ycen = 679;
 
-    cpl_test_eq(-1, cr2res_qc_trace_get_ypos(NULL, order, trace));
-    cpl_test_eq(-1, cr2res_qc_trace_get_ypos(tracewave, -10, trace));
-    cpl_test_eq(-1, cr2res_qc_trace_get_ypos(tracewave, order, -1));
+//     cpl_test_eq(-1, cr2res_qc_trace_get_ypos(NULL, order, trace));
+//     cpl_test_eq(-1, cr2res_qc_trace_get_ypos(tracewave, -10, trace));
+//     cpl_test_eq(-1, cr2res_qc_trace_get_ypos(tracewave, order, -1));
 
-    cpl_test(res = cr2res_qc_trace_get_ypos(tracewave, order, trace));
-    cpl_test_eq(res, ycen);
+//     cpl_test(res = cr2res_qc_trace_get_ypos(tracewave, order, trace));
+//     cpl_test_eq(res, ycen);
 
-    cpl_table_delete(tracewave);
-}
+//     cpl_table_delete(tracewave);
+// }
 
-/*---------------------------------------------------------------------------*/
-/**
-* @brief    get the zeropoint (i.e. y(x=0)) for a given order and trace
-* @param    tracewave    table with traces as polynomials
-* @param    order        order to get values for
-* @param    trace        trace of that order
-* @return   y0           y position of the center leftmost pixel of the trace and order
-*/
-/*---------------------------------------------------------------------------*/
-static void test_cr2res_qc_wave_zeropoint(void)
-{
-    cpl_table *tracewave = create_test_table();
-    int order = 4;
-    int trace = 1;
-    int res;
-    int y0 = 660;
+// /*---------------------------------------------------------------------------*/
+// /**
+// * @brief    get the zeropoint (i.e. y(x=0)) for a given order and trace
+// * @param    tracewave    table with traces as polynomials
+// * @param    order        order to get values for
+// * @param    trace        trace of that order
+// * @return   y0           y position of the center leftmost pixel of the trace and order
+// */
+// /*---------------------------------------------------------------------------*/
+// static void test_cr2res_qc_wave_zeropoint(void)
+// {
+//     cpl_table *tracewave = create_test_table();
+//     int order = 4;
+//     int trace = 1;
+//     int res;
+//     int y0 = 660;
 
-    cpl_test_eq(-1, cr2res_qc_wave_zeropoint(NULL, order, trace));
-    cpl_test_eq(-1, cr2res_qc_wave_zeropoint(tracewave, -10, trace));
-    cpl_test_eq(-1, cr2res_qc_wave_zeropoint(tracewave, order, -1));
+//     cpl_test_eq(-1, cr2res_qc_wave_zeropoint(NULL, order, trace));
+//     cpl_test_eq(-1, cr2res_qc_wave_zeropoint(tracewave, -10, trace));
+//     cpl_test_eq(-1, cr2res_qc_wave_zeropoint(tracewave, order, -1));
 
-    cpl_test(res = cr2res_qc_wave_zeropoint(tracewave, order, trace));
-    cpl_test_eq(res, y0);
+//     cpl_test(res = cr2res_qc_wave_zeropoint(tracewave, order, trace));
+//     cpl_test_eq(res, y0);
 
-    cpl_table_delete(tracewave);
-}
+//     cpl_table_delete(tracewave);
+// }
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -411,8 +411,8 @@ int main(void)
     // test_cr2res_qc_dark_stddev();
     // test_cr2res_qc_trace_count_orders();
     // test_cr2res_qc_trace_count_traces();
-    test_cr2res_qc_trace_get_ypos();
-    test_cr2res_qc_wave_zeropoint();
+    // test_cr2res_qc_trace_get_ypos();
+    // test_cr2res_qc_wave_zeropoint();
 
     return cpl_test_end(0);
 }
