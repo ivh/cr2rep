@@ -94,6 +94,7 @@ hdrl_image * cr2res_calib_image(
         if (cr2res_bpm_correct_image(hdrl_image_get_image(out),
                     cpl_frame_get_filename(bpm), chip) != 0) {
             cpl_msg_error(__func__, "Cannot clean the bad pixels");
+            hdrl_image_delete(out);
             return NULL ;
         }
     }
@@ -106,6 +107,7 @@ hdrl_image * cr2res_calib_image(
         if ((calib = cr2res_io_load_MASTER_DARK(cpl_frame_get_filename(dark), 
                         chip)) == NULL) {
             cpl_msg_error(__func__, "Cannot load the dark") ;
+            hdrl_image_delete(out);
             return NULL ;
         }
 
@@ -122,6 +124,7 @@ hdrl_image * cr2res_calib_image(
         if (hdrl_image_sub_image(out, calib) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Cannot apply the dark") ;
             hdrl_image_delete(calib) ;
+            hdrl_image_delete(out);
             return NULL ;
         }
         hdrl_image_delete(calib) ;
@@ -134,6 +137,7 @@ hdrl_image * cr2res_calib_image(
         if ((calib_list = cr2res_io_load_DETLIN_COEFFS(
                         cpl_frame_get_filename(detlin), chip)) == NULL) {
             cpl_msg_error(__func__, "Cannot load the detlin") ;
+            hdrl_image_delete(out);
             return NULL ;
         }
 
@@ -141,6 +145,7 @@ hdrl_image * cr2res_calib_image(
         cpl_msg_info(__func__, "Correct for the Non-Linearity") ;
         if (cr2res_detlin_correct(out, calib_list)) {
             hdrl_imagelist_delete(calib_list) ;
+            hdrl_image_delete(out);
             cpl_msg_error(__func__, "Cannot correct for the Non-Linearity") ;
             return NULL ;
         }
@@ -154,6 +159,7 @@ hdrl_image * cr2res_calib_image(
         if ((calib = cr2res_io_load_MASTER_FLAT(
                         cpl_frame_get_filename(flat), chip)) == NULL) {
             cpl_msg_error(__func__, "Cannot load the flat field") ;
+            hdrl_image_delete(out);
             return NULL ;
         }
         
@@ -162,6 +168,7 @@ hdrl_image * cr2res_calib_image(
         if (hdrl_image_div_image(out, calib) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Cannot apply the flat field") ;
             hdrl_image_delete(calib) ;
+            hdrl_image_delete(out);
             return NULL ;
         }
         hdrl_image_delete(calib) ;
@@ -193,13 +200,13 @@ static int cr2res_detlin_correct(
     const cpl_image     *   ima ;
     const cpl_image     *   imb ;
     const cpl_image     *   imc ;
-    const float         *   pima ;
-    const float         *   pimb ;
-    const float         *   pimc ;
+    const double        *   pima ;
+    const double        *   pimb ;
+    const double        *   pimc ;
     cpl_image           *   cur_ima ;
-    float               *   pdata ;
+    double              *   pdata ;
     int                     nx, ny ;
-    float                   val, val2, val3 ;
+    double                  val, val2, val3 ;
     int                     i, j ;
 
     /* Test entries */
@@ -208,7 +215,7 @@ static int cr2res_detlin_correct(
     /* TODO : Error propagation */
 
     /* Initialise */
-    pdata = cpl_image_get_data_float(hdrl_image_get_image(in)) ;
+    pdata = cpl_image_get_data_double(hdrl_image_get_image(in)) ;
 
     /* Load the 3 coeffs images */
     ima = hdrl_image_get_image_const(hdrl_imagelist_get_const(detlin, 0)) ;
@@ -218,9 +225,9 @@ static int cr2res_detlin_correct(
         cpl_msg_error(cpl_func, "Cannot access the detlin images") ;
         return -1 ;
     }
-    pima = cpl_image_get_data_float_const(ima) ;
-    pimb = cpl_image_get_data_float_const(imb) ;
-    pimc = cpl_image_get_data_float_const(imc) ;
+    pima = cpl_image_get_data_double_const(ima) ;
+    pimb = cpl_image_get_data_double_const(imb) ;
+    pimc = cpl_image_get_data_double_const(imc) ;
 
     /* Test sizes */
     cur_ima = hdrl_image_get_image(in) ;

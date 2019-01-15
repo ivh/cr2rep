@@ -208,6 +208,7 @@ int cr2res_bpm_correct_image(
     cpl_image_reject_from_mask(in, bpm_im_bin);
     if (cpl_detector_interpolate_rejected(in) != CPL_ERROR_NONE) {
         cpl_mask_delete(bpm_im_bin) ;
+        cpl_error_reset();
         return -1 ;
     }
     cpl_mask_delete(bpm_im_bin) ;

@@ -396,7 +396,7 @@ cpl_bivector * cr2res_io_load_EMISSION_LINES(
     if (filename == NULL) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_PROTYPE_CATALOG))
+    if (cr2res_io_check_pro_type(filename, CR2RES_PROTYPE_CATALOG) == 0)
         return NULL ;
 
     /* Initialise */
@@ -444,7 +444,7 @@ cpl_image * cr2res_io_load_BPM(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_BPM_PROTYPE))
+    if (cr2res_io_check_pro_type(filename, CR2RES_BPM_PROTYPE) == 0)
         return NULL ;
 
     /* Get the extension number for this detector */
@@ -476,7 +476,7 @@ hdrl_image * cr2res_io_load_MASTER_DARK(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_MASTER_DARK_PROTYPE))
+    if (cr2res_io_check_pro_type(filename, CR2RES_MASTER_DARK_PROTYPE) == 0)
         return NULL ;
 
     /* Load */
@@ -514,7 +514,7 @@ hdrl_imagelist * cr2res_io_load_DETLIN_COEFFS(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_DETLIN_COEFFS_PROTYPE))
+    if (cr2res_io_check_pro_type(filename, CR2RES_DETLIN_COEFFS_PROTYPE) == 0)
         return NULL ;
 
     /* Load */
@@ -546,7 +546,7 @@ hdrl_image * cr2res_io_load_MASTER_FLAT(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_MASTER_FLAT_PROTYPE))
+    if (cr2res_io_check_pro_type(filename, CR2RES_MASTER_FLAT_PROTYPE) == 0)
         return NULL ;
 
     /* Load */
@@ -583,7 +583,7 @@ cpl_table * cr2res_io_load_TRACE_WAVE(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_TRACE_WAVE_PROTYPE))
+    if (cr2res_io_check_pro_type(filename, CR2RES_TRACE_WAVE_PROTYPE) == 0)
         return NULL ;
 
     /* Load the table */
@@ -613,7 +613,7 @@ hdrl_image * cr2res_io_load_SLIT_MODEL(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_SLIT_MODEL_PROTYPE))
+    if (cr2res_io_check_pro_type(filename, CR2RES_SLIT_MODEL_PROTYPE) == 0)
         return NULL ;
 
     /* Load */
@@ -650,7 +650,7 @@ hdrl_image * cr2res_io_load_TRACE_MAP(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_TRACE_MAP_PROTYPE))
+    if (cr2res_io_check_pro_type(filename, CR2RES_TRACE_MAP_PROTYPE) == 0)
         return NULL ;
 
     /* Load */
@@ -680,7 +680,7 @@ hdrl_image * cr2res_io_load_WAVE_MAP(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_WAVE_MAP_PROTYPE))
+    if (cr2res_io_check_pro_type(filename, CR2RES_WAVE_MAP_PROTYPE) == 0)
         return NULL ;
 
     /* Load */
@@ -710,7 +710,7 @@ hdrl_image * cr2res_io_load_SLIT_CURV_MAP(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_SLIT_CURV_MAP_PROTYPE))
+    if (cr2res_io_check_pro_type(filename, CR2RES_SLIT_CURV_MAP_PROTYPE) == 0)
         return NULL ;
 
     /* Load */
@@ -740,7 +740,7 @@ cpl_table * cr2res_io_load_SLIT_CURV(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_SLIT_CURV_PROTYPE))
+    if (cr2res_io_check_pro_type(filename, CR2RES_SLIT_CURV_PROTYPE) == 0)
         return NULL ;
 
     /* Load the table */
@@ -770,7 +770,7 @@ cpl_table * cr2res_io_load_EXTRACT_1D(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_EXTRACT_1D_PROTYPE))
+    if (cr2res_io_check_pro_type(filename, CR2RES_EXTRACT_1D_PROTYPE) == 0)
         return NULL ;
 
     /* Load the table */
@@ -800,7 +800,7 @@ cpl_table * cr2res_io_load_SPLICED_1D(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_SPLICED_1D_PROTYPE))
+    if (cr2res_io_check_pro_type(filename, CR2RES_SPLICED_1D_PROTYPE) == 0)
         return NULL ;
 
     /* Load the table */
@@ -826,7 +826,7 @@ cpl_table * cr2res_io_load_EXTRACT_2D(
     cpl_table           *   extract_2D_tab ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_EXTRACT_2D_PROTYPE))
+    if (cr2res_io_check_pro_type(filename, CR2RES_EXTRACT_2D_PROTYPE) == 0)
         return NULL ;
 
     /* Load the table */
