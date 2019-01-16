@@ -47,6 +47,7 @@ static void test_cr2res_calib_cosmic(void);
 static void test_cr2res_calib_flat(void);
 static void test_cr2res_calib_dark(void);
 static void test_cr2res_calib_bpm(void);
+static void test_cr2res_calib_detlin(void);
 
 
 
@@ -106,7 +107,6 @@ static void save_hdrl(char * filename, hdrl_image * hdrl, int mode, double dit)
     cpl_frameset_delete(in);
     cpl_parameterlist_delete(parlist);
     cpl_propertylist_delete(ext1);
-
 }
 
 /*----------------------------------------------------------------------------*/
@@ -172,23 +172,51 @@ static cpl_frame * create_bpm(char * filename, int nx, int ny, double value)
   @brief    Create a Determine Linearity (DetLin) fits file and cpl_frame
  */
 /*----------------------------------------------------------------------------*/
-static cpl_frame * create_detlin(char * filename, int nx, int ny)
+static cpl_frame * create_detlin(char * filename, hdrl_image * a, hdrl_image * b, hdrl_image * c)
 {
+    // Empty structures needed for master flat frame, but not for the test
+    // Need an empty fits file with header for the framesets
+    cpl_frame * empty = cpl_frame_new();
+    cpl_frame_set_filename(empty, "./empty.fits");
+    cpl_frame_set_tag(empty, "DEBUG");
+    cpl_frame_set_group(empty, CPL_FRAME_GROUP_CALIB);
+
+    cpl_parameterlist * parlist = cpl_parameterlist_new();
+    cpl_propertylist * ext1 = cpl_propertylist_new();
+    cpl_propertylist * ext[] = {ext1, NULL, NULL};
+
+    cpl_frameset * all = cpl_frameset_new();
+    cpl_frameset * in = cpl_frameset_new();
+    cpl_frameset_insert(all, empty);
+    empty = cpl_frame_duplicate(empty);
+    cpl_frameset_insert(in, empty);
+
+    hdrl_imagelist * list3 = hdrl_imagelist_new();
+    hdrl_imagelist_set(list3, a, 0);
+    hdrl_imagelist_set(list3, b, 1);
+    hdrl_imagelist_set(list3, c, 2);
+
+    hdrl_imagelist * list4[] = {list3, NULL, NULL};
+
+    cr2res_io_save_DETLIN_COEFFS(filename, all, in, parlist, list4, ext1, ext, CR2RES_DETLIN_COEFFS_PROCATG, "debug");
+
+    hdrl_imagelist_unset(list3, 2);
+    hdrl_imagelist_unset(list3, 1);
+    hdrl_imagelist_unset(list3, 0);
+
+    hdrl_imagelist_delete(list3);
+    
+    cpl_frameset_delete(all);
+    cpl_frameset_delete(in);
+    cpl_parameterlist_delete(parlist);
+    cpl_propertylist_delete(ext1);
+
     cpl_frame * out = cpl_frame_new();
     cpl_frame_set_filename(out, filename);
     cpl_frame_set_tag(out, "DETLIN");
     cpl_frame_set_group(out, CPL_FRAME_GROUP_CALIB);
 
-    hdrl_image * hdrl = hdrl_image_new(nx, ny);
-    hdrl_value one;
-    one.data = 10;
-    one.error = 10;
-    hdrl_image_add_scalar(hdrl, one);
-    
-    save_hdrl(filename, hdrl, MODE_DETLIN, 0);
-    // hdrl_image_delete(hdrl);
-
-    return out;   
+    return out;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -222,8 +250,7 @@ static void test_cr2res_calib_image()
     cpl_frame * flat = create_master_flat("master_flat.fits", nx, ny, 1, 0);
     cpl_frame * dark = create_master_dark("master_dark.fits", nx, ny, 10, 1, 10);
     cpl_frame * bpm = create_bpm("bpm.fits", nx, ny, 0);
-    cpl_frame * detlin = create_detlin("master_detlin.fits", nx, ny);
-    // cpl_frame * detlin = NULL;
+    cpl_frame * detlin = NULL;
     double dit = 10;
 
     hdrl_image * out;
@@ -365,13 +392,15 @@ static void test_cr2res_calib_flat()
     cpl_frame_delete(flat);
 
     // Case 4: Flat file does not exist
-    // flat = cpl_frame_new();
-    // cpl_frame_set_filename(flat, "tobeornottobe.fits");
-    // cpl_frame_set_tag(flat, "FLAT");
-    // cpl_frame_set_group(flat, CPL_FRAME_GROUP_CALIB);
+    flat = cpl_frame_new();
+    cpl_frame_set_filename(flat, "tobeornottobe.fits");
+    cpl_frame_set_tag(flat, "FLAT");
+    cpl_frame_set_group(flat, CPL_FRAME_GROUP_CALIB);
 
-    // out = cr2res_calib_image(in, chip, 0, flat, NULL, NULL, NULL, dit);
-    // cpl_test_error(CPL_ERROR_FILE_NOT_FOUND);
+    out = cr2res_calib_image(in, chip, 0, flat, NULL, NULL, NULL, dit);
+    cpl_test_error(CPL_ERROR_FILE_IO);
+    hdrl_image_delete(out);
+    cpl_frame_delete(flat);
 
     // Case 5: image is in a wrong group
     flat = create_master_dark("master_flat.fits", nx, ny, 1, 0, 10);
@@ -561,13 +590,15 @@ static void test_cr2res_calib_dark()
     cpl_frame_delete(dark);
 
     // Case 9: Dark file does not exist
-    // dark = cpl_frame_new();
-    // cpl_frame_set_filename(dark, "tobeornottobe.fits");
-    // cpl_frame_set_tag(dark, "DARK");
-    // cpl_frame_set_group(dark, CPL_FRAME_GROUP_CALIB);
+    dark = cpl_frame_new();
+    cpl_frame_set_filename(dark, "tobeornottobe.fits");
+    cpl_frame_set_tag(dark, "DARK");
+    cpl_frame_set_group(dark, CPL_FRAME_GROUP_CALIB);
 
-    // out = cr2res_calib_image(in, chip, 0, NULL, dark, NULL, NULL, dit);
-    // cpl_test_error(CPL_ERROR_FILE_NOT_FOUND);
+    out = cr2res_calib_image(in, chip, 0, NULL, dark, NULL, NULL, dit);
+    cpl_test_error(CPL_ERROR_FILE_IO);
+    cpl_test_null(out);
+    cpl_frame_delete(dark);
 
     // Case 10: image is in a wrong group
     dark = create_master_flat("master_dark.fits", nx, ny, 1, 0);
@@ -681,13 +712,15 @@ static void test_cr2res_calib_bpm()
     hdrl_image_delete(cmp);
 
     // Case 5: BPM file does not exist
-    // bpm = cpl_frame_new();
-    // cpl_frame_set_filename(bpm, "tobeornottobe.fits");
-    // cpl_frame_set_tag(bpm, "BPM");
-    // cpl_frame_set_group(bpm, CPL_FRAME_GROUP_CALIB);
+    bpm = cpl_frame_new();
+    cpl_frame_set_filename(bpm, "tobeornottobe.fits");
+    cpl_frame_set_tag(bpm, "BPM");
+    cpl_frame_set_group(bpm, CPL_FRAME_GROUP_CALIB);
 
-    // out = cr2res_calib_image(in, chip, 0, NULL, NULL, bpm, NULL, dit);
-    // cpl_test_error(CPL_ERROR_FILE_NOT_FOUND);
+    out = cr2res_calib_image(in, chip, 0, NULL, NULL, bpm, NULL, dit);
+    cpl_test_error(CPL_ERROR_FILE_IO);
+    cpl_test_null(out);
+    cpl_frame_delete(bpm);
 
     // Case 6: image is in a wrong group
     bpm = create_master_flat("master_bpm.fits", nx, ny, 1, 0);
@@ -712,6 +745,69 @@ static void test_cr2res_calib_bpm()
     hdrl_image_delete(in);
 }
 
+static void test_cr2res_calib_detlin()
+{
+    int nx = 5;
+    int ny = 5;
+    int badpix;
+
+    double img_value = 100;
+    double img_error = 1;
+    double out_value, out_error;
+    double bpm_value;
+    hdrl_image * hdrl;
+    hdrl_value value;
+
+    hdrl_image * in, * out, * cmp;
+    hdrl_image * a, * b, * c;
+    cpl_frame * detlin;
+    int chip = 1;
+    int cosmics_corr = 1;
+    double dit = 10;
+
+    in = create_hdrl(nx, ny, img_value, img_error);
+
+    // DetLin images aren't actually images, but polynomial coefficients for each pixel
+    // TODO Errors
+
+    // Case 1: DetLin c and a == 0, doesn't change anything
+    a = create_hdrl(nx, ny, 0, 0);
+    b = create_hdrl(nx, ny, 0, 0);
+    c = create_hdrl(nx, ny, 0, 0);
+
+    detlin = create_detlin("master_detlin.fits", a, b, c);
+    out = cr2res_calib_image(in, chip, 0, NULL, NULL, NULL, detlin, dit);
+    cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(in), DBL_EPSILON);
+    cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(in), DBL_EPSILON);
+    hdrl_image_delete(out);
+    cpl_frame_delete(detlin);
+    hdrl_image_delete(a);
+    hdrl_image_delete(b);
+    hdrl_image_delete(c);
+
+
+    // Case 2: DetLin c != 0 and b == 0, everything is 0
+    a = create_hdrl(nx, ny, 0, 0);
+    b = create_hdrl(nx, ny, 0, 0);
+    c = create_hdrl(nx, ny, 1, 0);
+    detlin = create_detlin("master_detlin.fits", a, b, c);
+    out = cr2res_calib_image(in, chip, 0, NULL, NULL, NULL, detlin, dit);
+    cmp = create_hdrl(nx, ny, 0, 0);
+    cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
+    // cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
+    hdrl_image_delete(out);
+    hdrl_image_delete(cmp);
+    cpl_frame_delete(detlin);
+    hdrl_image_delete(a);
+    hdrl_image_delete(b);
+    hdrl_image_delete(c);
+
+    // Case 3: ??
+
+    hdrl_image_delete(in);
+
+}
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Run the Unit tests
@@ -726,6 +822,7 @@ int main(void)
     test_cr2res_calib_flat();
     test_cr2res_calib_dark();
     test_cr2res_calib_bpm();
+    test_cr2res_calib_detlin();
 
     return cpl_test_end(0);
 }

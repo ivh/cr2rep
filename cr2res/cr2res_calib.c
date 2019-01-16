@@ -198,15 +198,24 @@ static int cr2res_detlin_correct(
         const hdrl_imagelist    *   detlin)
 {
     const cpl_image     *   ima ;
+    const cpl_image     *   erra ;
     const cpl_image     *   imb ;
+    const cpl_image     *   errb ;
     const cpl_image     *   imc ;
+    const cpl_image     *   errc ;
     const double        *   pima ;
+    const double        *   perra ;
     const double        *   pimb ;
+    const double        *   perrb ;
     const double        *   pimc ;
+    const double        *   perrc ;
     cpl_image           *   cur_ima ;
     double              *   pdata ;
+    double              *   perr ;
     int                     nx, ny ;
     double                  val, val2, val3 ;
+    double                  err, err2, err3 ;
+    double                  tmp1, tmp2;
     int                     i, j ;
 
     /* Test entries */
@@ -216,11 +225,17 @@ static int cr2res_detlin_correct(
 
     /* Initialise */
     pdata = cpl_image_get_data_double(hdrl_image_get_image(in)) ;
+    perr = cpl_image_get_data_double(hdrl_image_get_error(in)) ;
+
 
     /* Load the 3 coeffs images */
     ima = hdrl_image_get_image_const(hdrl_imagelist_get_const(detlin, 0)) ;
+    erra = hdrl_image_get_error_const(hdrl_imagelist_get_const(detlin, 0)) ;
     imb = hdrl_image_get_image_const(hdrl_imagelist_get_const(detlin, 1)) ;
+    errb = hdrl_image_get_error_const(hdrl_imagelist_get_const(detlin, 1)) ;
     imc = hdrl_image_get_image_const(hdrl_imagelist_get_const(detlin, 2)) ;
+    errc = hdrl_image_get_error_const(hdrl_imagelist_get_const(detlin, 2)) ;
+    
     if (!ima || !imb || !imc) {
         cpl_msg_error(cpl_func, "Cannot access the detlin images") ;
         return -1 ;
@@ -228,6 +243,9 @@ static int cr2res_detlin_correct(
     pima = cpl_image_get_data_double_const(ima) ;
     pimb = cpl_image_get_data_double_const(imb) ;
     pimc = cpl_image_get_data_double_const(imc) ;
+    perra = cpl_image_get_data_double_const(erra);
+    perrb = cpl_image_get_data_double_const(errb);
+    perrc = cpl_image_get_data_double_const(errc);
 
     /* Test sizes */
     cur_ima = hdrl_image_get_image(in) ;
@@ -248,17 +266,25 @@ static int cr2res_detlin_correct(
         if (fabs(pimc[i]) < 1e-5) {
             /* Correct this pixel in each plane */
             pdata[i] = pdata[i]-pima[i] ;
+            perr[i] = sqrt(perr[i] * perr[i] - perra[i] * perra[i]) ;
         } else if (fabs(pimb[i]) < 1e-3) {
             pdata[i] = 0.0 ;
+            perr[i] = 0.0 ;
         } else {
-            val2 = 2 * pimc[i] / (pimb[i] * pimb[i]) ;
             /* Correct this pixel in each plane */
             val = pdata[i] ;
+            err = perr[i] ;
+            val2 = 2 * pimc[i] / (pimb[i] * pimb[i]) ;
+            err2 = 2 * sqrt(perrc[i] * perrc[i] / (pimb[i] * pimb[i] * pimb[i] * pimb[i]) + 4 * pimc[i] * pimc[i] * perrb[i] * perrb[i] / (pimb[i] * pimb[i] * pimb[i] * pimb[i] * pimb[i] * pimb[i])) ;
             val3 = 1-2*val2*(pima[i]-val) ;
             if (val3 < 0.0) {
                 pdata[i] = val-pima[i] ;
+                perr[i] = sqrt(err * err + perra[i] * perra[i]) ;
             } else {
-                pdata[i]=((float)sqrt(val3)-1) / val2 ;
+                pdata[i]=(sqrt(val3)-1) / val2 ;
+                tmp1 = 2 * sqrt(val3) - val3 - 1 ;
+                tmp2 = 4 * val2 * val2 * val2 * val2 * val3 ;
+                perr[i] = sqrt((perra[i] * perra[i]  + perr[i] * perr[i])/ (val3 * val3) + tmp1 * tmp1 / tmp2);
             }
         }
     }
