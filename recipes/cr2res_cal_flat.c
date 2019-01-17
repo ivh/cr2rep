@@ -113,13 +113,13 @@ static char cr2res_cal_flat_description[] =
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Build the list of available plugins, for this module. 
+  @brief    Build the list of available plugins, for this module.
   @param    list    the plugin list
   @return   0 if everything is ok, 1 otherwise
   @note     Only this function is exported
 
-  Create the recipe instance and make it available to the application using the 
-  interface. 
+  Create the recipe instance and make it available to the application using the
+  interface.
  */
 /*----------------------------------------------------------------------------*/
 int cpl_plugin_get_info(cpl_pluginlist * list)
@@ -139,24 +139,24 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     cr2res_get_license(),
                     cr2res_cal_flat_create,
                     cr2res_cal_flat_exec,
-                    cr2res_cal_flat_destroy)) {    
+                    cr2res_cal_flat_destroy)) {
         cpl_msg_error(cpl_func, "Plugin initialization failed");
-        (void)cpl_error_set_where(cpl_func);                          
-        return 1;                                               
-    }                                                    
+        (void)cpl_error_set_where(cpl_func);
+        return 1;
+    }
 
-    if (cpl_pluginlist_append(list, plugin)) {                 
+    if (cpl_pluginlist_append(list, plugin)) {
         cpl_msg_error(cpl_func, "Error adding plugin to list");
-        (void)cpl_error_set_where(cpl_func);                         
-        return 1;                                              
-    }                                                          
-    
+        (void)cpl_error_set_where(cpl_func);
+        return 1;
+    }
+
     return 0;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Setup the recipe options    
+  @brief    Setup the recipe options
   @param    plugin  the plugin
   @return   0 if everything is ok
 
@@ -339,11 +339,11 @@ static int cr2res_cal_flat(
 {
     const cpl_parameter *   param ;
     int                     calib_cosmics_corr, trace_degree, trace_min_cluster,
-                            trace_opening, 
+                            trace_opening,
                             extract_oversample, extract_swath_width,
-                            extract_height, reduce_det, reduce_order, 
+                            extract_height, reduce_det, reduce_order,
                             reduce_trace ;
-    double                  bpm_low, bpm_high, bpm_lines_ratio, trace_smooth, 
+    double                  bpm_low, bpm_high, bpm_lines_ratio, trace_smooth,
                             extract_smooth ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   detlin_frame ;
@@ -351,7 +351,7 @@ static int cr2res_cal_flat(
     const cpl_frame     *   bpm_frame ;
     hdrl_image          *   master_flat[CR2RES_NB_DETECTORS] ;
     cpl_table * trace_wave[CR2RES_NB_DECKER_POSITIONS][CR2RES_NB_DETECTORS] ;
-    cpl_propertylist    *   
+    cpl_propertylist    *
         ext_plist[CR2RES_NB_DECKER_POSITIONS][CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_wave_merged[CR2RES_NB_DETECTORS];
     cpl_table           *   merged ;
@@ -362,11 +362,11 @@ static int cr2res_cal_flat(
     hdrl_image          *   slit_model[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
-    int                     i, det_nr; 
+    int                     i, det_nr;
 
     /* Initialise */
-    cr2res_decker decker_values[CR2RES_NB_DECKER_POSITIONS] = 
-        {CR2RES_DECKER_NONE, CR2RES_DECKER_1_3, CR2RES_DECKER_2_4} ; 
+    cr2res_decker decker_values[CR2RES_NB_DECKER_POSITIONS] =
+        {CR2RES_DECKER_NONE, CR2RES_DECKER_1_3, CR2RES_DECKER_2_4} ;
     char * decker_desc[CR2RES_NB_DECKER_POSITIONS] =
         {"Open", "Decker1", "Decker2"} ;
 
@@ -423,12 +423,12 @@ static int cr2res_cal_flat(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
-	
+
     /* Get Calibration frames */
     detlin_frame = cpl_frameset_find_const(frameset,
             CR2RES_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
-            CR2RES_MASTER_DARK_PROCATG) ; 
+            CR2RES_MASTER_DARK_PROCATG) ;
     bpm_frame = cpl_frameset_find_const(frameset,
             CR2RES_DARK_BPM_PROCATG) ;
 
@@ -443,7 +443,11 @@ static int cr2res_cal_flat(
         /* Get the Frames for the current decker position */
         rawframes = cr2res_extract_decker_frameset(frameset,
                 CR2RES_FLAT_RAW, decker_values[i]) ;
-        if (rawframes == NULL) continue ;
+        if (rawframes == NULL) {
+            cpl_msg_info(__func__, "No files for decker: %s",
+                                    decker_desc[i]) ;
+            continue ;
+        }
         cpl_msg_info(__func__, "Reduce %s Frames", decker_desc[i]) ;
         cpl_msg_indent_more() ;
 
@@ -458,16 +462,16 @@ static int cr2res_cal_flat(
 
             /* Compute only one detector */
             if (reduce_det != 0 && det_nr != reduce_det) continue ;
-        
+
             cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
             cpl_msg_indent_more() ;
 
             /* Call the reduction function */
-            if (cr2res_cal_flat_reduce(rawframes, detlin_frame, 
+            if (cr2res_cal_flat_reduce(rawframes, detlin_frame,
                         master_dark_frame, bpm_frame, calib_cosmics_corr,
                         bpm_low, bpm_high, bpm_lines_ratio,
-                        trace_degree, trace_min_cluster, trace_smooth, 
-                        trace_opening, extract_oversample, 
+                        trace_degree, trace_min_cluster, trace_smooth,
+                        trace_opening, extract_oversample,
                         extract_swath_width, extract_height, extract_smooth, 0,
                         det_nr, reduce_order, reduce_trace,
                         &(master_flat[det_nr-1]),
@@ -477,8 +481,8 @@ static int cr2res_cal_flat(
                         &(slit_model[det_nr-1]),
                         &(bpm[det_nr-1]),
                         &(ext_plist[i][det_nr-1])) == -1) {
-                cpl_msg_warning(__func__, 
-                        "Failed to reduce detector %d of %s Frames", 
+                cpl_msg_warning(__func__,
+                        "Failed to reduce detector %d of %s Frames",
                         det_nr, decker_desc[i]);
             }
             cpl_msg_indent_less() ;
@@ -489,15 +493,15 @@ static int cr2res_cal_flat(
         /* SLIT_MODEL */
 		out_file = cpl_sprintf("%s_%s_slit_model.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-		cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist, 
-                slit_model, NULL, ext_plist[i], CR2RES_FLAT_SLIT_MODEL_PROCATG, 
+		cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist,
+                slit_model, NULL, ext_plist[i], CR2RES_FLAT_SLIT_MODEL_PROCATG,
                 RECIPE_STRING) ;
 		cpl_free(out_file);
 
         /* BLAZE */
 		out_file = cpl_sprintf("%s_%s_blaze.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+		cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist,
                 extract_1d, NULL, ext_plist[i], CR2RES_FLAT_EXTRACT_1D_PROCATG,
                 RECIPE_STRING) ;
 		cpl_free(out_file);
@@ -505,31 +509,31 @@ static int cr2res_cal_flat(
         /* MASTER_FLAT */
 		out_file = cpl_sprintf("%s_%s_master_flat.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-        cr2res_io_save_MASTER_FLAT(out_file, frameset, rawframes, parlist, 
-                master_flat, NULL, ext_plist[i], CR2RES_FLAT_MASTER_FLAT_PROCATG, 
+        cr2res_io_save_MASTER_FLAT(out_file, frameset, rawframes, parlist,
+                master_flat, NULL, ext_plist[i], CR2RES_FLAT_MASTER_FLAT_PROCATG,
                 RECIPE_STRING) ;
 		cpl_free(out_file);
 
         /* TRACE_WAVE */
 		out_file = cpl_sprintf("%s_%s_trace_wave.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-        cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist, 
-                trace_wave[i], NULL, ext_plist[i], 
+        cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist,
+                trace_wave[i], NULL, ext_plist[i],
                 CR2RES_FLAT_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
         /* SLIT_FUNC */
 		out_file = cpl_sprintf("%s_%s_slit_func.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-		cr2res_io_save_SLIT_FUNC(out_file, frameset, rawframes, parlist, 
-                slit_func, NULL, ext_plist[i], CR2RES_FLAT_SLIT_FUNC_PROCATG, 
+		cr2res_io_save_SLIT_FUNC(out_file, frameset, rawframes, parlist,
+                slit_func, NULL, ext_plist[i], CR2RES_FLAT_SLIT_FUNC_PROCATG,
                 RECIPE_STRING) ;
 		cpl_free(out_file);
 
         /* BPM */
         out_file = cpl_sprintf("%s_%s_master_bpm.fits", RECIPE_STRING,
                 decker_desc[i]) ;
-        cr2res_io_save_BPM(out_file, frameset, rawframes, parlist, bpm, NULL, 
+        cr2res_io_save_BPM(out_file, frameset, rawframes, parlist, bpm, NULL,
                 ext_plist[i], CR2RES_FLAT_BPM_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
@@ -538,13 +542,13 @@ static int cr2res_cal_flat(
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             if (master_flat[det_nr-1] != NULL)
                 hdrl_image_delete(master_flat[det_nr-1]) ;
-            if (slit_func[det_nr-1] != NULL) 
+            if (slit_func[det_nr-1] != NULL)
                 cpl_table_delete(slit_func[det_nr-1]) ;
             if (extract_1d[det_nr-1] != NULL)
                 cpl_table_delete(extract_1d[det_nr-1]) ;
-            if (slit_model[det_nr-1] != NULL) 
+            if (slit_model[det_nr-1] != NULL)
                 hdrl_image_delete(slit_model[det_nr-1]) ;
-            if (bpm[det_nr-1] != NULL) 
+            if (bpm[det_nr-1] != NULL)
                 cpl_image_delete(bpm[det_nr-1]) ;
         }
         cpl_msg_indent_less() ;
@@ -554,9 +558,9 @@ static int cr2res_cal_flat(
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         /* Initialise */
         if (trace_wave[0][det_nr-1] != NULL)
-            trace_wave_merged[det_nr-1] = 
+            trace_wave_merged[det_nr-1] =
                 cpl_table_duplicate(trace_wave[0][det_nr-1]) ;
-        else 
+        else
             trace_wave_merged[det_nr-1] = NULL ;
         /* Loop on the other detectors */
         for (i=1 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
@@ -582,27 +586,27 @@ static int cr2res_cal_flat(
     }
 
     /* Free the traces */
-    for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) 
-        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) 
+    for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++)
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
             if (trace_wave[i][det_nr-1] != NULL)
                 cpl_table_delete(trace_wave[i][det_nr-1]) ;
 
 
     /* Save TRACE_WAVE_MERGED */
     out_file = cpl_sprintf("%s_trace_wave_merged.fits", RECIPE_STRING) ;
-    cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
-            trace_wave_merged, NULL, ext_plist[0], 
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist,
+            trace_wave_merged, NULL, ext_plist[0],
             CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free extensions */
-    for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) 
-        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) 
-            if (ext_plist[i][det_nr-1] != NULL) 
+    for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++)
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
+            if (ext_plist[i][det_nr-1] != NULL)
                 cpl_propertylist_delete(ext_plist[i][det_nr-1]) ;
 
     /* Free the merged traces */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) 
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
         if (trace_wave_merged[det_nr-1] != NULL)
             cpl_table_delete(trace_wave_merged[det_nr-1]) ;
 
@@ -611,9 +615,9 @@ static int cr2res_cal_flat(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
-  @param 
-  @return  
+  @brief
+  @param
+  @return
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_flat_reduce(
@@ -662,11 +666,11 @@ static int cr2res_cal_flat_reduce(
     cpl_table           *   slit_func_tab ;
     cpl_table           *   extract_tab ;
     hdrl_image          *   model_tmp ;
-    double                  dit, qc_lamp_ints, qc_mean_level, qc_mean_flux, 
+    double                  dit, qc_lamp_ints, qc_mean_level, qc_mean_flux,
                             qc_med_flux, qc_med_snr, qc_trace_centery ;
     int                     i, ext_nr, nb_traces, order, trace_id,
                             qc_overexposed, qc_nbbad ;
-   
+
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
 
@@ -682,12 +686,14 @@ static int cr2res_cal_flat_reduce(
 
     /* Load the extension header for saving */
     plist = cpl_propertylist_load(first_file, ext_nr) ;
-    if (plist == NULL) return -1 ;
-
+    if (plist == NULL) {
+        cpl_msg_error(__func__, "Failed to load the plist") ;
+        return -1 ;
+    }
     /* Load the image list */
     imlist = cr2res_io_load_image_list_from_set(rawframes, reduce_det) ;
     if (imlist == NULL) {
-        cpl_msg_error(__func__, "Failed to Load the images") ;
+        cpl_msg_error(__func__, "Failed to load the images") ;
         cpl_propertylist_delete(plist);
         return -1 ;
     }
@@ -701,8 +707,8 @@ static int cr2res_cal_flat_reduce(
         cur_ima = hdrl_imagelist_get(imlist, i) ;
 
         /* Calibrate */
-        if ((cur_ima_calib = cr2res_calib_image(cur_ima, reduce_det, 
-                        calib_cosmics_corr, NULL, master_dark_frame, 
+        if ((cur_ima_calib = cr2res_calib_image(cur_ima, reduce_det,
+                        calib_cosmics_corr, NULL, master_dark_frame,
                         bpm_frame, detlin_frame, dit)) == NULL) {
             cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
             cpl_propertylist_delete(plist);
@@ -735,8 +741,8 @@ static int cr2res_cal_flat_reduce(
     /* Compute traces */
     cpl_msg_info(__func__, "Compute the traces") ;
     cpl_msg_indent_more() ;
-    if ((traces = cr2res_trace(hdrl_image_get_image(collapsed), 
-                    trace_smooth, trace_opening, trace_degree, 
+    if ((traces = cr2res_trace(hdrl_image_get_image(collapsed),
+                    trace_smooth, trace_opening, trace_degree,
                     trace_min_cluster)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the traces") ;
         cpl_propertylist_delete(plist);
@@ -777,12 +783,12 @@ static int cr2res_cal_flat_reduce(
 
 		cpl_msg_info(__func__, "Process Order %d/Trace %d", order, trace_id) ;
 		cpl_msg_indent_more() ;
- 
+
 		/* Call the Extraction */
 		if (extract_sum_only) {
 			/* Call the SUM ONLY extraction */
-			if (cr2res_extract_sum_vert(collapsed, 
-                        traces, order, trace_id, extract_height, 
+			if (cr2res_extract_sum_vert(collapsed,
+                        traces, order, trace_id, extract_height,
                         &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
 				cpl_msg_error(__func__, "Cannot (sum-)extract the trace") ;
 				slit_func_vec[i] = NULL ;
@@ -795,10 +801,10 @@ static int cr2res_cal_flat_reduce(
 		} else {
 			/* Call the SLIT DECOMPOSITION */
 			if (cr2res_extract_slitdec_curved(
-                        collapsed, 
-                        traces, order, trace_id, extract_height, 
-                        extract_swath_width, extract_oversample, 
-                        extract_smooth, &(slit_func_vec[i]), &(spectrum[i]), 
+                        collapsed,
+                        traces, order, trace_id, extract_height,
+                        extract_swath_width, extract_oversample,
+                        extract_smooth, &(slit_func_vec[i]), &(spectrum[i]),
                         &model_tmp) != 0) {
 				cpl_msg_error(__func__, "Cannot (slitdec-) extract the trace") ;
 				slit_func_vec[i] = NULL ;
@@ -836,7 +842,7 @@ static int cr2res_cal_flat_reduce(
     /* Compute the Master flat */
     cpl_msg_info(__func__, "Compute the master flat") ;
     cpl_msg_indent_more() ;
-    if ((master_flat_loc = cr2res_master_flat(collapsed, 
+    if ((master_flat_loc = cr2res_master_flat(collapsed,
                     model_master, bpm_low, bpm_high, bpm_linemax,
                     &bpm_flat)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the Master Flat") ;
@@ -865,7 +871,7 @@ static int cr2res_cal_flat_reduce(
         bpm_im = cpl_image_new(cpl_mask_get_size_x(bpm_flat),
                 cpl_mask_get_size_y(bpm_flat), CPL_TYPE_INT) ;
     }
-    
+
     /* Add the flat BPM to the BPM image */
     if (cr2res_bpm_add_mask(bpm_im, bpm_flat, CR2RES_BPM_FLAT)) {
         cpl_msg_error(__func__, "Failed to add the mask to the BPM") ;
@@ -900,7 +906,7 @@ static int cr2res_cal_flat_reduce(
     cpl_propertylist_append_double(plist, "ESO QC MEDIAN FLUX", qc_med_flux) ;
     cpl_propertylist_append_double(plist, "ESO QC MED SNR", qc_med_snr) ;
     cpl_propertylist_append_int(plist, "ESO QC OVEREXPOSED", qc_overexposed) ;
-    cpl_propertylist_append_double(plist, "ESO QC TRACE CENTERY", 
+    cpl_propertylist_append_double(plist, "ESO QC TRACE CENTERY",
             qc_trace_centery) ;
     cpl_propertylist_append_int(plist, "ESO QC FLAT NBBAD", qc_nbbad) ;
 
