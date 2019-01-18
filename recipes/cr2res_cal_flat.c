@@ -717,8 +717,7 @@ static int cr2res_cal_flat_reduce(
             return -1 ;
         } else {
             /* Replace the calibrated image in the list */
-            hdrl_image_delete(cur_ima) ;
-            cur_ima = cur_ima_calib ;
+            hdrl_imagelist_set(imlist, cur_ima_calib, i);
         }
     }
     cpl_msg_indent_less() ;
