@@ -131,13 +131,13 @@ cpl_table * cr2res_trace(
 
     /* TODO This needs to come from a static calibration, each band */
     /* Alternative: remove altogether and have single kernel size value */
-    int                     trace_sep=80;
+    int                     trace_sep=100;
 
     /* TODO Should be set to noise level*/
     /* Best to calcule from input image, not relying on external value */
     /* E.g. mask with thresh=0 once, measure noise in non-signal regions */
     /* and do a second pass with this thresh.  */
-    double                  thresh=0.0;
+    double                  thresh=5.0;
 
     /* Apply detection */
     cpl_msg_info(__func__, "Detect the signal") ;
@@ -1249,9 +1249,7 @@ static cpl_mask * cr2res_trace_signal_detect(
                 CPL_IO_CREATE);
     }
 
-    mask=cpl_mask_new(cpl_image_get_size_x(image),cpl_image_get_size_y(image));
-    cpl_mask_not(mask) ;
-    cpl_mask_threshold_image(mask,smimage,-1*thresh,DBL_MAX,CPL_BINARY_0);
+    mask = cpl_mask_threshold_image_create(smimage,-DBL_MAX,-thresh);
     cpl_image_delete(smimage) ;
 
     return mask ;
