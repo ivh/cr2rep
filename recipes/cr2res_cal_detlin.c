@@ -429,21 +429,22 @@ static int cr2res_cal_detlin_reduce(
         cpl_propertylist    **  ext_plist)
 {
     const char          *   first_file ;
-    cpl_imagelist       *   imlist ;
-    cpl_image           *   cur_im ;
-    float               *   pcur_im ;
+    hdrl_imagelist      *   imlist ;
+    hdrl_image          *   cur_im ;
+    double              *   pcur_im ;
     cpl_vector          *   dits ;
     hdrl_image          *   collapsed ;
-    cpl_image           *   collapsed_ima ;
+    cpl_image           *   contrib ;
     hdrl_image          *   master_flat_loc ;
     cpl_table           *   traces ;
     cpl_imagelist       *   coeffs_loc ;
     cpl_image           *   cur_coeffs ;
-    float               *   pcur_coeffs ;
+    double              *   pcur_coeffs ;
     cpl_imagelist       *   errors_loc ;
     cpl_image           *   cur_errors ;
-    float               *   pcur_errors ;
+    double              *   pcur_errors ;
     cpl_propertylist    *   plist ;
+    cpl_propertylist    *   plist_loc ;
     cpl_image           *   bpm_loc ;
     int                 *   pbpm_loc ;
     cpl_image           *   trace_image ;
@@ -454,7 +455,7 @@ static int cr2res_cal_detlin_reduce(
     cpl_vector          *   fit_residuals ;
     cpl_boolean             sampsym ;
     cpl_mask            *   bpm_mask ;
-    int                     i, j, k, idx, ext_nr, order, trace_id, nx, ny ;
+    int                     i, j, k, idx, ext_nr_data, order, trace_id, nx, ny;
     cpl_size                max_degree, l ;
     double                  low_thresh, high_thresh, median, sigma ;
     int                     qc_nb_bad, qc_nbfailed, qc_nbsuccess ;
@@ -471,11 +472,16 @@ static int cr2res_cal_detlin_reduce(
     /* Get the Extension number */
     first_file = cpl_frame_get_filename(
             cpl_frameset_get_position_const(rawframes, 0)) ;
-    ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
+    ext_nr_data = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
+
+    /* Load the extension header for saving */
+    plist = cpl_propertylist_load(first_file, ext_nr_data) ;
+    if (plist == NULL) return -1 ;
 
     /* Load the image list */
-    imlist = cpl_imagelist_load_frameset(rawframes, CPL_TYPE_FLOAT, 1, ext_nr) ;
+    imlist = cr2res_io_load_image_list_from_set(rawframes, ext_nr_data) ;
     if (imlist == NULL) {
+        cpl_propertylist_delete(plist);
         cpl_msg_error(__func__, "Failed to Load the images") ;
         return -1 ;
     }
@@ -483,43 +489,36 @@ static int cr2res_cal_detlin_reduce(
     /* Load the DITs */
     dits = cpl_vector_new(cpl_frameset_get_size(rawframes)) ;
     for (i=0 ; i< cpl_vector_get_size(dits) ; i++) {
-        plist = cpl_propertylist_load(
+        plist_loc = cpl_propertylist_load(
                 cpl_frame_get_filename(
                     cpl_frameset_get_position_const(rawframes, i)), 0) ;
-        cpl_vector_set(dits, i, cr2res_pfits_get_dit(plist)) ;
-        cpl_propertylist_delete(plist) ;
+        cpl_vector_set(dits, i, cr2res_pfits_get_dit(plist_loc)) ;
+        cpl_propertylist_delete(plist_loc) ;
     }
             
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) cpl_vector_dump(dits, stdout) ;
-
-    /* Load the extension header for saving */
-    plist = cpl_propertylist_load(first_file, ext_nr) ;
-    if (plist == NULL) return -1 ;
 
     if (trace_collapse) {
         /* Collapse all input images */
         cpl_msg_info(__func__, "Collapse the input images") ;
         cpl_msg_indent_more() ;
-        if ((collapsed_ima = cpl_imagelist_collapse_create(imlist)) == NULL) {
-            cpl_msg_error(__func__, "Failed to Calibrate and collapse") ;
-            cpl_imagelist_delete(imlist) ;
-            cpl_vector_delete(dits); 
+        if (hdrl_imagelist_collapse_mean(imlist, &collapsed, &contrib) !=
+                CPL_ERROR_NONE) {
+            cpl_msg_error(__func__, "Failed to Collapse") ;
             cpl_propertylist_delete(plist);
+            hdrl_imagelist_delete(imlist) ;
+            cpl_vector_delete(dits); 
             cpl_msg_indent_less() ;
             return -1 ;
         }
         cpl_msg_indent_less() ;
     } else {
         /* Only use the first image */
-        collapsed_ima = cpl_image_duplicate(cpl_imagelist_get(imlist, 0)) ;
+        collapsed = hdrl_image_duplicate(hdrl_imagelist_get(imlist, 0)) ;
     }
 
-    nx = cpl_image_get_size_x(collapsed_ima) ;
-    ny = cpl_image_get_size_y(collapsed_ima) ;
-
-    /* Create the HDRL collapsed */
-    collapsed = hdrl_image_create(collapsed_ima, NULL) ;
-    cpl_image_delete(collapsed_ima) ;
+    nx = hdrl_image_get_size_x(collapsed) ;
+    ny = hdrl_image_get_size_y(collapsed) ;
 
     /* Compute traces */
     cpl_msg_info(__func__, "Compute the traces") ;
@@ -528,7 +527,7 @@ static int cr2res_cal_detlin_reduce(
                     trace_smooth, trace_opening, trace_degree, 
                     trace_min_cluster)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the traces") ;
-        cpl_imagelist_delete(imlist) ;
+        hdrl_imagelist_delete(imlist) ;
         cpl_vector_delete(dits); 
         cpl_propertylist_delete(plist);
         hdrl_image_delete(collapsed) ;
@@ -546,8 +545,8 @@ static int cr2res_cal_detlin_reduce(
 
     /* Initialise the coeffs cube */
     for (l=0 ; l<=max_degree ; l++) {
-        cpl_imagelist_set(coeffs_loc, cpl_image_new(nx, ny, CPL_TYPE_FLOAT),l) ;
-        cpl_imagelist_set(errors_loc, cpl_image_new(nx, ny, CPL_TYPE_FLOAT),l) ;
+        cpl_imagelist_set(coeffs_loc, cpl_image_new(nx, ny,CPL_TYPE_DOUBLE),l) ;
+        cpl_imagelist_set(errors_loc, cpl_image_new(nx, ny,CPL_TYPE_DOUBLE),l) ;
     }
 
     /* Initialise the BPM as Out of Order */
@@ -578,9 +577,10 @@ static int cr2res_cal_detlin_reduce(
                 /* Prepare values to fit */
                 fitvals = cpl_vector_new(cpl_vector_get_size(dits)) ;
                 for (k=0 ; k<cpl_vector_get_size(dits) ; k++) {
-                    cur_im = cpl_imagelist_get(imlist,  k) ;
-                    pcur_im = cpl_image_get_data_float(cur_im) ;
-                    cpl_vector_set(fitvals, k, pcur_im[idx]) ;
+                    cur_im = hdrl_imagelist_get(imlist,  k) ;
+                    pcur_im = cpl_image_get_data_double(
+                            hdrl_image_get_image(cur_im)) ;
+                    cpl_vector_set(fitvals, k, (float)(pcur_im[idx])) ;
                 }
 
                 /* Fit  */
@@ -591,10 +591,10 @@ static int cr2res_cal_detlin_reduce(
                     pbpm_loc[idx] = CR2RES_BPM_DETLIN ;
                     for (l=0 ; l<=max_degree ; l++) {
                         cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
-                        pcur_coeffs = cpl_image_get_data_float(cur_coeffs) ;
+                        pcur_coeffs = cpl_image_get_data_double(cur_coeffs) ;
                         pcur_coeffs[idx] = 0.0 ;
                         cur_errors = cpl_imagelist_get(errors_loc, l) ;
-                        pcur_errors = cpl_image_get_data_float(cur_errors) ;
+                        pcur_errors = cpl_image_get_data_double(cur_errors) ;
                         pcur_errors[idx] = 0.0 ;
                     } 
                     qc_nbfailed++ ;
@@ -615,10 +615,10 @@ static int cr2res_cal_detlin_reduce(
                 pbpm_loc[idx] = 0 ;
                 for (l=0 ; l<=max_degree ; l++) {
                     cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
-                    pcur_coeffs = cpl_image_get_data_float(cur_coeffs) ;
+                    pcur_coeffs = cpl_image_get_data_double(cur_coeffs) ;
                     pcur_coeffs[idx] = cpl_polynomial_get_coeff(fit1d, &l) ;
                     cur_errors = cpl_imagelist_get(errors_loc, l) ;
-                    pcur_errors = cpl_image_get_data_float(cur_errors) ;
+                    pcur_errors = cpl_image_get_data_double(cur_errors) ;
                     /* TODO : Store error */
                     pcur_errors[idx] = 0.0 ;
                 }
@@ -631,7 +631,7 @@ static int cr2res_cal_detlin_reduce(
     /* Use the second coefficient stats for the BPM detection */
     cpl_msg_info(__func__, "BPM detection") ;
     cur_coeffs = cpl_imagelist_get(coeffs_loc, 1) ;
-    pcur_coeffs = cpl_image_get_data_float(cur_coeffs) ;
+    pcur_coeffs = cpl_image_get_data_double(cur_coeffs) ;
     bpm_mask = cpl_mask_new(nx, ny) ;
     cpl_mask_threshold_image(bpm_mask, cur_coeffs,
             (double)CR2RES_BPM_OUTOFORDER-0.5, 
@@ -680,7 +680,7 @@ static int cr2res_cal_detlin_reduce(
     /* Free */
     cpl_image_delete(trace_image) ;
     cpl_table_delete(traces) ;
-    cpl_imagelist_delete(imlist) ;
+    hdrl_imagelist_delete(imlist) ;
     cpl_vector_delete(dits); 
 
     /* Return the results */
@@ -770,8 +770,8 @@ static int cr2res_cal_detlin_update(
     int         *   pnew_bpm ;
     cpl_image   *   current_coeffs_ima ;
     cpl_image   *   new_coeffs_ima ;
-    float       *   pcurrent_coeffs_ima ;
-    float       *   pnew_coeffs_ima ;
+    double      *   pcurrent_coeffs_ima ;
+    double      *   pnew_coeffs_ima ;
     
     /* Check Inputs */
     if (current_bpm == NULL || new_bpm == NULL || current_coeffs == NULL
@@ -803,8 +803,8 @@ static int cr2res_cal_detlin_update(
                     current_coeffs_ima = cpl_imagelist_get(current_coeffs, k) ;
                     new_coeffs_ima = cpl_imagelist_get(new_coeffs, k) ;
                     pcurrent_coeffs_ima = 
-                        cpl_image_get_data_float(current_coeffs_ima) ;
-                    pnew_coeffs_ima = cpl_image_get_data_float(new_coeffs_ima) ;
+                        cpl_image_get_data_double(current_coeffs_ima) ;
+                    pnew_coeffs_ima = cpl_image_get_data_double(new_coeffs_ima);
                     pcurrent_coeffs_ima[idx] = pnew_coeffs_ima[idx] ;
                 }
             }

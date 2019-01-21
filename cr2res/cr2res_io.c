@@ -196,7 +196,7 @@ int cr2res_io_get_ext_idx(
   @brief    Load an hdrl image from a image file
   @param    fname       The input file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A float hdrl image or NULL in error case. 
+  @return   A hdrl image or NULL in error case. 
             The returned object needs to be deallocated
   This function load imageѕ files (also where the error is missing)
   with the proper EXTNAME convention
@@ -223,9 +223,9 @@ hdrl_image * cr2res_io_load_image(
     if (ext_nr_data < 0) return NULL ;
     
     /* Load the image */
-    data = cpl_image_load(in, CPL_TYPE_FLOAT, 0, ext_nr_data) ;
+    data = cpl_image_load(in, CPL_TYPE_DOUBLE, 0, ext_nr_data) ;
     if (ext_nr_err >= 0) 
-        err = cpl_image_load(in, CPL_TYPE_FLOAT, 0, ext_nr_err) ;
+        err = cpl_image_load(in, CPL_TYPE_DOUBLE, 0, ext_nr_err) ;
     else    
         err = NULL ;
     out = hdrl_image_create(data, err) ;
@@ -241,7 +241,7 @@ hdrl_image * cr2res_io_load_image(
   @brief    Load an hdrl image list from a cube file
   @param    fname       The input file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A float hdrl image list or NULL in error case. 
+  @return   A hdrl image list or NULL in error case. 
             The returned object needs to be deallocated
   This function loads image list from a cube (also where the error is missing)
   with the proper EXTNAME convention
@@ -268,9 +268,9 @@ hdrl_imagelist * cr2res_io_load_image_list(
     if (wished_ext_nb_data < 0) return NULL ;
     
     /* Load the image list */
-    data = cpl_imagelist_load(in, CPL_TYPE_FLOAT, wished_ext_nb_data);
+    data = cpl_imagelist_load(in, CPL_TYPE_DOUBLE, wished_ext_nb_data);
     if (wished_ext_nb_error >= 0) 
-        error = cpl_imagelist_load(in, CPL_TYPE_FLOAT, wished_ext_nb_error);
+        error = cpl_imagelist_load(in, CPL_TYPE_DOUBLE, wished_ext_nb_error);
     else 
         error = NULL ;
     out = hdrl_imagelist_create(data, error) ;
@@ -286,7 +286,7 @@ hdrl_imagelist * cr2res_io_load_image_list(
   @brief    Load an hdrl image list from an images frameset
   @param    fset        The input frame set
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A float hdrl imagelist or NULL in error case. The returned object
+  @return   A hdrl imagelist or NULL in error case. The returned object
               needs to be deallocated
   The returned hdrl image list contains the list of all data images
   for a given detector from a list of input image frames
@@ -318,9 +318,9 @@ hdrl_imagelist * cr2res_io_load_image_list_from_set(
     if (ext_nr_data < 0) return NULL ;
     
     /* Load the image list */
-    data = cpl_imagelist_load_frameset(in, CPL_TYPE_FLOAT, 1, ext_nr_data) ;
+    data = cpl_imagelist_load_frameset(in, CPL_TYPE_DOUBLE, 1, ext_nr_data) ;
     if (ext_nr_err >= 0) 
-        err = cpl_imagelist_load_frameset(in, CPL_TYPE_FLOAT, 1, ext_nr_err) ;
+        err = cpl_imagelist_load_frameset(in, CPL_TYPE_DOUBLE, 1, ext_nr_err) ;
     else 
         err = NULL ;
     out = hdrl_imagelist_create(data, err) ;
@@ -461,7 +461,7 @@ cpl_image * cr2res_io_load_BPM(
   @brief    Load an image from a MASTER_DARK
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A float type hdrl image or NULL in error case. The returned object
+  @return   A hdrl image or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -498,7 +498,7 @@ hdrl_image * cr2res_io_load_MASTER_DARK(
   @brief    Load the detlin coefficients
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A float image list with the polynomial coefficients for each
+  @return   An image list with the polynomial coefficients for each
               pixel of the wished detector. The returned object list
               needs to be deallocated
  */
@@ -531,7 +531,7 @@ hdrl_imagelist * cr2res_io_load_DETLIN_COEFFS(
   @brief    Load an hdrl image from a MASTER_FLAT
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A float hdrl image or NULL in error case. The returned object
+  @return   A hdrl image or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -598,7 +598,7 @@ cpl_table * cr2res_io_load_TRACE_WAVE(
   @brief    Load an hdrl image from a SLIT MODEL
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A float hdrl image or NULL in error case. The returned object
+  @return   A hdrl image or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -635,7 +635,7 @@ hdrl_image * cr2res_io_load_SLIT_MODEL(
   @brief    Load an hdrl image from a TRACE_MAP
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A float hdrl image or NULL in error case. The returned object
+  @return   A hdrl image or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -665,7 +665,7 @@ hdrl_image * cr2res_io_load_TRACE_MAP(
   @brief    Load an hdrl image from a WAVE_MAP
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A float hdrl image or NULL in error case. The returned object
+  @return   A hdrl image or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -695,7 +695,7 @@ hdrl_image * cr2res_io_load_WAVE_MAP(
   @brief    Load an hdrl image from a SLIT_CURV_MAP
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A float hdrl image or NULL in error case. The returned object
+  @return   A hdrl image or NULL in error case. The returned object
               needs to be deallocated
  */
 /*----------------------------------------------------------------------------*/
@@ -909,7 +909,7 @@ int cr2res_io_save_MASTER_DARK(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, inframes, parlist,
-            master_darks, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
+            master_darks, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe,
             procatg, CR2RES_MASTER_DARK_PROTYPE) ;
 }
 
@@ -940,7 +940,7 @@ int cr2res_io_save_DETLIN_COEFFS(
         const char              *   recipe)
 {
     return cr2res_io_save_imagelist(filename, allframes, inframes, parlist,
-            coeffs, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
+            coeffs, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe,
             procatg, CR2RES_DETLIN_COEFFS_PROTYPE) ;
 }
 
@@ -1021,7 +1021,7 @@ int cr2res_io_save_CALIBRATED(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, inframes, parlist,
-            calib_collapsed, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
+            calib_collapsed, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe,
             procatg, CR2RES_CALIBRATED_PROTYPE) ;
 }
 
@@ -1052,7 +1052,7 @@ int cr2res_io_save_MASTER_FLAT(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, inframes, parlist,
-            master_flats, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
+            master_flats, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe,
             procatg, CR2RES_MASTER_FLAT_PROTYPE) ;
 }
 
@@ -1174,7 +1174,7 @@ int cr2res_io_save_SLIT_MODEL(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, inframes, parlist,
-            data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe, procatg, 
+            data, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe, procatg, 
             CR2RES_SLIT_MODEL_PROTYPE) ;
 }
 
@@ -1205,7 +1205,7 @@ int cr2res_io_save_TRACE_MAP(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, inframes, parlist,
-            data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
+            data, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe,
             procatg, CR2RES_TRACE_MAP_PROTYPE) ;
 }
 
@@ -1236,7 +1236,7 @@ int cr2res_io_save_WAVE_MAP(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, inframes, parlist,
-            data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
+            data, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe,
             procatg, CR2RES_WAVE_MAP_PROTYPE) ;
 }
 
@@ -1267,7 +1267,7 @@ int cr2res_io_save_SLIT_CURV_MAP(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, inframes, parlist,
-            data, qc_list, ext_plist, CPL_TYPE_FLOAT, recipe,
+            data, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe,
             procatg, CR2RES_SLIT_CURV_MAP_PROTYPE) ;
 }
 
@@ -1563,7 +1563,7 @@ static int cr2res_io_save_one_table(
   @param    data        The images to save (data and error per detector)
   @param    qc_list     The QC parameters
   @param    ext_plist   The extensions property lists
-  @param    type        CPL_TYPE_FLOAT, CPL_TYPE_INT,...
+  @param    type        CPL_TYPE_DOUBLE, CPL_TYPE_INT,...
   @param    recipe      The recipe name
   @param    procatg     PRO.CATG
   @param    protype     PRO.TYPE
@@ -1653,7 +1653,7 @@ static int cr2res_io_save_image(
   @param    data        The imagelists to save (only data for the moment)
   @param    qc_list     The QC parameters
   @param    ext_plist   The extensions property lists
-  @param    type        CPL_TYPE_FLOAT, CPL_TYPE_INT,...
+  @param    type        CPL_TYPE_DOUBLE, CPL_TYPE_INT,...
   @param    recipe      The recipe name
   @param    procatg     PRO.CATG
   @param    protype     PRO.TYPE

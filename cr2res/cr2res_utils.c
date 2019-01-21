@@ -637,42 +637,6 @@ cpl_error_code cr2res_detector_shotnoise_model(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief Load images from 2 different framesets and average each one seperately
-  @param    fs1     Frameset at angle 1
-  @param    fs2     Frameset at angle 2
-  @param    chip    Number of the detector (starts at 1, ends at 3)
-  @param    sum1    OUTPUT image from frameset 1
-  @param    sum2    OUTPUT image from frameset 2
-  @return   0 if successful, -1 otherwise
- */
-/*----------------------------------------------------------------------------*/
-int cr2res_pol_load_images(const cpl_frameset *fs1, const cpl_frameset *fs2,
-                            int chip, cpl_image **sum1, cpl_image **sum2)
-{
-    // in this case sum is the average of the input frames
-    // and as input is integer, the division is integer, which means
-    // if the sum is odd, there will be an error of 0.5
-    // TODO does it matter?
-    cpl_imagelist *imlist;
-    imlist = cpl_imagelist_load_frameset(fs1, CPL_TYPE_FLOAT, 0, chip);
-    if ((*sum1 = cpl_imagelist_collapse_create(imlist)) == NULL){
-        cpl_imagelist_delete(imlist);
-        return -1;
-    };
-    cpl_imagelist_delete(imlist);
-
-    imlist = cpl_imagelist_load_frameset(fs2, CPL_TYPE_FLOAT, 0, chip);
-    if ((*sum2 = cpl_imagelist_collapse_create(imlist)) == NULL){
-        cpl_imagelist_delete(imlist);
-        return -1;
-    };
-    cpl_imagelist_delete(imlist);
-
-    return 0;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Extract both traces from 2 images for demodulation
   @param im1                Image at angle 1
   @param im2                Image at angle 2

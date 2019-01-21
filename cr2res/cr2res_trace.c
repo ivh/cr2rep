@@ -1245,7 +1245,7 @@ static cpl_mask * cr2res_trace_signal_detect(
     cpl_image_subtract(smimage, image);
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_image_save(smimage, "debug_smimage.fits", CPL_TYPE_FLOAT, NULL,
+        cpl_image_save(smimage, "debug_smimage.fits", CPL_TYPE_DOUBLE, NULL,
                 CPL_IO_CREATE);
     }
 

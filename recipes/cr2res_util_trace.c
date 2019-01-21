@@ -357,7 +357,7 @@ static int cr2res_util_trace(
                     hdrl_image_get_size_x(flat_ima),
                     hdrl_image_get_size_y(flat_ima)) ;
             cpl_image_save(debug_ima, "debug_trace_image.fits",
-                    CPL_BPP_IEEE_FLOAT, NULL, CPL_IO_CREATE) ;
+                    CPL_BPP_IEEE_DOUBLE, NULL, CPL_IO_CREATE) ;
             cpl_image_delete(debug_ima) ;
         }
         hdrl_image_delete(flat_ima) ;

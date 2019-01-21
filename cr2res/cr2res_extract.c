@@ -735,10 +735,10 @@ int cr2res_extract_slitdec_vert(
             cpl_vector_save(slitfu_sw, "debug_slitfu.fits", CPL_TYPE_DOUBLE,
                     NULL, CPL_IO_CREATE);
             img_tmp = cpl_image_wrap_double(swath, height, model_sw);
-            cpl_image_save(img_tmp, "debug_model_sw.fits", CPL_TYPE_FLOAT,
+            cpl_image_save(img_tmp, "debug_model_sw.fits", CPL_TYPE_DOUBLE,
                     NULL, CPL_IO_CREATE);
             cpl_image_unwrap(img_tmp);
-            cpl_image_save(img_sw, "debug_img_sw.fits", CPL_TYPE_FLOAT, NULL,
+            cpl_image_save(img_sw, "debug_img_sw.fits", CPL_TYPE_DOUBLE, NULL,
                     CPL_IO_CREATE);
         }
 
@@ -1158,10 +1158,10 @@ int cr2res_extract_slitdec_curved(
             cpl_vector_save(slitfu_sw, "debug_slitfu.fits", CPL_TYPE_DOUBLE,
                     NULL, CPL_IO_CREATE);
             img_tmp = cpl_image_wrap_double(swath, height, model_sw);
-            cpl_image_save(img_tmp, "debug_model_sw.fits", CPL_TYPE_FLOAT,
+            cpl_image_save(img_tmp, "debug_model_sw.fits", CPL_TYPE_DOUBLE,
                     NULL, CPL_IO_CREATE);
             cpl_image_unwrap(img_tmp);
-            cpl_image_save(img_sw, "debug_img_sw.fits", CPL_TYPE_FLOAT, NULL,
+            cpl_image_save(img_sw, "debug_img_sw.fits", CPL_TYPE_DOUBLE, NULL,
                     CPL_IO_CREATE);
         }
 
