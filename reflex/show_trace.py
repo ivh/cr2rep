@@ -23,10 +23,6 @@ def compare(fname_trace, fname_img=None, fname_spec=None):
         ax.set_xticks([])
         ax.set_yticks([])
 
-        if fname_img:
-            imgdata = img[i].data
-            ax.imshow(imgdata, origin='lower',vmax=imgdata.max()*0.2)
-
         try: tdata = trace[i].data
         except:
             print('extension %s is missing, skipping.' % i)
@@ -34,6 +30,10 @@ def compare(fname_trace, fname_img=None, fname_spec=None):
         if tdata is None:
             print('Data for CHIP%s is empty, skipping.' % i)
             continue
+
+        if fname_img:
+            imgdata = img[i].data
+            ax.imshow(imgdata, origin='lower',vmax=imgdata.max()*0.2)
 
         for t in tdata:
             upper = t['Upper']
