@@ -175,17 +175,19 @@ cpl_image * cr2res_bpm_from_mask(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Apply the BPM correction to an image
+  @brief    Set the BPM and optionally apply the correction to an image
   @param    in          the input image
   @param    bpm         the BPM
   @param    chip        the chip number (1 to CR2RES_NB_DETECTORS)
+  @param    correction  flag to apply the correction
   @return   0 if everything is ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_bpm_correct_image(
+int cr2res_bpm_set_and_correct_image(
         cpl_image           *   in,
         const char          *   bpm,
-        int                     chip)
+        int                     chip,
+        int                     correct)
 {
     cpl_image      		*   bpm_im ;
     cpl_mask            *   bpm_im_bin ;
@@ -204,12 +206,17 @@ int cr2res_bpm_correct_image(
     cpl_mask_not(bpm_im_bin) ;
     cpl_image_delete(bpm_im) ;
 
-    /* Apply the bad pixels cleaning */
+    /* Set the Bad pixels */
     cpl_image_reject_from_mask(in, bpm_im_bin);
-    if (cpl_detector_interpolate_rejected(in) != CPL_ERROR_NONE) {
-        cpl_mask_delete(bpm_im_bin) ;
-        cpl_error_reset();
-        return -1 ;
+
+    /* Apply the bad pixels cleaning */
+    if (correct) {
+        if (cpl_detector_interpolate_rejected(in) != CPL_ERROR_NONE) {
+            cpl_mask_delete(bpm_im_bin) ;
+            cpl_error_reset();
+            cpl_msg_error(__func__, "Cannot clean the BPM") ;
+            return -1 ;
+        }
     }
     cpl_mask_delete(bpm_im_bin) ;
 

@@ -68,10 +68,11 @@ cpl_image * cr2res_bpm_from_mask(
         cpl_mask        *   mask,
         cr2res_bpm_type     type) ;
 
-int cr2res_bpm_correct_image(
+int cr2res_bpm_set_and_correct_image(
         cpl_image           *   in,
         const char          *   bpm,
-        int                     chip) ;
+        int                     chip,
+        int                     correct) ;
 
 cpl_mask * cr2res_bpm_extract_mask(
         const cpl_image     *   bpm_ima,

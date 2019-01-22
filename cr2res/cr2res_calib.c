@@ -91,8 +91,8 @@ hdrl_image * cr2res_calib_image(
     /* Clean the bad pixels */
     if (bpm != NULL) {
         cpl_msg_info(__func__, "Correct the bad pixels") ;
-        if (cr2res_bpm_correct_image(hdrl_image_get_image(out),
-                    cpl_frame_get_filename(bpm), chip) != 0) {
+        if (cr2res_bpm_set_and_correct_image(hdrl_image_get_image(out),
+                    cpl_frame_get_filename(bpm), chip, 0) != 0) {
             cpl_msg_error(__func__, "Cannot clean the bad pixels");
             hdrl_image_delete(out);
             return NULL ;
