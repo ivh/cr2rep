@@ -536,6 +536,7 @@ static int cr2res_cal_detlin_reduce(
         return -1 ;
     }
     hdrl_image_delete(collapsed) ;
+    cpl_image_delete(contrib);
     cpl_msg_indent_less() ;
 
     /* Allocate */
