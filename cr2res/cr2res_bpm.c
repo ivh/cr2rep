@@ -132,27 +132,6 @@ int cr2res_bpm_count(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Merge 2 BPMs
-  @param    bpm1        the first BPM
-  @param    bpm2        the second BPM
-  @return   the merged BPM or NULL in error case
- */
-/*----------------------------------------------------------------------------*/
-cpl_image * cr2res_bpm_merge(
-        cpl_image   *   bpm1,
-        cpl_image   *   bpm2)
-{
-
-
-
-
-
-
-    return NULL ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Create a BPM from a mask
   @param    mask        the input mask
   @param    type        the bad pixel type

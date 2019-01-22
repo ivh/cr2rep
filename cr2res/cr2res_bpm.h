@@ -60,10 +60,6 @@ int cr2res_bpm_count(
         cpl_image       *   bpm,
         cr2res_bpm_type     type) ;
 
-cpl_image * cr2res_bpm_merge(
-        cpl_image   *   bpm1,
-        cpl_image   *   bpm2) ;
-
 cpl_image * cr2res_bpm_from_mask(
         cpl_mask        *   mask,
         cr2res_bpm_type     type) ;
