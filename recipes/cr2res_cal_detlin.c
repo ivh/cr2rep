@@ -340,6 +340,7 @@ static int cr2res_cal_detlin(
         plist = cpl_propertylist_load(cpl_frame_get_filename(
                     cpl_frameset_get_position(raw_one, 0)), 0) ;
         setting_id = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
+        cr2res_format_setting(setting_id) ;
         cpl_propertylist_delete(plist) ;
 
         cpl_msg_info(__func__, "Process SETTING %s", setting_id) ;
@@ -375,15 +376,15 @@ static int cr2res_cal_detlin(
         /* Save the products */
 
         /* BPM */
-        out_file = cpl_sprintf("%s_%c_bpm.fits", RECIPE_STRING,
-                setting_id[0]) ;
+        out_file = cpl_sprintf("%s_%s_bpm.fits", RECIPE_STRING,
+                setting_id) ;
         cr2res_io_save_BPM(out_file, frameset, raw_one, parlist, bpm, NULL, 
                 ext_plist, CR2RES_DETLIN_BPM_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
         /* COEFFS */
-        out_file = cpl_sprintf("%s_%c_coeffs.fits", RECIPE_STRING,
-                setting_id[0]) ;
+        out_file = cpl_sprintf("%s_%s_coeffs.fits", RECIPE_STRING,
+                setting_id) ;
         cr2res_io_save_DETLIN_COEFFS(out_file, frameset, raw_one, parlist, 
                 coeffs, NULL, ext_plist, CR2RES_DETLIN_COEFFS_PROCATG, 
                 RECIPE_STRING) ;
