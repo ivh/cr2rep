@@ -25,6 +25,7 @@
                                 Includes
  -----------------------------------------------------------------------------*/
 
+#include <string.h>
 #include <cpl.h>
 
 #include "cr2res_utils.h"
@@ -54,6 +55,9 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_cal_flat_compare(
+        const cpl_frame   *   frame1,
+        const cpl_frame   *   frame2) ;
 static int cr2res_cal_flat_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frame     *   detlin_frame,
@@ -345,10 +349,18 @@ static int cr2res_cal_flat(
                             reduce_trace ;
     double                  bpm_low, bpm_high, bpm_lines_ratio, trace_smooth,
                             extract_smooth ;
-    cpl_frameset        *   rawframes ;
+
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   bpm_frame ;
+    cpl_frameset        *   rawframes ;
+    cpl_frameset        *   raw_one_setting ;
+    cpl_frameset        *   raw_one_setting_decker ;
+    cpl_size            *   labels ;
+    cpl_size                nlabels ;
+    cpl_propertylist    *   plist ;
+    char                *   setting_id ;
+
     hdrl_image          *   master_flat[CR2RES_NB_DETECTORS] ;
     cpl_table * trace_wave[CR2RES_NB_DECKER_POSITIONS][CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *
@@ -362,7 +374,7 @@ static int cr2res_cal_flat(
     hdrl_image          *   slit_model[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
-    int                     i, det_nr;
+    int                     l, i, det_nr;
 
     /* Initialise */
     cr2res_decker decker_values[CR2RES_NB_DECKER_POSITIONS] =
@@ -432,183 +444,226 @@ static int cr2res_cal_flat(
     bpm_frame = cpl_frameset_find_const(frameset,
             CR2RES_DARK_BPM_PROCATG) ;
 
-    /* Loop on the decker positions */
-    for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
-        /* Initialise */
-        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-            trace_wave[i][det_nr-1] = NULL ;
-            ext_plist[i][det_nr-1] = NULL ;
-        }
+    /* Extract RAW frames */
+    rawframes = cr2res_extract_frameset(frameset, CR2RES_FLAT_RAW) ;
+    if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
+        cpl_msg_error(__func__, "Cannot find any RAW file") ;
+        cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
+        return -1 ;
+    }
 
-        /* Get the Frames for the current decker position */
-        rawframes = cr2res_extract_decker_frameset(frameset,
-                CR2RES_FLAT_RAW, decker_values[i]) ;
-        if (rawframes == NULL) {
-            cpl_msg_info(__func__, "No files for decker: %s",
-                                    decker_desc[i]) ;
-            continue ;
-        }
-        cpl_msg_info(__func__, "Reduce %s Frames", decker_desc[i]) ;
+    /* Labelise the raw frames with the different settings */
+    if ((labels = cpl_frameset_labelise(rawframes, cr2res_cal_flat_compare,
+                &nlabels)) == NULL) {
+        cpl_msg_error(__func__, "Cannot labelise input frames") ;
+        cpl_frameset_delete(rawframes) ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
+
+    /* Loop on the settings */
+    for (l=0 ; l<(int)nlabels ; l++) {
+        /* Get the frames for the current setting */
+        raw_one_setting = cpl_frameset_extract(rawframes, labels, (cpl_size)l) ;
+
+        /* Get the current setting */
+        plist = cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position(raw_one_setting, 0)), 0) ;
+        setting_id = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
+        cr2res_format_setting(setting_id) ;
+        cpl_propertylist_delete(plist) ;
+        
+        cpl_msg_info(__func__, "Process SETTING %s", setting_id) ;
         cpl_msg_indent_more() ;
 
-        /* Loop on the detectors */
-        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        /* Loop on the decker positions */
+        for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
             /* Initialise */
-            master_flat[det_nr-1] = NULL ;
-            slit_func[det_nr-1] = NULL ;
-            extract_1d[det_nr-1] = NULL ;
-            slit_model[det_nr-1] = NULL ;
-            bpm[det_nr-1] = NULL ;
+            for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+                trace_wave[i][det_nr-1] = NULL ;
+                ext_plist[i][det_nr-1] = NULL ;
+            }
 
-            /* Compute only one detector */
-            if (reduce_det != 0 && det_nr != reduce_det) continue ;
-
-            cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
+            /* Get the Frames for the current decker position */
+            raw_one_setting_decker = cr2res_extract_decker_frameset(
+                    raw_one_setting, CR2RES_FLAT_RAW, decker_values[i]) ;
+            if (raw_one_setting_decker == NULL) {
+                cpl_msg_info(__func__, "No files for decker: %s",
+                        decker_desc[i]) ;
+                continue ;
+            }
+            cpl_msg_info(__func__, "Reduce %s Frames", decker_desc[i]) ;
             cpl_msg_indent_more() ;
 
-            /* Call the reduction function */
-            if (cr2res_cal_flat_reduce(rawframes, detlin_frame,
-                        master_dark_frame, bpm_frame, calib_cosmics_corr,
-                        bpm_low, bpm_high, bpm_lines_ratio,
-                        trace_degree, trace_min_cluster, trace_smooth,
-                        trace_opening, extract_oversample,
-                        extract_swath_width, extract_height, extract_smooth, 0,
-                        det_nr, reduce_order, reduce_trace,
-                        &(master_flat[det_nr-1]),
-                        &(trace_wave[i][det_nr-1]),
-                        &(slit_func[det_nr-1]),
-                        &(extract_1d[det_nr-1]),
-                        &(slit_model[det_nr-1]),
-                        &(bpm[det_nr-1]),
-                        &(ext_plist[i][det_nr-1])) == -1) {
-                cpl_msg_warning(__func__,
-                        "Failed to reduce detector %d of %s Frames",
-                        det_nr, decker_desc[i]);
+            /* Loop on the detectors */
+            for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+                /* Initialise */
+                master_flat[det_nr-1] = NULL ;
+                slit_func[det_nr-1] = NULL ;
+                extract_1d[det_nr-1] = NULL ;
+                slit_model[det_nr-1] = NULL ;
+                bpm[det_nr-1] = NULL ;
+
+                /* Compute only one detector */
+                if (reduce_det != 0 && det_nr != reduce_det) continue ;
+
+                cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
+                cpl_msg_indent_more() ;
+
+                /* Call the reduction function */
+                if (cr2res_cal_flat_reduce(raw_one_setting_decker, detlin_frame,
+                            master_dark_frame, bpm_frame, calib_cosmics_corr,
+                            bpm_low, bpm_high, bpm_lines_ratio,
+                            trace_degree, trace_min_cluster, trace_smooth,
+                            trace_opening, extract_oversample,
+                            extract_swath_width, extract_height, 
+                            extract_smooth, 0,
+                            det_nr, reduce_order, reduce_trace,
+                            &(master_flat[det_nr-1]),
+                            &(trace_wave[i][det_nr-1]),
+                            &(slit_func[det_nr-1]),
+                            &(extract_1d[det_nr-1]),
+                            &(slit_model[det_nr-1]),
+                            &(bpm[det_nr-1]),
+                            &(ext_plist[i][det_nr-1])) == -1) {
+                    cpl_msg_warning(__func__,
+                            "Failed to reduce detector %d of %s Frames",
+                            det_nr, decker_desc[i]);
+                }
+                cpl_msg_indent_less() ;
+            }
+
+            /* Ѕave Products */
+
+            /* SLIT_MODEL */
+            out_file = cpl_sprintf("%s_%s_%s_slit_model.fits", RECIPE_STRING,
+                    setting_id, decker_desc[i]) ;
+            cr2res_io_save_SLIT_MODEL(out_file, frameset,
+                    raw_one_setting_decker, parlist, slit_model, NULL, 
+                    ext_plist[i], CR2RES_FLAT_SLIT_MODEL_PROCATG,RECIPE_STRING);
+            cpl_free(out_file);
+
+            /* BLAZE */
+            out_file = cpl_sprintf("%s_%s_%s_blaze.fits", RECIPE_STRING,
+                    setting_id, decker_desc[i]) ;
+            cr2res_io_save_EXTRACT_1D(out_file, frameset, 
+                    raw_one_setting_decker, parlist, extract_1d, NULL, 
+                    ext_plist[i], CR2RES_FLAT_EXTRACT_1D_PROCATG,RECIPE_STRING);
+            cpl_free(out_file);
+
+            /* MASTER_FLAT */
+            out_file = cpl_sprintf("%s_%s_%s_master_flat.fits", RECIPE_STRING,
+                    setting_id, decker_desc[i]) ;
+            cr2res_io_save_MASTER_FLAT(out_file, frameset,
+                    raw_one_setting_decker, parlist, master_flat, NULL, 
+                    ext_plist[i],CR2RES_FLAT_MASTER_FLAT_PROCATG,RECIPE_STRING);
+            cpl_free(out_file);
+
+            /* TRACE_WAVE */
+            out_file = cpl_sprintf("%s_%s_%s_trace_wave.fits", RECIPE_STRING,
+                    setting_id, decker_desc[i]) ;
+            cr2res_io_save_TRACE_WAVE(out_file, frameset,
+                    raw_one_setting_decker, parlist, trace_wave[i], NULL, 
+                    ext_plist[i], CR2RES_FLAT_TRACE_WAVE_PROCATG,RECIPE_STRING);
+            cpl_free(out_file);
+
+            /* SLIT_FUNC */
+            out_file = cpl_sprintf("%s_%s_%s_slit_func.fits", RECIPE_STRING,
+                    setting_id, decker_desc[i]) ;
+            cr2res_io_save_SLIT_FUNC(out_file, frameset,
+                    raw_one_setting_decker, parlist, slit_func, NULL, 
+                    ext_plist[i], CR2RES_FLAT_SLIT_FUNC_PROCATG, RECIPE_STRING);
+            cpl_free(out_file);
+
+            /* BPM */
+            out_file = cpl_sprintf("%s_%s_%s_master_bpm.fits", RECIPE_STRING,
+                    setting_id, decker_desc[i]) ;
+            cr2res_io_save_BPM(out_file, frameset,
+                    raw_one_setting_decker, parlist, bpm, NULL,ext_plist[i], 
+                    CR2RES_FLAT_BPM_PROCATG, RECIPE_STRING) ;
+            cpl_free(out_file);
+
+            /* Free */
+            cpl_frameset_delete(raw_one_setting_decker) ;
+            for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+                if (master_flat[det_nr-1] != NULL)
+                    hdrl_image_delete(master_flat[det_nr-1]) ;
+                if (slit_func[det_nr-1] != NULL)
+                    cpl_table_delete(slit_func[det_nr-1]) ;
+                if (extract_1d[det_nr-1] != NULL)
+                    cpl_table_delete(extract_1d[det_nr-1]) ;
+                if (slit_model[det_nr-1] != NULL)
+                    hdrl_image_delete(slit_model[det_nr-1]) ;
+                if (bpm[det_nr-1] != NULL)
+                    cpl_image_delete(bpm[det_nr-1]) ;
             }
             cpl_msg_indent_less() ;
         }
 
-        /* Ѕave Products */
-
-        /* SLIT_MODEL */
-		out_file = cpl_sprintf("%s_%s_slit_model.fits", RECIPE_STRING,
-                decker_desc[i]) ;
-		cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist,
-                slit_model, NULL, ext_plist[i], CR2RES_FLAT_SLIT_MODEL_PROCATG,
-                RECIPE_STRING) ;
-		cpl_free(out_file);
-
-        /* BLAZE */
-		out_file = cpl_sprintf("%s_%s_blaze.fits", RECIPE_STRING,
-                decker_desc[i]) ;
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist,
-                extract_1d, NULL, ext_plist[i], CR2RES_FLAT_EXTRACT_1D_PROCATG,
-                RECIPE_STRING) ;
-		cpl_free(out_file);
-
-        /* MASTER_FLAT */
-		out_file = cpl_sprintf("%s_%s_master_flat.fits", RECIPE_STRING,
-                decker_desc[i]) ;
-        cr2res_io_save_MASTER_FLAT(out_file, frameset, rawframes, parlist,
-                master_flat, NULL, ext_plist[i], CR2RES_FLAT_MASTER_FLAT_PROCATG,
-                RECIPE_STRING) ;
-		cpl_free(out_file);
-
-        /* TRACE_WAVE */
-		out_file = cpl_sprintf("%s_%s_trace_wave.fits", RECIPE_STRING,
-                decker_desc[i]) ;
-        cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist,
-                trace_wave[i], NULL, ext_plist[i],
-                CR2RES_FLAT_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
-		cpl_free(out_file);
-
-        /* SLIT_FUNC */
-		out_file = cpl_sprintf("%s_%s_slit_func.fits", RECIPE_STRING,
-                decker_desc[i]) ;
-		cr2res_io_save_SLIT_FUNC(out_file, frameset, rawframes, parlist,
-                slit_func, NULL, ext_plist[i], CR2RES_FLAT_SLIT_FUNC_PROCATG,
-                RECIPE_STRING) ;
-		cpl_free(out_file);
-
-        /* BPM */
-        out_file = cpl_sprintf("%s_%s_master_bpm.fits", RECIPE_STRING,
-                decker_desc[i]) ;
-        cr2res_io_save_BPM(out_file, frameset, rawframes, parlist, bpm, NULL,
-                ext_plist[i], CR2RES_FLAT_BPM_PROCATG, RECIPE_STRING) ;
-        cpl_free(out_file);
-
-        /* Free */
-        cpl_frameset_delete(rawframes) ;
+        /* Merge the Decker positions TRACE_WAVE files in a single one */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-            if (master_flat[det_nr-1] != NULL)
-                hdrl_image_delete(master_flat[det_nr-1]) ;
-            if (slit_func[det_nr-1] != NULL)
-                cpl_table_delete(slit_func[det_nr-1]) ;
-            if (extract_1d[det_nr-1] != NULL)
-                cpl_table_delete(extract_1d[det_nr-1]) ;
-            if (slit_model[det_nr-1] != NULL)
-                hdrl_image_delete(slit_model[det_nr-1]) ;
-            if (bpm[det_nr-1] != NULL)
-                cpl_image_delete(bpm[det_nr-1]) ;
-        }
-        cpl_msg_indent_less() ;
-    }
-
-    /* Merge the Decker positions TRACE_WAVE files in a single one */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        /* Initialise */
-        if (trace_wave[0][det_nr-1] != NULL)
-            trace_wave_merged[det_nr-1] =
-                cpl_table_duplicate(trace_wave[0][det_nr-1]) ;
-        else
-            trace_wave_merged[det_nr-1] = NULL ;
-        /* Loop on the other detectors */
-        for (i=1 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
-            trace_wave1 = trace_wave_merged[det_nr-1] ;
-            trace_wave2 = trace_wave[i][det_nr-1] ;
-            if (trace_wave1 == NULL && trace_wave2 == NULL) {
-                /* Do nothing - go to next iteration */
+            /* Initialise */
+            if (trace_wave[0][det_nr-1] != NULL)
+                trace_wave_merged[det_nr-1] =
+                    cpl_table_duplicate(trace_wave[0][det_nr-1]) ;
+            else
                 trace_wave_merged[det_nr-1] = NULL ;
-            } else if (trace_wave1 == NULL && trace_wave2 != NULL) {
-                trace_wave_merged[det_nr-1] = cpl_table_duplicate(trace_wave2) ;
-            } else if (trace_wave1 != NULL && trace_wave2 == NULL) {
-                /* Do nothing - go to next iteration */
-            } else {
-                merged = cr2res_trace_merge(trace_wave1, trace_wave2) ;
-                if (merged == NULL) {
-                    cpl_msg_error(__func__, "Failed merging") ;
+            /* Loop on the other detectors */
+            for (i=1 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
+                trace_wave1 = trace_wave_merged[det_nr-1] ;
+                trace_wave2 = trace_wave[i][det_nr-1] ;
+                if (trace_wave1 == NULL && trace_wave2 == NULL) {
+                    /* Do nothing - go to next iteration */
+                    trace_wave_merged[det_nr-1] = NULL ;
+                } else if (trace_wave1 == NULL && trace_wave2 != NULL) {
+                    trace_wave_merged[det_nr-1] = 
+                        cpl_table_duplicate(trace_wave2) ;
+                } else if (trace_wave1 != NULL && trace_wave2 == NULL) {
+                    /* Do nothing - go to next iteration */
                 } else {
-                    cpl_table_delete(trace_wave_merged[det_nr-1]) ;
-                    trace_wave_merged[det_nr-1] = merged ;
+                    merged = cr2res_trace_merge(trace_wave1, trace_wave2) ;
+                    if (merged == NULL) {
+                        cpl_msg_error(__func__, "Failed merging") ;
+                    } else {
+                        cpl_table_delete(trace_wave_merged[det_nr-1]) ;
+                        trace_wave_merged[det_nr-1] = merged ;
+                    }
                 }
             }
         }
+
+        /* Free the traces */
+        for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++)
+            for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
+                if (trace_wave[i][det_nr-1] != NULL)
+                    cpl_table_delete(trace_wave[i][det_nr-1]) ;
+
+
+        /* Save TRACE_WAVE_MERGED */
+        out_file = cpl_sprintf("%s_%s_trace_wave_merged.fits", RECIPE_STRING, 
+                setting_id) ;
+        cr2res_io_save_TRACE_WAVE(out_file, frameset, raw_one_setting, parlist,
+                trace_wave_merged, NULL, ext_plist[0],
+                CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG, RECIPE_STRING) ;
+        cpl_free(out_file);
+        cpl_free(setting_id) ;
+
+        /* Free extensions */
+        for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++)
+            for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
+                if (ext_plist[i][det_nr-1] != NULL)
+                    cpl_propertylist_delete(ext_plist[i][det_nr-1]) ;
+
+        /* Free the merged traces */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
+            if (trace_wave_merged[det_nr-1] != NULL)
+                cpl_table_delete(trace_wave_merged[det_nr-1]) ;
+
+        cpl_frameset_delete(raw_one_setting) ;
+        cpl_msg_indent_less() ;
     }
-
-    /* Free the traces */
-    for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++)
-        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
-            if (trace_wave[i][det_nr-1] != NULL)
-                cpl_table_delete(trace_wave[i][det_nr-1]) ;
-
-
-    /* Save TRACE_WAVE_MERGED */
-    out_file = cpl_sprintf("%s_trace_wave_merged.fits", RECIPE_STRING) ;
-    cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist,
-            trace_wave_merged, NULL, ext_plist[0],
-            CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG, RECIPE_STRING) ;
-    cpl_free(out_file);
-
-    /* Free extensions */
-    for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++)
-        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
-            if (ext_plist[i][det_nr-1] != NULL)
-                cpl_propertylist_delete(ext_plist[i][det_nr-1]) ;
-
-    /* Free the merged traces */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
-        if (trace_wave_merged[det_nr-1] != NULL)
-            cpl_table_delete(trace_wave_merged[det_nr-1]) ;
+    cpl_free(labels);
+    cpl_frameset_delete(rawframes) ;
 
     return (int)cpl_error_get_code();
 }
@@ -660,7 +715,7 @@ static int cr2res_cal_flat_reduce(
     cpl_image           *   bpm_im ;
     cpl_mask            *   bpm_flat ;
     cpl_table           *   traces ;
-    cpl_bivector          **  spectrum ;
+    cpl_bivector        **  spectrum ;
     cpl_vector          **  slit_func_vec ;
     hdrl_image          *   model_master;
     cpl_table           *   slit_func_tab ;
@@ -756,87 +811,87 @@ static int cr2res_cal_flat_reduce(
 
     /* Extract */
     nb_traces = cpl_table_get_nrow(traces) ;
-	spectrum = cpl_malloc(nb_traces * sizeof(cpl_bivector *)) ;
-	slit_func_vec = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
-	model_master = hdrl_image_duplicate(collapsed) ;
-	hdrl_image_mul_scalar(model_master, (hdrl_value){0.0, 0.0}) ;
+    spectrum = cpl_malloc(nb_traces * sizeof(cpl_bivector *)) ;
+    slit_func_vec = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
+    model_master = hdrl_image_duplicate(collapsed) ;
+    hdrl_image_mul_scalar(model_master, (hdrl_value){0.0, 0.0}) ;
 
-	/* Loop over the traces and extract them */
+    /* Loop over the traces and extract them */
     cpl_msg_info(__func__, "Extract the traces") ;
     cpl_msg_indent_more() ;
-	for (i=0 ; i<nb_traces ; i++) {
-		/* Initialise */
-		slit_func_vec[i] = NULL ;
-		spectrum[i] = NULL ;
-		model_tmp = NULL ;
+    for (i=0 ; i<nb_traces ; i++) {
+        /* Initialise */
+        slit_func_vec[i] = NULL ;
+        spectrum[i] = NULL ;
+        model_tmp = NULL ;
 
-		/* Get Order and trace id */
-		order = cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) ;
-		trace_id = cpl_table_get(traces, CR2RES_COL_TRACENB, i, NULL) ;
+        /* Get Order and trace id */
+        order = cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) ;
+        trace_id = cpl_table_get(traces, CR2RES_COL_TRACENB, i, NULL) ;
 
-		/* Check if this order needs to be skipped */
-		if (reduce_order > -1 && order != reduce_order) continue ;
+        /* Check if this order needs to be skipped */
+        if (reduce_order > -1 && order != reduce_order) continue ;
 
-		/* Check if this trace needs to be skipped */
-		if (reduce_trace > -1 && trace_id != reduce_trace) continue ;
+        /* Check if this trace needs to be skipped */
+        if (reduce_trace > -1 && trace_id != reduce_trace) continue ;
 
-		cpl_msg_info(__func__, "Process Order %d/Trace %d", order, trace_id) ;
-		cpl_msg_indent_more() ;
+        cpl_msg_info(__func__, "Process Order %d/Trace %d", order, trace_id) ;
+        cpl_msg_indent_more() ;
 
-		/* Call the Extraction */
-		if (extract_sum_only) {
-			/* Call the SUM ONLY extraction */
-			if (cr2res_extract_sum_vert(collapsed,
+        /* Call the Extraction */
+        if (extract_sum_only) {
+            /* Call the SUM ONLY extraction */
+            if (cr2res_extract_sum_vert(collapsed,
                         traces, order, trace_id, extract_height,
                         &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
-				cpl_msg_error(__func__, "Cannot (sum-)extract the trace") ;
-				slit_func_vec[i] = NULL ;
-				spectrum[i] = NULL ;
-				model_tmp = NULL ;
-				cpl_error_reset() ;
-				cpl_msg_indent_less() ;
-				continue ;
-			}
-		} else {
-			/* Call the SLIT DECOMPOSITION */
-			if (cr2res_extract_slitdec_curved(
+                cpl_msg_error(__func__, "Cannot (sum-)extract the trace") ;
+                slit_func_vec[i] = NULL ;
+                spectrum[i] = NULL ;
+                model_tmp = NULL ;
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+        } else {
+            /* Call the SLIT DECOMPOSITION */
+            if (cr2res_extract_slitdec_curved(
                         collapsed,
                         traces, order, trace_id, extract_height,
                         extract_swath_width, extract_oversample,
                         extract_smooth, &(slit_func_vec[i]), &(spectrum[i]),
                         &model_tmp) != 0) {
-				cpl_msg_error(__func__, "Cannot (slitdec-) extract the trace") ;
-				slit_func_vec[i] = NULL ;
-				spectrum[i] = NULL ;
-				model_tmp = NULL ;
-				cpl_error_reset() ;
-				cpl_msg_indent_less() ;
-				continue ;
-			}
-		}
+                cpl_msg_error(__func__, "Cannot (slitdec-) extract the trace") ;
+                slit_func_vec[i] = NULL ;
+                spectrum[i] = NULL ;
+                model_tmp = NULL ;
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+        }
 
-		/* Update the model global image */
-		if (model_tmp != NULL) {
-			hdrl_image_add_image(model_master, model_tmp) ;
-			hdrl_image_delete(model_tmp) ;
-		}
-		cpl_msg_indent_less() ;
-	}
+        /* Update the model global image */
+        if (model_tmp != NULL) {
+            hdrl_image_add_image(model_master, model_tmp) ;
+            hdrl_image_delete(model_tmp) ;
+        }
+        cpl_msg_indent_less() ;
+    }
     cpl_msg_indent_less() ;
 
-	/* Create the slit_func_tab for the current detector */
-	slit_func_tab = cr2res_extract_SLITFUNC_create(slit_func_vec, traces) ;
+    /* Create the slit_func_tab for the current detector */
+    slit_func_tab = cr2res_extract_SLITFUNC_create(slit_func_vec, traces) ;
 
-	/* Create the extracted_tab for the current detector */
-	extract_tab = cr2res_extract_EXTRACT1D_create(spectrum, traces) ;
+    /* Create the extracted_tab for the current detector */
+    extract_tab = cr2res_extract_EXTRACT1D_create(spectrum, traces) ;
 
-	/* Deallocate Vectors */
-	for (i=0 ; i<nb_traces ; i++) {
-		if (slit_func_vec[i] != NULL) cpl_vector_delete(slit_func_vec[i]) ;
-		if (spectrum[i] != NULL) cpl_bivector_delete(spectrum[i]) ;
-	}
-	cpl_free(spectrum) ;
-	cpl_free(slit_func_vec) ;
+    /* Deallocate Vectors */
+    for (i=0 ; i<nb_traces ; i++) {
+        if (slit_func_vec[i] != NULL) cpl_vector_delete(slit_func_vec[i]) ;
+        if (spectrum[i] != NULL) cpl_bivector_delete(spectrum[i]) ;
+    }
+    cpl_free(spectrum) ;
+    cpl_free(slit_func_vec) ;
 
     /* Compute the Master flat */
     cpl_msg_info(__func__, "Compute the master flat") ;
@@ -850,7 +905,7 @@ static int cr2res_cal_flat_reduce(
         hdrl_image_delete(model_master) ;
         cpl_propertylist_delete(plist);
         hdrl_image_delete(collapsed) ;
-		cpl_table_delete(traces) ;
+        cpl_table_delete(traces) ;
         cpl_msg_indent_less() ;
         return -1 ;
     }
@@ -881,7 +936,7 @@ static int cr2res_cal_flat_reduce(
         cpl_propertylist_delete(plist);
         cpl_image_delete(bpm_im) ;
         cpl_mask_delete(bpm_flat) ;
-		cpl_table_delete(traces) ;
+        cpl_table_delete(traces) ;
         cpl_msg_indent_less() ;
         return -1 ;
     }
@@ -919,4 +974,62 @@ static int cr2res_cal_flat_reduce(
     *bpm = bpm_im ;
     return 0 ;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Comparison function to identify different settings
+  @param    frame1  first frame 
+  @param    frame2  second frame 
+  @return   0 if frame1!=frame2, 1 if frame1==frame2, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_cal_flat_compare(
+        const cpl_frame   *   frame1,
+        const cpl_frame   *   frame2)
+{
+    int                     comparison ;
+    cpl_propertylist    *   plist1 ;
+    cpl_propertylist    *   plist2 ;
+    const char          *   sval1 ;
+    const char          *   sval2 ;
+
+    /* Test entries */
+    if (frame1==NULL || frame2==NULL) return -1 ;
+
+    /* Get property lists */
+    if ((plist1=cpl_propertylist_load(cpl_frame_get_filename(frame1),0))==NULL){
+        cpl_msg_error(__func__, "getting header from reference frame");
+        return -1 ;
+    }
+    if ((plist2=cpl_propertylist_load(cpl_frame_get_filename(frame2),0))==NULL){
+        cpl_msg_error(__func__, "getting header from reference frame");
+        cpl_propertylist_delete(plist1) ;
+        return -1 ;
+    }
+
+    /* Test status */
+    if (cpl_error_get_code()) {
+        cpl_propertylist_delete(plist1) ;
+        cpl_propertylist_delete(plist2) ;
+        return -1 ;
+    }
+
+    comparison = 1 ;
+
+    /* Compare the SETTING used */
+    sval1 = cr2res_pfits_get_wlen_id(plist1) ;
+    sval2 = cr2res_pfits_get_wlen_id(plist2) ;
+    if (cpl_error_get_code()) {
+        cpl_msg_error(__func__, "Cannot get the reference wavelength");
+        cpl_propertylist_delete(plist1) ;
+        cpl_propertylist_delete(plist2) ;
+        return -1 ;
+    }
+    if (strcmp(sval1, sval2)) comparison = 0 ;
+
+    cpl_propertylist_delete(plist1) ;
+    cpl_propertylist_delete(plist2) ;
+    return comparison ;
+}
+
 
