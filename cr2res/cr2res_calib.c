@@ -213,9 +213,9 @@ static int cr2res_detlin_correct(
     double              *   pdata ;
     double              *   perr ;
     int                     nx, ny ;
-    double                  val, val2, val3 ;
-    double                  err, err2, err3 ;
-    double                  tmp1, tmp2;
+    double                  orig, val, val2, val3 ;
+    double                  err1, err2, err3, err4 ;
+    double                  tmp1, tmp2, tmp3;
     int                     i, j ;
 
     /* Test entries */
@@ -263,29 +263,43 @@ static int cr2res_detlin_correct(
 
     /* Loop on pixels */
     for (i=0 ; i<nx*ny ; i++) {
-        if (fabs(pimc[i]) < 1e-5) {
-            /* Correct this pixel in each plane */
-            pdata[i] = pdata[i]-pima[i] ;
-            perr[i] = sqrt(perr[i] * perr[i] - perra[i] * perra[i]) ;
+        // for each pixel invert p' = a + b * p + c * p * p
+        if (fabs(pimc[i]) < 1e-5 & fabs(pimb[i]) < 1e-3) {
+            // b and c == 0, can't invert
+            pdata[i] = 0;
+            perr[i] = 0;
+        } else if (fabs(pimc[i]) < 1e-5) {
+            // If c is 0 -> polynomial is linear
+            pdata[i] = (pdata[i]-pima[i]) / pimb[i] ;
+            perr[i] = 1. / pimb[i] * sqrt(perr[i] * perr[i] + perra[i] * perra[i] + perrb[i] * perrb[i] * pdata[i] * pdata[i]) ;
         } else if (fabs(pimb[i]) < 1e-3) {
-            pdata[i] = 0.0 ;
-            perr[i] = 0.0 ;
+            // if b == 0 -> polynomial is quadratic but simpler
+            tmp1 = (pdata[i] - pima[i]) / pimc[i] ;
+            pdata[i] = sqrt(tmp1) ;
+            perr[i] = 1. / (pdata[i] * 2. * pimc[i]) * sqrt(perr[i] * perr[i] + perra[i] * perra[i] + perrc[i] * perrc[i] * tmp1 * tmp1) ;
         } else {
             /* Correct this pixel in each plane */
-            val = pdata[i] ;
-            err = perr[i] ;
-            val2 = 2 * pimc[i] / (pimb[i] * pimb[i]) ;
-            err2 = 2 * sqrt(perrc[i] * perrc[i] / (pimb[i] * pimb[i] * pimb[i] * pimb[i]) + 4 * pimc[i] * pimc[i] * perrb[i] * perrb[i] / (pimb[i] * pimb[i] * pimb[i] * pimb[i] * pimb[i] * pimb[i])) ;
-            val3 = 1-2*val2*(pima[i]-val) ;
-            if (val3 < 0.0) {
-                pdata[i] = val-pima[i] ;
-                perr[i] = sqrt(err * err + perra[i] * perra[i]) ;
-            } else {
-                pdata[i]=(sqrt(val3)-1) / val2 ;
-                tmp1 = 2 * sqrt(val3) - val3 - 1 ;
-                tmp2 = 4 * val2 * val2 * val2 * val2 * val3 ;
-                perr[i] = sqrt((perra[i] * perra[i]  + perr[i] * perr[i])/ (val3 * val3) + tmp1 * tmp1 / tmp2);
-            }
+            // invert the quadratic polynomial with second order taylor expansion for the square root
+            orig = pdata[i] ;
+            tmp1 = (pdata[i]  - pima[i]) / pimb[i] ;
+            pdata[i] = tmp1 * (1. - pimc[i] / pimb[i] * tmp1) ;
+            // sigma y
+            err1 = (1. - 2. * pimc[i] / pimb[i] * tmp1) / pimb[i];
+            // sigma a
+            err2 = err1 ;
+            // sigma b
+            tmp2 = tmp1 / pimb[i];
+            tmp3 = pimc[i] * orig / (pimb[i] * pimb[i]) ;
+            err3 = - tmp1 - pima[i] * pimc[i] / (pimb[i] * pimb[i]) * (tmp1 + 3. * tmp2) + 3. * pimc[i] * tmp2 * tmp2;
+            // sigma c
+            err4 = tmp1 * tmp1 / pimb[i];
+
+            // add them all together
+            err1 = perr[i] * perr[i] * err1 * err1;
+            err2 = perra[i] * perra[i] * err2 * err2;
+            err3 = perrb[i] * perrb[i] * err3 * err3;
+            err4 = perrc[i] * perrc[i] * err4 * err4;
+            perr[i] = sqrt(err1 + err2 + err3 + err4);
         }
     }
     /* return */
