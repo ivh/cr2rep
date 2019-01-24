@@ -115,4 +115,8 @@ int cr2res_trace_add_extra_columns(
         const char          *   infile,
         int                     det_nr) ;
 
+cpl_table * cr2res_trace_new_slit_fraction(
+        const cpl_table     *   traces,
+        const cpl_array     *   new_slit_fraction) ;
+
 #endif

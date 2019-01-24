@@ -264,4 +264,6 @@ char * cr2res_dfs_SPEC_ERR_colname(int, int);
 char * cr2res_dfs_SLIT_FUNC_colname(int, int) ;
 char * cr2res_dfs_SLIT_CURV_colname(int, int) ;
 
+int cr2res_dfs_check_traces_table(const cpl_table * traces) ;
+
 #endif

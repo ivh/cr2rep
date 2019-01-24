@@ -55,6 +55,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
 
 static int cr2res_obs_1d_reduce(
         const cpl_frameset  *   rawframes,
+        const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
@@ -84,11 +85,11 @@ static char cr2res_obs_1d_description[] =
 "CRIRES+ 1d Observation recipe\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
 "raw-file.fits " CR2RES_OBS_1D_RAW"\n"
-"detlin.fits " CR2RES_DETLIN_COEFFS_PROTYPE "\n"
-"master_dark.fits " CR2RES_MASTER_DARK_PROTYPE "\n"
-"master_flat.fits " CR2RES_MASTER_FLAT_PROTYPE "\n"
-"bpm.fits " CR2RES_BPM_PROTYPE "\n"
-"trace_wave.fits " CR2RES_TRACE_WAVE_PROTYPE "\n"
+"trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
+"detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG "\n"
+"master_dark.fits " CR2RES_MASTER_DARK_PROCATG "\n"
+"master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG "\n"
+"bpm.fits " CR2RES_FLAT_BPM_PROCATG "\n"
 " The recipe produces the following products:\n"
 "cr2res_obs_1d_extractA.fits " CR2RES_OBS_1D_EXTRACTA_PROCATG "\n"
 "cr2res_obs_1d_extractB.fits " CR2RES_OBS_1D_EXTRACTB_PROCATG "\n"
@@ -276,11 +277,11 @@ static int cr2res_obs_1d(
                             reduce_trace ;
     double                  extract_smooth ;
     cpl_frameset        *   rawframes ;
+    const cpl_frame     *   trace_wave_frame ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
-    const cpl_frame     *   trace_wave_frame ;
     hdrl_image          *   combineda[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   combinedb[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
@@ -322,6 +323,8 @@ static int cr2res_obs_1d(
     }
 	
     /* Get Calibration frames */
+    trace_wave_frame = cpl_frameset_find_const(frameset,
+            CR2RES_FLAT_TRACE_WAVE_PROCATG) ;
     detlin_frame = cpl_frameset_find_const(frameset,
             CR2RES_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
@@ -330,8 +333,6 @@ static int cr2res_obs_1d(
             CR2RES_FLAT_MASTER_FLAT_PROCATG) ; 
     bpm_frame = cpl_frameset_find_const(frameset,
             CR2RES_FLAT_BPM_PROCATG) ;
-    trace_wave_frame = cpl_frameset_find_const(frameset,
-            CR2RES_FLAT_TRACE_WAVE_PROCATG) ;
 
     /* Get the RAW Frames */
     rawframes = cr2res_extract_frameset(frameset, CR2RES_OBS_1D_RAW) ;
@@ -357,7 +358,7 @@ static int cr2res_obs_1d(
         cpl_msg_indent_more() ;
 
         /* Call the reduction function */
-        if (cr2res_obs_1d_reduce(rawframes, detlin_frame, 
+        if (cr2res_obs_1d_reduce(rawframes, trace_wave_frame, detlin_frame, 
                     master_dark_frame, master_flat_frame, bpm_frame, 0,
                     extract_oversample, extract_swath_width, extract_height, 
                     extract_smooth, 0, det_nr,
@@ -407,6 +408,7 @@ static int cr2res_obs_1d(
 /*----------------------------------------------------------------------------*/
 static int cr2res_obs_1d_reduce(
         const cpl_frameset  *   rawframes,
+        const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
@@ -426,10 +428,21 @@ static int cr2res_obs_1d_reduce(
 {
     hdrl_imagelist      *   in ;
     hdrl_imagelist      *   in_calib ;
-    hdrl_imagelist      *   in_noda ;
-    hdrl_imagelist      *   in_nodb ;
+    hdrl_imagelist      *   in_a ;
+    hdrl_imagelist      *   in_b ;
+    hdrl_imagelist      *   diff_a ;
+    hdrl_imagelist      *   diff_b ;
+    hdrl_image          *   collapsed_a ;
+    hdrl_image          *   collapsed_b ;
+    cpl_image           *   contrib_a ;
+    cpl_image           *   contrib_b ;
     cr2res_nodding_pos  *   nod_positions ;
     cpl_vector          *   dits ;
+    cpl_table           *   trace_wave ;
+    cpl_table           *   trace_wave_a ;
+    cpl_table           *   trace_wave_b ;
+    cpl_array           *   slit_frac_a ;
+    cpl_array           *   slit_frac_b ;
     cpl_size                nframes, i ;
     int                     det_nr ;
 	
@@ -460,19 +473,137 @@ static int cr2res_obs_1d_reduce(
         cpl_vector_dump(dits, stdout) ;
 
     /* Load image list */
-    in = cr2res_io_load_image_list_from_set(rawframes, reduce_det) ;
+    if ((in = cr2res_io_load_image_list_from_set(rawframes, 
+                    reduce_det)) == NULL) {
+        cpl_msg_error(__func__, "Cannot load images") ;
+        cpl_free(nod_positions) ;    
+        if (dits != NULL) cpl_vector_delete(dits) ;
+        return -1 ;
+    }
+    if (hdrl_imagelist_get_size(in) != cpl_frameset_get_size(rawframes)) {
+        cpl_msg_error(__func__, "Inconsistent number of loaded images") ;
+        cpl_free(nod_positions) ;    
+        if (dits != NULL) cpl_vector_delete(dits) ;
+        hdrl_imagelist_delete(in) ;
+        return -1 ;
+    }
 
     /* Calibrate the images */
-    in_calib = cr2res_calib_imagelist(in, reduce_det, 0, master_flat_frame,
-            master_dark_frame, bpm_frame, detlin_frame, dits) ;
-
-    /* Split the image lists */
-    cr2res_combine_nodding_split(in_calib, nod_positions, &in_noda, 
-            &in_nodb) ; 
-
+    if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0, master_flat_frame,
+            master_dark_frame, bpm_frame, detlin_frame, dits)) == NULL) {
+        cpl_msg_error(__func__, "Failed to apply the calibrations") ;
+        cpl_free(nod_positions) ;    
+        if (dits != NULL) cpl_vector_delete(dits) ;
+        hdrl_imagelist_delete(in) ;
+        return -1 ;
+    }
+    hdrl_imagelist_delete(in) ;
     if (dits != NULL) cpl_vector_delete(dits) ;
 
-    *combineda = *combinedb = *extracta = *extractb = NULL ;
+    /* Split the image lists */
+    if (cr2res_combine_nodding_split(in_calib, nod_positions, &in_a, 
+            &in_b)) {
+        cpl_msg_error(__func__, "Failed to split the nodding positions") ;
+        cpl_free(nod_positions) ;    
+        hdrl_imagelist_delete(in_calib) ;
+        return -1 ;
+    }
+    cpl_free(nod_positions) ;    
+    hdrl_imagelist_delete(in_calib) ;
+
+    /* Check the sizes of A/B image lists */
+    if (hdrl_imagelist_get_size(in_a) != hdrl_imagelist_get_size(in_b)
+            || hdrl_imagelist_get_size(in_a) == 0) {
+        cpl_msg_error(__func__, "Іnconsistent A / B number of images") ;
+        hdrl_imagelist_delete(in_a) ;
+        hdrl_imagelist_delete(in_b) ;
+        return -1 ;
+    }
+
+    /* Compute diff_a = in_a - in_b and diff_b = in_b - in_a */
+    diff_a = hdrl_imagelist_duplicate(in_a) ;
+    hdrl_imagelist_sub_imagelist(diff_a, in_b) ;
+    diff_b = hdrl_imagelist_duplicate(in_b) ;
+    hdrl_imagelist_sub_imagelist(diff_b, in_a) ;
+
+    hdrl_imagelist_delete(in_a) ;
+    hdrl_imagelist_delete(in_b) ;
+    
+    /* Collapse A-B and B-A */
+    cpl_msg_info(__func__, "Collapse A-B and B-A") ;
+    cpl_msg_indent_more() ;
+    if (hdrl_imagelist_collapse_mean(diff_a, &collapsed_a, &contrib_a) !=
+            CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Failed to Collapse A-B") ;
+        hdrl_imagelist_delete(diff_a) ;
+        hdrl_imagelist_delete(diff_b) ;
+        cpl_msg_indent_less() ;
+        return -1 ;
+    }
+    cpl_image_delete(contrib_a) ;
+	hdrl_imagelist_delete(diff_a) ;
+    if (hdrl_imagelist_collapse_mean(diff_b, &collapsed_b, &contrib_b) !=
+            CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Failed to Collapse B-A") ;
+        hdrl_imagelist_delete(diff_b) ;
+        hdrl_image_delete(collapsed_a) ;
+        cpl_msg_indent_less() ;
+        return -1 ;
+    }
+    cpl_image_delete(contrib_b) ;
+	hdrl_imagelist_delete(diff_b) ;
+    cpl_msg_indent_less() ;
+
+    /* Load the trace wave */
+    cpl_msg_info(__func__, "Load the TRACE WAVE") ;
+    if ((trace_wave = cr2res_io_load_TRACE_WAVE(cpl_frame_get_filename(
+                        trace_wave_frame), reduce_det)) == NULL) {
+        cpl_msg_error(__func__, "Failed to Load the traces file") ;
+        hdrl_image_delete(collapsed_a) ;
+        hdrl_image_delete(collapsed_b) ;
+        return -1 ;
+    }
+
+    /* Compute the slit fractions for A and B positions extraction */   
+    slit_frac_a = slit_frac_b = NULL ;
+
+    /* Recompute the traces for the new slit fractions */
+    if ((trace_wave_a = cr2res_trace_new_slit_fraction(trace_wave,
+            slit_frac_a)) == NULL) {
+        cpl_msg_error(__func__, "failed to compute the traces for a extr.") ;
+        hdrl_image_delete(collapsed_a) ;
+        hdrl_image_delete(collapsed_b) ;
+        cpl_table_delete(trace_wave) ;
+        cpl_array_delete(slit_frac_a) ;
+        cpl_array_delete(slit_frac_b) ;
+        return -1 ;
+    }
+    cpl_array_delete(slit_frac_a) ;
+    if ((trace_wave_b = cr2res_trace_new_slit_fraction(trace_wave,
+            slit_frac_b)) == NULL) {
+        cpl_msg_error(__func__, "failed to compute the traces for b extr.") ;
+        hdrl_image_delete(collapsed_a) ;
+        hdrl_image_delete(collapsed_b) ;
+        cpl_table_delete(trace_wave) ;
+        cpl_table_delete(trace_wave_a) ;
+        cpl_array_delete(slit_frac_b) ;
+        return -1 ;
+    }
+    cpl_array_delete(slit_frac_b) ;
+    cpl_table_delete(trace_wave) ;
+
+    /* Execute the extraction */
+
+
+
+
+
+    cpl_table_delete(trace_wave_a) ;
+    cpl_table_delete(trace_wave_b) ;
+
+
+    hdrl_image_delete(collapsed_a) ;
+    hdrl_image_delete(collapsed_b) ;
 
     return 0 ;
 }

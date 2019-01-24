@@ -84,8 +84,60 @@ char cr2res_nodding_position_char(cr2res_nodding_pos pos)
 {
     if (pos == CR2RES_NODDING_A) return 'A' ;
     if (pos == CR2RES_NODDING_B) return 'B' ;
-
     return '-' ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  Split A/B positions in 2 image lists
+  @param    in          Input image list
+  @param    positions   nodding positions
+  @param    pos_a       [out] A position images
+  @param    pos_b       [out] B position images
+  @return   0 if ok, -1 otherwise
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_combine_nodding_split(
+        const hdrl_imagelist    *   in,
+        cr2res_nodding_pos      *   positions,
+        hdrl_imagelist          **  pos_a,
+        hdrl_imagelist          **  pos_b)
+{
+    hdrl_imagelist  *   nod_a ;
+    hdrl_imagelist  *   nod_b ;
+    hdrl_image      *   cur_ima ;
+    cpl_size            alist_idx, blist_idx, i, nima ;
+
+    /* Check entries */
+    if (in==NULL || positions==NULL || pos_a==NULL || pos_b==NULL)
+        return -1;
+
+    /* Initialise */
+    nima = hdrl_imagelist_get_size(in) ;
+    alist_idx = blist_idx = 0 ;
+
+    /* Create A/B positions */
+    nod_a = hdrl_imagelist_new() ;
+    nod_b = hdrl_imagelist_new() ;
+
+    /* Loop on the positions */
+    for (i=0 ; i<nima ; i++) {
+        if (positions[i] == CR2RES_NODDING_A) {
+            cur_ima = hdrl_image_duplicate(hdrl_imagelist_get(in, i)) ;
+            hdrl_imagelist_set(nod_a, cur_ima, alist_idx) ;
+            alist_idx++ ;
+            cur_ima = NULL ;
+        }
+        if (positions[i] == CR2RES_NODDING_B) {
+            cur_ima = hdrl_image_duplicate(hdrl_imagelist_get(in, i)) ;
+            hdrl_imagelist_set(nod_b, cur_ima, blist_idx) ;
+            blist_idx++ ;
+            cur_ima = NULL ;
+        }
+    }
+    *pos_a = nod_a ;
+    *pos_b = nod_b ;
+    return 0 ;
 }
 
 /**@}*/

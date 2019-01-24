@@ -183,4 +183,33 @@ char * cr2res_dfs_SLIT_FUNC_colname(int order, int trace)
             CR2RES_COL_SLIT_FUNC_SUFFIX);
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Check completeness of trace table
+  @param    trace       The trace table to check
+  @return   1 if complete, 0 if not, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_dfs_check_traces_table(const cpl_table * traces)
+{
+    /* Check entries */
+    if (traces == NULL) return -1 ;
+
+    /* Check completeness */
+    if (!cpl_table_has_column(traces, CR2RES_COL_UPPER) ||
+            !cpl_table_has_column(traces, CR2RES_COL_LOWER) ||
+            !cpl_table_has_column(traces, CR2RES_COL_ALL) ||
+            !cpl_table_has_column(traces, CR2RES_COL_WAVELENGTH) ||
+            !cpl_table_has_column(traces, CR2RES_COL_WAVELENGTH_ERROR) ||
+            !cpl_table_has_column(traces, CR2RES_COL_ORDER) ||
+            !cpl_table_has_column(traces, CR2RES_COL_TRACENB) ||
+            !cpl_table_has_column(traces, CR2RES_COL_SLIT_CURV_A) ||
+            !cpl_table_has_column(traces, CR2RES_COL_SLIT_CURV_B) ||
+            !cpl_table_has_column(traces, CR2RES_COL_SLIT_CURV_C) ||
+            !cpl_table_has_column(traces, CR2RES_COL_SLIT_FRACTION)) {
+        return 0 ;
+    }
+    return 1 ;
+}
+
 /**@}*/

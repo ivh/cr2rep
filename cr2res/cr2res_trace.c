@@ -556,7 +556,7 @@ cpl_table * cr2res_trace_merge(
 
         /* Loop on the table */
         for (i=0 ; i<nrows ; i++) {
-            /* Each time the curent order is encountered, update the trace id  */
+            /* Each time the curent order is encountered, update the trace id */
             if (cpl_table_get(merged, CR2RES_COL_ORDER, i, NULL)==orders[j]) {
                 cpl_table_set(merged, CR2RES_COL_TRACENB, i, cur_trace_id);
                 cur_trace_id++ ;
@@ -600,7 +600,7 @@ cpl_size cr2res_get_trace_table_index(
 
 /*----------------------------------------------------------------------------*/
 /**
-   @brief   Get the Wavelength polynomial from a TRACE_WAVE table
+   @brief   Get a polynomial from a TRACE_WAVE table
    @param   tab     A TRACE_WAVE table
    @param   poly_column CR2RES_COL_WAVELENGTH, CR2RES_COL_UPPER,
                         CR2RES_COL_LOWER or CR2RES_COL_ALL
@@ -1040,6 +1040,68 @@ int cr2res_trace_add_extra_columns(
     }
     cpl_array_delete(array_neg) ;
     return 0 ;
+}
+
+/* TODO */
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Recompute the traces at a newly specified slit fraction
+  @param    traces              The input traces
+  @param    new_slit_fraction   The newly wishded slit fraction
+  @return   The newly computed trace 
+  
+  For each trace (i.e. row) in the input trace, the function will try to
+  produce a new row in the output trace table with the passed slit
+  fraction.
+
+  - 
+
+
+
+
+
+
+
+ */
+/*----------------------------------------------------------------------------*/
+cpl_table * cr2res_trace_new_slit_fraction(
+        const cpl_table     *   traces,
+        const cpl_array     *   new_slit_fraction)
+{
+    cpl_table   *   out ;
+    cpl_size        i, nrows ;
+
+    /* Check entries */
+    if (traces == NULL || new_slit_fraction == NULL) return NULL ;
+    if (cr2res_dfs_check_traces_table(traces) != 1) {
+        cpl_msg_error(__func__, "The traces table is incomplete") ;
+        return NULL ;
+    }
+
+    /* Initialise */
+    nrows = cpl_table_get_nrow(traces) ;
+    out = cpl_table_duplicate(traces) ;
+
+    /* Loop on the traces */
+    for (i=0 ; i<nrows; i++) {
+        /* Set slit fraction */
+        cpl_table_set_array(out, CR2RES_COL_SLIT_FRACTION, i,new_slit_fraction);
+
+        /* Set new trace */
+        cpl_table_set_array(out, CR2RES_COL_ALL, i, NULL);
+        cpl_table_set_array(out, CR2RES_COL_UPPER, i, NULL);
+        cpl_table_set_array(out, CR2RES_COL_LOWER, i, NULL);
+
+        /* Set new Wavelength  */
+        cpl_table_set_array(out, CR2RES_COL_WAVELENGTH, i, NULL);
+        cpl_table_set_array(out, CR2RES_COL_WAVELENGTH_ERROR, i, NULL);
+
+        /* Compute new Curvature */
+        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_A, i, NULL);
+        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_B, i, NULL);
+        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_C, i, NULL);
+    }
+    return out ;
 }
 
 /**@}*/
