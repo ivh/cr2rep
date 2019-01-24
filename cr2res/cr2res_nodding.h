@@ -17,42 +17,31 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-#ifndef CR2RES_CALIB_H
-#define CR2RES_CALIB_H
+#ifndef CR2RES_NODDING_H
+#define CR2RES_NODDING_H
 
 /*-----------------------------------------------------------------------------
                                    Includes
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
-#include "hdrl.h"
+#include <hdrl.h>
 
 /*-----------------------------------------------------------------------------
-                                    Define
+                                   Define
  -----------------------------------------------------------------------------*/
+
+typedef enum {
+    CR2RES_NODDING_A,
+    CR2RES_NODDING_B,
+    CR2RES_NODDING_NONE,
+} cr2res_nodding_pos ; 
 
 /*-----------------------------------------------------------------------------
-                                Prototypes
+                                       Prototypes
  -----------------------------------------------------------------------------*/
 
-hdrl_imagelist * cr2res_calib_imagelist(
-        const hdrl_imagelist    *   in,
-        int                         chip,
-        int                         cosmics_corr,
-        const cpl_frame         *   flat,
-        const cpl_frame         *   dark,
-        const cpl_frame         *   bpm,
-        const cpl_frame         *   detlin,
-        const cpl_vector        *   dits) ;
-
-hdrl_image * cr2res_calib_image(
-        const hdrl_image    *   in,
-        int                     chip,
-        int                     cosmics_corr,
-        const cpl_frame     *   flat,
-        const cpl_frame     *   dark,
-        const cpl_frame     *   bpm,
-        const cpl_frame     *   detlin,
-        double                  dit) ;
+cr2res_nodding_pos * cr2res_nodding_read_positions( const cpl_frameset * in) ;
+char cr2res_nodding_position_char(cr2res_nodding_pos pos) ;
 
 #endif

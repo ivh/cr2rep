@@ -28,6 +28,7 @@
 #include <cpl.h>
 
 #include "cr2res_utils.h"
+#include "cr2res_nodding.h"
 #include "cr2res_calib.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
@@ -423,21 +424,60 @@ static int cr2res_obs_1d_reduce(
         cpl_table           **  extractb,
         cpl_propertylist    **  ext_plist)
 {
-    cpl_image * img = cpl_image_new(1024, 1024, CPL_TYPE_FLOAT);
-    cpl_table * tab = cpl_table_new(1024) ;
+    hdrl_imagelist      *   in ;
+    hdrl_imagelist      *   in_calib ;
+    hdrl_imagelist      *   in_noda ;
+    hdrl_imagelist      *   in_nodb ;
+    cr2res_nodding_pos  *   nod_positions ;
+    cpl_vector          *   dits ;
+    cpl_size                nframes, i ;
+    int                     det_nr ;
+	
+    /* Check Inputs */
+    if (combineda == NULL || combinedb == NULL || extracta == NULL ||
+            extractb == NULL || ext_plist == NULL || rawframes == NULL)
+        return -1 ;
 
-    *combineda = hdrl_image_create(img, img); 
-    *combinedb = hdrl_image_create(img, img); 
+    /* Initialise */
+    nframes = cpl_frameset_get_size(rawframes) ;
 
-    *extracta = cpl_table_duplicate(tab) ;
-    *extractb = cpl_table_duplicate(tab) ;
+    /* Get the Nodding positions */
+    nod_positions = cr2res_nodding_read_positions(rawframes) ;
 
-    cpl_image_delete(img) ;
-    cpl_table_delete(tab) ;
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        for (i=0 ; i<nframes ; i++) {
+            cpl_msg_debug(__func__, "Frame %s - Nodding %c", 
+                    cpl_frame_get_filename(
+                        cpl_frameset_get_position_const(rawframes, i)), 
+                cr2res_nodding_position_char(nod_positions[i])) ;
+        }
+    }
 
-    cpl_msg_warning(__func__, 
-            "The recipe is not implemented - Results are fake") ;
+    /* Load the DITs if necessary */
+    if (master_dark_frame != NULL)  dits = cr2res_read_dits(rawframes) ;
+    else                            dits = NULL ;
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG && dits != NULL) 
+        cpl_vector_dump(dits, stdout) ;
+
+    /* Load image list */
+    in = cr2res_io_load_image_list_from_set(rawframes, reduce_det) ;
+
+    /* Calibrate the images */
+    in_calib = cr2res_calib_imagelist(in, reduce_det, 0, master_flat_frame,
+            master_dark_frame, bpm_frame, detlin_frame, dits) ;
+
+    /* Split the image lists */
+    cr2res_combine_nodding_split(in_calib, nod_positions, &in_noda, 
+            &in_nodb) ; 
+
+    if (dits != NULL) cpl_vector_delete(dits) ;
+
+    *combineda = *combinedb = *extracta = *extractb = NULL ;
 
     return 0 ;
 }
+
+
+
+
 

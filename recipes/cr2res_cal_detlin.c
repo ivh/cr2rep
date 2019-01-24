@@ -445,7 +445,6 @@ static int cr2res_cal_detlin_reduce(
     cpl_image           *   cur_errors ;
     double              *   pcur_errors ;
     cpl_propertylist    *   plist ;
-    cpl_propertylist    *   plist_loc ;
     cpl_image           *   bpm_loc ;
     int                 *   pbpm_loc ;
     cpl_image           *   trace_image ;
@@ -488,16 +487,8 @@ static int cr2res_cal_detlin_reduce(
     }
 
     /* Load the DITs */
-    dits = cpl_vector_new(cpl_frameset_get_size(rawframes)) ;
-    for (i=0 ; i< cpl_vector_get_size(dits) ; i++) {
-        plist_loc = cpl_propertylist_load(
-                cpl_frame_get_filename(
-                    cpl_frameset_get_position_const(rawframes, i)), 0) ;
-        cpl_vector_set(dits, i, cr2res_pfits_get_dit(plist_loc)) ;
-        cpl_propertylist_delete(plist_loc) ;
-    }
-            
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG) cpl_vector_dump(dits, stdout) ;
+    dits = cr2res_read_dits(rawframes) ;
+    /* TODO - error checking */
 
     if (trace_collapse) {
         /* Collapse all input images */

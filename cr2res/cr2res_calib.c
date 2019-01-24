@@ -51,6 +51,66 @@ static int cr2res_detlin_correct(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    The images calibration routine for a given chip on a list
+  @param    in          the input hdrl image list
+  @param    chip        the chip to calibrate (1 to CR2RES_NB_DETECTORS)
+  @param    cosmics_corr    Flag to correct for cosmics
+  @param    flat        the flat frame or NULL
+  @param    dark        the dark frame or NULL
+  @param    bpm         the bpm frame or NULL
+  @param    detlin      the detlin frame or NULL
+  @param    dits        the DITs of the images for the dark correction
+  The flat, dark and bpm must have the same size as the input in.
+  In the case of detlin, data are only taken in normal mode.
+  @return   the newly allocated imagelist or NULL in error case
+ */
+/*----------------------------------------------------------------------------*/
+hdrl_imagelist * cr2res_calib_imagelist(
+        const hdrl_imagelist    *   in,
+        int                         chip,
+        int                         cosmics_corr,
+        const cpl_frame         *   flat,
+        const cpl_frame         *   dark,
+        const cpl_frame         *   bpm,
+        const cpl_frame         *   detlin,
+        const cpl_vector        *   dits)
+{
+    hdrl_imagelist      *   out ;
+    const hdrl_image    *   cur_ima ;
+    hdrl_image          *   cur_ima_calib ;
+    double                  dit ;
+    cpl_size                i ;
+
+    /* Check Inputs */
+    if (in == NULL) return NULL ;
+
+    /* Initialise */
+    dit = 0.0 ;
+
+    /* Create calibrated image list */
+    out = hdrl_imagelist_new() ;
+
+    /* Loop on the images */
+    for (i=0 ; i<hdrl_imagelist_get_size(in) ; i++) {
+        cur_ima = hdrl_imagelist_get(in, i) ;
+        if (dark != NULL) dit = cpl_vector_get(dits, i) ;
+
+        /* Calibrate */
+        if ((cur_ima_calib = cr2res_calib_image(cur_ima, chip, cosmics_corr, 
+                        flat, dark, bpm, detlin, dit)) == NULL) {
+            cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
+            hdrl_imagelist_delete(out) ;
+            return NULL ;
+        } else {
+            /* All the calibrated image in the list */
+            hdrl_imagelist_set(out, cur_ima_calib, i);
+        }
+    }
+    return out ;
+}
+ 
+/*----------------------------------------------------------------------------*/
+/**
   @brief    The images calibration routine for a given chip
   @param    in          the input hdrl image
   @param    chip        the chip to calibrate (1 to CR2RES_NB_DETECTORS)

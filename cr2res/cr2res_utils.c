@@ -45,13 +45,43 @@
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get the DITS from a frame set
+  @param    set     Input frame set
+  @return   the DITS or NULL in error case
+ */
+/*----------------------------------------------------------------------------*/
+cpl_vector * cr2res_read_dits(const cpl_frameset * in)
+{
+    cpl_vector          *   dits ;
+    cpl_propertylist    *   plist ;
+    cpl_size                i ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    /* Allocate the vector */
+    dits = cpl_vector_new(cpl_frameset_get_size(in)) ;
+
+    /* Loop on the frames */
+    for (i=0 ; i< cpl_vector_get_size(dits) ; i++) {
+        plist = cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position_const(in, i)), 0) ;
+        cpl_vector_set(dits, i, cr2res_pfits_get_dit(plist)) ;
+        cpl_propertylist_delete(plist) ;
+    }
+
+    return dits ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Format the setting
   @param    Setting
   @return   0 if ok, -1 in error case
     replace / by _ in the setting string
  */
 /*----------------------------------------------------------------------------*/
-int * cr2res_format_setting(char * setting_id)
+int cr2res_format_setting(char * setting_id)
 {
     int     i, len ;
 

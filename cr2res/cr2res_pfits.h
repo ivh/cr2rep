@@ -25,11 +25,14 @@
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
+#include "cr2res_nodding.h"
 #include "cr2res_utils.h"
 
 /*-----------------------------------------------------------------------------
                                    Functions prototypes
  -----------------------------------------------------------------------------*/
+
+cr2res_nodding_pos cr2res_pfits_get_nodding_pos(const cpl_propertylist * plist);
 
 const char * cr2res_pfits_get_procatg(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_protype(const cpl_propertylist *) ;

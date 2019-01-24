@@ -706,8 +706,7 @@ static int cr2res_cal_flat_reduce(
 {
     const char          *   first_file ;
     hdrl_imagelist      *   imlist ;
-    hdrl_image          *   cur_ima ;
-    hdrl_image          *   cur_ima_calib ;
+    hdrl_imagelist      *   imlist_calibrated ;
     hdrl_image          *   collapsed ;
     cpl_image           *   contrib ;
     cpl_propertylist    *   plist ;
@@ -721,7 +720,8 @@ static int cr2res_cal_flat_reduce(
     cpl_table           *   slit_func_tab ;
     cpl_table           *   extract_tab ;
     hdrl_image          *   model_tmp ;
-    double                  dit, qc_lamp_ints, qc_mean_level, qc_mean_flux,
+    cpl_vector          *   dits ;
+    double                  qc_lamp_ints, qc_mean_level, qc_mean_flux,
                             qc_med_flux, qc_med_snr, qc_trace_centery ;
     int                     i, ext_nr, nb_traces, order, trace_id,
                             qc_overexposed, qc_nbbad ;
@@ -735,9 +735,8 @@ static int cr2res_cal_flat_reduce(
     ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
 
     /* Get the DIT for the Dark correction */
-    plist = cpl_propertylist_load(first_file, 0) ;
-    dit = cr2res_pfits_get_dit(plist) ;
-    cpl_propertylist_delete(plist);
+    dits = cr2res_read_dits(rawframes) ;
+    /* TODO - error checking */
 
     /* Load the extension header for saving */
     plist = cpl_propertylist_load(first_file, ext_nr) ;
@@ -756,25 +755,21 @@ static int cr2res_cal_flat_reduce(
     /* Calibrate the Data */
     cpl_msg_info(__func__, "Calibrate the input images") ;
     cpl_msg_indent_more() ;
-
-    /* Loop on the images */
-    for (i=0 ; i<hdrl_imagelist_get_size(imlist) ; i++) {
-        cur_ima = hdrl_imagelist_get(imlist, i) ;
-
-        /* Calibrate */
-        if ((cur_ima_calib = cr2res_calib_image(cur_ima, reduce_det,
-                        calib_cosmics_corr, NULL, master_dark_frame,
-                        bpm_frame, detlin_frame, dit)) == NULL) {
-            cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
-            cpl_propertylist_delete(plist);
-            hdrl_imagelist_delete(imlist) ;
-            cpl_msg_indent_less() ;
-            return -1 ;
-        } else {
-            /* Replace the calibrated image in the list */
-            hdrl_imagelist_set(imlist, cur_ima_calib, i);
-        }
+    if ((imlist_calibrated = cr2res_calib_imagelist(imlist, reduce_det, 
+                    calib_cosmics_corr, NULL, master_dark_frame, bpm_frame, 
+                    detlin_frame, dits)) == NULL) {
+        cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
+        cpl_propertylist_delete(plist);
+        cpl_vector_delete(dits) ;
+        hdrl_imagelist_delete(imlist) ;
+        cpl_msg_indent_less() ;
+        return -1 ;
+    } else {
+        /* Replace the calibrated image in the list */
+        hdrl_imagelist_delete(imlist) ;
+        imlist = imlist_calibrated ;
     }
+    cpl_vector_delete(dits) ;
     cpl_msg_indent_less() ;
 
     /* Collapse */

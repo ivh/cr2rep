@@ -44,6 +44,23 @@
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    find out the nodding position
+  @param    plist       property list to read from
+  @return   
+ */
+/*----------------------------------------------------------------------------*/
+cr2res_nodding_pos cr2res_pfits_get_nodding_pos(const cpl_propertylist * plist)
+{
+    const char  *   sval ;
+    sval = cpl_propertylist_get_string(plist, "ESO SEQ NODPOS");
+    if (sval[0] == 'A') return CR2RES_NODDING_A ;
+    if (sval[0] == 'B') return CR2RES_NODDING_B ;
+    return CR2RES_NODDING_NONE ; 
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    find out the PRO.CATG
   @param    plist       property list to read from
   @return   pointer to statically allocated character string
