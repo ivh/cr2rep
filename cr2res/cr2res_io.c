@@ -127,8 +127,10 @@ char * cr2res_io_create_extname(
 
     /* Create wished EXTNAME */
     /* If this changes, update warning message in cr2res_io_get_ext_idx() */
-    if (data)   wished_extname = cpl_sprintf("CHIP%d.INT1", detector) ;
-    else        wished_extname = cpl_sprintf("CHIP%dERR.INT1", detector) ;
+    if (data == 1)      wished_extname = cpl_sprintf("CHIP%d.INT1", detector) ;
+    else if (data == 0)    wished_extname = cpl_sprintf("CHIP%dERR.INT1", detector) ;
+    else if (data = 2)     wished_extname = cpl_sprintf("CHIP%dBPM.INT1", detector) ;
+    else return NULL;
 
     return wished_extname ;
 }
@@ -209,7 +211,8 @@ hdrl_image * cr2res_io_load_image(
     hdrl_image      *   out ;
     cpl_image       *   data ;
     cpl_image       *   err ;
-    int                 ext_nr_data, ext_nr_err ;
+    cpl_mask       *   bpm ;
+    int                 ext_nr_data, ext_nr_err, ext_nr_bpm ;
 
     /* Check entries */
     if (in == NULL) return NULL ;
@@ -218,6 +221,7 @@ hdrl_image * cr2res_io_load_image(
     /* Get the extension numbers for this detector */
     ext_nr_data = cr2res_io_get_ext_idx(in, detector, 1) ;
     ext_nr_err = cr2res_io_get_ext_idx(in, detector, 0) ;
+    ext_nr_bpm = cr2res_io_get_ext_idx(in, detector, 2) ;
 
     /* The wished extension was not found */
     if (ext_nr_data < 0) return NULL ;
@@ -228,9 +232,20 @@ hdrl_image * cr2res_io_load_image(
         err = cpl_image_load(in, CPL_TYPE_DOUBLE, 0, ext_nr_err) ;
     else    
         err = NULL ;
+
+    /* Load and set the mask*/
+    if (ext_nr_err >= 0) 
+        bpm = cpl_mask_load(in, 0, ext_nr_bpm) ;
+    else    
+        bpm = NULL ;
+
+    /* Assemble output */
+    cpl_image_set_bpm(data, bpm);
     out = hdrl_image_create(data, err) ;
+
     if (data != NULL) cpl_image_delete(data) ;
     if (err != NULL) cpl_image_delete(err) ;
+    if (bpm != NULL) cpl_mask_delete(bpm) ;
 
     /* Return  */
     return out ;
@@ -244,7 +259,10 @@ hdrl_image * cr2res_io_load_image(
   @return   A hdrl image list or NULL in error case. 
             The returned object needs to be deallocated
   This function loads image list from a cube (also where the error is missing)
-  with the proper EXTNAME convention
+  with the proper EXTNAME convention.
+
+  TODO: Add loading the BPM extensions into image masks ?
+
  */
 /*----------------------------------------------------------------------------*/
 hdrl_imagelist * cr2res_io_load_image_list(
@@ -254,7 +272,7 @@ hdrl_imagelist * cr2res_io_load_image_list(
     hdrl_imagelist  *   out ;
     cpl_imagelist   *   data ;
     cpl_imagelist   *   error ;
-    int                 wished_ext_nb_data, wished_ext_nb_error ;
+    int                 wished_ext_nb_data, wished_ext_nb_error, wished_ext_nr_bpm ;
 
     /* Check entries */
     if (in == NULL) return NULL ;
