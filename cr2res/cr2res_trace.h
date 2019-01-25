@@ -86,15 +86,15 @@ cpl_size cr2res_get_nb_traces_with_wavelength(
         int                     order) ;
 
 cpl_vector * cr2res_trace_get_ycen(
-            cpl_table   *   trace,
-            cpl_size        order_nb,
-            cpl_size        trace_nb,
-            int             size);
+        const cpl_table *   trace,
+        cpl_size            order_nb,
+        cpl_size            trace_nb,
+        int                 size) ;
 
 int cr2res_trace_get_height(
-            cpl_table   *   trace,
-            cpl_size        order_nb,
-            cpl_size        trace_nb);
+        const cpl_table *   trace,
+        cpl_size            order_nb,
+        cpl_size            trace_nb) ;
 
 cpl_vector * cr2res_trace_compute_middle(
         cpl_polynomial  *   trace1,

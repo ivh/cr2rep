@@ -447,6 +447,9 @@ static int cr2res_obs_1d_reduce(
     cpl_table           *   trace_wave_b ;
     cpl_array           *   slit_frac_a ;
     cpl_array           *   slit_frac_b ;
+    cpl_table           *   extracted_a ;
+    cpl_table           *   extracted_b ;
+    cpl_propertylist    *   plist ;
     cpl_size                nframes, i ;
     int                     det_nr ;
 	
@@ -569,6 +572,7 @@ static int cr2res_obs_1d_reduce(
     }
 
     /* Compute the slit fractions for A and B positions extraction */   
+    /* TODO */
     slit_frac_a = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
     cpl_array_set(slit_frac_a, 0, 0.0) ;
     cpl_array_set(slit_frac_a, 1, 0.0) ;
@@ -607,18 +611,31 @@ static int cr2res_obs_1d_reduce(
     cpl_table_delete(trace_wave) ;
 
     /* Execute the extraction */
-
-
-    cpl_table_save(trace_wave_a, NULL, NULL, "coucou.fits", CPL_IO_CREATE) ;
-
-
+    /* TODO */
+    extracted_a = extracted_b = NULL ;
 
     cpl_table_delete(trace_wave_a) ;
     cpl_table_delete(trace_wave_b) ;
 
+    /* Load the Header and store the QC parameters */
+    /* TODO */
+    plist = NULL ;
 
-    hdrl_image_delete(collapsed_a) ;
-    hdrl_image_delete(collapsed_b) ;
+    /*
+        In error case: 
+
+        hdrl_image_delete(collapsed_a) ;
+        hdrl_image_delete(collapsed_b) ;
+        cpl_table_delete(extracted_a) ;
+        cpl_table_delete(extracted_b) ;
+        cpl_propertylist_delete(plist); 
+    */
+
+    *combineda = collapsed_a ;
+    *combinedb = collapsed_b ;
+    *extracta = extracted_a ;
+    *extractb = extracted_b ;
+    *ext_plist = plist ;
 
     return 0 ;
 }

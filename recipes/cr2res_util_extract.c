@@ -259,7 +259,7 @@ static int cr2res_util_extract(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param;
-    int                     oversample, swath_width,
+    int                     oversample, swath_width, extr_height,
                             reduce_det, reduce_order, reduce_trace ;
     double                  smooth_slit ;
     cpl_frame           *   fr ;
@@ -272,12 +272,8 @@ static int cr2res_util_extract(
     cpl_table           *   extract_tab[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_table ;
-    cpl_bivector        **  spectrum ;
-    cpl_vector          **  slit_func ;
-    hdrl_image          *   model_tmp ;
     hdrl_image          *   science_hdrl;
-    int                     det_nr, ext_nr, extr_height, nb_traces, trace_id,
-                            order, i ;
+    int                     det_nr, ext_nr, order ;
     cr2res_extr_method      extr_method;
 
     /* RETRIEVE INPUT PARAMETERS */
@@ -360,18 +356,14 @@ static int cr2res_util_extract(
         cpl_msg_info(__func__, "Load the trace table") ;
         if ((trace_table = cr2res_io_load_TRACE_WAVE(trace_file,
                         det_nr)) == NULL) {
-            cpl_msg_error(__func__,
-                    "Failed to get trace table - skip detector");
+            cpl_msg_error(__func__,"Failed to get trace table - skip detector");
             cpl_error_reset() ;
             cpl_msg_indent_less() ;
             continue ;
         }
-        nb_traces = cpl_table_get_nrow(trace_table) ;
 
         /* Load the image in which the traces are to extract */
         cpl_msg_info(__func__, "Load the Image") ;
-
-        /* Load the image */
         if ((science_hdrl = cr2res_io_load_image(science_file, det_nr))==NULL) {
             cpl_table_delete(trace_table) ;
             cpl_msg_error(__func__, "Failed to load the image - skip detector");
@@ -380,104 +372,20 @@ static int cr2res_util_extract(
             continue ;
         }
 
-        /* Allocate Data containers */
-        spectrum = cpl_malloc(nb_traces * sizeof(cpl_bivector *)) ;
-        slit_func = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
-        model_master[det_nr-1] = hdrl_image_duplicate(science_hdrl) ;
-        hdrl_image_mul_scalar(model_master[det_nr-1], (hdrl_value){0.0, 0.0}) ;
-
-        /* Loop over the traces and extract them */
-        for (i=0 ; i<nb_traces ; i++) {
-            /* Initialise */
-            slit_func[i] = NULL ;
-            spectrum[i] = NULL ;
-            model_tmp = NULL ;
-
-            /* Get Order and trace id */
-            order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
-            trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
-
-            /* Check if this order needs to be skipped */
-            if (reduce_order > -1 && order != reduce_order) continue ;
-
-            /* Check if this trace needs to be skipped */
-            if (reduce_trace > -1 && trace_id != reduce_trace) continue ;
-
-            cpl_msg_info(__func__, "Process Order %d/Trace %d",order,trace_id) ;
-            cpl_msg_indent_more() ;
-
-            /* Call the Extraction */
-            if (extr_method == CR2RES_EXTR_SUM) {
-                /* Call the SUM ONLY extraction */
-                if (cr2res_extract_sum_vert(science_hdrl, trace_table, order,
-                            trace_id, extr_height, &(slit_func[i]),
-                            &(spectrum[i]), &model_tmp) != 0) {
-                    cpl_msg_error(__func__, "Cannot (sum-)extract the trace") ;
-                    slit_func[i] = NULL ;
-                    spectrum[i] = NULL ;
-                    model_tmp = NULL ;
-                    cpl_error_reset() ;
-                    cpl_msg_indent_less() ;
-                    continue ;
-                }
-            } else if (extr_method == CR2RES_EXTR_OPT_VERT) {
-                /* Call the vertical SLIT DECOMPOSITION */
-                if (cr2res_extract_slitdec_vert(science_hdrl, trace_table, 
-                            order, trace_id, extr_height, swath_width, 
-                            oversample, smooth_slit, &(slit_func[i]), 
-                            &(spectrum[i]), &model_tmp) != 0) {
-                    cpl_msg_error(__func__,
-                            "Cannot (slitdec-vert-) extract the trace") ;
-                    slit_func[i] = NULL ;
-                    spectrum[i] = NULL ;
-                    model_tmp = NULL ;
-                    cpl_error_reset() ;
-                    cpl_msg_indent_less() ;
-                    continue ;
-                }
-            } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
-                /* Call the curved SLIT DECOMPOSITION */
-                if (cr2res_extract_slitdec_curved(science_hdrl, trace_table, 
-                            order, trace_id, extr_height, swath_width, 
-                            oversample, smooth_slit, &(slit_func[i]), 
-                            &(spectrum[i]), &model_tmp) != 0) {
-                    cpl_msg_error(__func__,
-                            "Cannot (slitdec-curved-) extract the trace") ;
-                    slit_func[i] = NULL ;
-                    spectrum[i] = NULL ;
-                    model_tmp = NULL ;
-                    cpl_error_reset() ;
-                    cpl_msg_indent_less() ;
-                    continue ;
-                }
-            }
-
-            /* Update the model global image */
-            if (model_tmp != NULL) {
-                hdrl_image_add_image(model_master[det_nr-1], model_tmp) ;
-                hdrl_image_delete(model_tmp) ;
-            }
+        /* Compute the extraction */
+        cpl_msg_info(__func__, "Spectra Extraction") ;
+        if (cr2res_extract_traces(science_hdrl, trace_table, reduce_order,
+                reduce_trace, extr_method, extr_height, swath_width,
+                oversample, smooth_slit, &(extract_tab[det_nr-1]),
+                &(slit_func_tab[det_nr-1]), &(model_master[det_nr-1])) == -1) {
+            cpl_table_delete(trace_table) ;
+            cpl_msg_error(__func__, "Failed to extract - skip detector");
+            cpl_error_reset() ;
             cpl_msg_indent_less() ;
+            continue ;
         }
         hdrl_image_delete(science_hdrl) ;
-
-        /* Create the slit_func_tab for the current detector */
-        slit_func_tab[det_nr-1] = cr2res_extract_SLITFUNC_create(
-                slit_func, trace_table) ;
-
-        /* Create the extracted_tab for the current detector */
-        extract_tab[det_nr-1] = cr2res_extract_EXTRACT1D_create(
-                spectrum, trace_table) ;
         cpl_table_delete(trace_table) ;
-
-		/* Deallocate Vectors */
-        for (i=0 ; i<nb_traces ; i++) {
-            if (slit_func[i] != NULL) cpl_vector_delete(slit_func[i]) ;
-            if (spectrum[i] != NULL) cpl_bivector_delete(spectrum[i]) ;
-        }
-        cpl_free(spectrum) ;
-        cpl_free(slit_func) ;
-        cpl_msg_indent_less() ;
     }
 
     /* Save the Products */
@@ -504,9 +412,12 @@ static int cr2res_util_extract(
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         if (ext_plist[det_nr-1] != NULL)
             cpl_propertylist_delete(ext_plist[det_nr-1]) ;
-        cpl_table_delete(slit_func_tab[det_nr-1]) ;
-        cpl_table_delete(extract_tab[det_nr-1]) ;
-        hdrl_image_delete(model_master[det_nr-1]) ;
+        if (slit_func_tab[det_nr-1] != NULL)
+            cpl_table_delete(slit_func_tab[det_nr-1]) ;
+        if (extract_tab[det_nr-1] != NULL)
+            cpl_table_delete(extract_tab[det_nr-1]) ;
+        if (model_master[det_nr-1] != NULL) 
+            hdrl_image_delete(model_master[det_nr-1]) ;
     }
     return (int)cpl_error_get_code();
 }

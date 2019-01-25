@@ -681,10 +681,10 @@ cpl_vector * cr2res_trace_get_wl(
  */
 /*----------------------------------------------------------------------------*/
 cpl_vector * cr2res_trace_get_ycen(
-            cpl_table   *   trace,
-            cpl_size        order_nb,
-            cpl_size        trace_nb,
-            int             size)
+        const cpl_table *   trace,
+        cpl_size            order_nb,
+        cpl_size            trace_nb,
+        int                 size)
 {
     cpl_vector      *    out ;
     cpl_polynomial  *    pos_poly;
@@ -717,9 +717,9 @@ cpl_vector * cr2res_trace_get_ycen(
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_trace_get_height(
-            cpl_table   *   trace,
-            cpl_size        order_nb,
-            cpl_size        trace_nb)
+        const cpl_table *   trace,
+        cpl_size            order_nb,
+        cpl_size            trace_nb)
 {
     int                 height;
     cpl_polynomial  *   poly_upper ;

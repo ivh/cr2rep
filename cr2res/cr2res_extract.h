@@ -33,55 +33,70 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-int cr2res_extract_slitdec_vert(
-        hdrl_image   *   img_hdrl,
-        cpl_table   *   trace_tab,
-        int             order,
-        int             trace_id,
-        int             height,
-        int             swath,
-        int             oversample,
-        double          smooth_slit,
-        cpl_vector  **  slit_func,
-        cpl_bivector  **  spec,
-        hdrl_image  **  model) ;
+int cr2res_extract_traces(
+        const hdrl_image    *   img,
+        const cpl_table     *   traces,
+        int                     reduce_order,
+        int                     reduce_trace,
+        cr2res_extr_method      extr_method,
+        int                     extr_height,
+        int                     swath_width,
+        int                     oversample,
+        double                  smooth_slit,
+        cpl_table           **  extracted,
+        cpl_table           **  slit_func,
+        hdrl_image          **  model_master) ;
 
-int cr2res_extract_slitdec_curved(
-        hdrl_image  *   img_hdrl,
-        cpl_table   *   trace_tab,
-        int             order,
-        int             trace_id,
-        int             height,
-        int             swath,
-        int             oversample,
-        double          smooth_slit,
-        cpl_vector  **  slit_func,
-        cpl_bivector**  spec,
-        hdrl_image  **  model);
 
 int cr2res_extract_sum_vert(
-        hdrl_image  *   img_in,
-        cpl_table   *   trace_tab,
-        int             order,
-        int             trace_id,
-        int             height,
-        cpl_vector  **  slit_func,
-        cpl_bivector**  spec,
-        hdrl_image  **  model) ;
+        const hdrl_image    *   hdrl_in,
+        const cpl_table     *   trace_tab,
+        int                     order,
+        int                     trace_id,
+        int                     height,
+        cpl_vector          **  slit_func,
+        cpl_bivector        **  spec,
+        hdrl_image          **  model) ;
+
+int cr2res_extract_slitdec_vert(
+        const hdrl_image    *   img_hdrl,
+        const cpl_table     *   trace_tab,
+        int                     order,
+        int                     trace_id,
+        int                     height,
+        int                     swath,
+        int                     oversample,
+        double                  smooth_slit,
+        cpl_vector          **  slit_func,
+        cpl_bivector        **  spec,
+        hdrl_image          **  model) ;
+
+int cr2res_extract_slitdec_curved(
+        const hdrl_image    *   img_hdrl,
+        const cpl_table     *   trace_tab,
+        int                     order,
+        int                     trace_id,
+        int                     height,
+        int                     swath,
+        int                     oversample,
+        double                  smooth_slit,
+        cpl_vector          **  slit_func,
+        cpl_bivector        **  spec,
+        hdrl_image          **  model) ;
 
 cpl_table * cr2res_extract_SLITFUNC_create(
         cpl_vector      **  slit_func,
-        cpl_table       *   trace_table) ;
+        const cpl_table *   trace_table) ; 
 
 cpl_table * cr2res_extract_EXTRACT1D_create(
         cpl_bivector    **  spectrum,
-        cpl_table       *   trace_table) ;
+        const cpl_table *   trace_table) ;
 
 int cr2res_extract_EXTRACT1D_get_spectrum(
-        cpl_table       *   tab,
-        int                 order,
-        int                 trace_nb,
-        cpl_bivector    **  spec,
-        cpl_bivector    **  spec_err) ;
+        const cpl_table     *   tab,
+        int                     order,
+        int                     trace_nb,
+        cpl_bivector        **  spec,
+        cpl_bivector        **  spec_err) ;
 
 #endif
