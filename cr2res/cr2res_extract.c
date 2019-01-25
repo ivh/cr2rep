@@ -128,7 +128,7 @@ static int cr2res_extract_slitdec_adjust_swath(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief
+  @brief    Extracts all the passed traces at once
   @param    img             Full detector image
   @param    traces          The traces table
   @param    reduce_order    The order to extract (-1 for all)

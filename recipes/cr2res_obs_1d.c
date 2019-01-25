@@ -648,6 +648,7 @@ static int cr2res_obs_1d_reduce(
 
 
     /* Return */
+    /* TODO */
     hdrl_image_delete(model_master_a) ;
     hdrl_image_delete(model_master_b) ;
     cpl_table_delete(slit_func_a) ;
