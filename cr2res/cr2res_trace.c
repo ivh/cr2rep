@@ -45,13 +45,11 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_trace_check_slit_fraction(const cpl_array * slit_fraction) ;
 static cpl_array * cr2res_trace_get_slit_frac(
         cpl_table       *   traces,
         cpl_size            idx,
         cr2res_decker       decker_pos) ;
-static cpl_mask * cr2res_trace_split_traces(
-        cpl_mask    *   mask,
-        cpl_table   *   trace_table) ;
 static cpl_mask * cr2res_trace_signal_detect(
         const cpl_image *   image,
         int                 trace_sep,
@@ -63,10 +61,6 @@ static cpl_table * cr2res_trace_fit_traces(
 static cpl_array * cr2res_trace_fit_trace(
         cpl_table   *   table,
         int             degree) ;
-static cpl_image * cr2res_trace_convert_cluster_to_labels(
-        cpl_table   *   cluster,
-        int             nx,
-        int             ny) ;
 static cpl_table * cr2res_trace_convert_labels_to_cluster(cpl_image * labels) ;
 static cpl_mask * cr2res_trace_clean_blobs(
         cpl_mask    *   mask,
@@ -186,13 +180,6 @@ cpl_table * cr2res_trace(
                 CPL_IO_CREATE);
     }
     cpl_image_delete(labels) ;
-
-    /* Alternative with cr2res_cluster_detect() */
-    /*
-    clustertable = cr2res_cluster_detect(mask, min_cluster) ;
-    labels = cr2res_trace_convert_cluster_to_labels(clustertable,
-            cpl_image_get_size_x(ima), cpl_image_get_size_y(ima)) ;
-    */
 
     /* Fit the traces */
     cpl_msg_info(__func__, "Fit the trace edges") ;
@@ -1042,7 +1029,6 @@ int cr2res_trace_add_extra_columns(
     return 0 ;
 }
 
-/* TODO */
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Recompute the traces at a newly specified slit fraction
@@ -1051,16 +1037,20 @@ int cr2res_trace_add_extra_columns(
   @return   The newly computed trace 
   
   For each trace (i.e. row) in the input trace, the function will try to
-  produce a new row in the output trace table with the passed slit
+  produce a new row in the output trace table corresponding to the passed slit
   fraction.
 
-  - 
-
-
-
-
-
-
+  - CR2RES_COL_SLIT_FRACTION is filled with the input fraction
+  - CR2RES_COL_ORDER and CR2RES_COL_TRACENB are copied from input trace file
+  - CR2RES_COL_UPPER CR2RES_COL_LOWER CR2RES_COL_ALL are computed like
+    this:
+    TODO
+  - CR2RES_COL_WAVELENGTH and CR2RES_COL_WAVELENGTH_ERROR are computed
+    like this:
+    TODO
+  - CR2RES_COL_SLIT_CURV_A CR2RES_COL_SLIT_CURV_B CR2RES_COL_SLIT_CURV_C
+    are computed like this:
+    TODO
 
  */
 /*----------------------------------------------------------------------------*/
@@ -1068,8 +1058,17 @@ cpl_table * cr2res_trace_new_slit_fraction(
         const cpl_table     *   traces,
         const cpl_array     *   new_slit_fraction)
 {
-    cpl_table   *   out ;
-    cpl_size        i, nrows ;
+    cpl_table       *   out ;
+    const cpl_array *   slit_frac ;
+    cpl_array       *   trace_all ;
+    cpl_array       *   trace_upper ;
+    cpl_array       *   trace_lower ;
+    cpl_array       *   wave ;
+    cpl_array       *   wave_err ;
+    cpl_array       *   slit_curv_a ;
+    cpl_array       *   slit_curv_b ;
+    cpl_array       *   slit_curv_c ;
+    cpl_size            i, nrows ;
 
     /* Check entries */
     if (traces == NULL || new_slit_fraction == NULL) return NULL ;
@@ -1084,23 +1083,77 @@ cpl_table * cr2res_trace_new_slit_fraction(
 
     /* Loop on the traces */
     for (i=0 ; i<nrows; i++) {
-        /* Set slit fraction */
+
+        /* Check if the input trace slit_fraction is available */
+        slit_frac = cpl_table_get_array(traces, CR2RES_COL_SLIT_FRACTION, i) ;
+
+        /* Unselect rows with wrong slit_fraction - to be erased below */
+        if (cr2res_trace_check_slit_fraction(slit_frac) != 1) {
+            cpl_table_unselect_row(out, i) ;
+            continue ;
+        }
+
+        /* Fill slit fraction with the input one */
         cpl_table_set_array(out, CR2RES_COL_SLIT_FRACTION, i,new_slit_fraction);
 
+        /* Compute the new trace */
+        /* TODO */
+        trace_all = cpl_array_duplicate(
+                cpl_table_get_array(traces, CR2RES_COL_ALL, i)) ; 
+        trace_upper = cpl_array_duplicate(
+                cpl_table_get_array(traces, CR2RES_COL_UPPER, i)) ;
+        trace_lower = cpl_array_duplicate(
+                cpl_table_get_array(traces, CR2RES_COL_LOWER, i)) ;
+
         /* Set new trace */
-        cpl_table_set_array(out, CR2RES_COL_ALL, i, NULL);
-        cpl_table_set_array(out, CR2RES_COL_UPPER, i, NULL);
-        cpl_table_set_array(out, CR2RES_COL_LOWER, i, NULL);
+        cpl_table_set_array(out, CR2RES_COL_ALL, i, trace_all);
+        cpl_table_set_array(out, CR2RES_COL_UPPER, i, trace_upper);
+        cpl_table_set_array(out, CR2RES_COL_LOWER, i, trace_lower);
+        cpl_array_delete(trace_all) ;
+        cpl_array_delete(trace_upper) ;
+        cpl_array_delete(trace_lower) ;
+
+        /* Compute the new wavelength */
+        /* TODO */
+        wave = cpl_array_duplicate(
+                cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, i)) ; 
+        wave_err = cpl_array_duplicate(
+                cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH_ERROR, i)) ; 
 
         /* Set new Wavelength  */
-        cpl_table_set_array(out, CR2RES_COL_WAVELENGTH, i, NULL);
-        cpl_table_set_array(out, CR2RES_COL_WAVELENGTH_ERROR, i, NULL);
+        cpl_table_set_array(out, CR2RES_COL_WAVELENGTH, i, wave);
+        cpl_table_set_array(out, CR2RES_COL_WAVELENGTH_ERROR, i, wave_err);
+        cpl_array_delete(wave) ;
+        cpl_array_delete(wave_err) ;
 
         /* Compute new Curvature */
-        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_A, i, NULL);
-        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_B, i, NULL);
-        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_C, i, NULL);
+        /* TODO */
+        slit_curv_a = cpl_array_duplicate(
+                cpl_table_get_array(traces, CR2RES_COL_SLIT_CURV_A, i)) ; 
+        slit_curv_b = cpl_array_duplicate(
+                cpl_table_get_array(traces, CR2RES_COL_SLIT_CURV_B, i)) ; 
+        slit_curv_c = cpl_array_duplicate(
+                cpl_table_get_array(traces, CR2RES_COL_SLIT_CURV_C, i)) ; 
+
+        /* Set the new slit curvature */
+        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_A, i, slit_curv_a);
+        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_B, i, slit_curv_b);
+        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_C, i, slit_curv_c);
+        cpl_array_delete(slit_curv_a) ;
+        cpl_array_delete(slit_curv_b) ;
+        cpl_array_delete(slit_curv_c) ;
     }
+
+    /* Clean the selected invalid slit_fractions entries */
+    cpl_table_not_selected(out) ;
+    cpl_table_erase_selected(out) ;
+
+    /* Check if there is at lease one remaining trace */
+    if (cpl_table_get_nrow(out) == 0) {
+        cpl_table_delete(out) ;
+        return NULL ;
+    }
+    cpl_table_not_selected(out) ;
     return out ;
 }
 
@@ -1117,6 +1170,9 @@ cpl_table * cr2res_trace_new_slit_fraction(
   The returned array contains 3 numbers between 0 and 1 identifing the low,
   middle and high positions of the trace along the slit.
   0 is for the slit bottom, 1 for the top.
+
+  The function assumes that the slit is open ƣf there is 1 trace in the
+  order, and that the decker is used if there are 2 traces.
  */
 /*----------------------------------------------------------------------------*/
 static cpl_array * cr2res_trace_get_slit_frac(
@@ -1192,65 +1248,6 @@ static cpl_array * cr2res_trace_get_slit_frac(
         slit_frac = NULL ;
     }
     return slit_frac ;
-}
-
-/* TODO */
-/*----------------------------------------------------------------------------*/
-/**
-  @brief Creates a mask for the trace pixels based on known polynomials
-  @param
-  @return
- */
-/*----------------------------------------------------------------------------*/
-static cpl_mask * cr2res_trace_split_traces(
-        cpl_mask    *   mask,
-        cpl_table   *   trace_table)
-{
-    cpl_mask   		*   out ;
-    cpl_binary      *   pout ;
-    cpl_polynomial  *   poly_all ;
-    cpl_polynomial  *   poly_upper ;
-    cpl_polynomial  *   poly_lower ;
-    int                 i, j, upper_y, lower_y, center_y, start_y, stop_y ;
-    cpl_size            nx, ny, k, l;
-
-    /* Check entries */
-    if (mask == NULL || trace_table == NULL) return NULL ;
-
-    /* Create out label image */
-    out = cpl_mask_duplicate(mask) ;
-    nx = cpl_mask_get_size_x(out) ;
-    ny = cpl_mask_get_size_y(out) ;
-    pout = cpl_mask_get_data(out) ;
-
-    /* Loop on the traces */
-    for (i=0 ; i<cpl_table_get_nrow(trace_table) ; i++) {
-        poly_all = cr2res_convert_array_to_poly(cpl_table_get_array(
-                    trace_table, CR2RES_COL_ALL, i)) ;
-        poly_upper = cr2res_convert_array_to_poly(cpl_table_get_array(
-                    trace_table, CR2RES_COL_UPPER, i)) ;
-        poly_lower = cr2res_convert_array_to_poly(cpl_table_get_array(
-                    trace_table, CR2RES_COL_LOWER, i)) ;
-
-        /* For each x */
-        for (k=0 ; k<nx ; k++) {
-            lower_y = cpl_polynomial_eval_1d(poly_lower, k+1, NULL) ;
-            upper_y = cpl_polynomial_eval_1d(poly_upper, k+1, NULL) ;
-            center_y = cpl_polynomial_eval_1d(poly_all, k+1, NULL) ;
-
-            start_y = (int)(center_y - (upper_y-lower_y)/3.0) ;
-            stop_y = (int)(center_y + (upper_y-lower_y)/3.0) ;
-
-            if (start_y < 1) start_y = 1 ;
-            if (stop_y > ny) stop_y = ny ;
-
-            for (l=start_y-1 ; l<stop_y ; l++) pout[k+l*nx] = CPL_BINARY_0 ;
-        }
-        cpl_polynomial_delete(poly_all) ;
-        cpl_polynomial_delete(poly_upper) ;
-        cpl_polynomial_delete(poly_lower) ;
-    }
-    return out ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1479,40 +1476,6 @@ static cpl_array * cr2res_trace_fit_trace(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Convert cluster table to labels image
-  @param cluster    A cluster table (xs, ys, cluster)
-  @param nx         X size of the returned label image
-  @param ny         Y size of the returned label image
-  @return   A newly allocated INT image or NULL in error case
-
-  A new label image is created from the cluster table. Each entry in the
-  cluster table is used to set a pixel in the label image.
- */
-/*----------------------------------------------------------------------------*/
-static cpl_image * cr2res_trace_convert_cluster_to_labels(
-        cpl_table   *   cluster,
-        int             nx,
-        int             ny)
-{
-    cpl_image       *   labels ;
-    const int       *   pxs ;
-    const int       *   pys ;
-    const int       *   pclusters ;
-    int                 i ;
-
-    if (cluster == NULL || nx < 1 || ny < 1) return NULL;
-    /* Create labels image  */
-    labels = cpl_image_new(nx, ny, CPL_TYPE_INT);
-    pxs = cpl_table_get_data_int_const(cluster, CR2RES_COL_XS) ;
-    pys = cpl_table_get_data_int_const(cluster, CR2RES_COL_YS) ;
-    pclusters = cpl_table_get_data_int_const(cluster, CR2RES_COL_CLUSTERS) ;
-    for (i=0 ; i<cpl_table_get_nrow(cluster) ; i++)
-        cpl_image_set(labels, pxs[i], pys[i], pclusters[i]);
-    return labels ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Convert Labels image to the cluster table
   @param labels     The label image
   @return   A newly allocated cluster table or NULL in error case
@@ -1700,4 +1663,33 @@ static int cr2res_trace_extract_edges(
     cpl_table_delete(lower_sel) ;
 
     return CPL_ERROR_NONE ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Check if the passed slit fraction is valid
+  @param    slit_frac   Input slit fraction
+  @return   1 if valid, 0 if not, -1 in error case
+  The slit fraction values should be in [0,1] and increasing
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_trace_check_slit_fraction(const cpl_array * slit_fraction)
+{
+    double      low, mid, up ;
+
+    /* Check entries */
+    if (slit_fraction == NULL) return -1; 
+
+    /* Get the values */
+    low = cpl_array_get(slit_fraction, 0, NULL) ;
+    mid = cpl_array_get(slit_fraction, 1, NULL) ;
+    up = cpl_array_get(slit_fraction, 2, NULL) ;
+
+    if (cpl_error_get_code()) return -1 ;
+
+    if (up<0.0 || low<0.0 || mid<0.0 || up>1.0 || low>1.0 || mid>1.0)
+        return 0 ;
+    if (low>mid || mid > up) 
+        return 0 ;
+    return 1 ;
 }

@@ -325,6 +325,10 @@ static int cr2res_obs_1d(
     /* Get Calibration frames */
     trace_wave_frame = cpl_frameset_find_const(frameset,
             CR2RES_FLAT_TRACE_WAVE_PROCATG) ;
+    if (trace_wave_frame == NULL) {
+        cpl_msg_error(__func__, "Could not find TRACE_WAVE frame") ;
+        return -1 ;
+    }
     detlin_frame = cpl_frameset_find_const(frameset,
             CR2RES_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
@@ -448,8 +452,8 @@ static int cr2res_obs_1d_reduce(
 	
     /* Check Inputs */
     if (combineda == NULL || combinedb == NULL || extracta == NULL ||
-            extractb == NULL || ext_plist == NULL || rawframes == NULL)
-        return -1 ;
+            extractb == NULL || ext_plist == NULL || rawframes == NULL
+            || trace_wave_frame == NULL) return -1 ;
 
     /* Initialise */
     nframes = cpl_frameset_get_size(rawframes) ;
@@ -565,12 +569,21 @@ static int cr2res_obs_1d_reduce(
     }
 
     /* Compute the slit fractions for A and B positions extraction */   
-    slit_frac_a = slit_frac_b = NULL ;
+    slit_frac_a = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
+    cpl_array_set(slit_frac_a, 0, 0.0) ;
+    cpl_array_set(slit_frac_a, 1, 0.0) ;
+    cpl_array_set(slit_frac_a, 2, 0.0) ;
+
+    slit_frac_b = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
+    cpl_array_set(slit_frac_b, 0, 0.0) ;
+    cpl_array_set(slit_frac_b, 1, 0.0) ;
+    cpl_array_set(slit_frac_b, 2, 0.0) ;
 
     /* Recompute the traces for the new slit fractions */
     if ((trace_wave_a = cr2res_trace_new_slit_fraction(trace_wave,
             slit_frac_a)) == NULL) {
-        cpl_msg_error(__func__, "failed to compute the traces for a extr.") ;
+        cpl_msg_error(__func__, 
+                "Failed to compute the traces for extraction of A") ;
         hdrl_image_delete(collapsed_a) ;
         hdrl_image_delete(collapsed_b) ;
         cpl_table_delete(trace_wave) ;
@@ -581,7 +594,8 @@ static int cr2res_obs_1d_reduce(
     cpl_array_delete(slit_frac_a) ;
     if ((trace_wave_b = cr2res_trace_new_slit_fraction(trace_wave,
             slit_frac_b)) == NULL) {
-        cpl_msg_error(__func__, "failed to compute the traces for b extr.") ;
+        cpl_msg_error(__func__, 
+                "Failed to compute the traces for extraction of B") ;
         hdrl_image_delete(collapsed_a) ;
         hdrl_image_delete(collapsed_b) ;
         cpl_table_delete(trace_wave) ;
@@ -595,6 +609,7 @@ static int cr2res_obs_1d_reduce(
     /* Execute the extraction */
 
 
+    cpl_table_save(trace_wave_a, NULL, NULL, "coucou.fits", CPL_IO_CREATE) ;
 
 
 
