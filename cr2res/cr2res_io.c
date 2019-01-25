@@ -234,13 +234,13 @@ hdrl_image * cr2res_io_load_image(
         err = NULL ;
 
     /* Load and set the mask*/
-    if (ext_nr_err >= 0) 
+    if (ext_nr_bpm >= 0) 
         bpm = cpl_mask_load(in, 0, ext_nr_bpm) ;
     else    
         bpm = NULL ;
 
     /* Assemble output */
-    cpl_image_set_bpm(data, bpm);
+    if (bpm != NULL) cpl_image_set_bpm(data, bpm);
     out = hdrl_image_create(data, err) ;
 
     if (data != NULL) cpl_image_delete(data) ;
@@ -1603,6 +1603,7 @@ static int cr2res_io_save_image(
 {
     cpl_propertylist    *   qclist_loc ;
     cpl_image           *   to_save ;
+    cpl_mask            *   bpm;
     char          		*   wished_extname ;
     int                     det_nr ;
 
@@ -1643,7 +1644,9 @@ static int cr2res_io_save_image(
             to_save = NULL ;
         else                        
             to_save = hdrl_image_get_image(data[det_nr-1]);
+            bpm = cpl_image_get_bpm(to_save) ;
         cpl_image_save(to_save, filename, type, qclist_loc, CPL_IO_EXTEND) ;
+
         cpl_free(wished_extname) ;
 
         /* Save the NOISE */
