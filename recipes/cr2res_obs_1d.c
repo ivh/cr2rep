@@ -65,7 +65,6 @@ static int cr2res_obs_1d_reduce(
         int                     extract_swath_width,
         int                     extract_height,
         double                  extract_smooth,
-        int                     extract_sum_only,
         int                     reduce_det,
         hdrl_image          **  combineda,
         hdrl_image          **  combinedb,
@@ -365,7 +364,7 @@ static int cr2res_obs_1d(
         if (cr2res_obs_1d_reduce(rawframes, trace_wave_frame, detlin_frame, 
                     master_dark_frame, master_flat_frame, bpm_frame, 0,
                     extract_oversample, extract_swath_width, extract_height, 
-                    extract_smooth, 0, det_nr,
+                    extract_smooth, det_nr,
                     &(combineda[det_nr-1]),
                     &(combinedb[det_nr-1]),
                     &(extracta[det_nr-1]),
@@ -422,7 +421,6 @@ static int cr2res_obs_1d_reduce(
         int                     extract_swath_width,
         int                     extract_height,
         double                  extract_smooth,
-        int                     extract_sum_only,
         int                     reduce_det,
         hdrl_image          **  combineda,
         hdrl_image          **  combinedb,
@@ -449,6 +447,10 @@ static int cr2res_obs_1d_reduce(
     cpl_array           *   slit_frac_b ;
     cpl_table           *   extracted_a ;
     cpl_table           *   extracted_b ;
+    cpl_table           *   slit_func_a ;
+    cpl_table           *   slit_func_b ;
+    hdrl_image          *   model_master_a ;
+    hdrl_image          *   model_master_b ;
     cpl_propertylist    *   plist ;
     cpl_size                nframes, i ;
     int                     det_nr ;
@@ -611,25 +613,45 @@ static int cr2res_obs_1d_reduce(
     cpl_table_delete(trace_wave) ;
 
     /* Execute the extraction */
-    /* TODO */
-    extracted_a = extracted_b = NULL ;
-
+    cpl_msg_info(__func__, "Spectra Extraction") ;
+    if (cr2res_extract_traces(collapsed_a, trace_wave_a, -1, -1,
+                CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
+                extract_oversample, extract_smooth,
+                &extracted_a, &slit_func_a, &model_master_a) == -1) {
+        cpl_msg_error(__func__, "Failed to extract A");
+        hdrl_image_delete(collapsed_a) ;
+        hdrl_image_delete(collapsed_b) ;
+        cpl_table_delete(trace_wave_a) ;
+        cpl_table_delete(trace_wave_b) ;
+        return -1 ;
+    }
     cpl_table_delete(trace_wave_a) ;
+    if (cr2res_extract_traces(collapsed_b, trace_wave_b, -1, -1,
+                CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
+                extract_oversample, extract_smooth,
+                &extracted_b, &slit_func_b, &model_master_b) == -1) {
+        cpl_msg_error(__func__, "Failed to extract A");
+        cpl_table_delete(extracted_a) ;
+        cpl_table_delete(slit_func_a) ;
+        hdrl_image_delete(model_master_a) ;
+        hdrl_image_delete(collapsed_a) ;
+        hdrl_image_delete(collapsed_b) ;
+        cpl_table_delete(trace_wave_b) ;
+        return -1 ;
+    }
     cpl_table_delete(trace_wave_b) ;
 
     /* Load the Header and store the QC parameters */
     /* TODO */
     plist = NULL ;
 
-    /*
-        In error case: 
 
-        hdrl_image_delete(collapsed_a) ;
-        hdrl_image_delete(collapsed_b) ;
-        cpl_table_delete(extracted_a) ;
-        cpl_table_delete(extracted_b) ;
-        cpl_propertylist_delete(plist); 
-    */
+
+    /* Return */
+    hdrl_image_delete(model_master_a) ;
+    hdrl_image_delete(model_master_b) ;
+    cpl_table_delete(slit_func_a) ;
+    cpl_table_delete(slit_func_b) ;
 
     *combineda = collapsed_a ;
     *combinedb = collapsed_b ;
