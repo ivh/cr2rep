@@ -63,10 +63,17 @@ static int cr2res_util_extract(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_util_extract_description[] =
-"TODO : Descripe here the recipe in / out / params / basic algo\n"
+"Utility to perform optimal extraction on single frame along\n"
+"pre-computed traces. Single detector, order or trace selectable\n"
+"via parameters\n"
 "science.fits " CR2RES_COMMAND_LINE "\n"
 "trace.fits " CR2RES_COMMAND_LINE "\n"
-" The recipe produces the following products:\n"
+"bpm.fits(optional) " CR2RES_COMMAND_LINE "\n"
+"\n"
+"The recipe produces the following products:\n"
+"science_extr1D.fits (table with extracted spectra & errors)\n"
+"science_extrSlitFu.fits (slit illumination functions)\n"
+"science_extrModel.fits (image reconstriction)\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -265,6 +272,7 @@ static int cr2res_util_extract(
     cpl_frame           *   fr ;
     const char          *   science_file ;
     const char          *   trace_file ;
+    const char          *   bpm_file ;
     const char          *   sval ;
     char                *   out_file;
     hdrl_image          *   model_master[CR2RES_NB_DETECTORS] ;
@@ -273,6 +281,8 @@ static int cr2res_util_extract(
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_table ;
     hdrl_image          *   science_hdrl;
+    cpl_image           *   bpm_img;
+    cpl_mask            *   bpm_mask;
     int                     det_nr, ext_nr, order ;
     cr2res_extr_method      extr_method;
 
@@ -326,12 +336,16 @@ static int cr2res_util_extract(
     science_file = cpl_frame_get_filename(fr) ;
     fr = cpl_frameset_get_position(frameset, 1);
     trace_file = cpl_frame_get_filename(fr) ;
+    fr = cpl_frameset_get_position(frameset, 2);
+    bpm_file = cpl_frame_get_filename(fr) ;
     if (science_file == NULL || trace_file == NULL) {
         cpl_msg_error(__func__, "The utility needs a science file and a trace");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
-
+    if (bpm_file == NULL) {
+        cpl_msg_warning(__func__, "No BPM input given");
+    }
     /* Loop over the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
@@ -372,6 +386,27 @@ static int cr2res_util_extract(
             continue ;
         }
 
+        /* Load the BPM */
+        cpl_msg_info(__func__, "Load the BPM") ;
+        if ((bpm_img = cr2res_io_load_BPM(bpm_file, det_nr, 1))==NULL) {
+            cpl_table_delete(trace_table) ;
+            hdrl_image_delete(science_hdrl) ;
+            cpl_msg_error(__func__, "Failed to load the BPM - skip detector");
+            cpl_error_reset() ;
+            cpl_msg_indent_less() ;
+            continue ;
+        } else {
+            bpm_mask = cpl_mask_threshold_image_create(bpm_img, 0,INT_MAX);
+            if (hdrl_image_reject_from_mask(science_hdrl, bpm_mask) != CPL_ERROR_NONE) {
+                cpl_msg_error(__func__, "Failed to assign the BPM to image - skip detector");
+                cpl_table_delete(trace_table) ;
+                hdrl_image_delete(science_hdrl) ;
+                cpl_mask_delete(bpm_mask);
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+        }
         /* Compute the extraction */
         cpl_msg_info(__func__, "Spectra Extraction") ;
         if (cr2res_extract_traces(science_hdrl, trace_table, reduce_order,
