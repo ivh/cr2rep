@@ -1279,7 +1279,7 @@ int cr2res_extract_slitdec_curved(
 
         if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
             img_tmp = cpl_image_wrap_int(swath, height, mask_sw);
-            cpl_image_save(img_tmp, "mask_before_sw.fits", CPL_TYPE_INT, NULL,
+            cpl_image_save(img_tmp, "debug_mask_before_sw.fits", CPL_TYPE_INT, NULL,
                     CPL_IO_CREATE);
             cpl_image_unwrap(img_tmp);
         }
