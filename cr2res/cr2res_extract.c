@@ -1277,6 +1277,12 @@ int cr2res_extract_slitdec_curved(
         }
         y_lower_limit = height / 2 + y_lower_limit;
 
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+            img_tmp = cpl_image_wrap_int(swath, height, mask_sw);
+            cpl_image_save(img_tmp, "mask_before_sw.fits", CPL_TYPE_INT, NULL,
+                    CPL_IO_CREATE);
+            cpl_image_unwrap(img_tmp);
+        }
         /* Finally ready to call the slit-decomp */
         cr2res_extract_slit_func_curved(swath, height, oversample, img_sw_data,
                 err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit,
@@ -1314,6 +1320,7 @@ int cr2res_extract_slitdec_curved(
             cpl_image_unwrap(img_tmp);
             cpl_image_save(img_sw, "debug_img_sw.fits", CPL_TYPE_DOUBLE, NULL,
                     CPL_IO_CREATE);
+            //cpl_image_unwrap(img_tmp);
         }
 
         // The last bins are shifted, overwriting the first k values
