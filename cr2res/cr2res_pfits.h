@@ -39,6 +39,7 @@ const char * cr2res_pfits_get_protype(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_wlen_id(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
 
+double cr2res_pfits_get_nodthrow(const cpl_propertylist *) ;
 double cr2res_pfits_get_dit(const cpl_propertylist *) ;
 double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order) ;
 double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order) ;

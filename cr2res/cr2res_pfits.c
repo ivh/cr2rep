@@ -109,6 +109,19 @@ const char * cr2res_pfits_get_wlen_id(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    find out the NODTHROW value
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_pfits_get_nodthrow(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_double(plist, "ESO SEQ NODTHROW")  ;
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    find out the DIT value
   @param    plist       property list to read from
   @return   the requested value
@@ -239,38 +252,6 @@ double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order)
     return val ;
 }
 
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    find out the Y pos of an order
-  @param    plist       property list to read from
-  @param    order       Order INDEX
-  @return   the requested value
- */
-/*----------------------------------------------------------------------------*/
-double cr2res_pfits_get_ceny(const cpl_propertylist * plist, int order)
-{
-    char    *   key_name ;
-    int         order_loc ;
-    double      val  ;
-
-    /* Check entries */
-    if (plist == NULL) return -1.0 ;
-
-    /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ;
-
-    /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN CENY%d", order_loc) ;
-
-    /* Get the value */
-    val = cpl_propertylist_get_double(plist, key_name) ;
-
-    cpl_free(key_name) ;
-    return val ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    find out the NAXIS1 value
   @param    plist       property list to read from
   @return   the requested value
