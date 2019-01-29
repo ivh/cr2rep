@@ -67,10 +67,15 @@ static int cr2res_obs_1d_reduce(
         double                  extract_smooth,
         int                     reduce_det,
         hdrl_image          **  combineda,
-        hdrl_image          **  combinedb,
         cpl_table           **  extracta,
+        cpl_table           **  slitfunca,
+        hdrl_image          **  modela,
+        hdrl_image          **  combinedb,
         cpl_table           **  extractb,
+        cpl_table           **  slitfuncb,
+        hdrl_image          **  modelb,
         cpl_propertylist    **  ext_plist) ;
+
 static int cr2res_obs_1d_create(cpl_plugin *);
 static int cr2res_obs_1d_exec(cpl_plugin *);
 static int cr2res_obs_1d_destroy(cpl_plugin *);
@@ -282,10 +287,14 @@ static int cr2res_obs_1d(
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
     hdrl_image          *   combineda[CR2RES_NB_DETECTORS] ;
-    hdrl_image          *   combinedb[CR2RES_NB_DETECTORS] ;
-    cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extracta[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   slitfunca[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   modela[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   combinedb[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extractb[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   slitfuncb[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   modelb[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
     int                     i, det_nr; 
 
@@ -349,9 +358,13 @@ static int cr2res_obs_1d(
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         /* Initialise */
         combineda[det_nr-1] = NULL ;
-        combinedb[det_nr-1] = NULL ;
         extracta[det_nr-1] = NULL ;
+        slitfunca[det_nr-1] = NULL ;
+        modela[det_nr-1] = NULL ;
+        combinedb[det_nr-1] = NULL ;
         extractb[det_nr-1] = NULL ;
+        slitfuncb[det_nr-1] = NULL ;
+        modelb[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
 
         /* Compute only one detector */
@@ -366,9 +379,13 @@ static int cr2res_obs_1d(
                     extract_oversample, extract_swath_width, extract_height, 
                     extract_smooth, det_nr,
                     &(combineda[det_nr-1]),
-                    &(combinedb[det_nr-1]),
                     &(extracta[det_nr-1]),
+                    &(slitfunca[det_nr-1]),
+                    &(modela[det_nr-1]),
+                    &(combinedb[det_nr-1]),
                     &(extractb[det_nr-1]),
+                    &(slitfuncb[det_nr-1]),
+                    &(modelb[det_nr-1]),
                     &(ext_plist[det_nr-1])) == -1) {
             cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
         }
@@ -376,11 +393,38 @@ static int cr2res_obs_1d(
     }
 
     /* Ѕave Products */
-
-    /* Extracted A */
     out_file = cpl_sprintf("%s_extractedA.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extracta,
             NULL, ext_plist, CR2RES_OBS_1D_EXTRACTA_PROCATG, RECIPE_STRING) ;
+    cpl_free(out_file);
+
+    out_file = cpl_sprintf("%s_slitfuncA.fits", RECIPE_STRING) ;
+    cr2res_io_save_SLIT_FUNC(out_file, frameset, rawframes, parlist,
+            slitfunca, NULL, ext_plist, CR2RES_OBS_1D_SLITFUNCA_PROCATG,
+            RECIPE_STRING) ;
+    cpl_free(out_file);
+
+    out_file = cpl_sprintf("%s_modela.fits", RECIPE_STRING) ;
+    cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist,
+            modela, NULL, ext_plist, CR2RES_OBS_1D_SLITMODELA_PROCATG,
+            RECIPE_STRING) ;
+    cpl_free(out_file);
+
+    out_file = cpl_sprintf("%s_extractedB.fits", RECIPE_STRING) ;
+    cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extractb,
+            NULL, ext_plist, CR2RES_OBS_1D_EXTRACTB_PROCATG, RECIPE_STRING) ;
+    cpl_free(out_file);
+
+    out_file = cpl_sprintf("%s_slitfuncB.fits", RECIPE_STRING) ;
+    cr2res_io_save_SLIT_FUNC(out_file, frameset, rawframes, parlist,
+            slitfuncb, NULL, ext_plist, CR2RES_OBS_1D_SLITFUNCB_PROCATG,
+            RECIPE_STRING) ;
+    cpl_free(out_file);
+
+    out_file = cpl_sprintf("%s_modelb.fits", RECIPE_STRING) ;
+    cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist,
+            modelb, NULL, ext_plist, CR2RES_OBS_1D_SLITMODELB_PROCATG,
+            RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free */
@@ -388,12 +432,20 @@ static int cr2res_obs_1d(
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         if (combineda[det_nr-1] != NULL)
             hdrl_image_delete(combineda[det_nr-1]) ;
-        if (combinedb[det_nr-1] != NULL)
-            hdrl_image_delete(combinedb[det_nr-1]) ;
         if (extracta[det_nr-1] != NULL) 
             cpl_table_delete(extracta[det_nr-1]) ;
+        if (slitfunca[det_nr-1] != NULL) 
+            cpl_table_delete(slitfunca[det_nr-1]) ;
+        if (modela[det_nr-1] != NULL)
+            hdrl_image_delete(modela[det_nr-1]) ;
+        if (combinedb[det_nr-1] != NULL)
+            hdrl_image_delete(combinedb[det_nr-1]) ;
         if (extractb[det_nr-1] != NULL) 
             cpl_table_delete(extractb[det_nr-1]) ;
+        if (slitfuncb[det_nr-1] != NULL) 
+            cpl_table_delete(slitfuncb[det_nr-1]) ;
+        if (modelb[det_nr-1] != NULL)
+            hdrl_image_delete(modelb[det_nr-1]) ;
         if (ext_plist[det_nr-1] != NULL) 
             cpl_propertylist_delete(ext_plist[det_nr-1]) ;
     }
@@ -423,9 +475,13 @@ static int cr2res_obs_1d_reduce(
         double                  extract_smooth,
         int                     reduce_det,
         hdrl_image          **  combineda,
-        hdrl_image          **  combinedb,
         cpl_table           **  extracta,
+        cpl_table           **  slitfunca,
+        hdrl_image          **  modela,
+        hdrl_image          **  combinedb,
         cpl_table           **  extractb,
+        cpl_table           **  slitfuncb,
+        hdrl_image          **  modelb,
         cpl_propertylist    **  ext_plist)
 {
     hdrl_imagelist      *   in ;
@@ -645,19 +701,17 @@ static int cr2res_obs_1d_reduce(
     /* TODO */
     plist = NULL ;
 
-
-
     /* Return */
-    /* TODO */
-    hdrl_image_delete(model_master_a) ;
-    hdrl_image_delete(model_master_b) ;
-    cpl_table_delete(slit_func_a) ;
-    cpl_table_delete(slit_func_b) ;
-
     *combineda = collapsed_a ;
-    *combinedb = collapsed_b ;
     *extracta = extracted_a ;
+    *slitfunca = slit_func_a ;
+    *modela = model_master_a ;
+
+    *combinedb = collapsed_b ;
     *extractb = extracted_b ;
+    *slitfuncb = slit_func_b ;
+    *modelb = model_master_b ;
+
     *ext_plist = plist ;
 
     return 0 ;
