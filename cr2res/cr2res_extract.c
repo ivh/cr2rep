@@ -255,7 +255,18 @@ int cr2res_extract_traces(
     }
 
     /* Create the slit_func_tab for the current detector */
-    slit_func_loc = cr2res_extract_SLITFUNC_create(slit_func_vec, traces) ;
+    if ((slit_func_loc = cr2res_extract_SLITFUNC_create(slit_func_vec,
+                    traces)) == NULL) {
+        cpl_msg_error(__func__, "Cannot compute the slit function") ;
+        for (i=0 ; i<nb_traces ; i++) {
+            if (slit_func_vec[i] != NULL) cpl_vector_delete(slit_func_vec[i]) ;
+            if (spectrum[i] != NULL) cpl_bivector_delete(spectrum[i]) ;
+        }
+        cpl_free(spectrum) ;
+        cpl_free(slit_func_vec) ;
+        hdrl_image_delete(model_loc) ;
+        return -1; 
+    }
 
     /* Create the extracted_tab for the current detector */
     extract_loc = cr2res_extract_EXTRACT1D_create(spectrum, traces) ;
@@ -511,30 +522,27 @@ cpl_table * cr2res_extract_SLITFUNC_create(
     cpl_table       *   out ;
     char            *   col_name ;
     const double    *   pslit ;
-    int                 nrows, all_null, i, order, trace_id, nb_traces ;
+    int                 nrows, nrows_max, all_null, i, order, trace_id, nb_traces ;
 
     /* Check entries */
     if (slit_func == NULL || trace_table == NULL) return NULL ;
 
     /* Initialise */
+    nrows_max = -1 ;
     nb_traces = cpl_table_get_nrow(trace_table) ;
 
-    /* Check the all vectorѕ are not null */
+    /* Check that all vectorѕ are not null */
     all_null = 1 ;
     for (i=0 ; i<nb_traces ; i++)
         if (slit_func[i] != NULL) {
             nrows = cpl_vector_get_size(slit_func[i]) ;
+            if (nrows > nrows_max) nrows_max = nrows ;
             all_null = 0 ;
         }
     if (all_null == 1) return NULL ;
 
-    /* Check the sizes */
-    for (i=0 ; i<nb_traces ; i++)
-        if (slit_func[i] != NULL && cpl_vector_get_size(slit_func[i]) != nrows)
-            return NULL ;
-
     /* Create the table */
-    out = cpl_table_new(nrows);
+    out = cpl_table_new(nrows_max);
     for (i=0 ; i<nb_traces ; i++) {
         order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
         trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
