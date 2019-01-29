@@ -53,6 +53,8 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_obs_1d_check_inputs_validity(
+        const cpl_frameset  *   rawframes) ;
 static int cr2res_obs_1d_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frame     *   trace_wave_frame,
@@ -509,12 +511,21 @@ static int cr2res_obs_1d_reduce(
     hdrl_image          *   model_master_b ;
     cpl_propertylist    *   plist ;
     cpl_size                nframes, i ;
+    double                  slit_length, extr_width_frac, slit_frac_a_bot, 
+                            slit_frac_a_mid, slit_frac_a_top, slit_frac_b_bot, 
+                            slit_frac_b_mid, slit_frac_b_top, nod_throw ;
     int                     det_nr ;
 	
     /* Check Inputs */
     if (combineda == NULL || combinedb == NULL || extracta == NULL ||
             extractb == NULL || ext_plist == NULL || rawframes == NULL
             || trace_wave_frame == NULL) return -1 ;
+
+    /* Check raw frames consistency */
+    if (cr2res_obs_1d_check_inputs_validity(rawframes) != 1) {
+        cpl_msg_error(__func__, "Invalid Inputs") ;
+        return -1 ;
+    }
 
     /* Initialise */
     nframes = cpl_frameset_get_size(rawframes) ;
@@ -630,16 +641,63 @@ static int cr2res_obs_1d_reduce(
     }
 
     /* Compute the slit fractions for A and B positions extraction */   
-    /* TODO */
+    /*
+	The assumption is made here that :
+		- The slit center is exactly in the middle of A and B poѕitions
+        - The nodthrow iѕ the distance in arcseconds between A and B
+        - The slit size is 10 arcseconds
+        - The A position is above the B position
+    */
+    slit_length = 10 ;
+    if ((plist = cpl_propertylist_load(cpl_frame_get_filename(
+                        cpl_frameset_get_position_const(rawframes, 0)),
+                    0)) == NULL) {
+        cpl_msg_error(__func__, "Cannot read the NODTHROW in the input files") ;
+        hdrl_image_delete(collapsed_a) ;
+        hdrl_image_delete(collapsed_b) ;
+        cpl_table_delete(trace_wave) ;
+        return -1 ;
+    }
+    nod_throw = cr2res_pfits_get_nodthrow(plist) ;
+    cpl_propertylist_delete(plist) ;
+    if (nod_throw < slit_length / 2.0) {
+        extr_width_frac = nod_throw/slit_length ;  
+        slit_frac_a_bot = 0.5 ;
+        slit_frac_a_mid = slit_frac_a_bot + extr_width_frac/2.0 ;
+        slit_frac_a_top = slit_frac_a_bot + extr_width_frac ;
+        slit_frac_b_top = 0.5 ;
+        slit_frac_b_mid = slit_frac_b_top - extr_width_frac/2.0 ;
+        slit_frac_b_bot = slit_frac_b_top - extr_width_frac ;
+    } else if (nod_throw <= slit_length) {
+        extr_width_frac = (slit_length - nod_throw)/slit_length ;  
+        slit_frac_a_top = 1.0 ;
+        slit_frac_a_mid = slit_frac_a_top - extr_width_frac/2.0 ;
+        slit_frac_a_bot = slit_frac_a_top - extr_width_frac ;
+        slit_frac_b_bot = 0.0 ;
+        slit_frac_b_mid = slit_frac_b_bot + extr_width_frac/2.0 ;
+        slit_frac_b_top = slit_frac_b_bot + extr_width_frac ;
+    } else {
+        cpl_msg_error(__func__, "NODTHROW > slit length (%g>%g)- abort", 
+                nod_throw, slit_length) ;
+        hdrl_image_delete(collapsed_a) ;
+        hdrl_image_delete(collapsed_b) ;
+        cpl_table_delete(trace_wave) ;
+        return -1 ;
+    }
+    cpl_msg_info(__func__, "Nodding A extraction: Slit fraction %g - %g",
+            slit_frac_a_bot, slit_frac_a_top) ;
+    cpl_msg_info(__func__, "Nodding B extraction: Slit fraction %g - %g",
+            slit_frac_b_bot, slit_frac_b_top) ;
+
     slit_frac_a = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
-    cpl_array_set(slit_frac_a, 0, 0.0) ;
-    cpl_array_set(slit_frac_a, 1, 0.0) ;
-    cpl_array_set(slit_frac_a, 2, 0.0) ;
+    cpl_array_set(slit_frac_a, 0, slit_frac_a_bot) ;
+    cpl_array_set(slit_frac_a, 1, slit_frac_a_mid) ;
+    cpl_array_set(slit_frac_a, 2, slit_frac_a_top) ;
 
     slit_frac_b = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
-    cpl_array_set(slit_frac_b, 0, 0.0) ;
-    cpl_array_set(slit_frac_b, 1, 0.0) ;
-    cpl_array_set(slit_frac_b, 2, 0.0) ;
+    cpl_array_set(slit_frac_b, 0, slit_frac_b_bot) ;
+    cpl_array_set(slit_frac_b, 1, slit_frac_b_mid) ;
+    cpl_array_set(slit_frac_b, 2, slit_frac_b_top) ;
 
     /* Recompute the traces for the new slit fractions */
     if ((trace_wave_a = cr2res_trace_new_slit_fraction(trace_wave,
@@ -717,7 +775,34 @@ static int cr2res_obs_1d_reduce(
     return 0 ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  Run basic checks for the rawframes consistency
+  @param    rawframes   The input rawframes
+  @return   1 if valid, 0 if not, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_obs_1d_check_inputs_validity(
+        const cpl_frameset  *   rawframes)
+{
+    const cpl_propertylist  *   plist ;
+    cpl_size                    nframes ;
+    int                         nb_a, nb_b ;
 
+    /* Check Inputs */
+    if (rawframes == NULL) return -1 ;
 
+    /* Need even number of frames */
+    nframes = cpl_frameset_get_size(rawframes) ;
+    if (nframes % 2) {
+        cpl_msg_error(__func__, "Require an even number of raw frames") ;
+        return 0 ;
+    }
 
+    /* Need same number of A and B positions */
+
+    /* Need the same nod throw in all frames */
+
+    return 1 ;
+}
 
