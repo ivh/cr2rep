@@ -252,6 +252,8 @@ double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order)
     return val ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
   @brief    find out the NAXIS1 value
   @param    plist       property list to read from
   @return   the requested value
