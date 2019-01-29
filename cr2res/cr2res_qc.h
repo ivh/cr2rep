@@ -64,6 +64,16 @@ double cr2res_qc_flat_trace_center_y(
 int cr2res_qc_flat_nb_overexposed(
         const cpl_image     *   ima) ;
 
+/* WAVE */
+
+
+
+
+/* OBS_1D */
+double cr2res_qc_obs_1d_signal(
+        const cpl_table     *   extracted) ;
+double cr2res_qc_obs_1d_transmission(
+        const cpl_table     *   extracted) ;
 
 #endif
 

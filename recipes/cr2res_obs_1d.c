@@ -36,6 +36,7 @@
 #include "cr2res_trace.h"
 #include "cr2res_extract.h"
 #include "cr2res_io.h"
+#include "cr2res_qc.h"
 
 /*-----------------------------------------------------------------------------
                                 Define
@@ -514,6 +515,7 @@ static int cr2res_obs_1d_reduce(
     double                  slit_length, extr_width_frac, slit_frac_a_bot, 
                             slit_frac_a_mid, slit_frac_a_top, slit_frac_b_bot, 
                             slit_frac_b_mid, slit_frac_b_top, nod_throw ;
+    double                  qc_signal_a, qc_signal_b, qc_transm ;
     int                     det_nr ;
 	
     /* Check Inputs */
@@ -744,7 +746,7 @@ static int cr2res_obs_1d_reduce(
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth,
                 &extracted_b, &slit_func_b, &model_master_b) == -1) {
-        cpl_msg_error(__func__, "Failed to extract A");
+        cpl_msg_error(__func__, "Failed to extract B");
         cpl_table_delete(extracted_a) ;
         cpl_table_delete(slit_func_a) ;
         hdrl_image_delete(model_master_a) ;
@@ -755,9 +757,19 @@ static int cr2res_obs_1d_reduce(
     }
     cpl_table_delete(trace_wave_b) ;
 
-    /* Load the Header and store the QC parameters */
-    /* TODO */
-    plist = NULL ;
+    /* QC parameters */
+    plist = cpl_propertylist_new() ;
+
+    /* Compute the QC parameters */
+    /* TODO : pass the proper inputs */
+    qc_signal_a = cr2res_qc_obs_1d_signal(extracted_a) ;
+    qc_signal_b = cr2res_qc_obs_1d_signal(extracted_b) ;
+    qc_transm = cr2res_qc_obs_1d_transmission(NULL) ;
+
+    /* Store the QC parameters in the plist */
+    cpl_propertylist_append_double(plist, "ESO QC SIGNAL", 
+            (qc_signal_a+qc_signal_b)/2.0) ;
+    cpl_propertylist_append_double(plist, "ESO QC TRANSM", qc_transm) ;
 
     /* Return */
     *combineda = collapsed_a ;
@@ -785,8 +797,10 @@ static int cr2res_obs_1d_reduce(
 static int cr2res_obs_1d_check_inputs_validity(
         const cpl_frameset  *   rawframes)
 {
-    const cpl_propertylist  *   plist ;
-    cpl_size                    nframes ;
+    cpl_propertylist        *   plist ;
+    cr2res_nodding_pos      *   nod_positions ;
+    cpl_size                    nframes, i ;
+    double                      nodthrow, nodthrow_cur ;
     int                         nb_a, nb_b ;
 
     /* Check Inputs */
@@ -800,9 +814,43 @@ static int cr2res_obs_1d_check_inputs_validity(
     }
 
     /* Need same number of A and B positions */
+    nb_a = nb_b = 0 ;
+    nod_positions = cr2res_nodding_read_positions(rawframes) ;
+    if (nod_positions == NULL) return -1 ;
+    for (i=0 ; i<nframes ; i++) {
+        if (nod_positions[i] == CR2RES_NODDING_A) nb_a++ ;
+        if (nod_positions[i] == CR2RES_NODDING_B) nb_b++ ;
+    }
+    cpl_free(nod_positions) ;    
+
+    if (nb_a == 0 || nb_b == 0 || nb_a != nb_b) {
+        cpl_msg_error(__func__, "Require as many A and B positions") ;
+        return 0 ;
+    }
 
     /* Need the same nod throw in all frames */
+    if ((plist = cpl_propertylist_load(cpl_frame_get_filename(
+                        cpl_frameset_get_position_const(rawframes, 0)),
+                    0)) == NULL) {
+        return -1;
+    } 
+    nodthrow = cr2res_pfits_get_nodthrow(plist);
+    cpl_propertylist_delete(plist) ;
+    for (i=1 ; i<nframes ; i++) {
+        if ((plist = cpl_propertylist_load(cpl_frame_get_filename(
+                            cpl_frameset_get_position_const(rawframes, i)),
+                        0)) == NULL) {
+            return -1;
+        } 
+        nodthrow_cur = cr2res_pfits_get_nodthrow(plist);
+        cpl_propertylist_delete(plist) ;
 
+        if (fabs(nodthrow_cur-nodthrow) > 1e-3) {
+            cpl_msg_error(__func__, 
+                    "Require constant NOD THROW in the raw frames") ;
+            return 0 ;
+        }
+    }
     return 1 ;
 }
 

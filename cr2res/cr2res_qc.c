@@ -304,5 +304,50 @@ int cr2res_qc_flat_nb_overexposed(
     return qc_overexposed ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the integrated flux over part of the spectrum
+  @param    extracted   Extracted spectrum table
+  @return   the computed signal
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_obs_1d_signal(
+        const cpl_table     *   extracted)
+{
+    double      qc_signal ;
+
+    /* Check Entries */
+    if (extracted == NULL) return -1 ;
+
+    /* Initialise */
+    qc_signal = -1.0 ;
+    
+    /* TODO */
+    
+    return qc_signal ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the transmission
+  @param    extracted   Extracted spectrum table
+  @return   the computed signal
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_obs_1d_transmission(
+        const cpl_table     *   extracted)
+{
+    double      qc_transm ;
+
+    /* Check Entries */
+    if (extracted == NULL) return -1 ;
+
+    /* Initialise */
+    qc_transm = -1.0 ;
+    
+    /* TODO */
+    
+    return qc_transm ;
+}
 /**@}*/
 
