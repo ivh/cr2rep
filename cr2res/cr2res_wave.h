@@ -57,6 +57,19 @@ cpl_polynomial * cr2res_wave_1d(
         int                     display,
         cpl_array           **  wavelength_error) ;
 
+cpl_polynomial * cr2res_wave_2d(
+        cpl_bivector        **   spectrum,
+        cpl_bivector        **   spectrum_err,
+        cpl_polynomial      **   wavesol_init,
+        const cpl_array     **   wave_error_init,
+        cr2res_wavecal_type      wavecal_type,
+        const char          *    static_file,
+        int                 *    orders,
+        int                      norders,
+        cpl_size             *   degree,
+        int                      display,
+        cpl_array           **   wavelength_error);
+
 cpl_polynomial * cr2res_wave_xcorr(
         cpl_bivector    *   spectrum,
         cpl_polynomial  *   initial_guess,

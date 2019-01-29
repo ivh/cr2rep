@@ -111,6 +111,7 @@ cpl_polynomial * cr2res_wave_1d(
     cpl_polynomial  *   solution ;
     cpl_bivector    *   ref_spectrum ;
     cpl_bivector    *   simple_ref_spectrum ;
+    const cpl_bivector    **  plot;
     int                 wl_error ;
 
     /* Check Inputs */
@@ -143,8 +144,90 @@ cpl_polynomial * cr2res_wave_1d(
         solution = cr2res_wave_etalon(spectrum, spectrum_err, wavesol_init, degree, wavelength_error);
     }
 
+    if (display){
+        
+        for(cpl_size i = 0; i < 2048; i++)
+        {
+            // Set Wavelength values
+            // cpl_polynomial_eval_1d(wavesol_init, i, NULL)
+            cpl_vector_set(cpl_bivector_get_x(spectrum), i, cpl_polynomial_eval_1d(wavesol_init, i, NULL));
+        }
+        //cpl_vector_get_mean(cpl_bivector_get_y(simple_ref_spectrum))
+        // cpl_vector_multiply_scalar(cpl_bivector_get_y(spectrum), 1e6);
+        // cpl_vector_set(cpl_bivector_get_y(spectrum), 0, 0);
+
+        plot = cpl_malloc(2 * sizeof(cpl_bivector*));
+        plot[0] = simple_ref_spectrum;
+        plot[1] = spectrum;
+        const char* options[] = {"title 'Reference' w lines", "title 'Observed' w lines"};
+        char * main = cpl_sprintf("set xrange [%d:%d];", (int)cpl_vector_get_min(cpl_bivector_get_x(spectrum)), (int)cpl_vector_get_max(cpl_bivector_get_x(spectrum)));
+        cpl_plot_bivectors("set grid;set xlabel 'Position (Wavelength)';set ylabel 'Intensity (ADU/sec)';", options , main, plot, 2);
+
+        cpl_free(plot);
+        cpl_free(main);
+    }
+
     if (ref_spectrum != NULL) cpl_bivector_delete(ref_spectrum) ;
     if (simple_ref_spectrum != NULL) cpl_bivector_delete(simple_ref_spectrum) ;
+
+    return solution ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    1D Wavelength Calibration
+  @param    spectrum        Extracted spectrum
+  @param    spectrum        Extracted spectrum error
+  @param    wavesol_init    Initial wavelength solution
+  @param    wave_error_init Initial wavelength error (can be NULL)
+  @param    catalog         Line catalog or template spectrum or NULL
+  @param    degree          The polynomial degree of the solution
+  @param    display         Flag to display results
+  @param    wavelength_error    [out] array of wave_mean_error, wave_max_error
+  @return   Wavelength solution, i.e. polynomial that translates pixel
+            values to wavelength.
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_wave_2d(
+        cpl_bivector        **   spectrum,
+        cpl_bivector        **   spectrum_err,
+        cpl_polynomial      **   wavesol_init,
+        const cpl_array     **   wave_error_init,
+        cr2res_wavecal_type      wavecal_type,
+        const char          *    static_file,
+        int                 *    orders,
+        int                      norders,
+        cpl_size            *    degree,
+        int                      display,
+        cpl_array           **   wavelength_error)
+{
+    cpl_polynomial  *   solution ;
+    cpl_bivector    *   simple_ref_spectrum ;
+    cpl_vector      *   order_vector;
+
+    /* Check Inputs */
+    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL)
+        return NULL ;
+    if ((wavecal_type != CR2RES_LINE2D) &&
+            static_file == NULL) return NULL ;
+
+    /* Initialise */
+    solution = NULL ;
+
+    order_vector = cpl_vector_new(norders);
+    for(cpl_size i = 0; i < norders; i++)
+    {
+        cpl_vector_set(order_vector, i, (double)orders[i]);
+    }
+    
+    /* Just Extract the lines from the catalog */
+    simple_ref_spectrum = cr2res_io_load_EMISSION_LINES(static_file) ;
+
+    solution = cr2res_wave_line_fitting_2D(spectrum, spectrum_err, wavesol_init, wave_error_init, 
+            simple_ref_spectrum, order_vector, norders, degree, display, NULL, wavelength_error);
+
+    cpl_bivector_delete(simple_ref_spectrum);
+    cpl_vector_delete(order_vector);
 
     return solution ;
 }
@@ -376,7 +459,7 @@ int cr2res_wave_extract_lines(
         window_size = 2 * ceil(cpl_array_get_double(wave_error_init, 1, NULL) /
                             fabs(cpl_polynomial_get_coeff(wavesol_init, &power)));
 
-        } else window_size = 15;
+        } else window_size = 30;
     }
     cpl_size i, j, k, ngood, spec_size, npossible;
     double pixel_pos, pixel_new, red_chisq, dbl, res;
@@ -386,6 +469,7 @@ int cr2res_wave_extract_lines(
     const cpl_vector *spec, *unc;
     double * wave, width;
     const double *height;
+    double max_wl, min_wl;
     cpl_vector * fit, *fit_x;
     const cpl_vector ** plot;
     if (heights != NULL) *heights = cpl_vector_new(n);
@@ -422,6 +506,9 @@ int cr2res_wave_extract_lines(
     for (i = 0; i< spec_size; i++){
         cpl_vector_set(wave_vec, i, cpl_polynomial_eval_1d(wavesol_init, i, NULL));
     }
+    max_wl = cpl_vector_get_max(wave_vec);
+    min_wl = cpl_vector_get_min(wave_vec);
+
 
     // get line data
     wave = cpl_bivector_get_x_data(lines_list);
@@ -435,8 +522,7 @@ int cr2res_wave_extract_lines(
     for (i = 0; i < n; i++){
 
         // skip lines that are outside this wavelength region
-        if (wave[i] < cpl_vector_get(wave_vec, 0) | 
-            wave[i] > cpl_vector_get(wave_vec, spec_size-1)){
+        if ((wave[i] < min_wl) | (wave[i] > max_wl)){
             cpl_vector_set(flag_vec, i, 0);
             continue;
         }
@@ -826,6 +912,7 @@ cpl_polynomial * cr2res_wave_line_fitting_2D(
     // in case something went wrong during fitting
     if (error != CPL_ERROR_NONE){
         cpl_polynomial_delete(result);
+        cpl_error_reset();
         // if (sigma_fit != NULL)
         //     cpl_vector_delete(*sigma_fit);
         return NULL;

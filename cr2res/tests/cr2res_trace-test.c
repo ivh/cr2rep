@@ -613,50 +613,50 @@ static void test_cr2res_trace_get_trace_ypos(void)
   @brief Test a small 10x10 patch of the result to expected result based on trace table polynomials
  */
 /*----------------------------------------------------------------------------*/
-static void test_cr2res_trace_split_traces(void)
-{
-    //define input
-    cpl_binary data[2048 * 2048];
-    for (int i = 0; i < 2048 * 2048; i++)
-        data[i] = 1;
+// static void test_cr2res_trace_split_traces(void)
+// {
+//     //define input
+//     cpl_binary data[2048 * 2048];
+//     for (int i = 0; i < 2048 * 2048; i++)
+//         data[i] = 1;
 
-    cpl_mask *mask = cpl_mask_wrap(2048, 2048, data);
-    cpl_table *trace_table = create_test_table();
-    cpl_mask *sub;
+//     cpl_mask *mask = cpl_mask_wrap(2048, 2048, data);
+//     cpl_table *trace_table = create_test_table();
+//     cpl_mask *sub;
 
-    cpl_binary data2[10 * 10] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+//     cpl_binary data2[10 * 10] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+//                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+//                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+//                                  0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
+//                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-    cpl_mask *cmp = cpl_mask_wrap(10, 10, data2);
-    cpl_mask *res;
+//     cpl_mask *cmp = cpl_mask_wrap(10, 10, data2);
+//     cpl_mask *res;
 
-    //run test
-    cpl_test_null(cr2res_trace_split_traces(NULL, trace_table));
-    cpl_test_null(cr2res_trace_split_traces(mask, NULL));
+//     //run test
+//     cpl_test_null(cr2res_trace_split_traces(NULL, trace_table));
+//     cpl_test_null(cr2res_trace_split_traces(mask, NULL));
 
-    cpl_test(res = cr2res_trace_split_traces(mask, trace_table));
-    //test output
-    sub = cpl_mask_extract(res, 36, 165, 45, 174);
-    //cpl_mask_save(res, "res.fits", NULL, CPL_IO_CREATE);
-    //cpl_mask_save(sub, "sub.fits", NULL, CPL_IO_CREATE);
-    //cpl_mask_save(cmp, "cmp.fits", NULL, CPL_IO_CREATE);
-    cpl_test_eq_mask(sub, cmp);
+//     cpl_test(res = cr2res_trace_split_traces(mask, trace_table));
+//     //test output
+//     sub = cpl_mask_extract(res, 36, 165, 45, 174);
+//     //cpl_mask_save(res, "res.fits", NULL, CPL_IO_CREATE);
+//     //cpl_mask_save(sub, "sub.fits", NULL, CPL_IO_CREATE);
+//     //cpl_mask_save(cmp, "cmp.fits", NULL, CPL_IO_CREATE);
+//     cpl_test_eq_mask(sub, cmp);
 
-    //deallocate memory
-    cpl_mask_unwrap(mask);
-    cpl_mask_unwrap(cmp);
-    cpl_mask_delete(sub);
-    cpl_mask_delete(res);
-    cpl_table_delete(trace_table);
-}
+//     //deallocate memory
+//     cpl_mask_unwrap(mask);
+//     cpl_mask_unwrap(cmp);
+//     cpl_mask_delete(sub);
+//     cpl_mask_delete(res);
+//     cpl_table_delete(trace_table);
+// }
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -804,50 +804,50 @@ static void test_cr2res_trace_fit_trace(void)
   @brief    Check that small 5x5 image is created properly based on simple input dataset
  */
 /*----------------------------------------------------------------------------*/
-static void test_cr2res_trace_convert_cluster_to_labels(void)
-{
-    //define input
-    //cpl_table *cluster = create_cluster_table();
+// static void test_cr2res_trace_convert_cluster_to_labels(void)
+// {
+//     //define input
+//     //cpl_table *cluster = create_cluster_table();
 
-    int xs[] = {4, 5, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2};
-    int ys[] = {4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 5, 5};
-    int clusters[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2};
+//     int xs[] = {4, 5, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2};
+//     int ys[] = {4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 5, 5};
+//     int clusters[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2};
 
-    cpl_table *cluster = cpl_table_new(17);
-    cpl_table_wrap_int(cluster, xs, CR2RES_COL_XS);
-    cpl_table_wrap_int(cluster, ys, CR2RES_COL_YS);
-    cpl_table_wrap_int(cluster, clusters, CR2RES_COL_CLUSTERS);
+//     cpl_table *cluster = cpl_table_new(17);
+//     cpl_table_wrap_int(cluster, xs, CR2RES_COL_XS);
+//     cpl_table_wrap_int(cluster, ys, CR2RES_COL_YS);
+//     cpl_table_wrap_int(cluster, clusters, CR2RES_COL_CLUSTERS);
 
-    // flip data, so the image will be the same
-    int data_inverse[] = {1, 1, 1, 1, 0,
-                          1, 1, 1, 1, 1,
-                          0, 1, 1, 1, 1,
-                          0, 0, 0, 1, 1,
-                          2, 2, 0, 0, 0};
+//     // flip data, so the image will be the same
+//     int data_inverse[] = {1, 1, 1, 1, 0,
+//                           1, 1, 1, 1, 1,
+//                           0, 1, 1, 1, 1,
+//                           0, 0, 0, 1, 1,
+//                           2, 2, 0, 0, 0};
 
-    int nx = 5;
-    int ny = 5;
-    cpl_image *res;
-    cpl_image *cmp = cpl_image_wrap(nx, ny, CPL_TYPE_INT, data_inverse);
+//     int nx = 5;
+//     int ny = 5;
+//     cpl_image *res;
+//     cpl_image *cmp = cpl_image_wrap(nx, ny, CPL_TYPE_INT, data_inverse);
 
-    //run test
-    cpl_test_null(cr2res_trace_convert_cluster_to_labels(NULL, nx, ny));
-    cpl_test_null(cr2res_trace_convert_cluster_to_labels(cluster, 0, ny));
-    cpl_test_null(cr2res_trace_convert_cluster_to_labels(cluster, nx, 0));
+//     //run test
+//     cpl_test_null(cr2res_trace_convert_cluster_to_labels(NULL, nx, ny));
+//     cpl_test_null(cr2res_trace_convert_cluster_to_labels(cluster, 0, ny));
+//     cpl_test_null(cr2res_trace_convert_cluster_to_labels(cluster, nx, 0));
 
-    cpl_test(res = cr2res_trace_convert_cluster_to_labels(cluster, nx, ny));
-    //test output
-    //cpl_image_save(res, "labels.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
-    cpl_test_image_abs(res, cmp, 0);
+//     cpl_test(res = cr2res_trace_convert_cluster_to_labels(cluster, nx, ny));
+//     //test output
+//     //cpl_image_save(res, "labels.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+//     cpl_test_image_abs(res, cmp, 0);
 
-    //deallocate memory
-    cpl_table_unwrap(cluster, CR2RES_COL_XS);
-    cpl_table_unwrap(cluster, CR2RES_COL_YS);
-    cpl_table_unwrap(cluster, CR2RES_COL_CLUSTERS);
-    cpl_table_delete(cluster);
-    cpl_image_delete(res);
-    cpl_image_unwrap(cmp);
-}
+//     //deallocate memory
+//     cpl_table_unwrap(cluster, CR2RES_COL_XS);
+//     cpl_table_unwrap(cluster, CR2RES_COL_YS);
+//     cpl_table_unwrap(cluster, CR2RES_COL_CLUSTERS);
+//     cpl_table_delete(cluster);
+//     cpl_image_delete(res);
+//     cpl_image_unwrap(cmp);
+// }
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -1003,11 +1003,11 @@ int main(void)
     test_cr2res_trace_compute_height();
     test_cr2res_trace_get_trace_ypos();
     // test_cr2res_trace_add_ord_tra_wav_curv_columns();
-    test_cr2res_trace_split_traces();
+    // test_cr2res_trace_split_traces();
     test_cr2res_trace_signal_detect();
     test_cr2res_trace_fit_traces();
     test_cr2res_trace_fit_trace();
-    test_cr2res_trace_convert_cluster_to_labels();
+    // test_cr2res_trace_convert_cluster_to_labels();
     test_cr2res_trace_convert_labels_to_cluster();
     test_cr2res_trace_clean_blobs();
     test_cr2res_trace_extract_edges();
