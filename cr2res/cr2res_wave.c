@@ -160,8 +160,9 @@ cpl_polynomial * cr2res_wave_1d(
         plot[0] = simple_ref_spectrum;
         plot[1] = spectrum;
         const char* options[] = {"title 'Reference' w lines", "title 'Observed' w lines"};
-        char * main = cpl_sprintf("set xrange [%d:%d];", (int)cpl_vector_get_min(cpl_bivector_get_x(spectrum)), (int)cpl_vector_get_max(cpl_bivector_get_x(spectrum)));
-        cpl_plot_bivectors("set grid;set xlabel 'Position (Wavelength)';set ylabel 'Intensity (ADU/sec)';", options , main, plot, 2);
+        char * main = cpl_sprintf("set grid;set xlabel 'Position (Wavelength)';set ylabel 'Intensity (ADU/sec)';set xrange [%d:%d];", 
+                (int)cpl_vector_get_min(cpl_bivector_get_x(spectrum)), (int)cpl_vector_get_max(cpl_bivector_get_x(spectrum)));
+        cpl_plot_bivectors(main, options , "", plot, 2);
 
         cpl_free(plot);
         cpl_free(main);
@@ -450,17 +451,15 @@ int cr2res_wave_extract_lines(
     }
 
     cpl_size power = 1;
-    int window_size;
+    int window_size = 500;
     /* set window_size using the wave_error_init, scaled by the initial guess */
 
-    if (wave_error_init == NULL) window_size = 30;
-    else{
-        if (cpl_array_get_double(wave_error_init, 1, NULL) > 0){
-        window_size = 2 * ceil(cpl_array_get_double(wave_error_init, 1, NULL) /
-                            fabs(cpl_polynomial_get_coeff(wavesol_init, &power)));
-
-        } else window_size = 30;
-    }
+    // if (wave_error_init != NULL)
+    //     if (cpl_array_get_double(wave_error_init, 1, NULL) > 0){
+    //         window_size = 2 * ceil(cpl_array_get_double(wave_error_init, 1, NULL) /
+    //                         fabs(cpl_polynomial_get_coeff(wavesol_init, &power)));
+    //     }
+    
     cpl_size i, j, k, ngood, spec_size, npossible;
     double pixel_pos, pixel_new, red_chisq, dbl, res;
     int n = cpl_bivector_get_size(lines_list);
@@ -469,6 +468,7 @@ int cr2res_wave_extract_lines(
     const cpl_vector *spec, *unc;
     double * wave, width;
     const double *height;
+    double value;
     double max_wl, min_wl;
     cpl_vector * fit, *fit_x;
     const cpl_vector ** plot;
@@ -541,8 +541,10 @@ int cr2res_wave_extract_lines(
                 break;
             }
 
+            value =  cpl_vector_get(spec, k);
+            if (value < 0) value = 0;
             cpl_matrix_set(x, j, 0, k);
-            cpl_vector_set(y, j, cpl_vector_get(spec, k));
+            cpl_vector_set(y, j, value);
             cpl_vector_set(sigma_y, j, cpl_vector_get(unc, k));
         }
 
@@ -552,7 +554,8 @@ int cr2res_wave_extract_lines(
         }
 
         // get initial guess for gaussian fit
-        cpl_vector_set(a, 0, pixel_pos);
+        value = pixel_pos - window_size / 2 + cpl_vector_get_maxpos(y);
+        cpl_vector_set(a, 0, value);
         cpl_vector_set(a, 1, width);
         cpl_vector_set(a, 2, cpl_vector_get_max(y));
         cpl_vector_set(a, 3, cpl_vector_get_min(y));
@@ -575,9 +578,11 @@ int cr2res_wave_extract_lines(
         // 3) the gaussian is centered outside the window   
         // 4) the fitted height is negative    
 
-        if (error != CPL_ERROR_NONE | red_chisq > 100 |
-            fabs(pixel_new - pixel_pos) > window_size |
-            cpl_vector_get(a, 2) < 0){
+        if (error != CPL_ERROR_NONE 
+            // | red_chisq > 100 
+            | fabs(pixel_new - pixel_pos) > window_size
+            // | cpl_vector_get(a, 2) < 0
+        ){
             cpl_vector_set(flag_vec, i, 0);
             cpl_error_reset();
             continue;
@@ -694,7 +699,8 @@ cpl_polynomial * cr2res_wave_line_fitting(
     cpl_vector * heights;
 
     // extract line data in 1 spectrum
-    if (0 != cr2res_wave_extract_lines(spectrum, spectrum_err, wavesol_init, wave_error_init, lines_list, display, &px, &py, &sigma_py, &heights))
+    if (0 != cr2res_wave_extract_lines(spectrum, spectrum_err, wavesol_init, wave_error_init, 
+                lines_list, display, &px, &py, &sigma_py, &heights))
     {
         cpl_msg_error(__func__, "Can't extract lines");
         return NULL;

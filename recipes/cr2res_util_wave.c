@@ -294,7 +294,7 @@ static int cr2res_util_wave(
     cpl_bivector        **  spectra_2D;
     cpl_bivector        **  spectra_err_2D;
     cpl_polynomial      **  wavesol_init_2D;
-    const cpl_array           **  wavesol_error_2D;
+    const cpl_array     **  wavesol_error_2D;
     int                  *  orders;
     int                     nb_orders;
     cpl_size                degree_2d[2];
@@ -334,7 +334,6 @@ static int cr2res_util_wave(
     sval = cpl_parameter_get_string(param) ;
     if (!strcmp(sval, "XCORR"))         wavecal_type = CR2RES_XCORR ;
     else if (!strcmp(sval, "LINE1D"))   wavecal_type = CR2RES_LINE1D ;
-    /* TODO : add support for 2D */
     else if (!strcmp(sval, "LINE2D"))   wavecal_type = CR2RES_LINE2D ;
     else if (!strcmp(sval, "ETALON"))   wavecal_type = CR2RES_ETALON ;
     else {
@@ -552,7 +551,6 @@ static int cr2res_util_wave(
 
                 /* Store the Solution in the table */
                 wl_array = cr2res_convert_poly_to_array(wave_sol, degree+1) ;
-                cpl_polynomial_delete(wave_sol);
                 if (wl_array != NULL) {
                     cpl_table_set_array(out_trace_wave[det_nr-1],
                             CR2RES_COL_WAVELENGTH, i, wl_array);
@@ -563,6 +561,7 @@ static int cr2res_util_wave(
                             CR2RES_COL_WAVELENGTH_ERROR, i, wl_err_array);
                     cpl_array_delete(wl_err_array) ;
                 }
+                cpl_polynomial_delete(wave_sol);
             }
             cpl_msg_indent_less() ;
         }
