@@ -402,6 +402,7 @@ static int cr2res_util_extract(
                 cpl_table_delete(trace_table) ;
                 hdrl_image_delete(science_hdrl) ;
                 cpl_mask_delete(bpm_mask);
+                cpl_image_delete(bpm_img);
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
                 continue ;
@@ -421,6 +422,8 @@ static int cr2res_util_extract(
         }
         hdrl_image_delete(science_hdrl) ;
         cpl_table_delete(trace_table) ;
+        cpl_mask_delete(bpm_mask);
+        cpl_image_delete(bpm_img);
     }
 
     /* Save the Products */
