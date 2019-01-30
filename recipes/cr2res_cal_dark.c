@@ -160,7 +160,7 @@ static int cr2res_cal_dark_create(cpl_plugin * plugin)
 
     /* --bpm_kappa */
     p = cpl_parameter_new_value("cr2res_cal_dark.bpm_kappa", CPL_TYPE_DOUBLE,
-           "Kappa Threshold for the BPM", "cr2res_cal_dark", 3.0);
+           "Kappa Threshold for the BPM", "cr2res_cal_dark", 1.8);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_kappa");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -191,7 +191,7 @@ static int cr2res_cal_dark_create(cpl_plugin * plugin)
 
     /* --gain */
     p = cpl_parameter_new_value("cr2res_cal_dark.gain", CPL_TYPE_DOUBLE,
-       "Gain in [e- / ADU]", "cr2res_cal_dark", 2.5);
+       "Gain in [e- / ADU]", "cr2res_cal_dark", 2.1);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "gain");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -200,7 +200,7 @@ static int cr2res_cal_dark_create(cpl_plugin * plugin)
     sigclip_def = hdrl_collapse_sigclip_parameter_create(3., 3., 5);
     minmax_def = hdrl_collapse_minmax_parameter_create(1., 1.);
     collapse_par = hdrl_collapse_parameter_create_parlist("cr2res_cal_dark", 
-            "", "MEDIAN", sigclip_def, minmax_def) ;
+            "", "MEAN", sigclip_def, minmax_def) ;
     hdrl_parameter_delete(sigclip_def);
     hdrl_parameter_delete(minmax_def);
     for (p = cpl_parameterlist_get_first(collapse_par) ;
