@@ -45,6 +45,15 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_trace_new_trace(
+        const cpl_array     *   slit_fraction_in,
+        const cpl_array     *   trace_all_in,
+        const cpl_array     *   trace_upper_in,
+        const cpl_array     *   trace_lower_in,
+        const cpl_array     *   slit_fraction_wished,
+        cpl_array           **  trace_all_new,
+        cpl_array           **  trace_upper_new,
+        cpl_array           **  trace_lower_new) ;
 static int cr2res_trace_check_slit_fraction(const cpl_array * slit_fraction) ;
 static cpl_array * cr2res_trace_get_slit_frac(
         cpl_table       *   traces,
@@ -1035,22 +1044,23 @@ int cr2res_trace_add_extra_columns(
   @param    traces              The input traces
   @param    new_slit_fraction   The newly wishded slit fraction
   @return   The newly computed trace 
+  @see  cr2res_trace_new_trace()
   
-  For each trace (i.e. row) in the input trace, the function will try to
-  produce a new row in the output trace table corresponding to the passed slit
-  fraction.
+  For each trace (i.e. row) in the input trace that has a valid slit
+  fraction, the function will produce a new row in the output trace table i
+  corresponding to the passed slit fraction.
 
   - CR2RES_COL_SLIT_FRACTION is filled with the input fraction
   - CR2RES_COL_ORDER and CR2RES_COL_TRACENB are copied from input trace file
-  - CR2RES_COL_UPPER CR2RES_COL_LOWER CR2RES_COL_ALL are computed like
-    this:
-    TODO
+  - CR2RES_COL_UPPER CR2RES_COL_LOWER CR2RES_COL_ALL are computed by
+        cr2res_trace_new_trace()
   - CR2RES_COL_WAVELENGTH and CR2RES_COL_WAVELENGTH_ERROR are computed
     like this:
     TODO
   - CR2RES_COL_SLIT_CURV_A CR2RES_COL_SLIT_CURV_B CR2RES_COL_SLIT_CURV_C
     are computed like this:
     TODO
+
 
  */
 /*----------------------------------------------------------------------------*/
@@ -1059,10 +1069,13 @@ cpl_table * cr2res_trace_new_slit_fraction(
         const cpl_array     *   new_slit_fraction)
 {
     cpl_table       *   out ;
-    const cpl_array *   slit_frac ;
-    cpl_array       *   trace_all ;
-    cpl_array       *   trace_upper ;
-    cpl_array       *   trace_lower ;
+    const cpl_array *   slit_frac_old ;
+    const cpl_array *   trace_all_old ;
+    const cpl_array *   trace_upper_old ;
+    const cpl_array *   trace_lower_old ;
+    cpl_array       *   trace_all_new ;
+    cpl_array       *   trace_upper_new ;
+    cpl_array       *   trace_lower_new ;
     cpl_array       *   wave ;
     cpl_array       *   wave_err ;
     cpl_array       *   slit_curv_a ;
@@ -1085,10 +1098,16 @@ cpl_table * cr2res_trace_new_slit_fraction(
     for (i=0 ; i<nrows; i++) {
 
         /* Check if the input trace slit_fraction is available */
-        slit_frac = cpl_table_get_array(traces, CR2RES_COL_SLIT_FRACTION, i) ;
+        slit_frac_old = cpl_table_get_array(traces, CR2RES_COL_SLIT_FRACTION, i) ;
+        trace_all_old = cpl_table_get_array(traces, CR2RES_COL_ALL, i) ;
+        trace_upper_old = cpl_table_get_array(traces, CR2RES_COL_UPPER, i) ;
+        trace_lower_old = cpl_table_get_array(traces, CR2RES_COL_LOWER, i) ;
 
-        /* Unselect rows with wrong slit_fraction - to be erased below */
-        if (cr2res_trace_check_slit_fraction(slit_frac) != 1) {
+        /* Unselect rows with wrong slit_fraction or without trace */
+        /* to be erased below */
+        if (cr2res_trace_check_slit_fraction(slit_frac_old) != 1 ||
+                trace_upper_old == NULL || trace_lower_old == NULL ||
+                trace_all_old == NULL) {
             cpl_table_unselect_row(out, i) ;
             continue ;
         }
@@ -1097,21 +1116,21 @@ cpl_table * cr2res_trace_new_slit_fraction(
         cpl_table_set_array(out, CR2RES_COL_SLIT_FRACTION, i,new_slit_fraction);
 
         /* Compute the new trace */
-        /* TODO */
-        trace_all = cpl_array_duplicate(
-                cpl_table_get_array(traces, CR2RES_COL_ALL, i)) ; 
-        trace_upper = cpl_array_duplicate(
-                cpl_table_get_array(traces, CR2RES_COL_UPPER, i)) ;
-        trace_lower = cpl_array_duplicate(
-                cpl_table_get_array(traces, CR2RES_COL_LOWER, i)) ;
+        if (cr2res_trace_new_trace(slit_frac_old, trace_all_old, trace_upper_old,
+                trace_lower_old, new_slit_fraction, &trace_all_new,
+                &trace_upper_new, &trace_lower_new) == -1) {
+            cpl_msg_error(__func__, "Cannot compute the new trace") ;
+            cpl_table_delete(out) ;
+            return NULL ;
+        }
 
         /* Set new trace */
-        cpl_table_set_array(out, CR2RES_COL_ALL, i, trace_all);
-        cpl_table_set_array(out, CR2RES_COL_UPPER, i, trace_upper);
-        cpl_table_set_array(out, CR2RES_COL_LOWER, i, trace_lower);
-        cpl_array_delete(trace_all) ;
-        cpl_array_delete(trace_upper) ;
-        cpl_array_delete(trace_lower) ;
+        cpl_table_set_array(out, CR2RES_COL_ALL, i, trace_all_new);
+        cpl_table_set_array(out, CR2RES_COL_UPPER, i, trace_upper_new);
+        cpl_table_set_array(out, CR2RES_COL_LOWER, i, trace_lower_new);
+        cpl_array_delete(trace_all_new) ;
+        cpl_array_delete(trace_upper_new) ;
+        cpl_array_delete(trace_lower_new) ;
 
         /* Compute the new wavelength */
         /* TODO */
@@ -1693,3 +1712,126 @@ static int cr2res_trace_check_slit_fraction(const cpl_array * slit_fraction)
         return 0 ;
     return 1 ;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief   Compute new trace polynomials by using slit_fraction specs
+  @param slit_fraction_in     Input slit fraction
+  @param trace_all_in  
+  @param trace_upper_in
+  @param trace_lower_in  
+  @param slit_fraction_wished
+  @param trace_all_new
+  @param trace_upper_new
+  @param trace_lower_new
+  @return 0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_trace_new_trace(
+        const cpl_array     *   slit_fraction_in,
+        const cpl_array     *   trace_all_in,
+        const cpl_array     *   trace_upper_in,
+        const cpl_array     *   trace_lower_in,
+        const cpl_array     *   slit_fraction_wished,
+        cpl_array           **  trace_all_new,
+        cpl_array           **  trace_upper_new,
+        cpl_array           **  trace_lower_new)
+{
+    cpl_polynomial  *   poly_upper_in ;
+    cpl_polynomial  *   poly_lower_in ;
+    cpl_polynomial  *   poly_all_in ;
+    cpl_polynomial  *   poly_upper_out ;
+    cpl_polynomial  *   poly_lower_out ;
+    cpl_polynomial  *   poly_all_out ;
+    const cpl_size 		power = 0 ;
+    cpl_array       *   trace_all_out ;
+    cpl_array       *   trace_upper_out ;
+    cpl_array       *   trace_lower_out ;
+    double              sf_in_l, sf_in_m, sf_in_u, pix_in_l, pix_in_u, pix_in_m,
+                        sf_out_l, sf_out_m, sf_out_u, pix_out_l, pix_out_u, 
+                        pix_out_m, sf_wished, new_coeff ;
+
+    /* Check entries */
+    if (slit_fraction_in==NULL || trace_all_in==NULL || trace_upper_in==NULL ||
+            trace_lower_in==NULL || slit_fraction_wished==NULL ||
+            trace_all_new==NULL || trace_upper_new==NULL ||
+            trace_lower_new==NULL) return -1; 
+
+    /* Get input slit positions in arcseconds */
+    sf_in_l = cpl_array_get(slit_fraction_in, 0, NULL) ;
+    sf_in_m = cpl_array_get(slit_fraction_in, 1, NULL) ;
+    sf_in_u = cpl_array_get(slit_fraction_in, 2, NULL) ;
+
+    /* Get wished slit positions in arcseconds */
+    sf_out_l = cpl_array_get(slit_fraction_wished, 0, NULL) ;
+    sf_out_m = cpl_array_get(slit_fraction_wished, 1, NULL) ;
+    sf_out_u = cpl_array_get(slit_fraction_wished, 2, NULL) ;
+
+    /* Get input slit positions in pixels from middle of the traces */
+    poly_all_in = cr2res_convert_array_to_poly(trace_all_in) ;
+    poly_upper_in = cr2res_convert_array_to_poly(trace_upper_in) ;
+    poly_lower_in = cr2res_convert_array_to_poly(trace_lower_in) ;
+    pix_in_m = cpl_polynomial_eval_1d(poly_all_in,
+            (double)(CR2RES_DETECTOR_SIZE/2.0), NULL) ;
+    pix_in_u = cpl_polynomial_eval_1d(poly_upper_in,
+            (double)(CR2RES_DETECTOR_SIZE/2.0), NULL) ;
+    pix_in_l = cpl_polynomial_eval_1d(poly_lower_in,
+            (double)(CR2RES_DETECTOR_SIZE/2.0), NULL) ;
+
+    /* Compute the Pixel positions on the wished slit fraction */
+    sf_wished = sf_out_u ;
+    pix_out_u = pix_in_l+(sf_wished-sf_in_l)*(pix_in_u-pix_in_l)/(sf_in_u-sf_in_l);
+    sf_wished = sf_out_l ;
+    pix_out_l = pix_in_l+(sf_wished-sf_in_l)*(pix_in_u-pix_in_l)/(sf_in_u-sf_in_l);
+    sf_wished = sf_out_m ;
+    pix_out_m = pix_in_l+(sf_wished-sf_in_l)*(pix_in_u-pix_in_l)/(sf_in_u-sf_in_l);
+
+    /* Debug Message */
+    cpl_msg_debug(__func__, 
+"Slit fraction: [%g-%g-%g]->[%g-%g-%g] - Pixel positions: [%g-%g-%g]->[%g-%g-%g]",
+        sf_in_l, sf_in_m, sf_in_u, sf_out_l, sf_out_m, sf_out_u, 
+        pix_in_l, pix_in_m, pix_in_u, pix_out_l, pix_out_m, pix_out_u) ;
+
+    /* Correct the polynomials */
+    poly_upper_out = cpl_polynomial_duplicate(poly_upper_in) ;
+    poly_lower_out = cpl_polynomial_duplicate(poly_lower_in) ;
+    poly_all_out = cpl_polynomial_duplicate(poly_all_in) ;
+    new_coeff = cpl_polynomial_get_coeff(poly_upper_out, &power) +
+        pix_out_u - pix_in_u ;
+    cpl_polynomial_set_coeff(poly_upper_out, &power, new_coeff) ;
+    new_coeff = cpl_polynomial_get_coeff(poly_lower_out, &power) +
+        pix_out_l - pix_in_l ;
+    cpl_polynomial_set_coeff(poly_lower_out, &power, new_coeff) ;
+    new_coeff = cpl_polynomial_get_coeff(poly_all_out, &power) +
+        pix_out_m - pix_in_m ;
+    cpl_polynomial_set_coeff(poly_all_out, &power, new_coeff) ;
+    cpl_polynomial_delete(poly_all_in) ;
+    cpl_polynomial_delete(poly_upper_in) ;
+    cpl_polynomial_delete(poly_lower_in) ;
+
+    /* Convert to arrays */
+    trace_all_out = cr2res_convert_poly_to_array(poly_all_out, 
+            cpl_array_get_size(trace_all_in));
+    trace_upper_out = cr2res_convert_poly_to_array(poly_upper_out, 
+            cpl_array_get_size(trace_upper_in));
+    trace_lower_out = cr2res_convert_poly_to_array(poly_lower_out, 
+            cpl_array_get_size(trace_lower_in));
+    cpl_polynomial_delete(poly_all_out) ;
+    cpl_polynomial_delete(poly_upper_out) ;
+    cpl_polynomial_delete(poly_lower_out) ;
+   
+    /* Check */
+    if (cpl_error_get_code()) {
+        cpl_array_delete(trace_all_out) ;
+        cpl_array_delete(trace_upper_out) ;
+        cpl_array_delete(trace_lower_out) ;
+        return -1 ;
+    }
+
+    /* Return  */
+    *trace_all_new = trace_all_out ;
+    *trace_upper_new = trace_upper_out ;
+    *trace_lower_new = trace_lower_out ;
+    return 0 ;
+}
+
