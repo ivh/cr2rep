@@ -157,13 +157,13 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     /* Fill the parameters list */
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
-            "cr2res.cr2res_util_extract", 10);
+            "cr2res.cr2res_util_extract", 5);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "oversample");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.swath_width",
-            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_util_extract", 64);
+            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_util_extract", 32);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "swath_width");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -386,27 +386,31 @@ static int cr2res_util_extract(
             continue ;
         }
 
-        /* Load the BPM */
-        cpl_msg_info(__func__, "Load the BPM") ;
-        if ((bpm_img = cr2res_io_load_BPM(bpm_file, det_nr, 1))==NULL) {
-            cpl_table_delete(trace_table) ;
-            hdrl_image_delete(science_hdrl) ;
-            cpl_msg_error(__func__, "Failed to load the BPM - skip detector");
-            cpl_error_reset() ;
-            cpl_msg_indent_less() ;
-            continue ;
-        } else {
-            bpm_mask = cpl_mask_threshold_image_create(bpm_img, 0,INT_MAX);
-            if (hdrl_image_reject_from_mask(science_hdrl, bpm_mask) != CPL_ERROR_NONE) {
-                cpl_msg_error(__func__, "Failed to assign the BPM to image - skip detector");
+        /* Load the BPM and assign to hdrl-mask*/
+        if (bpm_file != NULL) {
+            cpl_msg_info(__func__, "Load and assign the BPM") ;
+            if ((bpm_img = cr2res_io_load_BPM(bpm_file, det_nr, 1))==NULL) {
                 cpl_table_delete(trace_table) ;
                 hdrl_image_delete(science_hdrl) ;
-                cpl_mask_delete(bpm_mask);
-                cpl_image_delete(bpm_img);
+                cpl_msg_error(__func__, "Failed to load the BPM - skip detector");
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
                 continue ;
+            } else {
+                bpm_mask = cpl_mask_threshold_image_create(bpm_img, 0,INT_MAX);
+                if (hdrl_image_reject_from_mask(science_hdrl, bpm_mask) != CPL_ERROR_NONE) {
+                    cpl_msg_error(__func__, "Failed to assign the BPM to image - skip detector");
+                    cpl_table_delete(trace_table) ;
+                    hdrl_image_delete(science_hdrl) ;
+                    cpl_mask_delete(bpm_mask);
+                    cpl_image_delete(bpm_img);
+                    cpl_error_reset() ;
+                    cpl_msg_indent_less() ;
+                    continue ;
+                }
             }
+            cpl_mask_delete(bpm_mask);
+            cpl_image_delete(bpm_img);
         }
         /* Compute the extraction */
         cpl_msg_info(__func__, "Spectra Extraction") ;
@@ -422,8 +426,6 @@ static int cr2res_util_extract(
         }
         hdrl_image_delete(science_hdrl) ;
         cpl_table_delete(trace_table) ;
-        cpl_mask_delete(bpm_mask);
-        cpl_image_delete(bpm_img);
     }
 
     /* Save the Products */
