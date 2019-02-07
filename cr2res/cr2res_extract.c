@@ -1489,7 +1489,7 @@ static int cr2res_extract_slit_func_vert(
     step=1.e0/osample;
     double * E = cpl_malloc(ncols*sizeof(double)); // double E[ncols];
     double * sP_old = cpl_malloc(ncols*sizeof(double)); // double sP_old[ncols];
-    double * Aij = cpl_malloc(ny*ny*sizeof(double)); // double Aij[ny*ny];
+    double * Aij = cpl_malloc(ny*(2 * osample + 1)*sizeof(double)); // double Aij[ny*ny];
     double * bj = cpl_malloc(ny*sizeof(double)); // double bj[ny];
     // double Adiag[ncols*3];
     double * Adiag = cpl_malloc(ncols*3*sizeof(double));
@@ -1588,7 +1588,10 @@ static int cr2res_extract_slit_func_vert(
 
         /* Compute spectrum sP */
         for(x=0; x<ncols; x++) {
+            Adiag[x]=0.e0;
             Adiag[x+ncols]=0.e0;
+            Adiag[x+2 *ncols]=0.e0;
+
             E[x]=0.e0;
             for(y=0; y<nrows; y++) {
                 sum=0.e0;
