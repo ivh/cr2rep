@@ -54,10 +54,10 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
  -----------------------------------------------------------------------------*/
 
 static int cr2res_cal_detlin_update(
-        cpl_image           *   current_bpm,
+        cpl_image           *   global_bpm,
         cpl_image           *   new_bpm,
-        cpl_imagelist       *   current_coeffs,
-        cpl_imagelist       *   new_coeffs) ;
+        hdrl_imagelist      *   global_coeffs,
+        hdrl_imagelist      *   new_coeffs) ;
 static int cr2res_cal_detlin_compare(
         const cpl_frame   *   frame1,
         const cpl_frame   *   frame2) ;
@@ -274,6 +274,9 @@ static int cr2res_cal_detlin(
     cpl_size                nlabels ;
     cpl_frameset        *   raw_one ;
     char                *   setting_id ;
+    hdrl_imagelist      *   coeffs_merged[CR2RES_NB_DETECTORS] ;
+    cpl_image           *   bpm_merged[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   ext_plist_merged[CR2RES_NB_DETECTORS] ;
     hdrl_imagelist      *   coeffs[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
@@ -331,6 +334,13 @@ static int cr2res_cal_detlin(
         return -1 ;
     }
 
+    /* Initialise */
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        coeffs_merged[det_nr-1] = NULL ;
+        bpm_merged[det_nr-1] = NULL ;
+        ext_plist_merged[det_nr-1] = NULL ;
+    }
+
     /* Loop on the settings */
     for (l=0 ; l<(int)nlabels ; l++) {
         /* Get the frames for the current setting */
@@ -371,23 +381,51 @@ static int cr2res_cal_detlin(
                         setting_id, det_nr);
             } 
             cpl_msg_indent_less() ;
+
+            /* Merge the products */
+            if (ext_plist[det_nr-1] != NULL && coeffs[det_nr-1] != NULL
+                    && bpm[det_nr-1] != NULL) {
+                /* Take the first header as it is */
+                if (ext_plist_merged[det_nr-1] == NULL) {
+                    ext_plist_merged[det_nr-1] =
+                        cpl_propertylist_duplicate(ext_plist[det_nr-1]) ;
+                }
+
+                /* Handle the coefficients and bpm */
+                if (coeffs_merged[det_nr-1] == NULL) {
+                    /* First non-null solution encountered */
+                    coeffs_merged[det_nr-1] =
+                        hdrl_imagelist_duplicate(coeffs[det_nr-1]) ;
+                    bpm_merged[det_nr-1] = cpl_image_duplicate(bpm[det_nr-1]) ;
+                } else {
+                    /* Merge */
+                    cr2res_cal_detlin_update(bpm_merged[det_nr-1],
+                            bpm[det_nr-1], coeffs_merged[det_nr-1],
+                            coeffs[det_nr-1]) ;
+                }
+            }
         }
 
         /* Save the products */
+        /* Comment out the individual saving - only save the merged product */
 
         /* BPM */
         out_file = cpl_sprintf("%s_%s_bpm.fits", RECIPE_STRING,
                 setting_id) ;
+        /*
         cr2res_io_save_BPM(out_file, frameset, raw_one, parlist, bpm, NULL, 
                 ext_plist, CR2RES_DETLIN_BPM_PROCATG, RECIPE_STRING) ;
+        */
         cpl_free(out_file);
 
         /* COEFFS */
         out_file = cpl_sprintf("%s_%s_coeffs.fits", RECIPE_STRING,
                 setting_id) ;
+        /*
         cr2res_io_save_DETLIN_COEFFS(out_file, frameset, raw_one, parlist, 
                 coeffs, NULL, ext_plist, CR2RES_DETLIN_COEFFS_PROCATG, 
                 RECIPE_STRING) ;
+        */
         cpl_free(out_file);
 
         /* Free */
@@ -403,8 +441,31 @@ static int cr2res_cal_detlin(
         cpl_free(setting_id) ;
         cpl_msg_indent_less() ;
     }
-    cpl_frameset_delete(rawframes) ;
     cpl_free(labels) ;
+
+    /* Save the merged products */
+    /* BPM */
+    out_file = cpl_sprintf("%s_bpm.fits", RECIPE_STRING) ;
+    cr2res_io_save_BPM(out_file, frameset, rawframes, parlist, bpm_merged, 
+            NULL, ext_plist_merged, CR2RES_DETLIN_BPM_PROCATG, RECIPE_STRING) ;
+    cpl_free(out_file);
+
+    /* COEFFS */
+    out_file = cpl_sprintf("%s_coeffs.fits", RECIPE_STRING) ;
+    cr2res_io_save_DETLIN_COEFFS(out_file, frameset, rawframes, parlist, 
+            coeffs_merged, NULL, ext_plist_merged, 
+            CR2RES_DETLIN_COEFFS_PROCATG, RECIPE_STRING) ;
+    cpl_free(out_file);
+
+    cpl_frameset_delete(rawframes) ;
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        if (coeffs_merged[det_nr-1] != NULL) 
+            hdrl_imagelist_delete(coeffs_merged[det_nr-1]) ;
+        if (bpm_merged[det_nr-1] != NULL) 
+            cpl_image_delete(bpm_merged[det_nr-1]) ;
+        if (ext_plist_merged[det_nr-1] != NULL) 
+            cpl_propertylist_delete(ext_plist_merged[det_nr-1]) ;
+    }
 
     return (int)cpl_error_get_code();
 }
@@ -479,19 +540,23 @@ static int cr2res_cal_detlin_reduce(
     if (plist == NULL) return -1 ;
 
     /* Load the image list */
-    imlist = cr2res_io_load_image_list_from_set(rawframes, ext_nr_data) ;
-    if (imlist == NULL) {
+    if ((imlist = cr2res_io_load_image_list_from_set(rawframes,
+                    ext_nr_data)) == NULL) {
         cpl_propertylist_delete(plist);
         cpl_msg_error(__func__, "Failed to Load the images") ;
         return -1 ;
     }
 
     /* Load the DITs */
-    dits = cr2res_read_dits(rawframes) ;
-    /* TODO - error checking */
+    if ((dits = cr2res_read_dits(rawframes)) == NULL) {
+        hdrl_imagelist_delete(imlist) ;
+        cpl_propertylist_delete(plist);
+        cpl_msg_error(__func__, "Failed to Load the DIT values") ;
+        return -1 ;
+    }
 
+    /* Collapse all input images for the traces detection (only if wished) */
     if (trace_collapse) {
-        /* Collapse all input images */
         cpl_msg_info(__func__, "Collapse the input images") ;
         cpl_msg_indent_more() ;
         if (hdrl_imagelist_collapse_mean(imlist, &collapsed, &contrib) !=
@@ -509,12 +574,11 @@ static int cr2res_cal_detlin_reduce(
         collapsed = hdrl_image_duplicate(hdrl_imagelist_get(imlist, 0)) ;
     }
 
-    nx = hdrl_image_get_size_x(collapsed) ;
-    ny = hdrl_image_get_size_y(collapsed) ;
-
     /* Compute traces */
     cpl_msg_info(__func__, "Compute the traces") ;
     cpl_msg_indent_more() ;
+    nx = hdrl_image_get_size_x(collapsed) ;
+    ny = hdrl_image_get_size_y(collapsed) ;
     if ((traces = cr2res_trace(hdrl_image_get_image(collapsed), 
                     trace_smooth, trace_opening, trace_degree, 
                     trace_min_cluster)) == NULL) {
@@ -523,6 +587,7 @@ static int cr2res_cal_detlin_reduce(
         cpl_vector_delete(dits); 
         cpl_propertylist_delete(plist);
         hdrl_image_delete(collapsed) ;
+        cpl_image_delete(contrib);
         cpl_msg_indent_less() ;
         return -1 ;
     }
@@ -742,9 +807,6 @@ static int cr2res_cal_detlin_compare(
     return comparison ;
 }
 
-
-
-/* TODO: Move/Use this function in cr2res_util_merge_detlin */
 /*----------------------------------------------------------------------------*/
 /**
   @brief Only pixels not yet computed (CR2RES_BPM_OUTOFORDER) are updated
@@ -753,52 +815,50 @@ static int cr2res_cal_detlin_compare(
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_detlin_update(
-        cpl_image           *   current_bpm,
+        cpl_image           *   global_bpm,
         cpl_image           *   new_bpm,
-        cpl_imagelist       *   current_coeffs,
-        cpl_imagelist       *   new_coeffs)
+        hdrl_imagelist      *   global_coeffs,
+        hdrl_imagelist      *   new_coeffs)
 {
     cpl_size        i, j, k, nx, ny, ni, idx ;
-    int         *   pcurrent_bpm ;
+    int         *   pglobal_bpm ;
     int         *   pnew_bpm ;
-    cpl_image   *   current_coeffs_ima ;
-    cpl_image   *   new_coeffs_ima ;
-    double      *   pcurrent_coeffs_ima ;
-    double      *   pnew_coeffs_ima ;
+    hdrl_image  *   global_coeffs_ima ;
+    hdrl_image  *   new_coeffs_ima ;
     
     /* Check Inputs */
-    if (current_bpm == NULL || new_bpm == NULL || current_coeffs == NULL
+    if (global_bpm == NULL || new_bpm == NULL || global_coeffs == NULL
             || new_coeffs == NULL) return 0 ;
 
     /* Initialise */
-    nx = cpl_image_get_size_x(current_bpm) ;
-    ny = cpl_image_get_size_y(current_bpm) ;
-    ni = cpl_imagelist_get_size(current_coeffs) ;
+    nx = cpl_image_get_size_x(global_bpm) ;
+    ny = cpl_image_get_size_y(global_bpm) ;
+    ni = hdrl_imagelist_get_size(global_coeffs) ;
 
     if (cpl_image_get_size_x(new_bpm) != nx ||
             cpl_image_get_size_y(new_bpm) != ny ||
-            cpl_imagelist_get_size(new_coeffs) != ni) {
+            hdrl_imagelist_get_size(new_coeffs) != ni) {
         return -1 ;
     }
 
-    pcurrent_bpm = cpl_image_get_data_int(current_bpm) ;
+    pglobal_bpm = cpl_image_get_data_int(global_bpm) ;
     pnew_bpm = cpl_image_get_data_int(new_bpm) ;
 
     /* Loop on the pixels */
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
             idx = i+j*nx ;
-            if (pcurrent_bpm[idx] == CR2RES_BPM_OUTOFORDER &&
+            if (pglobal_bpm[idx] == CR2RES_BPM_OUTOFORDER &&
                     pnew_bpm[idx] != CR2RES_BPM_OUTOFORDER) {
                 /* Put the new value */
-                pcurrent_bpm[idx] = pnew_bpm[idx] ;
+                pglobal_bpm[idx] = pnew_bpm[idx] ;
                 for (k=0 ; k<ni ; k++) {
-                    current_coeffs_ima = cpl_imagelist_get(current_coeffs, k) ;
-                    new_coeffs_ima = cpl_imagelist_get(new_coeffs, k) ;
-                    pcurrent_coeffs_ima = 
-                        cpl_image_get_data_double(current_coeffs_ima) ;
-                    pnew_coeffs_ima = cpl_image_get_data_double(new_coeffs_ima);
-                    pcurrent_coeffs_ima[idx] = pnew_coeffs_ima[idx] ;
+                    global_coeffs_ima = hdrl_imagelist_get(global_coeffs, k) ;
+                    new_coeffs_ima = hdrl_imagelist_get(new_coeffs, k) ;
+
+                    hdrl_image_set_pixel(global_coeffs_ima, i+1, j+1,
+                            hdrl_image_get_pixel(new_coeffs_ima, i+1,
+                                j+1, NULL)) ;
                 }
             }
         }
