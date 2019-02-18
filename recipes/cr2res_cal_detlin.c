@@ -197,6 +197,13 @@ static int cr2res_cal_detlin_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.single_settings",
+            CPL_TYPE_BOOL, "Create the products for each setting",
+            "cr2res.cr2res_cal_detlin", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "single_settings");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.trace_collapse",
             CPL_TYPE_BOOL, "Collapse the input frames for the trace analysis",
             "cr2res.cr2res_cal_detlin", TRUE);
@@ -267,7 +274,7 @@ static int cr2res_cal_detlin(
 {
     const cpl_parameter *   param ;
     int                     trace_degree, trace_min_cluster, trace_collapse,
-                            trace_opening, reduce_det ;
+                            trace_opening, single_settings, reduce_det ;
     double                  bpm_kappa, trace_smooth ;
     cpl_frameset        *   rawframes ;
     cpl_size            *   labels ;
@@ -302,6 +309,9 @@ static int cr2res_cal_detlin(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_detlin.trace_opening");
     trace_opening = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_detlin.single_settings");
+    single_settings = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_detlin.trace_collapse");
     trace_collapse = cpl_parameter_get_bool(param);
@@ -407,26 +417,22 @@ static int cr2res_cal_detlin(
         }
 
         /* Save the products */
-        /* Comment out the individual saving - only save the merged product */
+        if (single_settings) {
+            /* BPM */
+            out_file = cpl_sprintf("%s_%s_bpm.fits", RECIPE_STRING,
+                    setting_id) ;
+            cr2res_io_save_BPM(out_file, frameset, raw_one, parlist, bpm, NULL, 
+                    ext_plist, CR2RES_DETLIN_BPM_PROCATG, RECIPE_STRING) ;
+            cpl_free(out_file);
 
-        /* BPM */
-        out_file = cpl_sprintf("%s_%s_bpm.fits", RECIPE_STRING,
-                setting_id) ;
-        /*
-        cr2res_io_save_BPM(out_file, frameset, raw_one, parlist, bpm, NULL, 
-                ext_plist, CR2RES_DETLIN_BPM_PROCATG, RECIPE_STRING) ;
-        */
-        cpl_free(out_file);
-
-        /* COEFFS */
-        out_file = cpl_sprintf("%s_%s_coeffs.fits", RECIPE_STRING,
-                setting_id) ;
-        /*
-        cr2res_io_save_DETLIN_COEFFS(out_file, frameset, raw_one, parlist, 
-                coeffs, NULL, ext_plist, CR2RES_DETLIN_COEFFS_PROCATG, 
-                RECIPE_STRING) ;
-        */
-        cpl_free(out_file);
+            /* COEFFS */
+            out_file = cpl_sprintf("%s_%s_coeffs.fits", RECIPE_STRING,
+                    setting_id) ;
+            cr2res_io_save_DETLIN_COEFFS(out_file, frameset, raw_one, parlist, 
+                    coeffs, NULL, ext_plist, CR2RES_DETLIN_COEFFS_PROCATG, 
+                    RECIPE_STRING) ;
+            cpl_free(out_file);
+        }
 
         /* Free */
         cpl_frameset_delete(raw_one) ;
