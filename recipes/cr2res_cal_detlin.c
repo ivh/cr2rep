@@ -53,6 +53,12 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_cal_detlin_fit(
+        const cpl_vector    *   dits,
+        const cpl_vector    *   values,
+        cpl_size                max_degree,
+        cpl_polynomial      **  fitted,
+        cpl_vector          **  error) ;
 static int cr2res_cal_detlin_update(
         cpl_image           *   global_bpm,
         cpl_image           *   new_bpm,
@@ -517,10 +523,8 @@ static int cr2res_cal_detlin_reduce(
     cpl_image           *   trace_image ;
     int                 *   pti ;
     cpl_polynomial      *   fit1d ;
-	cpl_matrix			*	samppos ;
     cpl_vector          *   fitvals ;
     cpl_vector          *   fit_residuals ;
-    cpl_boolean             sampsym ;
     cpl_mask            *   bpm_mask ;
     int                     i, j, k, idx, ext_nr_data, order, trace_id, nx, ny;
     cpl_size                max_degree, l ;
@@ -534,7 +538,6 @@ static int cr2res_cal_detlin_reduce(
 
     /* Initialise */
     max_degree = 2 ;
-    sampsym = CPL_TRUE ;
 
     /* Get the Extension number */
     first_file = cpl_frame_get_filename(
@@ -631,14 +634,7 @@ static int cr2res_cal_detlin_reduce(
         for (i=0 ; i<nx ; i++) {
             idx = i + j*nx ;
             if (pti[idx] > 0) {
-                /* We are in a trace, let's compute the linearity */
-
-                /* Store the DITS */
-				samppos = cpl_matrix_wrap(1,
-                            cpl_vector_get_size(dits),
-                            cpl_vector_get_data(dits)) ;
-
-                /* Prepare values to fit */
+                 /* Prepare values to fit */
                 fitvals = cpl_vector_new(cpl_vector_get_size(dits)) ;
                 for (k=0 ; k<cpl_vector_get_size(dits) ; k++) {
                     cur_im = hdrl_imagelist_get(imlist,  k) ;
@@ -646,12 +642,12 @@ static int cr2res_cal_detlin_reduce(
                             hdrl_image_get_image(cur_im)) ;
                     cpl_vector_set(fitvals, k, (float)(pcur_im[idx])) ;
                 }
-
-                /* Fit  */
-                fit1d = cpl_polynomial_new(1);
-                if (cpl_polynomial_fit(fit1d, samppos, &sampsym, fitvals, NULL,
-                        CPL_FALSE, NULL, &max_degree) != CPL_ERROR_NONE) {
-                    /* Failed Fit - Fill the coefficientѕ */
+               
+                /* We are in a trace, let's compute the linearity */
+                if (cr2res_cal_detlin_fit(dits, fitvals, max_degree, &fit1d,
+                            &fit_residuals)) {
+                    qc_nbfailed++ ;
+                    /* Store the null Coefficients in the output image list */
                     pbpm_loc[idx] = CR2RES_BPM_DETLIN ;
                     for (l=0 ; l<=max_degree ; l++) {
                         cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
@@ -661,32 +657,24 @@ static int cr2res_cal_detlin_reduce(
                         pcur_errors = cpl_image_get_data_double(cur_errors) ;
                         pcur_errors[idx] = 0.0 ;
                     } 
-                    qc_nbfailed++ ;
-                    cpl_error_reset() ;
-                    continue ;
-                }
-                qc_nbsuccess++;
+                } else {
+                    qc_nbsuccess++ ;
+                    /* Store the Coefficients in the output image list */
+                    pbpm_loc[idx] = 0 ;
+                    for (l=0 ; l<=max_degree ; l++) {
+                        cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
+                        pcur_coeffs = cpl_image_get_data_double(cur_coeffs) ;
+                        pcur_coeffs[idx] = cpl_polynomial_get_coeff(fit1d, &l) ;
+                        cur_errors = cpl_imagelist_get(errors_loc, l) ;
+                        pcur_errors = cpl_image_get_data_double(cur_errors) ;
 
-                /* Compute the residuals */
-                fit_residuals = cpl_vector_new(cpl_vector_get_size(dits)) ;
-                cpl_vector_fill_polynomial_fit_residual(fit_residuals,
-                        fitvals, NULL, fit1d, samppos, NULL) ;
-                cpl_matrix_unwrap(samppos) ;
+                        /* TODO : Compute and Store error */
+                        pcur_errors[idx] = 0.0 ;
+                    }
+                    cpl_vector_delete(fit_residuals) ;
+                    cpl_polynomial_delete(fit1d) ;
+                }
                 cpl_vector_delete(fitvals) ;
-                cpl_vector_delete(fit_residuals) ;
-
-                /* Store the Coefficients in the output image list */
-                pbpm_loc[idx] = 0 ;
-                for (l=0 ; l<=max_degree ; l++) {
-                    cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
-                    pcur_coeffs = cpl_image_get_data_double(cur_coeffs) ;
-                    pcur_coeffs[idx] = cpl_polynomial_get_coeff(fit1d, &l) ;
-                    cur_errors = cpl_imagelist_get(errors_loc, l) ;
-                    pcur_errors = cpl_image_get_data_double(cur_errors) ;
-                    /* TODO : Store error */
-                    pcur_errors[idx] = 0.0 ;
-                }
-                cpl_polynomial_delete(fit1d) ;
             }
         }
     }
@@ -872,3 +860,57 @@ static int cr2res_cal_detlin_update(
     return 0 ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  
+  @param 
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_cal_detlin_fit(
+        const cpl_vector    *   dits,
+        const cpl_vector    *   values,
+        cpl_size                max_degree,
+        cpl_polynomial      **  fitted,
+        cpl_vector          **  error)
+{
+	cpl_matrix			*	samppos ;
+    cpl_boolean             sampsym ;
+    cpl_polynomial      *   fit1d ;
+    cpl_vector          *   fit_residuals ;
+
+    /* Test entries */
+    if (fitted == NULL || dits == NULL || values == NULL) 
+        return -1 ;
+ 
+    /* Initialise */
+    sampsym = CPL_TRUE ;
+
+    /* Store the DITS */
+    samppos = cpl_matrix_wrap(1,
+                cpl_vector_get_size(dits),
+                cpl_vector_get_data((cpl_vector*)dits)) ;
+
+    /* Fit  */
+    fit1d = cpl_polynomial_new(1);
+    if (cpl_polynomial_fit(fit1d, samppos, &sampsym, values, NULL,
+            CPL_FALSE, NULL, &max_degree) != CPL_ERROR_NONE) {
+        /* Failed Fit - Fill the coefficientѕ */
+        cpl_matrix_unwrap(samppos) ;
+        cpl_polynomial_delete(fit1d) ;
+        cpl_error_reset() ;
+        return -1 ;
+    }
+
+    /* Compute the residuals */
+    fit_residuals = cpl_vector_new(cpl_vector_get_size(dits)) ;
+    cpl_vector_fill_polynomial_fit_residual(fit_residuals,
+            values, NULL, fit1d, samppos, NULL) ;
+    cpl_matrix_unwrap(samppos) ;
+
+    /* Return */
+    *fitted = fit1d ;
+    if (error != NULL) *error = fit_residuals ;
+    else cpl_vector_delete(fit_residuals) ;
+    return 0 ;
+}
