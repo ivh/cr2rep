@@ -484,9 +484,19 @@ static int cr2res_cal_detlin(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
-  @param 
-  @return  
+  @brief  Compute the non-linearity for a single setting, single detector
+  @param rawframes          Raw frames from a single setting
+  @param bpm_kappa          Kappa value for BPM detection
+  @param trace_degree
+  @param trace_min_cluster
+  @param trace_smooth
+  @param trace_opening      
+  @param trace_collapse     Flag to collapse (or not) before tracing
+  @param reduce_det         The detector to compute 
+  @param coeffs             [out] the non-linearity coeffs and error
+  @param bpm                [out] the BPM
+  @param ext_plist          [out] the header for saving the products
+  @return  0 if ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_detlin_reduce(
@@ -668,10 +678,14 @@ static int cr2res_cal_detlin_reduce(
                         cur_errors = cpl_imagelist_get(errors_loc, l) ;
                         pcur_errors = cpl_image_get_data_double(cur_errors) ;
 
-                        /* TODO : Compute and Store error */
-                        pcur_errors[idx] = 0.0 ;
+                        /* Store error */
+                        if (fit_residuals != NULL) {
+                            pcur_errors[idx] = cpl_vector_get(fit_residuals, l);
+                        } else {
+                            pcur_errors[idx] = 0.0 ;
+                        }
                     }
-                    cpl_vector_delete(fit_residuals) ;
+                    if (fit_residuals != NULL) cpl_vector_delete(fit_residuals);
                     cpl_polynomial_delete(fit1d) ;
                 }
                 cpl_vector_delete(fitvals) ;
@@ -708,6 +722,9 @@ static int cr2res_cal_detlin_reduce(
             }
         }
     }
+
+    /* TODO : New criteria for BPM detection - To be specified by Ulf */
+
 
     /* Compute the QC parameters */
     /* TODO : pass the proper inputs */
@@ -862,9 +879,20 @@ static int cr2res_cal_detlin_update(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
-  @param 
-  @return
+  @brief    Fits the response of a given pixel to the illumination increase
+  @param    dits        Vector with the DIT values
+  @param    values      Pixel illuminations
+  @param    max_degree  Maximum degree for the fit (currently 2)
+  @param    fitted      The fitted polynomial 
+  @param    error       the error
+  @return   0 if ok, -1 in error case
+
+  The input dits and values vectors must have the same size
+  The *fitted polynomial coefficients are the values store in the
+  DETLIN_COEFFS product for a given pixel.
+  The *error vector size must match the *fitted polynomial number of
+  coefficients (currently set to 3 <- max_degree=2). Its values are
+  stored in the error extension of the DETLIN_COEFFS product.
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_detlin_fit(
@@ -881,6 +909,8 @@ static int cr2res_cal_detlin_fit(
 
     /* Test entries */
     if (fitted == NULL || dits == NULL || values == NULL) 
+        return -1 ;
+    if (cpl_vector_get_size(dits) != cpl_vector_get_size(values)) 
         return -1 ;
  
     /* Initialise */
@@ -901,12 +931,14 @@ static int cr2res_cal_detlin_fit(
         cpl_error_reset() ;
         return -1 ;
     }
-
-    /* Compute the residuals */
-    fit_residuals = cpl_vector_new(cpl_vector_get_size(dits)) ;
-    cpl_vector_fill_polynomial_fit_residual(fit_residuals,
-            values, NULL, fit1d, samppos, NULL) ;
     cpl_matrix_unwrap(samppos) ;
+
+    /* Compute the error */
+    /* TODO */
+    fit_residuals = NULL ;
+
+
+
 
     /* Return */
     *fitted = fit1d ;
