@@ -670,9 +670,35 @@ static int cr2res_cal_flat(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief
-  @param
-  @return
+  @brief Compute the flat for 1 setting, 1 decker position, 1 detector
+  @param rawframes          Input raw frames (same setting, same decker)
+  @param detlin_frame       Associated detlin coefficients
+  @param master_dark_frame  Associated master dark
+  @param bpm_frame          Associated BPM
+  @param calib_cosmics_corr Flag to correct for cosmics
+  @param bpm_low            Threshold for BPM detection
+  @param bpm_high           Threshold for BPM detection
+  @param bpm_linemax        Max fraction of BPM per line
+  @param trace_degree       Trace computation related
+  @param trace_min_cluster  Trace computation related
+  @param trace_smooth       Trace computation related
+  @param trace_opening      Trace computation related
+  @param extract_oversample Extraction related
+  @param extract_swath_width Extraction related
+  @param extract_height     Extraction related
+  @param extract_smooth     Extraction related
+  @param extract_sum_only   Extraction related
+  @param reduce_det         The detector to compute
+  @param reduce_order       The order to compute (-1 for all)
+  @param reduce_trace       The trace to compute (-1 for all)
+  @param master_flat        [out] Master flat
+  @param trace_wave         [out] trace wave
+  @param slit_func          [out] slit function
+  @param extract_1d         [out] the blaze
+  @param slit_model         [out] slit model
+  @param bpm                [out] the BPM
+  @param ext_plist          [out] the header for saving the products
+  @return   0 if ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_flat_reduce(
@@ -735,12 +761,15 @@ static int cr2res_cal_flat_reduce(
     ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
 
     /* Get the DIT for the Dark correction */
-    dits = cr2res_read_dits(rawframes) ;
-    /* TODO - error checking */
+    if ((dits = cr2res_read_dits(rawframes)) == NULL) {
+        cpl_msg_error(__func__, "Failed to read the dits") ;
+        return -1 ;
+    }
 
     /* Load the extension header for saving */
     plist = cpl_propertylist_load(first_file, ext_nr) ;
     if (plist == NULL) {
+        cpl_vector_delete(dits) ;
         cpl_msg_error(__func__, "Failed to load the plist") ;
         return -1 ;
     }
@@ -748,6 +777,7 @@ static int cr2res_cal_flat_reduce(
     imlist = cr2res_io_load_image_list_from_set(rawframes, reduce_det) ;
     if (imlist == NULL) {
         cpl_msg_error(__func__, "Failed to load the images") ;
+        cpl_vector_delete(dits) ;
         cpl_propertylist_delete(plist);
         return -1 ;
     }
