@@ -1176,6 +1176,50 @@ cpl_table * cr2res_trace_new_slit_fraction(
     return out ;
 }
 
+/* TODO */
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Adjust the traces spetial positions using a new FLAT frameset
+  @param trace_wave     The trace_wave to adjust
+  @param flat_raw       The FLAT frameset
+  @param det_nr         The detector number
+  @return   the new adjusted trace_wave or NULL
+ */
+/*----------------------------------------------------------------------------*/
+cpl_table * cr2res_trace_adjust(
+        const cpl_table     *   trace_wave,
+        const cpl_frameset  *   flat_raw,
+        int                     det_nr)
+{
+    cpl_table   *   out ;
+ 
+    /* Check Entries */
+
+
+    /* Initialise */
+
+
+    /* Load the data */
+
+
+
+    /* Collapse the inputs */
+
+
+    /* Compute the trace */
+
+
+
+    /* Compute the shift */
+
+
+    /* Apply the shift */
+
+
+    /* Free and return */
+    return NULL ;
+}
+
 /**@}*/
 
 /*----------------------------------------------------------------------------*/

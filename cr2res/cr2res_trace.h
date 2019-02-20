@@ -119,4 +119,9 @@ cpl_table * cr2res_trace_new_slit_fraction(
         const cpl_table     *   traces,
         const cpl_array     *   new_slit_fraction) ;
 
+cpl_table * cr2res_trace_adjust(
+        const cpl_table     *   trace_wave,
+        const cpl_frameset  *   flat_raw,
+        int                     det_nr) ;
+
 #endif

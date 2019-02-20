@@ -58,6 +58,7 @@ static int cr2res_obs_1d_check_inputs_validity(
         const cpl_frameset  *   rawframes) ;
 static int cr2res_obs_1d_reduce(
         const cpl_frameset  *   rawframes,
+        const cpl_frameset  *   raw_flat_frames,
         const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
@@ -284,6 +285,7 @@ static int cr2res_obs_1d(
                             reduce_trace ;
     double                  extract_smooth ;
     cpl_frameset        *   rawframes ;
+    cpl_frameset        *   raw_flat_frames ;
     const cpl_frame     *   trace_wave_frame ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
@@ -355,7 +357,9 @@ static int cr2res_obs_1d(
         cpl_msg_error(__func__, "Could not find RAW frames") ;
         return -1 ;
     }
-    cpl_msg_indent_more() ;
+   
+    /* Get the RAW flat frames */
+    raw_flat_frames = cr2res_extract_frameset(frameset, CR2RES_FLAT_RAW) ;
 
     /* Loop on the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
@@ -377,10 +381,10 @@ static int cr2res_obs_1d(
         cpl_msg_indent_more() ;
 
         /* Call the reduction function */
-        if (cr2res_obs_1d_reduce(rawframes, trace_wave_frame, detlin_frame, 
-                    master_dark_frame, master_flat_frame, bpm_frame, 0,
-                    extract_oversample, extract_swath_width, extract_height, 
-                    extract_smooth, det_nr,
+        if (cr2res_obs_1d_reduce(rawframes, raw_flat_frames, trace_wave_frame, 
+                    detlin_frame, master_dark_frame, master_flat_frame, 
+                    bpm_frame, 0, extract_oversample, extract_swath_width, 
+                    extract_height, extract_smooth, det_nr,
                     &(combineda[det_nr-1]),
                     &(extracta[det_nr-1]),
                     &(slitfunca[det_nr-1]),
@@ -432,6 +436,7 @@ static int cr2res_obs_1d(
 
     /* Free */
     cpl_frameset_delete(rawframes) ;
+    if (raw_flat_frames != NULL) cpl_frameset_delete(raw_flat_frames) ;
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         if (combineda[det_nr-1] != NULL)
             hdrl_image_delete(combineda[det_nr-1]) ;
@@ -452,20 +457,41 @@ static int cr2res_obs_1d(
         if (ext_plist[det_nr-1] != NULL) 
             cpl_propertylist_delete(ext_plist[det_nr-1]) ;
     }
-    cpl_msg_indent_less() ;
 
     return (int)cpl_error_get_code();
 }
  
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
-  @param 
-  @return  
+  @brief    Execute the science recipe on a specific detector
+  @param rawframes              Raw science frames
+  @param raw_flat_frames        Raw flat frames 
+  @param trace_wave_frame       Trace Wave file
+  @param detlin_frame           Associated detlin coefficients
+  @param master_dark_frame      Associated master dark
+  @param master_flat_frame      Associated master flat
+  @param bpm_frame              Associated BPM
+  @param calib_cosmics_corr     Flag to correct for cosmics
+  @param extract_oversample     Extraction related
+  @param extract_swath_width    Extraction related
+  @param extract_height         Extraction related
+  @param extract_smooth         Extraction related
+  @param reduce_det             The detector to compute
+  @param combineda              [out] Combined image (A)
+  @param extracta               [out] extracted spectrum (A)
+  @param slitfunca              [out] slit function (A)
+  @param modela                 [out] slit model (A)
+  @param combinedb              [out] Combined image (B)
+  @param extractb               [out] extracted spectrum (B)
+  @param slitfuncb              [out] slit function (B)
+  @param modelb                 [out] slit model (B)
+  @param ext_plist              [out] the header for saving the products
+  @return  0 if ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_obs_1d_reduce(
         const cpl_frameset  *   rawframes,
+        const cpl_frameset  *   raw_flat_frames,
         const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
@@ -500,6 +526,7 @@ static int cr2res_obs_1d_reduce(
     cr2res_nodding_pos  *   nod_positions ;
     cpl_vector          *   dits ;
     cpl_table           *   trace_wave ;
+    cpl_table           *   trace_wave_corrected ;
     cpl_table           *   trace_wave_a ;
     cpl_table           *   trace_wave_b ;
     cpl_array           *   slit_frac_a ;
@@ -640,6 +667,15 @@ static int cr2res_obs_1d_reduce(
         hdrl_image_delete(collapsed_a) ;
         hdrl_image_delete(collapsed_b) ;
         return -1 ;
+    }
+
+    /* Correct trace_wave with some provided raw flats */
+    trace_wave_corrected = cr2res_trace_adjust(trace_wave, raw_flat_frames, 
+            reduce_det) ;
+    if (trace_wave_corrected != NULL) {
+        cpl_table_delete(trace_wave) ;
+        trace_wave = trace_wave_corrected ;
+        trace_wave_corrected = NULL ;
     }
 
     /* Compute the slit fractions for A and B positions extraction */   
