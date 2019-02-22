@@ -670,12 +670,17 @@ static int cr2res_obs_1d_reduce(
     }
 
     /* Correct trace_wave with some provided raw flats */
-    trace_wave_corrected = cr2res_trace_adjust(trace_wave, raw_flat_frames, 
-            reduce_det) ;
-    if (trace_wave_corrected != NULL) {
-        cpl_table_delete(trace_wave) ;
-        trace_wave = trace_wave_corrected ;
-        trace_wave_corrected = NULL ;
+    if (raw_flat_frames != NULL) {
+        cpl_msg_info(__func__, "Try to correct the reproducibility error") ;
+        cpl_msg_indent_more() ;
+        trace_wave_corrected = cr2res_trace_adjust(trace_wave, raw_flat_frames, 
+                reduce_det) ;
+        if (trace_wave_corrected != NULL) {
+            cpl_table_delete(trace_wave) ;
+            trace_wave = trace_wave_corrected ;
+            trace_wave_corrected = NULL ;
+        }
+        cpl_msg_indent_less() ;
     }
 
     /* Compute the slit fractions for A and B positions extraction */   
