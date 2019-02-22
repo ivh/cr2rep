@@ -45,6 +45,12 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_trace_apply_shift(
+        cpl_table       *   traces,
+        double              shift) ;
+static double cr2res_trace_compute_shift(
+        const cpl_table *   traces1,
+        const cpl_table *   traces2) ;
 static int cr2res_trace_new_trace(
         const cpl_array     *   slit_fraction_in,
         const cpl_array     *   trace_all_in,
@@ -1176,7 +1182,6 @@ cpl_table * cr2res_trace_new_slit_fraction(
     return out ;
 }
 
-/* TODO */
 /*----------------------------------------------------------------------------*/
 /**
   @brief Adjust the traces spetial positions using a new FLAT frameset
@@ -1191,36 +1196,111 @@ cpl_table * cr2res_trace_adjust(
         const cpl_frameset  *   flat_raw,
         int                     det_nr)
 {
-    cpl_table   *   out ;
+    hdrl_imagelist      *   imlist ;
+    hdrl_image          *   collapsed ;
+    cpl_image           *   contrib ;
+    cpl_table           *   new_traces ;
+    cpl_table           *   corrected_traces ;
+    cpl_table           *   traces ;
+    int                     trace_opening, trace_degree, trace_min_cluster ;
+    double                  trace_smooth, traces_shift ;
  
     /* Check Entries */
-
+    if (trace_wave == NULL || flat_raw == NULL || 
+            det_nr < 1 || det_nr > CR2RES_NB_DETECTORS) 
+        return NULL ;
 
     /* Initialise */
+    trace_smooth = 2.0 ;
+    trace_opening = 1 ;
+    trace_degree = 5 ;
+    trace_min_cluster = 10000 ;
 
-
-    /* Load the data */
-
-
+    /* Load the image list */
+    imlist = cr2res_io_load_image_list_from_set(flat_raw, det_nr) ;
+    if (imlist == NULL) {
+        cpl_msg_error(__func__, "Failed to load the RAW flat frames") ;
+        return NULL ;
+    }
 
     /* Collapse the inputs */
-
+    cpl_msg_info(__func__, "Collapse the input images") ;
+    if (hdrl_imagelist_collapse_mean(imlist, &collapsed, &contrib) !=
+            CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Failed to Collapse") ;
+        hdrl_imagelist_delete(imlist) ;
+        cpl_msg_indent_less() ;
+        return NULL ;
+    }
+    hdrl_imagelist_delete(imlist) ;
+    cpl_image_delete(contrib) ;
 
     /* Compute the trace */
-
-
+    cpl_msg_info(__func__, "Compute the traces") ;
+    if ((new_traces = cr2res_trace(hdrl_image_get_image(collapsed),
+                    trace_smooth, trace_opening, trace_degree,
+                    trace_min_cluster)) == NULL) {
+        cpl_msg_error(__func__, "Failed compute the traces") ;
+        hdrl_image_delete(collapsed) ;
+        cpl_msg_indent_less() ;
+        return NULL ;
+    }
+    hdrl_image_delete(collapsed) ;
 
     /* Compute the shift */
-
+    cpl_msg_info(__func__, "Compute the Shift between 2 traces tables") ;
+    traces_shift = cr2res_trace_compute_shift(trace_wave, new_traces) ;
+    cpl_table_delete(new_traces) ;
 
     /* Apply the shift */
-
+    corrected_traces = cpl_table_duplicate(trace_wave) ;
+    cpl_msg_error(__func__, "Apply correction shift of %g pixels",
+            traces_shift) ;
+    cr2res_trace_apply_shift(corrected_traces, traces_shift) ;
 
     /* Free and return */
-    return NULL ;
+    return corrected_traces ;
 }
 
 /**@}*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  Compares 2 traces files, and returns the estimated shift betwwen both
+  @param    traces1     A trace wave file
+  @param    traces2     A trace wave file
+  @return   The shift between both. Return 0.0 in case of problem
+
+  The function tries to detect the shift caused by reproducibility issue
+  of the instrument. Both set of traces should have the same spacing,
+  they should be consistently shifted. 
+  If the function does not recognise the same pattern, it should return
+  0.0.
+ */
+/*----------------------------------------------------------------------------*/
+static double cr2res_trace_compute_shift(
+        const cpl_table *   traces1,
+        const cpl_table *   traces2)
+{
+/* TODO */
+    return 0.0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  Apply a shift to the traces only (Upper, Lower and All)
+  @param    traces  The trace table to shift
+  @param    shift   The shift that needs to be applied
+  @return   0 if ok, -1 otherwise
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_trace_apply_shift(
+        cpl_table       *   traces,
+        double              shift)
+{
+/* TODO */
+    return -1 ;
+}
 
 /*----------------------------------------------------------------------------*/
 /**
