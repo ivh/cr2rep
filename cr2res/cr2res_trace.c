@@ -1200,6 +1200,7 @@ cpl_table * cr2res_trace_adjust(
     hdrl_image          *   collapsed ;
     cpl_image           *   contrib ;
     cpl_table           *   new_traces ;
+    const char          *   first_file ;
     cpl_table           *   corrected_traces ;
     cpl_table           *   traces ;
     int                     trace_opening, trace_degree, trace_min_cluster ;
@@ -1247,6 +1248,11 @@ cpl_table * cr2res_trace_adjust(
     }
     hdrl_image_delete(collapsed) ;
 
+    /* Add The remaining Columns to the new trace table */
+    first_file = cpl_frame_get_filename(
+            cpl_frameset_get_position_const(flat_raw, 0)) ;
+    cr2res_trace_add_extra_columns(new_traces, first_file, det_nr) ;
+
     /* Compute the shift */
     cpl_msg_info(__func__, "Compute the Shift between 2 traces tables") ;
     traces_shift = cr2res_trace_compute_shift(trace_wave, new_traces) ;
@@ -1282,7 +1288,24 @@ static double cr2res_trace_compute_shift(
         const cpl_table *   traces1,
         const cpl_table *   traces2)
 {
-/* TODO */
+    /* TODO */
+    int             order, trace_id ;
+    cpl_size        i ;
+
+    for (i=0 ; i<cpl_table_get_nrow(traces1) ; i++) {
+        
+        /* Only the Open slit */
+
+        /* Get the order */
+        order = cpl_table_get(traces1, CR2RES_COL_ORDER, i, NULL) ;
+        if (order >= 0) {
+
+
+        }
+
+    }
+
+
     return 0.0 ;
 }
 
@@ -1298,7 +1321,7 @@ static int cr2res_trace_apply_shift(
         cpl_table       *   traces,
         double              shift)
 {
-/* TODO */
+    /* TODO */
     return -1 ;
 }
 
