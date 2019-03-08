@@ -55,4 +55,8 @@ hdrl_image * cr2res_calib_image(
         const cpl_frame     *   detlin,
         double                  dit) ;
 
+int cr2res_detlin_correct(
+        hdrl_image              *   in,
+        const hdrl_imagelist    *   detlin);
+
 #endif

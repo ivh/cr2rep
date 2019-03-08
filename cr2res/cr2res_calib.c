@@ -37,9 +37,9 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static int cr2res_detlin_correct(
-        hdrl_image              *   in,
-        const hdrl_imagelist    *   detlin) ;
+#define pow2(x) (x)*(x)
+#define pow3(x) (x)*(x)*(x)
+
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -253,7 +253,7 @@ hdrl_image * cr2res_calib_image(
   @return   0 if everything is ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_detlin_correct(
+int cr2res_detlin_correct(
         hdrl_image              *   in,
         const hdrl_imagelist    *   detlin)
 {
@@ -273,15 +273,11 @@ static int cr2res_detlin_correct(
     double              *   pdata ;
     double              *   perr ;
     int                     nx, ny ;
-    double                  orig, val, val2, val3 ;
-    double                  err1, err2, err3, err4 ;
-    double                  tmp1, tmp2, tmp3;
+    double                  correction_factor;
     int                     i, j ;
 
     /* Test entries */
     if (!in || !detlin) return -1 ;
-
-    /* TODO : Error propagation */
 
     /* Initialise */
     pdata = cpl_image_get_data_double(hdrl_image_get_image(in)) ;
@@ -323,44 +319,14 @@ static int cr2res_detlin_correct(
 
     /* Loop on pixels */
     for (i=0 ; i<nx*ny ; i++) {
-        // for each pixel invert p' = a + b * p + c * p * p
-        if (fabs(pimc[i]) < 1e-5 & fabs(pimb[i]) < 1e-3) {
-            // b and c == 0, can't invert
-            pdata[i] = 0;
-            perr[i] = 0;
-        } else if (fabs(pimc[i]) < 1e-5) {
-            // If c is 0 -> polynomial is linear
-            pdata[i] = (pdata[i]-pima[i]) / pimb[i] ;
-            perr[i] = 1. / pimb[i] * sqrt(perr[i] * perr[i] + perra[i] * perra[i] + perrb[i] * perrb[i] * pdata[i] * pdata[i]) ;
-        } else if (fabs(pimb[i]) < 1e-3) {
-            // if b == 0 -> polynomial is quadratic but simpler
-            tmp1 = (pdata[i] - pima[i]) / pimc[i] ;
-            pdata[i] = sqrt(tmp1) ;
-            perr[i] = 1. / (pdata[i] * 2. * pimc[i]) * sqrt(perr[i] * perr[i] + perra[i] * perra[i] + perrc[i] * perrc[i] * tmp1 * tmp1) ;
-        } else {
-            /* Correct this pixel in each plane */
-            // invert the quadratic polynomial with second order taylor expansion for the square root
-            orig = pdata[i] ;
-            tmp1 = (pdata[i]  - pima[i]) / pimb[i] ;
-            pdata[i] = tmp1 * (1. - pimc[i] / pimb[i] * tmp1) ;
-            // sigma y
-            err1 = (1. - 2. * pimc[i] / pimb[i] * tmp1) / pimb[i];
-            // sigma a
-            err2 = err1 ;
-            // sigma b
-            tmp2 = tmp1 / pimb[i];
-            tmp3 = pimc[i] * orig / (pimb[i] * pimb[i]) ;
-            err3 = - tmp1 - pima[i] * pimc[i] / (pimb[i] * pimb[i]) * (tmp1 + 3. * tmp2) + 3. * pimc[i] * tmp2 * tmp2;
-            // sigma c
-            err4 = tmp1 * tmp1 / pimb[i];
+        // for each pixel p' = a + b * p + c * p * p
 
-            // add them all together
-            err1 = perr[i] * perr[i] * err1 * err1;
-            err2 = perra[i] * perra[i] * err2 * err2;
-            err3 = perrb[i] * perrb[i] * err3 * err3;
-            err4 = perrc[i] * perrc[i] * err4 * err4;
-            perr[i] = sqrt(err1 + err2 + err3 + err4);
-        }
+        perr[i] = pow2(perra[i] * pdata[i]) + pow2(perrb[i] * pow2(pdata[i])) + pow2(perrc[i] * pow3(pdata[i])) 
+                + pow2(perr[i] * (pima[i] + 2. * pimb[i] * pdata[i] + 3. * pimc[i] * pow2(pdata[i])));
+        perr[i] = sqrt(perr[i]);
+
+        correction_factor = pima[i] + (pimb[i] + pimc[i] * pdata[i]) * pdata[i];
+        pdata[i] = pdata[i] * correction_factor;
     }
     /* return */
     return 0 ;

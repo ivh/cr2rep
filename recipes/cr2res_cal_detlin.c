@@ -906,6 +906,10 @@ static int cr2res_cal_detlin_fit(
     cpl_boolean             sampsym ;
     cpl_polynomial      *   fit1d ;
     cpl_vector          *   fit_residuals ;
+    cpl_vector          *   y;
+    cpl_bivector        *   first_dits, *tmp;
+    double   x0, x1, y0, y1, m;
+    double expected_counts;
 
     /* Test entries */
     if (fitted == NULL || dits == NULL || values == NULL) 
@@ -916,14 +920,37 @@ static int cr2res_cal_detlin_fit(
     /* Initialise */
     sampsym = CPL_TRUE ;
 
+    // Find linear coefficient from the first two dits
+    first_dits = cpl_bivector_new(cpl_vector_get_size(dits));
+    tmp = cpl_bivector_wrap_vectors((cpl_vector*)dits, (cpl_vector*)values);
+    cpl_bivector_sort(first_dits, tmp, CPL_SORT_ASCENDING, CPL_SORT_BY_X);
+    cpl_bivector_unwrap_vectors(tmp);
+
+    // x: dits, y: values
+    x0 = cpl_bivector_get_x_data(first_dits)[0];
+    x1 = cpl_bivector_get_x_data(first_dits)[1];
+    y0 = cpl_bivector_get_y_data(first_dits)[0];
+    y1 = cpl_bivector_get_y_data(first_dits)[1];
+    m = (y1-y0)/(x1-x0);
+
+    cpl_bivector_delete(first_dits);
+
     /* Store the DITS */
     samppos = cpl_matrix_wrap(1,
-                cpl_vector_get_size(dits),
-                cpl_vector_get_data((cpl_vector*)dits)) ;
+                cpl_vector_get_size(values),
+                cpl_vector_get_data((cpl_vector*)values)) ;
+
+    y = cpl_vector_new(cpl_vector_get_size(dits));
+    for(cpl_size i = 0; i < cpl_vector_get_size(dits); i++)
+    {
+        expected_counts = y0 + m * (cpl_vector_get(dits, i) - x0);
+        cpl_vector_set(y, i, expected_counts / cpl_vector_get(values, i));
+    }
+    
 
     /* Fit  */
     fit1d = cpl_polynomial_new(1);
-    if (cpl_polynomial_fit(fit1d, samppos, &sampsym, values, NULL,
+    if (cpl_polynomial_fit(fit1d, samppos, &sampsym, y, NULL,
             CPL_FALSE, NULL, &max_degree) != CPL_ERROR_NONE) {
         /* Failed Fit - Fill the coefficientѕ */
         cpl_matrix_unwrap(samppos) ;
@@ -932,6 +959,7 @@ static int cr2res_cal_detlin_fit(
         return -1 ;
     }
     cpl_matrix_unwrap(samppos) ;
+    cpl_vector_delete(y);
 
     /* Compute the error */
     /* TODO */
