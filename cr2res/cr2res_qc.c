@@ -34,6 +34,10 @@
 #include "cr2res_trace.h"
 #include "cr2res_dfs.h"
 
+
+#define QC_ORDER 4
+#define QC_TRACE 1
+#define QC_SIZE  100
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
@@ -102,7 +106,8 @@ double cr2res_qc_detlin_median(
     qc_detlin_median = -1.0 ;
 
     /* TODO */
-    
+
+
     return qc_detlin_median ;
 }
 
@@ -175,9 +180,7 @@ double cr2res_qc_flat_lamp_ints(
     if (ima == NULL) return -1.0 ;
 
     /* Initialise */
-    qc_lamp_ints = -1.0 ;
-
-    /* TODO */
+    qc_lamp_ints = cpl_image_get_absflux(ima);
     
     return qc_lamp_ints ;
 }
@@ -198,10 +201,8 @@ double cr2res_qc_flat_mean_level(
     if (ima == NULL) return -1.0 ;
 
     /* Initialise */
-    qc_mean_level = -1.0 ;
+    qc_mean_level = cpl_image_get_mean(ima);
 
-    /* TODO */
-    
     return qc_mean_level ;
 }
 
@@ -216,12 +217,13 @@ double cr2res_qc_flat_med_snr(
         const cpl_image     *   ima)
 {
     double      qc_med_snr ;
+    double      sigma;
 
     /* Check Entries */
     if (ima == NULL) return -1.0 ;
 
     /* Initialise */
-    qc_med_snr = -1.0 ;
+    qc_med_snr = cpl_image_get_median_dev(ima, &sigma);
 
     /* TODO */
     
@@ -248,13 +250,9 @@ int cr2res_qc_flat_mean_med_flux(
     if (ima == NULL || mean_flux == NULL || med_flux == NULL) return -1 ;
 
     /* Initialise */
-    *mean_flux = -1.0 ;
-    *med_flux = -1.0 ;
+    *mean_flux = cpl_image_get_mean(ima);
+    *med_flux = cpl_image_get_median(ima);
 
-    /* TODO */
-    
-    *mean_flux = mean_flux_loc ;
-    *med_flux = med_flux_loc ;
     return 0 ;
 }
 
@@ -268,16 +266,41 @@ int cr2res_qc_flat_mean_med_flux(
 double cr2res_qc_flat_trace_center_y(
         const cpl_table     *   trace)
 {
+    cpl_vector * vector;
+    cpl_array * array;
+    cpl_polynomial * poly;
+    int * orders, nb_orders, central_order, i;
+    int * traces, nb_traces;
     double      qc_trace_center_y ;
 
     /* Check Entries */
     if (trace == NULL) return -1.0 ;
 
     /* Initialise */
-    qc_trace_center_y = -1.0 ;
+    qc_trace_center_y = 0;
+    // Step 1: find central order
+    orders = cr2res_trace_get_order_numbers(trace, &nb_orders);
+    array = cpl_array_wrap_int(orders, nb_orders);
+    central_order = cpl_array_get_median(array);
+    cpl_array_unwrap(array);
 
-    /* TODO */
+    // Step 2: Sum all traces together
+    traces = cr2res_get_trace_numbers(trace, central_order, &nb_traces);
+    for(cpl_size i = 0; i < nb_traces; i++)
+    {
+      vector = cr2res_trace_get_ycen(trace, central_order, traces[i], CR2RES_DETECTOR_SIZE);
+      qc_trace_center_y += cpl_vector_get_mean(vector);
+      cpl_vector_delete(vector);
+    }
     
+    // Step 3: take the mean
+    qc_trace_center_y /= nb_traces;
+
+    cpl_free(orders);
+    cpl_free(traces);
+    cpl_polynomial_delete(poly);
+    cpl_array_delete(array);
+
     return qc_trace_center_y ;
 }
 
@@ -291,7 +314,9 @@ double cr2res_qc_flat_trace_center_y(
 int cr2res_qc_flat_nb_overexposed(
         const cpl_image     *   ima)
 {
+    cpl_mask * mask;
     int     qc_overexposed ;
+    int     threshold = CR2RES_DETECTOR_OVEREXP_THRESH;
 
     /* Check Entries */
     if (ima == NULL) return -1 ;
@@ -299,8 +324,10 @@ int cr2res_qc_flat_nb_overexposed(
     /* Initialise */
     qc_overexposed = -1 ;
     
-    /* TODO */
-    
+    mask = cpl_mask_threshold_image_create(ima, 0, threshold);
+    qc_overexposed = (int) cpl_mask_count(mask);
+
+    cpl_mask_delete(mask);
     return qc_overexposed ;
 }
 
@@ -315,15 +342,30 @@ double cr2res_qc_obs_1d_signal(
         const cpl_table     *   extracted)
 {
     double      qc_signal ;
+    const char * colname;
+    double * data;
+    cpl_vector * vector, *vector2;
+    int nrows, size;
 
     /* Check Entries */
     if (extracted == NULL) return -1 ;
 
     /* Initialise */
     qc_signal = -1.0 ;
-    
-    /* TODO */
-    
+    colname = cr2res_dfs_SPEC_colname(QC_ORDER, QC_TRACE);
+    data = cpl_table_get_data_double(extracted, colname);
+    nrows = cpl_table_get_nrow(extracted);
+
+    size = QC_SIZE;
+    if (nrows < size) size = nrows;
+
+    vector = cpl_vector_wrap(nrows, data);
+    vector2 = cpl_vector_extract(vector, (nrows - size)/ 2, (nrows + size) / 2 - 1, 1);
+    qc_signal = cpl_vector_get_median(vector2);
+
+    cpl_vector_unwrap(vector);
+    cpl_vector_delete(vector2);
+
     return qc_signal ;
 }
 
