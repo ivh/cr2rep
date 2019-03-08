@@ -37,16 +37,10 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static void test_cr2res_qc_test1(void);
-// static void test_cr2res_qc_count_badpix(void);
-// static void test_cr2res_qc_read_out_noise(void);
-// static void test_cr2res_qc_dark_mean(void);
-// static void test_cr2res_qc_dark_median(void);
-// static void test_cr2res_qc_dark_stddev(void);
-// static void test_cr2res_qc_trace_count_orders(void);
-// static void test_cr2res_qc_trace_count_traces(void);
-// static void test_cr2res_qc_trace_get_ypos(void);
-// static void test_cr2res_qc_wave_zeropoint(void);
+static void test_cr2res_dark_qc_ron(void);
+static void test_cr2res_qc_flat_lamp_ints(void);
+static void test_cr2res_qc_flat_mean_level(void);
+static void test_cr2res_qc_flat_mean_med_flux(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -179,221 +173,107 @@ static cpl_image *create_test_image(void)
     traces = create_test_table();
     trace_ima = cr2res_trace_gen_image(traces, 2048, 2048);
     cpl_table_delete(traces);
-    //extract = cpl_image_extract(trace_ima, 32, 105, 41, 114);
-
-    //cpl_image_save(extract, "extract.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
-    cpl_image_save(trace_ima, "TEST.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
-    //cpl_image_delete(extract);
 
     return trace_ima;
 }
 
-/*---------------------------------------------------------------------------*/
-/**
-* @brief    count number of bad pixels in image
-* @param    bpm    image with bad pixels
-* @param    type   value to count as bad pixels
-* @return   nbp    number of bad pixels
-*/
-/*---------------------------------------------------------------------------*/
-// static void test_cr2res_qc_count_badpix(void)
-// {
-    // cpl_image *bpm = create_test_image();
-    // cpl_image *tmp = cpl_image_duplicate(bpm);
-    // int type = 2;
-    // int res;
-    // int cmp = 354639;
+static void test_cr2res_dark_qc_ron(void)
+{
+    cpl_image *ima1, *ima2;
+    int hsize, nsamples, ndit;
+    double res;
 
-    // cpl_test_eq(-1, cr2res_qc_count_badpix(NULL, type));
-    // cpl_test_eq(0, cr2res_qc_count_badpix(bpm, -2));
+    ima1 = cpl_image_new(100, 100, CPL_TYPE_DOUBLE);
+    ima2 = cpl_image_new(100, 100, CPL_TYPE_DOUBLE);
 
-    // cpl_test(res = cr2res_qc_count_badpix(bpm, type));
-    // cpl_test_eq(res, cmp);
-    // cpl_test_image_abs(bpm, tmp, 0);
+    hsize = -1;
+    nsamples = -1;
+    ndit = 2;
 
-    // cpl_image_delete(bpm);
-    // cpl_image_delete(tmp);
-// }
+    for(cpl_size x = 1; x <= 100; x++)
+    {
+        for(cpl_size y = 1; y <= 100; y++)
+        {
+            cpl_image_set(ima1, x, y, 1);
+            cpl_image_set(ima2, x, y, 1);
+        }
+    }
+    
+    res = cr2res_dark_qc_ron(ima1, ima2, hsize, nsamples, ndit);
+    cpl_test_error(CPL_ERROR_NONE);
 
-/*---------------------------------------------------------------------------*/
-/**
-* @brief    get the read out noise of image1 and 2
-* @param    im1      first image
-* @param    im2      second image
-* @return   rdnoise  read out noise
-*/
-/*---------------------------------------------------------------------------*/
-// static void test_cr2res_qc_read_out_noise(void)
-// {
-    // cpl_image *im1 = create_test_image();
-    // cpl_image *im2 = create_test_image();
-    // cpl_image_fill_window(im2, 100, 100, 200, 200, 2);
+    cpl_image_delete(ima1);
+    cpl_image_delete(ima2);
+}
 
-    // double res;
-    // double cmp = 0.0797785;
+static void test_cr2res_qc_flat_lamp_ints()
+{
+    cpl_image * ima;
+    double res;
 
-    // cpl_test_abs(-1, cr2res_qc_read_out_noise(NULL, im2), DBL_EPSILON);
-    // cpl_test_abs(-1, cr2res_qc_read_out_noise(im1, NULL), DBL_EPSILON);
+    ima = cpl_image_new(10, 10, CPL_TYPE_DOUBLE);
+    for(cpl_size x = 1; x <= 10; x++)
+    {
+        for(cpl_size y = 1; y <= 10; y++)
+        {
+            cpl_image_set(ima, x, y, 1);
+        }
+    }
 
-    // cpl_test(res = cr2res_qc_read_out_noise(im1, im2));
-    // cpl_test_abs(res, cmp, 1e-5);
+    cpl_test_eq(-1, cr2res_qc_flat_lamp_ints(NULL));
 
-    // cpl_image_delete(im1);
-    // cpl_image_delete(im2);
-// }
+    cpl_test(res = cr2res_qc_flat_lamp_ints(ima));
+    cpl_test_abs(res, 10*10, DBL_EPSILON);
 
-// /*---------------------------------------------------------------------------*/
-// /**
-// * @brief    get the mean dark current of the image
-// * @param    dark   dark frame image, i.e. with no light exposure
-// * @return   mean   mean dark current
-// */
-// /*---------------------------------------------------------------------------*/
-// static void test_cr2res_qc_dark_mean(void)
-// {
-//     cpl_image *dark = create_test_image();
-//     double res;
-//     double mean = 3.31055;
+    cpl_image_delete(ima);
+}
 
-//     cpl_test_abs(-1, cr2res_qc_dark_mean(NULL), 0);
-//     cpl_test(res = cr2res_qc_dark_mean(dark));
-//     cpl_test_abs(res, mean, 1e-5);
+static void test_cr2res_qc_flat_mean_level()
+{
+    cpl_image * ima;
+    double res;
 
-//     cpl_image_delete(dark);
-// }
+    ima = cpl_image_new(10, 10, CPL_TYPE_DOUBLE);
+    for(cpl_size x = 1; x <= 10; x++)
+    {
+        for(cpl_size y = 1; y <= 10; y++)
+        {
+            cpl_image_set(ima, x, y, 1);
+        }
+    }
 
-// /*---------------------------------------------------------------------------*/
-// /**
-// * @brief    get the median of the dark current in the image
-// * @param    dark   dark frame image, i.e. with no light exposure
-// * @return   median median dark current
-// */
-// /*---------------------------------------------------------------------------*/
-// static void test_cr2res_qc_dark_median(void)
-// {
-//     cpl_image *dark = create_test_image();
-//     double res;
-//     double median = 3;
+    cpl_test_eq(-1, cr2res_qc_flat_mean_level(NULL));
 
-//     cpl_test_abs(-1, cr2res_qc_dark_median(NULL), 0);
-//     cpl_test(res = cr2res_qc_dark_median(dark));
-//     cpl_test_abs(res, median, 1e-5);
+    cpl_test(res = cr2res_qc_flat_mean_level(ima));
+    cpl_test_abs(res, 1, DBL_EPSILON);
 
-//     cpl_image_delete(dark);
-// }
+    cpl_image_delete(ima);
+}
 
-// /*---------------------------------------------------------------------------*/
-// /**
-// * @brief    get the standard deviation of the dark current
-// * @param    dark    dark frame image, i.e. with no light exposure
-// * @return   stddev  standard deviation of dark current
-// */
-// /*---------------------------------------------------------------------------*/
-// static void test_cr2res_qc_dark_stddev(void)
-// {
-//     cpl_image *dark = create_test_image();
-//     double res;
-//     double std = 3.38368;
+static void test_cr2res_qc_flat_mean_med_flux()
+{
+    cpl_image * ima;
+    double mean, median;
+    double res;
 
-//     cpl_test_abs(-1, cr2res_qc_dark_stddev(NULL), 0);
-//     cpl_test(res = cr2res_qc_dark_stddev(dark));
-//     cpl_test_abs(res, std, 1e-5);
+    ima = cpl_image_new(10, 10, CPL_TYPE_DOUBLE);
+    for(cpl_size x = 1; x <= 10; x++)
+    {
+        for(cpl_size y = 1; y <= 10; y++)
+        {
+            cpl_image_set(ima, x, y, 1);
+        }
+    }
 
-//     cpl_image_delete(dark);
-// }
+    cpl_test_eq(-1, cr2res_qc_flat_mean_med_flux(NULL, &mean, &median));
 
-// /*---------------------------------------------------------------------------*/
-// /**
-// * @brief    count the trace orders in the table
-// * @param    tracewave    table with traces as polynomials
-// * @return   nb_orders    number of individual orders
-// */
-// /*---------------------------------------------------------------------------*/
-// static void test_cr2res_qc_trace_count_orders(void)
-// {
-//     cpl_table *tracewave = create_test_table();
-//     int res;
-//     int norders = 9;
+    cpl_test_eq(0, cr2res_qc_flat_mean_med_flux(ima, &mean, &median));
+    cpl_test_abs(mean, 1, DBL_EPSILON);
+    cpl_test_abs(median, 1, DBL_EPSILON);
 
-//     cpl_test_eq(-1, cr2res_qc_trace_count_orders(NULL));
-//     cpl_test(res = cr2res_qc_trace_count_orders(tracewave));
-//     cpl_test_eq(res, norders);
-//     cpl_table_delete(tracewave);
-// }
 
-// /*---------------------------------------------------------------------------*/
-// /**
-// * @brief    count the number of traces in the table
-// * @param    tracewave    table with traces as polynomials
-// * @return   ntraces      number of traces
-// */
-// /*---------------------------------------------------------------------------*/
-// static void test_cr2res_qc_trace_count_traces(void)
-// {
-//     cpl_table *tracewave = create_test_table();
-//     int res;
-//     int ntraces = 9;
-
-//     cpl_test_eq(-1, cr2res_qc_trace_count_traces(NULL));
-//     cpl_test(res = cr2res_qc_trace_count_traces(tracewave));
-//     cpl_test_eq(res, ntraces);
-
-//     cpl_table_delete(tracewave);
-// }
-
-// /*---------------------------------------------------------------------------*/
-// /**
-// * @brief    get the central y position of a given trace and order
-// * @param    tracewave    table with traces as polynomials
-// * @param    order        order to get values for
-// * @param    trace        trace of that order
-// * @return   ycen         y value of central pixel of trace and order
-// */
-// /*---------------------------------------------------------------------------*/
-// static void test_cr2res_qc_trace_get_ypos(void)
-// {
-//     cpl_table *tracewave = create_test_table();
-//     int order = 4;
-//     int trace = 1;
-//     int res;
-//     int ycen = 679;
-
-//     cpl_test_eq(-1, cr2res_qc_trace_get_ypos(NULL, order, trace));
-//     cpl_test_eq(-1, cr2res_qc_trace_get_ypos(tracewave, -10, trace));
-//     cpl_test_eq(-1, cr2res_qc_trace_get_ypos(tracewave, order, -1));
-
-//     cpl_test(res = cr2res_qc_trace_get_ypos(tracewave, order, trace));
-//     cpl_test_eq(res, ycen);
-
-//     cpl_table_delete(tracewave);
-// }
-
-// /*---------------------------------------------------------------------------*/
-// /**
-// * @brief    get the zeropoint (i.e. y(x=0)) for a given order and trace
-// * @param    tracewave    table with traces as polynomials
-// * @param    order        order to get values for
-// * @param    trace        trace of that order
-// * @return   y0           y position of the center leftmost pixel of the trace and order
-// */
-// /*---------------------------------------------------------------------------*/
-// static void test_cr2res_qc_wave_zeropoint(void)
-// {
-//     cpl_table *tracewave = create_test_table();
-//     int order = 4;
-//     int trace = 1;
-//     int res;
-//     int y0 = 660;
-
-//     cpl_test_eq(-1, cr2res_qc_wave_zeropoint(NULL, order, trace));
-//     cpl_test_eq(-1, cr2res_qc_wave_zeropoint(tracewave, -10, trace));
-//     cpl_test_eq(-1, cr2res_qc_wave_zeropoint(tracewave, order, -1));
-
-//     cpl_test(res = cr2res_qc_wave_zeropoint(tracewave, order, trace));
-//     cpl_test_eq(res, y0);
-
-//     cpl_table_delete(tracewave);
-// }
+    cpl_image_delete(ima);
+}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -404,15 +284,10 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    // test_cr2res_qc_count_badpix();
-    // test_cr2res_qc_read_out_noise();
-    // test_cr2res_qc_dark_mean();
-    // test_cr2res_qc_dark_median();
-    // test_cr2res_qc_dark_stddev();
-    // test_cr2res_qc_trace_count_orders();
-    // test_cr2res_qc_trace_count_traces();
-    // test_cr2res_qc_trace_get_ypos();
-    // test_cr2res_qc_wave_zeropoint();
+    test_cr2res_dark_qc_ron();
+    test_cr2res_qc_flat_lamp_ints();
+    test_cr2res_qc_flat_mean_level();
+    test_cr2res_qc_flat_mean_med_flux();
 
     return cpl_test_end(0);
 }

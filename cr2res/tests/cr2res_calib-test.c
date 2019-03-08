@@ -40,6 +40,8 @@
 #define MODE_BPM 2
 #define MODE_DETLIN 3
 
+#define pow2(x) (x) * (x)
+
 static hdrl_image * create_hdrl(int nx, int ny, double value, double error);
 
 static void test_cr2res_calib_image(void);
@@ -799,9 +801,10 @@ static void test_cr2res_calib_detlin()
     double dit = 10;
 
     in = create_hdrl(nx, ny, img_value, img_error);
+    i = img_value; si = img_error;
 
     // DetLin images aren't actually images, but polynomial coefficients for each pixel
-    // But new image is the inverse polynomial of that
+    // The new image is the evaluation of that polynomial for each pixel
 
     // Case 1: DetLin a = c = 0, b = 1, doesn't change anything
     a = c = 0; b = 1;
@@ -828,7 +831,7 @@ static void test_cr2res_calib_detlin()
     imc = create_hdrl(nx, ny, c, sc);
     detlin = create_detlin("master_detlin.fits", ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, img_value - a, img_error);
+    cmp = create_hdrl(nx, ny, b * img_value + a, img_error);
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -839,8 +842,8 @@ static void test_cr2res_calib_detlin()
     hdrl_image_delete(imc);
 
 
-    // Case 3: DetLin b = c = 0, everything is 0
-    a = 1; c = b = 0;
+    // Case 3: DetLin a = b = c = 0, everything is 0
+    a = c = b = 0;
     sa = sb = sc = 0;
     ima = create_hdrl(nx, ny, a, sa);
     imb = create_hdrl(nx, ny, b, sb);
@@ -857,15 +860,15 @@ static void test_cr2res_calib_detlin()
     hdrl_image_delete(imb);
     hdrl_image_delete(imc);
 
-    // Case 4: DetLin a = 0, c = 0, b = 2, divide all values by 2, including the error
-    b = 2; a = c = 0;
+    // Case 4: DetLin a = 0, c = 0, b = 0.5, divide all values by 2, including the error
+    b = 0.5; a = c = 0;
     sa = sb = sc = 0;
     ima = create_hdrl(nx, ny, a, sa);
     imb = create_hdrl(nx, ny, b, sb);
     imc = create_hdrl(nx, ny, c, sc);
     detlin = create_detlin("master_detlin.fits", ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, img_value / b, img_error / b);
+    cmp = create_hdrl(nx, ny, img_value * b, img_error * b);
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -876,7 +879,7 @@ static void test_cr2res_calib_detlin()
     hdrl_image_delete(imc);
 
     // Case 5: DetLin a = 1, c = 0, b = 2
-    // x = (y-a)/b
+    // x = a + y * b
     a = 1; b = 2; c = 0;
     sa = sb = sc = 0;
     ima = create_hdrl(nx, ny, a, sa);
@@ -884,7 +887,7 @@ static void test_cr2res_calib_detlin()
     imc = create_hdrl(nx, ny, c, sc);
     detlin = create_detlin("master_detlin.fits", ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, (img_value-a) / b, img_error / b);
+    cmp = create_hdrl(nx, ny, a + img_value * b, img_error * b);
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -895,7 +898,7 @@ static void test_cr2res_calib_detlin()
     hdrl_image_delete(imc);
 
     // Case 6: DetLin a = 1, c = 1, b = 2
-    // x = (y-a)/b * (1 - c/b^2 (y-a))
+    // x = a + y * b + y**2 * c
     a = c = 1; b = 2;
     sa = sb = sc = 0;
     ima = create_hdrl(nx, ny, a, sa);
@@ -903,7 +906,7 @@ static void test_cr2res_calib_detlin()
     imc = create_hdrl(nx, ny, c, sc);
     detlin = create_detlin("master_detlin.fits", ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, (img_value-a) / b * (1. - c/(b*b) * (img_value - a)), img_error / b * (1. - 2. * c/(b*b) * (img_value-a)));
+    cmp = create_hdrl(nx, ny, a + b * img_value + img_value * img_value * c, img_error * (b + 2 * img_value * c));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -914,7 +917,7 @@ static void test_cr2res_calib_detlin()
     hdrl_image_delete(imc);
 
     // Case 7: DetLin a = 0, c = 0, b = 1, but now with error
-    // x = (y-a)/b * (1 - c/b^2 (y-a))
+    // x = b * y
     a = c = 0; b = 1;
     sa = sc = 0; sb = 1;
     ima = create_hdrl(nx, ny, a, sa);
@@ -922,7 +925,7 @@ static void test_cr2res_calib_detlin()
     imc = create_hdrl(nx, ny, c, sc);
     detlin = create_detlin("master_detlin.fits", ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, img_value / b, sqrt(img_error * img_error + sb * sb * img_value * img_value / (b * b)) / (b *b));
+    cmp = create_hdrl(nx, ny, img_value * b, sqrt(pow2(si * b) + pow2(sb * i)));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -933,16 +936,15 @@ static void test_cr2res_calib_detlin()
     hdrl_image_delete(imc);
 
     // Case 8: DetLin a = 1, c = 0, b = 1, but now with error
-    // x = (y-a)/b * (1 - c/b^2 (y-a))
+    // x = a + b * y
     a = 1; c = 0; b = 1;
     sa = 1 ; sc = 0; sb = 1;
-    i = img_value; si = img_error;
     ima = create_hdrl(nx, ny, a, sa);
     imb = create_hdrl(nx, ny, b, sb);
     imc = create_hdrl(nx, ny, c, sc);
     detlin = create_detlin("master_detlin.fits", ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, (img_value - a) / b, sqrt(si * si + sa * sa + sb * sb * (i-a) * (i-a) / (b * b)) / (b *b));
+    cmp = create_hdrl(nx, ny, a + img_value * b, sqrt(pow2(si * b) + pow2(sa) + pow2(sb *i)));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -953,7 +955,7 @@ static void test_cr2res_calib_detlin()
     hdrl_image_delete(imc);
 
     // Case 9: DetLin a = 1, c = 1, b = 0, but now with error
-    // x = (y-a)/b * (1 - c/b^2 (y-a))
+    // x = a + c * y**2
     a = 1; c = 1; b = 0;
     sa = 1 ; sc = 1; sb = 0;
     i = img_value; si = img_error;
@@ -962,7 +964,7 @@ static void test_cr2res_calib_detlin()
     imc = create_hdrl(nx, ny, c, sc);
     detlin = create_detlin("master_detlin.fits", ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, sqrt((i - a) / c), sqrt(c / (i-a)) / (2.*c) * sqrt(si * si + sa * sa + sc* sc * (i - a) * (i-a)/ (c*c)));
+    cmp = create_hdrl(nx, ny, a + i * i * c, sqrt(pow2(sa) + pow2(sc * i * i) + pow2(si * 2 * i * c)));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -973,7 +975,7 @@ static void test_cr2res_calib_detlin()
     hdrl_image_delete(imc);
 
     // Case 10: DetLin a = 1, c = 1, b = 1, but now with error
-    // x = (y-a)/b * (1 - c/b^2 (y-a))
+    // x = a + b * y + c * y**2
     a = 1; c = 1; b = 1;
     sa = 1 ; sc = 1; sb = 1;
     i = img_value; si = img_error;
@@ -982,7 +984,7 @@ static void test_cr2res_calib_detlin()
     imc = create_hdrl(nx, ny, c, sc);
     detlin = create_detlin("master_detlin.fits", ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, -9702, 30525.5578655);
+    cmp = create_hdrl(nx, ny, a + b * i + c * i * i, sqrt(pow2(sa) + pow2(sb * i) + pow2(sc * i * i) + pow2(si * (b + 2 * c * i))));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), 1e-6);
     hdrl_image_delete(out);
