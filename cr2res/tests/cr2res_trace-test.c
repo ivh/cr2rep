@@ -45,8 +45,6 @@ static void test_cr2res_trace_get_height(void);
 static void test_cr2res_trace_compute_middle(void);
 static void test_cr2res_trace_compute_height(void);
 static void test_cr2res_trace_get_trace_ypos(void);
-// static void test_cr2res_trace_add_ord_tra_wav_curv_columns(void);
-static void test_cr2res_trace_split_traces(void);
 static void test_cr2res_trace_signal_detect(void);
 static void test_cr2res_trace_fit_traces(void);
 static void test_cr2res_trace_fit_trace(void);
@@ -54,6 +52,7 @@ static void test_cr2res_trace_convert_cluster_to_labels(void);
 static void test_cr2res_trace_convert_labels_to_cluster(void);
 static void test_cr2res_trace_clean_blobs(void);
 static void test_cr2res_trace_extract_edges(void);
+static void test_cr2res_trace_new_slit_fraction(void);
 
 // these don't exist
 // static void test_cr2res_trace_labelize(void);
@@ -61,6 +60,9 @@ static void test_cr2res_trace_extract_edges(void);
 // static void test_cr2res_trace_compare(void);
 // static void test_cr2res_trace_combine(void);
 // static void test_cr2res_trace_open_get_polynomials(void);
+// static void test_cr2res_trace_add_ord_tra_wav_curv_columns(void);
+// static void test_cr2res_trace_split_traces(void);
+
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -81,7 +83,7 @@ static void test_cr2res_trace_extract_edges(void);
 static cpl_table *create_test_table()
 {
     cpl_table *traces;
-    cpl_array *array;
+    cpl_array *array, *slit_fraction, *wave, *wave_err, *slit_a, *slit_b, *slit_c;
     int poly_order, norders;
     cpl_propertylist *hdr = cpl_propertylist_new();
 
@@ -96,6 +98,14 @@ static cpl_table *create_test_table()
     cpl_table_new_column_array(traces, CR2RES_COL_LOWER, CPL_TYPE_DOUBLE, poly_order);
     cpl_table_new_column(traces, CR2RES_COL_ORDER, CPL_TYPE_INT);
     cpl_table_new_column(traces, CR2RES_COL_TRACENB, CPL_TYPE_INT);
+
+    cpl_table_new_column_array(traces, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 2);
+    cpl_table_new_column_array(traces, CR2RES_COL_WAVELENGTH_ERROR, CPL_TYPE_DOUBLE, 2);
+    cpl_table_new_column_array(traces, CR2RES_COL_SLIT_CURV_A, CPL_TYPE_DOUBLE, 3);
+    cpl_table_new_column_array(traces, CR2RES_COL_SLIT_CURV_B, CPL_TYPE_DOUBLE, 3);
+    cpl_table_new_column_array(traces, CR2RES_COL_SLIT_CURV_C, CPL_TYPE_DOUBLE, 3);
+    cpl_table_new_column_array(traces, CR2RES_COL_SLIT_FRACTION, CPL_TYPE_DOUBLE, 3);
+
 
     /*
                  All|               Upper|               Lower|  Order
@@ -123,6 +133,24 @@ static cpl_table *create_test_table()
     double lower_2[] = {-8.95809e-05, 0.017396, 0.0170009, 0.0177137,
                         0.0185517, 0.0194215, 0.0202534, 0.0212178, 0.0221835};
     array = cpl_array_new(poly_order, CPL_TYPE_DOUBLE);
+    slit_fraction = cpl_array_new(3, CPL_TYPE_DOUBLE);
+    cpl_array_set_double(slit_fraction, 0, 0);
+    cpl_array_set_double(slit_fraction, 1, 0.5);
+    cpl_array_set_double(slit_fraction, 2, 1);
+    wave = cpl_array_new(2, CPL_TYPE_DOUBLE);
+    cpl_array_set_double(wave, 0, 9.45e2);
+    cpl_array_set_double(wave, 1, 3.13e-3);
+    wave_err = cpl_array_new(2, CPL_TYPE_DOUBLE);
+    cpl_array_set_double(wave_err, 0, 5e-2);
+    cpl_array_set_double(wave_err, 1, 5e-2);
+
+    slit_a = cpl_array_new(3, CPL_TYPE_DOUBLE);
+    cpl_array_set(slit_a, 1, 1);
+    slit_b = cpl_array_new(3, CPL_TYPE_DOUBLE);
+    slit_c = cpl_array_new(3, CPL_TYPE_DOUBLE);
+
+
+
     for (int i = 0; i < norders; i++)
     {
         cpl_array_set(array, 0, all_1[i]);
@@ -136,6 +164,13 @@ static cpl_table *create_test_table()
         cpl_table_set_array(traces, CR2RES_COL_LOWER, i, array);
         cpl_table_set(traces, CR2RES_COL_ORDER, i, i + 1);
         cpl_table_set(traces, CR2RES_COL_TRACENB, i, 1);
+    
+        cpl_table_set_array(traces, CR2RES_COL_SLIT_FRACTION, i, slit_fraction);
+        cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH, i, wave);
+        cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH_ERROR, i, wave_err);
+        cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_A, i, slit_a);
+        cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_B, i, slit_b);
+        cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_C, i, slit_c);
     }
 
     cpl_propertylist_append_string(hdr, "EXTNAME", "CHIP1");
@@ -173,6 +208,13 @@ static cpl_table *create_test_table()
     cpl_table_save(traces, NULL, hdr, "test_table.fits", CPL_IO_CREATE);
 
     cpl_array_delete(array);
+    cpl_array_delete(slit_fraction);
+    cpl_array_delete(wave);
+    cpl_array_delete(wave_err);
+    cpl_array_delete(slit_a);
+    cpl_array_delete(slit_b);
+    cpl_array_delete(slit_c);
+
     cpl_propertylist_delete(hdr);
     return traces;
 }
@@ -613,50 +655,99 @@ static void test_cr2res_trace_get_trace_ypos(void)
   @brief Test a small 10x10 patch of the result to expected result based on trace table polynomials
  */
 /*----------------------------------------------------------------------------*/
-// static void test_cr2res_trace_split_traces(void)
-// {
-//     //define input
-//     cpl_binary data[2048 * 2048];
-//     for (int i = 0; i < 2048 * 2048; i++)
-//         data[i] = 1;
+static void test_cr2res_trace_new_slit_fraction(void)
+{
+    //define input
+    cpl_table *trace_table = create_test_table();
+    int norder = cpl_table_get_nrow(trace_table); // as defined in create test_table
+    cpl_array * new_slit_fraction;
+    cpl_table *res;
+    cpl_array *array;
+    const cpl_array *carray;
 
-//     cpl_mask *mask = cpl_mask_wrap(2048, 2048, data);
-//     cpl_table *trace_table = create_test_table();
-//     cpl_mask *sub;
+    // test for NULL input
+    cpl_test_null(cr2res_trace_new_slit_fraction(NULL, new_slit_fraction));
+    cpl_test_null(cr2res_trace_new_slit_fraction(trace_table, NULL));
 
-//     cpl_binary data2[10 * 10] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-//                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-//                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-//                                  0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
-//                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    // test with too small new slit fraction, should get NULL
+    new_slit_fraction = cpl_array_new(1, CPL_TYPE_DOUBLE);
+    cpl_test_null(cr2res_trace_new_slit_fraction(trace_table, new_slit_fraction));
+    cpl_array_delete(new_slit_fraction);
 
-//     cpl_mask *cmp = cpl_mask_wrap(10, 10, data2);
-//     cpl_mask *res;
 
-//     //run test
-//     cpl_test_null(cr2res_trace_split_traces(NULL, trace_table));
-//     cpl_test_null(cr2res_trace_split_traces(mask, NULL));
+    // test with new slit fraction == old slit fractions
+    new_slit_fraction = cpl_array_new(3, CPL_TYPE_DOUBLE);
+    cpl_array_set_double(new_slit_fraction, 0, 0);
+    cpl_array_set_double(new_slit_fraction, 1, 0.5);
+    cpl_array_set_double(new_slit_fraction, 2, 1);
 
-//     cpl_test(res = cr2res_trace_split_traces(mask, trace_table));
-//     //test output
-//     sub = cpl_mask_extract(res, 36, 165, 45, 174);
-//     //cpl_mask_save(res, "res.fits", NULL, CPL_IO_CREATE);
-//     //cpl_mask_save(sub, "sub.fits", NULL, CPL_IO_CREATE);
-//     //cpl_mask_save(cmp, "cmp.fits", NULL, CPL_IO_CREATE);
-//     cpl_test_eq_mask(sub, cmp);
+    cpl_test(res = cr2res_trace_new_slit_fraction(trace_table, new_slit_fraction));
+    cpl_test_eq(cpl_table_get_nrow(res), norder);
+    for(cpl_size i = 0; i < norder; i++)
+    {
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_FRACTION, i), 
+                cpl_table_get_array(trace_table, CR2RES_COL_SLIT_FRACTION, i), FLT_EPSILON);
+    
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_UPPER, i), 
+                cpl_table_get_array(trace_table, CR2RES_COL_UPPER, i), FLT_EPSILON);
 
-//     //deallocate memory
-//     cpl_mask_unwrap(mask);
-//     cpl_mask_unwrap(cmp);
-//     cpl_mask_delete(sub);
-//     cpl_mask_delete(res);
-//     cpl_table_delete(trace_table);
-// }
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_ALL, i), 
+            cpl_table_get_array(trace_table, CR2RES_COL_ALL, i), FLT_EPSILON);
+
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_LOWER, i), 
+                cpl_table_get_array(trace_table, CR2RES_COL_LOWER, i), FLT_EPSILON);
+
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_WAVELENGTH, i), 
+                cpl_table_get_array(trace_table, CR2RES_COL_WAVELENGTH, i), FLT_EPSILON);
+
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_CURV_A, i), 
+                cpl_table_get_array(trace_table, CR2RES_COL_SLIT_CURV_A, i), FLT_EPSILON);
+
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_CURV_B, i), 
+                cpl_table_get_array(trace_table, CR2RES_COL_SLIT_CURV_B, i), FLT_EPSILON);
+        
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_CURV_C, i), 
+                cpl_table_get_array(trace_table, CR2RES_COL_SLIT_CURV_C, i), FLT_EPSILON);
+    }
+    cpl_array_delete(new_slit_fraction);
+
+
+    // test with slit fractions other than old ones
+    new_slit_fraction = cpl_array_new(3, CPL_TYPE_DOUBLE);
+    cpl_array_set_double(new_slit_fraction, 0, 0.2);
+    cpl_array_set_double(new_slit_fraction, 1, 0.4);
+    cpl_array_set_double(new_slit_fraction, 2, 0.6);
+
+    // Set the first order of the table to some easy to estimate values, 1, 2, 3
+    array = cpl_array_new(2, CPL_TYPE_DOUBLE);
+    cpl_array_set_double(array, 0, 3);
+    cpl_table_set_array(trace_table, CR2RES_COL_UPPER, 0, array);
+    cpl_array_set_double(array, 0, 2);
+    cpl_table_set_array(trace_table, CR2RES_COL_ALL, 0, array);
+    cpl_array_set_double(array, 0, 1);
+    cpl_table_set_array(trace_table, CR2RES_COL_LOWER, 0, array);
+    cpl_array_delete(array);
+
+    cpl_table_delete(res);
+    cpl_test(res = cr2res_trace_new_slit_fraction(trace_table, new_slit_fraction));
+
+    carray = cpl_table_get_array(res, CR2RES_COL_UPPER, 0);
+    cpl_test_abs(cpl_array_get_double(carray, 0, NULL), 2.2, FLT_EPSILON);
+    cpl_test_abs(cpl_array_get_double(carray, 1, NULL), 0, FLT_EPSILON);
+    carray = cpl_table_get_array(res, CR2RES_COL_ALL, 0);
+    cpl_test_abs(cpl_array_get_double(carray, 0, NULL), 1.8, FLT_EPSILON);
+    cpl_test_abs(cpl_array_get_double(carray, 1, NULL), 0, FLT_EPSILON);
+    carray = cpl_table_get_array(res, CR2RES_COL_LOWER, 0);
+    cpl_test_abs(cpl_array_get_double(carray, 0, NULL), 1.4, FLT_EPSILON);
+    cpl_test_abs(cpl_array_get_double(carray, 1, NULL), 0, FLT_EPSILON);
+
+    //deallocate memory
+    cpl_table_delete(res);
+    cpl_table_delete(trace_table);
+    cpl_array_delete(new_slit_fraction);
+}
+
+
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -1011,6 +1102,7 @@ int main(void)
     test_cr2res_trace_convert_labels_to_cluster();
     test_cr2res_trace_clean_blobs();
     test_cr2res_trace_extract_edges();
+    test_cr2res_trace_new_slit_fraction();
 
     return cpl_test_end(0);
 }

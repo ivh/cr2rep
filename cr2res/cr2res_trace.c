@@ -1095,6 +1095,10 @@ cpl_table * cr2res_trace_new_slit_fraction(
         cpl_msg_error(__func__, "The traces table is incomplete") ;
         return NULL ;
     }
+    if (cpl_array_get_size(new_slit_fraction) != 3){
+        cpl_msg_error(__func__, "New slitfraction must have 3 components (Upper, Middle, Lower)");
+        return NULL;
+    }
 
     /* Initialise */
     nrows = cpl_table_get_nrow(traces) ;
@@ -1896,13 +1900,16 @@ static int cr2res_trace_new_trace(
     cpl_array       *   trace_lower_out ;
     double              sf_in_l, sf_in_m, sf_in_u, pix_in_l, pix_in_u, pix_in_m,
                         sf_out_l, sf_out_m, sf_out_u, pix_out_l, pix_out_u, 
-                        pix_out_m, sf_wished, new_coeff ;
+                        pix_out_m, sf_wished, new_coeff, b, c, divisor, x2, x3, y2, y3 ;
 
     /* Check entries */
     if (slit_fraction_in==NULL || trace_all_in==NULL || trace_upper_in==NULL ||
             trace_lower_in==NULL || slit_fraction_wished==NULL ||
             trace_all_new==NULL || trace_upper_new==NULL ||
             trace_lower_new==NULL) return -1; 
+
+    // Both in and output slitfractions need to have 3 components
+    if (cpl_array_get_size(slit_fraction_in) != 3 || cpl_array_get_size(slit_fraction_wished) != 3) return -1;
 
     /* Get input slit positions in arcseconds */
     sf_in_l = cpl_array_get(slit_fraction_in, 0, NULL) ;
@@ -1925,13 +1932,28 @@ static int cr2res_trace_new_trace(
     pix_in_l = cpl_polynomial_eval_1d(poly_lower_in,
             (double)(CR2RES_DETECTOR_SIZE/2.0), NULL) ;
 
+    // Calculate polynomial coefficients of second order
+    // x = slit function
+    // y = pixel position
+    // y = a + b * x + c * x * x
+    // x1 = y1 = 0; shift origin into the lower point for easier calculation
+    x2 = sf_in_m - sf_in_l;
+    y2 = pix_in_m - pix_in_l;
+    x3 = sf_in_u - sf_in_l;
+    y3 = pix_in_u - pix_in_l;
+    // a = 0;
+    divisor = x2 * x3 * (x2 - x3);
+    b = (x2 * x2 * y3 - x3 * x3 * y2) / divisor;
+    c = -(x2 * y3 - x3 * y2) / divisor;
+
     /* Compute the Pixel positions on the wished slit fraction */
-    sf_wished = sf_out_u ;
-    pix_out_u = pix_in_l+(sf_wished-sf_in_l)*(pix_in_u-pix_in_l)/(sf_in_u-sf_in_l);
-    sf_wished = sf_out_l ;
-    pix_out_l = pix_in_l+(sf_wished-sf_in_l)*(pix_in_u-pix_in_l)/(sf_in_u-sf_in_l);
-    sf_wished = sf_out_m ;
-    pix_out_m = pix_in_l+(sf_wished-sf_in_l)*(pix_in_u-pix_in_l)/(sf_in_u-sf_in_l);
+    sf_wished = sf_out_u - sf_in_l;
+    pix_out_u = pix_in_l + b * sf_wished + c * sf_wished * sf_wished;
+    sf_wished = sf_out_m - sf_in_l;
+    pix_out_m = pix_in_l + b * sf_wished + c * sf_wished * sf_wished;
+    sf_wished = sf_out_l - sf_in_l;
+    pix_out_l = pix_in_l + b * sf_wished + c * sf_wished * sf_wished;
+
 
     /* Debug Message */
     cpl_msg_debug(__func__, 
