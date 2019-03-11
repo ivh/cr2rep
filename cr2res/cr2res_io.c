@@ -1180,6 +1180,37 @@ int cr2res_io_save_SLIT_MODEL(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Save a COMBINED
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
+  @param    parlist     The recipe input parameters
+  @param    data        The data images to save (DATA and ERROR per detector)
+  @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
+  @param    procatg     The PRO CATG value
+  @param    recipe      The recipe name
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_COMBINED(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
+        const cpl_parameterlist *   parlist,
+        hdrl_image              **  data,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
+        const char              *   recipe)
+{
+    return cr2res_io_save_image(filename, allframes, inframes, parlist,
+            data, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe, procatg, 
+            CR2RES_COMBINED_PROTYPE) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Save a TRACE_MAP
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames

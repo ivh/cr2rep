@@ -400,6 +400,12 @@ static int cr2res_obs_1d(
     }
 
     /* Ѕave Products */
+    out_file = cpl_sprintf("%s_combinedA.fits", RECIPE_STRING) ;
+    cr2res_io_save_COMBINED(out_file, frameset, rawframes, parlist,
+            combineda, NULL, ext_plist, CR2RES_OBS_1D_COMBINEDA_PROCATG, 
+            RECIPE_STRING) ;
+    cpl_free(out_file);
+
     out_file = cpl_sprintf("%s_extractedA.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extracta,
             NULL, ext_plist, CR2RES_OBS_1D_EXTRACTA_PROCATG, RECIPE_STRING) ;
@@ -414,6 +420,12 @@ static int cr2res_obs_1d(
     out_file = cpl_sprintf("%s_modela.fits", RECIPE_STRING) ;
     cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist,
             modela, NULL, ext_plist, CR2RES_OBS_1D_SLITMODELA_PROCATG,
+            RECIPE_STRING) ;
+    cpl_free(out_file);
+
+    out_file = cpl_sprintf("%s_combinedB.fits", RECIPE_STRING) ;
+    cr2res_io_save_COMBINED(out_file, frameset, rawframes, parlist,
+            combinedb, NULL, ext_plist, CR2RES_OBS_1D_COMBINEDB_PROCATG, 
             RECIPE_STRING) ;
     cpl_free(out_file);
 
