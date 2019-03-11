@@ -33,11 +33,13 @@
 #include "cr2res_qc.h"
 #include "cr2res_trace.h"
 #include "cr2res_dfs.h"
+#include "cr2res_calib.h"
 
+#define CR2RES_NONLIN_LEVEL 15000
+#define CR2RES_QC_ORDER 4
+#define CR2RES_QC_TRACE 1
+#define CR2RES_QC_SIZE  100
 
-#define QC_ORDER 4
-#define QC_TRACE 1
-#define QC_SIZE  100
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
@@ -98,15 +100,30 @@ double cr2res_qc_detlin_median(
         const cpl_imagelist     *   coeffs)
 {
     double      qc_detlin_median ;
-
+    double      level;
+    int         nimgs = 3, width, height;
+    hdrl_imagelist * hdrl_coeffs;
+    hdrl_image * img;
+    hdrl_value value = {CR2RES_NONLIN_LEVEL, 0};
     /* Check Entries */
     if (coeffs == NULL) return -1.0 ;
 
     /* Initialise */
     qc_detlin_median = -1.0 ;
 
-    /* TODO */
+    // Apply detlin correction on an image with constant value
+    hdrl_coeffs = hdrl_imagelist_create((cpl_imagelist*) coeffs, NULL);
+    width = hdrl_image_get_size_x(hdrl_imagelist_get(hdrl_coeffs, 0));
+    height = hdrl_image_get_size_y(hdrl_imagelist_get(hdrl_coeffs, 0));
+    img = hdrl_image_new(width, height); 
+    hdrl_image_add_scalar(img, value);
+    cr2res_detlin_correct(img, hdrl_coeffs);
 
+    // Then determine the median of that corrected image
+    qc_detlin_median = cpl_image_get_median(hdrl_image_get_image(img));
+
+    hdrl_imagelist_delete(hdrl_coeffs);
+    hdrl_image_delete(img);
 
     return qc_detlin_median ;
 }
@@ -279,7 +296,7 @@ double cr2res_qc_flat_trace_center_y(
     /* Initialise */
     qc_trace_center_y = 0;
     // Step 1: find central order
-    orders = cr2res_trace_get_order_numbers(trace, &nb_orders);
+    orders = cr2res_trace_get_order_numbers((cpl_table*) trace, &nb_orders);
     array = cpl_array_wrap_int(orders, nb_orders);
     central_order = cpl_array_get_median(array);
     cpl_array_unwrap(array);
@@ -352,11 +369,11 @@ double cr2res_qc_obs_1d_signal(
 
     /* Initialise */
     qc_signal = -1.0 ;
-    colname = cr2res_dfs_SPEC_colname(QC_ORDER, QC_TRACE);
-    data = cpl_table_get_data_double(extracted, colname);
+    colname = cr2res_dfs_SPEC_colname(CR2RES_QC_ORDER, CR2RES_QC_TRACE);
+    data = cpl_table_get_data_double((cpl_table*) extracted, colname);
     nrows = cpl_table_get_nrow(extracted);
 
-    size = QC_SIZE;
+    size = CR2RES_QC_SIZE;
     if (nrows < size) size = nrows;
 
     vector = cpl_vector_wrap(nrows, data);
