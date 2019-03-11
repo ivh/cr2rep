@@ -49,7 +49,7 @@ cpl_image * cr2res_trace_gen_image(
         int             ny) ;
 
 int * cr2res_trace_get_order_numbers(
-        cpl_table   *   trace, 
+        const cpl_table   *   trace, 
         int         *   nb_orders) ;
 
 cpl_table * cr2res_trace_merge(
