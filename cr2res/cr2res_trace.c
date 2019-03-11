@@ -1067,7 +1067,11 @@ int cr2res_trace_add_extra_columns(
     are computed like this:
     TODO
 
-
+    COMMENTS / TODO
+        This function should return a new trace wave with ONLY 1 trace
+        per order with the wiѕhed slit_fraction.
+        This new trace should ideally be computed from all traces of the
+        order or from the closest ones.
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_new_slit_fraction(
@@ -1188,7 +1192,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief Adjust the traces spetial positions using a new FLAT frameset
+  @brief Adjust the traces spatial positions using a new FLAT frameset
   @param trace_wave     The trace_wave to adjust
   @param flat_raw       The FLAT frameset
   @param det_nr         The detector number
