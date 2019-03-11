@@ -24,6 +24,7 @@
 /*-----------------------------------------------------------------------------
                                 Includes
  -----------------------------------------------------------------------------*/
+
 #include <locale.h>
 #include <string.h>
 
@@ -190,6 +191,13 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.slit_frac",
+            CPL_TYPE_STRING, "Wished slit fraction",
+            "cr2res.cr2res_util_extract", "-1.0, -1.0");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "slit_frac");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
             "cr2res.cr2res_util_extract", 0);
@@ -268,7 +276,8 @@ static int cr2res_util_extract(
     const cpl_parameter *   param;
     int                     oversample, swath_width, extr_height,
                             reduce_det, reduce_order, reduce_trace ;
-    double                  smooth_slit ;
+    double                  smooth_slit, slit_low, slit_up ;
+    cpl_array           *   slit_frac ;
     cpl_frame           *   fr ;
     const char          *   science_file ;
     const char          *   trace_file ;
@@ -280,6 +289,7 @@ static int cr2res_util_extract(
     cpl_table           *   extract_tab[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_table ;
+    cpl_table           *   trace_table_new ;
     hdrl_image          *   science_hdrl;
     cpl_image           *   bpm_img;
     cpl_mask            *   bpm_mask;
@@ -320,14 +330,31 @@ static int cr2res_util_extract(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1;
     }
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_extract.slit_frac");
+    sval = cpl_parameter_get_string(param) ;
+    if (sscanf(sval, "%lg,%lg", &slit_low, &slit_up) != 2) {
+        cpl_msg_error(__func__, "Invalid Slit Fraction specified");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
 
     /* Check Parameters */
-    /* TODO */
+    if (slit_low > 0.0 && slit_up > 0.0 && slit_low < 1.0 && slit_up < 1.0 
+            && slit_up > slit_low) {
+        slit_frac = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
+        cpl_array_set(slit_frac, 0, slit_low) ;
+        cpl_array_set(slit_frac, 1, (slit_low+slit_up)/2.0) ;
+        cpl_array_set(slit_frac, 2, slit_up) ;
+    } else {
+        slit_frac = NULL ;
+    }
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot identify RAW and CALIB frames") ;
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        cpl_array_delete(slit_frac) ;
         return -1 ;
     }
 
@@ -341,6 +368,7 @@ static int cr2res_util_extract(
     if (science_file == NULL || trace_file == NULL) {
         cpl_msg_error(__func__, "The utility needs a science file and a trace");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        cpl_array_delete(slit_frac) ;
         return -1 ;
     }
     if (bpm_file == NULL) {
@@ -376,6 +404,20 @@ static int cr2res_util_extract(
             continue ;
         }
 
+        /* Extract at the specified slit fraction */
+        if (slit_frac != NULL) {
+			if ((trace_table_new = cr2res_trace_new_slit_fraction(trace_table,
+					slit_frac)) == NULL) {
+				cpl_msg_warning(__func__,
+            "Failed to compute the traces for user specified slit fraction") ;
+                cpl_error_reset() ;
+			} else {
+                cpl_table_delete(trace_table) ;
+                trace_table = trace_table_new ;
+                trace_table_new = NULL ;
+            }
+        }
+
         /* Load the image in which the traces are to extract */
         cpl_msg_info(__func__, "Load the Image") ;
         if ((science_hdrl = cr2res_io_load_image(science_file, det_nr))==NULL) {
@@ -392,14 +434,17 @@ static int cr2res_util_extract(
             if ((bpm_img = cr2res_io_load_BPM(bpm_file, det_nr, 1))==NULL) {
                 cpl_table_delete(trace_table) ;
                 hdrl_image_delete(science_hdrl) ;
-                cpl_msg_error(__func__, "Failed to load the BPM - skip detector");
+                cpl_msg_error(__func__, 
+                        "Failed to load BPM - skip detector");
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
                 continue ;
             } else {
                 bpm_mask = cpl_mask_threshold_image_create(bpm_img, 0,INT_MAX);
-                if (hdrl_image_reject_from_mask(science_hdrl, bpm_mask) != CPL_ERROR_NONE) {
-                    cpl_msg_error(__func__, "Failed to assign the BPM to image - skip detector");
+                if (hdrl_image_reject_from_mask(science_hdrl, bpm_mask) != 
+                        CPL_ERROR_NONE) {
+                    cpl_msg_error(__func__, 
+                            "Failed to assign BPM to image - skip detector");
                     cpl_table_delete(trace_table) ;
                     hdrl_image_delete(science_hdrl) ;
                     cpl_mask_delete(bpm_mask);
@@ -427,6 +472,7 @@ static int cr2res_util_extract(
         hdrl_image_delete(science_hdrl) ;
         cpl_table_delete(trace_table) ;
     }
+    cpl_array_delete(slit_frac) ;
 
     /* Save the Products */
     out_file = cpl_sprintf("%s_extrModel.fits",

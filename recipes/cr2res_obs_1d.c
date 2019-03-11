@@ -103,6 +103,10 @@ static char cr2res_obs_1d_description[] =
 "cr2res_obs_1d_extractB.fits " CR2RES_OBS_1D_EXTRACTB_PROCATG "\n"
 "cr2res_obs_1d_combinedA.fits " CR2RES_OBS_1D_COMBINEDA_PROCATG "\n"
 "cr2res_obs_1d_combinedB.fits " CR2RES_OBS_1D_COMBINEDB_PROCATG "\n"
+"cr2res_obs_1d_modelA.fits " CR2RES_OBS_1D_SLITMODELA_PROCATG "\n"
+"cr2res_obs_1d_modelB.fits " CR2RES_OBS_1D_SLITMODELB_PROCATG "\n"
+"cr2res_obs_1d_slitfuncA.fits " CR2RES_OBS_1D_SLITFUNCA_PROCATG "\n"
+"cr2res_obs_1d_slitfuncB.fits " CR2RES_OBS_1D_SLITFUNCB_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -417,7 +421,7 @@ static int cr2res_obs_1d(
             RECIPE_STRING) ;
     cpl_free(out_file);
 
-    out_file = cpl_sprintf("%s_modela.fits", RECIPE_STRING) ;
+    out_file = cpl_sprintf("%s_modelA.fits", RECIPE_STRING) ;
     cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist,
             modela, NULL, ext_plist, CR2RES_OBS_1D_SLITMODELA_PROCATG,
             RECIPE_STRING) ;
@@ -440,7 +444,7 @@ static int cr2res_obs_1d(
             RECIPE_STRING) ;
     cpl_free(out_file);
 
-    out_file = cpl_sprintf("%s_modelb.fits", RECIPE_STRING) ;
+    out_file = cpl_sprintf("%s_modelB.fits", RECIPE_STRING) ;
     cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist,
             modelb, NULL, ext_plist, CR2RES_OBS_1D_SLITMODELB_PROCATG,
             RECIPE_STRING) ;
