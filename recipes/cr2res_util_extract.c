@@ -296,6 +296,9 @@ static int cr2res_util_extract(
     int                     det_nr, ext_nr, order ;
     cr2res_extr_method      extr_method;
 
+    /* Needed for sscanf() */
+    setlocale(LC_NUMERIC, "C");
+
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_extract.oversample");
