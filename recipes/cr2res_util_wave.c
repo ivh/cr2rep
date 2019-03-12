@@ -283,6 +283,7 @@ static int cr2res_util_wave(
     cpl_bivector        *   catalog_spectrum ;
     char                *   out_file;
     cpl_table           *   out_trace_wave[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   lines_diagnostics[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     int                     det_nr, nb_traces, trace_id, order, i ;
@@ -408,6 +409,7 @@ static int cr2res_util_wave(
 
         /* Initialise */
         out_trace_wave[det_nr-1] = NULL ;
+        lines_diagnostics[det_nr-1] = NULL ;
         out_wave_map[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
 
@@ -548,7 +550,7 @@ static int cr2res_util_wave(
             if ((wave_sol = cr2res_wave_2d(spectra, spectra_err, wavesol_init, 
                             wavesol_init_error, orders, nb_traces, 
                             catalog_spectrum, degree, degree, display, 
-                            &wl_err_array)) == NULL) {
+                            &wl_err_array, &(lines_diagnostics[i]))) == NULL) {
                 cpl_msg_error(__func__, 
                         "Failed to compute 2d Wavelength solution") ;
                 cpl_msg_indent_less() ;
@@ -663,12 +665,24 @@ static int cr2res_util_wave(
             NULL, ext_plist, CR2RES_UTIL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
+    if (wavecal_type == CR2RES_LINE2D || wavecal_type == CR2RES_LINE1D) {
+        /* Save the Lines Diagnostics */
+        out_file = cpl_sprintf("%s_lines_diagnostics.fits",
+                cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
+        cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset, frameset, parlist, 
+                lines_diagnostics, NULL, ext_plist, 
+                CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG, RECIPE_STRING) ;
+        cpl_free(out_file);
+    }
+
     /* Free and return */
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
         if (ext_plist[i] != NULL)
             cpl_propertylist_delete(ext_plist[i]) ;
         if (out_trace_wave[i] != NULL)
             cpl_table_delete(out_trace_wave[i]) ;
+        if (lines_diagnostics[i] != NULL)
+            cpl_table_delete(lines_diagnostics[i]) ;
         if (out_wave_map[i] != NULL) {
             hdrl_image_delete(out_wave_map[i]) ;
         }

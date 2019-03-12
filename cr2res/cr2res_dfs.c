@@ -185,6 +185,33 @@ char * cr2res_dfs_SLIT_FUNC_colname(int order, int trace)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Create an empty LINES DIAGNOSTICS table
+  @param    nrows       The wished number of rows
+  @return   a new table
+ */
+/*----------------------------------------------------------------------------*/
+cpl_table * cr2res_dfs_create_lines_diagnostics_table(int nrows)
+{
+    cpl_table   *   out ;
+
+    /* Check entries */
+    if (nrows < 1) return NULL;
+
+    out = cpl_table_new(nrows) ;
+
+    cpl_table_new_column(out, CR2RES_COL_ORDER, CPL_TYPE_INT) ;
+    cpl_table_new_column(out, CR2RES_COL_TRACENB, CPL_TYPE_INT);
+    cpl_table_new_column(out, CR2RES_COL_MEASURED_LAMBDA, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(out, CR2RES_COL_CATALOG_LAMBDA, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(out, CR2RES_COL_DELTA_LAMBDA, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(out, CR2RES_COL_MEASURED_PIXEL, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(out, CR2RES_COL_LINE_WIDTH, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(out, CR2RES_COL_FIT_QUALITY, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(out, CR2RES_COL_INTENSITY, CPL_TYPE_DOUBLE);
+    return out ;
+}
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Check completeness of trace table
   @param    trace       The trace table to check
   @return   1 if complete, 0 if not, -1 in error case

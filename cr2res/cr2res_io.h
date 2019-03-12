@@ -188,6 +188,17 @@ int cr2res_io_save_TRACE_WAVE(
         const char              *   procatg,
         const char              *   recipe) ;
 
+int cr2res_io_save_LINES_DIAGNOSTICS(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  tables,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
+        const char              *   recipe) ;
+
 int cr2res_io_save_EXTRACT_1D(
         const char              *   filename,
         cpl_frameset            *   allframes,

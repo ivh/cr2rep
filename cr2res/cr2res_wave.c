@@ -164,6 +164,7 @@ cpl_polynomial * cr2res_wave_1d(
   @param    degree_y        The polynomial degree in y
   @param    display         Flag to display results
   @param    wavesol_error   [out] array of wave_mean_error, wave_max_error
+  @param    lines_diagnostics   [out] table with lines diagnostics
   @return   Wavelength solution, i.e. polynomial that translates pixel
             values to wavelength.
 
@@ -182,17 +183,19 @@ cpl_polynomial * cr2res_wave_2d(
         cpl_bivector        **  spectra,
         cpl_bivector        **  spectra_err,
         cpl_polynomial      **  wavesol_init,
-        const cpl_array     **  wavesol_init_err,
+        cpl_array           **  wavesol_init_err,
         int                 *   orders,
         int                     ninputs,
         cpl_bivector        *   catalog_spec,
         cpl_size                degree_x,
         cpl_size                degree_y,
         int                     display,
-        cpl_array           **  wavesol_error)
+        cpl_array           **  wavesol_error,
+        cpl_table           **  lines_diagnostics)
 {
+    cpl_table       *   lines_diagnostics_loc ;
     cpl_vector      *   diff;
-    cpl_size            old, new, i, j, k, spec_size ;
+    cpl_size            old, new, i, j, k, spec_size, nlines ;
     cpl_polynomial  *   result ;
     cpl_error_code      error;
     cpl_size            degree_2d[2];
@@ -215,14 +218,39 @@ cpl_polynomial * cr2res_wave_2d(
     n = cpl_bivector_get_size(catalog_spec);
     px = sigma_px = NULL ;
     py = sigma_py = NULL ;
+    *lines_diagnostics = NULL ;
 
     result = cpl_polynomial_new(2);
 
+    /* Loop on the input spectra */
     for (i = 0; i < ninputs; i++){
         // extract line data in 1 spectrum
         cr2res_wave_extract_lines(spectra[i], spectra_err[i], wavesol_init[i],
             wavesol_init_err[i], catalog_spec, display, &tmp_x, &tmp_y, 
             &tmp_sigma, NULL);
+
+        /* Create / Fill / Merge the lines diagnosics table  */
+        if (lines_diagnostics != NULL) {
+            nlines = cpl_matrix_get_ncol(tmp_x) ;
+            /* Create */
+            lines_diagnostics_loc =
+                cr2res_dfs_create_lines_diagnostics_table(nlines) ;
+            /* Fill */
+            for (j=0 ; j<nlines ; j++) {
+                /* TODO */
+
+            }
+
+            /* Merge */
+            if (*lines_diagnostics == NULL) {
+                *lines_diagnostics = lines_diagnostics_loc ;
+                lines_diagnostics_loc = NULL ;
+            } else {
+                /* TODO */
+
+                cpl_table_delete(lines_diagnostics_loc) ;
+            }
+        }
 
         // append new data onto existing vectors/matrices
         new = cpl_vector_get_size(tmp_y);

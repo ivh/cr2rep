@@ -42,6 +42,15 @@
 #define CR2RES_COL_SLIT_CURV_C      "SlitPolyC"     /* 3 Coefficients Poly */
 #define CR2RES_COL_SLIT_FRACTION    "SlitFraction"  /* Position on the Slit */
 
+/*** LINES_DIAGNOSTICS Table ***/
+#define CR2RES_COL_MEASURED_LAMBDA  "Measured WL"   /* In Nanometers */
+#define CR2RES_COL_CATALOG_LAMBDA   "Catalog WL"    /* In Nanometers */
+#define CR2RES_COL_DELTA_LAMBDA     "Delta WL"      /* In Nanometers */
+#define CR2RES_COL_MEASURED_PIXEL   "Measured Pix"  /* In Pixels */
+#define CR2RES_COL_LINE_WIDTH       "Line Width"    /* In Pixels */
+#define CR2RES_COL_FIT_QUALITY      "Fit Quality"   /*  */
+#define CR2RES_COL_INTENSITY        "Line Intensity"/*  */
+
 /*** Clusters Table ***/
 #define CR2RES_COL_XS               "xs"            /* pixel position */
 #define CR2RES_COL_YS               "ys"            /* pixel position */
@@ -162,6 +171,9 @@
 /* For CR2RES_UTIL_TRACE_MAP_TRACE_PROCATG */
 #define CR2RES_TRACE_MAP_PROTYPE            "TRACE_MAP"
 
+/* For CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG */
+#define CR2RES_LINES_DIAGNOSTICS_PROTYPE    "LINES_DIAGNOSTICS"
+
 /* For CR2RES_UTIL_WAVE_XCORR_PROCATG */
 /* Col: IRPLIB_WLXCORR_COL_WAVELENGTH   */
 /*      IRPLIB_WLXCORR_COL_CAT_INIT     */
@@ -189,7 +201,7 @@
 #define CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "FLAT_TRACE_WAVE_MERGED"
 #define CR2RES_FLAT_MASTER_FLAT_PROCATG     "FLAT_MASTER_FLAT"
 
-/* Produced by cr2res_util_wave */
+/* Produced by cr2res_cal_wave */
 #define CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG  "WAVE_TRACE_WAVE"
 #define CR2RES_CAL_WAVE_MAP_PROCATG         "WAVE_MAP"
 
@@ -241,6 +253,7 @@
 #define CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "UTIL_WAVE_TRACE_WAVE"
 #define CR2RES_UTIL_WAVE_MAP_PROCATG        "UTIL_WAVE_MAP"
 #define CR2RES_UTIL_WAVE_XCORR_PROCATG      "UTIL_WAVE_XCORR"
+#define CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG "UTIL_WAVE_LINES_DIAGNOSTICS"
 
 /* Produced by cr2res_util_trace_maps */
 #define CR2RES_UTIL_TRACE_MAP_SLIT_CURVE_PROCATG "UTIL_TRACE_MAP_SLIT_CURVE"
@@ -271,6 +284,8 @@ char * cr2res_dfs_WAVELENGTH_colname(int, int);
 char * cr2res_dfs_SPEC_ERR_colname(int, int);
 char * cr2res_dfs_SLIT_FUNC_colname(int, int) ;
 char * cr2res_dfs_SLIT_CURV_colname(int, int) ;
+
+cpl_table * cr2res_dfs_create_lines_diagnostics_table(int nrows) ;
 
 int cr2res_dfs_check_traces_table(const cpl_table * traces) ;
 
