@@ -1140,16 +1140,18 @@ cpl_table * cr2res_trace_new_slit_fraction(
 
         /* Fill slit fraction with the input one */
         cpl_table_set_array(out, CR2RES_COL_SLIT_FRACTION, i, new_slit_fraction);
+        cpl_table_set_int(out, CR2RES_COL_ORDER, i, orders[i]);
+        cpl_table_set_int(out, CR2RES_COL_TRACENB, i, 0);
+
+
 
         /* Compute the new trace */
         if (cr2res_trace_new_trace(slit_frac_old, trace_old, nb_traces, new_slit_fraction, &trace_all_new,
                 &trace_upper_new, &trace_lower_new) == -1) {
-            cpl_msg_error(__func__, "Cannot compute the new trace") ;
-            cpl_table_delete(out) ;
+            cpl_msg_warning(__func__, "Cannot compute the new trace for order %i", orders[i]) ;
             cpl_free(trace_old);
             cpl_free(trace_numbers);
-            cpl_free(orders);
-            return NULL ;
+            continue;
         }
 
         /* Set new trace */
@@ -1971,6 +1973,7 @@ static int cr2res_trace_new_trace(
         }
         cpl_free(poly_in);
         cpl_vector_delete(pix_in);
+        cpl_error_reset();
         return -1;
     }
 

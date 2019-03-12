@@ -366,8 +366,12 @@ static int cr2res_util_extract(
     science_file = cpl_frame_get_filename(fr) ;
     fr = cpl_frameset_get_position(frameset, 1);
     trace_file = cpl_frame_get_filename(fr) ;
-    fr = cpl_frameset_get_position(frameset, 2);
-    bpm_file = cpl_frame_get_filename(fr) ;
+    if (cpl_frameset_get_size(frameset) == 3)
+    {
+        fr = cpl_frameset_get_position(frameset, 2);
+        bpm_file = cpl_frame_get_filename(fr) ;
+    }
+    else bpm_file = NULL;
     if (science_file == NULL || trace_file == NULL) {
         cpl_msg_error(__func__, "The utility needs a science file and a trace");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
