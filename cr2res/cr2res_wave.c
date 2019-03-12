@@ -758,28 +758,29 @@ cpl_polynomial * cr2res_wave_line_fitting(
         cpl_vector      **  sigma_fit,
         cpl_array       **  wavelength_error)
 {
+    cpl_polynomial  *   result;
+    cpl_matrix      *   cov;
+    cpl_matrix      *   px;
+    cpl_vector      *   py;
+    cpl_vector      *   sigma_py;
+    cpl_vector      *   heights;
+
     /* Check Entries */
     if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL ||
             lines_list == NULL)
         return NULL;
 
-    // For polynomial fit
-    cpl_polynomial * result;
-    cpl_matrix * cov;
-    cpl_matrix * px;
-    cpl_vector * py;
-    cpl_vector * sigma_py;
-    cpl_vector * heights;
-
     // extract line data in 1 spectrum
-    if (0 != cr2res_wave_extract_lines(spectrum, spectrum_err, wavesol_init, wave_error_init, 
-                lines_list, display, &px, &py, &sigma_py, &heights))
-    {
-        cpl_msg_error(__func__, "Can't extract lines");
-        return NULL;
+    if (cr2res_wave_extract_lines(spectrum, spectrum_err, wavesol_init, 
+                wave_error_init, lines_list, display, &px, &py, &sigma_py, 
+                &heights) != 0) {
+        cpl_msg_error(__func__, "Cannot extract lines") ;
+        return NULL ;
     }
+
     // fit polynomial to data points
-    result = polyfit_1d(px, py, sigma_py, degree, wavesol_init, wavelength_error, sigma_fit, &cov);
+    result = polyfit_1d(px, py, sigma_py, degree, wavesol_init, i
+            wavelength_error, sigma_fit, &cov);
 
     if (display){
         cpl_size n = cpl_bivector_get_size(spectrum);
@@ -787,40 +788,37 @@ cpl_polynomial * cr2res_wave_line_fitting(
         const cpl_bivector ** plot = cpl_malloc(2 * sizeof(cpl_bivector*));
 
         cpl_vector * wave = cpl_bivector_get_x(spectrum);
-        // for (cpl_size i = 0; i < n; i++) cpl_vector_set(wave, i, i);
-        for (cpl_size i = 0; i < n; i++) cpl_vector_set(wave, i, cpl_polynomial_eval_1d(result, i, NULL));
-
+        for (cpl_size i = 0; i < n; i++) 
+            cpl_vector_set(wave, i, cpl_polynomial_eval_1d(result, i, NULL));
 
         cpl_bivector * lines = cpl_bivector_new(nlines);
         cpl_vector * pos = cpl_bivector_get_x(lines);
         cpl_vector * val = cpl_bivector_get_y(lines);
 
         for (cpl_size i = 0; i < nlines; i++){
-            // cpl_vector_set(pos, i, cpl_matrix_get(px, i, 0)); // Pixel
             cpl_vector_set(pos, i, cpl_vector_get(py, i)); // Wavelength
             cpl_vector_set(val, i, cpl_vector_get(heights, i));        
         }
         plot[0] = spectrum;
         plot[1] = lines;
 
-        const char* options[] = {"title 'Observed' w lines", "title 'Lines' w points"};
+        const char* options[] = 
+            {"title 'Observed' w lines", "title 'Lines' w points"};
 
-        cpl_plot_bivectors("set grid;set xlabel 'Position (Wavelength)';set ylabel 'Intensity (ADU/sec)';",
-                         options , "", plot, 2);
-
+        cpl_plot_bivectors(
+"set grid;set xlabel 'Position (Wavelength)';set ylabel 'Intensity (ADU/sec)';",
+            options , "", plot, 2);
         cpl_bivector_delete(lines);
         cpl_free(plot);
     }
-
     cpl_vector_delete(heights);
     cpl_matrix_delete(px);
     cpl_vector_delete(py);
     cpl_vector_delete(sigma_py);
 
-    if (result != NULL){
+    if (result != NULL) {
         cpl_matrix_delete(cov);
     }
-
     return result;
 }
 /*----------------------------------------------------------------------------*/
