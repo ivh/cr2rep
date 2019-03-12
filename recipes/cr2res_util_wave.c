@@ -548,7 +548,7 @@ static int cr2res_util_wave(
         if (wavecal_type == CR2RES_LINE2D) {
             /* 2D Calibration */
             if ((wave_sol = cr2res_wave_2d(spectra, spectra_err, wavesol_init, 
-                            wavesol_init_error, orders, nb_traces, 
+                            (const cpl_array **) wavesol_init_error, orders, nb_traces, 
                             catalog_spectrum, degree, degree, display, 
                             &wl_err_array, &(lines_diagnostics[i]))) == NULL) {
                 cpl_msg_error(__func__, 
@@ -572,9 +572,10 @@ static int cr2res_util_wave(
                 if (wl_err_array != NULL) {
                     cpl_table_set_array(out_trace_wave[det_nr-1],
                             CR2RES_COL_WAVELENGTH_ERROR, i, wl_err_array);
-                    cpl_array_delete(wl_err_array) ;
                 }
             }
+            cpl_array_delete(wl_err_array) ;
+
         } else {
             /* 1D Calibration */
 

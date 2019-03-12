@@ -225,9 +225,13 @@ cpl_polynomial * cr2res_wave_2d(
     /* Loop on the input spectra */
     for (i = 0; i < ninputs; i++){
         // extract line data in 1 spectrum
-        cr2res_wave_extract_lines(spectra[i], spectra_err[i], wavesol_init[i],
+        if (-1 == cr2res_wave_extract_lines(spectra[i], spectra_err[i], wavesol_init[i],
             wavesol_init_err[i], catalog_spec, display, &tmp_x, &tmp_y, 
-            &tmp_sigma, NULL);
+            &tmp_sigma, NULL))
+            {
+                cpl_msg_error(__func__, "Could not extract lines");
+                return NULL;
+            }
 
         /* Create / Fill / Merge the lines diagnosics table  */
         if (lines_diagnostics != NULL) {
@@ -292,13 +296,14 @@ cpl_polynomial * cr2res_wave_2d(
             diff = cpl_vector_new(cpl_vector_get_size(py));
             pos = cpl_vector_new(2);
             for (i = 0; i < cpl_vector_get_size(py); i++){
-                cpl_vector_set(pos, 0, cpl_matrix_get(px, i, 0));
-                cpl_vector_set(pos, 1, cpl_matrix_get(px, i, 1));
+                cpl_vector_set(pos, 0, cpl_matrix_get(px, 0, i));
+                cpl_vector_set(pos, 1, cpl_matrix_get(px, 1, i));
                 cpl_vector_set(diff, i, abs(
                     cpl_polynomial_eval(result, pos)
                     - cpl_vector_get(py, i)));
             }
             // Set wavesol_error to mean and max difference
+            if (*wavesol_error == NULL) *wavesol_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
             cpl_array_set_double(*wavesol_error, 0, 
                     cpl_vector_get_mean(diff));
             cpl_array_set_double(*wavesol_error, 1, 
