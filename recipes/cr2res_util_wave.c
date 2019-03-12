@@ -273,39 +273,30 @@ static int cr2res_util_wave(
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
                             degree, display ;
+    double                  wstart, wend, wl_shift ;
     cpl_frame           *   fr ;
     const char          *   sval ;
     cr2res_wavecal_type     wavecal_type ;
     const char          *   trace_wave_file ;
     const char          *   extracted_file ;
     const char          *   static_calib_file ;
+    cpl_bivector        *   catalog_spectrum ;
     char                *   out_file;
-    cpl_array           *   wl_array ;
-    cpl_array           *   wl_err_array ;
     cpl_table           *   out_trace_wave[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   trace_wave_table ;
-    cpl_table           *   extracted_table ;
-    cpl_bivector        *   extracted_bivec ;
-    cpl_bivector        *   extracted_err_bivec ;
-
-    // For LINE2D
-    cpl_bivector        **  spectra_2D;
-    cpl_bivector        **  spectra_err_2D;
-    cpl_polynomial      **  wavesol_init_2D;
-    const cpl_array     **  wavesol_error_2D;
-    int                  *  orders;
-    int                     nb_orders;
-    cpl_size                degree_2d[2];
-    cpl_size                zero = 0;
-    cpl_polynomial      *   tmp_sol, * collapsed_sol;
-
-    cpl_polynomial      *   wave_guess ;
-    const cpl_array     *   wave_error_guess ;
-    cpl_polynomial      *   wave_sol ;
-    double                  wstart, wend, wl_shift ;
     int                     det_nr, nb_traces, trace_id, order, i ;
+    cpl_table           *   extracted_table ;
+    cpl_bivector        **  spectra ;
+    cpl_bivector        **  spectra_err ;
+    cpl_polynomial      **  wavesol_init ;
+    cpl_array           **  wavesol_init_error ;
+    int                  *  orders ;
+    cpl_polynomial      *   wave_sol ;
+    cpl_array           *   wl_array ;
+    cpl_array           *   wl_err_array ;
+    cpl_polynomial      *   tmp_sol, * collapsed_sol;
+    cpl_size                zero  ;
 
     /* Needed for sscanf() */
     setlocale(LC_NUMERIC, "C");
@@ -315,6 +306,7 @@ static int cr2res_util_wave(
     wstart = wend = -1.0 ;
     wl_shift = 0.0 ;
     wl_err_array = NULL ;
+    zero = 0 ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -399,6 +391,18 @@ static int cr2res_util_wave(
         return -1 ;
     }
 
+    /* Load the Catalog file */
+    cpl_msg_info(__func__, "Load the catalog") ;
+    if (static_calib_file != NULL) {
+        if ((catalog_spectrum = cr2res_io_load_EMISSION_LINES(
+                        static_calib_file)) == NULL) {
+            cpl_msg_error(__func__,"Failed to load the catalog");
+            return -1 ;
+        }
+    } else {
+        catalog_spectrum = NULL ;
+    }
+
     /* Loop over the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
@@ -419,14 +423,14 @@ static int cr2res_util_wave(
 
         /* Load the TRACE_WAVE table of this detector */
         cpl_msg_info(__func__, "Load the TRACE_WAVE table") ;
-        if ((trace_wave_table = cr2res_io_load_TRACE_WAVE(trace_wave_file,
-                        det_nr)) == NULL) {
+        if ((out_trace_wave[det_nr-1] = cr2res_io_load_TRACE_WAVE(
+                        trace_wave_file, det_nr)) == NULL) {
             cpl_msg_error(__func__,"Failed to load table - skip detector");
             cpl_error_reset() ;
             cpl_msg_indent_less() ;
             continue ;
         }
-        nb_traces = cpl_table_get_nrow(trace_wave_table) ;
+        nb_traces = cpl_table_get_nrow(out_trace_wave[det_nr-1]) ;
 
         /* Load the EXTRACT1D table of this detector */
         cpl_msg_info(__func__, "Load the EXTRACT1D table") ;
@@ -438,37 +442,26 @@ static int cr2res_util_wave(
             continue ;
         }
 
-        /* Create Output table for this detector */
-        out_trace_wave[det_nr-1] = cpl_table_duplicate(trace_wave_table) ;
-
-        /* Clear the Wavelength column */
-        cpl_table_erase_column(out_trace_wave[det_nr-1], CR2RES_COL_WAVELENGTH);
-        cpl_table_new_column_array(out_trace_wave[det_nr-1],
-                CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, degree+1) ;
-
-        /* Clear the Wavelength Error column */
-        cpl_table_erase_column(out_trace_wave[det_nr-1], 
-                CR2RES_COL_WAVELENGTH_ERROR) ;
-        cpl_table_new_column_array(out_trace_wave[det_nr-1],
-                CR2RES_COL_WAVELENGTH_ERROR, CPL_TYPE_DOUBLE, 2) ;
-
-
-        if (wavecal_type == CR2RES_LINE2D){
-            spectra_2D = cpl_malloc(nb_traces * sizeof(cpl_bivector *));
-            spectra_err_2D = cpl_malloc(nb_traces * sizeof(cpl_bivector *));
-            wavesol_init_2D = cpl_malloc(nb_traces * sizeof(cpl_polynomial *));
-            wavesol_error_2D = cpl_malloc(nb_traces * sizeof(cpl_array *));
-            orders = cr2res_trace_get_order_numbers(trace_wave_table, &nb_orders);
-        }
+        /* Load the spectra */
+        spectra = cpl_malloc(nb_traces * sizeof(cpl_bivector *));
+        spectra_err = cpl_malloc(nb_traces * sizeof(cpl_bivector *));
+        wavesol_init = cpl_malloc(nb_traces * sizeof(cpl_polynomial *));
+        wavesol_init_error = cpl_malloc(nb_traces * sizeof(cpl_array *));
+        orders = cpl_malloc(nb_traces * sizeof(int)); 
 
         /* Loop over the traces spectra */
         for (i=0 ; i<nb_traces ; i++) {
             /* Initialise */
+            spectra[i] = spectra_err[i] = NULL ;
+            wavesol_init[i] = NULL ;
+            wavesol_init_error[i] = NULL ;
+            orders[i]  = -1 ;
 
             /* Get Order and trace id */
-            order = cpl_table_get(trace_wave_table, CR2RES_COL_ORDER, i, NULL) ;
-            trace_id = cpl_table_get(trace_wave_table, CR2RES_COL_TRACENB, i,
-                    NULL) ;
+            order = cpl_table_get(out_trace_wave[det_nr-1],
+                    CR2RES_COL_ORDER, i, NULL) ;
+            trace_id = cpl_table_get(out_trace_wave[det_nr-1],
+                    CR2RES_COL_TRACENB, i, NULL) ;
 
             /* Check if this order needs to be skipped */
             if (reduce_order > -1 && order != reduce_order) {
@@ -480,13 +473,13 @@ static int cr2res_util_wave(
                 continue ;
             }
 
-            cpl_msg_info(__func__, "Process Order %d/Trace %d",order,trace_id) ;
+            cpl_msg_info(__func__, "Load Order %d/Trace %d",order,trace_id) ;
             cpl_msg_indent_more() ;
 
             /* Get the extracted spectrum */
             if (cr2res_extract_EXTRACT1D_get_spectrum(
                     extracted_table, order, trace_id,
-                    &extracted_bivec, &extracted_err_bivec)) {
+                    &(spectra[i]), &(spectra_err[i]))) {
                 cpl_msg_error(__func__, "Cannot get the extracted spectrum") ;
                 cpl_msg_indent_less() ;
                 continue ;
@@ -494,60 +487,127 @@ static int cr2res_util_wave(
 
             /* Get the wavelength guess */
             if (wstart > 0.0 && wend > 0.0) {
-                wave_guess = cr2res_wlestimate_compute(wstart, wend) ;
-                wave_error_guess = NULL;
+                wavesol_init[i] = cr2res_wlestimate_compute(wstart, wend) ;
+                wavesol_init_error[i] = NULL;
             } else {
-                if ((wave_guess=cr2res_get_trace_wave_poly(trace_wave_table,
-                            CR2RES_COL_WAVELENGTH, order, trace_id)) == NULL) {
+                if ((wavesol_init[i]=cr2res_get_trace_wave_poly(
+                                out_trace_wave[det_nr-1], CR2RES_COL_WAVELENGTH,
+                                order, trace_id)) == NULL) {
                     cpl_msg_error(__func__, "Cannot get the WL guess") ;
+                    cpl_bivector_delete(spectra[i]);
+                    cpl_bivector_delete(spectra_err[i]);
+                    spectra[i] = spectra_err[i] = NULL ;
                     cpl_msg_indent_less();
-                    cpl_bivector_delete(extracted_bivec);
-                    cpl_bivector_delete(extracted_err_bivec);
                     continue ;
                 }
-                if ((wave_error_guess = cpl_table_get_array(trace_wave_table, 
-                        CR2RES_COL_WAVELENGTH_ERROR, 
-                        cr2res_get_trace_table_index(trace_wave_table, 
-                            order, trace_id))) == NULL) {
+                if ((wavesol_init_error[i]=cpl_array_duplicate(
+                                cpl_table_get_array(out_trace_wave[det_nr-1], 
+                                    CR2RES_COL_WAVELENGTH_ERROR, 
+                                    cr2res_get_trace_table_index(
+                                        out_trace_wave[det_nr-1], 
+                                        order, trace_id)))) == NULL) {
                     cpl_msg_error(__func__, "Cannot get the WL ERROR guess") ;
+                    cpl_bivector_delete(spectra[i]);
+                    cpl_bivector_delete(spectra_err[i]);
+                    cpl_polynomial_delete(wavesol_init[i]) ;
+                    spectra[i] = spectra_err[i] = NULL ;
+                    wavesol_init[i] = NULL ;
                     cpl_msg_indent_less() ;
-                    cpl_bivector_delete(extracted_bivec) ;
-                    cpl_bivector_delete(extracted_err_bivec) ;
-                    cpl_polynomial_delete(wave_guess) ;
                     continue ;
                 }
             }
+
+            /* Get the order */
+            orders[i] = order ;
 
             /* Apply the shift */
             if (fabs(wl_shift) > 1e-3) {
                 const cpl_size power = 0;
-                cpl_polynomial_set_coeff(wave_guess, &power,
-                        cpl_polynomial_get_coeff(wave_guess, &power)+wl_shift) ;
+                cpl_polynomial_set_coeff(wavesol_init[i], &power,
+                        cpl_polynomial_get_coeff(wavesol_init[i], 
+                            &power)+wl_shift) ;
+            }
+            cpl_msg_indent_less() ;
+        }
+        cpl_table_delete(extracted_table) ;
+
+        /* Clear the Wavelength column */
+        cpl_table_erase_column(out_trace_wave[det_nr-1], CR2RES_COL_WAVELENGTH);
+        cpl_table_new_column_array(out_trace_wave[det_nr-1],
+                CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, degree+1) ;
+
+        /* Clear the Wavelength Error column */
+        cpl_table_erase_column(out_trace_wave[det_nr-1], 
+                CR2RES_COL_WAVELENGTH_ERROR) ;
+        cpl_table_new_column_array(out_trace_wave[det_nr-1],
+                CR2RES_COL_WAVELENGTH_ERROR, CPL_TYPE_DOUBLE, 2) ;
+         
+        /* Actual calibration */
+        if (wavecal_type == CR2RES_LINE2D) {
+            /* 2D Calibration */
+            if ((wave_sol = cr2res_wave_2d(spectra, spectra_err, wavesol_init, 
+                            wavesol_init_error, orders, nb_traces, 
+                            catalog_spectrum, degree, degree, display, 
+                            &wl_err_array)) == NULL) {
+                cpl_msg_error(__func__, 
+                        "Failed to compute 2d Wavelength solution") ;
+                cpl_msg_indent_less() ;
+                continue;
             }
 
-            if (wavecal_type == CR2RES_LINE2D){
-                spectra_2D[i] = extracted_bivec;
-                spectra_err_2D[i] = extracted_err_bivec;
-                wavesol_init_2D[i] = wave_guess;
-                wavesol_error_2D[i] = wave_error_guess;
+            /* Store the Solution in the table */
+            tmp_sol = cpl_polynomial_new(1);
+            for (i = 0; i < nb_traces; i++) {
+                cpl_polynomial_set_coeff(tmp_sol, &zero, i);
+                collapsed_sol = cpl_polynomial_extract(wave_sol, 1, tmp_sol);
+                wl_array=cr2res_convert_poly_to_array(collapsed_sol, degree+1);
+                cpl_polynomial_delete(collapsed_sol);
+                if (wl_array != NULL) {
+                    cpl_table_set_array(out_trace_wave[det_nr-1],
+                            CR2RES_COL_WAVELENGTH, i, wl_array);
+                    cpl_array_delete(wl_array) ;
+                }
+                if (wl_err_array != NULL) {
+                    cpl_table_set_array(out_trace_wave[det_nr-1],
+                            CR2RES_COL_WAVELENGTH_ERROR, i, wl_err_array);
+                    cpl_array_delete(wl_err_array) ;
+                }
             }
-            else{
+        } else {
+            /* 1D Calibration */
+
+            /* Loop over the traces spectra */
+            for (i=0 ; i<nb_traces ; i++) {
+                /* Get Order and trace id */
+                order = cpl_table_get(out_trace_wave[det_nr-1], 
+                        CR2RES_COL_ORDER, i, NULL) ;
+                trace_id = cpl_table_get(out_trace_wave[det_nr-1], 
+                        CR2RES_COL_TRACENB, i, NULL) ;
+
+                /* Check if this order needs to be skipped */
+                if (reduce_order > -1 && order != reduce_order) {
+                    continue ;
+                }
+
+                /* Check if this trace needs to be skipped */
+                if (reduce_trace > -1 && trace_id != reduce_trace) {
+                    continue ;
+                }
+
+                cpl_msg_info(__func__, "Process Order %d/Trace %d", 
+                        order, trace_id) ;
+                cpl_msg_indent_more() ;
+
                 /* Call the Wavelength Calibration */
-                if ((wave_sol = cr2res_wave_1d(extracted_bivec,
-                                extracted_err_bivec, wave_guess, 
-                                wave_error_guess, wavecal_type, static_calib_file, 
+                if ((wave_sol = cr2res_wave_1d(spectra[i], spectra_err[i], 
+                                wavesol_init[i], wavesol_init_error[i], 
+                                wavecal_type, static_calib_file, 
                                 degree, display, &wl_err_array)) == NULL) {
                     cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
-                    cpl_polynomial_delete(wave_guess) ;
-                    cpl_bivector_delete(extracted_bivec) ;
-                    cpl_bivector_delete(extracted_err_bivec) ;
                     cpl_error_reset() ;
                     cpl_msg_indent_less() ;
                     continue ;
                 }
-                cpl_bivector_delete(extracted_bivec) ;
-                cpl_bivector_delete(extracted_err_bivec) ;
-                cpl_polynomial_delete(wave_guess) ;
 
                 /* Store the Solution in the table */
                 wl_array = cr2res_convert_poly_to_array(wave_sol, degree+1) ;
@@ -562,79 +622,31 @@ static int cr2res_util_wave(
                     cpl_array_delete(wl_err_array) ;
                 }
                 cpl_polynomial_delete(wave_sol);
+                cpl_msg_indent_less() ;
             }
-            cpl_msg_indent_less() ;
         }
 
-        if (wavecal_type == CR2RES_LINE2D){
-            degree_2d[0] = degree;
-            degree_2d[1] = degree;
-            if ((wave_sol = cr2res_wave_2d(spectra_2D, spectra_err_2D, wavesol_init_2D, wavesol_error_2D, wavecal_type,
-                    static_calib_file, orders, nb_orders, degree_2d, display, &wl_err_array)) == NULL){
-                        cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
-                        for(cpl_size i = 0; i < nb_traces; i++)
-                        {
-                            cpl_bivector_delete(spectra_2D[i]);
-                            cpl_bivector_delete(spectra_err_2D[i]);
-                            cpl_polynomial_delete(wavesol_init_2D[i]);
-                        }
-                        cpl_free(spectra_2D);
-                        cpl_free(spectra_err_2D);
-                        cpl_free(wavesol_init_2D);
-                        cpl_free(wavesol_error_2D);
-                        cpl_free(orders);
-                        cpl_table_delete(trace_wave_table) ;
-                        cpl_table_delete(extracted_table) ;
-                        continue;
-                    }
-
-            /* Store the Solution in the table */
-            tmp_sol = cpl_polynomial_new(1);
-
-            for(cpl_size i = 0; i < nb_traces; i++)
-            {
-                cpl_polynomial_set_coeff(tmp_sol, &zero, i);
-                collapsed_sol = cpl_polynomial_extract(wave_sol, 1, tmp_sol);
-                wl_array = cr2res_convert_poly_to_array(collapsed_sol, degree+1) ;
-                cpl_polynomial_delete(collapsed_sol);
-                if (wl_array != NULL) {
-                    cpl_table_set_array(out_trace_wave[det_nr-1],
-                            CR2RES_COL_WAVELENGTH, i, wl_array);
-                    cpl_array_delete(wl_array) ;
-                }
-                if (wl_err_array != NULL) {
-                    cpl_table_set_array(out_trace_wave[det_nr-1],
-                            CR2RES_COL_WAVELENGTH_ERROR, i, wl_err_array);
-                    cpl_array_delete(wl_err_array) ;
-                }
-            }
-            // Deallocate 2D structures
-            cpl_polynomial_delete(tmp_sol);
-            cpl_polynomial_delete(wave_sol);
-            
-            for(cpl_size i = 0; i < nb_traces; i++)
-            {
-                cpl_bivector_delete(spectra_2D[i]);
-                cpl_bivector_delete(spectra_err_2D[i]);
-                cpl_polynomial_delete(wavesol_init_2D[i]);
-            }
-            cpl_free(spectra_2D);
-            cpl_free(spectra_err_2D);
-            cpl_free(wavesol_init_2D);
-            cpl_free(wavesol_error_2D);
-            cpl_free(orders);
+        /* De-allocate */
+        for (i=0 ; i<nb_traces ; i++) {
+            if (spectra[i] != NULL) cpl_bivector_delete(spectra[i]) ;
+            if (spectra_err[i] != NULL) cpl_bivector_delete(spectra_err[i]) ;
+            if (wavesol_init[i]!=NULL) cpl_polynomial_delete(wavesol_init[i]) ;
+            if (wavesol_init_error[i]!=NULL) 
+                cpl_array_delete(wavesol_init_error[i]) ;
         }
-
-        cpl_table_delete(trace_wave_table) ;
-        cpl_table_delete(extracted_table) ;
+        cpl_free(spectra) ;
+        cpl_free(spectra_err) ;
+        cpl_free(wavesol_init) ;
+        cpl_free(wavesol_init_error) ;
+        cpl_free(orders) ;
 
         /* Generate the Wave Map */
         out_wave_map[det_nr-1] =
             cr2res_wave_gen_wave_map(out_trace_wave[det_nr-1]) ;
 
-        /* Deallocate */
         cpl_msg_indent_less() ;
     }
+    if (catalog_spectrum != NULL) cpl_bivector_delete(catalog_spectrum) ;
 
     /* Save the new trace_wave table */
     out_file = cpl_sprintf("%s_wave.fits",
