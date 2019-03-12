@@ -779,7 +779,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
     }
 
     // fit polynomial to data points
-    result = polyfit_1d(px, py, sigma_py, degree, wavesol_init, i
+    result = polyfit_1d(px, py, sigma_py, degree, wavesol_init, 
             wavelength_error, sigma_fit, &cov);
 
     if (display){
