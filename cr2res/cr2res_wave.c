@@ -232,13 +232,14 @@ cpl_polynomial * cr2res_wave_2d(
             wavesol_init[i], wavesol_init_err[i], catalog_spec, display,
             &tmp_x, &tmp_y, &tmp_sigma, NULL))
             {
-                cpl_msg_error(__func__, "Could not extract lines");
-                return NULL;
+                cpl_msg_warning(__func__, "Could not extract lines");
+                continue;
             }
 
         /* Create / Fill / Merge the lines diagnosics table  */
         if (lines_diagnostics != NULL) {
-            nlines = cpl_matrix_get_ncol(tmp_x) ;
+            if (tmp_x != NULL) nlines = cpl_matrix_get_ncol(tmp_x) ;
+            else nlines = 1;
             /* Create */
             lines_diagnostics_loc =
                 cr2res_dfs_create_lines_diagnostics_table(nlines) ;
@@ -260,7 +261,8 @@ cpl_polynomial * cr2res_wave_2d(
         }
 
         // append new data onto existing vectors/matrices
-        new = cpl_vector_get_size(tmp_y);
+        if (tmp_y != NULL) new = cpl_vector_get_size(tmp_y);
+        else new = 0;
 
         if (px == NULL){
             // First order to run
@@ -284,6 +286,12 @@ cpl_polynomial * cr2res_wave_2d(
         cpl_matrix_delete(tmp_x);
         cpl_vector_delete(tmp_y);
         cpl_vector_delete(tmp_sigma);
+    }
+
+    if (px == NULL){
+        // No orders ran succesfully
+        cpl_msg_error(__func__, "No lines could be extracted in any order");
+        return NULL;
     }
 
     degree_2d[0] = degree_x ;
@@ -732,6 +740,21 @@ int cr2res_wave_extract_lines(
     }
 
     cpl_msg_debug(__func__, "Using %lli out of %lli lines", ngood, npossible);
+
+    if (ngood == 0)
+    {
+        cpl_matrix_delete(x);
+        cpl_vector_delete(y);
+        cpl_vector_delete(sigma_y);
+        cpl_vector_delete(a);
+
+        cpl_vector_delete(wave_vec);
+        cpl_vector_delete(pixel_vec);
+        cpl_vector_delete(width_vec);
+        cpl_vector_delete(flag_vec);
+        cpl_vector_delete(height_vec);
+        return -1;
+    }
 
     // Set vectors/matrices for polyfit
     // only need space for good lines, ignoring bad ones
