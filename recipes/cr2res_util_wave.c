@@ -613,6 +613,7 @@ static int cr2res_util_wave(
                 cpl_msg_indent_more() ;
 
                 /* Call the Wavelength Calibration */
+                lines_diagnostics_loc = NULL ;
                 if ((wave_sol = cr2res_wave_1d(spectra[i], spectra_err[i], 
                                 wavesol_init[i], wavesol_init_error[i], order, 
                                 trace_id, wavecal_type, static_calib_file, 
@@ -625,15 +626,15 @@ static int cr2res_util_wave(
                 }
 
                 /* Merge the lines_diagnostics */
-				if (lines_diagnostics[det_nr] == NULL) {
+				if (lines_diagnostics[det_nr-1] == NULL) {
 					/* First trace - Initial table */
-					lines_diagnostics[det_nr] = lines_diagnostics_loc ;
+					lines_diagnostics[det_nr-1] = lines_diagnostics_loc ;
 					lines_diagnostics_loc = NULL ;
 				} else if (lines_diagnostics_loc != NULL) {
 					/* Merge with previous */
-					cpl_table_insert(lines_diagnostics[det_nr], 
+					cpl_table_insert(lines_diagnostics[det_nr-1], 
                             lines_diagnostics_loc,
-							cpl_table_get_nrow(lines_diagnostics[det_nr])) ;
+							cpl_table_get_nrow(lines_diagnostics[det_nr-1])) ;
 					cpl_table_delete(lines_diagnostics_loc) ;
 				}
 
