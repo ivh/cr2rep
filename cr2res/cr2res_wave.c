@@ -91,6 +91,7 @@ int cr2res_wave_extract_lines(
   @param    degree          The polynomial degree of the solution
   @param    display         Flag to display results
   @param    wavelength_error    [out] array of wave_mean_error, wave_max_error
+  @param    lines_diagnostics   [out] table with lines diagnostics
   @return   Wavelength solution, i.e. polynomial that translates pixel
             values to wavelength.
  */
@@ -104,13 +105,14 @@ cpl_polynomial * cr2res_wave_1d(
         const char          *   static_file,
         int                     degree,
         int                     display,
-        cpl_array           **  wavelength_error)
+        cpl_array           **  wavelength_error,
+        cpl_table           **  lines_diagnostics)
 {
-    cpl_polynomial  *   solution ;
-    cpl_bivector    *   ref_spectrum ;
-    cpl_bivector    *   simple_ref_spectrum ;
-    const cpl_bivector    **  plot;
-    int                 wl_error ;
+    cpl_polynomial      *   solution ;
+    cpl_bivector        *   ref_spectrum ;
+    cpl_bivector        *   simple_ref_spectrum ;
+    const cpl_bivector  **  plot;
+    int                     wl_error ;
 
     /* Check Inputs */
     if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL)
@@ -122,6 +124,7 @@ cpl_polynomial * cr2res_wave_1d(
     solution = NULL ;
     wl_error = 100 ;
     *wavelength_error = NULL ;
+    *lines_diagnostics = NULL ;
 
     /* Create the lines spectrum from the lines list */
     ref_spectrum = cr2res_wave_gen_lines_spectrum(static_file, wavesol_init,
@@ -137,7 +140,7 @@ cpl_polynomial * cr2res_wave_1d(
     } else if (wavecal_type == CR2RES_LINE1D) {
         solution = cr2res_wave_line_fitting(spectrum, spectrum_err,
                 wavesol_init, wave_error_init, simple_ref_spectrum, degree,
-                display, NULL, wavelength_error) ;
+                display, NULL, wavelength_error, lines_diagnostics) ;
     } else if (wavecal_type == CR2RES_ETALON) {
         solution = cr2res_wave_etalon(spectrum, spectrum_err, wavesol_init, 
                 degree, wavelength_error);
@@ -774,8 +777,11 @@ int cr2res_wave_extract_lines(
   @param    display         Flag to display results
   @param    sigma_fit       [out] uncertainties of the polynomial fit
                             parameters (may be NULL)
-  @param    wavelength_error [out] array of wave_mean_error, wave_max_error (may be NULL),
-                            if pointer to NULL, will create cpl_array which needs to be deleted
+  @param    wavelength_error [out] array of wave_mean_error, wave_max_error 
+                                (may be NULL),
+                            if pointer to NULL, will create cpl_array which 
+                            needs to be deleted
+  @param    lines_diagnostics [out] table with lines diagnostics
   @return  Wavelength solution, i.e. polynomial that translates pixel
             values to wavelength.
   The returned polynomial must be deallocated with cpl_polynomial_delete()
@@ -790,7 +796,8 @@ cpl_polynomial * cr2res_wave_line_fitting(
         int                 degree,
         int                 display,
         cpl_vector      **  sigma_fit,
-        cpl_array       **  wavelength_error)
+        cpl_array       **  wavelength_error,
+        cpl_table       **  lines_diagnostics)
 {
     cpl_polynomial  *   result;
     cpl_matrix      *   cov;
@@ -798,6 +805,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
     cpl_vector      *   py;
     cpl_vector      *   sigma_py;
     cpl_vector      *   heights;
+    cpl_size            nlines, j ;
 
     /* Check Entries */
     if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL ||
@@ -810,6 +818,17 @@ cpl_polynomial * cr2res_wave_line_fitting(
                 &heights) != 0) {
         cpl_msg_error(__func__, "Cannot extract lines") ;
         return NULL ;
+    }
+
+    /* Create / Fill the lines diagnosics table  */
+    if (lines_diagnostics != NULL) {
+        nlines = cpl_matrix_get_ncol(px) ;
+        /* Create */
+        *lines_diagnostics = cr2res_dfs_create_lines_diagnostics_table(nlines) ;
+        /* Fill */
+        for (j=0 ; j<nlines ; j++) {
+            /* TODO */
+        }
     }
 
     // fit polynomial to data points
