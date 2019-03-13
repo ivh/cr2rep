@@ -55,7 +55,8 @@ cpl_polynomial * cr2res_wave_1d(
         const char          *   static_file,
         int                     degree,
         int                     display,
-        cpl_array           **  wavelength_error) ;
+        cpl_array           **  wavelength_error,
+        cpl_table           **  lines_diagnostics) ;
 
 cpl_polynomial * cr2res_wave_2d(
         cpl_bivector        **  spectra,
@@ -88,7 +89,8 @@ cpl_polynomial * cr2res_wave_line_fitting(
         int                 degree,
         int                 display,
         cpl_vector      **  sigma_fit,
-        cpl_array       **  wavelength_error) ;
+        cpl_array       **  wavelength_error,
+        cpl_table       **  lines_diagnostics) ;
 
 cpl_polynomial * cr2res_wave_line_fitting_2D(
         cpl_bivector    **   spectrum,
