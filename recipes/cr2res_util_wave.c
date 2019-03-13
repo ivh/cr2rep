@@ -558,7 +558,7 @@ static int cr2res_util_wave(
                             wavesol_init_error, orders, nb_traces, 
                             catalog_spectrum, degree, degree, display, 
                             &wl_err_array, 
-                            &(lines_diagnostics[det_nr]))) == NULL) {
+                            &(lines_diagnostics[det_nr-1]))) == NULL) {
                 cpl_msg_error(__func__, 
                         "Failed to compute 2d Wavelength solution") ;
                 cpl_msg_indent_less() ;
