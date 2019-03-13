@@ -348,6 +348,12 @@ static int cr2res_util_wave(
     display = cpl_parameter_get_bool(param) ;
 
     /* Check Parameters */
+    if (reduce_order > -1 && wavecal_type == CR2RES_LINE2D) {
+        cpl_msg_error(__func__, "Limiting to one order with LINE2D impossible");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
+
     if (degree < 0) {
         cpl_msg_error(__func__, "The degree needs to be >= 0");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -548,7 +554,7 @@ static int cr2res_util_wave(
         if (wavecal_type == CR2RES_LINE2D) {
             /* 2D Calibration */
             if ((wave_sol = cr2res_wave_2d(spectra, spectra_err, wavesol_init, 
-                            (const cpl_array **) wavesol_init_error, orders, nb_traces, 
+                            wavesol_init_error, orders, nb_traces, 
                             catalog_spectrum, degree, degree, display, 
                             &wl_err_array, &(lines_diagnostics[i]))) == NULL) {
                 cpl_msg_error(__func__, 
