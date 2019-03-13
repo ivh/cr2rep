@@ -229,7 +229,7 @@ cpl_polynomial * cr2res_wave_2d(
     n = cpl_bivector_get_size(catalog_spec);
     px = sigma_px = NULL ;
     py = sigma_py = NULL ;
-    *lines_diagnostics = NULL ;
+    if (lines_diagnostics != NULL) *lines_diagnostics = NULL ;
 
     result = cpl_polynomial_new(2);
 
