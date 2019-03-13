@@ -612,7 +612,7 @@ static int cr2res_util_wave(
                                 wavesol_init[i], wavesol_init_error[i], 
                                 wavecal_type, static_calib_file, 
                                 degree, display, &wl_err_array,
-                                &(lines_diagnostics[i]))) == NULL) {
+                                &(lines_diagnostics[det_nr-1]))) == NULL) {
                     cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
                     cpl_error_reset() ;
                     cpl_msg_indent_less() ;
