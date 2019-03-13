@@ -51,6 +51,8 @@ cpl_polynomial * cr2res_wave_1d(
         cpl_bivector        *   spectrum_err,
         cpl_polynomial      *   wavesol_init,
         const cpl_array     *   wave_error_init,
+        int                     order,
+        int                     trace_nb,
         cr2res_wavecal_type     wavecal_type,
         const char          *   static_file,
         int                     degree,
@@ -64,6 +66,7 @@ cpl_polynomial * cr2res_wave_2d(
         cpl_polynomial      **  wavesol_init,
         cpl_array           **  wavesol_init_err,
         int                 *   orders,
+        int                 *   traces_nb,
         int                     ninputs,
         cpl_bivector        *   catalog_spec,
         cpl_size                degree_x,
@@ -85,25 +88,14 @@ cpl_polynomial * cr2res_wave_line_fitting(
         cpl_bivector    *   spectrum_err,
         cpl_polynomial  *   wavesol_init,
         const cpl_array *   wave_error_init,
+        int                 order,
+        int                 trace_nb,
         cpl_bivector    *   lines_list,
         int                 degree,
         int                 display,
         cpl_vector      **  sigma_fit,
         cpl_array       **  wavelength_error,
         cpl_table       **  lines_diagnostics) ;
-
-cpl_polynomial * cr2res_wave_line_fitting_2D(
-        cpl_bivector    **   spectrum,
-        cpl_bivector    **   spectrum_err,
-        cpl_polynomial  **   wavesol_init,
-        const cpl_array **   wave_error_init,
-        cpl_bivector    *    lines_list,
-        cpl_vector      *    orders,
-        int                  norders,
-        const cpl_size  *    degree,
-        int                  display,
-        cpl_vector      **   sigma_fit,
-        cpl_array       **   wavelength_error);
 
 cpl_polynomial * cr2res_wave_etalon(
         cpl_bivector    *   spectrum,

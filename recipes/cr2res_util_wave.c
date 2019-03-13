@@ -294,6 +294,7 @@ static int cr2res_util_wave(
     cpl_polynomial      **  wavesol_init ;
     cpl_array           **  wavesol_init_error ;
     int                  *  orders ;
+    int                  *  traces_nb ;
     cpl_polynomial      *   wave_sol ;
     cpl_array           *   wl_array ;
     cpl_array           *   wl_err_array ;
@@ -457,6 +458,7 @@ static int cr2res_util_wave(
         wavesol_init = cpl_malloc(nb_traces * sizeof(cpl_polynomial *));
         wavesol_init_error = cpl_malloc(nb_traces * sizeof(cpl_array *));
         orders = cpl_malloc(nb_traces * sizeof(int)); 
+        traces_nb = cpl_malloc(nb_traces * sizeof(int)); 
 
         /* Loop over the traces spectra */
         for (i=0 ; i<nb_traces ; i++) {
@@ -464,7 +466,8 @@ static int cr2res_util_wave(
             spectra[i] = spectra_err[i] = NULL ;
             wavesol_init[i] = NULL ;
             wavesol_init_error[i] = NULL ;
-            orders[i]  = -1 ;
+            orders[i] = -1 ;
+            traces_nb[i] = -1 ;
 
             /* Get Order and trace id */
             order = cpl_table_get(out_trace_wave[det_nr-1],
@@ -526,8 +529,9 @@ static int cr2res_util_wave(
                 }
             }
 
-            /* Get the order */
+            /* Store the order / trace_nb */
             orders[i] = order ;
+            traces_nb[i] = trace_id ;
 
             /* Apply the shift */
             if (fabs(wl_shift) > 1e-3) {
@@ -555,7 +559,7 @@ static int cr2res_util_wave(
         if (wavecal_type == CR2RES_LINE2D) {
             /* 2D Calibration */
             if ((wave_sol = cr2res_wave_2d(spectra, spectra_err, wavesol_init, 
-                            wavesol_init_error, orders, nb_traces, 
+                            wavesol_init_error, orders, traces_nb, nb_traces, 
                             catalog_spectrum, degree, degree, display, 
                             &wl_err_array, 
                             &(lines_diagnostics[det_nr-1]))) == NULL) {
@@ -610,8 +614,8 @@ static int cr2res_util_wave(
 
                 /* Call the Wavelength Calibration */
                 if ((wave_sol = cr2res_wave_1d(spectra[i], spectra_err[i], 
-                                wavesol_init[i], wavesol_init_error[i], 
-                                wavecal_type, static_calib_file, 
+                                wavesol_init[i], wavesol_init_error[i], order, 
+                                trace_id, wavecal_type, static_calib_file, 
                                 degree, display, &wl_err_array,
                                 &lines_diagnostics_loc)) == NULL) {
                     cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
@@ -663,6 +667,7 @@ static int cr2res_util_wave(
         cpl_free(wavesol_init) ;
         cpl_free(wavesol_init_error) ;
         cpl_free(orders) ;
+        cpl_free(traces_nb) ;
 
         /* Generate the Wave Map */
         out_wave_map[det_nr-1] =
