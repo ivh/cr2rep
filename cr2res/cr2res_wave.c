@@ -225,9 +225,9 @@ cpl_polynomial * cr2res_wave_2d(
     /* Loop on the input spectra */
     for (i = 0; i < ninputs; i++){
         // extract line data in 1 spectrum
-        if (-1 == cr2res_wave_extract_lines(spectra[i], spectra_err[i], wavesol_init[i],
-            wavesol_init_err[i], catalog_spec, display, &tmp_x, &tmp_y, 
-            &tmp_sigma, NULL))
+        if (-1 == cr2res_wave_extract_lines(spectra[i], spectra_err[i],
+            wavesol_init[i], wavesol_init_err[i], catalog_spec, display,
+            &tmp_x, &tmp_y, &tmp_sigma, NULL))
             {
                 cpl_msg_error(__func__, "Could not extract lines");
                 return NULL;
@@ -543,14 +543,15 @@ int cr2res_wave_extract_lines(
 
     cpl_size power = 1;
     int window_size = 500;
-    /* set window_size using the wave_error_init, scaled by the initial guess */
 
-    if (wave_error_init != NULL &&0)
-        if (cpl_array_get_double(wave_error_init, 1, NULL) > 0){
-            window_size = 10 * ceil(cpl_array_get_double(wave_error_init, 1, NULL) /
-                            fabs(cpl_polynomial_get_coeff(wavesol_init, &power)));
+    /* set window_size using the wave_error_init, scaled by the initial guess */
+    if (wave_error_init != NULL)
+        if (cpl_array_get_double(wave_error_init, 1, NULL) > 0) {
+            window_size = ceil(cpl_array_get_double(wave_error_init, 1,
+                NULL) / fabs(cpl_polynomial_get_coeff(wavesol_init, &power)));
         }
-    
+    cpl_msg_debug(__func__, "Using window size %d pix.", window_size);
+
     cpl_size i, j, k, ngood, spec_size, npossible;
     double pixel_pos, pixel_new, red_chisq, dbl, res;
     int n = cpl_bivector_get_size(lines_list);

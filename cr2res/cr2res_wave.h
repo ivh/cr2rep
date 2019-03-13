@@ -32,7 +32,7 @@
                                     Define
  -----------------------------------------------------------------------------*/
 
-#define CR2RES_WAVELENGTH_ERROR_DEFAULT     0.9
+#define CR2RES_WAVELENGTH_ERROR_DEFAULT     0.5
 
 typedef enum {
     CR2RES_XCORR,
