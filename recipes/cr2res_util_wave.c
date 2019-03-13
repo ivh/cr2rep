@@ -286,6 +286,7 @@ static int cr2res_util_wave(
     cpl_table           *   lines_diagnostics[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
+    cpl_table       	*   lines_diagnostics_loc ;
     int                     det_nr, nb_traces, trace_id, order, i ;
     cpl_table           *   extracted_table ;
     cpl_bivector        **  spectra ;
@@ -556,7 +557,8 @@ static int cr2res_util_wave(
             if ((wave_sol = cr2res_wave_2d(spectra, spectra_err, wavesol_init, 
                             wavesol_init_error, orders, nb_traces, 
                             catalog_spectrum, degree, degree, display, 
-                            &wl_err_array, &(lines_diagnostics[det_nr-1]))) == NULL) {
+                            &wl_err_array, 
+                            &(lines_diagnostics[det_nr]))) == NULL) {
                 cpl_msg_error(__func__, 
                         "Failed to compute 2d Wavelength solution") ;
                 cpl_msg_indent_less() ;
@@ -584,7 +586,6 @@ static int cr2res_util_wave(
 
         } else {
             /* 1D Calibration */
-
             /* Loop over the traces spectra */
             for (i=0 ; i<nb_traces ; i++) {
                 /* Get Order and trace id */
@@ -612,12 +613,25 @@ static int cr2res_util_wave(
                                 wavesol_init[i], wavesol_init_error[i], 
                                 wavecal_type, static_calib_file, 
                                 degree, display, &wl_err_array,
-                                &(lines_diagnostics[det_nr-1]))) == NULL) {
+                                &lines_diagnostics_loc)) == NULL) {
                     cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
                     cpl_error_reset() ;
                     cpl_msg_indent_less() ;
                     continue ;
                 }
+
+                /* Merge the lines_diagnostics */
+				if (lines_diagnostics[det_nr] == NULL) {
+					/* First trace - Initial table */
+					lines_diagnostics[det_nr] = lines_diagnostics_loc ;
+					lines_diagnostics_loc = NULL ;
+				} else if (lines_diagnostics_loc != NULL) {
+					/* Merge with previous */
+					cpl_table_insert(lines_diagnostics[det_nr], 
+                            lines_diagnostics_loc,
+							cpl_table_get_nrow(lines_diagnostics[det_nr])) ;
+					cpl_table_delete(lines_diagnostics_loc) ;
+				}
 
                 /* Store the Solution in the table */
                 wl_array = cr2res_convert_poly_to_array(wave_sol, degree+1) ;
