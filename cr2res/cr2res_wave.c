@@ -247,15 +247,34 @@ cpl_polynomial * cr2res_wave_2d(
             for (j=0 ; j<nlines ; j++) {
                 /* TODO */
 
+                cpl_table_set_int(lines_diagnostics_loc, 
+                        CR2RES_COL_ORDER, j, -1) ;
+                cpl_table_set_int(lines_diagnostics_loc, 
+                        CR2RES_COL_TRACENB, j, -1) ;
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_MEASURED_LAMBDA, j, -1.0) ;
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_CATALOG_LAMBDA, j, -1.0) ;
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_DELTA_LAMBDA, j, -1.0) ;
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_MEASURED_PIXEL, j, -1.0) ;
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_LINE_WIDTH, j, -1.0) ;
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_FIT_QUALITY, j, -1.0) ;
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_INTENSITY, j, -1.0) ;
             }
 
             /* Merge */
             if (*lines_diagnostics == NULL) {
                 *lines_diagnostics = lines_diagnostics_loc ;
                 lines_diagnostics_loc = NULL ;
-            } else {
-                /* TODO */
-
+            } else if (lines_diagnostics_loc != NULL) {
+                /* Merge with previous */
+                cpl_table_insert(*lines_diagnostics, lines_diagnostics_loc,
+                        cpl_table_get_nrow(*lines_diagnostics)) ;
                 cpl_table_delete(lines_diagnostics_loc) ;
             }
         }
@@ -850,7 +869,23 @@ cpl_polynomial * cr2res_wave_line_fitting(
         *lines_diagnostics = cr2res_dfs_create_lines_diagnostics_table(nlines) ;
         /* Fill */
         for (j=0 ; j<nlines ; j++) {
-            /* TODO */
+            /* TODO : Fill proper values */
+            cpl_table_set_int(*lines_diagnostics, CR2RES_COL_ORDER, j, -1) ;
+            cpl_table_set_int(*lines_diagnostics, CR2RES_COL_TRACENB, j, -1) ;
+            cpl_table_set_double(*lines_diagnostics,
+                    CR2RES_COL_MEASURED_LAMBDA, j, -1.0) ;
+            cpl_table_set_double(*lines_diagnostics,
+                    CR2RES_COL_CATALOG_LAMBDA, j, -1.0) ;
+            cpl_table_set_double(*lines_diagnostics,
+                    CR2RES_COL_DELTA_LAMBDA, j, -1.0) ;
+            cpl_table_set_double(*lines_diagnostics,
+                    CR2RES_COL_MEASURED_PIXEL, j, -1.0) ;
+            cpl_table_set_double(*lines_diagnostics,
+                    CR2RES_COL_LINE_WIDTH, j, -1.0) ;
+            cpl_table_set_double(*lines_diagnostics,
+                    CR2RES_COL_FIT_QUALITY, j, -1.0) ;
+            cpl_table_set_double(*lines_diagnostics,
+                    CR2RES_COL_INTENSITY, j, -1.0) ;
         }
     }
 
