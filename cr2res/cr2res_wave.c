@@ -901,7 +901,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
     /* Create / Fill the lines diagnosics table  */
     if (lines_diagnostics != NULL && px != NULL ) {
         nlines = cpl_matrix_get_nrow(px) ;
-        cpl_msg_debug(__func__, "Number of lines: %d", nlines);
+        cpl_msg_debug(__func__, "Number of lines: %"CPL_SIZE_FORMAT, nlines);
         /* Create */
         *lines_diagnostics = cr2res_dfs_create_lines_diagnostics_table(nlines) ;
         /* Fill */
