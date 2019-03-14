@@ -249,7 +249,8 @@ cpl_polynomial * cr2res_wave_2d(
 
         /* Create / Fill / Merge the lines diagnosics table  */
         if (lines_diagnostics != NULL && tmp_x != NULL) {
-            nlines = cpl_matrix_get_ncol(tmp_x) ;
+            nlines = cpl_matrix_get_nrow(tmp_x) ;
+            cpl_msg_debug(__func__, "Number of lines: %d", nlines);
             /* Create */
             lines_diagnostics_loc =
                 cr2res_dfs_create_lines_diagnostics_table(nlines) ;
@@ -663,7 +664,7 @@ static int cr2res_wave_extract_lines(
     for (i = 0; i < n; i++){
 
         // skip lines that are outside this wavelength region
-        if ((wave[i] < min_wl) | (wave[i] > max_wl)){
+        if ((wave[i] < min_wl) || (wave[i] > max_wl)){
             cpl_vector_set(flag_vec, i, 0);
             continue;
         }
@@ -942,7 +943,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
 
         cpl_vector * wave = cpl_bivector_get_x(spectrum);
         for (cpl_size i = 0; i < n; i++) 
-            cpl_vector_set(wave, i, cpl_polynomial_eval_1d(result, i, NULL));
+            cpl_vector_set(wave, i, cpl_polynomial_eval_1d(result, i+1, NULL));
 
         cpl_bivector * lines = cpl_bivector_new(nlines);
         cpl_vector * pos = cpl_bivector_get_x(lines);
