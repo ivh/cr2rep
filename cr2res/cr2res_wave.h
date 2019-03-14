@@ -82,6 +82,7 @@ cpl_polynomial * cr2res_wave_xcorr(
         double              wl_error,
         cpl_bivector    *   lines_list,
         int                 degree,
+        int                 cleaning_filter_size,
         double              slit_width,
         double              fwhm,
         int                 display) ;

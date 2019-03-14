@@ -142,8 +142,10 @@ cpl_polynomial * cr2res_wave_1d(
         double slit_width = 2.0 ;
         double fwhm = 2.0 ;
         int zoom = 5 ;
+        int cleaning_filter_size = 9 ;
         solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error,
-                ref_spectrum, degree, slit_width, fwhm, display) ;
+                ref_spectrum, degree, cleaning_filter_size, slit_width, fwhm, 
+                display) ;
         cpl_table * spc_table = irplib_wlxcorr_gen_spc_table(
                 cpl_bivector_get_y(spectrum), ref_spectrum, slit_width, fwhm, 
                 wavesol_init, solution) ;
@@ -397,6 +399,7 @@ cpl_polynomial * cr2res_wave_2d(
   @param wl_error       Max error in pixels of the initial guess
   @param lines_list     Lines List (flux, wavelengths)
   @param degree         The polynomial degree
+  @param cleaning_filter_size   
   @param slit_width     
   @param fwhm
   @param display        Value matching the pass to display (0 for none, )
@@ -412,6 +415,7 @@ cpl_polynomial * cr2res_wave_xcorr(
         double              wl_error,
         cpl_bivector    *   lines_list,
         int                 degree,
+        int                 cleaning_filter_size,
         double              slit_width,
         double              fwhm,
         int                 display)
@@ -425,15 +429,11 @@ cpl_polynomial * cr2res_wave_xcorr(
     cpl_vector          *   xcorrs ;
     double                  wl_min, wl_max, wl_error_wl, wl_error_pix ;
     double                  xc ;
-    int                     i, nsamples, clean_spec, filt_size, degree_loc ;
+    int                     i, nsamples, degree_loc ;
 
     /* Check Entries */
     if (spectrum == NULL || wavesol_init == NULL || lines_list == NULL)
         return NULL ;
-
-    /* Initialise */
-    clean_spec = 1 ;
-    filt_size = 9 ;
 
     /* Compute wl boundaries */
     wl_min = cpl_polynomial_eval_1d(wavesol_init, 1, NULL);
@@ -442,13 +442,13 @@ cpl_polynomial * cr2res_wave_xcorr(
     cpl_msg_info(__func__, "Wl Range Input : %g - %g", wl_min, wl_max) ;
 
     /* Clean the spectrum from the low frequency signal if requested */
-    if (clean_spec) {
+    if (cleaning_filter_size > 0) {
         cpl_msg_info(__func__, "Low Frequency removal from spectrum") ;
         cpl_msg_indent_more() ;
         /* Subrtract the low frequency part */
         if ((filtered=cpl_vector_filter_median_create(
                         cpl_bivector_get_y(spectrum),
-                        filt_size))==NULL){
+                        cleaning_filter_size))==NULL){
             cpl_msg_error(__func__, "Cannot filter the spectrum") ;
             spec_clean = cpl_vector_duplicate(cpl_bivector_get_y(spectrum)) ;
         } else {
