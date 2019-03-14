@@ -210,6 +210,13 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.log",
+            CPL_TYPE_BOOL, "Flag for taking the Log() value of the lines",
+            "cr2res.cr2res_util_wave", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "log");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.display",
             CPL_TYPE_BOOL, "Flag for display",
             "cr2res.cr2res_util_wave", FALSE);
@@ -272,7 +279,7 @@ static int cr2res_util_wave(
 {
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
-                            degree, display ;
+                            degree, display, log_flag ;
     double                  wstart, wend, wl_shift ;
     cpl_frame           *   fr ;
     const char          *   sval ;
@@ -344,6 +351,9 @@ static int cr2res_util_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.wl_shift");
     wl_shift = cpl_parameter_get_double(param) ;
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_wave.log");
+    log_flag = cpl_parameter_get_bool(param) ;
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.display");
     display = cpl_parameter_get_bool(param) ;
@@ -599,7 +609,6 @@ static int cr2res_util_wave(
                         order, trace_id) ;
                 cpl_msg_indent_more() ;
 
-                int log_flag = 1 ;
                 /* Call the Wavelength Calibration */
                 lines_diagnostics_loc = NULL ;
                 if ((wave_sol = cr2res_wave_1d(spectra[i], spectra_err[i], 
