@@ -613,9 +613,7 @@ static int cr2res_wave_extract_lines(
     double max_wl, min_wl;
     cpl_vector * fit, *fit_x;
     const cpl_vector ** plot;
-    if (heights != NULL) *heights = cpl_vector_new(n);
-    if (fit_error != NULL) *fit_error = cpl_vector_new(n);
-
+    
     // For gaussian fit of each line
     // gauss = A * exp((x-mu)^2/(2*sig^2)) + cont
     cpl_matrix * x = cpl_matrix_new(window_size, 1);
@@ -803,6 +801,8 @@ static int cr2res_wave_extract_lines(
     *px = cpl_matrix_new(ngood, 1);
     *py = cpl_vector_new(ngood);
     *sigma_py = cpl_vector_new(ngood);
+    if (heights != NULL) *heights = cpl_vector_new(ngood);
+    if (fit_error != NULL) *fit_error = cpl_vector_new(ngood);
 
     k = 0;
     for (i = 0; i < n; i++){
@@ -811,9 +811,10 @@ static int cr2res_wave_extract_lines(
             cpl_matrix_set(*px, k, 0, cpl_vector_get(pixel_vec, i));
             cpl_vector_set(*py, k, wave[i]);
             cpl_vector_set(*sigma_py, k, fabs(cpl_vector_get(width_vec, i)));
-            if (heights != NULL) cpl_vector_set(*heights, k, cpl_vector_get(height_vec, i));
+            if (heights != NULL) cpl_vector_set(*heights, k, 
+                                    cpl_vector_get(height_vec, i));
             if (fit_error != NULL) cpl_vector_set(*fit_error, k,
-                    cpl_vector_get(fit_error_vec, i));
+                                    cpl_vector_get(fit_error_vec, i));
             k++;
         }
     }
@@ -892,6 +893,8 @@ cpl_polynomial * cr2res_wave_line_fitting(
                 wave_error_init, lines_list, display, &px, &py, &sigma_py, 
                 &heights, &fit_errors) != 0) {
         cpl_msg_error(__func__, "Cannot extract lines") ;
+        if (heights==NULL) cpl_vector_delete(heights);
+        if (fit_errors==NULL) cpl_vector_delete(fit_errors);
         return NULL ;
     }
 
