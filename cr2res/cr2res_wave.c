@@ -92,6 +92,7 @@ static int cr2res_wave_extract_lines(
   @param    trace_nb        Trace Number
   @param    catalog         Line catalog or template spectrum or NULL
   @param    degree          The polynomial degree of the solution
+  @param    log_flag        Flag to get the log of the intensity
   @param    display         Flag to display results
   @param    wavelength_error    [out] array of wave_mean_error, wave_max_error
   @param    lines_diagnostics   [out] table with lines diagnostics
@@ -107,8 +108,9 @@ cpl_polynomial * cr2res_wave_1d(
         int                     order,
         int                     trace_nb, 
         cr2res_wavecal_type     wavecal_type,
-        const char          *   static_file,
+        const char          *   catalog,
         int                     degree,
+        int                     log_flag,
         int                     display,
         cpl_array           **  wavelength_error,
         cpl_table           **  lines_diagnostics)
@@ -123,7 +125,7 @@ cpl_polynomial * cr2res_wave_1d(
     if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL)
         return NULL ;
     if ((wavecal_type == CR2RES_XCORR || wavecal_type == CR2RES_LINE1D) &&
-            static_file == NULL) return NULL ;
+            catalog == NULL) return NULL ;
 
     /* Initialise */
     solution = NULL ;
@@ -132,8 +134,8 @@ cpl_polynomial * cr2res_wave_1d(
     *lines_diagnostics = NULL ;
 
     /* Create the lines spectrum from the lines list */
-    ref_spectrum = cr2res_wave_gen_lines_spectrum(static_file, wavesol_init,
-            wl_error, -1.0) ;
+    ref_spectrum = cr2res_wave_gen_lines_spectrum(catalog, wavesol_init,
+            wl_error, -1.0, log_flag) ;
             
     /* Switch on the possible methods */
     if (wavecal_type == CR2RES_XCORR) {
@@ -165,7 +167,7 @@ cpl_polynomial * cr2res_wave_1d(
   @param    orders          List of orders of the various spectra
   @param    orders          List of traces IDs of the various spectra
   @param    ninputs         Number of entries in the previous parameters
-  @param    catalog_spec    Catalog spectrum
+  @param    catalog         Catalog file
   @param    degree_x        The polynomial degree in x
   @param    degree_y        The polynomial degree in y
   @param    display         Flag to display results
@@ -193,7 +195,7 @@ cpl_polynomial * cr2res_wave_2d(
         int                 *   orders,
         int                 *   traces_nb,
         int                     ninputs,
-        cpl_bivector        *   catalog_spec,
+        const char          *   catalog,
         cpl_size                degree_x,
         cpl_size                degree_y,
         int                     display,
@@ -201,6 +203,7 @@ cpl_polynomial * cr2res_wave_2d(
         cpl_table           **  lines_diagnostics)
 {
     cpl_table       *   lines_diagnostics_loc ;
+    cpl_bivector    *   catalog_spec ;
     cpl_vector      *   diff;
     cpl_size            old, new, i, j, k, spec_size, nlines ;
     cpl_polynomial  *   result ;
@@ -222,14 +225,20 @@ cpl_polynomial * cr2res_wave_2d(
 
     /* Check Inputs */
     if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL || 
-            orders==NULL || catalog_spec==NULL) 
+            orders==NULL || catalog==NULL) 
         return NULL ;
 
     /* Initialise */
-    n = cpl_bivector_get_size(catalog_spec);
     px = sigma_px = NULL ;
     py = sigma_py = NULL ;
     if (lines_diagnostics != NULL) *lines_diagnostics = NULL ;
+
+    /* Load Catalog */
+    if ((catalog_spec = cr2res_io_load_EMISSION_LINES(catalog)) == NULL) {
+            cpl_msg_error(__func__,"Failed to load the catalog");
+            return NULL ;
+    }
+    n = cpl_bivector_get_size(catalog_spec);
 
     result = cpl_polynomial_new(2);
 
@@ -321,6 +330,7 @@ cpl_polynomial * cr2res_wave_2d(
         cpl_vector_delete(heights);
         cpl_vector_delete(fit_errors);
     }
+    cpl_bivector_delete(catalog_spec) ;
 
     if (px == NULL){
         // No orders ran succesfully
@@ -1266,6 +1276,7 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
   @param    wavesol_init   The wavelength polynomial
   @param    wl_error        Max error in pixels of the initial guess
   @param    max_intensity   All stronger lines are discarded (OFF if < 0)
+  @param    log_flag        Flag to get the log of the intensity
   @return   The lines spectrum
  */
 /*----------------------------------------------------------------------------*/
@@ -1273,7 +1284,8 @@ cpl_bivector * cr2res_wave_gen_lines_spectrum(
         const char      *   catalog,
         cpl_polynomial  *   wavesol_init,
         double              wl_error,
-        double              max_intensity)
+        double              max_intensity,
+        int                 log_flag)
 {
     cpl_bivector    *   lines ;
     cpl_bivector    *   lines_sub ;
@@ -1312,6 +1324,8 @@ cpl_bivector * cr2res_wave_gen_lines_spectrum(
             if (lines_sub_wl[i] > wl_max) lines_sub_intens[i] = 0.0 ;
         if (lines_sub_intens[i] > max_intensity && max_intensity > 0.0) 
             lines_sub_intens[i] = 0.0 ;
+        if (lines_sub_intens[i] > 0.0 && log_flag) 
+            lines_sub_intens[i] = log(lines_sub_intens[i]) ;
     }
 
     /* Free and return */

@@ -279,8 +279,7 @@ static int cr2res_util_wave(
     cr2res_wavecal_type     wavecal_type ;
     const char          *   trace_wave_file ;
     const char          *   extracted_file ;
-    const char          *   static_calib_file ;
-    cpl_bivector        *   catalog_spectrum ;
+    const char          *   catalog_file ;
     char                *   out_file;
     cpl_table           *   out_trace_wave[CR2RES_NB_DETECTORS] ;
     cpl_table           *   lines_diagnostics[CR2RES_NB_DETECTORS] ;
@@ -376,9 +375,9 @@ static int cr2res_util_wave(
     trace_wave_file = cpl_frame_get_filename(fr) ;
     if (cpl_frameset_get_size(frameset) > 2) {
         fr = cpl_frameset_get_position(frameset, 2);
-        static_calib_file = cpl_frame_get_filename(fr) ;
+        catalog_file = cpl_frame_get_filename(fr) ;
     } else {
-        static_calib_file = NULL ;
+        catalog_file = NULL ;
     }
     if (trace_wave_file==NULL || extracted_file==NULL) {
         cpl_msg_error(__func__, "The utility needs at least 2 files as input");
@@ -393,23 +392,11 @@ static int cr2res_util_wave(
         return -1 ;
     }
     if ((wavecal_type == CR2RES_XCORR || wavecal_type == CR2RES_LINE1D || 
-                wavecal_type == CR2RES_LINE2D) && static_calib_file == NULL) {
+                wavecal_type == CR2RES_LINE2D) && catalog_file == NULL) {
         cpl_msg_error(__func__,
                 "The catalog file is needed for XCORR/LINE1D/LINE2D");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
-    }
-
-    /* Load the Catalog file */
-    cpl_msg_info(__func__, "Load the catalog") ;
-    if (static_calib_file != NULL) {
-        if ((catalog_spectrum = cr2res_io_load_EMISSION_LINES(
-                        static_calib_file)) == NULL) {
-            cpl_msg_error(__func__,"Failed to load the catalog");
-            return -1 ;
-        }
-    } else {
-        catalog_spectrum = NULL ;
     }
 
     /* Loop over the detectors */
@@ -560,7 +547,7 @@ static int cr2res_util_wave(
             /* 2D Calibration */
             if ((wave_sol = cr2res_wave_2d(spectra, spectra_err, wavesol_init, 
                             wavesol_init_error, orders, traces_nb, nb_traces, 
-                            catalog_spectrum, degree, degree, display, 
+                            catalog_file, degree, degree, display, 
                             &wl_err_array, 
                             &(lines_diagnostics[det_nr-1]))) == NULL) {
                 cpl_msg_error(__func__, 
@@ -612,12 +599,13 @@ static int cr2res_util_wave(
                         order, trace_id) ;
                 cpl_msg_indent_more() ;
 
+                int log_flag = 1 ;
                 /* Call the Wavelength Calibration */
                 lines_diagnostics_loc = NULL ;
                 if ((wave_sol = cr2res_wave_1d(spectra[i], spectra_err[i], 
                                 wavesol_init[i], wavesol_init_error[i], order, 
-                                trace_id, wavecal_type, static_calib_file, 
-                                degree, display, &wl_err_array,
+                                trace_id, wavecal_type, catalog_file, 
+                                degree, log_flag, display, &wl_err_array,
                                 &lines_diagnostics_loc)) == NULL) {
                     cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
                     cpl_error_reset() ;
@@ -676,7 +664,6 @@ static int cr2res_util_wave(
 
         cpl_msg_indent_less() ;
     }
-    if (catalog_spectrum != NULL) cpl_bivector_delete(catalog_spectrum) ;
 
     /* Save the new trace_wave table */
     out_file = cpl_sprintf("%s_wave.fits",

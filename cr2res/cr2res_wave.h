@@ -54,8 +54,9 @@ cpl_polynomial * cr2res_wave_1d(
         int                     order,
         int                     trace_nb,
         cr2res_wavecal_type     wavecal_type,
-        const char          *   static_file,
+        const char          *   catalog,
         int                     degree,
+        int                     log_flag,
         int                     display,
         cpl_array           **  wavelength_error,
         cpl_table           **  lines_diagnostics) ;
@@ -68,7 +69,7 @@ cpl_polynomial * cr2res_wave_2d(
         int                 *   orders,
         int                 *   traces_nb,
         int                     ninputs,
-        cpl_bivector        *   catalog_spec,
+        const char          *   catalog,
         cpl_size                degree_x,
         cpl_size                degree_y,
         int                     display,
@@ -121,7 +122,8 @@ cpl_bivector * cr2res_wave_gen_lines_spectrum(
         const char      *   catalog,
         cpl_polynomial  *   wavesol_init,
         double              wl_error,
-        double              max_intensity) ;
+        double              max_intensity,
+        int                 log_flag) ;
 
 cpl_array * cr2res_wave_get_estimate(
         const char  *   filename,
