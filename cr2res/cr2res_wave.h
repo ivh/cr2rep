@@ -78,7 +78,7 @@ cpl_polynomial * cr2res_wave_2d(
 cpl_polynomial * cr2res_wave_xcorr(
         cpl_bivector    *   spectrum,
         cpl_polynomial  *   initial_guess,
-        int                 wl_error,
+        double              wl_error,
         cpl_bivector    *   lines_list,
         int                 degree,
         int                 display) ;
@@ -120,7 +120,7 @@ cpl_bivector * cr2res_wave_etalon_assign_fringes(
 cpl_bivector * cr2res_wave_gen_lines_spectrum(
         const char      *   catalog,
         cpl_polynomial  *   wavesol_init,
-        int                 wl_error,
+        double              wl_error,
         double              max_intensity) ;
 
 cpl_array * cr2res_wave_get_estimate(

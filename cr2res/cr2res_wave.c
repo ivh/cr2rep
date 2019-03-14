@@ -117,7 +117,7 @@ cpl_polynomial * cr2res_wave_1d(
     cpl_bivector        *   ref_spectrum ;
     cpl_bivector        *   simple_ref_spectrum ;
     const cpl_bivector  **  plot;
-    int                     wl_error ;
+    double                  wl_error ;
 
     /* Check Inputs */
     if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL)
@@ -127,7 +127,7 @@ cpl_polynomial * cr2res_wave_1d(
 
     /* Initialise */
     solution = NULL ;
-    wl_error = 100 ;
+    wl_error = 100.0 ;
     *wavelength_error = NULL ;
     *lines_diagnostics = NULL ;
 
@@ -250,7 +250,7 @@ cpl_polynomial * cr2res_wave_2d(
         /* Create / Fill / Merge the lines diagnosics table  */
         if (lines_diagnostics != NULL && tmp_x != NULL) {
             nlines = cpl_matrix_get_nrow(tmp_x) ;
-            cpl_msg_debug(__func__, "Number of lines: %d", nlines);
+            cpl_msg_debug(__func__, "Number of lines: %"CPL_SIZE_FORMAT,nlines);
             /* Create */
             lines_diagnostics_loc =
                 cr2res_dfs_create_lines_diagnostics_table(nlines) ;
@@ -377,14 +377,14 @@ cpl_polynomial * cr2res_wave_2d(
 /*----------------------------------------------------------------------------*/
 /**
   @brief  Find solution by cross-correlating template spectrum
-  @param    spectrum        Input spectrum
-  @param    wavesol_init    Starting wavelength solution
-  @param    wl_error        Max error in pixels of the initial guess
-  @param    lines_list      Lines List (flux, wavelengths)
-  @param    degree          The polynomial degree
-  @param    display         Flag to display results
-  @return  Wavelength solution, i.e. polynomial that translates pixel
-            values to wavelength.
+  @param spectrum       Input spectrum
+  @param wavesol_init   Starting wavelength solution
+  @param wl_error       Max error in pixels of the initial guess
+  @param lines_list     Lines List (flux, wavelengths)
+  @param degree         The polynomial degree
+  @param display        Value matching the pass to display (0 for none, )
+  @return Wavelength solution, i.e. polynomial that translates pixel values 
+            to wavelength.
 
     TODO: Summarize method
  */
@@ -392,7 +392,7 @@ cpl_polynomial * cr2res_wave_2d(
 cpl_polynomial * cr2res_wave_xcorr(
         cpl_bivector    *   spectrum,
         cpl_polynomial  *   wavesol_init,
-        int                 wl_error,
+        double              wl_error,
         cpl_bivector    *   lines_list,
         int                 degree,
         int                 display)
@@ -1276,7 +1276,7 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
 cpl_bivector * cr2res_wave_gen_lines_spectrum(
         const char      *   catalog,
         cpl_polynomial  *   wavesol_init,
-        int                 wl_error,
+        double              wl_error,
         double              max_intensity)
 {
     cpl_bivector    *   lines ;
