@@ -135,9 +135,6 @@ cpl_polynomial * cr2res_wave_1d(
     ref_spectrum = cr2res_wave_gen_lines_spectrum(static_file, wavesol_init,
             wl_error, -1.0) ;
             
-    /* Just Extract the lines from the catalog */
-    simple_ref_spectrum = cr2res_io_load_EMISSION_LINES(static_file) ;
-
     /* Switch on the possible methods */
     if (wavecal_type == CR2RES_XCORR) {
         solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error,
@@ -145,7 +142,7 @@ cpl_polynomial * cr2res_wave_1d(
     } else if (wavecal_type == CR2RES_LINE1D) {
         solution = cr2res_wave_line_fitting(spectrum, spectrum_err, 
                 wavesol_init, wave_error_init, order, trace_nb, 
-                simple_ref_spectrum, degree, display, NULL, wavelength_error, 
+                ref_spectrum, degree, display, NULL, wavelength_error, 
                 lines_diagnostics) ;
     } else if (wavecal_type == CR2RES_ETALON) {
         solution = cr2res_wave_etalon(spectrum, spectrum_err, wavesol_init, 
@@ -153,7 +150,6 @@ cpl_polynomial * cr2res_wave_1d(
     }
 
     if (ref_spectrum != NULL) cpl_bivector_delete(ref_spectrum) ;
-    if (simple_ref_spectrum != NULL) cpl_bivector_delete(simple_ref_spectrum) ;
 
     return solution ;
 }
