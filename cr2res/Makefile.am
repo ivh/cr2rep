@@ -46,7 +46,8 @@ noinst_HEADERS =    cr2res_bpm.h \
                     cr2res_splice.h \
                     cr2res_trace.h \
                     cr2res_utils.h \
-                    cr2res_wave.h
+                    cr2res_wave.h \
+                    cr2res_pol.h
 
 pkginclude_HEADERS =
 
@@ -67,7 +68,8 @@ libcr2res_la_SOURCES =  cr2res_bpm.c \
                         cr2res_splice.c \
                         cr2res_trace.c \
                         cr2res_utils.c \
-                        cr2res_wave.c
+                        cr2res_wave.c \
+                        cr2res_pol.c
 
 libcr2res_la_LDFLAGS = $(CPL_LDFLAGS) $(HDRL_LDFLAGS) -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 libcr2res_la_LIBADD = $(LIBIRPLIB) $(HDRL_LIBS) $(LIBCPLDFS) $(LIBCPLUI) $(LIBCPLDRS) $(LIBCPLCORE)
