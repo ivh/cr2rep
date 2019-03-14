@@ -73,7 +73,7 @@ cpl_polynomial * cr2res_wave_2d(
         cpl_size                degree_x,
         cpl_size                degree_y,
         int                     display,
-        cpl_array           **  wavesol_error,
+        cpl_array           **  wavelength_error,
         cpl_table           **  lines_diagnostics) ;
 
 cpl_polynomial * cr2res_wave_xcorr(
@@ -85,7 +85,8 @@ cpl_polynomial * cr2res_wave_xcorr(
         int                 cleaning_filter_size,
         double              slit_width,
         double              fwhm,
-        int                 display) ;
+        int                 display,
+        cpl_array       **  wavelength_error) ;
 
 cpl_polynomial * cr2res_wave_line_fitting(
         cpl_bivector    *   spectrum,

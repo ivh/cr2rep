@@ -119,7 +119,7 @@ cpl_polynomial * cr2res_wave_1d(
     cpl_bivector        *   ref_spectrum ;
     cpl_bivector        *   simple_ref_spectrum ;
     const cpl_bivector  **  plot;
-    double                  wl_error ;
+    double                  wl_error_pixels ;
 
     /* Check Inputs */
     if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL)
@@ -129,13 +129,13 @@ cpl_polynomial * cr2res_wave_1d(
 
     /* Initialise */
     solution = NULL ;
-    wl_error = 100.0 ;
+    wl_error_pixels = 100.0 ;
     *wavelength_error = NULL ;
     *lines_diagnostics = NULL ;
 
     /* Create the lines spectrum from the lines list */
     ref_spectrum = cr2res_wave_gen_lines_spectrum(catalog, wavesol_init,
-            wl_error, -1.0, log_flag) ;
+            wl_error_pixels, -1.0, log_flag) ;
             
     /* Switch on the possible methods */
     if (wavecal_type == CR2RES_XCORR) {
@@ -143,9 +143,9 @@ cpl_polynomial * cr2res_wave_1d(
         double fwhm = 2.0 ;
         int zoom = 5 ;
         int cleaning_filter_size = 9 ;
-        solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error,
+        solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error_pixels,
                 ref_spectrum, degree, cleaning_filter_size, slit_width, fwhm, 
-                display) ;
+                display, wavelength_error) ;
         cpl_table * spc_table = irplib_wlxcorr_gen_spc_table(
                 cpl_bivector_get_y(spectrum), ref_spectrum, slit_width, fwhm, 
                 wavesol_init, solution) ;
@@ -182,7 +182,7 @@ cpl_polynomial * cr2res_wave_1d(
   @param    degree_x        The polynomial degree in x
   @param    degree_y        The polynomial degree in y
   @param    display         Flag to display results
-  @param    wavesol_error   [out] array of wave_mean_error, wave_max_error
+  @param    wavelength_error    [out] array of wave_mean_error, wave_max_error
   @param    lines_diagnostics   [out] table with lines diagnostics
   @return   Wavelength solution, i.e. polynomial that translates pixel
             values to wavelength.
@@ -210,7 +210,7 @@ cpl_polynomial * cr2res_wave_2d(
         cpl_size                degree_x,
         cpl_size                degree_y,
         int                     display,
-        cpl_array           **  wavesol_error,
+        cpl_array           **  wavelength_error,
         cpl_table           **  lines_diagnostics)
 {
     cpl_table       *   lines_diagnostics_loc ;
@@ -355,7 +355,7 @@ cpl_polynomial * cr2res_wave_2d(
             degree_2d);
 
     if (error == CPL_ERROR_NONE){
-        if (wavesol_error != NULL){
+        if (wavelength_error != NULL){
             // Calculate absolute difference between polynomial and 
             // catalog value for each line
             // use px and py, so that only good lines are used
@@ -368,11 +368,12 @@ cpl_polynomial * cr2res_wave_2d(
                     cpl_polynomial_eval(result, pos)
                     - cpl_vector_get(py, i)));
             }
-            // Set wavesol_error to mean and max difference
-            if (*wavesol_error == NULL) *wavesol_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
-            cpl_array_set_double(*wavesol_error, 0, 
+            // Set wavelength_error to mean and max difference
+            if (*wavelength_error == NULL) 
+                *wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+            cpl_array_set_double(*wavelength_error, 0, 
                     cpl_vector_get_mean(diff));
-            cpl_array_set_double(*wavesol_error, 1, 
+            cpl_array_set_double(*wavelength_error, 1, 
                     cpl_vector_get_max(diff));
             cpl_vector_delete(diff);
             cpl_vector_delete(pos);
@@ -403,6 +404,7 @@ cpl_polynomial * cr2res_wave_2d(
   @param slit_width     
   @param fwhm
   @param display        Value matching the pass to display (0 for none, )
+  @param wavelength_error   [out] array of wave_mean_error, wave_max_error
   @return Wavelength solution, i.e. polynomial that translates pixel values 
             to wavelength.
 
@@ -418,7 +420,8 @@ cpl_polynomial * cr2res_wave_xcorr(
         int                 cleaning_filter_size,
         double              slit_width,
         double              fwhm,
-        int                 display)
+        int                 display,
+        cpl_array       **  wavelength_error)
 {
     cpl_vector          *   wl_errors ;
     cpl_polynomial      *   sol ;
@@ -479,7 +482,7 @@ cpl_polynomial * cr2res_wave_xcorr(
     }
 
     /* Pass #1 */
-    degree_loc = 1 ;
+    degree_loc = 2 ;
     nsamples = 100 ;
     wl_error_pix = wl_error ;
     sol_guess = wavesol_init ;
@@ -488,23 +491,45 @@ cpl_polynomial * cr2res_wave_xcorr(
     wl_errors = cpl_vector_new(degree_loc+1) ;
     cpl_vector_fill(wl_errors, wl_error_wl) ;
     cpl_msg_info(__func__,
-    "Pass #1 : Degree %d / Error %g nm (%g pix) / %d samples -> %g Polys",
-            degree_loc,wl_error_wl,wl_error_pix,nsamples,pow(nsamples,
-                degree_loc+1)) ;
+"Pass #1 : Degree %d / Error %g nm (%g pix) / %d samples -> %g polynomials",
+        degree_loc,wl_error_wl,wl_error_pix,nsamples,pow(nsamples,
+            degree_loc+1)) ;
     cpl_msg_indent_more() ;
     if ((sol=irplib_wlxcorr_best_poly(spec_clean, lines_list, degree_loc,
                     sol_guess, wl_errors, nsamples, slit_width, fwhm, &xc, NULL,
                     &xcorrs)) == NULL) {
         cpl_msg_error(__func__, "Cannot get the best polynomial") ;
-        cpl_msg_indent_less() ;
         cpl_vector_delete(wl_errors) ;
         cpl_vector_delete(spec_clean) ;
         if (xcorrs != NULL) cpl_vector_delete(xcorrs) ;
         cpl_error_reset() ;
+        cpl_msg_indent_less() ;
         return NULL ;
     }
     cpl_vector_delete(wl_errors) ;
     cpl_msg_info(__func__, "Cross-Correlation factor: %g", xc) ;
+
+    /* Compute the strongest line distance */
+    int x_max = -1 ;
+    double y_max = -1.0 ;
+    for (i=0 ; i<cpl_vector_get_size(spec_clean) ; i++) {
+        if (pspec_clean[i] > y_max) {
+            y_max = pspec_clean[i] ;
+            x_max = i+1 ;
+        }
+    }
+    double delta_lambda = 
+        cpl_polynomial_eval_1d(sol, x_max, NULL) - 
+        cpl_polynomial_eval_1d(sol_guess, x_max, NULL) ;
+    double delta_pix = delta_lambda * CR2RES_DETECTOR_SIZE / (wl_max-wl_min) ;
+    cpl_msg_debug(__func__, "First Pass correction : %g nm / %g pixels",
+            delta_lambda, delta_pix) ;
+
+
+
+
+
+
 
     /* Plot the correlation values */
     if (display) {
@@ -517,7 +542,7 @@ cpl_polynomial * cr2res_wave_xcorr(
     /* Pass #2 */
     degree_loc = degree ;
     nsamples = 10 ;
-    wl_error_pix = wl_error ;
+    wl_error_pix = wl_error/10.0 ;
     sol_guess = sol ;
 
     wl_error_wl = (wl_max-wl_min)*wl_error_pix/CR2RES_DETECTOR_SIZE ;
@@ -555,6 +580,13 @@ cpl_polynomial * cr2res_wave_xcorr(
 
     cpl_vector_delete(spec_clean) ;
     cpl_polynomial_delete(sol_guess) ;
+
+    /* Set teh Wavelength error */
+    if (wavelength_error != NULL){
+        *wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+        cpl_array_set_double(*wavelength_error, 0, wl_error_wl) ;
+        cpl_array_set_double(*wavelength_error, 1, wl_error_wl) ;
+    }
     return sol ;
 }
 
