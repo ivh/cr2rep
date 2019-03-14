@@ -117,13 +117,11 @@ cpl_bivector * cr2res_wave_etalon_assign_fringes(
             const cpl_vector      * peaks_found,
             const cpl_vector      * peaks_should);
 
-cpl_vector * cr2res_wave_line_detection(
-        cpl_vector      *   spectrum) ;
-
 cpl_bivector * cr2res_wave_gen_lines_spectrum(
         const char      *   catalog,
-        cpl_polynomial  *   initial_guess,
-        int                 wl_error) ;
+        cpl_polynomial  *   wavesol_init,
+        int                 wl_error,
+        double              max_intensity) ;
 
 cpl_array * cr2res_wave_get_estimate(
         const char  *   filename,

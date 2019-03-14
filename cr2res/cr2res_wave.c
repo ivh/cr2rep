@@ -133,7 +133,7 @@ cpl_polynomial * cr2res_wave_1d(
 
     /* Create the lines spectrum from the lines list */
     ref_spectrum = cr2res_wave_gen_lines_spectrum(static_file, wavesol_init,
-            wl_error) ;
+            wl_error, -1.0) ;
             
     /* Just Extract the lines from the catalog */
     simple_ref_spectrum = cr2res_io_load_EMISSION_LINES(static_file) ;
@@ -1264,30 +1264,19 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief
-  @param
-  @return
- */
-/*----------------------------------------------------------------------------*/
-cpl_vector * cr2res_wave_line_detection(
-        cpl_vector      *   spectrum)
-{
-    return NULL ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Load the emission lines in a bivector
   @param    catalog         The catalog file
   @param    wavesol_init   The wavelength polynomial
   @param    wl_error        Max error in pixels of the initial guess
+  @param    max_intensity   All stronger lines are discarded (OFF if < 0)
   @return   The lines spectrum
  */
 /*----------------------------------------------------------------------------*/
 cpl_bivector * cr2res_wave_gen_lines_spectrum(
         const char      *   catalog,
         cpl_polynomial  *   wavesol_init,
-        int                 wl_error)
+        int                 wl_error,
+        double              max_intensity)
 {
     cpl_bivector    *   lines ;
     cpl_bivector    *   lines_sub ;
@@ -1309,6 +1298,13 @@ cpl_bivector * cr2res_wave_gen_lines_spectrum(
     lines_sub = irplib_wlxcorr_cat_extract(lines, wl_min-wl_error_wl,
             wl_max+wl_error_wl) ;
 
+    cpl_msg_debug(__func__, 
+"Extract %"CPL_SIZE_FORMAT" catalog lines in range %g (%g-%g)nm - %g (%g+%g)nm",
+            cpl_bivector_get_size(lines_sub), 
+            wl_min-wl_error_wl, wl_min, wl_error_wl, 
+            wl_max+wl_error_wl, wl_max, wl_error_wl) ;
+
+
 	/* Zero the beginning and the end */
     lines_sub_wl = cpl_bivector_get_x_data(lines_sub) ;
     lines_sub_intens = cpl_bivector_get_y_data(lines_sub) ;
@@ -1317,9 +1313,8 @@ cpl_bivector * cr2res_wave_gen_lines_spectrum(
             if (lines_sub_wl[i] < wl_min) lines_sub_intens[i] = 0.0 ;
         if (wl_max > 0)
             if (lines_sub_wl[i] > wl_max) lines_sub_intens[i] = 0.0 ;
-        /* TODO */
-        if (lines_sub_intens[i] > 5000) lines_sub_intens[i] = 0.0 ;
-
+        if (lines_sub_intens[i] > max_intensity && max_intensity > 0.0) 
+            lines_sub_intens[i] = 0.0 ;
     }
 
     /* Free and return */
