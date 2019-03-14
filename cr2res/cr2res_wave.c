@@ -139,8 +139,17 @@ cpl_polynomial * cr2res_wave_1d(
             
     /* Switch on the possible methods */
     if (wavecal_type == CR2RES_XCORR) {
+        double slit_width = 2.0 ;
+        double fwhm = 2.0 ;
+        int zoom = 5 ;
         solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error,
-                ref_spectrum, degree, display) ;
+                ref_spectrum, degree, slit_width, fwhm, display) ;
+        cpl_table * spc_table = irplib_wlxcorr_gen_spc_table(
+                cpl_bivector_get_y(spectrum), ref_spectrum, slit_width, fwhm, 
+                wavesol_init, solution) ;
+        if (display && spc_table != NULL) 
+            irplib_wlxcorr_plot_spc_table(spc_table, "XC", 1, zoom) ;
+        if (spc_table != NULL) cpl_table_delete(spc_table) ;
     } else if (wavecal_type == CR2RES_LINE1D) {
         solution = cr2res_wave_line_fitting(spectrum, spectrum_err, 
                 wavesol_init, wave_error_init, order, trace_nb, 
@@ -388,6 +397,8 @@ cpl_polynomial * cr2res_wave_2d(
   @param wl_error       Max error in pixels of the initial guess
   @param lines_list     Lines List (flux, wavelengths)
   @param degree         The polynomial degree
+  @param slit_width     
+  @param fwhm
   @param display        Value matching the pass to display (0 for none, )
   @return Wavelength solution, i.e. polynomial that translates pixel values 
             to wavelength.
@@ -401,6 +412,8 @@ cpl_polynomial * cr2res_wave_xcorr(
         double              wl_error,
         cpl_bivector    *   lines_list,
         int                 degree,
+        double              slit_width,
+        double              fwhm,
         int                 display)
 {
     cpl_vector          *   wl_errors ;
@@ -410,9 +423,8 @@ cpl_polynomial * cr2res_wave_xcorr(
     double              *   pspec_clean ;
     cpl_vector          *   filtered ;
     cpl_vector          *   xcorrs ;
-    cpl_table           *   spc_table ;
     double                  wl_min, wl_max, wl_error_wl, wl_error_pix ;
-    double                  xc, slit_width, fwhm ;
+    double                  xc ;
     int                     i, nsamples, clean_spec, filt_size, degree_loc ;
 
     /* Check Entries */
@@ -421,8 +433,6 @@ cpl_polynomial * cr2res_wave_xcorr(
 
     /* Initialise */
     clean_spec = 1 ;
-    slit_width = 2.0 ;
-    fwhm = 2.0 ;
     filt_size = 9 ;
 
     /* Compute wl boundaries */
@@ -537,27 +547,14 @@ cpl_polynomial * cr2res_wave_xcorr(
     if (display) {
         cpl_plot_vector("set grid;", "t 'Correlation values (Pass #2)' w lines",
                 "", xcorrs) ;
+        irplib_wlxcorr_plot_solution(sol_guess, sol, NULL, 1,
+                CR2RES_DETECTOR_SIZE);
     }
     if (xcorrs != NULL) cpl_vector_delete(xcorrs) ;
     cpl_msg_indent_less() ;
 
-    /* Plot results table */
-    if (display) {
-        /* Create the spc_table  */
-        if ((spc_table = irplib_wlxcorr_gen_spc_table(spec_clean, lines_list,
-                        slit_width, fwhm, sol_guess, sol)) == NULL) {
-            cpl_msg_error(cpl_func, "Cannot generate infos table") ;
-        } else {
-			/* Plot */
-			irplib_wlxcorr_plot_spc_table(spc_table, "XC", 0, 0) ;
-
-            /* TODO : Return the table as a product CR2RES_PROTYPE_XCORR */
-			cpl_table_delete(spc_table) ;
-        }
-    }
     cpl_vector_delete(spec_clean) ;
     cpl_polynomial_delete(sol_guess) ;
-
     return sol ;
 }
 

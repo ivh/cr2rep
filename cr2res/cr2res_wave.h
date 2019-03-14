@@ -78,10 +78,12 @@ cpl_polynomial * cr2res_wave_2d(
 
 cpl_polynomial * cr2res_wave_xcorr(
         cpl_bivector    *   spectrum,
-        cpl_polynomial  *   initial_guess,
+        cpl_polynomial  *   wavesol_init,
         double              wl_error,
         cpl_bivector    *   lines_list,
         int                 degree,
+        double              slit_width,
+        double              fwhm,
         int                 display) ;
 
 cpl_polynomial * cr2res_wave_line_fitting(
