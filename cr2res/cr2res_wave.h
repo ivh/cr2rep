@@ -89,46 +89,12 @@ cpl_polynomial * cr2res_wave_xcorr(
         int                 display,
         cpl_array       **  wavelength_error) ;
 
-cpl_polynomial * cr2res_wave_line_fitting(
-        cpl_bivector    *   spectrum,
-        cpl_bivector    *   spectrum_err,
-        cpl_polynomial  *   wavesol_init,
-        const cpl_array *   wave_error_init,
-        int                 order,
-        int                 trace_nb,
-        cpl_bivector    *   lines_list,
-        int                 degree,
-        int                 display,
-        cpl_vector      **  sigma_fit,
-        cpl_array       **  wavelength_error,
-        cpl_table       **  lines_diagnostics) ;
-
 cpl_polynomial * cr2res_wave_etalon(
         cpl_bivector    *   spectrum,
         cpl_bivector    *   spectrum_err,
         cpl_polynomial  *   wavesol_init,
         int                 degree,
         cpl_array       **  wavelength_error) ;
-
-cpl_vector * cr2res_wave_etalon_measure_fringes(cpl_vector * spectrum);
-
-double cr2res_wave_etalon_get_x0(
-        cpl_vector * xi, 
-        cpl_polynomial * initial_guess);
-
-double cr2res_wave_etalon_get_D(
-        cpl_vector * peaks);
-
-cpl_bivector * cr2res_wave_etalon_assign_fringes(
-            const cpl_vector      * peaks_found,
-            const cpl_vector      * peaks_should);
-
-cpl_bivector * cr2res_wave_gen_lines_spectrum(
-        const char      *   catalog,
-        cpl_polynomial  *   wavesol_init,
-        double              wl_error,
-        double              max_intensity,
-        int                 log_flag) ;
 
 cpl_array * cr2res_wave_get_estimate(
         const char  *   filename,
@@ -137,5 +103,9 @@ cpl_array * cr2res_wave_get_estimate(
 
 hdrl_image * cr2res_wave_gen_wave_map(
         const cpl_table *   trace_wave) ;
+
+cpl_polynomial * cr2res_wave_poly_2d_to_1d(
+        cpl_polynomial  *   poly_2d,
+        int                 order) ;
 
 #endif

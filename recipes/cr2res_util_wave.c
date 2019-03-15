@@ -310,11 +310,10 @@ static int cr2res_util_wave(
     cpl_array           **  wavesol_init_error ;
     int                  *  orders ;
     int                  *  traces_nb ;
-    cpl_polynomial      *   wave_sol ;
+    cpl_polynomial      *   wave_sol_1d ;
+    cpl_polynomial      *   wave_sol_2d ;
     cpl_array           *   wl_array ;
     cpl_array           *   wl_err_array ;
-    cpl_polynomial      *   tmp_sol, * collapsed_sol;
-    cpl_size                zero  ;
 
     /* Needed for sscanf() */
     setlocale(LC_NUMERIC, "C");
@@ -324,7 +323,6 @@ static int cr2res_util_wave(
     wstart = wend = wstart_err = wend_err = -1.0 ;
     wl_shift = 0.0 ;
     wl_err_array = NULL ;
-    zero = 0 ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -576,7 +574,7 @@ static int cr2res_util_wave(
         /* Actual calibration */
         if (wavecal_type == CR2RES_LINE2D) {
             /* 2D Calibration */
-            if ((wave_sol = cr2res_wave_2d(spectra, spectra_err, wavesol_init, 
+            if ((wave_sol_2d=cr2res_wave_2d(spectra, spectra_err, wavesol_init, 
                             wavesol_init_error, orders, traces_nb, nb_traces, 
                             catalog_file, degree, degree, display, 
                             &wl_err_array, 
@@ -588,12 +586,10 @@ static int cr2res_util_wave(
             }
 
             /* Store the Solution in the table */
-            tmp_sol = cpl_polynomial_new(1);
             for (i = 0; i < nb_traces; i++) {
-                cpl_polynomial_set_coeff(tmp_sol, &zero, i);
-                collapsed_sol = cpl_polynomial_extract(wave_sol, 1, tmp_sol);
-                wl_array=cr2res_convert_poly_to_array(collapsed_sol, degree+1);
-                cpl_polynomial_delete(collapsed_sol);
+                wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, orders[i]); 
+                wl_array=cr2res_convert_poly_to_array(wave_sol_1d, degree+1);
+                cpl_polynomial_delete(wave_sol_1d);
                 if (wl_array != NULL) {
                     cpl_table_set_array(out_trace_wave[det_nr-1],
                             CR2RES_COL_WAVELENGTH, i, wl_array);
@@ -632,7 +628,7 @@ static int cr2res_util_wave(
 
                 /* Call the Wavelength Calibration */
                 lines_diagnostics_loc = NULL ;
-                if ((wave_sol = cr2res_wave_1d(spectra[i], spectra_err[i], 
+                if ((wave_sol_1d = cr2res_wave_1d(spectra[i], spectra_err[i], 
                                 wavesol_init[i], wavesol_init_error[i], order, 
                                 trace_id, wavecal_type, catalog_file, 
                                 degree, log_flag, display, &wl_err_array,
@@ -657,7 +653,7 @@ static int cr2res_util_wave(
 				}
 
                 /* Store the Solution in the table */
-                wl_array = cr2res_convert_poly_to_array(wave_sol, degree+1) ;
+                wl_array = cr2res_convert_poly_to_array(wave_sol_1d, degree+1) ;
                 if (wl_array != NULL) {
                     cpl_table_set_array(out_trace_wave[det_nr-1],
                             CR2RES_COL_WAVELENGTH, i, wl_array);
@@ -668,7 +664,7 @@ static int cr2res_util_wave(
                             CR2RES_COL_WAVELENGTH_ERROR, i, wl_err_array);
                     cpl_array_delete(wl_err_array) ;
                 }
-                cpl_polynomial_delete(wave_sol);
+                cpl_polynomial_delete(wave_sol_1d);
                 cpl_msg_indent_less() ;
             }
         }

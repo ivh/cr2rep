@@ -45,33 +45,64 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static int cr2res_poly(const double x[], const double a[], double * result) ;
-static int cr2res_deriv_poly(const double x[], const double a[], 
-        double * result) ;
-static int cr2res_gauss(const double x[], const double a[], double * result) ;
-static int cr2res_gauss_derivative(const double x[], const double a[], 
-        double * result) ;
-static cpl_polynomial  * cr2res_wave_polyfit_1d(
-    cpl_matrix  * px, 
-    cpl_vector  * py,
-    cpl_vector  * sigma_py,
-    int degree, 
-    const cpl_polynomial * solution_init,
-    cpl_array   ** wavelength_error,
-    cpl_vector  ** sigma_fit,
-    cpl_matrix  ** cov);
+static cpl_bivector * cr2res_wave_gen_lines_spectrum(
+        const char      *   catalog,
+        cpl_polynomial  *   wavesol_init,
+        double              wl_error,
+        double              max_intensity,
+        int                 log_flag) ;
 static int cr2res_wave_extract_lines(
-    cpl_bivector    *   spectrum,
-    cpl_bivector    *   spectrum_err,
-    cpl_polynomial  *   wavesol_init,
-    const cpl_array *   wave_error_init,
-    cpl_bivector    *   lines_list,
-    int                 display,
-    cpl_matrix      **  px,
-    cpl_vector      **  py,
-    cpl_vector      **  sigma_py,
-    cpl_vector      **  heights,
-    cpl_vector      **  fit_error) ;
+        cpl_bivector    *   spectrum,
+        cpl_bivector    *   spectrum_err,
+        cpl_polynomial  *   wavesol_init,
+        const cpl_array *   wave_error_init,
+        cpl_bivector    *   lines_list,
+        int                 display,
+        cpl_matrix      **  px,
+        cpl_vector      **  py,
+        cpl_vector      **  sigma_py,
+        cpl_vector      **  heights,
+        cpl_vector      **  fit_error) ;
+static cpl_polynomial * cr2res_wave_line_fitting(
+        cpl_bivector    *   spectrum,
+        cpl_bivector    *   spectrum_err,
+        cpl_polynomial  *   wavesol_init,
+        const cpl_array *   wave_error_init,
+        int                 order,
+        int                 trace_nb,
+        cpl_bivector    *   lines_list,
+        int                 degree,
+        int                 display,
+        cpl_vector      **  sigma_fit,
+        cpl_array       **  wavelength_error,
+        cpl_table       **  lines_diagnostics) ;
+static cpl_polynomial * cr2res_wave_polyfit_1d(
+        cpl_matrix * px, 
+        cpl_vector * py,
+        cpl_vector *sigma_py,
+        int degree,
+        const cpl_polynomial * solution_init,
+        cpl_array ** wavelength_error,
+        cpl_vector ** sigma_fit,
+        cpl_matrix ** cov) ;
+static int cr2res_poly(const double x[], const double a[], double *
+        result) ;
+static int cr2res_deriv_poly(const double x[], const double a[], double
+        * result) ;
+static int cr2res_gauss(const double x[], const double a[], double
+        *result) ;
+static int cr2res_gauss_derivative(const double x[], const double a[],
+        double result[]) ;
+static cpl_bivector * cr2res_wave_etalon_assign_fringes(
+        const cpl_vector      * li,
+        const cpl_vector      * li_true) ;
+static double cr2res_wave_etalon_get_x0(
+        cpl_vector      * xi,
+        cpl_polynomial  * wavesol_init) ;
+static double cr2res_wave_etalon_get_D(
+        cpl_vector      * li) ;
+static cpl_vector * cr2res_wave_etalon_measure_fringes(
+        cpl_vector * spectrum) ;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -593,6 +624,310 @@ cpl_polynomial * cr2res_wave_xcorr(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief   Find solution from etalon
+  @param    spectrum        Input spectrum: etalon
+  @param    wavesol_init   Starting wavelength solution
+  @param    wavelength_error    [out] array of wave_mean_error, wave_max_error
+  @return  Wavelength solution, i.e. polynomial that translates pixel
+            values to wavelength.
+
+    This function uses the intrinsic property of the etalon spectrum,
+    that the lines are *supposed* to be equi-spaced, to refine the wavelength
+    solution. The input solution needs to be good enough for the zero-point
+    since the etalon spectrum carries no information about the absolute
+    wavelength scale.
+
+    The method involves these steps:
+    * Identify lines (thresholding)
+    * Determine line centers (gauss fit)
+    * Subtract x-coods from subsequent lines, i.e. measure d many times
+        d is the distance between fringes in pixels, assumed to be constant
+    * Determine mis-counts in fringes, by looking at outliers in d-distribution,
+        re-count with e.g. half-distance between two fringes, if one is missing.
+    * Fit the d-distibution to determine "true d"
+    * Use d to calculate new x-coodinates, use input-solution to translate to
+        wavelength
+    * Fit measured x-coords to new lamdas to get new solution.
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_wave_etalon(
+        cpl_bivector    *   spectrum,
+        cpl_bivector    *   spectrum_err,
+        cpl_polynomial  *   wavesol_init,
+        int                 degree,
+        cpl_array       **  wavelength_error)
+{
+    cpl_bivector *  is_should;
+    cpl_vector  *   xi;
+    cpl_vector  *   li;
+    // cpl_vector  *   mi;
+    cpl_vector  *   li_true;
+    cpl_matrix  *   px;
+    cpl_polynomial * result;
+	double			l0, trueD;
+    int             nxi, i, npeaks;
+
+    if (spectrum == NULL | spectrum_err == NULL | 
+        wavesol_init == NULL | degree < 0 | wavelength_error == NULL) return NULL;
+
+    // Find etalon peaks xi in spectrum
+    // TODO: Use Spectrum Error
+    xi = cr2res_wave_etalon_measure_fringes(
+            cpl_bivector_get_y(spectrum)); 
+    nxi=cpl_vector_get_size(xi);
+
+    /* apply initial solution to get wavelength li at each point xi*/
+    li = cr2res_polynomial_eval_vector(wavesol_init, xi);
+
+    /* Calculate delta lambda between peaks */
+	trueD = cr2res_wave_etalon_get_D(li);
+    cpl_msg_debug(__func__,"trueD: %e", trueD);
+
+    /* Set vector with correct wavelength values */
+    // expected number of peaks (+2 just to be sure)
+    npeaks = (cpl_vector_get(li, nxi-1) - l0) / trueD + 2;
+    li_true = cpl_vector_new(npeaks);
+    for (i=0; i<npeaks; i++) {
+        cpl_vector_set(li_true, i,l0 + (trueD*i));
+    }
+
+    // For each peak find the closest expected wavelength value
+    is_should = cr2res_wave_etalon_assign_fringes(li, li_true);
+
+    // polynomial fit to points, xi, li
+    px = cpl_matrix_wrap(nxi, 1, cpl_vector_get_data(xi));
+    result = cr2res_wave_polyfit_1d(px, cpl_bivector_get_y(is_should), NULL, 
+                degree, wavesol_init, wavelength_error, NULL, NULL);
+
+    cpl_matrix_unwrap(px);
+    cpl_vector_delete(li_true);
+
+    cpl_bivector_delete(is_should);
+    cpl_vector_delete(xi);
+    cpl_vector_delete(li);
+
+    return result;
+}
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Compute the wavelength polynomial from boundaries
+  @param    wmin    First pixel wavelength
+  @param    wmax    Last pixel wavelength
+  @return   the array with two polynomial coeffs, or NULL in error case
+
+  wmin = poly(1)
+  wmax = poly((CR2RES_DETECTOR_SIZE)
+
+  The returned array must be deallocated with cpl_array_delete()
+ */
+/*----------------------------------------------------------------------------*/
+cpl_array * cr2res_wave_get_estimate(
+        const char  *   filename,
+        int             detector,
+        int             order)
+{
+    double                  wmin, wmax, a, b ;
+    cpl_array           *   wl ;
+    cpl_propertylist    *   plist ;
+    int                     wished_ext_nb ;
+
+    /* Check Entries */
+    if (filename == NULL) return NULL ;
+    if (order < 0 || detector <= 0 || detector > CR2RES_NB_DETECTORS)
+        return NULL ;
+
+    /* Load the propertylist */
+    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
+    plist = cpl_propertylist_load(filename, wished_ext_nb) ;
+
+    /* Get the values for this order */
+    wmin = cr2res_pfits_get_wstrt(plist, order) ;
+    wmax = cr2res_pfits_get_wend(plist, order) ;
+    cpl_propertylist_delete(plist) ;
+    if (cpl_error_get_code() != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__,
+                "Cannot get WSTRT/WEND from header for Detector %d / Order %d",
+                detector, order) ;
+        return NULL ;
+    }
+
+    /* Compute polynomial coefficients */
+    b = (wmax - wmin) / (CR2RES_DETECTOR_SIZE-1) ;
+    a = wmin - b ;
+
+    /* Create the array */
+    wl = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
+    cpl_array_set(wl, 0, a) ;
+    cpl_array_set(wl, 1, b) ;
+    return wl ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Compute the wavelength map from the trace_wave table
+  @param    trace_wave      The trace wave table
+  @return   the wave_map image or NULL in error case
+
+  The returned image must be deallocated with hdrl_image_delete()
+ */
+/*----------------------------------------------------------------------------*/
+hdrl_image * cr2res_wave_gen_wave_map(
+        const cpl_table *   trace_wave)
+{
+    hdrl_image      *   out ;
+    cpl_image       *   out_ima ;
+    double          *   pout_ima ;
+    const cpl_array *   tmp_array ;
+    cpl_polynomial  *   wave_poly ;
+    cpl_polynomial  *   upper_poly ;
+    cpl_polynomial  *   lower_poly ;
+    double              upper_pos, lower_pos, wavelength ;
+    cpl_size            i, j, k, nrows, nx, ny ;
+
+    /* Check Entries */
+    if (trace_wave == NULL) return NULL ;
+
+    /* Initialise */
+    nrows = cpl_table_get_nrow(trace_wave) ;
+
+    /* Create the image */
+    out = hdrl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE) ;
+    out_ima = hdrl_image_get_image(out) ;
+    nx = cpl_image_get_size_x(out_ima) ;
+    ny = cpl_image_get_size_y(out_ima) ;
+    pout_ima = cpl_image_get_data_double(out_ima) ;
+
+    /* Loop on the traces */
+    for (k=0 ; k<nrows ; k++) {
+        /* Check if there is a Wavelength Polynomial available */
+        tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, k) ;
+        wave_poly = cr2res_convert_array_to_poly(tmp_array) ;
+        if (wave_poly != NULL) {
+            /* Get the Upper Polynomial */
+            tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_UPPER, k) ;
+            upper_poly = cr2res_convert_array_to_poly(tmp_array) ;
+
+            /* Get the Lower Polynomial */
+            tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_LOWER, k) ;
+            lower_poly = cr2res_convert_array_to_poly(tmp_array) ;
+
+            /* Check if all Polynomials are available */
+            if (upper_poly == NULL || lower_poly == NULL) {
+                if (upper_poly != NULL) cpl_polynomial_delete(upper_poly) ;
+                if (lower_poly != NULL) cpl_polynomial_delete(lower_poly) ;
+                cpl_msg_warning(__func__, "Cannot get UPPER/LOWER information");
+                cpl_polynomial_delete(wave_poly) ;
+                continue ;
+            }
+
+            /* Set the Pixels in the trace */
+            for (i=0 ; i<nx ; i++) {
+                upper_pos = cpl_polynomial_eval_1d(upper_poly, i+1, NULL) ;
+                lower_pos = cpl_polynomial_eval_1d(lower_poly, i+1, NULL) ;
+                wavelength = cpl_polynomial_eval_1d(wave_poly, i+1, NULL) ;
+                for (j=0 ; j<ny ; j++) {
+                    if (j+1 >= lower_pos && j+1 <= upper_pos)
+                        pout_ima[i+j*nx] = wavelength ;
+                }
+            }
+            cpl_polynomial_delete(wave_poly) ;
+            cpl_polynomial_delete(upper_poly) ;
+            cpl_polynomial_delete(lower_poly) ;
+        }
+    }
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Load the emission lines in a bivector
+  @param poly_2d    The 2d polynomial (order, lambda)
+  @param order      The order where the 1d polynomial is to be computed    
+  @return   The newly allocated 1d polynomial or NULL in error case
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_wave_poly_2d_to_1d(
+        cpl_polynomial  *   poly_2d,
+        int                 order) 
+{
+    cpl_polynomial  *   out ;
+ 
+    /* Check Entries */
+    if (poly_2d == NULL) return NULL ;
+    if (order < 0) return NULL ;
+
+    /* TODO */
+
+    return NULL ;
+} 
+
+/**@}*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Load the emission lines in a bivector
+  @param    catalog         The catalog file
+  @param    wavesol_init   The wavelength polynomial
+  @param    wl_error        Max error in nm of the initial guess
+  @param    max_intensity   All stronger lines are discarded (OFF if < 0)
+  @param    log_flag        Flag to get the log of the intensity
+  @return   The lines spectrum
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_bivector * cr2res_wave_gen_lines_spectrum(
+        const char      *   catalog,
+        cpl_polynomial  *   wavesol_init,
+        double              wl_error,
+        double              max_intensity,
+        int                 log_flag)
+{
+    cpl_bivector    *   lines ;
+    cpl_bivector    *   lines_sub ;
+    double          *   lines_sub_wl ;
+    double          *   lines_sub_intens ;
+    double              wl_min, wl_max ;
+    int                 i ;
+
+    /* Check Entries */
+    if (catalog == NULL || wavesol_init == NULL) return NULL ;
+
+    /* Load the lines */
+    lines = cr2res_io_load_EMISSION_LINES(catalog) ;
+
+    /* Extract the needed spectrum */
+    wl_min = cpl_polynomial_eval_1d(wavesol_init, 1, NULL);
+    wl_max = cpl_polynomial_eval_1d(wavesol_init, CR2RES_DETECTOR_SIZE, NULL);
+    lines_sub = irplib_wlxcorr_cat_extract(lines, wl_min-wl_error,
+            wl_max+wl_error) ;
+
+    cpl_msg_debug(__func__, 
+"Extract %"CPL_SIZE_FORMAT" catalog lines in range %g (%g-%g)nm - %g (%g+%g)nm",
+            cpl_bivector_get_size(lines_sub), 
+            wl_min-wl_error, wl_min, wl_error, 
+            wl_max+wl_error, wl_max, wl_error) ;
+
+
+	/* Zero the beginning and the end */
+    lines_sub_wl = cpl_bivector_get_x_data(lines_sub) ;
+    lines_sub_intens = cpl_bivector_get_y_data(lines_sub) ;
+    for (i=0 ; i<cpl_bivector_get_size(lines_sub) ; i++) {
+        if (wl_min > 0)
+            if (lines_sub_wl[i] < wl_min) lines_sub_intens[i] = 0.0 ;
+        if (wl_max > 0)
+            if (lines_sub_wl[i] > wl_max) lines_sub_intens[i] = 0.0 ;
+        if (lines_sub_intens[i] > max_intensity && max_intensity > 0.0) 
+            lines_sub_intens[i] = 0.0 ;
+        if (lines_sub_intens[i] > 0.0 && log_flag) 
+            lines_sub_intens[i] = log(lines_sub_intens[i]) ;
+    }
+
+    /* Free and return */
+    cpl_bivector_delete(lines) ;
+    return lines_sub ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief  Extract line positions in spectrum
   @param    spectrum        Input spectrum
   @param    spectrum_err    Input spectrum error
@@ -607,17 +942,17 @@ cpl_polynomial * cr2res_wave_xcorr(
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_wave_extract_lines(
-    cpl_bivector    *   spectrum,
-    cpl_bivector    *   spectrum_err,
-    cpl_polynomial  *   wavesol_init,
-    const cpl_array *   wave_error_init,
-    cpl_bivector    *   lines_list,
-    int                 display,
-    cpl_matrix      **  px,
-    cpl_vector      **  py,
-    cpl_vector      **  sigma_py,
-    cpl_vector      **  heights,
-    cpl_vector      **  fit_error)
+        cpl_bivector    *   spectrum,
+        cpl_bivector    *   spectrum_err,
+        cpl_polynomial  *   wavesol_init,
+        const cpl_array *   wave_error_init,
+        cpl_bivector    *   lines_list,
+        int                 display,
+        cpl_matrix      **  px,
+        cpl_vector      **  py,
+        cpl_vector      **  sigma_py,
+        cpl_vector      **  heights,
+        cpl_vector      **  fit_error)
 {
 
     /* Check Entries */
@@ -874,6 +1209,10 @@ static int cr2res_wave_extract_lines(
 }
 
 /*----------------------------------------------------------------------------*/
+/*-------------------   LINES FITTING  METHODS   -----------------------------*/
+/*----------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
 /**
   @brief    Compute the wavelength polynomial based on a line spectrum
             and a reference catalog by finding lines and fitting
@@ -898,7 +1237,7 @@ static int cr2res_wave_extract_lines(
   The returned polynomial must be deallocated with cpl_polynomial_delete()
  */
 /*----------------------------------------------------------------------------*/
-cpl_polynomial * cr2res_wave_line_fitting(
+static cpl_polynomial * cr2res_wave_line_fitting(
         cpl_bivector    *   spectrum,
         cpl_bivector    *   spectrum_err,
         cpl_polynomial  *   wavesol_init,
@@ -1015,486 +1354,6 @@ cpl_polynomial * cr2res_wave_line_fitting(
     }
     return result;
 }
-/*----------------------------------------------------------------------------*/
-/**
-  @brief   Find solution from etalon
-  @param    spectrum        Input spectrum: etalon
-  @param    wavesol_init   Starting wavelength solution
-  @param    wavelength_error    [out] array of wave_mean_error, wave_max_error
-  @return  Wavelength solution, i.e. polynomial that translates pixel
-            values to wavelength.
-
-    This function uses the intrinsic property of the etalon spectrum,
-    that the lines are *supposed* to be equi-spaced, to refine the wavelength
-    solution. The input solution needs to be good enough for the zero-point
-    since the etalon spectrum carries no information about the absolute
-    wavelength scale.
-
-    The method involves these steps:
-    * Identify lines (thresholding)
-    * Determine line centers (gauss fit)
-    * Subtract x-coods from subsequent lines, i.e. measure d many times
-        d is the distance between fringes in pixels, assumed to be constant
-    * Determine mis-counts in fringes, by looking at outliers in d-distribution,
-        re-count with e.g. half-distance between two fringes, if one is missing.
-    * Fit the d-distibution to determine "true d"
-    * Use d to calculate new x-coodinates, use input-solution to translate to
-        wavelength
-    * Fit measured x-coords to new lamdas to get new solution.
- */
-/*----------------------------------------------------------------------------*/
-cpl_polynomial * cr2res_wave_etalon(
-        cpl_bivector    *   spectrum,
-        cpl_bivector    *   spectrum_err,
-        cpl_polynomial  *   wavesol_init,
-        int                 degree,
-        cpl_array       **  wavelength_error)
-{
-    cpl_bivector *  is_should;
-    cpl_vector  *   xi;
-    cpl_vector  *   li;
-    // cpl_vector  *   mi;
-    cpl_vector  *   li_true;
-    cpl_matrix  *   px;
-    cpl_polynomial * result;
-	double			l0, trueD;
-    int             nxi, i, npeaks;
-
-    if (spectrum == NULL | spectrum_err == NULL | 
-        wavesol_init == NULL | degree < 0 | wavelength_error == NULL) return NULL;
-
-    // Find etalon peaks xi in spectrum
-    // TODO: Use Spectrum Error
-    xi = cr2res_wave_etalon_measure_fringes(
-            cpl_bivector_get_y(spectrum)); 
-    nxi=cpl_vector_get_size(xi);
-
-    /* apply initial solution to get wavelength li at each point xi*/
-    li = cr2res_polynomial_eval_vector(wavesol_init, xi);
-
-    /* Calculate delta lambda between peaks */
-	trueD = cr2res_wave_etalon_get_D(li);
-    cpl_msg_debug(__func__,"trueD: %e", trueD);
-
-    /* Set vector with correct wavelength values */
-    // expected number of peaks (+2 just to be sure)
-    npeaks = (cpl_vector_get(li, nxi-1) - l0) / trueD + 2;
-    li_true = cpl_vector_new(npeaks);
-    for (i=0; i<npeaks; i++) {
-        cpl_vector_set(li_true, i,l0 + (trueD*i));
-    }
-
-    // For each peak find the closest expected wavelength value
-    is_should = cr2res_wave_etalon_assign_fringes(li, li_true);
-
-    // polynomial fit to points, xi, li
-    px = cpl_matrix_wrap(nxi, 1, cpl_vector_get_data(xi));
-    result = cr2res_wave_polyfit_1d(px, cpl_bivector_get_y(is_should), NULL, 
-                degree, wavesol_init, wavelength_error, NULL, NULL);
-
-    cpl_matrix_unwrap(px);
-    cpl_vector_delete(li_true);
-
-    cpl_bivector_delete(is_should);
-    cpl_vector_delete(xi);
-    cpl_vector_delete(li);
-
-    return result;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief Associate found fringes with the best "should"-value
-  @param
-  @return
- */
-/*----------------------------------------------------------------------------*/
-
-cpl_bivector * cr2res_wave_etalon_assign_fringes(
-            const cpl_vector      * li,
-            const cpl_vector      * li_true)
-{
-    int i, j, n;
-    int * best_idx;
-    double x,y;
-    cpl_bivector * is_should;
-    cpl_vector * is;
-    cpl_vector * should;
-
-    n = cpl_vector_get_size(li);
-    is_should = cpl_bivector_new(n);
-    is = cpl_bivector_get_x(is_should);
-    should = cpl_bivector_get_y(is_should);
-    for (i=0; i<n; i++) {
-        x = cpl_vector_get(li, i);
-        j = cpl_vector_find(li_true, x);
-        cpl_vector_set(is, i, x);
-        cpl_vector_set(should, i, cpl_vector_get(li_true, j));
-    }
-    return is_should;
-}
-/*----------------------------------------------------------------------------*/
-/**
-  @brief Find x0
-  @param
-  @return
- */
-/*----------------------------------------------------------------------------*/
-
-double cr2res_wave_etalon_get_x0(
-            cpl_vector      * xi,
-            cpl_polynomial  * wavesol_init)
-{
-    double x0, D;
-    cpl_vector * li;
-    cpl_vector * xs;
-    int i, n;
-
-    li = cr2res_polynomial_eval_vector(wavesol_init, xi);
-    D = cr2res_wave_etalon_get_D(li);
-
-    n = cpl_vector_get_size(xi);
-    for (i=0; i<n; i++) {
-        cpl_vector_set(xs, i, cpl_vector_get(li,i)-(i*D) );
-    }
-
-    x0 = cpl_vector_get_median(xs);
-
-    cpl_vector_delete(li);
-    cpl_vector_delete(xs);
-    return x0;
-}
-/*----------------------------------------------------------------------------*/
-/**
-  @brief Find the true D from fringe statistics
-  @param
-  @return
- */
-/*----------------------------------------------------------------------------*/
-
-double cr2res_wave_etalon_get_D(
-            cpl_vector      * li)
-{
-	int				i;
-	cpl_size		nxi;
-    double      	trueD=-1.0;
-	cpl_vector	*	diffs;
-
-	nxi = cpl_vector_get_size(li);
-	diffs = cpl_vector_new(nxi-1);
-	for (i=1; i<nxi; i++){
-		cpl_vector_set(diffs,i-1,
-			cpl_vector_get(li,i) - cpl_vector_get(li,i-1) );
-	}
-
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
-        cpl_table   *   tab;
-        tab = cpl_table_new(nxi-1);
-        cpl_table_new_column(tab, "wavediff", CPL_TYPE_DOUBLE) ;
-        for(i=0; i<nxi-1; i++) {
-            cpl_table_set_double(tab, "wavediff", i, cpl_vector_get(diffs, i));
-        }
-
-        if ( cpl_table_save(tab, NULL, NULL, "debug_wavediffs.fits",
-                CPL_IO_EXTEND) == CPL_ERROR_FILE_NOT_FOUND) {
-            cpl_error_reset() ;
-            cpl_table_save(tab, NULL, NULL, "debug_wavediffs.fits",
-                                CPL_IO_CREATE);
-        }
-        cpl_table_delete(tab);
-    }
-
-    trueD = cpl_vector_get_median(diffs);
-	cpl_vector_delete(diffs);
-    return trueD;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief Identify and fit etalon lines
-  @param spectrum The input spectrum vector
-  @return Vector with the fitted peak positions, in pixels.
-
-  The peak positions start with 1 for the first pixel !!
-    TODO : Add unit test with an atificial vector
- */
-/*----------------------------------------------------------------------------*/
-cpl_vector * cr2res_wave_etalon_measure_fringes(
-            cpl_vector * spectrum)
-{
-    cpl_array   *   peaks;
-    cpl_vector  *   peak_vec;
-    cpl_vector  *   spec_thresh;
-    cpl_vector  *   cur_peak;
-    cpl_vector  *   X_all, *X_peak;
-    int             i, j, k ;
-    int             numD = 0 ;
-    int             smooth = 35 ;   // TODO: make free parameter?
-                                    // interfringe ~30 in Y, ~70 in K
-    double          thresh = 1.0 ;   // TODO: derive from read-out noise
-    int             max_num_peaks = 256 ;
-    int             max_len_peak = 256 ;
-    int             min_len_peak = 5 ; //TODO: tweak or make parameter?;
-    cpl_size        nx ;
-    double          spec_i;
-    double          prev_peak;
-    double          x0, sigma, area, offset;
-
-    nx = cpl_vector_get_size(spectrum) ;
-    spec_thresh = cr2res_threshold_spec(spectrum, smooth, thresh) ;
-    //cpl_plot_vector("", "w lines", "", spec_thresh) ;
-
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_vector_save(spec_thresh, "debug_thresh.fits", CPL_TYPE_DOUBLE,
-                NULL, CPL_IO_CREATE);
-        cpl_vector_save(spectrum, "debug_spectrum.fits", CPL_TYPE_DOUBLE,
-                NULL, CPL_IO_CREATE);
-    }
-
-    /*Output array, values are invalid until set.*/
-    peaks = cpl_array_new(max_num_peaks, CPL_TYPE_DOUBLE);
-
-    /* X-axis to cut out from for each peak */
-    X_all = cpl_vector_new(nx);
-    for (i=0; i<nx; i++) cpl_vector_set(X_all, i, (double)i+1) ;
-
-    for (i=0; i < nx; i++){
-        j = 0;
-        while ( (spec_i = cpl_vector_get(spec_thresh, i)) > -1 ) {
-            j++;
-            i++;
-        }
-        if (j < min_len_peak) continue;
-        // cpl_msg_debug(__func__, "Peak length j=%d at i=%d",j,i);
-        cur_peak = cpl_vector_extract(spec_thresh, i-j, i, 1) ;
-        X_peak = cpl_vector_extract(X_all, i-j, i, 1) ;
-
-        if (cpl_vector_fit_gaussian(X_peak, NULL, cur_peak, NULL, CPL_FIT_ALL,
-                                &x0, &sigma, &area, &offset,
-                                NULL,NULL,NULL) != CPL_ERROR_NONE ) {
-            cpl_msg_warning(__func__, "Fit at j=%d i=%d failed",j,i);
-            cpl_vector_delete(cur_peak);
-            cpl_vector_delete(X_peak);
-            cpl_error_reset();
-            continue;
-        }
-
-        //cpl_msg_debug(__func__,"Fit: %.2f, %.2f, %.2f, %.2f",
-        //                            x0, sigma, area, offset);
-        if ((k = cpl_array_count_invalid(peaks)) <1)
-            cpl_msg_error(__func__,"Output array overflow!");
-        //cpl_msg_debug(__func__,"k=%d, x0=%g",k,x0);
-        cpl_array_set_double(peaks, max_num_peaks - k, x0);
-
-        cpl_vector_delete(cur_peak);
-        cpl_vector_delete(X_peak);
-    }
-
-    /* Copy into output array */
-    k = max_num_peaks - cpl_array_count_invalid(peaks);
-    peak_vec = cpl_vector_new(k) ;
-    for (i=0; i<k; i++)
-        cpl_vector_set(peak_vec, i, cpl_array_get(peaks, i, NULL) );
-
-    cpl_vector_delete(spec_thresh) ;
-    cpl_vector_delete(X_all) ;
-    cpl_array_delete(peaks) ;
-    return peak_vec;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Load the emission lines in a bivector
-  @param    catalog         The catalog file
-  @param    wavesol_init   The wavelength polynomial
-  @param    wl_error        Max error in nm of the initial guess
-  @param    max_intensity   All stronger lines are discarded (OFF if < 0)
-  @param    log_flag        Flag to get the log of the intensity
-  @return   The lines spectrum
- */
-/*----------------------------------------------------------------------------*/
-cpl_bivector * cr2res_wave_gen_lines_spectrum(
-        const char      *   catalog,
-        cpl_polynomial  *   wavesol_init,
-        double              wl_error,
-        double              max_intensity,
-        int                 log_flag)
-{
-    cpl_bivector    *   lines ;
-    cpl_bivector    *   lines_sub ;
-    double          *   lines_sub_wl ;
-    double          *   lines_sub_intens ;
-    double              wl_min, wl_max ;
-    int                 i ;
-
-    /* Check Entries */
-    if (catalog == NULL || wavesol_init == NULL) return NULL ;
-
-    /* Load the lines */
-    lines = cr2res_io_load_EMISSION_LINES(catalog) ;
-
-    /* Extract the needed spectrum */
-    wl_min = cpl_polynomial_eval_1d(wavesol_init, 1, NULL);
-    wl_max = cpl_polynomial_eval_1d(wavesol_init, CR2RES_DETECTOR_SIZE, NULL);
-    lines_sub = irplib_wlxcorr_cat_extract(lines, wl_min-wl_error,
-            wl_max+wl_error) ;
-
-    cpl_msg_debug(__func__, 
-"Extract %"CPL_SIZE_FORMAT" catalog lines in range %g (%g-%g)nm - %g (%g+%g)nm",
-            cpl_bivector_get_size(lines_sub), 
-            wl_min-wl_error, wl_min, wl_error, 
-            wl_max+wl_error, wl_max, wl_error) ;
-
-
-	/* Zero the beginning and the end */
-    lines_sub_wl = cpl_bivector_get_x_data(lines_sub) ;
-    lines_sub_intens = cpl_bivector_get_y_data(lines_sub) ;
-    for (i=0 ; i<cpl_bivector_get_size(lines_sub) ; i++) {
-        if (wl_min > 0)
-            if (lines_sub_wl[i] < wl_min) lines_sub_intens[i] = 0.0 ;
-        if (wl_max > 0)
-            if (lines_sub_wl[i] > wl_max) lines_sub_intens[i] = 0.0 ;
-        if (lines_sub_intens[i] > max_intensity && max_intensity > 0.0) 
-            lines_sub_intens[i] = 0.0 ;
-        if (lines_sub_intens[i] > 0.0 && log_flag) 
-            lines_sub_intens[i] = log(lines_sub_intens[i]) ;
-    }
-
-    /* Free and return */
-    cpl_bivector_delete(lines) ;
-    return lines_sub ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Compute the wavelength polynomial from boundaries
-  @param    wmin    First pixel wavelength
-  @param    wmax    Last pixel wavelength
-  @return   the array with two polynomial coeffs, or NULL in error case
-
-  wmin = poly(1)
-  wmax = poly((CR2RES_DETECTOR_SIZE)
-
-  The returned array must be deallocated with cpl_array_delete()
- */
-/*----------------------------------------------------------------------------*/
-cpl_array * cr2res_wave_get_estimate(
-        const char  *   filename,
-        int             detector,
-        int             order)
-{
-    double                  wmin, wmax, a, b ;
-    cpl_array           *   wl ;
-    cpl_propertylist    *   plist ;
-    int                     wished_ext_nb ;
-
-    /* Check Entries */
-    if (filename == NULL) return NULL ;
-    if (order < 0 || detector <= 0 || detector > CR2RES_NB_DETECTORS)
-        return NULL ;
-
-    /* Load the propertylist */
-    wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
-    plist = cpl_propertylist_load(filename, wished_ext_nb) ;
-
-    /* Get the values for this order */
-    wmin = cr2res_pfits_get_wstrt(plist, order) ;
-    wmax = cr2res_pfits_get_wend(plist, order) ;
-    cpl_propertylist_delete(plist) ;
-    if (cpl_error_get_code() != CPL_ERROR_NONE) {
-        cpl_msg_error(__func__,
-                "Cannot get WSTRT/WEND from header for Detector %d / Order %d",
-                detector, order) ;
-        return NULL ;
-    }
-
-    /* Compute polynomial coefficients */
-    b = (wmax - wmin) / (CR2RES_DETECTOR_SIZE-1) ;
-    a = wmin - b ;
-
-    /* Create the array */
-    wl = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
-    cpl_array_set(wl, 0, a) ;
-    cpl_array_set(wl, 1, b) ;
-    return wl ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Compute the wavelength map from the trace_wave table
-  @param    trace_wave      The trace wave table
-  @return   the wave_map image or NULL in error case
-
-  The returned image must be deallocated with hdrl_image_delete()
- */
-/*----------------------------------------------------------------------------*/
-hdrl_image * cr2res_wave_gen_wave_map(
-        const cpl_table *   trace_wave)
-{
-    hdrl_image      *   out ;
-    cpl_image       *   out_ima ;
-    double          *   pout_ima ;
-    const cpl_array *   tmp_array ;
-    cpl_polynomial  *   wave_poly ;
-    cpl_polynomial  *   upper_poly ;
-    cpl_polynomial  *   lower_poly ;
-    double              upper_pos, lower_pos, wavelength ;
-    cpl_size            i, j, k, nrows, nx, ny ;
-
-    /* Check Entries */
-    if (trace_wave == NULL) return NULL ;
-
-    /* Initialise */
-    nrows = cpl_table_get_nrow(trace_wave) ;
-
-    /* Create the image */
-    out = hdrl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE) ;
-    out_ima = hdrl_image_get_image(out) ;
-    nx = cpl_image_get_size_x(out_ima) ;
-    ny = cpl_image_get_size_y(out_ima) ;
-    pout_ima = cpl_image_get_data_double(out_ima) ;
-
-    /* Loop on the traces */
-    for (k=0 ; k<nrows ; k++) {
-        /* Check if there is a Wavelength Polynomial available */
-        tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, k) ;
-        wave_poly = cr2res_convert_array_to_poly(tmp_array) ;
-        if (wave_poly != NULL) {
-            /* Get the Upper Polynomial */
-            tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_UPPER, k) ;
-            upper_poly = cr2res_convert_array_to_poly(tmp_array) ;
-
-            /* Get the Lower Polynomial */
-            tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_LOWER, k) ;
-            lower_poly = cr2res_convert_array_to_poly(tmp_array) ;
-
-            /* Check if all Polynomials are available */
-            if (upper_poly == NULL || lower_poly == NULL) {
-                if (upper_poly != NULL) cpl_polynomial_delete(upper_poly) ;
-                if (lower_poly != NULL) cpl_polynomial_delete(lower_poly) ;
-                cpl_msg_warning(__func__, "Cannot get UPPER/LOWER information");
-                cpl_polynomial_delete(wave_poly) ;
-                continue ;
-            }
-
-            /* Set the Pixels in the trace */
-            for (i=0 ; i<nx ; i++) {
-                upper_pos = cpl_polynomial_eval_1d(upper_poly, i+1, NULL) ;
-                lower_pos = cpl_polynomial_eval_1d(lower_poly, i+1, NULL) ;
-                wavelength = cpl_polynomial_eval_1d(wave_poly, i+1, NULL) ;
-                for (j=0 ; j<ny ; j++) {
-                    if (j+1 >= lower_pos && j+1 <= upper_pos)
-                        pout_ima[i+j*nx] = wavelength ;
-                }
-            }
-            cpl_polynomial_delete(wave_poly) ;
-            cpl_polynomial_delete(upper_poly) ;
-            cpl_polynomial_delete(lower_poly) ;
-        }
-    }
-    return out ;
-}
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -1596,8 +1455,6 @@ static cpl_polynomial * cr2res_wave_polyfit_1d(
             cpl_vector_delete(diff);
         }
     }
-
-
     cpl_free(pia);
     cpl_vector_delete(pa);
 
@@ -1689,7 +1546,6 @@ static int cr2res_gauss(const double x[], const double a[], double *result)
 
 /*----------------------------------------------------------------------------*/
 /**
-   @internal
    @brief   Evaluate the derivatives of a gaussian
    @param   x             The evaluation point
    @param   a             The parameters defining the gaussian
@@ -1749,4 +1605,206 @@ static int cr2res_gauss_derivative(const double x[], const double a[], double re
     return 0;
 }
 
-/**@}*/
+/*----------------------------------------------------------------------------*/
+/*-------------------   ETALON RELATED METHODS   -----------------------------*/
+/*----------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Associate found fringes with the best "should"-value
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_bivector * cr2res_wave_etalon_assign_fringes(
+        const cpl_vector      * li,
+        const cpl_vector      * li_true)
+{
+    int i, j, n;
+    int * best_idx;
+    double x,y;
+    cpl_bivector * is_should;
+    cpl_vector * is;
+    cpl_vector * should;
+
+    n = cpl_vector_get_size(li);
+    is_should = cpl_bivector_new(n);
+    is = cpl_bivector_get_x(is_should);
+    should = cpl_bivector_get_y(is_should);
+    for (i=0; i<n; i++) {
+        x = cpl_vector_get(li, i);
+        j = cpl_vector_find(li_true, x);
+        cpl_vector_set(is, i, x);
+        cpl_vector_set(should, i, cpl_vector_get(li_true, j));
+    }
+    return is_should;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Find x0
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+static double cr2res_wave_etalon_get_x0(
+        cpl_vector      * xi,
+        cpl_polynomial  * wavesol_init)
+{
+    double x0, D;
+    cpl_vector * li;
+    cpl_vector * xs;
+    int i, n;
+
+    li = cr2res_polynomial_eval_vector(wavesol_init, xi);
+    D = cr2res_wave_etalon_get_D(li);
+
+    n = cpl_vector_get_size(xi);
+    for (i=0; i<n; i++) {
+        cpl_vector_set(xs, i, cpl_vector_get(li,i)-(i*D) );
+    }
+
+    x0 = cpl_vector_get_median(xs);
+
+    cpl_vector_delete(li);
+    cpl_vector_delete(xs);
+    return x0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Find the true D from fringe statistics
+  @param
+  @return
+ */
+/*----------------------------------------------------------------------------*/
+static double cr2res_wave_etalon_get_D(
+        cpl_vector      * li)
+{
+	int				i;
+	cpl_size		nxi;
+    double      	trueD=-1.0;
+	cpl_vector	*	diffs;
+
+	nxi = cpl_vector_get_size(li);
+	diffs = cpl_vector_new(nxi-1);
+	for (i=1; i<nxi; i++){
+		cpl_vector_set(diffs,i-1,
+			cpl_vector_get(li,i) - cpl_vector_get(li,i-1) );
+	}
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+        cpl_table   *   tab;
+        tab = cpl_table_new(nxi-1);
+        cpl_table_new_column(tab, "wavediff", CPL_TYPE_DOUBLE) ;
+        for(i=0; i<nxi-1; i++) {
+            cpl_table_set_double(tab, "wavediff", i, cpl_vector_get(diffs, i));
+        }
+
+        if ( cpl_table_save(tab, NULL, NULL, "debug_wavediffs.fits",
+                CPL_IO_EXTEND) == CPL_ERROR_FILE_NOT_FOUND) {
+            cpl_error_reset() ;
+            cpl_table_save(tab, NULL, NULL, "debug_wavediffs.fits",
+                                CPL_IO_CREATE);
+        }
+        cpl_table_delete(tab);
+    }
+
+    trueD = cpl_vector_get_median(diffs);
+	cpl_vector_delete(diffs);
+    return trueD;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Identify and fit etalon lines
+  @param spectrum The input spectrum vector
+  @return Vector with the fitted peak positions, in pixels.
+
+  The peak positions start with 1 for the first pixel !!
+    TODO : Add unit test with an atificial vector
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_vector * cr2res_wave_etalon_measure_fringes(
+        cpl_vector * spectrum)
+{
+    cpl_array   *   peaks;
+    cpl_vector  *   peak_vec;
+    cpl_vector  *   spec_thresh;
+    cpl_vector  *   cur_peak;
+    cpl_vector  *   X_all, *X_peak;
+    int             i, j, k ;
+    int             numD = 0 ;
+    int             smooth = 35 ;   // TODO: make free parameter?
+                                    // interfringe ~30 in Y, ~70 in K
+    double          thresh = 1.0 ;   // TODO: derive from read-out noise
+    int             max_num_peaks = 256 ;
+    int             max_len_peak = 256 ;
+    int             min_len_peak = 5 ; //TODO: tweak or make parameter?;
+    cpl_size        nx ;
+    double          spec_i;
+    double          prev_peak;
+    double          x0, sigma, area, offset;
+
+    nx = cpl_vector_get_size(spectrum) ;
+    spec_thresh = cr2res_threshold_spec(spectrum, smooth, thresh) ;
+    //cpl_plot_vector("", "w lines", "", spec_thresh) ;
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_vector_save(spec_thresh, "debug_thresh.fits", CPL_TYPE_DOUBLE,
+                NULL, CPL_IO_CREATE);
+        cpl_vector_save(spectrum, "debug_spectrum.fits", CPL_TYPE_DOUBLE,
+                NULL, CPL_IO_CREATE);
+    }
+
+    /*Output array, values are invalid until set.*/
+    peaks = cpl_array_new(max_num_peaks, CPL_TYPE_DOUBLE);
+
+    /* X-axis to cut out from for each peak */
+    X_all = cpl_vector_new(nx);
+    for (i=0; i<nx; i++) cpl_vector_set(X_all, i, (double)i+1) ;
+
+    for (i=0; i < nx; i++){
+        j = 0;
+        while ( (spec_i = cpl_vector_get(spec_thresh, i)) > -1 ) {
+            j++;
+            i++;
+        }
+        if (j < min_len_peak) continue;
+        // cpl_msg_debug(__func__, "Peak length j=%d at i=%d",j,i);
+        cur_peak = cpl_vector_extract(spec_thresh, i-j, i, 1) ;
+        X_peak = cpl_vector_extract(X_all, i-j, i, 1) ;
+
+        if (cpl_vector_fit_gaussian(X_peak, NULL, cur_peak, NULL, CPL_FIT_ALL,
+                                &x0, &sigma, &area, &offset,
+                                NULL,NULL,NULL) != CPL_ERROR_NONE ) {
+            cpl_msg_warning(__func__, "Fit at j=%d i=%d failed",j,i);
+            cpl_vector_delete(cur_peak);
+            cpl_vector_delete(X_peak);
+            cpl_error_reset();
+            continue;
+        }
+
+        //cpl_msg_debug(__func__,"Fit: %.2f, %.2f, %.2f, %.2f",
+        //                            x0, sigma, area, offset);
+        if ((k = cpl_array_count_invalid(peaks)) <1)
+            cpl_msg_error(__func__,"Output array overflow!");
+        //cpl_msg_debug(__func__,"k=%d, x0=%g",k,x0);
+        cpl_array_set_double(peaks, max_num_peaks - k, x0);
+
+        cpl_vector_delete(cur_peak);
+        cpl_vector_delete(X_peak);
+    }
+
+    /* Copy into output array */
+    k = max_num_peaks - cpl_array_count_invalid(peaks);
+    peak_vec = cpl_vector_new(k) ;
+    for (i=0; i<k; i++)
+        cpl_vector_set(peak_vec, i, cpl_array_get(peaks, i, NULL) );
+
+    cpl_vector_delete(spec_thresh) ;
+    cpl_vector_delete(X_all) ;
+    cpl_array_delete(peaks) ;
+    return peak_vec;
+}
+
