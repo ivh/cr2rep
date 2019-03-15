@@ -210,41 +210,41 @@ static void test_cr2res_wave_line_fitting()
 
     // bad inputs
     wavelength = cr2res_wave_line_fitting(NULL, spectrum_err, initial_guess, 
-        wave_error_init, linelist, degree, display, &sigma_fit, &wavelength_error);
+        wave_error_init, linelist, degree, display, &sigma_fit, &wavelength_error, NULL);
     cpl_test_null(wavelength);
     
     wavelength = cr2res_wave_line_fitting(spectrum, NULL, initial_guess,
-        wave_error_init, linelist, degree, display, &sigma_fit, &wavelength_error);
+        wave_error_init, linelist, degree, display, &sigma_fit, &wavelength_error, NULL);
     cpl_test_null(wavelength);
 
     wavelength = cr2res_wave_line_fitting(spectrum, spectrum_err, NULL,
-        wave_error_init, linelist, degree, display, &sigma_fit, &wavelength_error);
+        wave_error_init, linelist, degree, display, &sigma_fit, &wavelength_error, NULL);
     cpl_test_null(wavelength);
 
     wavelength = cr2res_wave_line_fitting(spectrum, spectrum_err, initial_guess,
-        NULL, linelist, degree, display, &sigma_fit, &wavelength_error);
+        NULL, linelist, degree, display, &sigma_fit, &wavelength_error, NULL);
     cpl_test_null(wavelength);
 
     wavelength = cr2res_wave_line_fitting(spectrum, spectrum_err, initial_guess,
-        wave_error_init, NULL, degree, display, &sigma_fit, &wavelength_error);
+        wave_error_init, NULL, degree, display, &sigma_fit, &wavelength_error, NULL);
     cpl_test_null(wavelength);
 
     // optional NULL inputs
     wavelength = cr2res_wave_line_fitting(spectrum, spectrum_err, initial_guess,
-        wave_error_init, linelist, degree, display, NULL, NULL);
+        wave_error_init, linelist, degree, display, NULL, NULL, NULL);
     cpl_test_nonnull(wavelength);
     cpl_polynomial_delete(wavelength);
 
     // to many polynomial degrees
     wavelength = cr2res_wave_line_fitting(spectrum, spectrum_err, initial_guess,
-        wave_error_init, linelist, 5, display, &sigma_fit, &wavelength_error);
+        wave_error_init, linelist, 5, display, &sigma_fit, &wavelength_error, NULL);
 
     cpl_test_null(wavelength);
     cpl_test_nonnull(sigma_fit);
     cpl_test_nonnull(wavelength_error);
 
     // regular run
-    wavelength = cr2res_wave_line_fitting(spectrum, spectrum_err, initial_guess, wave_error_init, linelist, degree, display, &sigma_fit, &wavelength_error);
+    wavelength = cr2res_wave_line_fitting(spectrum, spectrum_err, initial_guess, wave_error_init, linelist, degree, display, &sigma_fit, &wavelength_error, NULL);
 
     cpl_test_nonnull(wavelength);
     cpl_test_nonnull(sigma_fit);
