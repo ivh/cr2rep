@@ -104,6 +104,11 @@ cpl_array * cr2res_wave_get_estimate(
 hdrl_image * cr2res_wave_gen_wave_map(
         const cpl_table *   trace_wave) ;
 
+cpl_polynomial * cr2res_wave_polys_1d_to_2d(
+        cpl_polynomial  **  poly_1ds,
+        int             *   orders,
+        int                 npolys) ;
+
 cpl_polynomial * cr2res_wave_poly_2d_to_1d(
         cpl_polynomial  *   poly_2d,
         int                 order) ;

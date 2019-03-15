@@ -840,9 +840,34 @@ hdrl_image * cr2res_wave_gen_wave_map(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load the emission lines in a bivector
-  @param poly_2d    The 2d polynomial (order, lambda)
-  @param order      The order where the 1d polynomial is to be computed    
+  @brief    Create a 2D Wavelength Polynomial out of a several 1D ones
+  @param    poly_1ds    List of 1d wavelength polynomials
+  @param    orders      List of the order values
+  @param    npolys      Number of passed polynomials
+  @return   The newly allocated 2D polynomial or NULL in error case
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_wave_polys_1d_to_2d(
+        cpl_polynomial  **  poly_1ds,
+        int             *   orders,
+        int                 npolys) 
+{
+    cpl_polynomial  *   out ;
+ 
+    /* Check Entries */
+    if (poly_1ds == NULL || orders == NULL) return NULL ;
+    if (npolys <= 0) return NULL ;
+
+    /* TODO */
+
+    return NULL ;
+} 
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Create a 1D Wavelength Polynomial out of a 2D one 
+  @param    poly_2d     The 2d polynomial (order, lambda)
+  @param    order       The order where the 1d polynomial is to be computed    
   @return   The newly allocated 1d polynomial or NULL in error case
  */
 /*----------------------------------------------------------------------------*/
