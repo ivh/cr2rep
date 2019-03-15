@@ -80,7 +80,7 @@ static int cr2res_obs_pol(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_obs_pol_description[] =
-"CRIRES+ 1d Observation recipe\n"
+"CRIRES+ Polarimetry recipe\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
 "raw-file.fits " CR2RES_OBS_POL_RAW"\n"
 "detlin.fits " CR2RES_DETLIN_COEFFS_PROTYPE "\n"

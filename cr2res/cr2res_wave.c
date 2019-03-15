@@ -626,7 +626,7 @@ static int cr2res_wave_extract_lines(
     }
 
     cpl_size power = 1;
-    int window_size = 500;
+    int window_size = CR2RES_WAVELENGTH_MIN_FIT_PIX;
 
     /* set window_size using the wave_error_init, scaled by the initial guess */
     if (wave_error_init != NULL)
@@ -634,6 +634,9 @@ static int cr2res_wave_extract_lines(
             window_size = ceil(cpl_array_get_double(wave_error_init, 1,
                 NULL) / fabs(cpl_polynomial_get_coeff(wavesol_init, &power)));
         }
+    
+    if (window_size < CR2RES_WAVELENGTH_MIN_FIT_PIX)
+        window_size = CR2RES_WAVELENGTH_MIN_FIT_PIX;
     cpl_msg_debug(__func__, "Using window size %d pix.", window_size);
 
     cpl_size i, j, k, ngood, spec_size, npossible;
