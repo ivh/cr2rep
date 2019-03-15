@@ -46,12 +46,12 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static int poly(const double x[], const double a[], double * result) ;
-static int deriv_poly(const double x[], const double a[], double * result) ;
-static int gauss(const double x[], const double a[], double * result) ;
-static int gauss_derivative(const double x[], const double a[], 
+static int cr2res_poly(const double x[], const double a[], double * result) ;
+static int cr2res_deriv_poly(const double x[], const double a[], double * result) ;
+static int cr2res_gauss(const double x[], const double a[], double * result) ;
+static int cr2res_gauss_derivative(const double x[], const double a[], 
         double * result) ;
-static cpl_polynomial  * polyfit_1d(
+cpl_polynomial  * cr2res_wave_polyfit_1d(
     cpl_matrix  * px, 
     cpl_vector  * py,
     cpl_vector  * sigma_py,
@@ -342,6 +342,12 @@ cpl_polynomial * cr2res_wave_2d(
         cpl_vector_delete(fit_errors);
     }
     cpl_bivector_delete(catalog_spec) ;
+
+    if (px == NULL){
+        // No orders ran succesfully
+        cpl_msg_error(__func__, "No lines could be extracted in any order");
+        return NULL;
+    }
 
     if (px == NULL){
         // No orders ran succesfully
@@ -754,7 +760,7 @@ static int cr2res_wave_extract_lines(
         cpl_vector_set(a, 2, cpl_vector_get_max(y) - cpl_vector_get_min(y));
         cpl_vector_set(a, 3, cpl_vector_get_min(y));
 
-        error = cpl_fit_lvmq(x, sigma_x, y, sigma_y, a, ia, &gauss, &gauss_derivative,
+        error = cpl_fit_lvmq(x, sigma_x, y, sigma_y, a, ia, &cr2res_gauss, &cr2res_gauss_derivative,
                         CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT,
                         CPL_FIT_LVMQ_MAXITER, NULL, &red_chisq, NULL);
 
@@ -799,7 +805,7 @@ static int cr2res_wave_extract_lines(
 
             for (j = 0; j < window_size; j++){
                 dbl = cpl_matrix_get(x, j, 0);
-                gauss(&dbl, cpl_vector_get_data_const(a), &res);
+                cr2res_gauss(&dbl, cpl_vector_get_data_const(a), &res);
                 cpl_vector_set(fit, j, res);
                 // dbl = cpl_polynomial_eval_1d(wavesol_init, dbl, NULL);
                 cpl_vector_set(fit_x, j, dbl);
@@ -971,7 +977,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
     }
 
     // fit polynomial to data points
-    result = polyfit_1d(px, py, sigma_py, degree, wavesol_init, 
+    result = cr2res_wave_polyfit_1d(px, py, sigma_py, degree, wavesol_init, 
             wavelength_error, sigma_fit, &cov);
 
     if (display){
@@ -1088,7 +1094,7 @@ cpl_polynomial * cr2res_wave_etalon(
 
     // polynomial fit to points, xi, li
     px = cpl_matrix_wrap(nxi, 1, cpl_vector_get_data(xi));
-    result = polyfit_1d(px, cpl_bivector_get_y(is_should), NULL, 
+    result = cr2res_wave_polyfit_1d(px, cpl_bivector_get_y(is_should), NULL, 
                 degree, wavesol_init, wavelength_error, NULL, NULL);
 
     cpl_matrix_unwrap(px);
@@ -1514,7 +1520,7 @@ hdrl_image * cr2res_wave_gen_wave_map(
   The returned polynomial must be deallocated with cpl_polynomial_delete()
  */
 /*----------------------------------------------------------------------------*/
-static cpl_polynomial * polyfit_1d(
+cpl_polynomial * cr2res_wave_polyfit_1d(
         cpl_matrix * px, 
         cpl_vector * py,
         cpl_vector *sigma_py,
@@ -1552,7 +1558,7 @@ static cpl_polynomial * polyfit_1d(
     // polynomial fit of px, py
     // with px: line pixel, py: line wavelength
     // I would use cpl_polynomial_fit, but that does not support error estimation
-    error = cpl_fit_lvmq(px, sigma_px, py, sigma_py, pa, pia, &poly, &deriv_poly,
+    error = cpl_fit_lvmq(px, sigma_px, py, sigma_py, pa, pia, &cr2res_poly, &cr2res_deriv_poly,
                         CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT,
                         CPL_FIT_LVMQ_MAXITER, NULL, NULL, cov);
 
@@ -1611,7 +1617,7 @@ static cpl_polynomial * polyfit_1d(
 }
 
 // Functions for polynomial fit in _wave_catalog()
-static int poly(const double x[], const double a[], double * result)
+static int cr2res_poly(const double x[], const double a[], double * result)
 {
     int j;
     int degree = a[0];
@@ -1625,7 +1631,7 @@ static int poly(const double x[], const double a[], double * result)
     return 0;
 }
 
-static int deriv_poly(const double x[], const double a[], double * result)
+static int cr2res_deriv_poly(const double x[], const double a[], double * result)
 {
     int i, j;
     const double degree = a[0];
@@ -1665,7 +1671,7 @@ static int deriv_poly(const double x[], const double a[], double * result)
 
 */
 /*----------------------------------------------------------------------------*/
-static int gauss(const double x[], const double a[], double *result)
+static int cr2res_gauss(const double x[], const double a[], double *result)
 {
     const double my    = a[0];
     const double sigma = a[1];
@@ -1709,7 +1715,7 @@ static int gauss(const double x[], const double a[], double *result)
 
 */
 /*----------------------------------------------------------------------------*/
-static int gauss_derivative(const double x[], const double a[], double result[])
+static int cr2res_gauss_derivative(const double x[], const double a[], double result[])
 {
 
     if (a[1] != 0.0) {
