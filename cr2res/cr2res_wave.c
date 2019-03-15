@@ -1,5 +1,4 @@
-/*
- * This file is part of the CR2RES Pipeline
+/** This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -47,11 +46,12 @@
  -----------------------------------------------------------------------------*/
 
 static int cr2res_poly(const double x[], const double a[], double * result) ;
-static int cr2res_deriv_poly(const double x[], const double a[], double * result) ;
+static int cr2res_deriv_poly(const double x[], const double a[], 
+        double * result) ;
 static int cr2res_gauss(const double x[], const double a[], double * result) ;
 static int cr2res_gauss_derivative(const double x[], const double a[], 
         double * result) ;
-cpl_polynomial  * cr2res_wave_polyfit_1d(
+static cpl_polynomial  * cr2res_wave_polyfit_1d(
     cpl_matrix  * px, 
     cpl_vector  * py,
     cpl_vector  * sigma_py,
@@ -119,7 +119,7 @@ cpl_polynomial * cr2res_wave_1d(
     cpl_bivector        *   ref_spectrum ;
     cpl_bivector        *   simple_ref_spectrum ;
     const cpl_bivector  **  plot;
-    double                  wl_error_pixels ;
+    double                  wl_error_nm ;
 
     /* Check Inputs */
     if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL)
@@ -129,21 +129,22 @@ cpl_polynomial * cr2res_wave_1d(
 
     /* Initialise */
     solution = NULL ;
-    wl_error_pixels = 100.0 ;
+    wl_error_nm = cpl_array_get_double(wave_error_init, 0, NULL) ;
     *wavelength_error = NULL ;
     *lines_diagnostics = NULL ;
 
     /* Create the lines spectrum from the lines list */
     ref_spectrum = cr2res_wave_gen_lines_spectrum(catalog, wavesol_init,
-            wl_error_pixels, -1.0, log_flag) ;
+            wl_error_nm, -1.0, log_flag) ;
             
     /* Switch on the possible methods */
     if (wavecal_type == CR2RES_XCORR) {
+        /* Currently Hardcoded */
         double slit_width = 2.0 ;
         double fwhm = 2.0 ;
-        int zoom = 5 ;
+        int zoom = 1 ;
         int cleaning_filter_size = 9 ;
-        solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error_pixels,
+        solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error_nm,
                 ref_spectrum, degree, cleaning_filter_size, slit_width, fwhm, 
                 display, wavelength_error) ;
         cpl_table * spc_table = irplib_wlxcorr_gen_spc_table(
@@ -289,7 +290,7 @@ cpl_polynomial * cr2res_wave_2d(
                 cpl_table_set_double(lines_diagnostics_loc,
                         CR2RES_COL_CATALOG_LAMBDA, j, lambda_cat);
                 cpl_table_set_double(lines_diagnostics_loc,
-                        CR2RES_COL_DELTA_LAMBDA,j,fabs(lambda_meas-lambda_cat));
+                        CR2RES_COL_DELTA_LAMBDA, j, lambda_cat-lambda_meas);
                 cpl_table_set_double(lines_diagnostics_loc,
                         CR2RES_COL_MEASURED_PIXEL, j, pix_pos);
                 cpl_table_set_double(lines_diagnostics_loc,
@@ -403,7 +404,7 @@ cpl_polynomial * cr2res_wave_2d(
   @brief  Find solution by cross-correlating template spectrum
   @param spectrum       Input spectrum
   @param wavesol_init   Starting wavelength solution
-  @param wl_error       Max error in pixels of the initial guess
+  @param wl_error       Max error in nm of the initial guess
   @param lines_list     Lines List (flux, wavelengths)
   @param degree         The polynomial degree
   @param cleaning_filter_size   
@@ -436,7 +437,7 @@ cpl_polynomial * cr2res_wave_xcorr(
     double              *   pspec_clean ;
     cpl_vector          *   filtered ;
     cpl_vector          *   xcorrs ;
-    double                  wl_min, wl_max, wl_error_wl, wl_error_pix ;
+    double                  wl_min, wl_max, wl_error_nm, wl_error_pix ;
     double                  xc ;
     int                     i, nsamples, degree_loc ;
 
@@ -490,15 +491,15 @@ cpl_polynomial * cr2res_wave_xcorr(
     /* Pass #1 */
     degree_loc = 2 ;
     nsamples = 100 ;
-    wl_error_pix = wl_error ;
+    wl_error_nm = wl_error ;
     sol_guess = wavesol_init ;
 
-    wl_error_wl = (wl_max-wl_min)*wl_error_pix/CR2RES_DETECTOR_SIZE ;
+    wl_error_pix = CR2RES_DETECTOR_SIZE *wl_error_nm/(wl_max-wl_min) ;
     wl_errors = cpl_vector_new(degree_loc+1) ;
-    cpl_vector_fill(wl_errors, wl_error_wl) ;
+    cpl_vector_fill(wl_errors, wl_error_nm) ;
     cpl_msg_info(__func__,
 "Pass #1 : Degree %d / Error %g nm (%g pix) / %d samples -> %g polynomials",
-        degree_loc,wl_error_wl,wl_error_pix,nsamples,pow(nsamples,
+        degree_loc,wl_error_nm,wl_error_pix,nsamples,pow(nsamples,
             degree_loc+1)) ;
     cpl_msg_indent_more() ;
     if ((sol=irplib_wlxcorr_best_poly(spec_clean, lines_list, degree_loc,
@@ -531,12 +532,6 @@ cpl_polynomial * cr2res_wave_xcorr(
     cpl_msg_debug(__func__, "First Pass correction : %g nm / %g pixels",
             delta_lambda, delta_pix) ;
 
-
-
-
-
-
-
     /* Plot the correlation values */
     if (display) {
         cpl_plot_vector("set grid;", "t 'Correlation values (Pass #1)' w lines",
@@ -548,15 +543,15 @@ cpl_polynomial * cr2res_wave_xcorr(
     /* Pass #2 */
     degree_loc = degree ;
     nsamples = 10 ;
-    wl_error_pix = wl_error/10.0 ;
+    wl_error_nm= wl_error/2 ;
     sol_guess = sol ;
 
-    wl_error_wl = (wl_max-wl_min)*wl_error_pix/CR2RES_DETECTOR_SIZE ;
+    wl_error_pix = CR2RES_DETECTOR_SIZE *wl_error_nm/(wl_max-wl_min) ;
     wl_errors = cpl_vector_new(degree_loc+1) ;
-    cpl_vector_fill(wl_errors, wl_error_wl) ;
+    cpl_vector_fill(wl_errors, wl_error_nm) ;
     cpl_msg_info(__func__,
     "Pass #2 : Degree %d / Error %g nm (%g pix) / %d samples -> %g Polys",
-            degree_loc,wl_error_wl,wl_error_pix,nsamples,
+            degree_loc,wl_error_nm,wl_error_pix,nsamples,
             pow(nsamples,degree_loc+1)) ;
     cpl_msg_indent_more() ;
     if ((sol=irplib_wlxcorr_best_poly(spec_clean, lines_list, degree_loc,
@@ -590,8 +585,8 @@ cpl_polynomial * cr2res_wave_xcorr(
     /* Set teh Wavelength error */
     if (wavelength_error != NULL){
         *wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
-        cpl_array_set_double(*wavelength_error, 0, wl_error_wl) ;
-        cpl_array_set_double(*wavelength_error, 1, wl_error_wl) ;
+        cpl_array_set_double(*wavelength_error, 0, wl_error_nm) ;
+        cpl_array_set_double(*wavelength_error, 1, wl_error_nm) ;
     }
     return sol ;
 }
@@ -964,7 +959,7 @@ cpl_polynomial * cr2res_wave_line_fitting(
             cpl_table_set_double(*lines_diagnostics,
                     CR2RES_COL_CATALOG_LAMBDA, j, lambda_cat) ;
             cpl_table_set_double(*lines_diagnostics,
-                    CR2RES_COL_DELTA_LAMBDA, j, fabs(lambda_cat-lambda_meas)) ;
+                    CR2RES_COL_DELTA_LAMBDA, j, lambda_cat-lambda_meas) ;
             cpl_table_set_double(*lines_diagnostics,
                     CR2RES_COL_MEASURED_PIXEL, j, pix_pos) ;
             cpl_table_set_double(*lines_diagnostics,
@@ -1312,7 +1307,7 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
   @brief    Load the emission lines in a bivector
   @param    catalog         The catalog file
   @param    wavesol_init   The wavelength polynomial
-  @param    wl_error        Max error in pixels of the initial guess
+  @param    wl_error        Max error in nm of the initial guess
   @param    max_intensity   All stronger lines are discarded (OFF if < 0)
   @param    log_flag        Flag to get the log of the intensity
   @return   The lines spectrum
@@ -1329,7 +1324,7 @@ cpl_bivector * cr2res_wave_gen_lines_spectrum(
     cpl_bivector    *   lines_sub ;
     double          *   lines_sub_wl ;
     double          *   lines_sub_intens ;
-    double              wl_error_wl, wl_min, wl_max ;
+    double              wl_min, wl_max ;
     int                 i ;
 
     /* Check Entries */
@@ -1341,15 +1336,14 @@ cpl_bivector * cr2res_wave_gen_lines_spectrum(
     /* Extract the needed spectrum */
     wl_min = cpl_polynomial_eval_1d(wavesol_init, 1, NULL);
     wl_max = cpl_polynomial_eval_1d(wavesol_init, CR2RES_DETECTOR_SIZE, NULL);
-    wl_error_wl = (wl_max-wl_min)*wl_error/CR2RES_DETECTOR_SIZE ;
-    lines_sub = irplib_wlxcorr_cat_extract(lines, wl_min-wl_error_wl,
-            wl_max+wl_error_wl) ;
+    lines_sub = irplib_wlxcorr_cat_extract(lines, wl_min-wl_error,
+            wl_max+wl_error) ;
 
     cpl_msg_debug(__func__, 
 "Extract %"CPL_SIZE_FORMAT" catalog lines in range %g (%g-%g)nm - %g (%g+%g)nm",
             cpl_bivector_get_size(lines_sub), 
-            wl_min-wl_error_wl, wl_min, wl_error_wl, 
-            wl_max+wl_error_wl, wl_max, wl_error_wl) ;
+            wl_min-wl_error, wl_min, wl_error, 
+            wl_max+wl_error, wl_max, wl_error) ;
 
 
 	/* Zero the beginning and the end */
@@ -1520,7 +1514,7 @@ hdrl_image * cr2res_wave_gen_wave_map(
   The returned polynomial must be deallocated with cpl_polynomial_delete()
  */
 /*----------------------------------------------------------------------------*/
-cpl_polynomial * cr2res_wave_polyfit_1d(
+static cpl_polynomial * cr2res_wave_polyfit_1d(
         cpl_matrix * px, 
         cpl_vector * py,
         cpl_vector *sigma_py,

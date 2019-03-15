@@ -197,9 +197,18 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.wl_est",
-            CPL_TYPE_STRING, "Estimated wavelength start and end",
+            CPL_TYPE_STRING, 
+            "Estimated wavelength [start, end] (in nm)",
             "cr2res.cr2res_util_wave", "-1.0, -1.0");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_est");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.wl_err",
+            CPL_TYPE_STRING, 
+            "Estimated wavelength error [start_err, end_err] (in nm)",
+            "cr2res.cr2res_util_wave", "-1.0, -1.0");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_err");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -280,7 +289,7 @@ static int cr2res_util_wave(
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
                             degree, display, log_flag ;
-    double                  wstart, wend, wl_shift ;
+    double                  wstart, wend, wstart_err, wend_err, wl_shift ;
     cpl_frame           *   fr ;
     const char          *   sval ;
     cr2res_wavecal_type     wavecal_type ;
@@ -312,7 +321,7 @@ static int cr2res_util_wave(
 
     /* Initialise */
     wavecal_type = CR2RES_UNSPECIFIED ;
-    wstart = wend = -1.0 ;
+    wstart = wend = wstart_err = wend_err = -1.0 ;
     wl_shift = 0.0 ;
     wl_err_array = NULL ;
     zero = 0 ;
@@ -346,6 +355,12 @@ static int cr2res_util_wave(
             "cr2res.cr2res_util_wave.wl_est");
     sval = cpl_parameter_get_string(param) ;
      if (sscanf(sval, "%lg,%lg", &wstart, &wend) != 2) {
+        return -1 ;
+    }
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_wave.wl_err");
+    sval = cpl_parameter_get_string(param) ;
+     if (sscanf(sval, "%lg,%lg", &wstart_err, &wend_err) != 2) {
         return -1 ;
     }
     param = cpl_parameterlist_find_const(parlist,
@@ -495,9 +510,8 @@ static int cr2res_util_wave(
             }
 
             /* Get the wavelength guess */
-            if (wstart > 0.0 && wend > 0.0) {
+            if (wstart>0.0 && wend>0.0) {
                 wavesol_init[i] = cr2res_wlestimate_compute(wstart, wend) ;
-                wavesol_init_error[i] = NULL;
             } else {
                 if ((wavesol_init[i]=cr2res_get_trace_wave_poly(
                                 out_trace_wave[det_nr-1], CR2RES_COL_WAVELENGTH,
@@ -509,12 +523,19 @@ static int cr2res_util_wave(
                     cpl_msg_indent_less();
                     continue ;
                 }
+            }
+
+            /* Get the wavelength error */
+            if (wstart_err>0.0 && wend_err>0.0) {
+                wavesol_init_error[i] = cpl_array_new(2, CPL_TYPE_DOUBLE);
+                cpl_array_set_double(wavesol_init_error[i], 0, wstart_err) ;
+                cpl_array_set_double(wavesol_init_error[i], 1, wend_err) ;
+            } else {
                 if ((wavesol_init_error[i]=cpl_array_duplicate(
                                 cpl_table_get_array(out_trace_wave[det_nr-1], 
-                                    CR2RES_COL_WAVELENGTH_ERROR, 
-                                    cr2res_get_trace_table_index(
-                                        out_trace_wave[det_nr-1], 
-                                        order, trace_id)))) == NULL) {
+                        CR2RES_COL_WAVELENGTH_ERROR, 
+                        cr2res_get_trace_table_index(out_trace_wave[det_nr-1], 
+                            order, trace_id)))) == NULL) {
                     cpl_msg_error(__func__, "Cannot get the WL ERROR guess") ;
                     cpl_bivector_delete(spectra[i]);
                     cpl_bivector_delete(spectra_err[i]);
