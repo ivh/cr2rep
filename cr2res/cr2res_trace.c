@@ -1051,8 +1051,9 @@ int cr2res_trace_add_extra_columns(
   @return   The newly computed trace 
   @see  cr2res_trace_new_trace()
   
-  For each order in the input tracewave, the function will produce a new row in the output trace table i
-  corresponding to the passed slit fraction, based on all available traces (rows).
+  For each order in the input tracewave, the function will produce a new row 
+  in the output trace table corresponding to the passed slit fraction, based 
+  on all available traces (rows).
 
   - CR2RES_COL_SLIT_FRACTION is filled with the input fraction
   - CR2RES_COL_ORDER and CR2RES_COL_TRACENB are copied from input trace file
@@ -1111,7 +1112,8 @@ cpl_table * cr2res_trace_new_slit_fraction(
         return NULL ;
     }
     if (cpl_array_get_size(new_slit_fraction) != 3){
-        cpl_msg_error(__func__, "New slitfraction must have 3 components (Upper, Middle, Lower)");
+        cpl_msg_error(__func__, 
+            "New slitfraction must have 3 components (Upper, Middle, Lower)");
         return NULL;
     }
 
@@ -1129,9 +1131,10 @@ cpl_table * cr2res_trace_new_slit_fraction(
 
         for(j = 0; j < nb_traces; j++)
         {
-            k = cr2res_get_trace_table_index(traces, orders[i], trace_numbers[j]);
+            k=cr2res_get_trace_table_index(traces, orders[i], trace_numbers[j]);
             /* Check if the input trace slit_fraction is available */
-            slit_frac_old = cpl_table_get_array(traces, CR2RES_COL_SLIT_FRACTION, k) ;
+            slit_frac_old = cpl_table_get_array(traces, 
+                    CR2RES_COL_SLIT_FRACTION, k) ;
             trace_all_old = cpl_table_get_array(traces, CR2RES_COL_ALL, k) ;
             trace_upper_old = cpl_table_get_array(traces, CR2RES_COL_UPPER, k) ;
             trace_lower_old = cpl_table_get_array(traces, CR2RES_COL_LOWER, k) ;
@@ -1151,14 +1154,16 @@ cpl_table * cr2res_trace_new_slit_fraction(
         }
 
         /* Fill slit fraction with the input one */
-        cpl_table_set_array(out, CR2RES_COL_SLIT_FRACTION, i, new_slit_fraction);
+        cpl_table_set_array(out, CR2RES_COL_SLIT_FRACTION, i,new_slit_fraction);
         cpl_table_set_int(out, CR2RES_COL_ORDER, i, orders[i]);
         cpl_table_set_int(out, CR2RES_COL_TRACENB, i, 0);
 
         /* Compute the new trace */
-        if (cr2res_trace_new_trace(slit_frac_old, trace_old, nb_traces, new_slit_fraction, &trace_all_new,
-                &trace_upper_new, &trace_lower_new) == -1) {
-            cpl_msg_warning(__func__, "Cannot compute the new trace for order %i", orders[i]) ;
+        if (cr2res_trace_new_trace(slit_frac_old, trace_old, nb_traces, 
+                    new_slit_fraction, &trace_all_new, &trace_upper_new, 
+                    &trace_lower_new) == -1) {
+            cpl_msg_warning(__func__, 
+                    "Cannot compute the new trace for order %i", orders[i]) ;
             cpl_free(trace_old);
             cpl_free(trace_numbers);
             continue;
@@ -1178,24 +1183,29 @@ cpl_table * cr2res_trace_new_slit_fraction(
         wave_err = cpl_array_duplicate(
                 cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH_ERROR, k)) ; 
 
-        const_slit_curv_a = cpl_table_get_array(traces, CR2RES_COL_SLIT_CURV_A, k) ; 
-        const_slit_curv_b = cpl_table_get_array(traces, CR2RES_COL_SLIT_CURV_B, k) ; 
-        const_slit_curv_c = cpl_table_get_array(traces, CR2RES_COL_SLIT_CURV_C, k) ; 
+        const_slit_curv_a = cpl_table_get_array(traces, CR2RES_COL_SLIT_CURV_A,
+                k) ; 
+        const_slit_curv_b = cpl_table_get_array(traces, CR2RES_COL_SLIT_CURV_B,
+                k) ; 
+        const_slit_curv_c = cpl_table_get_array(traces, CR2RES_COL_SLIT_CURV_C,
+                k) ; 
 
         /* Compute the new wavelength */
-        // Calculate the horizontal pixel shift of the new trace, using the slit curvature
-        // first determine the vertical shift
-        slit_frac_old = cpl_table_get_array(traces, CR2RES_COL_SLIT_FRACTION, k) ;
+        // Calculate the horizontal pixel shift of the new trace, using
+        // the slit curvature first determine the vertical shift
+        slit_frac_old = cpl_table_get_array(traces, CR2RES_COL_SLIT_FRACTION,k);
         trace_lower_old = trace_old[0];
         trace_all_old = trace_old[1];
         trace_upper_old = trace_old[2];
 
         poly_tmp = cr2res_convert_array_to_poly(trace_lower_old);
-        pix_lower = cpl_polynomial_eval_1d(poly_tmp, (double)(CR2RES_DETECTOR_SIZE/2.0), NULL);
+        pix_lower = cpl_polynomial_eval_1d(poly_tmp, 
+                (double)(CR2RES_DETECTOR_SIZE/2.0), NULL);
         cpl_polynomial_delete(poly_tmp);
 
         poly_tmp = cr2res_convert_array_to_poly(trace_upper_old);
-        pix_upper = cpl_polynomial_eval_1d(poly_tmp, (double)(CR2RES_DETECTOR_SIZE/2.0), NULL);
+        pix_upper = cpl_polynomial_eval_1d(poly_tmp, 
+                (double)(CR2RES_DETECTOR_SIZE/2.0), NULL);
         cpl_polynomial_delete(poly_tmp);
 
         sf_lower = cpl_array_get_double(slit_frac_old, 0, NULL);
@@ -1213,13 +1223,16 @@ cpl_table * cr2res_trace_new_slit_fraction(
         c = cpl_polynomial_eval_1d(poly_c, (CR2RES_DETECTOR_SIZE/2) + 1, NULL);
 
         // vertical pixel shift
-        pix_shift = (pix_upper - pix_lower) / (sf_upper - sf_lower) * (sf_all - sf_new);
+        pix_shift = (pix_upper - pix_lower) / 
+            (sf_upper - sf_lower) * (sf_all - sf_new);
         // horizontal pixel shift
-        pix_shift = (a - CR2RES_DETECTOR_SIZE/2. - 1) + b * pix_shift + c * pix_shift * pix_shift;
+        pix_shift = (a - CR2RES_DETECTOR_SIZE/2. - 1) + 
+            b * pix_shift + c * pix_shift * pix_shift;
 
         poly_tmp = cr2res_convert_array_to_poly(const_wave);
         cpl_polynomial_shift_1d(poly_tmp, 0, pix_shift);
-        wave = cr2res_convert_poly_to_array(poly_tmp, cpl_array_get_size(const_wave));
+        wave = cr2res_convert_poly_to_array(poly_tmp, 
+                cpl_array_get_size(const_wave));
         cpl_polynomial_delete(poly_tmp);
 
         /* Compute new Curvature */
@@ -1227,9 +1240,12 @@ cpl_table * cr2res_trace_new_slit_fraction(
         cpl_polynomial_shift_1d(poly_b, 0, pix_shift);
         cpl_polynomial_shift_1d(poly_c, 0, pix_shift);
 
-        slit_curv_a = cr2res_convert_poly_to_array(poly_a, cpl_array_get_size(const_slit_curv_a));
-        slit_curv_b = cr2res_convert_poly_to_array(poly_b, cpl_array_get_size(const_slit_curv_b));
-        slit_curv_c = cr2res_convert_poly_to_array(poly_c, cpl_array_get_size(const_slit_curv_c));
+        slit_curv_a = cr2res_convert_poly_to_array(poly_a, 
+                cpl_array_get_size(const_slit_curv_a));
+        slit_curv_b = cr2res_convert_poly_to_array(poly_b, 
+                cpl_array_get_size(const_slit_curv_b));
+        slit_curv_c = cr2res_convert_poly_to_array(poly_c, 
+                cpl_array_get_size(const_slit_curv_c));
 
         cpl_polynomial_delete(poly_a);
         cpl_polynomial_delete(poly_b);
