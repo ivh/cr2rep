@@ -107,8 +107,11 @@ static char cr2res_cal_flat_description[] =
 "cr2res_cal_flat_blaze.fits " CR2RES_FLAT_EXTRACT_1D_PROCATG "\n"
 "cr2res_cal_flat_slit_model.fits " CR2RES_FLAT_SLIT_MODEL_PROCATG "\n"
 "cr2res_cal_flat_slit_func.fits " CR2RES_FLAT_SLIT_FUNC_PROCATG "\n"
-"cr2res_cal_flat_trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
 "cr2res_cal_flat_master.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG  "\n"
+"cr2res_cal_flat_<Decker>_trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG
+    " (One for each <Decker> position)" "\n"
+"cr2res_cal_flat_trace_wave_merged.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG 
+    " (All traces from different deckers together)" "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
