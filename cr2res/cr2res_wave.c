@@ -182,10 +182,10 @@ cpl_polynomial * cr2res_wave_1d(
                 cpl_bivector_get_y(spectrum), ref_spectrum, slit_width, fwhm,
                 wavesol_init, solution) ;
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
-            if (spc_table != NULL) cpl_table_delete(spc_table) ;
             cpl_error_reset();
         } else if (display && spc_table != NULL)
             irplib_wlxcorr_plot_spc_table(spc_table, "XC", 1, zoom) ;
+        if (spc_table != NULL) cpl_table_delete(spc_table) ;
 
     } else if (wavecal_type == CR2RES_LINE1D) {
         solution = cr2res_wave_line_fitting(spectrum, spectrum_err,
