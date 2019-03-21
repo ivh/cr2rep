@@ -653,11 +653,13 @@ static int cr2res_util_wave(
                                 trace_id, wavecal_type, catalog_file,
                                 degree, log_flag, display, &wl_err_array,
                                 &lines_diagnostics_loc)) == NULL) {
-                    cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
+                    cpl_msg_warning(__func__, "Cannot calibrate in Wavelength") ;
                     cpl_error_reset() ;
                     cpl_msg_indent_less() ;
                     continue ;
                 }
+                cpl_msg_debug(__func__,"Error after cr2res_wave_1d() %s",
+                         cpl_error_get_where());
 
                 /* Merge the lines_diagnostics */
 				if (lines_diagnostics[det_nr-1] == NULL) {
