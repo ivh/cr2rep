@@ -108,9 +108,9 @@ static char cr2res_cal_flat_description[] =
 "cr2res_cal_flat_slit_model.fits " CR2RES_FLAT_SLIT_MODEL_PROCATG "\n"
 "cr2res_cal_flat_slit_func.fits " CR2RES_FLAT_SLIT_FUNC_PROCATG "\n"
 "cr2res_cal_flat_master.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG  "\n"
-"cr2res_cal_flat_<Decker>_trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG
+"cr2res_cal_flat_<Decker>_tracewave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG
     " (One for each <Decker> position)" "\n"
-"cr2res_cal_flat_trace_wave_merged.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG 
+"cr2res_cal_flat_tracewave_merged.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG 
     " (All traces from different deckers together)" "\n"
 "\n";
 
@@ -563,7 +563,7 @@ static int cr2res_cal_flat(
             cpl_free(out_file);
 
             /* TRACE_WAVE */
-            out_file = cpl_sprintf("%s_%s_%s_trace_wave.fits", RECIPE_STRING,
+            out_file = cpl_sprintf("%s_%s_%s_tracewave.fits", RECIPE_STRING,
                     setting_id, decker_desc[i]) ;
             cr2res_io_save_TRACE_WAVE(out_file, frameset,
                     raw_one_setting_decker, parlist, trace_wave[i], NULL, 
@@ -643,7 +643,7 @@ static int cr2res_cal_flat(
 
 
         /* Save TRACE_WAVE_MERGED */
-        out_file = cpl_sprintf("%s_%s_trace_wave_merged.fits", RECIPE_STRING, 
+        out_file = cpl_sprintf("%s_%s_tracewave_merged.fits", RECIPE_STRING, 
                 setting_id) ;
         cr2res_io_save_TRACE_WAVE(out_file, frameset, raw_one_setting, parlist,
                 trace_wave_merged, NULL, ext_plist[0],

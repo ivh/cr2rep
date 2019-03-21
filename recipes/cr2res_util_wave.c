@@ -69,7 +69,7 @@ static int cr2res_util_wave(cpl_frameset *, const cpl_parameterlist *);
 static char cr2res_util_wave_description[] =
 "The utility expects 3 files as input:\n"
 "   * extracted.fits " CR2RES_COMMAND_LINE "\n"
-"   * trace_wave.fits " CR2RES_COMMAND_LINE "\n"
+"   * tracewave.fits " CR2RES_COMMAND_LINE "\n"
 "   * static_calib.fits (optional) " CR2RES_COMMAND_LINE "\n"
 "Four different methods are offered by the utility. They are controlled\n"
 "by the --method parameter:\n"
@@ -692,7 +692,7 @@ static int cr2res_util_wave(
     }
 
     /* Save the new trace_wave table */
-    out_file = cpl_sprintf("%s_wave.fits",
+    out_file = cpl_sprintf("%s_tracewave.fits",
             cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
     cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
             out_trace_wave, NULL, ext_plist, 
