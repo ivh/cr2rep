@@ -197,7 +197,7 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.wl_est",
-            CPL_TYPE_STRING, 
+            CPL_TYPE_STRING,
             "Estimated wavelength [start, end] (in nm)",
             "cr2res.cr2res_util_wave", "-1.0, -1.0");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_est");
@@ -205,7 +205,7 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.wl_err",
-            CPL_TYPE_STRING, 
+            CPL_TYPE_STRING,
             "Estimated wavelength error [start_err, end_err] (in nm)",
             "cr2res.cr2res_util_wave", "-1.0, -1.0");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_err");
@@ -288,8 +288,8 @@ static int cr2res_util_wave(
 {
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
-                            degree, display, log_flag ;
-    double                  wstart, wend, wstart_err, wend_err, wl_shift ;
+                            degree, display, log_flag, flag ;
+    double                  wstart, wend, wstart_err, wend_err, wl_shift, coeff;
     cpl_frame           *   fr ;
     const char          *   sval ;
     cr2res_wavecal_type     wavecal_type ;
@@ -302,7 +302,7 @@ static int cr2res_util_wave(
     hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_table       	*   lines_diagnostics_loc ;
-    int                     det_nr, nb_traces, trace_id, order, i ;
+    int                     det_nr, nb_traces, trace_id, order, i, j ;
     cpl_table           *   extracted_table ;
     cpl_bivector        **  spectra ;
     cpl_bivector        **  spectra_err ;
@@ -313,6 +313,7 @@ static int cr2res_util_wave(
     cpl_polynomial      *   wave_sol_1d ;
     cpl_polynomial      *   wave_sol_2d ;
     cpl_array           *   wl_array ;
+    const cpl_array     *   wl_array_tmp ;
     cpl_array           *   wl_err_array ;
 
     /* Needed for sscanf() */
@@ -414,7 +415,7 @@ static int cr2res_util_wave(
         cpl_msg_error(__func__, "Please use the --data_type option") ;
         return -1 ;
     }
-    if ((wavecal_type == CR2RES_XCORR || wavecal_type == CR2RES_LINE1D || 
+    if ((wavecal_type == CR2RES_XCORR || wavecal_type == CR2RES_LINE1D ||
                 wavecal_type == CR2RES_LINE2D) && catalog_file == NULL) {
         cpl_msg_error(__func__,
                 "The catalog file is needed for XCORR/LINE1D/LINE2D");
@@ -435,12 +436,6 @@ static int cr2res_util_wave(
         ext_plist[det_nr-1] = cpl_propertylist_load(extracted_file,
                 cr2res_io_get_ext_idx(extracted_file, det_nr, 1)) ;
 
-        /* Compute only one detector */
-        if (reduce_det != 0 && det_nr != reduce_det) continue ;
-
-        cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
-        cpl_msg_indent_more() ;
-
         /* Load the TRACE_WAVE table of this detector */
         cpl_msg_info(__func__, "Load the TRACE_WAVE table") ;
         if ((out_trace_wave[det_nr-1] = cr2res_io_load_TRACE_WAVE(
@@ -450,6 +445,13 @@ static int cr2res_util_wave(
             cpl_msg_indent_less() ;
             continue ;
         }
+
+        /* Skip detector, if user wants it */
+        if (reduce_det != 0 && det_nr != reduce_det) continue ;
+
+        cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
+        cpl_msg_indent_more() ;
+
         nb_traces = cpl_table_get_nrow(out_trace_wave[det_nr-1]) ;
 
         /* Load the EXTRACT1D table of this detector */
@@ -467,8 +469,8 @@ static int cr2res_util_wave(
         spectra_err = cpl_malloc(nb_traces * sizeof(cpl_bivector *));
         wavesol_init = cpl_malloc(nb_traces * sizeof(cpl_polynomial *));
         wavesol_init_error = cpl_malloc(nb_traces * sizeof(cpl_array *));
-        orders = cpl_malloc(nb_traces * sizeof(int)); 
-        traces_nb = cpl_malloc(nb_traces * sizeof(int)); 
+        orders = cpl_malloc(nb_traces * sizeof(int));
+        traces_nb = cpl_malloc(nb_traces * sizeof(int));
 
         /* Loop over the traces spectra */
         for (i=0 ; i<nb_traces ; i++) {
@@ -530,9 +532,9 @@ static int cr2res_util_wave(
                 cpl_array_set_double(wavesol_init_error[i], 1, wend_err) ;
             } else {
                 if ((wavesol_init_error[i]=cpl_array_duplicate(
-                                cpl_table_get_array(out_trace_wave[det_nr-1], 
-                        CR2RES_COL_WAVELENGTH_ERROR, 
-                        cr2res_get_trace_table_index(out_trace_wave[det_nr-1], 
+                                cpl_table_get_array(out_trace_wave[det_nr-1],
+                        CR2RES_COL_WAVELENGTH_ERROR,
+                        cr2res_get_trace_table_index(out_trace_wave[det_nr-1],
                             order, trace_id)))) == NULL) {
                     cpl_msg_error(__func__, "Cannot get the WL ERROR guess") ;
                     cpl_bivector_delete(spectra[i]);
@@ -553,33 +555,51 @@ static int cr2res_util_wave(
             if (fabs(wl_shift) > 1e-3) {
                 const cpl_size power = 0;
                 cpl_polynomial_set_coeff(wavesol_init[i], &power,
-                        cpl_polynomial_get_coeff(wavesol_init[i], 
+                        cpl_polynomial_get_coeff(wavesol_init[i],
                             &power)+wl_shift) ;
             }
             cpl_msg_indent_less() ;
         }
         cpl_table_delete(extracted_table) ;
 
-        /* Clear the Wavelength column */
-        cpl_table_erase_column(out_trace_wave[det_nr-1], CR2RES_COL_WAVELENGTH);
+        /* Rename old Wavelength column and create new with right degree */
+        cpl_table_name_column(out_trace_wave[det_nr-1], CR2RES_COL_WAVELENGTH,
+            "TMP_WL");
         cpl_table_new_column_array(out_trace_wave[det_nr-1],
                 CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, degree+1) ;
 
-        /* Clear the Wavelength Error column */
-        cpl_table_erase_column(out_trace_wave[det_nr-1], 
-                CR2RES_COL_WAVELENGTH_ERROR) ;
-        cpl_table_new_column_array(out_trace_wave[det_nr-1],
-                CR2RES_COL_WAVELENGTH_ERROR, CPL_TYPE_DOUBLE, 2) ;
-         
+        /* Copy incoming solution into output */
+        for (i = 0; i < nb_traces; i++) {
+            wl_array_tmp = cpl_table_get_array(out_trace_wave[det_nr-1],
+                            "TMP_WL", i);
+            wl_array = cpl_array_new(degree+1, CPL_TYPE_DOUBLE);
+            for (j=0; j <= degree; j++) {
+                if ( j+1 > cpl_array_get_size(wl_array_tmp)){
+                    cpl_array_set(wl_array, j, 0.0);
+                } else {
+                    coeff = cpl_array_get_double(wl_array_tmp, j, &flag);
+                    if (flag != 0)
+                        cpl_msg_debug(__func__,"%d, %d, %s",j,flag,
+                        cpl_error_get_where());
+                    else cpl_array_set(wl_array, j, coeff);
+
+                }
+            }
+            cpl_table_set_array(out_trace_wave[det_nr-1],
+                            CR2RES_COL_WAVELENGTH, i, wl_array);
+            cpl_array_delete(wl_array);
+        }
+        cpl_table_erase_column(out_trace_wave[det_nr-1], "TMP_WL");
+
         /* Actual calibration */
         if (wavecal_type == CR2RES_LINE2D) {
             /* 2D Calibration */
-            if ((wave_sol_2d=cr2res_wave_2d(spectra, spectra_err, wavesol_init, 
-                            wavesol_init_error, orders, traces_nb, nb_traces, 
-                            catalog_file, degree, degree, display, 
-                            &wl_err_array, 
+            if ((wave_sol_2d=cr2res_wave_2d(spectra, spectra_err, wavesol_init,
+                            wavesol_init_error, orders, traces_nb, nb_traces,
+                            catalog_file, degree, degree, display,
+                            &wl_err_array,
                             &(lines_diagnostics[det_nr-1]))) == NULL) {
-                cpl_msg_error(__func__, 
+                cpl_msg_error(__func__,
                         "Failed to compute 2d Wavelength solution") ;
                 cpl_msg_indent_less() ;
                 continue;
@@ -587,7 +607,7 @@ static int cr2res_util_wave(
 
             /* Store the Solution in the table */
             for (i = 0; i < nb_traces; i++) {
-                wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, orders[i]); 
+                wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, orders[i]);
                 wl_array=cr2res_convert_poly_to_array(wave_sol_1d, degree+1);
                 cpl_polynomial_delete(wave_sol_1d);
                 if (wl_array != NULL) {
@@ -607,9 +627,9 @@ static int cr2res_util_wave(
             /* Loop over the traces spectra */
             for (i=0 ; i<nb_traces ; i++) {
                 /* Get Order and trace id */
-                order = cpl_table_get(out_trace_wave[det_nr-1], 
+                order = cpl_table_get(out_trace_wave[det_nr-1],
                         CR2RES_COL_ORDER, i, NULL) ;
-                trace_id = cpl_table_get(out_trace_wave[det_nr-1], 
+                trace_id = cpl_table_get(out_trace_wave[det_nr-1],
                         CR2RES_COL_TRACENB, i, NULL) ;
 
                 /* Check if this order needs to be skipped */
@@ -622,15 +642,15 @@ static int cr2res_util_wave(
                     continue ;
                 }
 
-                cpl_msg_info(__func__, "Process Order %d/Trace %d", 
+                cpl_msg_info(__func__, "Process Order %d/Trace %d",
                         order, trace_id) ;
                 cpl_msg_indent_more() ;
 
                 /* Call the Wavelength Calibration */
                 lines_diagnostics_loc = NULL ;
-                if ((wave_sol_1d = cr2res_wave_1d(spectra[i], spectra_err[i], 
-                                wavesol_init[i], wavesol_init_error[i], order, 
-                                trace_id, wavecal_type, catalog_file, 
+                if ((wave_sol_1d = cr2res_wave_1d(spectra[i], spectra_err[i],
+                                wavesol_init[i], wavesol_init_error[i], order,
+                                trace_id, wavecal_type, catalog_file,
                                 degree, log_flag, display, &wl_err_array,
                                 &lines_diagnostics_loc)) == NULL) {
                     cpl_msg_error(__func__, "Cannot calibrate in Wavelength") ;
@@ -646,7 +666,7 @@ static int cr2res_util_wave(
 					lines_diagnostics_loc = NULL ;
 				} else if (lines_diagnostics_loc != NULL) {
 					/* Merge with previous */
-					cpl_table_insert(lines_diagnostics[det_nr-1], 
+					cpl_table_insert(lines_diagnostics[det_nr-1],
                             lines_diagnostics_loc,
 							cpl_table_get_nrow(lines_diagnostics[det_nr-1])) ;
 					cpl_table_delete(lines_diagnostics_loc) ;
@@ -674,7 +694,7 @@ static int cr2res_util_wave(
             if (spectra[i] != NULL) cpl_bivector_delete(spectra[i]) ;
             if (spectra_err[i] != NULL) cpl_bivector_delete(spectra_err[i]) ;
             if (wavesol_init[i]!=NULL) cpl_polynomial_delete(wavesol_init[i]) ;
-            if (wavesol_init_error[i]!=NULL) 
+            if (wavesol_init_error[i]!=NULL)
                 cpl_array_delete(wavesol_init_error[i]) ;
         }
         cpl_free(spectra) ;
@@ -694,8 +714,8 @@ static int cr2res_util_wave(
     /* Save the new trace_wave table */
     out_file = cpl_sprintf("%s_tracewave.fits",
             cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
-    cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
-            out_trace_wave, NULL, ext_plist, 
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist,
+            out_trace_wave, NULL, ext_plist,
             CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
@@ -710,8 +730,8 @@ static int cr2res_util_wave(
         /* Save the Lines Diagnostics */
         out_file = cpl_sprintf("%s_lines_diagnostics.fits",
                 cr2res_get_base_name(cr2res_get_root_name(extracted_file)));
-        cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset, frameset, parlist, 
-                lines_diagnostics, NULL, ext_plist, 
+        cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset, frameset, parlist,
+                lines_diagnostics, NULL, ext_plist,
                 CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
     }
