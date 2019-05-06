@@ -390,6 +390,12 @@ cpl_polynomial * cr2res_wave_2d(
         return NULL;
     }
 
+    if (px == NULL){
+        // No orders ran succesfully
+        cpl_msg_error(__func__, "No lines could be extracted in any order");
+        return NULL;
+    }
+
     degree_2d[0] = degree_x ;
     degree_2d[1] = degree_y ;
     error = cpl_polynomial_fit(result, px, NULL, py, NULL, TRUE, NULL,
