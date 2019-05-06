@@ -170,7 +170,7 @@ static int cr2res_cal_detlin_create(cpl_plugin * plugin)
     /* Fill the parameters list */
     p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.bpm_kappa",
             CPL_TYPE_DOUBLE, "Kappa threshold for BPM detection",
-            "cr2res.cr2res_cal_detlin", 3.0);
+            "cr2res.cr2res_cal_detlin", 1.8);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_kappa");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -560,7 +560,7 @@ static int cr2res_cal_detlin_reduce(
 
     /* Load the image list */
     if ((imlist = cr2res_io_load_image_list_from_set(rawframes,
-                    ext_nr_data)) == NULL) {
+                    reduce_det)) == NULL) {
         cpl_propertylist_delete(plist);
         cpl_msg_error(__func__, "Failed to Load the images") ;
         return -1 ;
