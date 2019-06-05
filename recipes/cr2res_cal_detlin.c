@@ -721,14 +721,12 @@ static int cr2res_cal_detlin_reduce(
         }
     }
 
-    /* TODO : New criteria for BPM detection - To be specified by Ulf */
-
-
     /* Compute the QC parameters */
-    /* TODO : pass the proper inputs */
+    /* TODO  */
     qc_fitquality = 0.0;
     qc_median = cr2res_qc_detlin_median(coeffs_loc) ;
     qc_gain = cr2res_qc_detlin_gain(coeffs_loc) ;
+    /* TODO */
     cr2res_qc_detlin_min_max_level(NULL, &qc_min_level, &qc_max_level) ;
 
     /* Store the QC parameters in the plist */
