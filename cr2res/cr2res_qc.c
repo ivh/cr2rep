@@ -221,6 +221,7 @@ double cr2res_qc_flat_mean_level(
     /* Initialise */
     qc_mean_level = cpl_image_get_mean(ima);
 
+    /* TODO */
     return qc_mean_level ;
 }
 
@@ -270,6 +271,7 @@ int cr2res_qc_flat_mean_med_flux(
     /* Initialise */
     *mean_flux = cpl_image_get_mean(ima);
     *med_flux = cpl_image_get_median(ima);
+    /* TODO */
 
     return 0 ;
 }
