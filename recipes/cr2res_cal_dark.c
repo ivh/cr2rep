@@ -200,7 +200,7 @@ static int cr2res_cal_dark_create(cpl_plugin * plugin)
     sigclip_def = hdrl_collapse_sigclip_parameter_create(3., 3., 5);
     minmax_def = hdrl_collapse_minmax_parameter_create(1., 1.);
     collapse_par = hdrl_collapse_parameter_create_parlist("cr2res_cal_dark", 
-            "", "MEAN", sigclip_def, minmax_def) ;
+            "collapse", "MEAN", sigclip_def, minmax_def) ;
     hdrl_parameter_delete(sigclip_def);
     hdrl_parameter_delete(minmax_def);
     for (p = cpl_parameterlist_get_first(collapse_par) ;
@@ -315,9 +315,10 @@ static int cr2res_cal_dark(
     /* --gain */
     par = cpl_parameterlist_find_const(parlist, "cr2res_cal_dark.gain");
     gain = cpl_parameter_get_double(par);
+
     /* Collapse parameters */
     collapse_params = hdrl_collapse_parameter_parse_parlist(parlist,
-            "cr2res_cal_dark") ;
+            "cr2res_cal_dark.collapse") ;
    
     /* Verify Parameters */
     if (bpm_kappa < 0.1) {
