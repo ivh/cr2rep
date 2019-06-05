@@ -107,7 +107,8 @@ hdrl_image * cr2res_wave_gen_wave_map(
 cpl_polynomial * cr2res_wave_polys_1d_to_2d(
         cpl_polynomial  **  poly_1ds,
         int             *   orders,
-        int                 npolys) ;
+        int                 npolys,
+        cpl_size            degree) ;
 
 cpl_polynomial * cr2res_wave_poly_2d_to_1d(
         cpl_polynomial  *   poly_2d,

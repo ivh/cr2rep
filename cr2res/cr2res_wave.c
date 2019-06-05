@@ -853,23 +853,89 @@ hdrl_image * cr2res_wave_gen_wave_map(
   @param    poly_1ds    List of 1d wavelength polynomials
   @param    orders      List of the order values
   @param    npolys      Number of passed polynomials
+  @param    degree      Polynomial degree in vertical direction along the orders
   @return   The newly allocated 2D polynomial or NULL in error case
  */
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_wave_polys_1d_to_2d(
         cpl_polynomial  **  poly_1ds,
         int             *   orders,
-        int                 npolys)
+        int                 npolys,
+        cpl_size            degree)
 {
     cpl_polynomial  *   out ;
+    cpl_polynomial  *   fit;
+    cpl_matrix      *   samppos;
+    cpl_vector      *   values;
+    int                 degree_x;
+    cpl_size        *   coef_pos;
+    cpl_error_code      error;
 
     /* Check Entries */
     if (poly_1ds == NULL || orders == NULL) return NULL ;
     if (npolys <= 0) return NULL ;
 
-    /* TODO */
+    degree_x = cpl_polynomial_get_degree(poly_1ds[0]);
+    // Check that all polynomials have the same degree
+    for (int i = 1; i < npolys; i++)
+    {
+        if (degree_x != cpl_polynomial_get_degree(poly_1ds[0]))
+        {
+            return NULL;
+        }
+    }
 
-    return NULL ;
+    out = cpl_polynomial_new(2);
+    fit = cpl_polynomial_new(1);
+    samppos = cpl_matrix_new(1, npolys);
+    values = cpl_vector_new(npolys);
+    coef_pos = cpl_malloc(2 * sizeof(cpl_size));
+    
+    for (cpl_size i = 0; i <= degree_x; i++)
+    {
+        for (cpl_size j = 0; j < npolys; j++)
+        {
+            cpl_matrix_set(samppos, 0, j, orders[j]);
+            cpl_vector_set(values, j, cpl_polynomial_get_coeff(poly_1ds[j], &i));
+        }
+
+        error = cpl_polynomial_fit(fit, samppos, NULL, values, NULL, FALSE, NULL, &degree);
+
+        if (error != CPL_ERROR_NONE) printf("%i", error);
+
+        for (cpl_size j = 0; j <= degree; j++)
+        {
+            coef_pos[0] = (cpl_size) i;
+            coef_pos[1] = (cpl_size) j;
+            error = cpl_polynomial_set_coeff(out, coef_pos, cpl_polynomial_get_coeff(fit, &j));
+            if (error != CPL_ERROR_NONE) printf("%i", error);
+
+        }
+    }
+
+    // for each polynomial coefficient degree (0, 1, 2 ...)
+    // fit a polynomial of degree ? to them vs the order number
+    // new coefficients of the 2d polynomial are then given by
+    // the fit results
+
+    // in:
+    // f^{(1)}(x) = c_0^{(1)} + c_1^{(1)} x + c_2^{(1)} x^2 + ...
+    // f^{(2)}(x) = c_0^{(2)} + c_1^{(2)} x + c_2^{(2)} x^2 + ...
+    // ...
+
+    // out:
+    // f(x, y) = c_{00} + c_{10} x + c_{01} y + c_{11} xy + ...
+
+    // fit:
+    // c_0^{(y)} = c_{00} + c_{01} y + c_{02} y^2
+    // c_1^{(y)} = c_{10} + c_{11} y + c_{12} y^2
+
+    cpl_polynomial_delete(fit);
+    cpl_matrix_delete(samppos);
+    cpl_vector_delete(values);
+    cpl_free(coef_pos);
+
+    return out ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -885,14 +951,24 @@ cpl_polynomial * cr2res_wave_poly_2d_to_1d(
         int                 order)
 {
     cpl_polynomial  *   out ;
+    cpl_polynomial  *   tmp ;
+    cpl_size power = 0;
 
     /* Check Entries */
     if (poly_2d == NULL) return NULL ;
     if (order < 0) return NULL ;
 
-    /* TODO */
+    // Use polynomial extract
+    // but that requires a constant polynomial
+    tmp = cpl_polynomial_new(1);
+    power = 0;
+    cpl_polynomial_set_coeff(tmp, &power, order);
 
-    return NULL ;
+    out = cpl_polynomial_extract(poly_2d, 1, tmp);
+
+    cpl_polynomial_delete(tmp);
+
+    return out ;
 }
 
 /**@}*/
