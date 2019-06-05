@@ -648,7 +648,7 @@ static int cr2res_cal_detlin_reduce(
                     cpl_vector_set(fitvals, k, (float)(pcur_im[idx])) ;
                 }
                 /* We are in a trace, let's compute the linearity */
-                if (cr2res_cal_detlin_fit(dits, fitvals, max_degree,
+                if (cr2res_detlin_compute(dits, fitvals, max_degree,
                             &fitted_poly, &fitted_errors)) {
                     qc_nbfailed++ ;
                     /* Store the null Coefficients in the output image list */

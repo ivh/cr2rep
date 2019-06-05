@@ -39,7 +39,7 @@ int cr2res_detlin_correct(
         hdrl_image              *   in,
         const hdrl_imagelist    *   detlin);
 
-int cr2res_cal_detlin_fit(
+int cr2res_detlin_compute(
         const cpl_vector    *   dits,
         const cpl_vector    *   values,
         cpl_size                max_degree,

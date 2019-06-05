@@ -154,7 +154,7 @@ int cr2res_detlin_correct(
   DETLIN_COEFFS product.
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_cal_detlin_fit(
+int cr2res_detlin_compute(
         const cpl_vector    *   dits,
         const cpl_vector    *   values,
         cpl_size                max_degree,
@@ -171,7 +171,7 @@ int cr2res_cal_detlin_fit(
     double expected_counts;
 
     /* Test entries */
-    if (fitted == null || dits == NULL || values == NULL) return -1 ;
+    if (fitted == NULL || dits == NULL || values == NULL) return -1 ;
     if (cpl_vector_get_size(dits) != cpl_vector_get_size(values))
         return -1 ;
 
