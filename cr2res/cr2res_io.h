@@ -243,6 +243,17 @@ int cr2res_io_save_SLIT_MODEL(
         const char              *   procatg,
         const char              *   recipe);
 
+int cr2res_io_save_TRACE_MAP(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
+        const cpl_parameterlist *   parlist,
+        hdrl_image              **  data,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
+        const char              *   recipe) ;
+
 int cr2res_io_save_WAVE_MAP(
         const char              *   filename,
         cpl_frameset            *   allframes,

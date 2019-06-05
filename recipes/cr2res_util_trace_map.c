@@ -333,7 +333,7 @@ static int cr2res_util_trace_map(
 
     out_file = cpl_sprintf("%s_trace.fits",
                     cr2res_get_base_name(cr2res_get_root_name(trace_file)));
-    cr2res_io_save_WAVE_MAP(out_file, frameset, frameset, parlist, trace_maps, 
+    cr2res_io_save_TRACE_MAP(out_file, frameset, frameset, parlist, trace_maps, 
             NULL, ext_plist, CR2RES_UTIL_TRACE_MAP_TRACE_PROCATG, 
             RECIPE_STRING);
     cpl_free(out_file);
