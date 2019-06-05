@@ -31,15 +31,12 @@
 #include "cr2res_bpm.h"
 #include "cr2res_pfits.h"
 #include "cr2res_io.h"
+#include "cr2res_detlin.h"
 #include "cr2res_utils.h"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
-
-#define pow2(x) (x)*(x)
-#define pow3(x) (x)*(x)*(x)
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -244,93 +241,4 @@ hdrl_image * cr2res_calib_image(
 }
 
 /**@}*/
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Apply the detector linearity correction
-  @param    in      the input image 
-  @param    detlin  the detlin coeffs
-  @return   0 if everything is ok, -1 otherwise
- */
-/*----------------------------------------------------------------------------*/
-int cr2res_detlin_correct(
-        hdrl_image              *   in,
-        const hdrl_imagelist    *   detlin)
-{
-    const cpl_image     *   ima ;
-    const cpl_image     *   erra ;
-    const cpl_image     *   imb ;
-    const cpl_image     *   errb ;
-    const cpl_image     *   imc ;
-    const cpl_image     *   errc ;
-    const double        *   pima ;
-    const double        *   perra ;
-    const double        *   pimb ;
-    const double        *   perrb ;
-    const double        *   pimc ;
-    const double        *   perrc ;
-    cpl_image           *   cur_ima ;
-    double              *   pdata ;
-    double              *   perr ;
-    int                     nx, ny ;
-    double                  correction_factor;
-    int                     i, j ;
-
-    /* Test entries */
-    if (!in || !detlin) return -1 ;
-
-    /* Initialise */
-    pdata = cpl_image_get_data_double(hdrl_image_get_image(in)) ;
-    perr = cpl_image_get_data_double(hdrl_image_get_error(in)) ;
-
-
-    /* Load the 3 coeffs images */
-    ima = hdrl_image_get_image_const(hdrl_imagelist_get_const(detlin, 0)) ;
-    erra = hdrl_image_get_error_const(hdrl_imagelist_get_const(detlin, 0)) ;
-    imb = hdrl_image_get_image_const(hdrl_imagelist_get_const(detlin, 1)) ;
-    errb = hdrl_image_get_error_const(hdrl_imagelist_get_const(detlin, 1)) ;
-    imc = hdrl_image_get_image_const(hdrl_imagelist_get_const(detlin, 2)) ;
-    errc = hdrl_image_get_error_const(hdrl_imagelist_get_const(detlin, 2)) ;
-    
-    if (!ima || !imb || !imc) {
-        cpl_msg_error(cpl_func, "Cannot access the detlin images") ;
-        return -1 ;
-    }
-    pima = cpl_image_get_data_double_const(ima) ;
-    pimb = cpl_image_get_data_double_const(imb) ;
-    pimc = cpl_image_get_data_double_const(imc) ;
-    perra = cpl_image_get_data_double_const(erra);
-    perrb = cpl_image_get_data_double_const(errb);
-    perrc = cpl_image_get_data_double_const(errc);
-
-    /* Test sizes */
-    cur_ima = hdrl_image_get_image(in) ;
-    nx = cpl_image_get_size_x(cur_ima) ;
-    ny = cpl_image_get_size_y(cur_ima) ;
-    if ((cpl_image_get_size_x(ima) != nx) ||
-            (cpl_image_get_size_x(imb) != nx) ||
-            (cpl_image_get_size_x(imc) != nx) ||
-            (cpl_image_get_size_y(ima) != ny) ||
-            (cpl_image_get_size_y(imb) != ny) ||
-            (cpl_image_get_size_y(imc) != ny)) {
-        cpl_msg_error(cpl_func, "Incompatible sizes") ;
-        return -1 ;
-    }
-
-    /* Loop on pixels */
-    for (i=0 ; i<nx*ny ; i++) {
-        // for each pixel p' = a + b * p + c * p * p
-
-        perr[i] = pow2(perra[i] * pdata[i]) + pow2(perrb[i] * pow2(pdata[i])) + pow2(perrc[i] * pow3(pdata[i])) 
-                + pow2(perr[i] * (pima[i] + 2. * pimb[i] * pdata[i] + 3. * pimc[i] * pow2(pdata[i])));
-        perr[i] = sqrt(perr[i]);
-
-        correction_factor = pima[i] + (pimb[i] + pimc[i] * pdata[i]) * pdata[i];
-        pdata[i] = pdata[i] * correction_factor;
-    }
-    /* return */
-    return 0 ;
-}
-
-
 

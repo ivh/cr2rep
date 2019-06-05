@@ -34,6 +34,7 @@
 #include "cr2res_trace.h"
 #include "cr2res_dfs.h"
 #include "cr2res_calib.h"
+#include "cr2res_detlin.h"
 
 #define CR2RES_NONLIN_LEVEL 15000
 #define CR2RES_QC_ORDER 4

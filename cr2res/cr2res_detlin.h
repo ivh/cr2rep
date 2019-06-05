@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-#ifndef CR2RES_CALIB_H
-#define CR2RES_CALIB_H
+#ifndef CR2RES_DETLIN_H
+#define CR2RES_DETLIN_H
 
 /*-----------------------------------------------------------------------------
                                    Includes
@@ -35,24 +35,15 @@
                                 Prototypes
  -----------------------------------------------------------------------------*/
 
-hdrl_imagelist * cr2res_calib_imagelist(
-        const hdrl_imagelist    *   in,
-        int                         chip,
-        int                         cosmics_corr,
-        const cpl_frame         *   flat,
-        const cpl_frame         *   dark,
-        const cpl_frame         *   bpm,
-        const cpl_frame         *   detlin,
-        const cpl_vector        *   dits) ;
+int cr2res_detlin_correct(
+        hdrl_image              *   in,
+        const hdrl_imagelist    *   detlin);
 
-hdrl_image * cr2res_calib_image(
-        const hdrl_image    *   in,
-        int                     chip,
-        int                     cosmics_corr,
-        const cpl_frame     *   flat,
-        const cpl_frame     *   dark,
-        const cpl_frame     *   bpm,
-        const cpl_frame     *   detlin,
-        double                  dit) ;
+int cr2res_cal_detlin_fit(
+        const cpl_vector    *   dits,
+        const cpl_vector    *   values,
+        cpl_size                max_degree,
+        cpl_polynomial      **  fitted,
+        cpl_vector          **  error) ;
 
 #endif
