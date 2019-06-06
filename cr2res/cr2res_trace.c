@@ -1068,7 +1068,7 @@ int cr2res_trace_add_extra_columns(
 
     COMMENTS / TODO
         Currently only calculates the new position of the trace
-        Wavelength and slitfunction remain unchanged
+        Wavelength and slit curvature remain unchanged
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_new_slit_fraction(
@@ -1129,8 +1129,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
         trace_numbers = cr2res_get_trace_numbers(traces, orders[i], &nb_traces);
         trace_old = cpl_malloc(nb_traces * 3 * sizeof(cpl_array*));
 
-        for(j = 0; j < nb_traces; j++)
-        {
+        for(j = 0; j < nb_traces; j++) {
             k=cr2res_get_trace_table_index(traces, orders[i], trace_numbers[j]);
             /* Check if the input trace slit_fraction is available */
             slit_frac_old = cpl_table_get_array(traces, 

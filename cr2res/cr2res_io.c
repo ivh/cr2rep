@@ -872,6 +872,7 @@ int cr2res_io_save_EMISSION_LINES(
                 NULL, recipe, plist, NULL,
                 PACKAGE "/" PACKAGE_VERSION, fname) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot save the table") ;
+        cpl_propertylist_delete(plist) ;
         cpl_free(fname);
         return -1 ;
     }
