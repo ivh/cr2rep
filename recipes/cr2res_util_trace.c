@@ -273,7 +273,6 @@ static int cr2res_util_trace(
     reduce_det = cpl_parameter_get_int(param);
 
     /* Check Parameters */
-    /* TODO */
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset) != CPL_ERROR_NONE) {
@@ -285,7 +284,7 @@ static int cr2res_util_trace(
     /* Get Inputs */
     flat_file = cr2res_extract_filename(frameset, CR2RES_COMMAND_LINE) ;
     if (flat_file == NULL) {
-        cpl_msg_error(__func__, "The utility needs a science file");
+        cpl_msg_error(__func__, "The utility needs a RAW file");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }

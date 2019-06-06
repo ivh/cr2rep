@@ -357,7 +357,7 @@ static int cr2res_util_extract(
     if (cr2res_dfs_set_groups(frameset) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot identify RAW and CALIB frames") ;
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
-        cpl_array_delete(slit_frac) ;
+        if (slit_frac != NULL) cpl_array_delete(slit_frac) ;
         return -1 ;
     }
 
@@ -366,16 +366,16 @@ static int cr2res_util_extract(
     science_file = cpl_frame_get_filename(fr) ;
     fr = cpl_frameset_get_position(frameset, 1);
     trace_file = cpl_frame_get_filename(fr) ;
-    if (cpl_frameset_get_size(frameset) == 3)
-    {
+    if (cpl_frameset_get_size(frameset) == 3) {
         fr = cpl_frameset_get_position(frameset, 2);
         bpm_file = cpl_frame_get_filename(fr) ;
+    } else {
+        bpm_file = NULL;
     }
-    else bpm_file = NULL;
     if (science_file == NULL || trace_file == NULL) {
         cpl_msg_error(__func__, "The utility needs a science file and a trace");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
-        cpl_array_delete(slit_frac) ;
+        if (slit_frac != NULL) cpl_array_delete(slit_frac) ;
         return -1 ;
     }
     if (bpm_file == NULL) {
