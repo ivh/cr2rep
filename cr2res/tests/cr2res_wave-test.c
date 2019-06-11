@@ -32,7 +32,6 @@
 #include <hdrl.h>
 #include <cr2res_dfs.h>
 #include <cr2res_wave.h>
-#include <cr2res_wave.c>
 
 #define CR2RES_DETECTOR_SIZE            2048
 
@@ -40,8 +39,8 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static void test_cr2res_wave_line_fitting(void);
-static void test_cr2res_wave_line_fitting_2d(void);
+static void test_cr2res_wave_1d(void);
+static void test_cr2res_wave_2d(void);
 static void test_cr2res_wave_line_fitting_2d_other(void);
 static void test_cr2res_wave_etalon(void);
 static void test_cr2res_wave_etalon_other(void);
@@ -106,6 +105,38 @@ static cpl_table * make_test_catalog()
     cpl_table_set_double(catalog, CR2RES_COL_EMISSION, 1, 2.992800000000000082e+01);
 
     return catalog;
+}
+
+static const char * save_catalog(cpl_table * catalog){
+    const char * filename = "debug_linelist.fits";
+    cpl_propertylist * header = cpl_propertylist_new();
+    cpl_propertylist_append_string(header, CPL_DFS_PRO_TYPE, CR2RES_PROTYPE_CATALOG);
+
+    cpl_table_save(catalog, header, NULL, filename, CPL_IO_CREATE);
+    cpl_propertylist_delete(header);
+    return filename;
+}
+
+static const char * save_linelist(cpl_bivector * linelist){
+    const char * filename = "debug_linelist.fits";
+    cpl_propertylist * header = cpl_propertylist_new();
+    cpl_propertylist_append_string(header, CPL_DFS_PRO_TYPE, CR2RES_PROTYPE_CATALOG);
+    
+    cpl_table * table = cpl_table_new(cpl_bivector_get_size(linelist));
+    cpl_table_new_column(table, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(table, CR2RES_COL_EMISSION, CPL_TYPE_DOUBLE);
+
+    for (cpl_size i = 0; i < cpl_bivector_get_size(linelist); i++)
+    {
+        cpl_table_set_double(table, CR2RES_COL_WAVELENGTH, i, cpl_vector_get(cpl_bivector_get_x(linelist), i));
+        cpl_table_set_double(table, CR2RES_COL_EMISSION, i, cpl_vector_get(cpl_bivector_get_y(linelist), i));
+    }
+    
+    cpl_table_save(table, header, NULL, filename, CPL_IO_CREATE);
+
+    cpl_propertylist_delete(header);
+    cpl_table_delete(table);
+    return filename;
 }
 
 // make a test spectrum based on a line list catalog 
@@ -178,18 +209,17 @@ static cpl_polynomial * make_test_polynomial(double wmin, double wmax, int size)
     return poly;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Make a sample wavecal spectrum with two lines, and check that we get the right linear fit
  */
 /*----------------------------------------------------------------------------*/
-static void test_cr2res_wave_line_fitting()
+static void test_cr2res_wave_1d()
 {
     double wmin=2500, wmax=2650;
     int size = 200;
     cpl_table * catalog = make_test_catalog();
-    cpl_bivector * linelist;
+    cpl_table * diagnostics;
     cpl_bivector * spectrum_err;
     cpl_bivector * spectrum = make_test_spectrum(catalog, wmin, wmax, size, &spectrum_err);
     cpl_polynomial * initial_guess = make_test_polynomial(wmin, wmax, size);
@@ -197,76 +227,59 @@ static void test_cr2res_wave_line_fitting()
     int degree = 1;
     int order = 0;
     int trace = 0;
+    int log_flag = 0; // False
     int display = 0; // False
+    const char * catalog_name = save_catalog(catalog);
+    cr2res_wavecal_type wavecal_type = CR2RES_LINE1D;
     cpl_array * wave_error_init = cpl_array_new(2, CPL_TYPE_DOUBLE);
     cpl_array_set_double(wave_error_init, 0, 3.1);
     cpl_array_set_double(wave_error_init, 1, 3.5);
 
-    cpl_vector * sigma_fit = cpl_vector_new(2);
-    cpl_array * wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+    cpl_array * wavelength_error;
     cpl_polynomial * wavelength;
     cpl_size power;
 
-    int len_linelist = cpl_table_get_nrow(catalog);
-    cpl_vector * tmp_w = cpl_vector_wrap(len_linelist, cpl_table_get_data_double(catalog, CR2RES_COL_WAVELENGTH));
-    cpl_vector * tmp_h = cpl_vector_wrap(len_linelist, cpl_table_get_data_double(catalog, CR2RES_COL_EMISSION));
-    linelist = cpl_bivector_wrap_vectors(tmp_w, tmp_h);
-
-
-    // cpl_bivector    *   spectrum,
-    // cpl_bivector    *   spectrum_err,
-    // cpl_polynomial  *   wavesol_init,
-    // const cpl_array *   wave_error_init,
-    // int                 order,
-    // int                 trace_nb,
-    // cpl_bivector    *   lines_list,
-    // int                 degree,
-    // int                 display,
-    // cpl_vector      **  sigma_fit,
-    // cpl_array       **  wavelength_error,
-    // cpl_table       **  lines_diagnostics
-
     // bad inputs
-    wavelength = cr2res_wave_line_fitting(NULL, spectrum_err, initial_guess, 
-        wave_error_init, order, trace, linelist, degree, display, &sigma_fit, &wavelength_error, NULL);
+    wavelength = cr2res_wave_1d(NULL, spectrum_err, initial_guess, 
+        wave_error_init, order, trace, wavecal_type, catalog_name, degree, log_flag, display, &wavelength_error, &diagnostics);
     cpl_test_null(wavelength);
     
-    wavelength = cr2res_wave_line_fitting(spectrum, NULL, initial_guess,
-        wave_error_init, order, trace, linelist, degree, display, &sigma_fit, &wavelength_error, NULL);
+    wavelength = cr2res_wave_1d(spectrum, NULL, initial_guess,
+        wave_error_init, order, trace, wavecal_type, catalog_name, degree, log_flag, display, &wavelength_error, &diagnostics);
     cpl_test_null(wavelength);
 
-    wavelength = cr2res_wave_line_fitting(spectrum, spectrum_err, NULL,
-        wave_error_init, order, trace, linelist, degree, display, &sigma_fit, &wavelength_error, NULL);
+    wavelength = cr2res_wave_1d(spectrum, spectrum_err, NULL,
+        wave_error_init, order, trace, wavecal_type, catalog_name, degree, log_flag, display, &wavelength_error, &diagnostics);
     cpl_test_null(wavelength);
 
-    // wavelength = cr2res_wave_line_fitting(spectrum, spectrum_err, initial_guess,
-    //     NULL, order, trace, linelist, degree, display, &sigma_fit, &wavelength_error, NULL);
-    // cpl_test_null(wavelength);
-
-    wavelength = cr2res_wave_line_fitting(spectrum, spectrum_err, initial_guess,
-        wave_error_init, order, trace, NULL, degree, display, &sigma_fit, &wavelength_error, NULL);
+    wavelength = cr2res_wave_1d(spectrum, spectrum_err, initial_guess,
+        wave_error_init, order, trace, wavecal_type, NULL, degree, log_flag, display, &wavelength_error, &diagnostics);
     cpl_test_null(wavelength);
 
-    // optional NULL inputs
-    wavelength = cr2res_wave_line_fitting(spectrum, spectrum_err, initial_guess,
-        wave_error_init, order, trace, linelist, degree, display, NULL, NULL, NULL);
-    cpl_test_nonnull(wavelength);
-    cpl_polynomial_delete(wavelength);
+    wavelength = cr2res_wave_1d(spectrum, spectrum_err, initial_guess,
+        wave_error_init, order, trace, wavecal_type, catalog_name, degree, log_flag, display, NULL, &diagnostics);
+    cpl_test_null(wavelength);
 
-    // to many polynomial degrees
-    wavelength = cr2res_wave_line_fitting(spectrum, spectrum_err, initial_guess,
-        wave_error_init, order, trace, linelist, 5, display, &sigma_fit, &wavelength_error, NULL);
+    wavelength = cr2res_wave_1d(spectrum, spectrum_err, initial_guess,
+        wave_error_init, order, trace, wavecal_type, catalog_name, degree, log_flag, display, &wavelength_error, NULL);
+    cpl_test_null(wavelength);
+
+    // // to many polynomial degrees
+    wavelength = cr2res_wave_1d(spectrum, spectrum_err, initial_guess,
+        wave_error_init, order, trace, wavecal_type, catalog_name, 5, log_flag, display, &wavelength_error, &diagnostics);
 
     cpl_test_null(wavelength);
-    cpl_test_nonnull(sigma_fit);
-    cpl_test_nonnull(wavelength_error);
+    cpl_test_null(wavelength_error);
+    cpl_test_nonnull(diagnostics);
+    cpl_table_delete(diagnostics);
 
     // regular run
-    wavelength = cr2res_wave_line_fitting(spectrum, spectrum_err, initial_guess, wave_error_init, order, trace, linelist, degree, display, &sigma_fit, &wavelength_error, NULL);
+    cpl_test(wavelength = cr2res_wave_1d(spectrum, spectrum_err, initial_guess, wave_error_init, 
+        order, trace, wavecal_type, catalog_name, degree, log_flag, display, &wavelength_error, &diagnostics));
 
     cpl_test_nonnull(wavelength);
-    cpl_test_nonnull(sigma_fit);
     cpl_test_nonnull(wavelength_error);
+    cpl_test_nonnull(diagnostics);
 
     // these values obviously need to be changed if the number of degrees is changed
     power = 0;
@@ -279,12 +292,9 @@ static void test_cr2res_wave_line_fitting()
     cpl_test_abs(cpl_array_get_double(wavelength_error, 1, NULL), 0, DBL_EPSILON);
 
 
-    cpl_bivector_unwrap_vectors(linelist);
-    cpl_vector_unwrap(tmp_h);
-    cpl_vector_unwrap(tmp_w);
+    cpl_table_delete(diagnostics);
     cpl_array_delete(wavelength_error);
     cpl_polynomial_delete(wavelength);
-    cpl_vector_delete(sigma_fit);
     cpl_table_delete(catalog);
     cpl_bivector_delete(spectrum);
     cpl_bivector_delete(spectrum_err);
@@ -293,114 +303,105 @@ static void test_cr2res_wave_line_fitting()
 }
 
 
-// /*----------------------------------------------------------------------------*/
-// /**
-//   @brief    Use two identical orders, with two lines each, and check that the result is still linear
-//  */
-// /*----------------------------------------------------------------------------*/
-// static void test_cr2res_wave_line_fitting_2d()
-// {   
-//     int i, norders = 5;
-//     double wmin=2500, wmax=2650;
-//     int size = 200;
-//     // Make test data
-//     cpl_table * catalog = make_test_catalog();
-//     cpl_bivector * linelist;
-//     cpl_bivector * spectrum_err;
-//     cpl_bivector * spectrum = make_test_spectrum(catalog, wmin, wmax, size, &spectrum_err);
-//     cpl_polynomial * initial_guess = make_test_polynomial(wmin, wmax, size);
-//     cpl_vector * orders = cpl_vector_new(norders);
-//     int display = FALSE; // False
-//     cpl_array * wave_error_init = cpl_array_new(2, CPL_TYPE_DOUBLE);
-//     cpl_array_set_double(wave_error_init, 0, 3.1);
-//     cpl_array_set_double(wave_error_init, 1, 3.5);
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Use two identical orders, with two lines each, and check that the result is still linear
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_wave_2d()
+{   
+    int i, norders = 5;
+    double wmin=2500, wmax=2650;
+    int size = 200;
+    // Make test data
+    cpl_table * catalog = make_test_catalog();
+    cpl_bivector * spectrum_err;
+    cpl_bivector * spectrum = make_test_spectrum(catalog, wmin, wmax, size, &spectrum_err);
+    cpl_polynomial * initial_guess = make_test_polynomial(wmin, wmax, size);
+    int * orders = cpl_malloc(norders * sizeof(int));
+    int * traces = cpl_malloc(norders * sizeof(int));
+    int display = FALSE; // False
+    const char * catalog_name = save_catalog(catalog);
+    cpl_array * wave_error_init = cpl_array_new(2, CPL_TYPE_DOUBLE);
+    cpl_array_set_double(wave_error_init, 0, 3.1);
+    cpl_array_set_double(wave_error_init, 1, 3.5);
 
-//     cpl_vector * sigma_fit = cpl_vector_new(2);
-//     cpl_array * wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
-//     cpl_polynomial * wavelength;
-//     cpl_size power;
+    cpl_array * wavelength_error;
+    cpl_table * diagnostics;
+    cpl_polynomial * wavelength;
+    cpl_size power;
 
-//     int len_linelist = cpl_table_get_nrow(catalog);
-//     cpl_vector * tmp_w = cpl_vector_wrap(len_linelist, 
-//         cpl_table_get_data_double(catalog, CR2RES_COL_WAVELENGTH));
-//     cpl_vector * tmp_h = cpl_vector_wrap(len_linelist, 
-//         cpl_table_get_data_double(catalog, CR2RES_COL_EMISSION));
-//     linelist = cpl_bivector_wrap_vectors(tmp_w, tmp_h);
+    cpl_size degree_x = 1; // polynomial degree in wavelength direction
+    cpl_size degree_y = 2; // polynomial degree in order direction
 
-//     cpl_size * degree = cpl_malloc(2 * sizeof(cpl_size));
-//     degree[0] = 1; // polynomial degree in wavelength direction
-//     degree[1] = 2; // polynomial degree in order direction
+    // Make lists that contain the same spectrum several times
+    cpl_bivector ** spec = cpl_malloc(norders * sizeof(cpl_bivector*));
+    cpl_bivector ** spec_err = cpl_malloc(norders * sizeof(cpl_bivector*));
+    cpl_polynomial ** guess = cpl_malloc(norders * sizeof(cpl_polynomial*));
+    cpl_array ** init_error = cpl_malloc(norders * sizeof(cpl_array*));
 
-//     // Make lists that contain the same spectrum several times
-//     cpl_bivector ** spec = cpl_malloc(norders * sizeof(cpl_bivector*));
-//     cpl_bivector ** spec_err = cpl_malloc(norders * sizeof(cpl_bivector*));
-//     cpl_polynomial ** guess = cpl_malloc(norders * sizeof(cpl_polynomial*));
-//     const cpl_array ** init_error = cpl_malloc(norders * sizeof(cpl_array*));
+    for (i = 0; i < norders; i++){
+        orders[i] = i;
+        traces[i] = 1;
 
-//     for (i = 0; i < norders; i++){
-//         cpl_vector_set(orders, i, i);
+        spec[i] = spectrum;
+        spec_err[i] = spectrum_err;
+        guess[i] = initial_guess;
+        init_error[i] = wave_error_init;
+    }
 
-//         spec[i] = spectrum;
-//         spec_err[i] = spectrum_err;
-//         guess[i] = initial_guess;
-//         init_error[i] = wave_error_init;
-//     }
+    // Run function
+    cpl_test(wavelength = cr2res_wave_2d(spec, spec_err, guess, init_error,
+            orders, traces, norders, catalog_name, degree_x, degree_y, display, &wavelength_error, &diagnostics));
 
-//     // Run function
-//     wavelength = cr2res_wave_line_fitting_2D(spec, spec_err, guess, init_error,
-//             linelist, orders, norders, degree, display, NULL, NULL);
+    // Check output
+    // cpl_polynomial_dump(wavelength, stdout);
+    // #----- 2 dimensional polynomial -----
+    // 1.dim.power  2.dim.power  coefficient
+    //     0            0      2500
+    //     1            0      0.75
+    //     0            1      -1.04049e-12
+    //     0            2      2.48754e-13
+    //     1            2      1.07764e-16
+    //     1            1      -4.31057e-16
+    // #------------------------------------
 
-//     // Check output
-//     // cpl_polynomial_dump(wavelength, stdout);
-//     // #----- 2 dimensional polynomial -----
-//     // 1.dim.power  2.dim.power  coefficient
-//     //     0            0      2500
-//     //     1            0      0.75
-//     //     0            1      -1.04049e-12
-//     //     0            2      2.48754e-13
-//     //     1            2      1.07764e-16
-//     //     1            1      -4.31057e-16
-//     // #------------------------------------
+    // first two are the linear component in x direction
+    cpl_size idx[2] = {0, 0};
+    cpl_test_abs(wmin, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    idx[0] = 1;
+    cpl_test_abs((wmax-wmin)/(double)size, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    // all others should be 0 (or close to it), as there is no y dependance
+    idx[0] = 0;
+    idx[1] = 1;
+    cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    idx[0] = 0;
+    idx[1] = 2;
+    cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    idx[0] = 1;
+    idx[1] = 2;
+    cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    idx[0] = 1;
+    idx[1] = 1;
+    cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
 
-//     // first two are the linear component in x direction
-//     cpl_size idx[2] = {0, 0};
-//     cpl_test_abs(wmin, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
-//     idx[0] = 1;
-//     cpl_test_abs((wmax-wmin)/(double)size, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
-//     // all others should be 0 (or close to it), as there is no y dependance
-//     idx[0] = 0;
-//     idx[1] = 1;
-//     cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
-//     idx[0] = 0;
-//     idx[1] = 2;
-//     cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
-//     idx[0] = 1;
-//     idx[1] = 2;
-//     cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
-//     idx[0] = 1;
-//     idx[1] = 1;
-//     cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    // Free Memory
+    cpl_free(orders);
+    cpl_free(traces);
+    cpl_array_delete(wavelength_error);
+    cpl_polynomial_delete(wavelength);
+    cpl_table_delete(diagnostics);
+    cpl_table_delete(catalog);
+    cpl_bivector_delete(spectrum);
+    cpl_bivector_delete(spectrum_err);
+    cpl_polynomial_delete(initial_guess);
+    cpl_array_delete(wave_error_init);
 
-//     // Free Memory
-//     cpl_free(degree);
-//     cpl_vector_delete(orders);
-//     cpl_bivector_unwrap_vectors(linelist);
-//     cpl_vector_unwrap(tmp_h);
-//     cpl_vector_unwrap(tmp_w);
-//     cpl_array_delete(wavelength_error);
-//     cpl_polynomial_delete(wavelength);
-//     cpl_vector_delete(sigma_fit);
-//     cpl_table_delete(catalog);
-//     cpl_bivector_delete(spectrum);
-//     cpl_bivector_delete(spectrum_err);
-//     cpl_polynomial_delete(initial_guess);
-//     cpl_array_delete(wave_error_init);
-
-//     cpl_free(spec);
-//     cpl_free(spec_err);
-//     cpl_free(guess);
-//     cpl_free(init_error);
-// }
+    cpl_free(spec);
+    cpl_free(spec_err);
+    cpl_free(guess);
+    cpl_free(init_error);
+}
 
 static void test_cr2res_wave_etalon(void){
     
@@ -424,13 +425,11 @@ static void test_cr2res_wave_etalon(void){
         cpl_vector_set(cpl_bivector_get_y(spectrum), i, 0);
     }
     
-
     // Add a peak
     for(int i = 1462; i < 1493 ; i++)
     {
         cpl_vector_set(cpl_bivector_get_y(spectrum), i, 1);
     }
-
 
     initial = make_test_polynomial(wmin, wmax, size);
     
@@ -438,7 +437,7 @@ static void test_cr2res_wave_etalon(void){
     cpl_array_set_double(error, 0, 3.1);
     cpl_array_set_double(error, 1, 3.5);
 
-    result = cr2res_wave_etalon(spectrum, spectrum_err, initial, degree, &error);
+    cpl_test(result = cr2res_wave_etalon(spectrum, spectrum_err, initial, degree, &error));
 
     // these values obviously need to be changed if the number of degrees is changed
     power = 0;
@@ -453,118 +452,6 @@ static void test_cr2res_wave_etalon(void){
     cpl_polynomial_delete(initial);
     cpl_polynomial_delete(result);
 }
-
-
-
-// /*----------------------------------------------------------------------------*/
-// /**
-//   @brief    Use two identical orders, with two lines each, and check that the result is still linear
-//  */
-// /*----------------------------------------------------------------------------*/
-// static void test_cr2res_wave_line_fitting_2d_other()
-// {   
-//     int i, norders = 5;
-//     double wmin=2500, wmax=2650;
-//     int size = 200;
-//     // Make test data
-//     cpl_table * catalog = make_test_catalog();
-//     cpl_bivector * linelist;
-//     cpl_bivector * spectrum_err;
-//     cpl_bivector * spectrum = make_test_spectrum(catalog, wmin, wmax, size, &spectrum_err);
-//     cpl_polynomial * initial_guess = make_test_polynomial(wmin, wmax, size);
-//     cpl_vector * orders = cpl_vector_new(norders);
-//     int display = FALSE; // False
-//     cpl_array * wave_error_init = cpl_array_new(2, CPL_TYPE_DOUBLE);
-//     cpl_array_set_double(wave_error_init, 0, 3.1);
-//     cpl_array_set_double(wave_error_init, 1, 3.5);
-
-//     cpl_vector * sigma_fit = cpl_vector_new(2);
-//     cpl_array * wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
-//     cpl_polynomial * wavelength;
-//     cpl_size power;
-
-//     int len_linelist = cpl_table_get_nrow(catalog);
-//     cpl_vector * tmp_w = cpl_vector_wrap(len_linelist, 
-//         cpl_table_get_data_double(catalog, CR2RES_COL_WAVELENGTH));
-//     cpl_vector * tmp_h = cpl_vector_wrap(len_linelist, 
-//         cpl_table_get_data_double(catalog, CR2RES_COL_EMISSION));
-//     linelist = cpl_bivector_wrap_vectors(tmp_w, tmp_h);
-
-//     cpl_size * degree = cpl_malloc(2 * sizeof(cpl_size));
-//     degree[0] = 1; // polynomial degree in wavelength direction
-//     degree[1] = 2; // polynomial degree in order direction
-
-//     // Make lists that contain the same spectrum several times
-//     cpl_bivector ** spec = cpl_malloc(norders * sizeof(cpl_bivector*));
-//     cpl_bivector ** spec_err = cpl_malloc(norders * sizeof(cpl_bivector*));
-//     cpl_polynomial ** guess = cpl_malloc(norders * sizeof(cpl_polynomial*));
-//     const cpl_array ** init_error = cpl_malloc(norders * sizeof(cpl_array*));
-
-//     for (i = 0; i < norders; i++){
-//         cpl_vector_set(orders, i, i);
-
-//         spec[i] = spectrum;
-//         spec_err[i] = spectrum_err;
-//         guess[i] = initial_guess;
-//         init_error[i] = wave_error_init;
-//     }
-
-//     // Run function
-//     wavelength = cr2res_wave_line_fitting_2D(spec, spec_err, guess, init_error,
-//             linelist, orders, norders, degree, display, NULL, NULL);
-
-//     // Check output
-//     // cpl_polynomial_dump(wavelength, stdout);
-//     // #----- 2 dimensional polynomial -----
-//     // 1.dim.power  2.dim.power  coefficient
-//     //     0            0      2500
-//     //     1            0      0.75
-//     //     0            1      -1.04049e-12
-//     //     0            2      2.48754e-13
-//     //     1            2      1.07764e-16
-//     //     1            1      -4.31057e-16
-//     // #------------------------------------
-
-//     // first two are the linear component in x direction
-//     cpl_size idx[2] = {0, 0};
-//     cpl_test_abs(wmin, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
-//     idx[0] = 1;
-//     cpl_test_abs((wmax-wmin)/(double)size, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
-//     // all others should be 0 (or close to it), as there is no y dependance
-//     idx[0] = 0;
-//     idx[1] = 1;
-//     cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
-//     idx[0] = 0;
-//     idx[1] = 2;
-//     cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
-//     idx[0] = 1;
-//     idx[1] = 2;
-//     cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
-//     idx[0] = 1;
-//     idx[1] = 1;
-//     cpl_test_abs(0, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
-
-//     // Free Memory
-//     cpl_free(degree);
-//     cpl_vector_delete(orders);
-//     cpl_bivector_unwrap_vectors(linelist);
-//     cpl_vector_unwrap(tmp_h);
-//     cpl_vector_unwrap(tmp_w);
-//     cpl_array_delete(wavelength_error);
-//     cpl_polynomial_delete(wavelength);
-//     cpl_vector_delete(sigma_fit);
-//     cpl_table_delete(catalog);
-//     cpl_bivector_delete(spectrum);
-//     cpl_bivector_delete(spectrum_err);
-//     cpl_polynomial_delete(initial_guess);
-//     cpl_array_delete(wave_error_init);
-
-//     cpl_free(spec);
-//     cpl_free(spec_err);
-//     cpl_free(guess);
-//     cpl_free(init_error);
-
-// }
 
 static void test_cr2res_wave_etalon_other(void){
     
@@ -708,9 +595,9 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    test_cr2res_wave_line_fitting();
-    /* test_cr2res_wave_line_fitting_2d(); */
-    /* test_cr2res_wave_etalon(); */
+    test_cr2res_wave_1d();
+    test_cr2res_wave_2d();
+    test_cr2res_wave_etalon();
     test_cr2res_wave_polys_1d_to_2d();
     test_cr2res_wave_poly_2d_to_1d();
 
