@@ -153,7 +153,7 @@ cpl_polynomial * cr2res_wave_1d(
     double                  wl_error_nm ;
 
     /* Check Inputs */
-    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL)
+    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL || wavelength_error == NULL || lines_diagnostics == NULL)
         return NULL ;
     if ((wavecal_type == CR2RES_XCORR || wavecal_type == CR2RES_LINE1D) &&
             catalog == NULL) return NULL ;
@@ -271,13 +271,14 @@ cpl_polynomial * cr2res_wave_2d(
 
     /* Check Inputs */
     if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
-            orders==NULL || catalog==NULL)
+            orders==NULL || catalog==NULL || wavelength_error == NULL || lines_diagnostics==NULL)
         return NULL ;
 
     /* Initialise */
     px = sigma_px = NULL ;
     py = sigma_py = NULL ;
-    if (lines_diagnostics != NULL) *lines_diagnostics = NULL ;
+    *lines_diagnostics = NULL ;
+    *wavelength_error = NULL;
 
     /* Load Catalog */
     if ((catalog_spec = cr2res_io_load_EMISSION_LINES(catalog)) == NULL) {
@@ -402,29 +403,27 @@ cpl_polynomial * cr2res_wave_2d(
             degree_2d);
 
     if (error == CPL_ERROR_NONE){
-        if (wavelength_error != NULL){
-            // Calculate absolute difference between polynomial and
-            // catalog value for each line
-            // use px and py, so that only good lines are used
-            diff = cpl_vector_new(cpl_vector_get_size(py));
-            pos = cpl_vector_new(2);
-            for (i = 0; i < cpl_vector_get_size(py); i++){
-                cpl_vector_set(pos, 0, cpl_matrix_get(px, 0, i));
-                cpl_vector_set(pos, 1, cpl_matrix_get(px, 1, i));
-                cpl_vector_set(diff, i, abs(
-                    cpl_polynomial_eval(result, pos)
-                    - cpl_vector_get(py, i)));
-            }
-            // Set wavelength_error to mean and max difference
-            if (*wavelength_error == NULL)
-                *wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
-            cpl_array_set_double(*wavelength_error, 0,
-                    cpl_vector_get_mean(diff));
-            cpl_array_set_double(*wavelength_error, 1,
-                    cpl_vector_get_max(diff));
-            cpl_vector_delete(diff);
-            cpl_vector_delete(pos);
+        // Calculate absolute difference between polynomial and
+        // catalog value for each line
+        // use px and py, so that only good lines are used
+        diff = cpl_vector_new(cpl_vector_get_size(py));
+        pos = cpl_vector_new(2);
+        for (i = 0; i < cpl_vector_get_size(py); i++){
+            cpl_vector_set(pos, 0, cpl_matrix_get(px, 0, i));
+            cpl_vector_set(pos, 1, cpl_matrix_get(px, 1, i));
+            cpl_vector_set(diff, i, abs(
+                cpl_polynomial_eval(result, pos)
+                - cpl_vector_get(py, i)));
         }
+        // Set wavelength_error to mean and max difference
+        if (*wavelength_error == NULL)
+            *wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+        cpl_array_set_double(*wavelength_error, 0,
+                cpl_vector_get_mean(diff));
+        cpl_array_set_double(*wavelength_error, 1,
+                cpl_vector_get_max(diff));
+        cpl_vector_delete(diff);
+        cpl_vector_delete(pos);
     }
     cpl_matrix_delete(px);
     cpl_vector_delete(py);
@@ -1452,7 +1451,7 @@ static cpl_polynomial * cr2res_wave_line_fitting(
             {"title 'Observed' w lines", "title 'Lines' w points"};
 
         cpl_plot_bivectors(
-"set grid;set xlabel 'Position (Wavelength)';set ylabel 'Intensity (ADU/sec)';",
+        "set grid;set xlabel 'Position (Wavelength)';set ylabel 'Intensity (ADU/sec)';",
             options , "", plot, 2);
         cpl_bivector_delete(lines);
         cpl_free(plot);
