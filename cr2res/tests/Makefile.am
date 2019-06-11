@@ -40,7 +40,8 @@ check_PROGRAMS = cr2res_trace-test \
                  cr2res_extract-test \
                  cr2res_splice-test \
                  cr2res_wave-test \
-                 cr2res_calib-test
+                 cr2res_calib-test \
+                 cr2res_pol-test
 
 
 cr2res_trace_test_SOURCES = cr2res_trace-test.c
@@ -50,7 +51,7 @@ cr2res_extract_test_SOURCES = cr2res_extract-test.c
 cr2res_splice_test_SOURCES = cr2res_splice-test.c
 cr2res_wave_test_SOURCES = cr2res_wave-test.c
 cr2res_calib_test_SOURCES = cr2res_calib-test.c
-
+cr2res_pol_test_SOURCES = cr2res_pol-test.c
 
 
 cr2res_trace_test_DEPENDENCIES = $(LIBCR2RES)
@@ -60,6 +61,7 @@ cr2res_extract_test_DEPENDENCIES = $(LIBCR2RES)
 cr2res_splice_test_DEPENDENCIES = $(LIBCR2RES)
 cr2res_wave_test_DEPENDENCIES = $(LIBCR2RES)
 cr2res_calib_test_DEPENDENCIES = $(LIBCR2RES)
+cr2res_pol_test_DEPENDENCIES = $(LIBCR2RES)
 
 
 # Be sure to reexport important environment variables.

@@ -65,52 +65,94 @@
 /*----------------------------------------------------------------------------*/
 cpl_bivector * cr2res_pol_demod_stokes(cpl_bivector ** speclist, int n)
 {
+  cpl_bivector * result;
   cpl_vector * outspec;
   cpl_vector * outerr;
   cpl_vector * R;
   cpl_vector * tmp;
+  cpl_size size;
+
+  if (speclist == NULL) return NULL;
 
   if (n != 8){
     cpl_msg_error(__func__, "Need 8 spectra!");
     return NULL;
   }
 
-  tmp = cpl_vector_duplicate(cpl_bivector_get_x(speclist[0])); // 1u
-  cpl_vector_divide(tmp, cpl_bivector_get_x(speclist[2])); // 2u
-  R = cpl_vector_duplicate(tmp);
+  for (cpl_size i = 0; i < n; i++)
+  {
+    if (speclist[i] == NULL) return NULL;
+  }
+
+  size = cpl_bivector_get_size(speclist[0]);
+  result = cpl_bivector_new(size);
+  outspec = cpl_bivector_get_x(result);
+  outerr = cpl_bivector_get_y(result);
+
+  // Initialize to 0
+  for (cpl_size i = 0; i < size; i++)
+  {
+    // cpl_vector_set(outspec, i, 0.);  
+    cpl_vector_set(outerr, i, 0.);
+  }
+
+  R = cpl_vector_duplicate(cpl_bivector_get_x(speclist[0])); // 1u
+  cpl_vector_divide(R, cpl_bivector_get_x(speclist[2])); // 2u
 
   tmp = cpl_vector_duplicate(cpl_bivector_get_x(speclist[3])); // 2d
   cpl_vector_divide(tmp, cpl_bivector_get_x(speclist[1])); // 1d
   cpl_vector_multiply(R, tmp);
+  cpl_vector_delete(tmp);
 
   tmp = cpl_vector_duplicate(cpl_bivector_get_x(speclist[4])); // 3u
   cpl_vector_divide(tmp, cpl_bivector_get_x(speclist[6])); // 4u
   cpl_vector_multiply(R, tmp);
+  cpl_vector_delete(tmp);
   
   tmp = cpl_vector_duplicate(cpl_bivector_get_x(speclist[7])); // 3d
   cpl_vector_divide(tmp, cpl_bivector_get_x(speclist[5])); // 4d
   cpl_vector_multiply(R, tmp);
+  cpl_vector_delete(tmp);
 
-  cpl_vector_power(R, 0.25);
-  outspec = cpl_vector_duplicate(R);
+  cpl_vector_power(R, 0.25); // 0.25 = 2/n
+  cpl_vector_copy(outspec, R);
   cpl_vector_subtract_scalar(outspec, 1.0);
   tmp = cpl_vector_duplicate(R);
   cpl_vector_add_scalar(tmp, 1.0);
-  cpl_vector_divide(outspec,tmp);
+  cpl_vector_divide(outspec, tmp);
+  cpl_vector_delete(tmp);
 
-  outerr = cpl_vector_duplicate(cpl_bivector_get_y(speclist[0]));
-  cpl_vector_divide_scalar(outerr, 8.0);
-  /* TODO: Calculate proper error */
+  // Calculate Error
+
+
+  // sum((sigma / spec)**2)
+  for (cpl_size i = 0; i < n; i++)
+  {
+    tmp = cpl_vector_duplicate(cpl_bivector_get_y(speclist[i]));
+    cpl_vector_divide(tmp, cpl_bivector_get_x(speclist[i]));
+    cpl_vector_multiply(tmp, tmp);
+    cpl_vector_add(outerr, tmp);
+    cpl_vector_delete(tmp);
+  }
+  
+  // 0.5 * R / (R+1)**2 * sqrt(err)
+  cpl_vector_sqrt(outerr);
+  tmp = cpl_vector_duplicate(R);
+  cpl_vector_add_scalar(tmp, 1);
+  cpl_vector_multiply(tmp, tmp);
+  cpl_vector_divide(R, tmp);
+  cpl_vector_multiply(outerr, R);
+  cpl_vector_multiply_scalar(outerr, 0.5);
 
   cpl_vector_delete(R);
   cpl_vector_delete(tmp);
 
   if (cpl_error_get_code() != CPL_ERROR_NONE) {
-    cpl_msg_error(__func__, "Error code: %s", cpl_error_get_code());
+    cpl_msg_error(__func__, "Error code: %i", cpl_error_get_code());
     return NULL;
   }
 
-  return cpl_bivector_wrap_vectors(outspec, outerr);
+  return result;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -179,7 +221,7 @@ cpl_bivector * cr2res_pol_demod_intens(cpl_bivector ** speclist, int n)
   cpl_vector_power(outerr, 0.5);
 
   if (cpl_error_get_code() != CPL_ERROR_NONE) {
-    cpl_msg_error(__func__, "Error code: %s", cpl_error_get_code());
+    cpl_msg_error(__func__, "Error code: %i", cpl_error_get_code());
     return NULL;
   }
 
