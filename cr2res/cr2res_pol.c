@@ -102,6 +102,9 @@ cpl_bivector * cr2res_pol_demod_stokes(cpl_bivector ** speclist, int n)
   cpl_vector_divide_scalar(outerr, 8.0);
   /* TODO: Calculate proper error */
 
+  cpl_vector_delete(R);
+  cpl_vector_delete(tmp);
+
   if (cpl_error_get_code() != CPL_ERROR_NONE) {
     cpl_msg_error(__func__, "Error code: %s", cpl_error_get_code());
     return NULL;
@@ -170,6 +173,7 @@ cpl_bivector * cr2res_pol_demod_intens(cpl_bivector ** speclist, int n)
       cpl_vector_add(outerr, tmp);
     }
   }
+  cpl_vector_delete(tmp);
   
   cpl_vector_divide_scalar(outspec, (double)n/2.0);
   cpl_vector_power(outerr, 0.5);
