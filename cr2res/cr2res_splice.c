@@ -112,7 +112,8 @@ int cr2res_splice(
             // Count number of orders with the requested trace
             orders = cr2res_trace_get_order_numbers(trace_wave[i], &nb_orders);
             for (j = 0; j < nb_orders; j++){
-                if ((k = cr2res_get_trace_table_index(trace_wave[i], orders[j], trace)) != -1){
+                if ((k = cr2res_get_trace_table_index(trace_wave[i], orders[j],
+                                                        trace)) != -1) {
                     nspectra++;
                 }
             }
@@ -135,11 +136,12 @@ int cr2res_splice(
         orders = cr2res_trace_get_order_numbers(trace_wave[i], &nb_orders);
         for (j = 0; j < nb_orders; j++){
             if (trace == -1){
-                traces = cr2res_get_trace_numbers(trace_wave[i], orders[j], &nb_traces);
-                for (k = 0; k < nb_traces; k++)
-                {
-                    sucess = cr2res_extract_data(trace_wave[i], blaze[i], extracted_1d[i], 
-                        orders[j], traces[k], &wave[count], &spec[count], &uncs[count], &cont[count]);
+                traces = cr2res_get_trace_numbers(trace_wave[i], orders[j],
+                                                    &nb_traces);
+                for (k = 0; k < nb_traces; k++) {
+                    sucess = cr2res_extract_data(trace_wave[i], blaze[i],
+                        extracted_1d[i], orders[j], traces[k], &wave[count],
+                        &spec[count], &uncs[count], &cont[count]);
                     if (sucess == 0){
                         count++;
                     }
@@ -151,7 +153,8 @@ int cr2res_splice(
             {
                 // Skip orders without the requested trace
                 if (cr2res_extract_data(trace_wave[i], blaze[i], extracted_1d[i], 
-                    orders[j], trace, &wave[count], &spec[count], &uncs[count], &cont[count]) != -1)
+                    orders[j], trace, &wave[count], &spec[count], &uncs[count],
+                    &cont[count]) != -1)
                 {
                     count++;
                 }
@@ -164,10 +167,12 @@ int cr2res_splice(
     cpl_msg_info(__func__, "%i segments with data found", nspectra);
 
     // Splice orders, but keep them seperate
-    cr2res_splice_orders(wave, spec, uncs, cont, nspectra, &sp, &sp_err, &sp_order, &first, &last);
+    cr2res_splice_orders(wave, spec, uncs, cont, nspectra, &sp, &sp_err,
+        &sp_order, &first, &last);
 
     // Combine orders into one big spectrum
-    cr2res_combine_spectra(sp, sp_err, sp_order, first, last, nspectra, spliced, spliced_err);
+    cr2res_combine_spectra(sp, sp_err, sp_order, first, last, nspectra, spliced,
+        spliced_err);
 
     cpl_bivector_delete(first);
     cpl_bivector_delete(last);
@@ -195,7 +200,8 @@ int cr2res_splice(
     cpl_free(cont);
 
     if (cpl_error_get_code() == CPL_ERROR_DIVISION_BY_ZERO){
-        cpl_msg_warning(__func__, "Division by Zero encountered. Resetting Error State");
+        cpl_msg_warning(__func__,
+            "Division by Zero encountered. Resetting Error State");
         cpl_error_reset();
     }
     return 0 ;
@@ -234,7 +240,8 @@ int cr2res_extract_data(
     }
     wave_poly = cr2res_convert_array_to_poly(wave1);
     *wave = cpl_vector_new(n);
-    for (k = 0; k < n; k++) cpl_vector_set(*wave, k, cpl_polynomial_eval_1d(wave_poly, k, NULL));
+    for (k = 0; k < n; k++)
+        cpl_vector_set(*wave, k, cpl_polynomial_eval_1d(wave_poly, k, NULL));
     cpl_polynomial_delete(wave_poly);
 
     // Get Spectrum
@@ -294,7 +301,8 @@ int cr2res_combine_spectra(
 {
 
     if (spliced == NULL | spliced_err == NULL | nspectra <= 0 |
-        spectrum == NULL | spectrum_err == NULL | spectrum_order == NULL) return -1;
+        spectrum == NULL | spectrum_err == NULL | spectrum_order == NULL)
+            return -1;
 
     int i = 0, j = 0, k = 0;
     int iord = 0, iord_p1 = 0, iord_m1 = 0;
@@ -322,11 +330,15 @@ int cr2res_combine_spectra(
 
         // in the overlap region keep the data from the lower wavelength order
         for (j = lx; j < ly; j++){
-            cpl_vector_set(cpl_bivector_get_x(*spectrum), k, cpl_vector_get(cpl_bivector_get_x(spliced[iord]), j));
-            cpl_vector_set(cpl_bivector_get_y(*spectrum), k, cpl_vector_get(cpl_bivector_get_y(spliced[iord]), j));
+            cpl_vector_set(cpl_bivector_get_x(*spectrum), k, 
+                cpl_vector_get(cpl_bivector_get_x(spliced[iord]), j));
+            cpl_vector_set(cpl_bivector_get_y(*spectrum), k, 
+                cpl_vector_get(cpl_bivector_get_y(spliced[iord]), j));
 
-            cpl_vector_set(cpl_bivector_get_x(*spectrum_err), k, cpl_vector_get(cpl_bivector_get_x(spliced_err[iord]), j));
-            cpl_vector_set(cpl_bivector_get_y(*spectrum_err), k, cpl_vector_get(cpl_bivector_get_y(spliced_err[iord]), j));
+            cpl_vector_set(cpl_bivector_get_x(*spectrum_err), k, 
+                cpl_vector_get(cpl_bivector_get_x(spliced_err[iord]), j));
+            cpl_vector_set(cpl_bivector_get_y(*spectrum_err), k, 
+                cpl_vector_get(cpl_bivector_get_y(spliced_err[iord]), j));
 
             k++;
         }
@@ -423,7 +435,8 @@ int cr2res_splice_orders(
 
         // Get Wavelength Center
         cpl_vector_set(cpl_bivector_get_x(wave_center), i, i);        
-        cpl_vector_set(cpl_bivector_get_y(wave_center), i, cpl_vector_get(wave[i], n/2));
+        cpl_vector_set(cpl_bivector_get_y(wave_center), i, 
+            cpl_vector_get(wave[i], n/2));
 
         // scale all orders to spec/cont = 1
         tmp4 = cpl_vector_new(n);
@@ -431,7 +444,8 @@ int cr2res_splice_orders(
         for (j=0; j < cpl_vector_get_size(tmp4); j++)
         {
             if (cpl_vector_get(tmp4, j) != 0){
-                cpl_vector_set(tmp4, j, cpl_vector_get(tmp4, j) / cpl_vector_get(cont[i], 4));
+                cpl_vector_set(tmp4, j, 
+                    cpl_vector_get(tmp4, j) / cpl_vector_get(cont[i], 4));
             }
         }
         // cpl_vector_divide(tmp4, cont[i]);
@@ -442,7 +456,8 @@ int cr2res_splice_orders(
     }
 
     // Determine order of orders (wavelength sections)
-    cpl_bivector_sort(wave_center, wave_center, CPL_SORT_ASCENDING, CPL_SORT_BY_Y);
+    cpl_bivector_sort(wave_center, wave_center, CPL_SORT_ASCENDING, 
+        CPL_SORT_BY_Y);
 
     // just loop from left to right?
     for (i = 0; i < nspectra-1; i++){
@@ -635,18 +650,26 @@ int cr2res_splice_orders(
         // Set data in output vector
         // TODO, avoid duplicate copies
         for (k = 0; k < n; k++){
-            cpl_vector_set(cpl_bivector_get_x((*spliced)[iord0]), k, cpl_vector_get(w0, k));
-            cpl_vector_set(cpl_bivector_get_x((*spliced)[iord1]), k, cpl_vector_get(w1, k));
+            cpl_vector_set(cpl_bivector_get_x((*spliced)[iord0]), k, 
+                cpl_vector_get(w0, k));
+            cpl_vector_set(cpl_bivector_get_x((*spliced)[iord1]), k, 
+                cpl_vector_get(w1, k));
 
-            cpl_vector_set(cpl_bivector_get_x((*spliced_err)[iord0]), k, cpl_vector_get(w0, k));
-            cpl_vector_set(cpl_bivector_get_x((*spliced_err)[iord1]), k, cpl_vector_get(w1, k));
+            cpl_vector_set(cpl_bivector_get_x((*spliced_err)[iord0]), k, 
+                cpl_vector_get(w0, k));
+            cpl_vector_set(cpl_bivector_get_x((*spliced_err)[iord1]), k, 
+                cpl_vector_get(w1, k));
 
 
-            cpl_vector_set(cpl_bivector_get_y((*spliced)[iord0]), k, cpl_vector_get(s0, k));
-            cpl_vector_set(cpl_bivector_get_y((*spliced)[iord1]), k, cpl_vector_get(s1, k));
+            cpl_vector_set(cpl_bivector_get_y((*spliced)[iord0]), k, 
+                cpl_vector_get(s0, k));
+            cpl_vector_set(cpl_bivector_get_y((*spliced)[iord1]), k, 
+                cpl_vector_get(s1, k));
 
-            cpl_vector_set(cpl_bivector_get_y((*spliced_err)[iord0]), k, cpl_vector_get(u0, k));
-            cpl_vector_set(cpl_bivector_get_y((*spliced_err)[iord1]), k, cpl_vector_get(u1, k));
+            cpl_vector_set(cpl_bivector_get_y((*spliced_err)[iord0]), k, 
+                cpl_vector_get(u0, k));
+            cpl_vector_set(cpl_bivector_get_y((*spliced_err)[iord1]), k, 
+                cpl_vector_get(u1, k));
 
         }
     }
