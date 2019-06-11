@@ -34,7 +34,8 @@
 /*-----------------------------------------------------------------------------
                                        Prototypes
  -----------------------------------------------------------------------------*/
-
-cpl_error_code cr2res_polarimetry(const cpl_frameset * in);
+cpl_bivector * cr2res_pol_demod_stokes(cpl_bivector ** speclist, int n);
+cpl_bivector * cr2res_pol_demod_null(cpl_bivector ** speclist, int n);
+cpl_bivector * cr2res_pol_demod_intens(cpl_bivector ** speclist, int n);
 
 #endif

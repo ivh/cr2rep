@@ -49,14 +49,135 @@
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Top-level polarimetry reduction function
-  @param    in     Input frame set
-  @return   Error code
+  @brief    Demodulate extracted spectra into Stokes parameter
+  @param    speclist  Array of bivectors
+  @param    n         Length of speclist, needs to be 8
+  @return   cpl_bivector with Stokes parameter spectrum (P/I) and error, needs
+            to be de-allocated by caller.
+
+  The input list of spectra needs to come in this order:
+    1u, 1d, 2u , 2d, 3u, 3d, 4u, 4d
+  i.e. first exposure upper beam, then down, then second exposure etc.
+
+  Demodulation formula is P/I = (R^1/4 - 1) / (R^1/4 + 1) with
+    R = 1u/2u * 2d/1d * 3u/4u * 4d/3d
  */
 /*----------------------------------------------------------------------------*/
-cpl_error_code cr2res_polarimetry(const cpl_frameset * in)
+cpl_bivector * cr2res_pol_demod_stokes(cpl_bivector ** speclist, int n)
 {
-    return CPL_ERROR_NONE;
+  cpl_vector * outspec;
+  cpl_vector * outerr;
+  cpl_vector * R;
+  cpl_vector * tmp;
+
+  if (n != 8){
+    cpl_msg_error(__func__, "Need 8 spectra!");
+    return NULL;
+  }
+
+  tmp = cpl_vector_duplicate(cpl_bivector_get_x(speclist[0])); // 1u
+  cpl_vector_divide(tmp, cpl_bivector_get_x(speclist[2])); // 2u
+  R = cpl_vector_duplicate(tmp);
+
+  tmp = cpl_vector_duplicate(cpl_bivector_get_x(speclist[3])); // 2d
+  cpl_vector_divide(tmp, cpl_bivector_get_x(speclist[1])); // 1d
+  cpl_vector_multiply(R, tmp);
+
+  tmp = cpl_vector_duplicate(cpl_bivector_get_x(speclist[4])); // 3u
+  cpl_vector_divide(tmp, cpl_bivector_get_x(speclist[6])); // 4u
+  cpl_vector_multiply(R, tmp);
+  
+  tmp = cpl_vector_duplicate(cpl_bivector_get_x(speclist[7])); // 3d
+  cpl_vector_divide(tmp, cpl_bivector_get_x(speclist[5])); // 4d
+  cpl_vector_multiply(R, tmp);
+
+  cpl_vector_power(R, 0.25);
+  outspec = cpl_vector_duplicate(R);
+  cpl_vector_subtract_scalar(outspec, 1.0);
+  tmp = cpl_vector_duplicate(R);
+  cpl_vector_add_scalar(tmp, 1.0);
+  cpl_vector_divide(outspec,tmp);
+
+  outerr = cpl_vector_duplicate(cpl_bivector_get_y(speclist[0]));
+  cpl_vector_divide_scalar(outerr, 8.0);
+  /* TODO: Calculate proper error */
+
+  if (cpl_error_get_code() != CPL_ERROR_NONE) {
+    cpl_msg_error(__func__, "Error code: %s", cpl_error_get_code());
+    return NULL;
+  }
+
+  return cpl_bivector_wrap_vectors(outspec, outerr);
 }
 
-/**@}*/
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Demodulate extracted spectra into Null spectrum
+  @param    speclist  Array of bivectors
+  @param    n         Length of speclist, needs to be 8
+  @return   cpl_bivector with Null spectrum and error, needs
+            to be de-allocated by caller.
+
+  The input list of spectra needs to come in this order:
+    1u, 1d, 2u , 2d, 3u, 3d, 4u, 4d
+  i.e. first exposure upper beam, then down, then second exposure etc.
+
+  Demodulation formula is N = ...  , with
+    R = 1u/2u * 2d/1d * 3u/4u * 4d/3d
+ */
+/*----------------------------------------------------------------------------*/
+cpl_bivector * cr2res_pol_demod_null(cpl_bivector ** speclist, int n)
+{
+  cpl_vector * outspec;
+  cpl_vector * outerr;
+  cpl_vector * R;
+  cpl_vector * tmp;
+
+  /* TODO: Implement */
+
+  return NULL;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Combine extracted spectra into Intensity spectrum
+  @param    speclist  Array of bivectors
+  @param    n         Length of speclist
+  @return   cpl_bivector with intensity spectrum and error, needs
+            to be de-allocated by caller.
+
+  The calculation is a simple sum of input spectra, divided by half the
+  number of sepctra, since two pol-beams together make up one unit intensity.
+ */
+/*----------------------------------------------------------------------------*/
+cpl_bivector * cr2res_pol_demod_intens(cpl_bivector ** speclist, int n)
+{
+  cpl_vector * outspec;
+  cpl_vector * outerr;
+  cpl_vector * tmp;
+  int i;
+
+  for (i=0;i<n;i++){
+    if(i==0){
+      outspec = cpl_vector_duplicate(cpl_bivector_get_x(speclist[i]));
+      outerr = cpl_vector_duplicate(cpl_bivector_get_y(speclist[i]));
+      cpl_vector_power(outerr, 2.0);
+    }
+    else {
+      cpl_vector_add(outspec, cpl_bivector_get_x(speclist[i]));
+      tmp = cpl_vector_duplicate(cpl_bivector_get_y(speclist[i]));
+      cpl_vector_power(tmp, 2.0);
+      cpl_vector_add(outerr, tmp);
+    }
+  }
+  
+  cpl_vector_divide_scalar(outspec, (double)n/2.0);
+  cpl_vector_power(outerr, 0.5);
+
+  if (cpl_error_get_code() != CPL_ERROR_NONE) {
+    cpl_msg_error(__func__, "Error code: %s", cpl_error_get_code());
+    return NULL;
+  }
+
+  return cpl_bivector_wrap_vectors(outspec, outerr);
+}
