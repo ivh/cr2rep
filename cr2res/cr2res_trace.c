@@ -862,7 +862,7 @@ double cr2res_trace_get_trace_ypos(
     poly = cr2res_convert_array_to_poly(coeffs) ;
 
     /* Evaluate the central pixel */
-    ypos = cpl_polynomial_eval_1d(poly, 1024, NULL) ;
+    ypos = cpl_polynomial_eval_1d(poly, CR2RES_DETECTOR_SIZE / 2, NULL) ;
     cpl_polynomial_delete(poly) ;
 
     return ypos ;
@@ -918,6 +918,8 @@ int cr2res_trace_add_extra_columns(
             cr2res_io_get_ext_idx(infile, det_nr, 1)) ;
     if (ext_plist == NULL || main_plist == 0) {
         cpl_error_reset();
+        cpl_propertylist_delete(main_plist);
+        cpl_propertylist_delete(ext_plist);
         return -1;
     }
  

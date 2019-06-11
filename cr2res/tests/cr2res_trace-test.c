@@ -53,6 +53,7 @@ static void test_cr2res_trace_convert_labels_to_cluster(void);
 static void test_cr2res_trace_clean_blobs(void);
 static void test_cr2res_trace_extract_edges(void);
 static void test_cr2res_trace_new_slit_fraction(void);
+static void test_cr2res_trace_add_extra_columns(void);
 
 // these don't exist
 // static void test_cr2res_trace_labelize(void);
@@ -60,7 +61,6 @@ static void test_cr2res_trace_new_slit_fraction(void);
 // static void test_cr2res_trace_compare(void);
 // static void test_cr2res_trace_combine(void);
 // static void test_cr2res_trace_open_get_polynomials(void);
-// static void test_cr2res_trace_add_ord_tra_wav_curv_columns(void);
 // static void test_cr2res_trace_split_traces(void);
 
 
@@ -86,6 +86,8 @@ static cpl_table *create_test_table()
     cpl_array *array, *slit_fraction, *wave, *wave_err, *slit_a, *slit_b, *slit_c;
     int poly_order, norders;
     cpl_propertylist *hdr = cpl_propertylist_new();
+    cpl_propertylist *main_header = cpl_propertylist_new();
+
 
     /* Initialise */
     poly_order = 2;
@@ -145,11 +147,17 @@ static cpl_table *create_test_table()
     cpl_array_set_double(wave_err, 1, 5e-2);
 
     slit_a = cpl_array_new(3, CPL_TYPE_DOUBLE);
+    cpl_array_set(slit_a, 0, 0);
     cpl_array_set(slit_a, 1, 1);
+    cpl_array_set(slit_a, 2, 0);
     slit_b = cpl_array_new(3, CPL_TYPE_DOUBLE);
+    cpl_array_set(slit_b, 0, 0);
+    cpl_array_set(slit_b, 1, 0);
+    cpl_array_set(slit_b, 2, 0);
     slit_c = cpl_array_new(3, CPL_TYPE_DOUBLE);
-
-
+    cpl_array_set(slit_c, 0, 0);
+    cpl_array_set(slit_c, 1, 0);
+    cpl_array_set(slit_c, 2, 0);
 
     for (int i = 0; i < norders; i++)
     {
@@ -162,7 +170,7 @@ static cpl_table *create_test_table()
         cpl_array_set(array, 0, lower_1[i]);
         cpl_array_set(array, 1, lower_2[i]);
         cpl_table_set_array(traces, CR2RES_COL_LOWER, i, array);
-        cpl_table_set(traces, CR2RES_COL_ORDER, i, i + 1);
+        cpl_table_set(traces, CR2RES_COL_ORDER, i, cr2res_convert_idx_to_order(i + 1));
         cpl_table_set(traces, CR2RES_COL_TRACENB, i, 1);
     
         cpl_table_set_array(traces, CR2RES_COL_SLIT_FRACTION, i, slit_fraction);
@@ -173,39 +181,41 @@ static cpl_table *create_test_table()
         cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_C, i, slit_c);
     }
 
-    cpl_propertylist_append_string(hdr, "EXTNAME", "CHIP1");
+    cpl_propertylist_append_string(hdr, "EXTNAME", cr2res_io_create_extname(1, 1));
 
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY00", 1994.0945859223);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY01", 1723.67027599362);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY02", 1436.61298619847);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY03", 1168.0222016174);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY04", 915.8934665223831);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY05", 678.542785839296);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY06", 454.468576982434);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY07", 242.388497032926);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY08", 63.5899165277783);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY0", 1994.0945859223);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY1", 1723.67027599362);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY2", 1436.61298619847);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY3", 1168.0222016174);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY4", 915.8934665223831);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY5", 678.542785839296);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY6", 454.468576982434);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY7", 242.388497032926);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY8", 63.5899165277783);
 
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT00", 1756.78720770673);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT01", 1703.55123171562);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT02", 1653.44678372399);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT03", 1606.20544704616);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT04", 1561.58862907265);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT05", 1519.38353098961);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT06", 1479.3997538583);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT07", 1441.46642683629);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT08", -1.);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN0", 1756.78720770673);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN1", 1703.55123171562);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN2", 1653.44678372399);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN3", 1606.20544704616);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN4", 1561.58862907265);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN5", 1519.38353098961);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN6", 1479.3997538583);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN7", 1441.46642683629);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN8", -1.);
 
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END00", 1768.81709603003);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END01", 1715.21657796851);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END02", 1664.76903155768);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END03", 1617.2042020846);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END04", 1572.2818631378);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END05", 1529.78775872867);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END06", 1489.53018613055);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END07", 1451.3371044349);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END08", -1.);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END0", 1768.81709603003);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END1", 1715.21657796851);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END2", 1664.76903155768);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END3", 1617.2042020846);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END4", 1572.2818631378);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END5", 1529.78775872867);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END6", 1489.53018613055);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END7", 1451.3371044349);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END8", -1.);
 
-    cpl_table_save(traces, NULL, hdr, "test_table.fits", CPL_IO_CREATE);
+    cpl_propertylist_append_int(main_header, "ESO INS OPTI8 NO", 3);
+
+    cpl_table_save(traces, main_header, hdr, "test_table.fits", CPL_IO_CREATE);
 
     cpl_array_delete(array);
     cpl_array_delete(slit_fraction);
@@ -591,64 +601,87 @@ static void test_cr2res_trace_get_trace_ypos(void)
     cpl_table_delete(traces);
 }
 
-// /*----------------------------------------------------------------------------*/
-// /**
-//   @brief   Add ORDER, TRACE, WAVELENGTH columns to the plain trace table
-//   @param    traces          The plain traces table
-//   @param    file_for_wl     File used for WL information
-//   @param    det_nr          Detector
-//   @return   0 if ok
-//  */
-// /*----------------------------------------------------------------------------*/
-// static void test_cr2res_trace_add_ord_tra_wav_curv_columns(void)
-// {
-//     //define input
-//     cpl_table *traces = create_test_table();
-//     cpl_table_erase_column(traces, CR2RES_COL_ORDER);
-//     cpl_table *tmp = cpl_table_duplicate(traces);
-//     char *file_for_wl = "test_table.fits";
-//     int det_nr = 1;
-//     int res;
-//     const cpl_array *wl;
-//     double cmp1[] = {0, 1441.46160481499, 1479.3948049417, 1519.37844831851, 1561.58340521624, 1606.20007393671, 1653.44125258191, 1703.54553296318, 1756.78133086827};
-//     double cmp2[] = {0, 0.00482202129878357, 0.00494891659611621, 0.00508267109871028, 0.00522385640701021, 0.00537310944721049, 0.00553114207801171, 0.00569875244401075, 0.00587683845788956};
+/*----------------------------------------------------------------------------*/
+/**
+  @brief   Add ORDER, TRACE, WAVELENGTH columns to the plain trace table
+  @param    traces          The plain traces table
+  @param    file_for_wl     File used for WL information
+  @param    det_nr          Detector
+  @return   0 if ok
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_trace_add_extra_columns(void)
+{
+    // define input
+    cpl_table *traces = create_test_table();
+    // remove columns to fill
+    cpl_table_erase_column(traces, CR2RES_COL_ORDER);
+    cpl_table_erase_column(traces, CR2RES_COL_TRACENB);
+    cpl_table_erase_column(traces, CR2RES_COL_WAVELENGTH);
+    cpl_table_erase_column(traces, CR2RES_COL_WAVELENGTH_ERROR);
+    cpl_table_erase_column(traces, CR2RES_COL_SLIT_FRACTION);
+    cpl_table_erase_column(traces, CR2RES_COL_SLIT_CURV_A);
+    cpl_table_erase_column(traces, CR2RES_COL_SLIT_CURV_B);
+    cpl_table_erase_column(traces, CR2RES_COL_SLIT_CURV_C);
 
-//     //run test
-//     cpl_test_eq(-1, cr2res_trace_add_ord_tra_wav_curv_columns(NULL, file_for_wl, det_nr));
+    cpl_table *tmp = cpl_table_duplicate(traces);
+    char *file_for_wl = "test_table.fits";
+    int det_nr = 1;
+    int res;
+    const cpl_array *wl;
+    double cmp1[] = {0, 1441.46160481499, 1479.3948049417, 1519.37844831851, 1561.58340521624, 1606.20007393671, 1653.44125258191, 1703.54553296318, 1756.78133086827};
+    double cmp2[] = {0, 0.00482202129878357, 0.00494891659611621, 0.00508267109871028, 0.00522385640701021, 0.00537310944721049, 0.00553114207801171, 0.00569875244401075, 0.00587683845788956};
 
-//     cpl_test_eq(-1, cr2res_trace_add_ord_tra_wav_curv_columns(tmp, "invalid_path", det_nr));
-//     cpl_table_delete(tmp);
-//     tmp = cpl_table_duplicate(traces);
+    //run test
+    cpl_test_eq(-1, cr2res_trace_add_extra_columns(NULL, file_for_wl, det_nr));
 
-//     cpl_test_eq(-1, cr2res_trace_add_ord_tra_wav_curv_columns(tmp, file_for_wl, 10));
-//     cpl_table_delete(tmp);
-//     tmp = cpl_table_duplicate(traces);
+    cpl_test_eq(-1, cr2res_trace_add_extra_columns(tmp, "invalid_path", det_nr));
+    cpl_table_delete(tmp);
+    tmp = cpl_table_duplicate(traces);
 
-//     cpl_test_eq(-1, cr2res_trace_add_ord_tra_wav_curv_columns(tmp, file_for_wl, -1));
-//     cpl_table_delete(tmp);
-//     tmp = cpl_table_duplicate(traces);
+    cpl_test_eq(-1, cr2res_trace_add_extra_columns(tmp, file_for_wl, 10));
+    cpl_table_delete(tmp);
+    tmp = cpl_table_duplicate(traces);
 
-//     cpl_test_eq(0, cr2res_trace_add_ord_tra_wav_curv_columns(traces, file_for_wl, det_nr));
-//     //test output
-//     //cpl_table_save(traces, NULL, NULL, "new_table.fits", CPL_IO_CREATE);
+    cpl_test_eq(-1, cr2res_trace_add_extra_columns(tmp, file_for_wl, -1));
+    cpl_table_delete(tmp);
+    tmp = cpl_table_duplicate(traces);
 
-//     wl = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, 0);
-//     cpl_test_abs(cpl_array_get(wl, 0, 0), 0, FLT_EPSILON);
-//     cpl_test_error(CPL_ERROR_NULL_INPUT);
-//     cpl_test_abs(cpl_array_get(wl, 1, 0), 0, FLT_EPSILON);
-//     cpl_test_error(CPL_ERROR_NULL_INPUT);
+    cpl_test_eq(0, cr2res_trace_add_extra_columns(tmp, file_for_wl, det_nr));
+    //test output
+    cpl_table_save(tmp, NULL, NULL, "new_table.fits", CPL_IO_CREATE);
 
-//     for (int i = 1; i < 9; i++)
-//     {
-//         wl = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, i);
-//         cpl_test_abs(cpl_array_get(wl, 0, 0), cmp1[i], FLT_EPSILON);
-//         cpl_test_abs(cpl_array_get(wl, 1, 0), cmp2[i], FLT_EPSILON);
-//     }
+    // Check that all columns are there
+    cpl_test(cpl_table_has_column(tmp, CR2RES_COL_ORDER));
+    cpl_test(cpl_table_has_column(tmp, CR2RES_COL_TRACENB));
+    cpl_test(cpl_table_has_column(tmp, CR2RES_COL_WAVELENGTH));
+    cpl_test(cpl_table_has_column(tmp, CR2RES_COL_WAVELENGTH_ERROR));
+    cpl_test(cpl_table_has_column(tmp, CR2RES_COL_SLIT_FRACTION));
+    cpl_test(cpl_table_has_column(tmp, CR2RES_COL_SLIT_CURV_A));
+    cpl_test(cpl_table_has_column(tmp, CR2RES_COL_SLIT_CURV_B));
+    cpl_test(cpl_table_has_column(tmp, CR2RES_COL_SLIT_CURV_C));
 
-//     //deallocate memory
-//     cpl_table_delete(traces);
-//     cpl_table_delete(tmp);
-// }
+    // Check wavelength
+    wl = cpl_table_get_array(tmp, CR2RES_COL_WAVELENGTH, 0);
+    cpl_test_abs(cpl_array_get(wl, 0, 0), -1, FLT_EPSILON);
+    cpl_test_abs(cpl_array_get(wl, 1, 0), 0, FLT_EPSILON);
+    // TODO: this should fail, but with which error?
+    // and why is this row not invalid in the table
+
+    for (int i = 1; i < 9; i++)
+    {
+        wl = cpl_table_get_array(tmp, CR2RES_COL_WAVELENGTH, i);
+        cpl_test_abs(cpl_array_get(wl, 0, 0), cmp1[i], FLT_EPSILON);
+        cpl_test_abs(cpl_array_get(wl, 1, 0), cmp2[i], FLT_EPSILON);
+    }
+
+    // TODO check that original data is the same (tmp == traces)
+    // TODO check other new columns
+
+    //deallocate memory
+    cpl_table_delete(traces);
+    cpl_table_delete(tmp);
+}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -706,6 +739,7 @@ static void test_cr2res_trace_new_slit_fraction(void)
         cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_CURV_B, i), 
                 cpl_table_get_array(trace_table, CR2RES_COL_SLIT_CURV_B, i), FLT_EPSILON);
         
+
         cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_CURV_C, i), 
                 cpl_table_get_array(trace_table, CR2RES_COL_SLIT_CURV_C, i), FLT_EPSILON);
     }
@@ -1093,7 +1127,7 @@ int main(void)
     test_cr2res_trace_compute_middle();
     test_cr2res_trace_compute_height();
     test_cr2res_trace_get_trace_ypos();
-    // test_cr2res_trace_add_ord_tra_wav_curv_columns();
+    test_cr2res_trace_add_extra_columns();
     // test_cr2res_trace_split_traces();
     test_cr2res_trace_signal_detect();
     test_cr2res_trace_fit_traces();
