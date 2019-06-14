@@ -175,8 +175,7 @@ static void cr2res_splice_orders_test(){
 
 
     // Test proper values
-    res = cr2res_splice_orders(wave, spec, uncs, cont, ntotal, &spliced, &spliced_err, &spectrum_order, &first, &last);
-    cpl_test_eq(0, res);
+    cpl_test_eq(0, cr2res_splice_orders(wave, spec, uncs, cont, ntotal, &spliced, &spliced_err, &spectrum_order, &first, &last));
     
     // Check results, this depends on the initial values of course
     // Here the spectrum was equal to the wavelength, this should still be the case after splicing
@@ -217,9 +216,8 @@ static void cr2res_splice_test(){
     cpl_bivector * spliced, * spliced_err;
 
     int res;
-    res = cr2res_splice(&spectra, &blaze, &trace_wave, 1, &spliced, &spliced_err);
+    cpl_test_eq(0, cr2res_splice(&spectra, &blaze, &trace_wave, 1, &spliced, &spliced_err));
 
-    cpl_test_eq(0, res);
     for (i = 0; i < CR2RES_DETECTOR_SIZE - 1; i++){
         // Wavelength grid is increasing
         cpl_test(cpl_bivector_get_x_data(spliced)[i] < cpl_bivector_get_x_data(spliced)[i+1]);

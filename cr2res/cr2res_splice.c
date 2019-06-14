@@ -327,6 +327,7 @@ int cr2res_combine_spectra(
             fy = CR2RES_DETECTOR_SIZE;            
             ly = CR2RES_DETECTOR_SIZE;
         }
+        cpl_msg_debug(__func__, "lx: %i, ly: %i", lx, ly);
 
         // in the overlap region keep the data from the lower wavelength order
         for (j = lx; j < ly; j++){
@@ -439,20 +440,28 @@ int cr2res_splice_orders(
             cpl_vector_get(wave[i], n/2));
 
         // scale all orders to spec/cont = 1
-        tmp4 = cpl_vector_new(n);
-        cpl_vector_copy(tmp4, spec[i]);
-        for (j=0; j < cpl_vector_get_size(tmp4); j++)
+        // also replace nans with 0 in spec
+        // and nan and 0 with 1 in cont
+        tmp4 = cpl_vector_duplicate(spec[i]);
+        for (j=0; j < n; j++)
         {
-            if (cpl_vector_get(tmp4, j) != 0){
-                cpl_vector_set(tmp4, j, 
-                    cpl_vector_get(tmp4, j) / cpl_vector_get(cont[i], 4));
+            if (isfinite(cpl_vector_get(spec[i], j)) == 0){
+                cpl_vector_set(tmp4, j, 0);
+                cpl_vector_set(spec[i], j, 0);
             }
+            if (isfinite(cpl_vector_get(uncs[i], j)) == 0){
+                cpl_vector_set(uncs[i], j, 1);
+            }
+            if ((cpl_vector_get(cont[i], j) == 0) | (isfinite(cpl_vector_get(cont[i], j)) == 0)){
+                cpl_vector_set(cont[i], j, 1);
+            }
+            cpl_vector_set(tmp4, j, 
+                    cpl_vector_get(tmp4, j) / cpl_vector_get(cont[i], j));
         }
         // cpl_vector_divide(tmp4, cont[i]);
         median = cpl_vector_get_median(tmp4);
         cpl_vector_multiply_scalar(cont[i], median);
         cpl_vector_delete(tmp4);
-
     }
 
     // Determine order of orders (wavelength sections)
@@ -531,6 +540,38 @@ int cr2res_splice_orders(
             }
         }
         cpl_msg_debug(__func__, "Overlap: %i, %i", overlap0, overlap1);
+        if (overlap0 == 0 || overlap1 == 0){
+            cpl_vector_set(cpl_bivector_get_y(*first), iord0, CR2RES_DETECTOR_SIZE);
+            cpl_vector_set(cpl_bivector_get_y(*last), iord0, maxW0pos-1);
+            cpl_vector_set(cpl_bivector_get_x(*first), iord1, 0);
+            cpl_vector_set(cpl_bivector_get_x(*last), iord1, minW1pos-1);
+
+            for (k = 0; k < CR2RES_DETECTOR_SIZE; k++){
+                cpl_vector_set(cpl_bivector_get_x((*spliced)[iord0]), k, 
+                    cpl_vector_get(w0, k));
+                cpl_vector_set(cpl_bivector_get_x((*spliced)[iord1]), k, 
+                    cpl_vector_get(w1, k));
+
+                cpl_vector_set(cpl_bivector_get_x((*spliced_err)[iord0]), k, 
+                    cpl_vector_get(w0, k));
+                cpl_vector_set(cpl_bivector_get_x((*spliced_err)[iord1]), k, 
+                    cpl_vector_get(w1, k));
+
+
+                cpl_vector_set(cpl_bivector_get_y((*spliced)[iord0]), k, 
+                    cpl_vector_get(s0, k));
+                cpl_vector_set(cpl_bivector_get_y((*spliced)[iord1]), k, 
+                    cpl_vector_get(s1, k));
+
+                cpl_vector_set(cpl_bivector_get_y((*spliced_err)[iord0]), k, 
+                    cpl_vector_get(u0, k));
+                cpl_vector_set(cpl_bivector_get_y((*spliced_err)[iord1]), k, 
+                    cpl_vector_get(u1, k));
+
+            }
+            
+            continue;
+        }
 
         // TODO check the order of values and stuff
         // It should be:
@@ -649,6 +690,7 @@ int cr2res_splice_orders(
 
         // Set data in output vector
         // TODO, avoid duplicate copies
+
         for (k = 0; k < n; k++){
             cpl_vector_set(cpl_bivector_get_x((*spliced)[iord0]), k, 
                 cpl_vector_get(w0, k));
@@ -672,6 +714,12 @@ int cr2res_splice_orders(
                 cpl_vector_get(u1, k));
 
         }
+    }
+    
+    for (i = 0; i < nspectra; i++)
+    {
+        cpl_vector_divide(cpl_bivector_get_y((*spliced)[i]), cont[i]);
+        cpl_vector_divide(cpl_bivector_get_y((*spliced_err)[i]), cont[i]);
     }
     
     *spectrum_order = cpl_bivector_get_x(wave_center);
@@ -723,8 +771,8 @@ cpl_table * cr2res_splice_SPLICED_1D_create(
     perr = cpl_bivector_get_y_data_const(spectrum_error);
 
     cpl_table_copy_data_double(out, CR2RES_COL_SPLICED_1D_WL, pwl) ;
-    cpl_table_copy_data_double(out, CR2RES_COL_SPLICED_1D_SPEC, perr) ;
-    cpl_table_copy_data_double(out, CR2RES_COL_SPLICED_1D_ERROR, pspec) ;
+    cpl_table_copy_data_double(out, CR2RES_COL_SPLICED_1D_SPEC, pspec) ;
+    cpl_table_copy_data_double(out, CR2RES_COL_SPLICED_1D_ERROR, perr) ;
 
     return out ;
 }
