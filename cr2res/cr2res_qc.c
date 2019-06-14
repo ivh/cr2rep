@@ -374,8 +374,17 @@ double cr2res_qc_obs_1d_signal(
     qc_signal = -1.0 ;
     colname = cr2res_dfs_SPEC_colname(CR2RES_QC_ORDER, CR2RES_QC_TRACE);
     data = cpl_table_get_data_double((cpl_table*) extracted, colname);
-    nrows = cpl_table_get_nrow(extracted);
+    cpl_free(colname);
 
+    if (cpl_error_get_code() == CPL_ERROR_DATA_NOT_FOUND)
+    {
+      // QC order or trace not found in the table
+      cpl_error_reset();
+      return -1;
+    }
+
+    
+    nrows = cpl_table_get_nrow(extracted);
     size = CR2RES_QC_SIZE;
     if (nrows < size) size = nrows;
 
