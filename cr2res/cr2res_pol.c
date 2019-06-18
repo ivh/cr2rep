@@ -123,8 +123,6 @@ cpl_bivector * cr2res_pol_demod_stokes(cpl_bivector ** speclist, int n)
   cpl_vector_delete(tmp);
 
   // Calculate Error
-
-
   // sum((sigma / spec)**2)
   for (cpl_size i = 0; i < n; i++)
   {
@@ -167,20 +165,40 @@ cpl_bivector * cr2res_pol_demod_stokes(cpl_bivector ** speclist, int n)
     1u, 1d, 2u , 2d, 3u, 3d, 4u, 4d
   i.e. first exposure upper beam, then down, then second exposure etc.
 
-  Demodulation formula is N = ...  , with
-    R = 1u/2u * 2d/1d * 3u/4u * 4d/3d
+  Demodulation formula is N = (R^1/4 - 1) / (R^1/4 + 1) , with
+    R = 1u/2u * 2d/1d * 4u/3u * 3d/4d
+  This is anologous to the Stokes demodulation but the last two ratios are
+  inverted which makes the true polarization signal cancel out. Thus the
+  Null spectrum's deviation from zero is an inverse measure of quality.
+  We simply re-use the Stokes demodulation after switching the spectra
+  in the input order.
  */
 /*----------------------------------------------------------------------------*/
 cpl_bivector * cr2res_pol_demod_null(cpl_bivector ** speclist, int n)
 {
-  cpl_vector * outspec;
-  cpl_vector * outerr;
-  cpl_vector * R;
-  cpl_vector * tmp;
+  cpl_bivector ** swaplist;
+  cpl_bivector *  tmp;
+  int i;
 
-  /* TODO: Implement */
+  // copy list to leave original unchanged
+  swaplist = cpl_malloc(n * sizeof(cpl_bivector *));
+  for (i=0;i<n;i++) swaplist[i]=speclist[i];
 
-  return NULL;
+  // swap index 6 and 4, i.e. 4u and 3u
+  tmp = swaplist[6];
+  swaplist[6] = swaplist[4];
+  swaplist[4] = tmp;
+
+  // swap index 7 and 5, i.e. 4d and 3d
+  tmp = swaplist[7];
+  swaplist[7] = swaplist[5];
+  swaplist[5] = tmp;
+
+  tmp = cr2res_pol_demod_stokes(swaplist, n);
+
+  cpl_free(swaplist);
+
+  return tmp;
 }
 
 /*----------------------------------------------------------------------------*/
