@@ -107,14 +107,14 @@ cpl_table * make_spectra(cpl_table ** blaze){
     cpl_table_new_column(spectra, cn4, CPL_TYPE_DOUBLE);
     
     for (i = 0; i < CR2RES_DETECTOR_SIZE; i++){
-        cpl_table_set_double(spectra, cn1, i, i + 2000);
+        cpl_table_set_double(spectra, cn1, i, 1);
         cpl_table_set_double(spectra, cn2, i, 0.1);
 
-        cpl_table_set_double(spectra, cn3, i, i + 500.5);
+        cpl_table_set_double(spectra, cn3, i, 2);
         cpl_table_set_double(spectra, cn4, i, 0.1);
 
         cpl_table_set_double(*blaze, cn1, i, 1.);
-        cpl_table_set_double(*blaze, cn3, i, 1.);
+        cpl_table_set_double(*blaze, cn3, i, 2.);
     }
 
     cpl_free(cn1);
@@ -129,11 +129,13 @@ static void cr2res_splice_orders_test(){
 
     int i = 0, j = 0;
     int ntotal = 2;
+    double median = 1;
 
     cpl_vector ** wave = cpl_malloc(ntotal * sizeof(cpl_vector*));
     cpl_vector ** spec = cpl_malloc(ntotal * sizeof(cpl_vector*));
     cpl_vector ** uncs = cpl_malloc(ntotal * sizeof(cpl_vector*));
     cpl_vector ** cont = cpl_malloc(ntotal * sizeof(cpl_vector*));
+    cpl_vector * tmp;
 
     for (j = 0; j < ntotal; j++){
         wave[j] = cpl_vector_new(CR2RES_DETECTOR_SIZE);
@@ -144,13 +146,13 @@ static void cr2res_splice_orders_test(){
 
     for (i = 0; i < CR2RES_DETECTOR_SIZE; i++){
         cpl_vector_set(wave[0], i, 2000 + i);
-        cpl_vector_set(spec[0], i, 2000 + i);
+        cpl_vector_set(spec[0], i, 1);
         cpl_vector_set(uncs[0], i, 0.1);
         cpl_vector_set(cont[0], i, 1);
 
 
         cpl_vector_set(wave[1], i, 500.5 + i);
-        cpl_vector_set(spec[1], i, 500.5 + i);
+        cpl_vector_set(spec[1], i, 1);
         cpl_vector_set(uncs[1], i, 0.1);
         cpl_vector_set(cont[1], i, 1);
     }
@@ -179,9 +181,15 @@ static void cr2res_splice_orders_test(){
     
     // Check results, this depends on the initial values of course
     // Here the spectrum was equal to the wavelength, this should still be the case after splicing
-    for (i = 0; i < ntotal; i++){
-        cpl_test_vector_abs(cpl_bivector_get_x(spliced[i]), cpl_bivector_get_y(spliced[i]), DBL_EPSILON);
+    tmp = cpl_vector_new(CR2RES_DETECTOR_SIZE);
+    for (i = 0; i < CR2RES_DETECTOR_SIZE; i++)
+    {
+        cpl_vector_set(tmp, i, 1);
     }
+    for (i = 0; i < ntotal; i++){
+        cpl_test_vector_abs(tmp, cpl_bivector_get_y(spliced[i]), DBL_EPSILON);
+    }
+    cpl_vector_delete(tmp);
 
     // Delete all memory
     cpl_vector_delete(spectrum_order);
@@ -215,6 +223,13 @@ static void cr2res_splice_test(){
     cpl_table * spectra = make_spectra(&blaze);
     cpl_bivector * spliced, * spliced_err;
 
+    cpl_vector * tmp;
+    tmp = cpl_vector_new(CR2RES_DETECTOR_SIZE);
+    for (i = 0; i < CR2RES_DETECTOR_SIZE; i++)
+    {
+        cpl_vector_set(tmp, i, 1);
+    }
+
     int res;
     cpl_test_eq(0, cr2res_splice(&spectra, &blaze, &trace_wave, 1, &spliced, &spliced_err));
 
@@ -223,8 +238,8 @@ static void cr2res_splice_test(){
         cpl_test(cpl_bivector_get_x_data(spliced)[i] < cpl_bivector_get_x_data(spliced)[i+1]);
 
         // Here: spectrum == wavelength grid, i.e. also increasing
-        cpl_test(cpl_bivector_get_y_data(spliced)[i] < cpl_bivector_get_y_data(spliced)[i+1]);
-        cpl_test_abs(cpl_bivector_get_x_data(spliced)[i], cpl_bivector_get_y_data(spliced)[i], DBL_EPSILON);
+        cpl_test(cpl_bivector_get_y_data(spliced)[i] == cpl_bivector_get_y_data(spliced)[i+1]);
+        cpl_test_abs(cpl_vector_get(tmp, i), cpl_bivector_get_y_data(spliced)[i], DBL_EPSILON);
     
         // Here: Error <= 0.1, initial error
         cpl_test(cpl_bivector_get_y_data(spliced_err)[i] <= 0.1);
@@ -237,6 +252,7 @@ static void cr2res_splice_test(){
     cpl_table_delete(spectra);
     cpl_bivector_delete(spliced);
     cpl_bivector_delete(spliced_err);
+    cpl_vector_delete(tmp);
 
 }
 

@@ -1219,9 +1219,9 @@ cpl_table * cr2res_trace_new_slit_fraction(
         poly_b = cr2res_convert_array_to_poly(const_slit_curv_b);
         poly_c = cr2res_convert_array_to_poly(const_slit_curv_c);
 
-        a = cpl_polynomial_eval_1d(poly_a, (CR2RES_DETECTOR_SIZE/2) + 1, NULL);
-        b = cpl_polynomial_eval_1d(poly_b, (CR2RES_DETECTOR_SIZE/2) + 1, NULL);
-        c = cpl_polynomial_eval_1d(poly_c, (CR2RES_DETECTOR_SIZE/2) + 1, NULL);
+        a = cpl_polynomial_eval_1d(poly_a, (CR2RES_DETECTOR_SIZE/2.0) + 1, NULL);
+        b = cpl_polynomial_eval_1d(poly_b, (CR2RES_DETECTOR_SIZE/2.0) + 1, NULL);
+        c = cpl_polynomial_eval_1d(poly_c, (CR2RES_DETECTOR_SIZE/2.0) + 1, NULL);
 
         // vertical pixel shift
         pix_shift = (pix_upper - pix_lower) / 

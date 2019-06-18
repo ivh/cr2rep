@@ -87,7 +87,7 @@ static cpl_table *create_test_table()
     int poly_order, norders;
     cpl_propertylist *hdr = cpl_propertylist_new();
     cpl_propertylist *main_header = cpl_propertylist_new();
-
+    char * extname;
 
     /* Initialise */
     poly_order = 2;
@@ -181,7 +181,8 @@ static cpl_table *create_test_table()
         cpl_table_set_array(traces, CR2RES_COL_SLIT_CURV_C, i, slit_c);
     }
 
-    cpl_propertylist_append_string(hdr, "EXTNAME", cr2res_io_create_extname(1, 1));
+    extname = cr2res_io_create_extname(1, 1);
+    cpl_propertylist_append_string(hdr, "EXTNAME", extname);
 
     cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY0", 1994.0945859223);
     cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY1", 1723.67027599362);
@@ -193,15 +194,15 @@ static cpl_table *create_test_table()
     cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY7", 242.388497032926);
     cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN CENY8", 63.5899165277783);
 
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN0", 1756.78720770673);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN1", 1703.55123171562);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN2", 1653.44678372399);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN3", 1606.20544704616);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN4", 1561.58862907265);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN5", 1519.38353098961);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN6", 1479.3997538583);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN7", 1441.46642683629);
-    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN BEGIN8", -1.);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT0", 1756.78720770673);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT1", 1703.55123171562);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT2", 1653.44678372399);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT3", 1606.20544704616);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT4", 1561.58862907265);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT5", 1519.38353098961);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT6", 1479.3997538583);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT7", 1441.46642683629);
+    cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN STRT8", -1.);
 
     cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END0", 1768.81709603003);
     cpl_propertylist_append_double(hdr, "HIERARCH ESO INS WLEN END1", 1715.21657796851);
@@ -226,6 +227,8 @@ static cpl_table *create_test_table()
     cpl_array_delete(slit_c);
 
     cpl_propertylist_delete(hdr);
+    cpl_propertylist_delete(main_header);
+    cpl_free(extname);
     return traces;
 }
 
@@ -775,7 +778,7 @@ static void test_cr2res_trace_new_slit_fraction(void)
     cpl_test_abs(cpl_array_get_double(carray, 0, NULL), 1.4, FLT_EPSILON);
     cpl_test_abs(cpl_array_get_double(carray, 1, NULL), 0, FLT_EPSILON);
 
-    //deallocate memory
+    // deallocate memory
     cpl_table_delete(res);
     cpl_table_delete(trace_table);
     cpl_array_delete(new_slit_fraction);
