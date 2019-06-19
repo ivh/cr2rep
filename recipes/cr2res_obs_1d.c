@@ -686,6 +686,8 @@ static int cr2res_obs_1d_reduce(
     }
 
     /* Correct trace_wave with some provided raw flats */
+/* TODO : Add a parameter to trigger the correction */
+/* TODO : cr2res_trace_compute_shift() and cr2res_trace_apply_shift() */
     if (raw_flat_frames != NULL) {
         cpl_msg_info(__func__, "Try to correct the reproducibility error") ;
         cpl_msg_indent_more() ;
@@ -798,6 +800,7 @@ static int cr2res_obs_1d_reduce(
         cpl_table_delete(trace_wave_b) ;
         return -1 ;
     }
+/* TODO : Save trace_wave_a and b as products */
     cpl_table_delete(trace_wave_a) ;
     if (cr2res_extract_traces(collapsed_b, trace_wave_b, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
