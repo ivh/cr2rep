@@ -307,7 +307,7 @@ int cr2res_io_save_EXTRACT_2D(
         const cpl_propertylist  *   qc_list,
         const char              *   recipe);
 
-int cr2res_io_save_EXTRACT_POL(
+int cr2res_io_save_POL_SPEC(
         const char              *   filename,
         cpl_frameset            *   allframes,
         cpl_frameset            *   inframes,
@@ -315,6 +315,7 @@ int cr2res_io_save_EXTRACT_POL(
         cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
         const char              *   recipe) ;
 
 #endif

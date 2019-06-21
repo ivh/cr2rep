@@ -48,6 +48,8 @@ typedef enum {
  -----------------------------------------------------------------------------*/
 
 cpl_vector * cr2res_read_dits(const cpl_frameset * in) ;
+cr2res_decker * cr2res_decker_read_positions(const cpl_frameset * in) ;
+char * cr2res_decker_print_position(cr2res_decker dpos) ;
 
 int cr2res_format_setting(char * setting_id) ;
 

@@ -59,6 +59,11 @@
 /* SLIT_FUNC Table */
 #define CR2RES_COL_SLIT_FUNC_SUFFIX "SLIT_FUNC"     /* Intensity */
 
+/* POL_SPEC Table */
+#define CR2RES_COL_POL_SPEC_STOKES  "STOKES"        /* TODO */
+#define CR2RES_COL_POL_SPEC_NULL    "NULL"          /* TODO */
+#define CR2RES_COL_POL_SPEC_INTENS  "INTENS"        /* TODO */
+
 /* EXTRACT_1D Table */
 #define CR2RES_COL_SPEC_SUFFIX      "SPEC"          /* Intensity */
 #define CR2RES_COL_ERROR_SUFFIX     "ERR"           /* Error */
@@ -101,12 +106,14 @@
 /*      CR2RES_UTIL_EXTRACT_1D_PROCATG */
 /*      CR2RES_OBS_1D_EXTRACTA_PROCATG */
 /*      CR2RES_OBS_1D_EXTRACTB_PROCATG */
-/*      CR2RES_OBS_POL_EXTRACTA_PROCATG */
-/*      CR2RES_OBS_POL_EXTRACTB_PROCATG */
 /* Table with columns cr2res_dfs_SPEC_colname() */
 /*                    cr2res_dfs_WAVELENGTH_colname() */
 /*                    cr2res_dfs_SPEC_ERR_colname() */
 #define CR2RES_EXTRACT_1D_PROTYPE           "EXTRACT_1D"
+
+/* For CR2RES_OBS_POL_SPECA_PROCATG */
+/*     CR2RES_OBS_POL_SPECB_PROCATG */
+#define CR2RES_POL_SPEC_PROTYPE             "POL_SPEC"
 
 /* For  CR2RES_OBS_2D_EXTRACT_PROCATG */
 /* Table with columns CR2RES_COL_2D_TODO  */
@@ -114,8 +121,6 @@
 
 /* For  CR2RES_OBS_1D_COMBINEDA_PROCATG */
 /*      CR2RES_OBS_1D_COMBINEDB_PROCATG */
-/*      CR2RES_OBS_POL_COMBINEDA_PROCATG */
-/*      CR2RES_OBS_POL_COMBINEDB_PROCATG */
 #define CR2RES_COMBINED_PROTYPE             "COMBINED"
 
 /* For CR2RES_UTIL_SPLICE_SPLICED_1D_PROCATG */
@@ -219,10 +224,8 @@
 #define CR2RES_OBS_2D_EXTRACT_PROCATG       "OBS_2D_EXTRACT"
 
 /* Produced by cr2res_obs_pol */
-#define CR2RES_OBS_POL_EXTRACTA_PROCATG     "OBS_POL_EXTRACTA"
-#define CR2RES_OBS_POL_EXTRACTB_PROCATG     "OBS_POL_EXTRACTB"
-#define CR2RES_OBS_POL_COMBINEDA_PROCATG    "OBS_POL_COMBINEDA"
-#define CR2RES_OBS_POL_COMBINEDB_PROCATG    "OBS_POL_COMBINEDB"
+#define CR2RES_OBS_POL_SPECA_PROCATG        "OBS_POL_SPECA"
+#define CR2RES_OBS_POL_SPECB_PROCATG        "OBS_POL_SPECB"
 
 /* Produced by cr2res_util_genlines */
 #define CR2RES_EMISSION_LINES_PROCATG       "EMISSION_LINES"

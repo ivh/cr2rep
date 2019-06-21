@@ -89,6 +89,59 @@ char cr2res_nodding_position_char(cr2res_nodding_pos pos)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief  Split A/B positions in 2 framesets
+  @param    in          Input frameset
+  @param    positions   nodding positions
+  @param    pos_a       [out] A position frames
+  @param    pos_b       [out] B position frames
+  @return   0 if ok, -1 otherwise
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_combine_nodding_split_frames(
+        const cpl_frameset      *   in,
+        cr2res_nodding_pos      *   positions,
+        cpl_frameset            **  pos_a,
+        cpl_frameset            **  pos_b)
+{
+    cpl_frameset    *   nod_a ;
+    cpl_frameset    *   nod_b ;
+    const cpl_frame *   cur_frame ;
+    cpl_size            alist_idx, blist_idx, i, nframes ;
+
+    /* Check entries */
+    if (in==NULL || positions==NULL || pos_a==NULL || pos_b==NULL)
+        return -1;
+
+    /* Initialise */
+    nframes = cpl_frameset_get_size(in) ;
+    alist_idx = blist_idx = 0 ;
+
+    /* Create A/B positions */
+    nod_a = cpl_frameset_new() ;
+    nod_b = cpl_frameset_new() ;
+
+    /* Loop on the positions */
+    for (i=0 ; i<nframes ; i++) {
+        if (positions[i] == CR2RES_NODDING_A) {
+            cur_frame = cpl_frameset_get_position_const(in, i) ;
+            cpl_frameset_insert(nod_a, cpl_frame_duplicate(cur_frame)) ;
+            alist_idx++ ;
+            cur_frame = NULL ;
+        }
+        if (positions[i] == CR2RES_NODDING_B) {
+            cur_frame = cpl_frameset_get_position_const(in, i) ;
+            cpl_frameset_insert(nod_b, cpl_frame_duplicate(cur_frame)) ;
+            blist_idx++ ;
+            cur_frame = NULL ;
+        }
+    }
+    *pos_a = nod_a ;
+    *pos_b = nod_b ;
+    return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief  Split A/B positions in 2 image lists
   @param    in          Input image list
   @param    positions   nodding positions

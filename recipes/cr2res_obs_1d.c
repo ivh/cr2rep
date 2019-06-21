@@ -215,20 +215,6 @@ static int cr2res_obs_1d_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_1d.order",
-            CPL_TYPE_INT, "Only reduce the specified order",
-            "cr2res.cr2res_obs_1d", -1);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "order");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_1d.trace_nb",
-            CPL_TYPE_INT, "Only reduce the specified trace number",
-            "cr2res.cr2res_obs_1d", -1);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_nb");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
-
     return 0;
 }
 
@@ -285,8 +271,7 @@ static int cr2res_obs_1d(
 {
     const cpl_parameter *   param ;
     int                     extract_oversample, extract_swath_width,
-                            extract_height, reduce_det, reduce_order, 
-                            reduce_trace ;
+                            extract_height, reduce_det ;
     double                  extract_smooth ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_flat_frames ;
@@ -325,12 +310,6 @@ static int cr2res_obs_1d(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_1d.detector");
     reduce_det = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_obs_1d.order");
-    reduce_order = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_obs_1d.trace_nb");
-    reduce_trace = cpl_parameter_get_int(param);
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
@@ -686,8 +665,6 @@ static int cr2res_obs_1d_reduce(
     }
 
     /* Correct trace_wave with some provided raw flats */
-/* TODO : Add a parameter to trigger the correction */
-/* TODO : cr2res_trace_compute_shift() and cr2res_trace_apply_shift() */
     if (raw_flat_frames != NULL) {
         cpl_msg_info(__func__, "Try to correct the reproducibility error") ;
         cpl_msg_indent_more() ;

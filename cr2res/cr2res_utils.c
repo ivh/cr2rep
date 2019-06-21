@@ -434,6 +434,67 @@ cpl_frameset * cr2res_extract_frameset(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get the decker positions from a frame set
+  @param    set     Input frame set
+  @return   the DECKER positions or NULL in error case
+ */
+/*----------------------------------------------------------------------------*/
+cr2res_decker * cr2res_decker_read_positions(const cpl_frameset * in)
+{
+    cr2res_decker  		*   out ;
+    cpl_propertylist    *   plist ;
+    const char          *   fname ;
+    cpl_size                nframes, i ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    /* Initialise */
+    nframes = cpl_frameset_get_size(in) ;
+
+    /* Allocate the vector */
+    out = cpl_malloc(nframes * sizeof(cr2res_decker)) ;
+
+    /* Loop on the frames */
+    for (i=0 ; i< nframes ; i++) {
+        plist = cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position_const(in, i)), 0) ;
+        out[i] = cr2res_pfits_get_decker_position(plist) ;
+        cpl_propertylist_delete(plist) ;
+    }
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the decker position string for display
+  @param    dpos	The decker position
+  @return  	the newly allocated string
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_decker_print_position(cr2res_decker dpos)
+{
+    char    *   out ;
+
+    /* Initialise */
+    out = NULL ;
+
+    if (dpos == CR2RES_DECKER_INVALID) {
+        out = cpl_strdup("INVALID") ;
+    } else if (dpos == CR2RES_DECKER_NONE) {
+        out = cpl_strdup("NONE") ;
+    } else if (dpos == CR2RES_DECKER_1_3) {
+        out = cpl_strdup("1_3") ;
+    } else if (dpos == CR2RES_DECKER_2_4) {
+        out = cpl_strdup("2_4") ;
+    } else {
+        out = cpl_strdup("Unknown Decker Code") ;
+    }
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
    @brief   Extract the frames with the given tag and Decker position
    @param   in      A non-empty frameset
    @param   tag     The tag of the requested frames
