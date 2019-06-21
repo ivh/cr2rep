@@ -42,6 +42,28 @@
 
 /*----------------------------------------------------------------------------*/
 /**
+  @internal
+  @brief    Fill the Hankel Matrix H=V'*V, where V is a 1D-Vandermonde matrix
+  @param    self      The matrix H
+  @param    mx        A right multiplication with V', mx = V' * values
+  @param    xhat      The mean-transformed x-values
+  @param    is_eqdist True iff xhat contains equidistant points
+  @param    mindeg    The non-negative minimum fitting degree
+  @param    values    The values to be interpolated
+  @return   void
+  @note self must have its elements initialized to zero iff is_eqdist is true.
+
+ */
+/*----------------------------------------------------------------------------*/
+static void cr2res_matrix_fill_normal_vandermonde(cpl_matrix * self,
+                                               cpl_matrix * mx,
+                                               const cpl_vector * xhat,
+                                               cpl_boolean is_eqdist,
+                                               cpl_size mindeg,
+                                               const cpl_vector * values);
+
+/*----------------------------------------------------------------------------*/
+/**
   @defgroup cr2res_detlin
  */
 /*----------------------------------------------------------------------------*/
@@ -216,23 +238,187 @@ int cr2res_detlin_compute(
         cpl_error_reset() ;
         return -1 ;
     }
-    cpl_matrix_unwrap(samppos) ;
-    cpl_vector_delete(y);
+
 
     /* Compute the error */
-    /* TODO */
     error_local = cpl_vector_new(max_degree+1) ;
 
 
+    cpl_size nc = max_degree + 1;
+    cpl_size ndata = cpl_vector_get_size(y);
+    if (nc >= ndata){
+        // No uncertainty as fit should be perfectly aligned with data points
+        for (cpl_size i = 0; i < max_degree + 1; i++)
+        {
+            cpl_vector_set(error_local, i, 0);
+        }
+    }
+    else{
+        // lhs = vandermode(x, order)
+        // hankel = dot(lhs.T, lhs)
+        // cov = inv(hankel)
+        // cov *= resids / (len(x) - order)
+        // error_local = diag(cov)
+        cpl_matrix * hankel = cpl_matrix_new(nc, nc);
+        cpl_matrix * mx = cpl_matrix_new(nc, 1); // just a temporary matrix we need
 
+        // this actually returns the hankel matrix, not vandermode
+        // also directly copied from the cpl source code (cpl_polynomial.c)
+        cr2res_matrix_fill_normal_vandermonde(hankel, mx, values, CPL_FALSE, 0, y);
+        cpl_matrix * inverse = cpl_matrix_invert_create(hankel);
 
+        cpl_vector * resids = cpl_vector_new(ndata);
+        cpl_vector_fill_polynomial_fit_residual(resids, y, NULL, fitted_local, samppos, NULL);
+        cpl_matrix_multiply_scalar(inverse, cpl_vector_get_sum(resids) / (double)(ndata - nc));
 
+        for (cpl_size i = 0; i < max_degree + 1; i++)
+        {
+            cpl_vector_set(error_local, i, cpl_matrix_get(inverse, i, i));
+        }
+        
+        cpl_matrix_delete(hankel);
+        cpl_matrix_delete(mx);
+        cpl_matrix_delete(inverse);
+        cpl_vector_delete(resids);
+    }
+    cpl_vector_delete(y);
+    cpl_matrix_unwrap(samppos) ;    
 
     /* Return */
     *fitted = fitted_local ;
     if (error != NULL) *error = error_local ;
     else cpl_vector_delete(error_local) ;
     return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @internal
+  @brief    Fill the Hankel Matrix H=V'*V, where V is a 1D-Vandermonde matrix
+  @param    self      The matrix H
+  @param    mx        A right multiplication with V', mx = V' * values
+  @param    xhat      The mean-transformed x-values
+  @param    is_eqdist True iff xhat contains equidistant points
+  @param    mindeg    The non-negative minimum fitting degree
+  @param    values    The values to be interpolated
+  @return   void
+  @note self must have its elements initialized to zero iff is_eqdist is true.
+
+ */
+/*----------------------------------------------------------------------------*/
+static void cr2res_matrix_fill_normal_vandermonde(cpl_matrix * self,
+                                               cpl_matrix * mx,
+                                               const cpl_vector * xhat,
+                                               cpl_boolean is_eqdist,
+                                               cpl_size mindeg,
+                                               const cpl_vector * values)
+{
+
+
+    const double * dval = cpl_vector_get_data_const(values);
+    const double * xval = cpl_vector_get_data_const(xhat);
+    cpl_vector   * phat = cpl_vector_duplicate(xhat); /* Powers of xhat */
+    cpl_vector   * qhat = NULL;                       /* mindeg Power of xhat */
+    double       * dhat = cpl_vector_get_data(phat);
+    double       * ehat = NULL;
+    const cpl_size nc   = cpl_matrix_get_ncol(self);
+    const cpl_size np   = cpl_vector_get_size(xhat);
+    cpl_size       i,j;
+
+    /* Fill Hankel matrix from top-left to main skew diagonal
+       - on and above (non-skew) main diagonal */
+    /* Also compute transpose(V) * b */
+    /* Peel off 1st iteration */
+    if (mindeg > 0) {
+        double hsum = 0.0;
+        cpl_size k;
+
+        qhat = mindeg == 1 ? cpl_vector_duplicate(xhat) : cpl_vector_new(np);
+        ehat = cpl_vector_get_data(qhat);
+
+        /* Raise xhat to the power of mindeg */
+        for (k=0; k < np; k++) {
+            const double x = xval[k];
+
+            if (mindeg > 1) ehat[k] = pow(x, (int)mindeg);
+            dhat[k] *= ehat[k];
+
+            hsum += ehat[k] * ehat[k];
+        }
+        cpl_matrix_set(self, 0, 0, hsum);
+    } else {
+        cpl_matrix_set(self, 0, 0, (double)np);
+    }
+    /* qhat is xhat to the power of mindeg, iff mindeg > 0 */
+    /* dhat is xhat to the power of 1+mindeg, iff mindeg > 0 */
+    for (j=1; j < 2; j++) {
+        double vsum0 = 0.0;
+        double hsum = 0.0;
+        double vsum = 0.0;
+        cpl_size k;
+
+        for (k=0; k < np; k++) {
+            const double y = dval[k];
+
+            hsum += mindeg > 0 ? ehat[k] * dhat[k] : dhat[k];
+            vsum += y * dhat[k];
+            vsum0 += mindeg > 0 ? ehat[k] * y : y;
+        }
+        cpl_matrix_set(mx, 0, 0, vsum0);
+        cpl_matrix_set(mx, j, 0, vsum);
+        if (is_eqdist) continue;
+        k = j;
+        for (i=0; i <= k; i++, k--) {
+            cpl_matrix_set(self, i, k, hsum);
+        }
+    }
+    for (; j < nc; j++) {
+        double   hsum = 0.0;
+        double   vsum = 0.0;
+        cpl_size k;
+
+        for (k=0; k < np; k++) {
+            const double x = xval[k];
+            const double y = dval[k];
+
+            dhat[k] *= x;
+            hsum += mindeg > 0 ? ehat[k] * dhat[k] : dhat[k];
+            vsum += y * dhat[k];
+        }
+        cpl_matrix_set(mx, j, 0, vsum);
+        if (is_eqdist && (j&1)) continue;
+        k = j;
+        for (i=0; i <= k; i++, k--) {
+            cpl_matrix_set(self, i, k, hsum);
+        }
+    }
+    /* Fill remaining Hankel matrix - on and above (non-skew) main diagonal */
+
+    if (mindeg > 0) cpl_vector_multiply(phat, qhat);
+    cpl_vector_delete(qhat);
+    for (i = 1; i < nc; i++) {
+        cpl_size k;
+        double   hsum = 0.0;
+
+        if (is_eqdist && ((i+nc)&1)==0) {
+            cpl_vector_multiply(phat, xhat);
+            continue;
+        }
+
+        for (k=0; k < np; k++) {
+            const double x = xval[k];
+
+            dhat[k] *= x;
+            hsum += dhat[k];
+        }
+        k = i;
+        for (j = nc-1; k <= j; k++, j--) {
+            cpl_matrix_set(self, k, j, hsum);
+        }
+    }
+
+    cpl_vector_delete(phat);
+
 }
 
 /**@}*/
