@@ -650,7 +650,7 @@ static int cr2res_cal_detlin_reduce(
                 }
                 /* We are in a trace, let's compute the linearity */
                 if (cr2res_detlin_compute(dits, fitvals, max_degree,
-                            &fitted_poly, &fitted_errors)) {
+                            &fitted_poly, &fitted_errors) == -1) {
                     qc_nbfailed++ ;
                     /* Store the null Coefficients in the output image list */
                     pbpm_loc[idx] = CR2RES_BPM_DETLIN ;

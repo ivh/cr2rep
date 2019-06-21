@@ -129,7 +129,13 @@ double cr2res_pfits_get_nodthrow(const cpl_propertylist * plist)
 /*----------------------------------------------------------------------------*/
 double cr2res_pfits_get_dit(const cpl_propertylist * plist)
 {
-    return cpl_propertylist_get_double(plist, "ESO DET SEQ1 DIT")  ;
+    double val;
+    val = cpl_propertylist_get_double(plist, "ESO DET SEQ1 DIT")  ;
+    if (cpl_error_get_code() == CPL_ERROR_TYPE_MISMATCH){
+        cpl_error_reset();
+        val = (double) cpl_propertylist_get_int(plist, "ESO DET SEQ1 DIT");
+    }
+    return val;
 }
 
 /*----------------------------------------------------------------------------*/
