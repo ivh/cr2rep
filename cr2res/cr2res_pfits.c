@@ -53,11 +53,15 @@ cr2res_nodding_pos cr2res_pfits_get_nodding_pos(const cpl_propertylist * plist)
 {
     const char  *   sval ;
     sval = cpl_propertylist_get_string(plist, "ESO SEQ NODPOS");
+
+    if (sval==NULL) {
+        cpl_error_reset() ;
+        return CR2RES_NODDING_NONE ;
+    }
     if (sval[0] == 'A') return CR2RES_NODDING_A ;
     if (sval[0] == 'B') return CR2RES_NODDING_B ;
     return CR2RES_NODDING_NONE ; 
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
