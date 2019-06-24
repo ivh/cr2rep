@@ -34,8 +34,21 @@
 /*-----------------------------------------------------------------------------
                                        Prototypes
  -----------------------------------------------------------------------------*/
-cpl_bivector * cr2res_pol_demod_stokes(cpl_bivector ** speclist, int n);
-cpl_bivector * cr2res_pol_demod_null(cpl_bivector ** speclist, int n);
-cpl_bivector * cr2res_pol_demod_intens(cpl_bivector ** speclist, int n);
+
+cpl_bivector * cr2res_pol_demod_stokes(
+        cpl_vector  **  intens,
+        cpl_vector  **  wl,
+        cpl_vector  **  errors,
+        int             n) ;
+cpl_bivector * cr2res_pol_demod_null(
+        cpl_vector  **  intens,
+        cpl_vector  **  wl,
+        cpl_vector  **  errors,
+        int             n) ;
+cpl_bivector * cr2res_pol_demod_intens(
+        cpl_vector  **  intens,
+        cpl_vector  **  wl,
+        cpl_vector  **  errors,
+        int             n) ;
 
 #endif
