@@ -31,6 +31,8 @@
                                    Define
  -----------------------------------------------------------------------------*/
 
+#define     CR2RES_POLARIMETRY_GROUP_SIZE   4
+
 /*-----------------------------------------------------------------------------
                                        Prototypes
  -----------------------------------------------------------------------------*/
@@ -50,5 +52,11 @@ cpl_bivector * cr2res_pol_demod_intens(
         cpl_vector  **  wl,
         cpl_vector  **  errors,
         int             n) ;
+cpl_table * cr2res_pol_POL_SPEC_create(
+        int             *   orders,
+        cpl_bivector    **  stokes,
+        cpl_bivector    **  null,
+        cpl_bivector    **  intens,
+        int                 norders) ;
 
 #endif

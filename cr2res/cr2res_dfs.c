@@ -117,6 +117,98 @@ char * cr2res_dfs_SLIT_CURV_colname(int order, int trace)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get the POL_STOKES column name for a given order
+  @param    order       The order number (1->) 
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_POL_STOKES_colname(int order)
+{
+    int         order_loc ;
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_POL_STOKES_SUFFIX) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the POL_STOKES_ERROR column name for a given order
+  @param    order       The order number (1->) 
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_POL_STOKES_ERROR_colname(int order)
+{
+    int         order_loc ;
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%s", order_loc, 
+            CR2RES_COL_POL_STOKES_ERROR_SUFFIX) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the POL_NULL column name for a given order
+  @param    order       The order number (1->) 
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_POL_NULL_colname(int order)
+{
+    int         order_loc ;
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_POL_NULL_SUFFIX) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the POL_NULL_ERROR column name for a given order
+  @param    order       The order number (1->) 
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_POL_NULL_ERROR_colname(int order)
+{
+    int         order_loc ;
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_POL_NULL_ERROR_SUFFIX) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the POL_INTENS column name for a given order
+  @param    order       The order number (1->) 
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_POL_INTENS_colname(int order)
+{
+    int         order_loc ;
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_POL_INTENS_SUFFIX) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the POL_INTENS_ERROR column name for a given order
+  @param    order       The order number (1->) 
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_POL_INTENS_ERROR_colname(int order)
+{
+    int         order_loc ;
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%s", order_loc,
+            CR2RES_COL_POL_INTENS_ERROR_SUFFIX) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get the SPEC column name for a given order/trace
   @param    order       The order number (1->) 
   @param    trace       The trace number (1->)

@@ -524,7 +524,8 @@ cpl_table * cr2res_extract_SLITFUNC_create(
     cpl_table       *   out ;
     char            *   col_name ;
     const double    *   pslit ;
-    int                 nrows, nrows_max, all_null, i, order, trace_id, nb_traces ;
+    int                 nrows, nrows_max, all_null, i, order, trace_id, 
+                        nb_traces ;
 
     /* Check entries */
     if (slit_func == NULL || trace_table == NULL) return NULL ;

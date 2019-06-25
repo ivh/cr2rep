@@ -60,9 +60,12 @@
 #define CR2RES_COL_SLIT_FUNC_SUFFIX "SLIT_FUNC"     /* Intensity */
 
 /* POL_SPEC Table */
-#define CR2RES_COL_POL_SPEC_STOKES  "STOKES"        /* TODO */
-#define CR2RES_COL_POL_SPEC_NULL    "NULL"          /* TODO */
-#define CR2RES_COL_POL_SPEC_INTENS  "INTENS"        /* TODO */
+#define CR2RES_COL_POL_STOKES_SUFFIX        "STOKES"        /* TODO */
+#define CR2RES_COL_POL_STOKES_ERROR_SUFFIX  "STOKES_ERR"    /* Error */
+#define CR2RES_COL_POL_NULL_SUFFIX          "NULL"          /* TODO */
+#define CR2RES_COL_POL_NULL_ERROR_SUFFIX    "NULL_ERR"      /* Error */
+#define CR2RES_COL_POL_INTENS_SUFFIX        "INTENS"        /* TODO */
+#define CR2RES_COL_POL_INTENS_ERROR_SUFFIX  "INTENS_ERR"    /* Error */
 
 /* EXTRACT_1D Table */
 #define CR2RES_COL_SPEC_SUFFIX      "SPEC"          /* Intensity */
@@ -113,6 +116,12 @@
 
 /* For CR2RES_OBS_POL_SPECA_PROCATG */
 /*     CR2RES_OBS_POL_SPECB_PROCATG */
+/* Table with columns cr2res_dfs_POL_STOKES_colname() */
+/*                    cr2res_dfs_POL_STOKES_ERROR_colname() */
+/*                    cr2res_dfs_POL_NULL_colname() */
+/*                    cr2res_dfs_POL_NULL_ERROR_colname() */
+/*                    cr2res_dfs_POL_INTENS_colname() */
+/*                    cr2res_dfs_POL_INTENS_ERROR_colname() */
 #define CR2RES_POL_SPEC_PROTYPE             "POL_SPEC"
 
 /* For  CR2RES_OBS_2D_EXTRACT_PROCATG */
@@ -287,6 +296,12 @@ char * cr2res_dfs_WAVELENGTH_colname(int, int);
 char * cr2res_dfs_SPEC_ERR_colname(int, int);
 char * cr2res_dfs_SLIT_FUNC_colname(int, int) ;
 char * cr2res_dfs_SLIT_CURV_colname(int, int) ;
+char * cr2res_dfs_POL_STOKES_colname(int) ;
+char * cr2res_dfs_POL_STOKES_ERROR_colname(int) ;
+char * cr2res_dfs_POL_NULL_colname(int) ;
+char * cr2res_dfs_POL_NULL_ERROR_colname(int) ;
+char * cr2res_dfs_POL_INTENS_colname(int) ;
+char * cr2res_dfs_POL_INTENS_ERROR_colname(int) ;
 
 cpl_table * cr2res_dfs_create_lines_diagnostics_table(int nrows) ;
 

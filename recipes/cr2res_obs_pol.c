@@ -451,6 +451,7 @@ static int cr2res_obs_pol_reduce(
     cpl_table           *   pol_specb_loc ;
     cpl_propertylist    *   ext_plista_loc ;
     cpl_propertylist    *   ext_plistb_loc ;
+    int                     i ;
 
     /* Check Inputs */
     if (pol_speca == NULL || pol_specb == NULL || ext_plista == NULL || 
@@ -459,6 +460,32 @@ static int cr2res_obs_pol_reduce(
 
     /* Get the Nodding positions */
     nod_positions = cr2res_nodding_read_positions(rawframes) ;
+
+    /* START TMP Incomplete headers */
+    cpl_free(nod_positions) ;
+    nod_positions = cpl_malloc(12 * sizeof(cr2res_nodding_pos)) ;
+    nod_positions[0] = CR2RES_NODDING_A ;
+    nod_positions[1] = CR2RES_NODDING_A ;
+    nod_positions[2] = CR2RES_NODDING_A ;
+    nod_positions[3] = CR2RES_NODDING_A ;
+    nod_positions[4] = CR2RES_NODDING_B ;
+    nod_positions[5] = CR2RES_NODDING_B ;
+    nod_positions[6] = CR2RES_NODDING_B ;
+    nod_positions[7] = CR2RES_NODDING_B ;
+    nod_positions[8] = CR2RES_NODDING_A ;
+    nod_positions[9] = CR2RES_NODDING_A ;
+    nod_positions[10] = CR2RES_NODDING_A ;
+    nod_positions[11] = CR2RES_NODDING_A ;
+    /* STOP TMP Incomplete headers */
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
+            cpl_msg_debug(__func__, "Frame %s - Nodding %c",
+                    cpl_frame_get_filename(
+                        cpl_frameset_get_position_const(rawframes,i)),
+                    cr2res_nodding_position_char(nod_positions[i])) ;
+        }
+    }
 
     /* Split the frames */
     if (cr2res_combine_nodding_split_frames(rawframes, nod_positions, 
@@ -470,36 +497,46 @@ static int cr2res_obs_pol_reduce(
     cpl_free(nod_positions) ;    
 
     /* Reduce A position */
+    cpl_msg_error(__func__, "Compute Polarimetry for nodding A position") ;
+    cpl_msg_indent_more() ;
     if (cr2res_obs_pol_reduce_one(rawframes_a, raw_flat_frames, 
                 trace_wave_frame, detlin_frame, master_dark_frame, 
                 master_flat_frame, bpm_frame, 0, extract_oversample, 
                 extract_swath_width, extract_height, extract_smooth, reduce_det,
                 &pol_speca_loc, &ext_plista_loc) == -1) {
-
-
+        cpl_msg_error(__func__, "Failed to Reduce A nodding frames") ;
+        if (rawframes_a != NULL) cpl_frameset_delete(rawframes_a);
+        if (rawframes_b != NULL) cpl_frameset_delete(rawframes_b);
+        cpl_msg_indent_less() ;
         return -1 ;
     }
+    cpl_msg_indent_less() ;
+    cpl_frameset_delete(rawframes_a);
 
     /* Reduce B position */
+    cpl_msg_error(__func__, "Compute Polarimetry for nodding A position") ;
+    cpl_msg_indent_more() ;
     if (cr2res_obs_pol_reduce_one(rawframes_b, raw_flat_frames, 
                 trace_wave_frame, detlin_frame, master_dark_frame, 
                 master_flat_frame, bpm_frame, 0, extract_oversample, 
                 extract_swath_width, extract_height, extract_smooth, reduce_det,
                 &pol_specb_loc, &ext_plistb_loc) == -1) {
-
-
+        cpl_msg_error(__func__, "Failed to Reduce B nodding frames") ;
+        if (rawframes_b != NULL) cpl_frameset_delete(rawframes_b);
+        cpl_table_delete(pol_speca_loc) ;
+        cpl_propertylist_delete(ext_plista_loc) ;
+        cpl_msg_indent_less() ;
         return -1 ;
     }
+    cpl_msg_indent_less() ;
+    cpl_frameset_delete(rawframes_b);
 
     *pol_speca = pol_speca_loc ;
     *pol_specb = pol_specb_loc ;
-
     *ext_plista = ext_plista_loc ;
     *ext_plistb = ext_plistb_loc ;
-
     return 0 ;
 }
-
  
 /*----------------------------------------------------------------------------*/
 /**
@@ -539,98 +576,79 @@ static int cr2res_obs_pol_reduce_one(
         cpl_table           **  pol_spec,
         cpl_propertylist    **  ext_plist)
 {
+    cpl_vector          *   dits ;
+    hdrl_imagelist      *   in ;
+    hdrl_imagelist      *   in_calib ;
+    cpl_table           *   trace_wave ;
+    cpl_table           *   trace_wave_corrected ;
+    cpl_table           *   extracted[2*CR2RES_POLARIMETRY_GROUP_SIZE];
+    cpl_table           **  pol_spec_one_group ;
+    cpl_table           **  extract_1d ;
+    cpl_vector          **  intens ;
+    cpl_vector          **  wl ;
+    cpl_vector          **  errors ;
+    cpl_bivector        **  demod_stokes ;
+    cpl_bivector        **  demod_null ;
+    cpl_bivector        **  demod_intens ;
+    int                 *   orders ;
+    cpl_table           *   pol_spec_merged ;
+    cpl_size                nframes, nspec_group ;
+    int                     ngroups, i, j, k, o, norders, frame_idx ;
 
     /* Check Inputs */
     if (pol_spec == NULL || ext_plist == NULL || rawframes == NULL || 
             trace_wave_frame == NULL) return -1 ;
 
-    /* Compute the number of 4groups */
-
-    /* Loop on the 4groups */
-
-    
-    /* Merge the 4groups together */
-
-
-
+    /* Check number of frames */
+    nframes = cpl_frameset_get_size(rawframes) ;
+    if (nframes == 0 || nframes % CR2RES_POLARIMETRY_GROUP_SIZE) {
+        cpl_msg_error(__func__, 
+    "Input number of frames is %"CPL_SIZE_FORMAT" and should be multiple of %d",
+            nframes, CR2RES_POLARIMETRY_GROUP_SIZE) ;
+        return -1 ;
+    }
 
     /* Load the DITs if necessary */
-
-    /*
     if (master_dark_frame != NULL)  dits = cr2res_read_dits(rawframes) ;
     else                            dits = NULL ;
     if (cpl_msg_get_level() == CPL_MSG_DEBUG && dits != NULL) 
         cpl_vector_dump(dits, stdout) ;
-        */
 
     /* Load image list */
-    /*
     if ((in = cr2res_io_load_image_list_from_set(rawframes, 
                     reduce_det)) == NULL) {
         cpl_msg_error(__func__, "Cannot load images") ;
-        cpl_free(nod_positions) ;    
-        cpl_free(decker_positions) ;    
         if (dits != NULL) cpl_vector_delete(dits) ;
         return -1 ;
     }
     if (hdrl_imagelist_get_size(in) != cpl_frameset_get_size(rawframes)) {
         cpl_msg_error(__func__, "Inconsistent number of loaded images") ;
-        cpl_free(nod_positions) ;    
-        cpl_free(decker_positions) ;    
         if (dits != NULL) cpl_vector_delete(dits) ;
         hdrl_imagelist_delete(in) ;
         return -1 ;
     }
-        */
 
     /* Calibrate the images */
-    /*
     if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0, master_flat_frame,
             master_dark_frame, bpm_frame, detlin_frame, dits)) == NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
-        cpl_free(nod_positions) ;    
-        cpl_free(decker_positions) ;    
         if (dits != NULL) cpl_vector_delete(dits) ;
         hdrl_imagelist_delete(in) ;
         return -1 ;
     }
     hdrl_imagelist_delete(in) ;
     if (dits != NULL) cpl_vector_delete(dits) ;
-*/
-
-
-
-
-    /* Split the image lists */
-    /*
-    if (cr2res_combine_nodding_split(in_calib, nod_positions, &in_a, 
-            &in_b)) {
-        cpl_msg_error(__func__, "Failed to split the nodding positions") ;
-        cpl_free(nod_positions) ;    
-        hdrl_imagelist_delete(in_calib) ;
-        return -1 ;
-    }
-    cpl_free(nod_positions) ;    
-    hdrl_imagelist_delete(in_calib) ;
-
-        */
-
-
 
     /* Load the trace wave */
-    /*
     cpl_msg_info(__func__, "Load the TRACE WAVE") ;
     if ((trace_wave = cr2res_io_load_TRACE_WAVE(cpl_frame_get_filename(
                         trace_wave_frame), reduce_det)) == NULL) {
         cpl_msg_error(__func__, "Failed to Load the traces file") ;
-        hdrl_image_delete(collapsed_a) ;
-        hdrl_image_delete(collapsed_b) ;
+        hdrl_imagelist_delete(in_calib) ;
         return -1 ;
     }
 
-        */
     /* Correct trace_wave with some provided raw flats */
-    /*
     if (raw_flat_frames != NULL) {
         cpl_msg_info(__func__, "Try to correct the reproducibility error") ;
         cpl_msg_indent_more() ;
@@ -644,7 +662,111 @@ static int cr2res_obs_pol_reduce_one(
         cpl_msg_indent_less() ;
     }
 
-        */
+    /* Compute the number of groups */
+    ngroups = nframes/CR2RES_POLARIMETRY_GROUP_SIZE ;
+
+    /* Allocate pol_spec_group containers */
+    pol_spec_one_group = cpl_malloc(ngroups * sizeof(cpl_table*)) ;
+
+    /* Loop on the groups */
+    for (i=0 ; i<ngroups ; i++) {
+        cpl_msg_info(__func__, "Process %d-group number %d/%d", 
+                CR2RES_POLARIMETRY_GROUP_SIZE, i+1, ngroups) ;
+
+        /* Initialise */
+        pol_spec_one_group[i] = NULL ;
+        nspec_group = 2*CR2RES_POLARIMETRY_GROUP_SIZE ;
+
+        /* Container for extracted tables: 1u, 1d, 2u, 2d, 3u, 3d, 4u, 4d */
+        extract_1d = cpl_malloc(nspec_group * sizeof(cpl_table*));
+
+        /* Loop on the frames */
+        for (j=0 ; j<CR2RES_POLARIMETRY_GROUP_SIZE ; j++) {
+            frame_idx = i * CR2RES_POLARIMETRY_GROUP_SIZE + j ;
+
+            /* Extract up and down */
+            /* TODO */
+            extract_1d[2*j] = cpl_table_new(1);
+            extract_1d[2*j+1] = cpl_table_new(1);
+        }
+
+        /* How many orders */
+        /* TODO  get orders/norders that are in all 8 exracted tables*/
+        norders = 5 ;
+        orders = cpl_malloc(norders * sizeof(int)) ;
+        orders[0] = 3;
+        orders[1] = 4;
+        orders[2] = 5;
+        orders[3] = 6;
+        orders[4] = 7;
+
+        /* Allocate data containerѕ */
+        demod_stokes = cpl_malloc(norders * sizeof(cpl_bivector*)) ;
+        demod_null = cpl_malloc(norders * sizeof(cpl_bivector*)) ;
+        demod_intens = cpl_malloc(norders * sizeof(cpl_bivector*)) ;
+
+        /* Loop on the orders */
+        for (o=0 ; o<norders ; o++) {
+            
+            /* Get the inputs for the demod functions calls */
+            intens = cpl_malloc(nspec_group * sizeof(cpl_vector*));
+            wl = cpl_malloc(nspec_group * sizeof(cpl_vector*));
+            errors = cpl_malloc(nspec_group * sizeof(cpl_vector*));
+            for (k=0 ; k<nspec_group ; k++) {
+               
+                /* TODO */
+
+            }
+
+            
+            /* Call demod functions */
+            demod_stokes[o]=cr2res_pol_demod_stokes(intens,wl,errors,norders) ;
+            demod_null[o]=cr2res_pol_demod_null(intens,wl,errors,norders) ;
+            demod_intens[o]=cr2res_pol_demod_intens(intens,wl,errors,norders) ;
+
+            /* Free */
+            for (k=0 ; k<nspec_group ; k++) {
+                cpl_vector_delete(intens[k]) ;
+                cpl_vector_delete(wl[k]) ;
+                cpl_vector_delete(errors[k]) ;
+            }
+            cpl_free(intens) ;
+            cpl_free(wl) ;
+            cpl_free(errors) ;
+        }
+
+        /* Create the pol_spec table */
+        pol_spec_one_group[i] = cr2res_pol_POL_SPEC_create(orders,
+                demod_stokes, demod_null, demod_intens, norders) ;
+
+        /* Deallocate */
+        for (o=0 ; o<norders ; o++) {
+            cpl_bivector_delete(demod_stokes[o]) ;
+            cpl_bivector_delete(demod_null[o]) ;
+            cpl_bivector_delete(demod_intens[o]) ;
+        }
+        cpl_free(demod_stokes) ;
+        cpl_free(demod_null) ;
+        cpl_free(demod_intens) ;
+    }
+    cpl_table_delete(trace_wave) ;
+    hdrl_imagelist_delete(in_calib) ;
+
+    /* Merge the groups together */
+
+
+    /* TODO QCs */
+
+    /* Return */
+
+    *pol_spec = pol_spec_merged ;
+    /* TODO  : *ext_plist */
+    return 0 ;
+}
+
+
+
+
     /* Compute the slit fractions for A and B positions extraction */   
     /*
 	The assumption is made here that :
@@ -769,41 +891,6 @@ static int cr2res_obs_pol_reduce_one(
     cpl_table_delete(trace_wave_b) ;
     */
 
-
-    /* Compute the QC parameters */
-    /* TODO : pass the proper inputs */
-    /*
-    plist = cpl_propertylist_new() ;
-    qc_signal_a = cr2res_qc_obs_pol_signal(extracted_a) ;
-    qc_signal_b = cr2res_qc_obs_pol_signal(extracted_b) ;
-    qc_transm = cr2res_qc_obs_pol_transmission(NULL) ;
-    */
-
-    /* Store the QC parameters in the plist */
-    /*
-    cpl_propertylist_append_double(plist, "ESO QC SIGNAL", 
-            (qc_signal_a+qc_signal_b)/2.0) ;
-    cpl_propertylist_append_double(plist, "ESO QC TRANSM", qc_transm) ;
-    */
-
-    /* Return */
-    /*
-    *combineda = collapsed_a ;
-    *extracta = extracted_a ;
-    *slitfunca = slit_func_a ;
-    *modela = model_master_a ;
-
-    *combinedb = collapsed_b ;
-    *extractb = extracted_b ;
-    *slitfuncb = slit_func_b ;
-    *modelb = model_master_b ;
-
-    *ext_plist = plist ;
-    */
-
-    return 0 ;
-}
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief  Run basic checks for the rawframes consistency
@@ -830,20 +917,12 @@ static int cr2res_obs_pol_check_inputs_validity(
         return 0 ;
     }
 
-
-/* TODO : use cr2res_combine_nodding_split_frames() */
-
-
+    /* TODO : use cr2res_combine_nodding_split_frames() */
 
     /* Clarify what the decker requirements are */
 
-
-
     /* Require Decker frames */
     /* TODO */
-
-
-    
 
 
     /* Need same number of A and B positions */
