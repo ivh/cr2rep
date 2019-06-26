@@ -472,8 +472,8 @@ int * cr2res_pol_sort_frames(
 
 
     idx_order = cpl_malloc(4 * sizeof(int)) ;
-    idx_order[0] = 1 ;
-    idx_order[1] = 0 ;
+    idx_order[0] = 0 ;
+    idx_order[1] = 1 ;
     idx_order[2] = 2 ;
     idx_order[3] = 3 ;
     return idx_order ;
