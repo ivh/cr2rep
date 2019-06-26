@@ -370,7 +370,6 @@ int cr2res_pfits_get_order(
 /*----------------------------------------------------------------------------*/
 cr2res_decker cr2res_pfits_get_decker_position(const cpl_propertylist * plist)
 {
-    return CR2RES_DECKER_1_3 ;
     int         decker_value ;
     decker_value = cpl_propertylist_get_int(plist, "ESO INS OPTI8 NO");
     if (cpl_error_get_code() != CPL_ERROR_NONE) {
