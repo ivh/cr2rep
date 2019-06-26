@@ -124,4 +124,8 @@ cpl_table * cr2res_trace_adjust(
         const cpl_frameset  *   flat_raw,
         int                     det_nr) ;
 
+cpl_array * cr2res_trace_slit_fraction_create(
+        cr2res_decker   decker_position,
+        int             up_or_down) ;
+
 #endif

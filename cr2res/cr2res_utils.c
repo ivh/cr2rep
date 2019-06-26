@@ -1154,7 +1154,8 @@ int cr2res_slit_pos(
         cpl_polynomial  **  coef_wave)
 {
 
-    if (tw_decker1 == NULL | tw_decker2 == NULL | coef_slit == NULL | coef_wave == NULL) return -1;
+    if (tw_decker1 == NULL || tw_decker2 == NULL || coef_slit == NULL || 
+            coef_wave == NULL) return -1;
 
     // load data
     int i, j, k;

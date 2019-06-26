@@ -1157,6 +1157,8 @@ cpl_table * cr2res_trace_new_slit_fraction(
         /* Fill slit fraction with the input one */
         cpl_table_set_array(out, CR2RES_COL_SLIT_FRACTION, i,new_slit_fraction);
         cpl_table_set_int(out, CR2RES_COL_ORDER, i, orders[i]);
+
+/* TODO :the trace nb should be proerly set */
         cpl_table_set_int(out, CR2RES_COL_TRACENB, i, 0);
 
         /* Compute the new trace */
@@ -1371,6 +1373,73 @@ cpl_table * cr2res_trace_adjust(
     return corrected_traces ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get a standard slit fraction
+  @param    decker_position     CR2RES_DECKER_NONE, _1_3 or _2_4
+  @param    up_or_down          0 (if CR2RES_DECKER_NONE), 1 for up, 2 for down
+  @return   A newly allocated mask or NULL in error case.
+
+ */
+/*----------------------------------------------------------------------------*/
+cpl_array * cr2res_trace_slit_fraction_create(
+        cr2res_decker   decker_position,
+        int             up_or_down)
+{
+    cpl_array   *   slit_frac ;
+
+    /* Check entries */
+    if (decker_position != CR2RES_DECKER_NONE &&
+            decker_position != CR2RES_DECKER_1_3 &&
+            decker_position != CR2RES_DECKER_2_4) 
+        return NULL ;
+    if (up_or_down != 0 && up_or_down != 1 && up_or_down != 2)
+        return NULL ;
+
+    /* Allocate */
+    slit_frac = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
+
+    if (decker_position == CR2RES_DECKER_NONE) {
+        /* TRACE_OPEN */
+        cpl_array_set(slit_frac, 0, 0.0) ;
+        cpl_array_set(slit_frac, 1, 0.5) ;
+        cpl_array_set(slit_frac, 2, 1.0) ;
+    } else if (decker_position == CR2RES_DECKER_1_3) {
+        /* DECKER 1_3 */
+        if (up_or_down == 1) {
+            /* Upper trace */
+            cpl_array_set(slit_frac, 0, 0.750) ;
+            cpl_array_set(slit_frac, 1, 0.875) ;
+            cpl_array_set(slit_frac, 2, 1.000) ;
+        } else if (up_or_down == 2) {
+            /* Lower trace */
+            cpl_array_set(slit_frac, 0, 0.250) ;
+            cpl_array_set(slit_frac, 1, 0.375) ;
+            cpl_array_set(slit_frac, 2, 0.500) ;
+        } else {
+            cpl_array_delete(slit_frac) ;
+            slit_frac = NULL ;
+        }
+    } else if (decker_position == CR2RES_DECKER_2_4) {
+        /* DECKER 2_4 */
+        if (up_or_down == 1) {
+            /* Upper trace */
+            cpl_array_set(slit_frac, 0, 0.500) ;
+            cpl_array_set(slit_frac, 1, 0.625) ;
+            cpl_array_set(slit_frac, 2, 0.750) ;
+        } else if (up_or_down == 2) {
+            /* Lower trace */
+            cpl_array_set(slit_frac, 0, 0.000) ;
+            cpl_array_set(slit_frac, 1, 0.125) ;
+            cpl_array_set(slit_frac, 2, 0.250) ;
+        } else {
+            cpl_array_delete(slit_frac) ;
+            slit_frac = NULL ;
+        }
+    }
+    return slit_frac ;
+}
+
 /**@}*/
 
 /*----------------------------------------------------------------------------*/
@@ -1396,19 +1465,14 @@ static double cr2res_trace_compute_shift(
     cpl_size        i ;
 
     for (i=0 ; i<cpl_table_get_nrow(traces1) ; i++) {
-        
         /* Only the Open slit */
 
         /* Get the order */
         order = cpl_table_get(traces1, CR2RES_COL_ORDER, i, NULL) ;
         if (order >= 0) {
 
-
         }
-
     }
-
-
     return 0.0 ;
 }
 
@@ -1440,7 +1504,7 @@ static int cr2res_trace_apply_shift(
   middle and high positions of the trace along the slit.
   0 is for the slit bottom, 1 for the top.
 
-  The function assumes that the slit is open ƣf there is 1 trace in the
+  The function assumes that the slit is open if there is 1 trace in the
   order, and that the decker is used if there are 2 traces.
  */
 /*----------------------------------------------------------------------------*/
@@ -1463,10 +1527,7 @@ static cpl_array * cr2res_trace_get_slit_frac(
     /* The number of traces and the decker positions need to be consistent */
     if (nb_traces == 1 && decker_pos == CR2RES_DECKER_NONE) {
         /* TRACE_OPEN */
-        slit_frac = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
-        cpl_array_set(slit_frac, 0, 0.0) ;
-        cpl_array_set(slit_frac, 1, 0.5) ;
-        cpl_array_set(slit_frac, 2, 1.0) ;
+        slit_frac = cr2res_trace_slit_fraction_create(decker_pos, 0) ;
     } else if (nb_traces == 2 && 
             (decker_pos==CR2RES_DECKER_1_3 || decker_pos==CR2RES_DECKER_2_4)) {
         /* DECKER - Identify if the trace is the lower or upper one */
@@ -1482,35 +1543,14 @@ static cpl_array * cr2res_trace_get_slit_frac(
 
         /* Get the position of the other trace */
         center_pos_other = cr2res_trace_get_trace_ypos(traces, other_idx) ;
-        
+
         /* Write the result */
-        slit_frac = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
         if (center_pos_curr < center_pos_other) {
             /* Lower Trace */
-            if (decker_pos==CR2RES_DECKER_1_3) {
-                /* DECKER_1_3 */
-                cpl_array_set(slit_frac, 0, 0.250) ;
-                cpl_array_set(slit_frac, 1, 0.375) ;
-                cpl_array_set(slit_frac, 2, 0.500) ;
-            } else {
-                /* DECKER_2_4 */
-                cpl_array_set(slit_frac, 0, 0.000) ;
-                cpl_array_set(slit_frac, 1, 0.125) ;
-                cpl_array_set(slit_frac, 2, 0.250) ;
-            }
+            slit_frac = cr2res_trace_slit_fraction_create(decker_pos, 2) ;
         } else {
             /* Upper Trace */
-            if (decker_pos==CR2RES_DECKER_1_3) {
-                /* DECKER_1_3 */
-                cpl_array_set(slit_frac, 0, 0.750) ;
-                cpl_array_set(slit_frac, 1, 0.875) ;
-                cpl_array_set(slit_frac, 2, 1.000) ;
-            } else {
-                /* DECKER_2_4 */
-                cpl_array_set(slit_frac, 0, 0.500) ;
-                cpl_array_set(slit_frac, 1, 0.625) ;
-                cpl_array_set(slit_frac, 2, 0.750) ;
-            }
+            slit_frac = cr2res_trace_slit_fraction_create(decker_pos, 1) ;
         }
     } else {
         /* Inconsistent */

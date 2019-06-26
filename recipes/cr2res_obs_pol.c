@@ -462,6 +462,7 @@ static int cr2res_obs_pol_reduce(
     nod_positions = cr2res_nodding_read_positions(rawframes) ;
 
     /* START TMP Incomplete headers */
+    /* TODO */
     cpl_free(nod_positions) ;
     nod_positions = cpl_malloc(12 * sizeof(cr2res_nodding_pos)) ;
     nod_positions[0] = CR2RES_NODDING_A ;
@@ -574,8 +575,12 @@ static int cr2res_obs_pol_reduce_one(
     int                 *   pol_sorting ;
     cpl_table           *   trace_wave ;
     cpl_table           *   trace_wave_corrected ;
+    cpl_table           *   trace_wave_loc ;
+    cpl_array           *   slit_frac ;
     const char          *   fname ;
     char                *   decker_name ;
+    cpl_table           *   slit_func ;
+    hdrl_image          *   model_master ;
     cpl_table           *   extracted[2*CR2RES_POLARIMETRY_GROUP_SIZE];
     cpl_table           **  pol_spec_one_group ;
     cpl_table           **  extract_1d ;
@@ -726,9 +731,31 @@ static int cr2res_obs_pol_reduce_one(
                     fname, reduce_det, decker_name) ;
             cpl_free(decker_name) ;
             cpl_msg_indent_more() ;
-            
-            /* TODO */
-            extract_1d[2*j] = cpl_table_new(1);
+           
+            /* Get slit fraction */
+            slit_frac = cr2res_trace_slit_fraction_create(
+                    decker_positions[frame_idx], 1) ;
+
+            /* Compute the new trace_wave for the extraction */
+            trace_wave_loc = cr2res_trace_new_slit_fraction(trace_wave,
+                            slit_frac) ;
+            cpl_array_delete(slit_frac) ;
+
+            /* Execute the extraction */
+            cpl_msg_info(__func__, "Spectra Extraction") ;
+            if (cr2res_extract_traces(
+                        hdrl_imagelist_get_const(in_calib, frame_idx),
+                        trace_wave_loc, -1, -1, CR2RES_EXTR_OPT_CURV, 
+                        extract_height, extract_swath_width, extract_oversample,
+                        extract_smooth, &(extract_1d[2*j]), &slit_func, 
+                        &model_master) == -1) {
+                cpl_msg_warning(__func__, "Failed Extraction") ;
+                extract_1d[2*j] = NULL ;
+            } else {
+                cpl_table_delete(slit_func) ;
+                hdrl_image_delete(model_master) ;
+            }
+            cpl_table_delete(trace_wave_loc) ;
             cpl_msg_indent_less() ;
             
             /* Extract Down */
@@ -842,131 +869,6 @@ static int cr2res_obs_pol_reduce_one(
     return 0 ;
 }
 
-
-    /* Compute the slit fractions for A and B positions extraction */   
-    /*
-	The assumption is made here that :
-		- The slit center is exactly in the middle of A and B poѕitions
-        - The nodthrow iѕ the distance in arcseconds between A and B
-        - The slit size is 10 arcseconds
-        - The A position is above the B position
-    */
-    /*
-    slit_length = 10 ;
-    if ((plist = cpl_propertylist_load(cpl_frame_get_filename(
-                        cpl_frameset_get_position_const(rawframes, 0)),
-                    0)) == NULL) {
-        cpl_msg_error(__func__, "Cannot read the NODTHROW in the input files") ;
-        hdrl_image_delete(collapsed_a) ;
-        hdrl_image_delete(collapsed_b) ;
-        cpl_table_delete(trace_wave) ;
-        return -1 ;
-    }
-    nod_throw = cr2res_pfits_get_nodthrow(plist) ;
-    cpl_propertylist_delete(plist) ;
-    if (nod_throw < slit_length / 2.0) {
-        extr_width_frac = nod_throw/slit_length ;  
-        slit_frac_a_bot = 0.5 ;
-        slit_frac_a_mid = slit_frac_a_bot + extr_width_frac/2.0 ;
-        slit_frac_a_top = slit_frac_a_bot + extr_width_frac ;
-        slit_frac_b_top = 0.5 ;
-        slit_frac_b_mid = slit_frac_b_top - extr_width_frac/2.0 ;
-        slit_frac_b_bot = slit_frac_b_top - extr_width_frac ;
-    } else if (nod_throw <= slit_length) {
-        extr_width_frac = (slit_length - nod_throw)/slit_length ;  
-        slit_frac_a_top = 1.0 ;
-        slit_frac_a_mid = slit_frac_a_top - extr_width_frac/2.0 ;
-        slit_frac_a_bot = slit_frac_a_top - extr_width_frac ;
-        slit_frac_b_bot = 0.0 ;
-        slit_frac_b_mid = slit_frac_b_bot + extr_width_frac/2.0 ;
-        slit_frac_b_top = slit_frac_b_bot + extr_width_frac ;
-    } else {
-        cpl_msg_error(__func__, "NODTHROW > slit length (%g>%g)- abort", 
-                nod_throw, slit_length) ;
-        hdrl_image_delete(collapsed_a) ;
-        hdrl_image_delete(collapsed_b) ;
-        cpl_table_delete(trace_wave) ;
-        return -1 ;
-    }
-    cpl_msg_info(__func__, "Nodding A extraction: Slit fraction %g - %g",
-            slit_frac_a_bot, slit_frac_a_top) ;
-    cpl_msg_info(__func__, "Nodding B extraction: Slit fraction %g - %g",
-            slit_frac_b_bot, slit_frac_b_top) ;
-
-    slit_frac_a = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
-    cpl_array_set(slit_frac_a, 0, slit_frac_a_bot) ;
-    cpl_array_set(slit_frac_a, 1, slit_frac_a_mid) ;
-    cpl_array_set(slit_frac_a, 2, slit_frac_a_top) ;
-
-    slit_frac_b = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
-    cpl_array_set(slit_frac_b, 0, slit_frac_b_bot) ;
-    cpl_array_set(slit_frac_b, 1, slit_frac_b_mid) ;
-    cpl_array_set(slit_frac_b, 2, slit_frac_b_top) ;
-        */
-
-    /* Recompute the traces for the new slit fractions */
-    /*
-    if ((trace_wave_a = cr2res_trace_new_slit_fraction(trace_wave,
-            slit_frac_a)) == NULL) {
-        cpl_msg_error(__func__, 
-                "Failed to compute the traces for extraction of A") ;
-        hdrl_image_delete(collapsed_a) ;
-        hdrl_image_delete(collapsed_b) ;
-        cpl_table_delete(trace_wave) ;
-        cpl_array_delete(slit_frac_a) ;
-        cpl_array_delete(slit_frac_b) ;
-        return -1 ;
-    }
-    cpl_array_delete(slit_frac_a) ;
-    if ((trace_wave_b = cr2res_trace_new_slit_fraction(trace_wave,
-            slit_frac_b)) == NULL) {
-        cpl_msg_error(__func__, 
-                "Failed to compute the traces for extraction of B") ;
-        hdrl_image_delete(collapsed_a) ;
-        hdrl_image_delete(collapsed_b) ;
-        cpl_table_delete(trace_wave) ;
-        cpl_table_delete(trace_wave_a) ;
-        cpl_array_delete(slit_frac_b) ;
-        return -1 ;
-    }
-    cpl_array_delete(slit_frac_b) ;
-    cpl_table_delete(trace_wave) ;
-        */
-
-    /* Execute the extraction */
-    /*
-    cpl_msg_info(__func__, "Spectra Extraction") ;
-    if (cr2res_extract_traces(collapsed_a, trace_wave_a, -1, -1,
-                CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
-                extract_oversample, extract_smooth,
-                &extracted_a, &slit_func_a, &model_master_a) == -1) {
-        cpl_msg_error(__func__, "Failed to extract A");
-        hdrl_image_delete(collapsed_a) ;
-        hdrl_image_delete(collapsed_b) ;
-        cpl_table_delete(trace_wave_a) ;
-        cpl_table_delete(trace_wave_b) ;
-        return -1 ;
-    }
-    */
-/* TODO : Save trace_wave_a and b as products */
-    /*
-    cpl_table_delete(trace_wave_a) ;
-    if (cr2res_extract_traces(collapsed_b, trace_wave_b, -1, -1,
-                CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
-                extract_oversample, extract_smooth,
-                &extracted_b, &slit_func_b, &model_master_b) == -1) {
-        cpl_msg_error(__func__, "Failed to extract B");
-        cpl_table_delete(extracted_a) ;
-        cpl_table_delete(slit_func_a) ;
-        hdrl_image_delete(model_master_a) ;
-        hdrl_image_delete(collapsed_a) ;
-        hdrl_image_delete(collapsed_b) ;
-        cpl_table_delete(trace_wave_b) ;
-        return -1 ;
-    }
-    cpl_table_delete(trace_wave_b) ;
-    */
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief  Run basic checks for the rawframes consistency
@@ -977,11 +879,7 @@ static int cr2res_obs_pol_reduce_one(
 static int cr2res_obs_pol_check_inputs_validity(
         const cpl_frameset  *   rawframes)
 {
-    cpl_propertylist        *   plist ;
-    cr2res_nodding_pos      *   nod_positions ;
-    cpl_size                    nframes, i ;
-    double                      nodthrow, nodthrow_cur ;
-    int                         nb_a, nb_b ;
+    cpl_size                    nframes ;
 
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
@@ -995,50 +893,8 @@ static int cr2res_obs_pol_check_inputs_validity(
 
     /* TODO : use cr2res_combine_nodding_split_frames() */
 
-    /* Clarify what the decker requirements are */
+    /* TODO : Check that all frames are decker 1_3 or 2_4 */
 
-    /* Require Decker frames */
-    /* TODO */
-
-
-    /* Need same number of A and B positions */
-    nb_a = nb_b = 0 ;
-    nod_positions = cr2res_nodding_read_positions(rawframes) ;
-    if (nod_positions == NULL) return -1 ;
-    for (i=0 ; i<nframes ; i++) {
-        if (nod_positions[i] == CR2RES_NODDING_A) nb_a++ ;
-        if (nod_positions[i] == CR2RES_NODDING_B) nb_b++ ;
-    }
-    cpl_free(nod_positions) ;    
-
-    if (nb_a == 0 || nb_b == 0 || nb_a != nb_b) {
-        cpl_msg_error(__func__, "Require as many A and B positions") ;
-        return 0 ;
-    }
-
-    /* Need the same nod throw in all frames */
-    if ((plist = cpl_propertylist_load(cpl_frame_get_filename(
-                        cpl_frameset_get_position_const(rawframes, 0)),
-                    0)) == NULL) {
-        return -1;
-    } 
-    nodthrow = cr2res_pfits_get_nodthrow(plist);
-    cpl_propertylist_delete(plist) ;
-    for (i=1 ; i<nframes ; i++) {
-        if ((plist = cpl_propertylist_load(cpl_frame_get_filename(
-                            cpl_frameset_get_position_const(rawframes, i)),
-                        0)) == NULL) {
-            return -1;
-        } 
-        nodthrow_cur = cr2res_pfits_get_nodthrow(plist);
-        cpl_propertylist_delete(plist) ;
-
-        if (fabs(nodthrow_cur-nodthrow) > 1e-3) {
-            cpl_msg_error(__func__, 
-                    "Require constant NOD THROW in the raw frames") ;
-            return 0 ;
-        }
-    }
     return 1 ;
 }
 
