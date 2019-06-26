@@ -146,8 +146,10 @@ int cr2res_detlin_correct(
     for (i=0 ; i<nx*ny ; i++) {
         // for each pixel p' = a + b * p + c * p * p
 
-        perr[i] = pow2(perra[i] * pdata[i]) + pow2(perrb[i] * pow2(pdata[i])) + pow2(perrc[i] * pow3(pdata[i])) 
-                + pow2(perr[i] * (pima[i] + 2. * pimb[i] * pdata[i] + 3. * pimc[i] * pow2(pdata[i])));
+        perr[i] = pow2(perra[i] * pdata[i]) + pow2(perrb[i] * pow2(pdata[i]))
+                + pow2(perrc[i] * pow3(pdata[i])) 
+                + pow2(perr[i] * (pima[i] + 2. * pimb[i] * pdata[i] 
+                + 3. * pimc[i] * pow2(pdata[i])));
         perr[i] = sqrt(perr[i]);
 
         correction_factor = pima[i] + (pimb[i] + pimc[i] * pdata[i]) * pdata[i];
@@ -234,6 +236,7 @@ int cr2res_detlin_compute(
             CPL_FALSE, NULL, &max_degree) != CPL_ERROR_NONE) {
         /* Failed Fit - Fill the coefficientѕ */
         cpl_matrix_unwrap(samppos) ;
+        cpl_vector_delete(y);
         cpl_polynomial_delete(fitted_local) ;
         cpl_error_reset() ;
         return -1 ;
@@ -242,7 +245,6 @@ int cr2res_detlin_compute(
 
     /* Compute the error */
     error_local = cpl_vector_new(max_degree+1) ;
-
 
     cpl_size nc = max_degree + 1;
     cpl_size ndata = cpl_vector_get_size(y);
@@ -253,23 +255,26 @@ int cr2res_detlin_compute(
             cpl_vector_set(error_local, i, 0);
         }
     }
-    else{
+    else {
         // lhs = vandermode(x, order)
         // hankel = dot(lhs.T, lhs)
         // cov = inv(hankel)
         // cov *= resids / (len(x) - order)
         // error_local = diag(cov)
         cpl_matrix * hankel = cpl_matrix_new(nc, nc);
-        cpl_matrix * mx = cpl_matrix_new(nc, 1); // just a temporary matrix we need
+        cpl_matrix * mx = cpl_matrix_new(nc, 1); // just a temporary matrix
 
         // this actually returns the hankel matrix, not vandermode
         // also directly copied from the cpl source code (cpl_polynomial.c)
-        cr2res_matrix_fill_normal_vandermonde(hankel, mx, values, CPL_FALSE, 0, y);
+        cr2res_matrix_fill_normal_vandermonde(hankel, mx, values, CPL_FALSE, 
+            0, y);
         cpl_matrix * inverse = cpl_matrix_invert_create(hankel);
-
         cpl_vector * resids = cpl_vector_new(ndata);
-        cpl_vector_fill_polynomial_fit_residual(resids, y, NULL, fitted_local, samppos, NULL);
-        cpl_matrix_multiply_scalar(inverse, cpl_vector_get_sum(resids) / (double)(ndata - nc));
+
+        cpl_vector_fill_polynomial_fit_residual(resids, y, NULL, fitted_local,
+            samppos, NULL);
+        cpl_matrix_multiply_scalar(inverse, 
+            cpl_vector_get_sum(resids) / (double)(ndata - nc));
 
         for (cpl_size i = 0; i < max_degree + 1; i++)
         {
@@ -394,8 +399,11 @@ static void cr2res_matrix_fill_normal_vandermonde(cpl_matrix * self,
     }
     /* Fill remaining Hankel matrix - on and above (non-skew) main diagonal */
 
-    if (mindeg > 0) cpl_vector_multiply(phat, qhat);
-    cpl_vector_delete(qhat);
+    if (mindeg > 0) {
+        cpl_vector_multiply(phat, qhat);
+        cpl_vector_delete(qhat);
+    }
+
     for (i = 1; i < nc; i++) {
         cpl_size k;
         double   hsum = 0.0;
