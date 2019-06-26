@@ -198,6 +198,20 @@ cpl_bivector * cr2res_pol_demod_null(
     cpl_bivector  * out ;
     int             i;
 
+  /* Check entries */
+  if (intens == NULL || wl == NULL || errors == NULL) return NULL;
+  if (n != 8) {
+    cpl_msg_error(__func__, "Need 8 spectra!");
+    return NULL;
+  }
+  for (cpl_size i = 0; i < n; i++) {
+    if (intens[i] == NULL) return NULL;
+    if (wl[i] == NULL) return NULL;
+    if (errors[i] == NULL) return NULL;
+  }
+  /* TODO : Check that all vectors have the same size */
+
+
   // copy list to leave original unchanged
   swapintens = cpl_malloc(n * sizeof(cpl_vector *));
   swapwl = cpl_malloc(n * sizeof(cpl_vector *));
@@ -263,6 +277,20 @@ cpl_bivector * cr2res_pol_demod_intens(
   cpl_vector * outerr;
   cpl_vector * tmp;
   int i;
+
+  /* Check entries */
+  if (intens == NULL || wl == NULL || errors == NULL) return NULL;
+  if (n != 8) {
+    cpl_msg_error(__func__, "Need 8 spectra!");
+    return NULL;
+  }
+  for (cpl_size i = 0; i < n; i++) {
+    if (intens[i] == NULL) return NULL;
+    if (wl[i] == NULL) return NULL;
+    if (errors[i] == NULL) return NULL;
+  }
+  /* TODO : Check that all vectors have the same size */
+
 
   for (i=0;i<n;i++) {
     if (i==0) {
@@ -410,6 +438,45 @@ cpl_table * cr2res_pol_POL_SPEC_create(
         }
     }
     return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Compute the positions of the passed frames
+  @param   frame1   Frame #1
+  @param   frame2   Frame #2
+  @param   frame3   Frame #3
+  @param   frame4   Frame #4
+  @return   an array of 4 integer indices or NULL in error case
+
+  If the Out array is giving the new position : ordering[0] iѕ the
+  position of frame1, ordering[1] is the position of frame2, etc...
+  If the Frames order needs to be  Frame #2, #4, #3, #1, orderіng will
+  contain [3, 0, 2, 1]
+ */
+/*----------------------------------------------------------------------------*/
+int * cr2res_pol_sort_frames(
+        const cpl_frame *   frame1,
+        const cpl_frame *   frame2,
+        const cpl_frame *   frame3,
+        const cpl_frame *   frame4)
+{
+    int     *   idx_order ;
+
+    /* Check Inputs */
+    if (frame1 == NULL || frame2 == NULL || frame3 == NULL || frame4 == NULL)
+        return NULL ;
+
+
+    /* TODO */
+
+
+    idx_order = cpl_malloc(4 * sizeof(int)) ;
+    idx_order[0] = 1 ;
+    idx_order[1] = 0 ;
+    idx_order[2] = 2 ;
+    idx_order[3] = 3 ;
+    return idx_order ;
 }
 
 /**@}*/

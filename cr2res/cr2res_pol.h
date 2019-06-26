@@ -58,5 +58,10 @@ cpl_table * cr2res_pol_POL_SPEC_create(
         cpl_bivector    **  null,
         cpl_bivector    **  intens,
         int                 norders) ;
+int * cr2res_pol_sort_frames(
+        const cpl_frame *   frame1,
+        const cpl_frame *   frame2,
+        const cpl_frame *   frame3,
+        const cpl_frame *   frame4) ;
 
 #endif
