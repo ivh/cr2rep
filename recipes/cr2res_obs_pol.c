@@ -55,6 +55,10 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static int * cr2res_obs_pol_get_order_numbers(
+        const cpl_table *   extracted,
+        int                 next,
+        int             *   norders) ;
 static int cr2res_obs_pol_check_inputs_validity(
         const cpl_frameset  *   rawframes) ;
 static int cr2res_obs_pol_reduce(
@@ -759,22 +763,46 @@ static int cr2res_obs_pol_reduce_one(
             cpl_msg_indent_less() ;
             
             /* Extract Down */
-            cpl_msg_info(__func__, "Extract Down spectrum from frame %d", j+1);
+            decker_name = cr2res_decker_print_position(
+                    decker_positions[frame_idx]) ;
+            cpl_msg_info(__func__, 
+                    "Extract Down Spectrum from %s (Det %d / Decker %s)", 
+                    fname, reduce_det, decker_name) ;
+            cpl_free(decker_name) ;
             cpl_msg_indent_more() ;
-            extract_1d[2*j+1] = cpl_table_new(1);
+           
+            /* Get slit fraction */
+            slit_frac = cr2res_trace_slit_fraction_create(
+                    decker_positions[frame_idx], 2) ;
+
+            /* Compute the new trace_wave for the extraction */
+            trace_wave_loc = cr2res_trace_new_slit_fraction(trace_wave,
+                            slit_frac) ;
+            cpl_array_delete(slit_frac) ;
+
+            /* Execute the extraction */
+            cpl_msg_info(__func__, "Spectra Extraction") ;
+            if (cr2res_extract_traces(
+                        hdrl_imagelist_get_const(in_calib, frame_idx),
+                        trace_wave_loc, -1, -1, CR2RES_EXTR_OPT_CURV, 
+                        extract_height, extract_swath_width, extract_oversample,
+                        extract_smooth, &(extract_1d[2*j+1]), &slit_func, 
+                        &model_master) == -1) {
+                cpl_msg_warning(__func__, "Failed Extraction") ;
+                extract_1d[2*j+1] = NULL ;
+            } else {
+                cpl_table_delete(slit_func) ;
+                hdrl_image_delete(model_master) ;
+            }
+            cpl_table_delete(trace_wave_loc) ;
             cpl_msg_indent_less() ;
         }
         cpl_free(pol_sorting) ;
 
         /* How many orders */
-        /* TODO  get orders/norders that are in all 8 extracted tables*/
-        norders = 5 ;
-        orders = cpl_malloc(norders * sizeof(int)) ;
-        orders[0] = 3;
-        orders[1] = 4;
-        orders[2] = 5;
-        orders[3] = 6;
-        orders[4] = 7;
+        orders = cr2res_obs_pol_get_order_numbers(extract_1d, nspec_group, 
+                &norders) ;
+        cpl_msg_debug(__func__, "%d different orders found", norders) ;
 
         /* Allocate data containerѕ */
         demod_stokes = cpl_malloc(norders * sizeof(cpl_bivector*)) ;
@@ -869,6 +897,37 @@ static int cr2res_obs_pol_reduce_one(
     return 0 ;
 }
 
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Count and return the order numbers from ectracted tables
+  @param    extracted       Array of extracted tables
+  @param    next            Number of extracted tables
+  @param    norders         [out] Number of orders in the output table
+  @return   newly allocated int array
+
+  The int array will need to be freed by the caller. Its size iѕ
+  norders. It contains the list of orders found in the input ext tables
+ */
+/*----------------------------------------------------------------------------*/
+static int * cr2res_obs_pol_get_order_numbers(
+        const cpl_table *   extracted,
+        int                 next,
+        int             *   norders)
+{
+
+    
+    *norders = 5 ;
+    int * orders = cpl_malloc(*norders * sizeof(int)) ;
+    orders[0] = 3;
+    orders[1] = 4;
+    orders[2] = 5;
+    orders[3] = 6;
+    orders[4] = 7;
+
+    return orders ;
+}
+	
 /*----------------------------------------------------------------------------*/
 /**
   @brief  Run basic checks for the rawframes consistency
