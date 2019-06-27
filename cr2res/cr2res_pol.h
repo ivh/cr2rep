@@ -64,4 +64,8 @@ int * cr2res_pol_sort_frames(
         const cpl_frame *   frame3,
         const cpl_frame *   frame4) ;
 
+cpl_table * cr2res_pol_spec_pol_merge(
+        const cpl_table **  pol_spec_list,
+        int                 pol_spec_nb) ;
+
 #endif

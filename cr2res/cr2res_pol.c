@@ -79,6 +79,7 @@ cpl_bivector * cr2res_pol_demod_stokes(
   cpl_vector * tmp;
   cpl_size size;
 
+  return NULL ;
   /* Check entries */
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
   if (n != 8) {
@@ -198,6 +199,7 @@ cpl_bivector * cr2res_pol_demod_null(
     cpl_bivector  * out ;
     int             i;
 
+  return NULL ;
   /* Check entries */
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
   if (n != 8) {
@@ -278,6 +280,7 @@ cpl_bivector * cr2res_pol_demod_intens(
   cpl_vector * tmp;
   int i;
 
+  return NULL ;
   /* Check entries */
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
   if (n != 8) {
@@ -470,9 +473,7 @@ int * cr2res_pol_sort_frames(
     if (frame1 == NULL || frame2 == NULL || frame3 == NULL || frame4 == NULL)
         return NULL ;
 
-
     /* TODO */
-
 
     idx_order = cpl_malloc(4 * sizeof(int)) ;
     idx_order[0] = 0 ;
@@ -480,6 +481,40 @@ int * cr2res_pol_sort_frames(
     idx_order[2] = 2 ;
     idx_order[3] = 3 ;
     return idx_order ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Merge several SPEC_POL tables together
+  @param    
+  @param   frame2   Frame #2
+  @param   frame3   Frame #3
+  @param   frame4   Frame #4
+  @return   an array of 4 integer indices or NULL in error case
+
+  If the Out array is giving the new position : ordering[0] iѕ the
+  position of frame1, ordering[1] is the position of frame2, etc...
+  If the Frames order needs to be  Frame #2, #4, #3, #1, orderіng will
+  contain [3, 0, 2, 1]
+
+  The returned positions correspond to the 1,2,3,4 inputs in the demod
+  fuctions.
+ */
+/*----------------------------------------------------------------------------*/
+cpl_table * cr2res_pol_spec_pol_merge(
+        const cpl_table **  pol_spec_list,
+        int                 pol_spec_nb)
+{
+    int         i ;
+
+    /* Check Inputs */
+    if (pol_spec_list == NULL || pol_spec_nb <= 0) return NULL ;
+    for (i=0 ; i<pol_spec_nb ; i++)
+        if (pol_spec_list[i] == NULL) return NULL ;
+
+    /* TODO */
+    /* Currently return the first table */
+    return cpl_table_duplicate(pol_spec_list[0]) ;
 }
 
 /**@}*/

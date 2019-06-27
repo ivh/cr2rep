@@ -570,6 +570,9 @@ static int cr2res_obs_pol_reduce_one(
     cpl_table           *   extracted[2*CR2RES_POLARIMETRY_GROUP_SIZE];
     cpl_table           **  pol_spec_one_group ;
     cpl_table           **  extract_1d ;
+    char                *   colname ;
+    const double        *   pcol_data ;
+    double              *   pvec_data ;
     cpl_vector          **  intens ;
     cpl_vector          **  wl ;
     cpl_vector          **  errors ;
@@ -579,12 +582,17 @@ static int cr2res_obs_pol_reduce_one(
     int                 *   orders ;
     cpl_table           *   pol_spec_merged ;
     cpl_propertylist    *   ext_plist_loc ;
-    cpl_size                nframes, nspec_group ;
-    int                     ngroups, i, j, k, o, norders, frame_idx ;
+    cpl_size                nframes, nspec_group, spec_size ;
+    int                     ngroups, i, j, k, l, o, norders, frame_idx ;
+
+    /* Initialise */
+    *pol_spec = NULL ;
+    *ext_plist = NULL ;
 
     /* Check Inputs */
     if (pol_spec == NULL || ext_plist == NULL || rawframes == NULL || 
             trace_wave_frame == NULL) return -1 ;
+
 
     /* Check number of frames */
     nframes = cpl_frameset_get_size(rawframes) ;
@@ -801,17 +809,58 @@ static int cr2res_obs_pol_reduce_one(
 
         /* Loop on the orders */
         for (o=0 ; o<norders ; o++) {
+            cpl_msg_info(__func__, "Compute Polarimetry for order %d",
+                    orders[o]) ;
             /* Get the inputs for the demod functions calls */
             intens = cpl_malloc(nspec_group * sizeof(cpl_vector*));
             wl = cpl_malloc(nspec_group * sizeof(cpl_vector*));
             errors = cpl_malloc(nspec_group * sizeof(cpl_vector*));
             for (k=0 ; k<nspec_group ; k++) {
-               
-                /* Get from extract_1d */
-                /* TODO */
-                intens[k] = NULL ;
-                wl[k] = NULL ;
-                errors[k] = NULL ;
+                spec_size = cpl_table_get_nrow(extract_1d[k]) ;
+                /* Get the SPEC for this order/trace 1 */
+                colname = cr2res_dfs_SPEC_colname(orders[o], 1) ;
+                pcol_data = cpl_table_get_data_double_const(extract_1d[k], 
+                        colname) ;
+                cpl_free(colname) ;
+                if (pcol_data == NULL) {
+                    cpl_error_reset() ;
+                    intens[k] = NULL ;
+                } else {
+                    intens[k] = cpl_vector_new(spec_size) ;
+                    pvec_data = cpl_vector_get_data(intens[k]) ;
+                    for (l=0 ; l<spec_size ; l++) 
+                        pvec_data[l] = pcol_data[l] ;
+                }
+
+                /* Get the WAVELENGTH for this order/trace 1 */
+                colname = cr2res_dfs_WAVELENGTH_colname(orders[o], 1) ;
+                pcol_data = cpl_table_get_data_double_const(extract_1d[k], 
+                        colname) ;
+                cpl_free(colname) ;
+                if (pcol_data == NULL) {
+                    cpl_error_reset() ;
+                    wl[k] = NULL ;
+                } else {
+                    wl[k] = cpl_vector_new(spec_size) ;
+                    pvec_data = cpl_vector_get_data(wl[k]) ;
+                    for (l=0 ; l<spec_size ; l++) 
+                        pvec_data[l] = pcol_data[l] ;
+                }
+
+                /* Get the ERROR for this order/trace 1 */
+                colname = cr2res_dfs_SPEC_ERR_colname(orders[o], 1) ;
+                pcol_data = cpl_table_get_data_double_const(extract_1d[k], 
+                        colname) ;
+                cpl_free(colname) ;
+                if (pcol_data == NULL) {
+                    cpl_error_reset() ;
+                    errors[k] = NULL ;
+                } else {
+                    errors[k] = cpl_vector_new(spec_size) ;
+                    pvec_data = cpl_vector_get_data(errors[k]) ;
+                    for (l=0 ; l<spec_size ; l++) 
+                        pvec_data[l] = pcol_data[l] ;
+                }
             }
 
             /* Call Library Demodulation functions */
@@ -824,9 +873,9 @@ static int cr2res_obs_pol_reduce_one(
 
             /* Free */
             for (k=0 ; k<nspec_group ; k++) {
-                cpl_vector_delete(intens[k]) ;
-                cpl_vector_delete(wl[k]) ;
-                cpl_vector_delete(errors[k]) ;
+                if (intens[k]!= NULL) cpl_vector_delete(intens[k]) ;
+                if (wl[k] != NULL) cpl_vector_delete(wl[k]) ;
+                if (errors[k] != NULL) cpl_vector_delete(errors[k]) ;
             }
             cpl_free(intens) ;
             cpl_free(wl) ;
@@ -860,25 +909,33 @@ static int cr2res_obs_pol_reduce_one(
     hdrl_imagelist_delete(in_calib) ;
 
     /* Merge the groups together */
-    cpl_msg_info(__func__, "Merge the %d groups POL_SPEC tables into one", 
-            ngroups);
-    /* TODO */
-    pol_spec_merged  = NULL ;
-    if (pol_spec_merged == NULL) {
-        cpl_msg_info(__func__, "Cannot create the merged table");
-        for (i=0 ; i<ngroups ; i++) cpl_table_delete(pol_spec_one_group[i]) ;
-        cpl_free(pol_spec_one_group) ;
-        return -1 ;
+    if (ngroups > 1) {
+        cpl_msg_info(__func__, "Merge the %d groups POL_SPEC tables into one", 
+                ngroups);
+        pol_spec_merged = cr2res_pol_spec_pol_merge(
+                (const cpl_table **)pol_spec_one_group, ngroups) ;
+    } else {
+        if (pol_spec_one_group[0] == NULL) {
+            pol_spec_merged = NULL ;
+        } else {
+            pol_spec_merged = cpl_table_duplicate(pol_spec_one_group[0]) ;
+        }
     }
 
     /* Deallocate */
     for (i=0 ; i<ngroups ; i++) cpl_table_delete(pol_spec_one_group[i]) ;
     cpl_free(pol_spec_one_group) ;
 
+    /* Check */
+    if (pol_spec_merged == NULL) {
+        cpl_msg_info(__func__, "Cannot create the SPEC_POL table");
+        return -1 ;
+    }
+
     /* QCs */
     cpl_msg_info(__func__, "Store the QC parameters") ;
-    /* TODO */
     ext_plist_loc = cpl_propertylist_new() ;
+    /* TODO */
 
     /* Return */
     *pol_spec = pol_spec_merged ;
@@ -889,14 +946,14 @@ static int cr2res_obs_pol_reduce_one(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Count and return the order numbers from ectracted tables
+  @brief    Count and return the order numbers from extracted tables
   @param    extracted       Array of extracted tables
   @param    next            Number of extracted tables
   @param    norders         [out] Number of orders in the output table
   @return   newly allocated int array
 
   The int array will need to be freed by the caller. Its size iѕ
-  norders. It contains the list of orders found in the input ext tables
+  norders. It contains the list of orders found in all the input ext tables
  */
 /*----------------------------------------------------------------------------*/
 static int * cr2res_obs_pol_get_order_numbers(
@@ -907,15 +964,25 @@ static int * cr2res_obs_pol_get_order_numbers(
     cpl_array   *   col_names ;
     const char  *   col_name ;
     char        *   col_type ;
+    int         *   tmp_orders_list ;
+    int             count_orders ;
+    int         *   out_orders ;
     cpl_size        j, ncols ;
-    int             i, order, trace_nb ;
+    int             i, k, order, trace_nb, max_possible_spectra, new_order ;
 
     /* Check entries */
     if (extracted == NULL || norders == NULL) return NULL ;
     for (i=0 ; i<next ; i++) 
         if (extracted[i] == NULL) return NULL ;
 
-    /* Get all orders appearing in any of the extracted tables columns */
+    /* Initialize */
+    max_possible_spectra = 1000 ;
+
+    /* Allocate orders list */
+    tmp_orders_list = cpl_malloc(max_possible_spectra * sizeof(int)) ;
+
+    /* Count the different orders */
+    count_orders = 0 ;
     /* Loop over all columns */
     for (i=0 ; i<next ; i++) {
         col_names = cpl_table_get_column_names(extracted[i]);
@@ -925,29 +992,33 @@ static int * cr2res_obs_pol_get_order_numbers(
             col_type = cr2res_dfs_SPEC_colname_parse(col_name, &order,
                     &trace_nb) ;
             if (col_type != NULL && !strcmp(col_type, "SPEC")) {
+				/* Is the current order a new one ? */
+                new_order = 1 ;
+                for (k=0 ; k<count_orders ; k++)
+                    if (tmp_orders_list[k] == order)
+                        new_order = 0 ;
 
-
-
-
-                printf("%s  %d %d\n", col_type, order, trace_nb) ;
+                /* Current order not yet stored */
+                if (new_order) {
+                    tmp_orders_list[count_orders] = order ;
+                    count_orders ++ ;
+                }
             } 
             if (col_type != NULL) cpl_free(col_type) ;
         }
         cpl_array_delete(col_names) ;
     }
 
+    /* Allocate and fill output array */
+    out_orders = cpl_malloc(count_orders * sizeof(int)) ;
+    for (i=0 ; i<count_orders ; i++) out_orders[i] = tmp_orders_list[i] ;
 
-    *norders = 5 ;
-    int * orders = cpl_malloc(*norders * sizeof(int)) ;
-    orders[0] = 3;
-    orders[1] = 4;
-    orders[2] = 5;
-    orders[3] = 6;
-    orders[4] = 7;
-
-    return orders ;
+    /* Free and return */
+    cpl_free(tmp_orders_list) ;
+    *norders = count_orders ;
+    return out_orders ;
 }
-	
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief  Run basic checks for the rawframes consistency
