@@ -302,6 +302,10 @@ char * cr2res_dfs_POL_NULL_colname(int) ;
 char * cr2res_dfs_POL_NULL_ERROR_colname(int) ;
 char * cr2res_dfs_POL_INTENS_colname(int) ;
 char * cr2res_dfs_POL_INTENS_ERROR_colname(int) ;
+char * cr2res_dfs_SPEC_colname_parse(
+        const char  * colname,
+        int         * order,
+        int         * trace) ;
 
 cpl_table * cr2res_dfs_create_lines_diagnostics_table(int nrows) ;
 

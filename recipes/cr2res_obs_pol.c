@@ -25,6 +25,7 @@
                                 Includes
  -----------------------------------------------------------------------------*/
 
+#include <string.h>
 #include <cpl.h>
 
 #include "cr2res_utils.h"
@@ -56,7 +57,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
  -----------------------------------------------------------------------------*/
 
 static int * cr2res_obs_pol_get_order_numbers(
-        const cpl_table *   extracted,
+        const cpl_table **  extracted,
         int                 next,
         int             *   norders) ;
 static int cr2res_obs_pol_check_inputs_validity(
@@ -464,25 +465,6 @@ static int cr2res_obs_pol_reduce(
 
     /* Get the Nodding positions */
     nod_positions = cr2res_nodding_read_positions(rawframes) ;
-
-    /* START TMP Incomplete headers */
-    /* TODO */
-    cpl_free(nod_positions) ;
-    nod_positions = cpl_malloc(12 * sizeof(cr2res_nodding_pos)) ;
-    nod_positions[0] = CR2RES_NODDING_A ;
-    nod_positions[1] = CR2RES_NODDING_A ;
-    nod_positions[2] = CR2RES_NODDING_A ;
-    nod_positions[3] = CR2RES_NODDING_A ;
-    nod_positions[4] = CR2RES_NODDING_B ;
-    nod_positions[5] = CR2RES_NODDING_B ;
-    nod_positions[6] = CR2RES_NODDING_B ;
-    nod_positions[7] = CR2RES_NODDING_B ;
-    nod_positions[8] = CR2RES_NODDING_A ;
-    nod_positions[9] = CR2RES_NODDING_A ;
-    nod_positions[10] = CR2RES_NODDING_A ;
-    nod_positions[11] = CR2RES_NODDING_A ;
-    /* STOP TMP Incomplete headers */
-
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
         for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
             cpl_msg_debug(__func__, "Frame %s - Nodding %c",
@@ -736,7 +718,7 @@ static int cr2res_obs_pol_reduce_one(
             cpl_free(decker_name) ;
             cpl_msg_indent_more() ;
            
-            /* Get slit fraction */
+            /* Get slit fraction for the upper trace */
             slit_frac = cr2res_trace_slit_fraction_create(
                     decker_positions[frame_idx], 1) ;
 
@@ -771,7 +753,7 @@ static int cr2res_obs_pol_reduce_one(
             cpl_free(decker_name) ;
             cpl_msg_indent_more() ;
            
-            /* Get slit fraction */
+            /* Get slit fraction for the lower trace */
             slit_frac = cr2res_trace_slit_fraction_create(
                     decker_positions[frame_idx], 2) ;
 
@@ -800,8 +782,16 @@ static int cr2res_obs_pol_reduce_one(
         cpl_free(pol_sorting) ;
 
         /* How many orders */
-        orders = cr2res_obs_pol_get_order_numbers(extract_1d, nspec_group, 
-                &norders) ;
+        if ((orders = cr2res_obs_pol_get_order_numbers(
+                        (const cpl_table **)extract_1d, 
+                        nspec_group, 
+                        &norders)) == NULL) {
+            cpl_msg_warning(__func__, "No Order found in the extracted tables");
+            for (j=0 ; j<nspec_group ; j++) 
+                if (extract_1d[j] != NULL) cpl_table_delete(extract_1d[j]) ;
+            cpl_free(extract_1d) ;
+            continue ;
+        }
         cpl_msg_debug(__func__, "%d different orders found", norders) ;
 
         /* Allocate data containerѕ */
@@ -811,7 +801,6 @@ static int cr2res_obs_pol_reduce_one(
 
         /* Loop on the orders */
         for (o=0 ; o<norders ; o++) {
-            
             /* Get the inputs for the demod functions calls */
             intens = cpl_malloc(nspec_group * sizeof(cpl_vector*));
             wl = cpl_malloc(nspec_group * sizeof(cpl_vector*));
@@ -911,12 +900,43 @@ static int cr2res_obs_pol_reduce_one(
  */
 /*----------------------------------------------------------------------------*/
 static int * cr2res_obs_pol_get_order_numbers(
-        const cpl_table *   extracted,
+        const cpl_table **  extracted,
         int                 next,
         int             *   norders)
 {
+    cpl_array   *   col_names ;
+    const char  *   col_name ;
+    char        *   col_type ;
+    cpl_size        j, ncols ;
+    int             i, order, trace_nb ;
 
-    
+    /* Check entries */
+    if (extracted == NULL || norders == NULL) return NULL ;
+    for (i=0 ; i<next ; i++) 
+        if (extracted[i] == NULL) return NULL ;
+
+    /* Get all orders appearing in any of the extracted tables columns */
+    /* Loop over all columns */
+    for (i=0 ; i<next ; i++) {
+        col_names = cpl_table_get_column_names(extracted[i]);
+        ncols = cpl_table_get_ncol(extracted[i]) ;
+        for (j=0 ; j<ncols ; j++) {
+            col_name = cpl_array_get_string(col_names, j);
+            col_type = cr2res_dfs_SPEC_colname_parse(col_name, &order,
+                    &trace_nb) ;
+            if (col_type != NULL && !strcmp(col_type, "SPEC")) {
+
+
+
+
+                printf("%s  %d %d\n", col_type, order, trace_nb) ;
+            } 
+            if (col_type != NULL) cpl_free(col_type) ;
+        }
+        cpl_array_delete(col_names) ;
+    }
+
+
     *norders = 5 ;
     int * orders = cpl_malloc(*norders * sizeof(int)) ;
     orders[0] = 3;

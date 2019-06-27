@@ -25,6 +25,7 @@
                                    Includes
  -----------------------------------------------------------------------------*/
 
+#include <locale.h>
 #include <string.h>
 #include <math.h>
 
@@ -290,14 +291,15 @@ char * cr2res_dfs_SPEC_colname_parse(
         int         * order, 
         int         * trace)
 {
-    int         order_loc ;
+    char    col_type[1024] ;
+    if (colname == NULL || order == NULL || trace == NULL) return NULL ;
 
+    /* Needed for sscanf() */
+    setlocale(LC_NUMERIC, "C");
 
-
-
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
-            CR2RES_COL_SPEC_SUFFIX);
+    if (sscanf(colname, "%02d_%02d_%s", order, trace, col_type) != 3)
+        return NULL ;
+    return cpl_strdup(col_type) ;
 }
 
 /*----------------------------------------------------------------------------*/
