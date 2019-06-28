@@ -485,7 +485,7 @@ int * cr2res_pol_sort_frames(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Merge several SPEC_POL tables together
+  @brief    Merge several POL_SPEC tables together
   @param    
   @param   frame2   Frame #2
   @param   frame3   Frame #3

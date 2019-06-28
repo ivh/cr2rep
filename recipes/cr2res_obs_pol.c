@@ -372,7 +372,7 @@ static int cr2res_obs_pol(
                     &(pol_specb[det_nr-1]),
                     &(ext_plista[det_nr-1]),
                     &(ext_plistb[det_nr-1])) == -1) {
-            cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
+            cpl_msg_error(__func__, "Failed to reduce detector %d", det_nr);
         }
         cpl_msg_indent_less() ;
     }
@@ -491,7 +491,7 @@ static int cr2res_obs_pol_reduce(
                 master_flat_frame, bpm_frame, 0, extract_oversample, 
                 extract_swath_width, extract_height, extract_smooth, reduce_det,
                 &pol_speca_loc, &ext_plista_loc) == -1) {
-        cpl_msg_warning(__func__, "Failed to Reduce A nodding frames") ;
+        cpl_msg_error(__func__, "Failed to Reduce A nodding frames") ;
     }
     cpl_msg_indent_less() ;
     if (rawframes_a != NULL) cpl_frameset_delete(rawframes_a);
@@ -504,7 +504,7 @@ static int cr2res_obs_pol_reduce(
                 master_flat_frame, bpm_frame, 0, extract_oversample, 
                 extract_swath_width, extract_height, extract_smooth, reduce_det,
                 &pol_specb_loc, &ext_plistb_loc) == -1) {
-        cpl_msg_warning(__func__, "Failed to Reduce B nodding frames") ;
+        cpl_msg_error(__func__, "Failed to Reduce B nodding frames") ;
     }
     cpl_msg_indent_less() ;
     if (rawframes_b != NULL) cpl_frameset_delete(rawframes_b);
@@ -743,7 +743,7 @@ static int cr2res_obs_pol_reduce_one(
                         extract_height, extract_swath_width, extract_oversample,
                         extract_smooth, &(extract_1d[2*j]), &slit_func, 
                         &model_master) == -1) {
-                cpl_msg_warning(__func__, "Failed Extraction") ;
+                cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j] = NULL ;
             } else {
                 cpl_table_delete(slit_func) ;
@@ -778,7 +778,7 @@ static int cr2res_obs_pol_reduce_one(
                         extract_height, extract_swath_width, extract_oversample,
                         extract_smooth, &(extract_1d[2*j+1]), &slit_func, 
                         &model_master) == -1) {
-                cpl_msg_warning(__func__, "Failed Extraction") ;
+                cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j+1] = NULL ;
             } else {
                 cpl_table_delete(slit_func) ;
@@ -928,7 +928,7 @@ static int cr2res_obs_pol_reduce_one(
 
     /* Check */
     if (pol_spec_merged == NULL) {
-        cpl_msg_info(__func__, "Cannot create the SPEC_POL table");
+        cpl_msg_error(__func__, "Cannot create the POL_SPEC table");
         return -1 ;
     }
 
