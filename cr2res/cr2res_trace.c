@@ -1585,9 +1585,12 @@ static cpl_mask * cr2res_trace_signal_detect(
         double              smoothfactor,
         double              thresh)
 {
-    cpl_image       *   smimage ;
+    cpl_image       *   sm_x_image ;
+    cpl_image       *   sm_y_image ;
     int                 trace_sep_loc ;
-    cpl_matrix      *   kernel ;
+    int                 smooth_x;
+    cpl_matrix      *   kernel_x ;
+    cpl_matrix      *   kernel_y ;
     cpl_mask        *   mask ;
 
     if (image == NULL) return NULL;
@@ -1596,34 +1599,54 @@ static cpl_mask * cr2res_trace_signal_detect(
     /* Prepare the kernel used for median filtering */
     trace_sep_loc = (int) (trace_sep*smoothfactor);
     if (trace_sep_loc % 2 == 0) trace_sep_loc +=1;
-    cpl_msg_debug(__func__, "Traces separation: %d", trace_sep_loc);
-    kernel = cpl_matrix_new(trace_sep_loc, 1);
-
+    cpl_msg_debug(__func__, "Y smoothing kernel length: %d", trace_sep_loc);
+    kernel_y = cpl_matrix_new(trace_sep_loc, 1);
     /* kernel should have normalized values */
-    cpl_matrix_add_scalar(kernel, 1.0/((double)trace_sep_loc)) ;
+    cpl_matrix_add_scalar(kernel_y, 1.0/((double)trace_sep_loc)) ;
+
+    smooth_x = 41;
+    kernel_x = cpl_matrix_new(1, smooth_x);
+    cpl_matrix_add_scalar(kernel_x, 1.0/((double)smooth_x)) ;
+
 
     /* Median filtering */
-    smimage = cpl_image_duplicate(image);
-    if (cpl_image_filter(smimage, image, kernel, CPL_FILTER_LINEAR,
+    sm_x_image = cpl_image_duplicate(image);
+    if (cpl_image_filter(sm_x_image, image, kernel_x, CPL_FILTER_LINEAR,
                 CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
-        cpl_msg_error(__func__, "Cannot filter the image") ;
+        cpl_msg_error(__func__, "Cannot x-filter the image: %d", 
+                cpl_error_get_code()) ;
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
-        cpl_matrix_delete(kernel);
-        cpl_image_delete(smimage) ;
+        cpl_matrix_delete(kernel_x);
+        cpl_matrix_delete(kernel_y);
+        cpl_image_delete(sm_x_image) ;
         return NULL ;
     }
-    cpl_matrix_delete(kernel);
 
+    sm_y_image = cpl_image_duplicate(image);
+    if (cpl_image_filter(sm_y_image, sm_x_image, kernel_y, CPL_FILTER_LINEAR,
+                CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Cannot y-filter the image") ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        cpl_matrix_delete(kernel_x);
+        cpl_matrix_delete(kernel_y);
+        cpl_image_delete(sm_x_image) ;
+        cpl_image_delete(sm_y_image) ;
+        return NULL ;
+    }
+    cpl_matrix_delete(kernel_x);
+    cpl_matrix_delete(kernel_y);
+    
     /* The pixels we want are the ones with values below -thresh */
-    cpl_image_subtract(smimage, image);
+    cpl_image_subtract(sm_y_image, sm_x_image);
+    cpl_image_delete(sm_x_image) ;
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_image_save(smimage, "debug_smimage.fits", CPL_TYPE_DOUBLE, NULL,
+        cpl_image_save(sm_y_image, "debug_smimage.fits", CPL_TYPE_DOUBLE, NULL,
                 CPL_IO_CREATE);
     }
 
-    mask = cpl_mask_threshold_image_create(smimage,-DBL_MAX,-thresh);
-    cpl_image_delete(smimage) ;
+    mask = cpl_mask_threshold_image_create(sm_y_image,-DBL_MAX,-thresh);
+    cpl_image_delete(sm_y_image) ;
 
     return mask ;
 }
