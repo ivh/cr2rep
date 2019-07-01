@@ -2030,7 +2030,8 @@ static int cr2res_trace_check_slit_fraction(const cpl_array * slit_fraction)
   @brief   Compute new trace polynomials by using slit_fraction specs
   @param slit_fraction_in     Input slit fraction
   @param trace_in             Array os size [3 * nb_traces]
-                              Traces are ordered in blocks of (lower, all, upper), then the next trace.
+                              Traces are ordered in blocks of (lower, all, 
+                              upper), then the next trace.
   @param nb_traces            number of traces in the order
   @param slit_fraction_wished
   @param trace_all_new
@@ -2063,15 +2064,18 @@ static int cr2res_trace_new_trace(
     const double    *   sf_in;
     cpl_vector      *   pix_in;
     double              sf_out_l, sf_out_m, sf_out_u, pix_out_l, pix_out_u, 
-                        pix_out_m, sf_wished, new_coeff, b, c, divisor, x2, x3, y2, y3 ;
+                        pix_out_m, sf_wished, new_coeff, b, c, divisor,
+                        x2, x3, y2, y3 ;
 
     /* Check entries */
-    if (slit_fraction_in==NULL || trace_in==NULL || slit_fraction_wished==NULL ||
-            trace_all_new==NULL || trace_upper_new==NULL ||
-            trace_lower_new==NULL || nb_traces <= 0) return -1; 
+    if (slit_fraction_in==NULL || trace_in==NULL || slit_fraction_wished==NULL
+            || trace_all_new==NULL || trace_upper_new==NULL
+            || trace_lower_new==NULL || nb_traces <= 0) return -1; 
 
-    // Both in and output slitfractions need to have 3 components (3 per trace for input)
-    if (cpl_array_get_size(slit_fraction_in) != 3 * nb_traces || cpl_array_get_size(slit_fraction_wished) != 3) return -1;
+    // Both in and output slitfractions need to have 3 components 
+    // (3 per trace for input)
+    if (cpl_array_get_size(slit_fraction_in) != 3 * nb_traces || 
+                    cpl_array_get_size(slit_fraction_wished) != 3) return -1;
 
 
 
@@ -2088,8 +2092,8 @@ static int cr2res_trace_new_trace(
     for(cpl_size i = 0; i < nb_traces * 3; i++)
     {
         poly_in[i] = cr2res_convert_array_to_poly(trace_in[i]);
-        cpl_vector_set(pix_in, i, 
-            cpl_polynomial_eval_1d(poly_in[i], (double)(CR2RES_DETECTOR_SIZE/2.0), NULL));
+        cpl_vector_set(pix_in, i, cpl_polynomial_eval_1d(poly_in[i], 
+            (double)(CR2RES_DETECTOR_SIZE/2.0), NULL));
     }
     
     // Fit a 2nd order polynomial to all points
@@ -2098,7 +2102,8 @@ static int cr2res_trace_new_trace(
     sf_in = cpl_array_get_data_double_const(slit_fraction_in);
     sf_matrix = cpl_matrix_wrap(1, nb_traces * 3, (double*)sf_in);
     fitdeg = 2;
-    error = cpl_polynomial_fit(poly_slit, sf_matrix, NULL, pix_in, NULL, CPL_FALSE, NULL, &fitdeg);
+    error = cpl_polynomial_fit(poly_slit, sf_matrix, NULL, pix_in, NULL, 
+                                CPL_FALSE, NULL, &fitdeg);
     cpl_matrix_unwrap(sf_matrix);
 
     // in case something went wrong
@@ -2123,18 +2128,22 @@ static int cr2res_trace_new_trace(
     cpl_msg_debug(__func__, 
     "Slit fraction: [%g-%g-%g]->[%g-%g-%g] - Pixel positions: [%g-%g-%g]->[%g-%g-%g]",
     sf_in[0], sf_in[1], sf_in[2], sf_out_l, sf_out_m, sf_out_u, 
-    cpl_vector_get(pix_in, 0), cpl_vector_get(pix_in, 1), cpl_vector_get(pix_in, 2), pix_out_l, pix_out_m, pix_out_u) ;
+    cpl_vector_get(pix_in, 0), cpl_vector_get(pix_in, 1),
+    cpl_vector_get(pix_in, 2), pix_out_l, pix_out_m, pix_out_u) ;
 
     /* Correct the polynomials */
     poly_upper_out = cpl_polynomial_duplicate(poly_in[2]) ;
     poly_lower_out = cpl_polynomial_duplicate(poly_in[0]) ;
     poly_all_out = cpl_polynomial_duplicate(poly_in[1]) ;
 
-    new_coeff = cpl_polynomial_get_coeff(poly_upper_out, &power) + pix_out_u - cpl_vector_get(pix_in, 2) ;
+    new_coeff = cpl_polynomial_get_coeff(poly_upper_out, &power) + pix_out_u 
+                - cpl_vector_get(pix_in, 2) ;
     cpl_polynomial_set_coeff(poly_upper_out, &power, new_coeff) ;
-    new_coeff = cpl_polynomial_get_coeff(poly_lower_out, &power) + pix_out_l - cpl_vector_get(pix_in, 0) ;
+    new_coeff = cpl_polynomial_get_coeff(poly_lower_out, &power) + pix_out_l 
+                - cpl_vector_get(pix_in, 0) ;
     cpl_polynomial_set_coeff(poly_lower_out, &power, new_coeff) ;
-    new_coeff = cpl_polynomial_get_coeff(poly_all_out, &power) + pix_out_m - cpl_vector_get(pix_in, 1) ;
+    new_coeff = cpl_polynomial_get_coeff(poly_all_out, &power) + pix_out_m 
+                - cpl_vector_get(pix_in, 1) ;
     cpl_polynomial_set_coeff(poly_all_out, &power, new_coeff) ;
 
     for(cpl_size i = 0; i < nb_traces*3; i++)
