@@ -420,7 +420,7 @@ cpl_table * cr2res_pol_POL_SPEC_create(
     for (i=0 ; i<norders ; i++) {
         if (wl[i]!=NULL && stokes[i]!=NULL && null[i]!=NULL && intens[i]!=NULL){
             /* Fill POL_WAVELENGTH column */
-            px = cpl_bivector_get_x_data_const(wl[i]) ;
+            px = cpl_vector_get_data_const(wl[i]) ;
             col_name = cr2res_dfs_POL_WAVELENGTH_colname(orders[i]) ;
             cpl_table_copy_data_double(out, col_name, px) ;
             cpl_free(col_name) ;
