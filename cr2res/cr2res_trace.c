@@ -66,8 +66,8 @@ static cpl_array * cr2res_trace_get_slit_frac(
         cr2res_decker       decker_pos) ;
 static cpl_mask * cr2res_trace_signal_detect(
         const cpl_image *   image,
-        int                 trace_sep,
-        double              smoothfactor,
+        double              smooth_x,
+        double              smooth_y,
         double              thresh) ;
 static cpl_table * cr2res_trace_fit_traces(
         cpl_table   *   clustertable,
@@ -96,7 +96,8 @@ static int cr2res_trace_extract_edges(
 /**
   @brief  Main function for running all parts of the trace algorithm
   @param    ima             input image
-  @param    smoothfactor    Used for detection
+  @param    smooth_x        Used for detection
+  @param    smooth_y        Used for detection
   @param    opening         Used for cleaning the mask
   @param    degree          Fitted polynomial degree
   @param    min_cluster     A trace must be bigger - discarded otherwise
@@ -119,7 +120,8 @@ static int cr2res_trace_extract_edges(
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace(
         cpl_image       *   ima,
-        double              smoothfactor,
+        double              smooth_x,
+        double              smooth_y,
         int                 opening,
         int                 degree,
         int                 min_cluster)
@@ -136,11 +138,6 @@ cpl_table * cr2res_trace(
     if (ima == NULL) return NULL ;
 
     /* Initialise */
-
-    /* TODO This needs to come from a static calibration, each band */
-    /* Alternative: remove altogether and have single kernel size value */
-    int                     trace_sep=100;
-
     /* TODO Should be set to noise level*/
     /* Best to calcule from input image, not relying on external value */
     /* E.g. mask with thresh=0 once, measure noise in non-signal regions */
@@ -149,7 +146,7 @@ cpl_table * cr2res_trace(
 
     /* Apply detection */
     cpl_msg_info(__func__, "Detect the signal") ;
-    if ((mask = cr2res_trace_signal_detect(ima, trace_sep, smoothfactor,
+    if ((mask = cr2res_trace_signal_detect(ima, smooth_x, smooth_y,
                     thresh)) == NULL) {
         cpl_msg_error(__func__, "Detection failed") ;
         return NULL ;
@@ -1308,7 +1305,7 @@ cpl_table * cr2res_trace_adjust(
     cpl_table           *   corrected_traces ;
     cpl_table           *   traces ;
     int                     trace_opening, trace_degree, trace_min_cluster ;
-    double                  trace_smooth, traces_shift ;
+    double                  trace_smooth_x, trace_smooth_y, traces_shift ;
  
     /* Check Entries */
     if (trace_wave == NULL || flat_raw == NULL || 
@@ -1316,7 +1313,8 @@ cpl_table * cr2res_trace_adjust(
         return NULL ;
 
     /* Initialise */
-    trace_smooth = 2.0 ;
+    trace_smooth_x = 200.0 ;
+    trace_smooth_y = 11.0 ;
     trace_opening = 1 ;
     trace_degree = 5 ;
     trace_min_cluster = 10000 ;
@@ -1343,7 +1341,7 @@ cpl_table * cr2res_trace_adjust(
     /* Compute the trace */
     cpl_msg_info(__func__, "Compute the traces") ;
     if ((new_traces = cr2res_trace(hdrl_image_get_image(collapsed),
-                    trace_smooth, trace_opening, trace_degree,
+                    trace_smooth_x, trace_smooth_y, trace_opening, trace_degree,
                     trace_min_cluster)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the traces") ;
         hdrl_image_delete(collapsed) ;
@@ -1562,46 +1560,44 @@ static cpl_array * cr2res_trace_get_slit_frac(
 /**
   @brief    Detect the Traces signal
   @param image          The input image with the traces
-  @param trace_sep       The approximate number of pixels between 2 traces
-  @param smoothfactor   Mult. factor for the low pass filter kernel size
+  @param smooth_x       Low pass filter kernel size in x
+  @param smooth_y       Low pass filter kernel size in y
   @param thresh         The threshold used for detection
   @return   A newly allocated mask or NULL in error case.
 
   The returned mask identifies the pixels belonging to a trace
   The input image is smoothed, subtracted to the result, and a simple
-  thresholding is applied. The smoothing kernel size is
-  trace_sep*smoothfactor x 1
+  thresholding is applied. 
  */
 /*----------------------------------------------------------------------------*/
 static cpl_mask * cr2res_trace_signal_detect(
         const cpl_image *   image,
-        int                 trace_sep,
-        double              smoothfactor,
+        double              smooth_x,
+        double              smooth_y,
         double              thresh)
 {
     cpl_image       *   sm_x_image ;
     cpl_image       *   sm_y_image ;
-    int                 trace_sep_loc ;
-    int                 smooth_x;
+    int                 kernel_size ;
     cpl_matrix      *   kernel_x ;
     cpl_matrix      *   kernel_y ;
     cpl_mask        *   mask ;
 
+    /* Check Entries */
     if (image == NULL) return NULL;
-    if (trace_sep < 0 || smoothfactor < 0) return NULL;
+    if (smooth_x < 0 || smooth_y < 0) return NULL;
 
-    /* Prepare the kernel used for median filtering */
-    trace_sep_loc = (int) (trace_sep*smoothfactor);
-    if (trace_sep_loc % 2 == 0) trace_sep_loc +=1;
-    cpl_msg_debug(__func__, "Y smoothing kernel length: %d", trace_sep_loc);
-    kernel_y = cpl_matrix_new(trace_sep_loc, 1);
-    /* kernel should have normalized values */
-    cpl_matrix_add_scalar(kernel_y, 1.0/((double)trace_sep_loc)) ;
-
-    smooth_x = 41;
-    kernel_x = cpl_matrix_new(1, smooth_x);
+    /* Prepare kernel x */
+    kernel_size = (int)smooth_x ;
+    if (kernel_size % 2 == 0) kernel_size++ ;
+    kernel_x = cpl_matrix_new(1, kernel_size);
     cpl_matrix_add_scalar(kernel_x, 1.0/((double)smooth_x)) ;
 
+    /* Prepare kernel y */
+    kernel_size = (int)smooth_y ;
+    if (kernel_size % 2 == 0) kernel_size++ ;
+    kernel_y = cpl_matrix_new(kernel_size, 1);
+    cpl_matrix_add_scalar(kernel_y, 1.0/((double)smooth_y)) ;
 
     /* Median filtering */
     sm_x_image = cpl_image_duplicate(image);

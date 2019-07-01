@@ -158,10 +158,17 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.smooth",
-            CPL_TYPE_DOUBLE, "Length of the smoothing kernel",
-            "cr2res.cr2res_util_trace", 5.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth");
+    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.smooth_x",
+            CPL_TYPE_DOUBLE, "Length of the smoothing kernel in x",
+            "cr2res.cr2res_util_trace", 200.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_x");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.smooth_y",
+            CPL_TYPE_DOUBLE, "Length of the smoothing kernel in y",
+            "cr2res.cr2res_util_trace", 11.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_y");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -243,7 +250,7 @@ static int cr2res_util_trace(
     const cpl_parameter *   param;
     int                     min_cluster, degree, opening, reduce_det,
                             split_traces ;
-    double                  smooth ;
+    double                  smooth_x, smooth_y ;
     const char          *   flat_file ;
     char                *   out_file;
     hdrl_image          *   flat_ima ;
@@ -260,8 +267,11 @@ static int cr2res_util_trace(
             "cr2res.cr2res_util_trace.degree");
     degree = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_trace.smooth");
-    smooth = cpl_parameter_get_double(param);
+            "cr2res.cr2res_util_trace.smooth_x");
+    smooth_x = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_trace.smooth_y");
+    smooth_y = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.opening");
     opening = cpl_parameter_get_bool(param);
@@ -319,7 +329,8 @@ static int cr2res_util_trace(
         cpl_msg_info(__func__, "Compute the traces") ;
         cpl_msg_indent_more() ;
         if ((traces[det_nr-1] = cr2res_trace(hdrl_image_get_image(flat_ima), 
-                        smooth, opening, degree, min_cluster)) == NULL) {
+                        smooth_x, smooth_y, opening, degree, 
+                        min_cluster)) == NULL) {
             cpl_msg_warning(__func__, "Cannot compute trace - skip detector");
             cpl_error_reset() ;
             hdrl_image_delete(flat_ima) ;

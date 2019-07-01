@@ -66,7 +66,8 @@ static int cr2res_cal_detlin_reduce(
         double                  bpm_kappa,
         int                     trace_degree,
         int                     trace_min_cluster,
-        double                  trace_smooth,
+        double                  trace_smooth_x,
+        double                  trace_smooth_y,
         int                     trace_opening,
         int                     trace_collapse,
         int                     reduce_det,
@@ -183,10 +184,17 @@ static int cr2res_cal_detlin_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.trace_smooth",
-            CPL_TYPE_DOUBLE, "Length of the smoothing kernel",
-            "cr2res.cr2res_cal_detlin", 5.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_smooth");
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.trace_smooth_x",
+            CPL_TYPE_DOUBLE, "Length of the smoothing kernel in x",
+            "cr2res.cr2res_cal_detlin", 200.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_smooth_x");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.trace_smooth_y",
+            CPL_TYPE_DOUBLE, "Length of the smoothing kernel in y",
+            "cr2res.cr2res_cal_detlin", 11.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_smooth_y");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -275,7 +283,7 @@ static int cr2res_cal_detlin(
     const cpl_parameter *   param ;
     int                     trace_degree, trace_min_cluster, trace_collapse,
                             trace_opening, single_settings, reduce_det ;
-    double                  bpm_kappa, trace_smooth ;
+    double                  bpm_kappa, trace_smooth_x, trace_smooth_y ;
     cpl_frameset        *   rawframes ;
     cpl_size            *   labels ;
     cpl_size                nlabels ;
@@ -304,8 +312,11 @@ static int cr2res_cal_detlin(
             "cr2res.cr2res_cal_detlin.trace_min_cluster");
     trace_min_cluster = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_detlin.trace_smooth");
-    trace_smooth = cpl_parameter_get_double(param);
+            "cr2res.cr2res_cal_detlin.trace_smooth_x");
+    trace_smooth_x = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_detlin.trace_smooth_y");
+    trace_smooth_y = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_detlin.trace_opening");
     trace_opening = cpl_parameter_get_bool(param);
@@ -381,8 +392,8 @@ static int cr2res_cal_detlin(
             /* Call the reduction function */
             cpl_msg_indent_more() ;
             if (cr2res_cal_detlin_reduce(raw_one, bpm_kappa,
-                        trace_degree, trace_min_cluster, trace_smooth, 
-                        trace_opening, trace_collapse, det_nr,
+                        trace_degree, trace_min_cluster, trace_smooth_x,
+                        trace_smooth_y, trace_opening, trace_collapse, det_nr,
                         &(coeffs[det_nr-1]),
                         &(bpm[det_nr-1]),
                         &(ext_plist[det_nr-1])) == -1) {
@@ -484,7 +495,8 @@ static int cr2res_cal_detlin(
   @param bpm_kappa          Kappa value for BPM detection
   @param trace_degree
   @param trace_min_cluster
-  @param trace_smooth
+  @param trace_smooth_x
+  @param trace_smooth_y
   @param trace_opening      
   @param trace_collapse     Flag to collapse (or not) before tracing
   @param reduce_det         The detector to compute 
@@ -499,7 +511,8 @@ static int cr2res_cal_detlin_reduce(
         double                  bpm_kappa,
         int                     trace_degree,
         int                     trace_min_cluster,
-        double                  trace_smooth,
+        double                  trace_smooth_x,
+        double                  trace_smooth_y,
         int                     trace_opening,
         int                     trace_collapse,
         int                     reduce_det,
@@ -594,8 +607,8 @@ static int cr2res_cal_detlin_reduce(
     nx = hdrl_image_get_size_x(collapsed) ;
     ny = hdrl_image_get_size_y(collapsed) ;
     if ((traces = cr2res_trace(hdrl_image_get_image(collapsed), 
-                    trace_smooth, trace_opening, trace_degree, 
-                    trace_min_cluster)) == NULL) {
+                    trace_smooth_x, trace_smooth_y, trace_opening, 
+                    trace_degree, trace_min_cluster)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the traces") ;
         hdrl_imagelist_delete(imlist) ;
         cpl_vector_delete(dits); 
