@@ -64,6 +64,9 @@
 
   Demodulation formula is P/I = (R^1/4 - 1) / (R^1/4 + 1) with
     R = 1u/2u * 2d/1d * 3u/4u * 4d/3d
+
+  Important : the first of the 8 input wavelength vectors (wl[0]) is the
+  reference one for which the output parameters shall be computed
  */
 /*----------------------------------------------------------------------------*/
 cpl_bivector * cr2res_pol_demod_stokes(
@@ -182,6 +185,9 @@ cpl_bivector * cr2res_pol_demod_stokes(
   Null spectrum's deviation from zero is an inverse measure of quality.
   We simply re-use the Stokes demodulation after switching the spectra
   in the input order.
+
+  Important : the first of the 8 input wavelength vectors (wl[0]) is the
+  reference one for which the output parameters shall be computed
  */
 /*----------------------------------------------------------------------------*/
 cpl_bivector * cr2res_pol_demod_null(
@@ -267,6 +273,9 @@ cpl_bivector * cr2res_pol_demod_null(
 
   The calculation is a simple sum of input spectra, divided by half the
   number of sepctra, since two pol-beams together make up one unit intensity.
+
+  Important : the first of the 8 input wavelength vectors (wl[0]) is the
+  reference one for which the output parameters shall be computed
  */
 /*----------------------------------------------------------------------------*/
 cpl_bivector * cr2res_pol_demod_intens(
