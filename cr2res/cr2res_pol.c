@@ -84,7 +84,6 @@ cpl_bivector * cr2res_pol_demod_stokes(
   cpl_vector * tmp;
   cpl_size size;
 
-  return NULL ;
   /* Check entries */
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
   if (n != 8) {
@@ -207,7 +206,6 @@ cpl_bivector * cr2res_pol_demod_null(
     cpl_bivector  * out ;
     int             i;
 
-  return NULL ;
   /* Check entries */
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
   if (n != 8) {
@@ -291,7 +289,6 @@ cpl_bivector * cr2res_pol_demod_intens(
   cpl_vector * tmp;
   int i;
 
-  return NULL ;
   /* Check entries */
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
   if (n != 8) {

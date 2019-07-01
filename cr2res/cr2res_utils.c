@@ -639,6 +639,7 @@ int cr2res_convert_idx_to_order(int order_idx)
 cpl_polynomial * cr2res_convert_array_to_poly(const cpl_array * arr)
 {
     cpl_polynomial  *   out ;
+    double              val ;
     cpl_size            i ;
 
     /* Test entries */
@@ -648,8 +649,14 @@ cpl_polynomial * cr2res_convert_array_to_poly(const cpl_array * arr)
 	out = cpl_polynomial_new(1) ;
 
     /* Fill it  */
-	for (i=0 ; i<cpl_array_get_size(arr) ; i++)
+	for (i=0 ; i<cpl_array_get_size(arr) ; i++) {
+        val = cpl_array_get(arr, i, NULL) ;
+        if (isnan(val)) {
+            /* cpl_polynomial_delete(out) ; */
+            /* return NULL ; */
+        } 
 		cpl_polynomial_set_coeff(out, &i, cpl_array_get(arr, i, NULL)) ;
+    }
 
     return out ;
 }
