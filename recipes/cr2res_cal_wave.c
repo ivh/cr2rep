@@ -93,19 +93,6 @@ static char cr2res_cal_wave_description[] =
 "cr2res_cal_wave_trace.fits " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "\n"
 "cr2res_cal_wave_map.fits " CR2RES_CAL_WAVE_MAP_PROCATG "\n"
 "\n";
-    detlin_frame = cpl_frameset_find_const(frameset,
-            CR2RES_DETLIN_COEFFS_PROCATG);
-    master_dark_frame = cpl_frameset_find_const(frameset,
-            CR2RES_MASTER_DARK_PROCATG) ;
-    master_flat_frame = cpl_frameset_find_const(frameset,
-            CR2RES_FLAT_MASTER_FLAT_PROCATG) ;
-    bpm_frame = cpl_frameset_find_const(frameset,
-            CR2RES_FLAT_BPM_PROCATG) ;
-    trace_wave_frame = cpl_frameset_find_const(frameset,
-            CR2RES_FLAT_TRACE_WAVE_PROCATG) ;
-    lines_frame = cpl_frameset_find_const(frameset,
-            CR2RES_EMISSION_LINES_PROCATG) ;
-    if (lines_frame == NULL || trace_wave_frame == NULL) {
 
 /*-----------------------------------------------------------------------------
                                 Function code
