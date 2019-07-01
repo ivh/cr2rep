@@ -160,14 +160,14 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.smooth_x",
             CPL_TYPE_DOUBLE, "Length of the smoothing kernel in x",
-            "cr2res.cr2res_util_trace", 200.0);
+            "cr2res.cr2res_util_trace", 11.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_x");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.smooth_y",
             CPL_TYPE_DOUBLE, "Length of the smoothing kernel in y",
-            "cr2res.cr2res_util_trace", 11.0);
+            "cr2res.cr2res_util_trace", 201.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_y");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
