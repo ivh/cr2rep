@@ -54,6 +54,7 @@ cpl_bivector * cr2res_pol_demod_intens(
         int             n) ;
 cpl_table * cr2res_pol_POL_SPEC_create(
         int             *   orders,
+        cpl_vector      **  wl,
         cpl_bivector    **  stokes,
         cpl_bivector    **  null,
         cpl_bivector    **  intens,

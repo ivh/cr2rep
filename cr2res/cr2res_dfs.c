@@ -118,6 +118,21 @@ char * cr2res_dfs_SLIT_CURV_colname(int order, int trace)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get the POL_WAVELENGTH column name for a given order
+  @param    order       The order number (1->) 
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_POL_WAVELENGTH_colname(int order)
+{
+    int         order_loc ;
+    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_WL_SUFFIX) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get the POL_STOKES column name for a given order
   @param    order       The order number (1->) 
   @return   the column name or NULL in error case

@@ -116,7 +116,8 @@
 
 /* For CR2RES_OBS_POL_SPECA_PROCATG */
 /*     CR2RES_OBS_POL_SPECB_PROCATG */
-/* Table with columns cr2res_dfs_POL_STOKES_colname() */
+/* Table with columns cr2res_dfs_POL_WAVELENGTH_colname() */
+/*                    cr2res_dfs_POL_STOKES_colname() */
 /*                    cr2res_dfs_POL_STOKES_ERROR_colname() */
 /*                    cr2res_dfs_POL_NULL_colname() */
 /*                    cr2res_dfs_POL_NULL_ERROR_colname() */
@@ -296,6 +297,7 @@ char * cr2res_dfs_WAVELENGTH_colname(int, int);
 char * cr2res_dfs_SPEC_ERR_colname(int, int);
 char * cr2res_dfs_SLIT_FUNC_colname(int, int) ;
 char * cr2res_dfs_SLIT_CURV_colname(int, int) ;
+char * cr2res_dfs_POL_WAVELENGTH_colname(int);
 char * cr2res_dfs_POL_STOKES_colname(int) ;
 char * cr2res_dfs_POL_STOKES_ERROR_colname(int) ;
 char * cr2res_dfs_POL_NULL_colname(int) ;

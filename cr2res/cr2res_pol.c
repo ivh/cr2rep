@@ -324,6 +324,7 @@ cpl_bivector * cr2res_pol_demod_intens(
 /**
   @brief    Create the POL_SPEC table to be saved
   @param    orders  List of orders
+  @param    wl      Wavelength for the different orders
   @param    stokes  Stokes parameters for the different orders with errors
   @param    null    Null parameters for the different orders with errors    
   @param    intens  Intensity for the different orders with errors
@@ -333,6 +334,7 @@ cpl_bivector * cr2res_pol_demod_intens(
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_pol_POL_SPEC_create(
         int             *   orders,
+        cpl_vector      **  wl,
         cpl_bivector    **  stokes,
         cpl_bivector    **  null,
         cpl_bivector    **  intens,
@@ -345,16 +347,17 @@ cpl_table * cr2res_pol_POL_SPEC_create(
     int                 all_null, i, nrows ;
 
     /* Check entries */
-    if (orders == NULL || stokes == NULL || null == NULL || intens == NULL) 
+    if (orders==NULL || wl==NULL || stokes==NULL || null==NULL || intens==NULL) 
         return NULL ;
 
     /* Check if all bivectorѕ are not null */
     all_null = 1 ;
     for (i=0 ; i<norders ; i++)
-        if (stokes[i] != NULL && null[i] != NULL && intens[i] != NULL) {
-            nrows = cpl_bivector_get_size(stokes[i]) ;
-            if (cpl_bivector_get_size(null[i]) != nrows ||
-                        cpl_bivector_get_size(intens[i]) != nrows) {
+        if (wl[i]!=NULL && stokes[i]!=NULL && null[i]!=NULL && intens[i]!=NULL){
+            nrows = cpl_vector_get_size(wl[i]) ;
+            if (cpl_bivector_get_size(stokes[i]) != nrows ||
+                    cpl_bivector_get_size(null[i]) != nrows ||
+                    cpl_bivector_get_size(intens[i]) != nrows) {
                 cpl_msg_error(__func__, "Invalid Input Sizes") ;
                 return NULL ;
             }
@@ -362,50 +365,55 @@ cpl_table * cr2res_pol_POL_SPEC_create(
         }
     if (all_null == 1) return NULL ;
 
-    /* Check the sizes */
-    for (i=0 ; i<norders ; i++) {
-        if (stokes[i] != NULL && cpl_bivector_get_size(stokes[i]) != nrows) {
-            cpl_msg_error(__func__, "Invalid Input Sizes") ;
-            return NULL ;
-        }
-    }
-
     /* Create the table */
     out = cpl_table_new(nrows);
     for (i=0 ; i<norders ; i++) {
-        /* Create POL_STOKES column */
-        col_name = cr2res_dfs_POL_STOKES_colname(orders[i]) ;
-        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
-        cpl_free(col_name) ;
+        if (wl[i]!=NULL && stokes[i]!=NULL && null[i]!=NULL && intens[i]!=NULL){
+            /* Create POL_WAVELENGTH column */
+            col_name = cr2res_dfs_POL_WAVELENGTH_colname(orders[i]) ;
+            cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+            cpl_free(col_name) ;
 
-        /* Create POL_STOKES_ERROR column */
-        col_name = cr2res_dfs_POL_STOKES_ERROR_colname(orders[i]) ;
-        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
-        cpl_free(col_name) ;
+            /* Create POL_STOKES column */
+            col_name = cr2res_dfs_POL_STOKES_colname(orders[i]) ;
+            cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+            cpl_free(col_name) ;
 
-        /* Create POL_NULL column */
-        col_name = cr2res_dfs_POL_NULL_colname(orders[i]) ;
-        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
-        cpl_free(col_name) ;
+            /* Create POL_STOKES_ERROR column */
+            col_name = cr2res_dfs_POL_STOKES_ERROR_colname(orders[i]) ;
+            cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+            cpl_free(col_name) ;
 
-        /* Create POL_NULL_ERROR column */
-        col_name = cr2res_dfs_POL_NULL_ERROR_colname(orders[i]) ;
-        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
-        cpl_free(col_name) ;
+            /* Create POL_NULL column */
+            col_name = cr2res_dfs_POL_NULL_colname(orders[i]) ;
+            cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+            cpl_free(col_name) ;
 
-        /* Create POL_INTENS column */
-        col_name = cr2res_dfs_POL_INTENS_colname(orders[i]) ;
-        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
-        cpl_free(col_name) ;
+            /* Create POL_NULL_ERROR column */
+            col_name = cr2res_dfs_POL_NULL_ERROR_colname(orders[i]) ;
+            cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+            cpl_free(col_name) ;
 
-        /* Create POL_INTENS_ERROR column */
-        col_name = cr2res_dfs_POL_INTENS_ERROR_colname(orders[i]) ;
-        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
-        cpl_free(col_name) ;
+            /* Create POL_INTENS column */
+            col_name = cr2res_dfs_POL_INTENS_colname(orders[i]) ;
+            cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+            cpl_free(col_name) ;
+
+            /* Create POL_INTENS_ERROR column */
+            col_name = cr2res_dfs_POL_INTENS_ERROR_colname(orders[i]) ;
+            cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+            cpl_free(col_name) ;
+        }
     }
     /* Fill the table */
     for (i=0 ; i<norders ; i++) {
-        if (stokes[i] != NULL && null[i] != NULL && intens[i] != NULL) {
+        if (wl[i]!=NULL && stokes[i]!=NULL && null[i]!=NULL && intens[i]!=NULL){
+            /* Fill POL_WAVELENGTH column */
+            px = cpl_vector_get_x_data_const(wl[i]) ;
+            col_name = cr2res_dfs_POL_WAVELENGTH_colname(orders[i]) ;
+            cpl_table_copy_data_double(out, col_name, px) ;
+            cpl_free(col_name) ;
+
             /* Fill POL_STOKES column */
             px = cpl_bivector_get_x_data_const(stokes[i]) ;
             col_name = cr2res_dfs_POL_STOKES_colname(orders[i]) ;

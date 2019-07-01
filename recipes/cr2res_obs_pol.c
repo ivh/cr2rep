@@ -576,6 +576,7 @@ static int cr2res_obs_pol_reduce_one(
     cpl_vector          **  intens ;
     cpl_vector          **  wl ;
     cpl_vector          **  errors ;
+    cpl_vector          **  demod_wl ;
     cpl_bivector        **  demod_stokes ;
     cpl_bivector        **  demod_null ;
     cpl_bivector        **  demod_intens ;
@@ -751,7 +752,7 @@ static int cr2res_obs_pol_reduce_one(
             }
             cpl_table_delete(trace_wave_loc) ;
             cpl_msg_indent_less() ;
-            
+
             /* Extract Down */
             decker_name = cr2res_decker_print_position(
                     decker_positions[frame_idx]) ;
@@ -803,6 +804,7 @@ static int cr2res_obs_pol_reduce_one(
         cpl_msg_debug(__func__, "%d different orders found", norders) ;
 
         /* Allocate data containerѕ */
+        demod_wl = cpl_malloc(norders * sizeof(cpl_vector*)) ;
         demod_stokes = cpl_malloc(norders * sizeof(cpl_bivector*)) ;
         demod_null = cpl_malloc(norders * sizeof(cpl_bivector*)) ;
         demod_intens = cpl_malloc(norders * sizeof(cpl_bivector*)) ;
@@ -863,6 +865,10 @@ static int cr2res_obs_pol_reduce_one(
                 }
             }
 
+            /* Keep the 1st wl of the 8 as reference for the output file*/
+            if (wl[0] != NULL)  demod_wl[o] = cpl_vector_duplicate(wl[0]) ;
+            else                demod_wl[o] = NULL ;
+
             /* Call Library Demodulation functions */
             demod_stokes[o] =   cr2res_pol_demod_stokes(intens, wl, errors,
                     nspec_group) ;
@@ -889,15 +895,17 @@ static int cr2res_obs_pol_reduce_one(
 
         /* Create the pol_spec table */
         cpl_msg_info(__func__, "Create the POL_SPEC table for this group");
-        pol_spec_one_group[i] = cr2res_pol_POL_SPEC_create(orders,
+        pol_spec_one_group[i] = cr2res_pol_POL_SPEC_create(orders, demod_wl, 
                 demod_stokes, demod_null, demod_intens, norders) ;
 
         /* Deallocate */
         for (o=0 ; o<norders ; o++) {
+            cpl_vector_delete(demod_wl[o]) ;
             cpl_bivector_delete(demod_stokes[o]) ;
             cpl_bivector_delete(demod_null[o]) ;
             cpl_bivector_delete(demod_intens[o]) ;
         }
+        cpl_free(demod_wl) ;
         cpl_free(demod_stokes) ;
         cpl_free(demod_null) ;
         cpl_free(demod_intens) ;
