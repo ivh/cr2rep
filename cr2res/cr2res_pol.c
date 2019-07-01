@@ -48,6 +48,8 @@
 
 /**@{*/
 
+/* TODO demod fuinctions : rebin all 8 vectors to the same wl  */
+/*                                     --> wl[0] as reference */
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Demodulate extracted spectra into Stokes parameter
