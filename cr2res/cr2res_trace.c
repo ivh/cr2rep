@@ -1101,7 +1101,6 @@ cpl_table * cr2res_trace_new_slit_fraction(
     cpl_polynomial  *   poly_tmp;
     cpl_size            i, j, k, nrows ;
     int nb_orders, nb_traces;
-    int tracenb_max, tracenb_k, null_flag;
     int * orders, * trace_numbers;
     double a, b, c;
     double pix_lower, pix_upper;
@@ -1126,7 +1125,6 @@ cpl_table * cr2res_trace_new_slit_fraction(
     out = cpl_table_new(nb_orders);
     cpl_table_copy_structure(out, traces);
     cpl_table_select_all(out);
-    tracenb_max = 0;
 
     /* Loop on the orders */
     for (i=0 ; i<nb_orders; i++) {
@@ -1142,10 +1140,6 @@ cpl_table * cr2res_trace_new_slit_fraction(
             trace_upper_old = cpl_table_get_array(traces, CR2RES_COL_UPPER, k) ;
             trace_lower_old = cpl_table_get_array(traces, CR2RES_COL_LOWER, k) ;
 
-            /* Keep track of largest traceNB encountered, to increment for new*/
-            tracenb_k = cpl_table_get_int(traces, CR2RES_COL_TRACENB, k,
-                         &null_flag);
-            if (tracenb_k > tracenb_max) tracenb_max=tracenb_k;
 
             /* Unselect rows with wrong slit_fraction or without trace */
             /* to be erased below */
@@ -1164,7 +1158,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
         /* Fill out fields */
         cpl_table_set_array(out, CR2RES_COL_SLIT_FRACTION, i,new_slit_fraction);
         cpl_table_set_int(out, CR2RES_COL_ORDER, i, orders[i]);
-        cpl_table_set_int(out, CR2RES_COL_TRACENB, i, tracenb_max +1);
+        cpl_table_set_int(out, CR2RES_COL_TRACENB, i, 1);
 
         /* Compute the new trace */
         if (cr2res_trace_new_trace(slit_frac_old, trace_old, nb_traces, 
