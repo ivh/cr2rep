@@ -583,6 +583,7 @@ static int cr2res_obs_pol_reduce_one(
     int                 *   orders ;
     cpl_table           *   pol_spec_merged ;
     cpl_propertylist    *   ext_plist_loc ;
+    char                *   out_file;
     cpl_size                nframes, nspec_group, spec_size ;
     int                     ngroups, i, j, k, l, o, norders, frame_idx ;
 
@@ -749,6 +750,22 @@ static int cr2res_obs_pol_reduce_one(
             } else {
                 cpl_table_delete(slit_func) ;
                 hdrl_image_delete(model_master) ;
+                
+                /* Save the table and the trace for debug */
+                if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+                    out_file = cpl_sprintf(
+                            "debug_ext_spec_det%d_group%d_%du.fits", 
+                            reduce_det, i+1, j+1) ;
+                    cpl_table_save(extract_1d[2*j], NULL, NULL,
+                            out_file, CPL_IO_CREATE) ;
+                    cpl_free(out_file) ; 
+                    out_file = cpl_sprintf(
+                            "debug_ext_trace_det%d_group%d_%du.fits", 
+                            reduce_det, i+1, j+1) ;
+                    cpl_table_save(trace_wave_loc, NULL, NULL,
+                            out_file, CPL_IO_CREATE) ;
+                    cpl_free(out_file) ; 
+                }
             }
             cpl_table_delete(trace_wave_loc) ;
             cpl_msg_indent_less() ;
@@ -784,6 +801,22 @@ static int cr2res_obs_pol_reduce_one(
             } else {
                 cpl_table_delete(slit_func) ;
                 hdrl_image_delete(model_master) ;
+
+                /* Save the table and the trace for debug */
+                if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+                    out_file = cpl_sprintf(
+                            "debug_ext_spec_det%d_group%d_%dd.fits", 
+                            reduce_det, i+1, j+1) ;
+                    cpl_table_save(extract_1d[2*j+1], NULL, NULL,
+                            out_file, CPL_IO_CREATE) ;
+                    cpl_free(out_file) ; 
+                    out_file = cpl_sprintf(
+                            "debug_ext_trace_det%d_group%d_%dd.fits", 
+                            reduce_det, i+1, j+1) ;
+                    cpl_table_save(trace_wave_loc, NULL, NULL,
+                            out_file, CPL_IO_CREATE) ;
+                    cpl_free(out_file) ; 
+                }
             }
             cpl_table_delete(trace_wave_loc) ;
             cpl_msg_indent_less() ;
