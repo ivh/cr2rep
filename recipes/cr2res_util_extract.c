@@ -478,6 +478,7 @@ static int cr2res_util_extract(
         }
         hdrl_image_delete(science_hdrl) ;
         cpl_table_delete(trace_table) ;
+        cpl_msg_indent_less() ;
     }
     cpl_array_delete(slit_frac) ;
 
