@@ -1626,7 +1626,6 @@ static cpl_mask * cr2res_trace_signal_detect(
     cpl_matrix_delete(kernel_x);
     cpl_matrix_delete(kernel_y);
     
-    /* The pixels we want are the ones with values below -thresh */
     cpl_image_subtract(sm_y_image, sm_x_image);
     cpl_image_delete(sm_x_image) ;
 
@@ -1635,6 +1634,7 @@ static cpl_mask * cr2res_trace_signal_detect(
                 CPL_IO_CREATE);
     }
 
+    /* The pixels we want are the ones with values below -thresh */
     mask = cpl_mask_threshold_image_create(sm_y_image,-DBL_MAX,-thresh);
     cpl_image_delete(sm_y_image) ;
 
