@@ -218,6 +218,7 @@ static int cr2res_util_genlines(
     int                     display ;
     cpl_frame           *   cur_frame ;
     cpl_bivector        *   bivec ;
+    cpl_bivector        *   bivec_sorted ;
     double              *   pbivec_x ;
     double              *   pbivec_y ;
     cpl_bivector        *   bivec_fill ;
@@ -250,6 +251,17 @@ static int cr2res_util_genlines(
 
     /* Use wl_factor */
     cpl_vector_multiply_scalar(cpl_bivector_get_x(bivec), wl_fac) ;
+
+    /* Sort if needed */
+    int sort = 1 ;
+    if (sort) {
+        bivec_sorted = cpl_bivector_duplicate(bivec) ;
+        cpl_bivector_sort(bivec_sorted, bivec, CPL_SORT_ASCENDING,
+                CPL_SORT_BY_X) ;
+        cpl_bivector_delete(bivec) ;
+        bivec = bivec_sorted ;
+        bivec_sorted = NULL;
+    }
 
     /* Display if requested */
     if (display) {
