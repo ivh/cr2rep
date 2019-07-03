@@ -1003,13 +1003,16 @@ static cpl_bivector * cr2res_wave_gen_lines_spectrum(
     /* Load the lines */
     lines = cr2res_io_load_EMISSION_LINES(catalog) ;
 
+    cpl_bivector_dump(lines, stdout); // TODO: Remove this dump
+
     /* Extract the needed spectrum */
     wl_min = cpl_polynomial_eval_1d(wavesol_init, 1, NULL);
     wl_max = cpl_polynomial_eval_1d(wavesol_init, CR2RES_DETECTOR_SIZE, NULL);
     if ((lines_sub = irplib_wlxcorr_cat_extract(lines, wl_min-wl_error,
             wl_max+wl_error)) == NULL) {
                 cpl_bivector_delete(lines) ;
-                cpl_msg_warning(__func__, "Cannot find lines") ;
+                cpl_msg_warning(__func__, "Cannot find lines  in [%.2f %.2f]",
+                    wl_min-wl_error,  wl_max+wl_error) ;
                 return NULL;
             };
 

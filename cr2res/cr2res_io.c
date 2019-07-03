@@ -396,8 +396,10 @@ cpl_bivector * cr2res_io_load_EMISSION_LINES(
     if (filename == NULL) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_PROTYPE_CATALOG) != 1)
+    if (cr2res_io_check_pro_type(filename, CR2RES_PROTYPE_CATALOG) != 1) {
+        cpl_msg_info(__func__, "File check failed for %s", filename);
         return NULL ;
+    }
 
     /* Initialise */
     log_flag = 0 ;
