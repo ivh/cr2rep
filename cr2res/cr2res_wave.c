@@ -529,7 +529,7 @@ cpl_polynomial * cr2res_wave_xcorr(
 
     /* Pass #1 */
     degree_loc = 2 ;
-    nsamples = 100 ;
+    nsamples = 30 ;
     wl_error_nm = wl_error ;
     sol_guess = wavesol_init ;
 
@@ -1002,8 +1002,6 @@ static cpl_bivector * cr2res_wave_gen_lines_spectrum(
 
     /* Load the lines */
     lines = cr2res_io_load_EMISSION_LINES(catalog) ;
-
-    cpl_bivector_dump(lines, stdout); // TODO: Remove this dump
 
     /* Extract the needed spectrum */
     wl_min = cpl_polynomial_eval_1d(wavesol_init, 1, NULL);

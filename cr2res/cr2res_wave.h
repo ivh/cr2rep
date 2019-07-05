@@ -33,7 +33,7 @@
  -----------------------------------------------------------------------------*/
 
 #define CR2RES_WAVELENGTH_ERROR_DEFAULT     0.5
-#define CR2RES_WAVELENGTH_MIN_FIT_PIX       30
+#define CR2RES_WAVELENGTH_MIN_FIT_PIX       20
 
 typedef enum {
     CR2RES_XCORR,
