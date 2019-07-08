@@ -61,9 +61,28 @@ static int cr2res_util_trace(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_util_trace_description[] =
-"TODO : Descripe here the recipe in / out / params / basic algo\n"
-"science.fits " CR2RES_COMMAND_LINE "\n"
-" The recipe produces the following products:\n"
+
+"CRIRES+ traces detection utility\n"
+"This utility detects the traces, fits polynomials on their edges (Upper\n"
+"and Lower) and in their centers (All), and stores these informations in \n"
+"the TRACE_WAVE file.\n"
+"Each trace is uniquely identified by its Order/TraceNb values.\n"
+"The Order values refer to the keywords indices (e.g. HIERARCH ESO INS\n"
+"WLEN CENY4) in the product headers.\n"
+"The TraceNb starts with 1, and identifies traces within the same order.\n"
+"The additional columns :\n"
+CR2RES_COL_WAVELENGTH"\n"
+CR2RES_COL_WAVELENGTH_ERROR"\n"
+CR2RES_COL_SLIT_CURV_A"\n"
+CR2RES_COL_SLIT_CURV_B"\n"
+CR2RES_COL_SLIT_CURV_C"\n"
+CR2RES_COL_SLIT_FRACTION"\n"
+"are filled with default values.\n"
+"\n"
+"The files listed in the Set Of Frames (sof-file) must be tagged:\n"
+"traces.fits " CR2RES_COMMAND_LINE "\n"
+"The recipe produces the following products:\n"
+"   input_tracewave.fits " CR2RES_UTIL_TRACE_WAVE_PROCATG"\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
