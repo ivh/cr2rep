@@ -129,4 +129,9 @@ cpl_array * cr2res_trace_slit_fraction_create(
         cr2res_decker   decker_position,
         int             up_or_down) ;
 
+cpl_table * cr2res_trace_split(
+        cpl_table   *   trace_wave,
+        int             order,
+        int             nb_subtraces) ;
+
 #endif

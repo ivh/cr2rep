@@ -199,8 +199,8 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.split_traces",
-            CPL_TYPE_BOOL, "Split the traces when only 1 per order",
-            "cr2res.cr2res_util_trace", FALSE);
+            CPL_TYPE_INT, "Split the full slit traces",
+            "cr2res.cr2res_util_trace", 0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "split_traces");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -275,6 +275,7 @@ static int cr2res_util_trace(
     hdrl_image          *   flat_ima ;
     cpl_image           *   debug_ima ;
     int                     det_nr ;
+    cpl_table           *   traces_tmp ;
     cpl_table           *   traces[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
 
@@ -296,7 +297,7 @@ static int cr2res_util_trace(
     opening = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.split_traces");
-    split_traces = cpl_parameter_get_bool(param);
+    split_traces = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -372,12 +373,26 @@ static int cr2res_util_trace(
             continue ;
         }
 
-        /* Only Split the traces when the trace table is complete */
+        /* Split the traces when required */
         if (split_traces) {
-            /* TODO */
-            cpl_msg_warning(__func__,
-                    "The traces splitting is not yet implemented");
-            /* Implement and Call cr2res_trace_split_traces() */
+            cpl_msg_info(__func__, "Split the full slit traces in %d traces", 
+                    split_traces);
+            /* Split the full slit traces */
+            if ((traces_tmp = cr2res_trace_split(traces[det_nr-1], -1, 
+                            split_traces)) == NULL) {
+                cpl_msg_warning(__func__, 
+                        "Failed splitting the traces - skip detector") ;
+                cpl_error_reset() ;
+                hdrl_image_delete(flat_ima) ;
+                cpl_table_delete(traces[det_nr-1]) ;
+                traces[det_nr-1] = NULL ;
+                cpl_msg_indent_less() ;
+                continue ;
+            } else {
+                cpl_table_delete(traces[det_nr-1]) ;
+                traces[det_nr-1] = traces_tmp ;
+                traces_tmp = NULL ;
+            } 
         }
 
         /* Debug Image */
@@ -385,8 +400,12 @@ static int cr2res_util_trace(
             debug_ima = cr2res_trace_gen_image(traces[det_nr-1],
                     hdrl_image_get_size_x(flat_ima),
                     hdrl_image_get_size_y(flat_ima)) ;
-            cpl_image_save(debug_ima, "debug_trace_image.fits",
-                    CPL_BPP_IEEE_DOUBLE, NULL, CPL_IO_CREATE) ;
+            out_file = cpl_sprintf("debug_%s_trace_map_%d.fits", 
+                    cr2res_get_base_name(cr2res_get_root_name(flat_file)),
+                    det_nr);
+            cpl_image_save(debug_ima, out_file, CPL_BPP_IEEE_DOUBLE, NULL, 
+                    CPL_IO_CREATE) ;
+            cpl_free(out_file);
             cpl_image_delete(debug_ima) ;
         }
         hdrl_image_delete(flat_ima) ;
