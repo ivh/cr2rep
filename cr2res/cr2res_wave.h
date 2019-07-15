@@ -96,6 +96,10 @@ cpl_polynomial * cr2res_wave_etalon(
         int                 degree,
         cpl_array       **  wavelength_error) ;
 
+cpl_polynomial * cr2res_wave_estimate_compute(
+        double          wmin,
+        double          wmax) ;
+
 cpl_array * cr2res_wave_get_estimate(
         const char  *   filename,
         int             detector,

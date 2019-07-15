@@ -47,8 +47,6 @@ typedef enum {
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-cpl_vector * cr2res_read_dits(const cpl_frameset * in) ;
-cr2res_decker * cr2res_decker_read_positions(const cpl_frameset * in) ;
 char * cr2res_decker_print_position(cr2res_decker dpos) ;
 
 int cr2res_format_setting(char * setting_id) ;
@@ -78,17 +76,6 @@ char * cr2res_get_root_name(const char * filename) ;
 
 const char * cr2res_extract_filename(const cpl_frameset *, const char *) ;
 cpl_frameset * cr2res_extract_frameset(const cpl_frameset *, const char *) ;
-cpl_frameset * cr2res_extract_decker_frameset(
-        const cpl_frameset  *   in,
-        const char          *   tag,
-        cr2res_decker          	decker) ;
-
-cpl_polynomial * cr2res_wlestimate_compute(
-        double          wmin,
-        double          wmax) ;
-
-int cr2res_convert_order_to_idx(int order) ;
-int cr2res_convert_idx_to_order(int order_idx) ;
 
 cpl_polynomial * cr2res_convert_array_to_poly(const cpl_array * arr) ;
 cpl_array * cr2res_convert_poly_to_array(
@@ -100,13 +87,6 @@ cpl_error_code cr2res_detector_shotnoise_model(
         const double        gain,
         const double        ron,
         cpl_image       **  ima_errs) ;
-
-cpl_table * cr2res_demod(hdrl_image *sum1, hdrl_image *sum2, cpl_table *trace_wave);
-
-cpl_polynomial * cr2res_fit_noise(cpl_image *img, cpl_table *trace_wave, cpl_size order_x, cpl_size order_y);
-
-int cr2res_slit_pos(cpl_table *tw_decker1, cpl_table *tw_decker2, cpl_polynomial **coef_slit, cpl_polynomial **coef_wave);
-int cr2res_slit_pos_image(cpl_table *tw_decker1, cpl_table *tw_decker2, cpl_image *slitpos, cpl_image *wavelength);
 
 const char * cr2res_get_license(void) ;
 

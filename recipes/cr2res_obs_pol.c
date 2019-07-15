@@ -606,13 +606,13 @@ static int cr2res_obs_pol_reduce_one(
     }
 
     /* Load the DITs if necessary */
-    if (master_dark_frame != NULL)  dits = cr2res_read_dits(rawframes) ;
+    if (master_dark_frame != NULL)  dits = cr2res_io_read_dits(rawframes) ;
     else                            dits = NULL ;
     if (cpl_msg_get_level() == CPL_MSG_DEBUG && dits != NULL) 
         cpl_vector_dump(dits, stdout) ;
 
     /* Get the decker positions */
-    if ((decker_positions = cr2res_decker_read_positions(rawframes)) == NULL) {
+    if ((decker_positions = cr2res_io_read_decker_positions(rawframes))==NULL) {
         cpl_msg_error(__func__, "Cannot read the Decker positions") ;
         if (dits != NULL) cpl_vector_delete(dits) ;
         return -1 ;

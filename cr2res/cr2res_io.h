@@ -33,6 +33,18 @@
                                    Functions prototypes
  -----------------------------------------------------------------------------*/
 
+cpl_vector * cr2res_io_read_dits(const cpl_frameset * in) ;
+
+cr2res_decker * cr2res_io_read_decker_positions(const cpl_frameset * in) ;
+
+cpl_frameset * cr2res_io_extract_decker_frameset(
+        const cpl_frameset  *   in,
+        const char          *   tag,
+        cr2res_decker           decker) ;
+
+int cr2res_io_convert_order_to_idx(int order) ;
+int cr2res_io_convert_idx_to_order(int order_idx) ;
+
 char * cr2res_io_create_extname(
         int             detector,
         int             data) ;

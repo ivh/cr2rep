@@ -716,6 +716,45 @@ cpl_polynomial * cr2res_wave_etalon(
 
     return result;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Compute the polynomial from boundaries
+  @param    wmin    First pixel wavelength
+  @param    wmax    Last pixel wavelength
+  @return   the polynomial or NULL in error case
+
+  The returned polynomial must be deallocated with cpl_polynomial_delete()
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_wave_estimate_compute(
+        double          wmin,
+        double          wmax)
+{
+    cpl_polynomial      *   poly ;
+    cpl_size                power ;
+    double                  a, b ;
+    int                     nbpix = CR2RES_DETECTOR_SIZE ;
+
+    /* Test entries */
+    if (wmin <= 0.0) return NULL ;
+    if (wmax <= 0.0) return NULL ;
+    if (wmax <= wmin) return NULL ;
+
+    /* Compute polynomial coeffs */
+    a = (wmax - wmin) / (nbpix-1) ;
+    b = wmin - a ;
+
+    /* Create polynomial */
+    poly = cpl_polynomial_new(1) ;
+    power = 0 ;
+    cpl_polynomial_set_coeff(poly, &power, b) ;
+    power = 1 ;
+    cpl_polynomial_set_coeff(poly, &power, a) ;
+
+    return poly ;
+}
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Compute the wavelength polynomial from boundaries

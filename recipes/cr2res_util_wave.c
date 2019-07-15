@@ -511,7 +511,7 @@ static int cr2res_util_wave(
 
             /* Get the wavelength guess */
             if (wstart>0.0 && wend>0.0) {
-                wavesol_init[i] = cr2res_wlestimate_compute(wstart, wend) ;
+                wavesol_init[i] = cr2res_wave_estimate_compute(wstart, wend) ;
             } else {
                 if ((wavesol_init[i]=cr2res_get_trace_wave_poly(
                                 out_trace_wave[det_nr-1], CR2RES_COL_WAVELENGTH,

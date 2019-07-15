@@ -242,7 +242,7 @@ static int cr2res_util_normflat(
     /* Loop on the decker positions */
     for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
         /* Get the Frames for the current decker position */
-        rawframes = cr2res_extract_decker_frameset(frameset,
+        rawframes = cr2res_io_extract_decker_frameset(frameset,
                 CR2RES_FLAT_RAW, decker_values[i]) ;
         if (rawframes == NULL) continue ;
         cpl_msg_info(__func__, "Reduce %s Frames", decker_desc[i]) ;

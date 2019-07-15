@@ -34,6 +34,7 @@
 #include <cr2res_dfs.h>
 #include <cr2res_trace.h>
 #include <cr2res_wave.h>
+#include <cr2res_io.h>
 
 
 /*-----------------------------------------------------------------------------
@@ -53,7 +54,7 @@ static void test_cr2res_extract_frameset(void);
 static void test_cr2res_wlestimate_compute(void);
 static void test_cr2res_get_trace_wave_poly(void);
 static void test_cr2res_get_trace_table_index(void);
-static void test_cr2res_convert_order_to_idx(void);
+static void test_cr2res_io_convert_order_to_idx(void);
 static void test_cr2res_convert_idx_to_order(void);
 static void test_cr2res_convert_array_to_poly(void);
 static void test_cr2res_convert_poly_to_array(void);
@@ -598,23 +599,23 @@ static void test_cr2res_wlestimate_compute(void)
   @brief    Test different edge cases of the conversion
  */
 /*----------------------------------------------------------------------------*/
-static void test_cr2res_convert_order_to_idx(void)
+static void test_cr2res_io_convert_order_to_idx(void)
 {
     //define input
     int order;
 
     //run test
     order = 50;
-    cpl_test_eq(order, cr2res_convert_order_to_idx(order));
+    cpl_test_eq(order, cr2res_io_convert_order_to_idx(order));
 
     order = -49;
-    cpl_test_eq(order + 100, cr2res_convert_order_to_idx(order));
+    cpl_test_eq(order + 100, cr2res_io_convert_order_to_idx(order));
 
     order = 51;
-    cpl_test_eq(-1, cr2res_convert_order_to_idx(order));
+    cpl_test_eq(-1, cr2res_io_convert_order_to_idx(order));
 
     order = -50;
-    cpl_test_eq(-1, cr2res_convert_order_to_idx(order));
+    cpl_test_eq(-1, cr2res_io_convert_order_to_idx(order));
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1024,7 +1025,7 @@ int main(void)
     test_cr2res_get_trace_table_index();
     test_cr2res_get_trace_wave_poly();
     test_cr2res_wlestimate_compute();
-    test_cr2res_convert_order_to_idx();
+    test_cr2res_io_convert_order_to_idx();
     test_cr2res_convert_idx_to_order();
     test_cr2res_convert_array_to_poly();
     test_cr2res_convert_poly_to_array();

@@ -575,7 +575,7 @@ static int cr2res_cal_detlin_reduce(
     }
 
     /* Load the DITs */
-    if ((dits = cr2res_read_dits(rawframes)) == NULL) {
+    if ((dits = cr2res_io_read_dits(rawframes)) == NULL) {
         hdrl_imagelist_delete(imlist) ;
         cpl_propertylist_delete(plist);
         cpl_msg_error(__func__, "Failed to Load the DIT values") ;

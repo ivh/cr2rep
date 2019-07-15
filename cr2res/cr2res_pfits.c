@@ -29,6 +29,7 @@
 #include <math.h>
 #include "cr2res_pfits.h"
 #include "cr2res_utils.h"
+#include "cr2res_io.h"
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -160,7 +161,7 @@ double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order)
     if (plist == NULL) return -1.0 ;
 
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return -1.0 ;
 
     /* Create key name */
     key_name = cpl_sprintf("ESO INS WLEN MIN%d", order_loc) ;
@@ -190,7 +191,7 @@ double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order)
     if (plist == NULL) return -1.0 ;
 
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return -1.0 ;
 
     /* Create key name */
     key_name = cpl_sprintf("ESO INS WLEN MAX%d", order_loc) ;
@@ -220,7 +221,7 @@ double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order)
     if (plist == NULL) return -1.0 ;
 
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return -1.0 ;
 
     /* Create key name */
     key_name = cpl_sprintf("ESO INS WLEN BEGIN%d", order_loc) ;
@@ -250,7 +251,7 @@ double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order)
     if (plist == NULL) return -1.0 ;
 
     /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return -1.0 ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return -1.0 ;
 
     /* Create key name */
     key_name = cpl_sprintf("ESO INS WLEN END%d", order_loc) ;
@@ -340,7 +341,7 @@ int cr2res_pfits_get_order(
 
     for (i=min_order ; i <= max_order ; i++) {
 
-        order_idx = cr2res_convert_order_to_idx(i);
+        order_idx = cr2res_io_convert_order_to_idx(i);
         key_name = cpl_sprintf("ESO INS WLEN CENY%d", order_idx) ;
         ycen = cpl_propertylist_get_double(plist, key_name);
         cpl_free(key_name) ;

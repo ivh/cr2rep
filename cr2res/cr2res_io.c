@@ -110,6 +110,162 @@ static int cr2res_io_save_one_table(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get the DITS from a frame set
+  @param    set     Input frame set
+  @return   the DITS or NULL in error case
+ */
+/*----------------------------------------------------------------------------*/
+cpl_vector * cr2res_io_read_dits(const cpl_frameset * in)
+{
+    cpl_vector          *   dits ;
+    cpl_propertylist    *   plist ;
+    cpl_size                i ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    /* Allocate the vector */
+    dits = cpl_vector_new(cpl_frameset_get_size(in)) ;
+
+    /* Loop on the frames */
+    for (i=0 ; i< cpl_vector_get_size(dits) ; i++) {
+        plist = cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position_const(in, i)), 0) ;
+        cpl_vector_set(dits, i, cr2res_pfits_get_dit(plist)) ;
+        cpl_propertylist_delete(plist) ;
+    }
+
+    return dits ;
+}
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the decker positions from a frame set
+  @param    set     Input frame set
+  @return   the DECKER positions or NULL in error case
+ */
+/*----------------------------------------------------------------------------*/
+cr2res_decker * cr2res_io_read_decker_positions(const cpl_frameset * in)
+{
+    cr2res_decker       *   out ;
+    cpl_propertylist    *   plist ;
+    const char          *   fname ;
+    cpl_size                nframes, i ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    /* Initialise */
+    nframes = cpl_frameset_get_size(in) ;
+
+    /* Allocate the vector */
+    out = cpl_malloc(nframes * sizeof(cr2res_decker)) ;
+
+    /* Loop on the frames */
+    for (i=0 ; i< nframes ; i++) {
+        plist = cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position_const(in, i)), 0) ;
+        out[i] = cr2res_pfits_get_decker_position(plist) ;
+        cpl_propertylist_delete(plist) ;
+    }
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+   @brief   Extract the frames with the given tag and Decker position
+   @param   in      A non-empty frameset
+   @param   tag     The tag of the requested frames
+   @param   decker  CR2RES_DECKER_NONE,CR2RES_DECKER_1_3 or CR2RES_DECKER_2_4
+   @return  The newly created frameset or NULL on error
+
+   The returned frameset must be de allocated with cpl_frameset_delete()
+ */
+/*----------------------------------------------------------------------------*/
+cpl_frameset * cr2res_io_extract_decker_frameset(
+        const cpl_frameset  *   in,
+        const char          *   tag,
+        cr2res_decker           decker)
+{
+    cpl_frameset        *   out ;
+    const cpl_frame     *   cur_frame ;
+    cpl_frame           *   loc_frame ;
+    int                     nbframes;
+    cpl_propertylist    *   plist ;
+    int                     i ;
+
+    /* Test entries */
+    if (in == NULL) return NULL ;
+    if (tag == NULL) return NULL ;
+    if (decker != CR2RES_DECKER_NONE && decker != CR2RES_DECKER_1_3 &&
+            decker != CR2RES_DECKER_2_4)
+        return NULL ;
+
+    /* Initialise */
+    nbframes = cpl_frameset_get_size(in) ;
+
+    /* Count the frames with the tag */
+    if ((cpl_frameset_count_tags(in, tag)) == 0) return NULL ;
+
+    /* Create the output frameset */
+    out = cpl_frameset_new() ;
+
+    /* Loop on the requested frames and store them in out */
+    for (i=0 ; i<nbframes ; i++) {
+        cur_frame = cpl_frameset_get_position_const(in, i) ;
+        if (!strcmp(cpl_frame_get_tag(cur_frame), tag)) {
+            /* Get the propertylist */
+            plist = cpl_propertylist_load(cpl_frame_get_filename(cur_frame), 0);
+            if (cr2res_pfits_get_decker_position(plist) == decker) {
+                loc_frame = cpl_frame_duplicate(cur_frame) ;
+                cpl_frameset_insert(out, loc_frame) ;
+            }
+            cpl_propertylist_delete(plist) ;
+        }
+    }
+    /* No matching frame found */
+    if (cpl_frameset_get_size(out) == 0){
+        cpl_frameset_delete(out) ;
+        return NULL ;
+    }
+    return out ;
+}
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Convert the order to the keyword index
+  @param    order   Order (-49 to 50)
+  @return   the order index or a negative value in error case
+            (00 to 99)
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_convert_order_to_idx(int order)
+{
+    /* Check entries */
+    if (order < -49 || order > 50) return -1 ;
+
+    /* Conversion order <-> keyword Index */
+    if (order < 0)  return order + 100 ;
+    else            return order ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Convert the keyword index to the order
+  @param    order_idx   the order index (00 to 99)
+  @return   Order (-50 to 50)
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_convert_idx_to_order(int order_idx)
+{
+    /* Check entries */
+    if (order_idx < 0 || order_idx > 99) return -1 ;
+
+    /* Conversion order <-> keyword Index */
+    if (order_idx > 50) return order_idx - 100 ;
+    else                return order_idx ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Create Extname
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @param    data        1 for the data image, 0 for the error

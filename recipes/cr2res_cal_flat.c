@@ -499,7 +499,7 @@ static int cr2res_cal_flat(
             }
 
             /* Get the Frames for the current decker position */
-            raw_one_setting_decker = cr2res_extract_decker_frameset(
+            raw_one_setting_decker = cr2res_io_extract_decker_frameset(
                     raw_one_setting, CR2RES_FLAT_RAW, decker_values[i]) ;
             if (raw_one_setting_decker == NULL) {
                 cpl_msg_info(__func__, "No files for decker: %s",
@@ -777,7 +777,7 @@ static int cr2res_cal_flat_reduce(
     ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
 
     /* Get the DIT for the Dark correction */
-    if ((dits = cr2res_read_dits(rawframes)) == NULL) {
+    if ((dits = cr2res_io_read_dits(rawframes)) == NULL) {
         cpl_msg_error(__func__, "Failed to read the dits") ;
         return -1 ;
     }

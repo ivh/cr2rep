@@ -32,6 +32,7 @@
 #include <cpl.h>
 
 #include "cr2res_dfs.h"
+#include "cr2res_io.h"
 #include "cr2res_utils.h"
 
 /*----------------------------------------------------------------------------*/
@@ -111,7 +112,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
 char * cr2res_dfs_SLIT_CURV_colname(int order, int trace)
 {
     int         order_loc ;
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
     return cpl_sprintf("%02d_%02d_%s", order_loc, trace, 
             CR2RES_COL_SLIT_CURV_SUFFIX);
 }
@@ -127,7 +128,7 @@ char * cr2res_dfs_SLIT_CURV_colname(int order, int trace)
 char * cr2res_dfs_POL_WAVELENGTH_colname(int order)
 {
     int         order_loc ;
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
     return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_WL_SUFFIX) ;
 }
 
@@ -142,7 +143,7 @@ char * cr2res_dfs_POL_WAVELENGTH_colname(int order)
 char * cr2res_dfs_POL_STOKES_colname(int order)
 {
     int         order_loc ;
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
     return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_POL_STOKES_SUFFIX) ;
 }
 
@@ -157,7 +158,7 @@ char * cr2res_dfs_POL_STOKES_colname(int order)
 char * cr2res_dfs_POL_STOKES_ERROR_colname(int order)
 {
     int         order_loc ;
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
     return cpl_sprintf("%02d_%s", order_loc, 
             CR2RES_COL_POL_STOKES_ERROR_SUFFIX) ;
 }
@@ -173,7 +174,7 @@ char * cr2res_dfs_POL_STOKES_ERROR_colname(int order)
 char * cr2res_dfs_POL_NULL_colname(int order)
 {
     int         order_loc ;
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
     return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_POL_NULL_SUFFIX) ;
 }
 
@@ -188,7 +189,7 @@ char * cr2res_dfs_POL_NULL_colname(int order)
 char * cr2res_dfs_POL_NULL_ERROR_colname(int order)
 {
     int         order_loc ;
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
     return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_POL_NULL_ERROR_SUFFIX) ;
 }
 
@@ -203,7 +204,7 @@ char * cr2res_dfs_POL_NULL_ERROR_colname(int order)
 char * cr2res_dfs_POL_INTENS_colname(int order)
 {
     int         order_loc ;
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
     return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_POL_INTENS_SUFFIX) ;
 }
 
@@ -218,7 +219,7 @@ char * cr2res_dfs_POL_INTENS_colname(int order)
 char * cr2res_dfs_POL_INTENS_ERROR_colname(int order)
 {
     int         order_loc ;
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
     return cpl_sprintf("%02d_%s", order_loc,
             CR2RES_COL_POL_INTENS_ERROR_SUFFIX) ;
 }
@@ -235,7 +236,7 @@ char * cr2res_dfs_POL_INTENS_ERROR_colname(int order)
 char * cr2res_dfs_SPEC_colname(int order, int trace)
 {
     int         order_loc ;
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
     return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
             CR2RES_COL_SPEC_SUFFIX);
 }
@@ -252,7 +253,7 @@ char * cr2res_dfs_SPEC_colname(int order, int trace)
 char * cr2res_dfs_WAVELENGTH_colname(int order, int trace)
 {
     int         order_loc ;
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
     return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
             CR2RES_COL_WL_SUFFIX);
 }
@@ -269,7 +270,7 @@ char * cr2res_dfs_WAVELENGTH_colname(int order, int trace)
 char * cr2res_dfs_SPEC_ERR_colname(int order, int trace)
 {
     int         order_loc ;
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
     return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
             CR2RES_COL_ERROR_SUFFIX);
 }
@@ -286,7 +287,7 @@ char * cr2res_dfs_SPEC_ERR_colname(int order, int trace)
 char * cr2res_dfs_SLIT_FUNC_colname(int order, int trace)
 {
     int         order_loc ;
-    if ((order_loc = cr2res_convert_order_to_idx(order)) < 0) return NULL ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
     return cpl_sprintf("%02d_%02d_%s", order_loc,trace,
             CR2RES_COL_SLIT_FUNC_SUFFIX);
 }
