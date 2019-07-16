@@ -41,8 +41,8 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static void test_cr2res_vector_get_rest(void);
 static void test_cr2res_vector_get_int(void);
+static void test_cr2res_vector_get_rest(void);
 static void test_cr2res_image_cut_rectify(void);
 static void test_cr2res_image_insert_rect(void);
 static void test_cr2res_polynomial_eval_vector(void);
@@ -51,15 +51,9 @@ static void test_cr2res_get_base_name(void);
 static void test_cr2res_get_root_name(void);
 static void test_cr2res_extract_filename(void);
 static void test_cr2res_extract_frameset(void);
-static void test_cr2res_wlestimate_compute(void);
-static void test_cr2res_get_trace_wave_poly(void);
-static void test_cr2res_get_trace_table_index(void);
-static void test_cr2res_io_convert_order_to_idx(void);
-static void test_cr2res_convert_idx_to_order(void);
 static void test_cr2res_convert_array_to_poly(void);
 static void test_cr2res_convert_poly_to_array(void);
 static void test_cr2res_detector_shotnoise_model(void);
-static void test_cr2res_demod(void);
 static void test_cr2res_fit_noise(void);
 static void test_cr2res_slit_pos(void);
 static void test_cr2res_slit_pos_img(void);
@@ -74,13 +68,6 @@ static void test_cr2res_get_license(void);
 
 /**@{*/
 
-/*----------------------------------------------------------------------------*/
-/**
-  @brief
-  @param
-  @return
- */
-/*----------------------------------------------------------------------------*/
 static void test_cr2res_vector_get_int(void)
 {
     int i;
@@ -109,14 +96,6 @@ static void test_cr2res_vector_get_int(void)
 
     return;
 }
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief
-  @param
-  @return
- */
-/*----------------------------------------------------------------------------*/
 static void test_cr2res_vector_get_rest(void)
 {
     int i;
@@ -145,14 +124,6 @@ static void test_cr2res_vector_get_rest(void)
 
     return;
 }
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief
-  @param
-  @return
- */
-/*----------------------------------------------------------------------------*/
 static void test_cr2res_image_cut_rectify(void)
 {
     cpl_image *res;
@@ -187,14 +158,6 @@ static void test_cr2res_image_cut_rectify(void)
 
     return;
 }
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief
-  @param
-  @return
- */
-/*----------------------------------------------------------------------------*/
 static void test_cr2res_image_insert_rect(void)
 {
     int recdata[] = {1, 2, 3, 2, 1,
@@ -244,14 +207,6 @@ static void test_cr2res_image_insert_rect(void)
 
     return;
 }
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief
-  @param
-  @return
- */
-/*----------------------------------------------------------------------------*/
 static void test_cr2res_polynomial_eval_vector(void)
 {
     int i;
@@ -469,179 +424,6 @@ static void test_cr2res_extract_frameset(void)
     cpl_frameset_delete(res);
     cpl_frameset_delete(in);
 }
-
-/*----------------------------------------------------------------------------*/
-/**
-   @brief   Create a table and check if the same index is recovered
- */
-/*----------------------------------------------------------------------------*/
-static void test_cr2res_get_trace_table_index(void)
-{
-    //define input
-    int n = 10;
-    int data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    int data2[] = {1, 1, 1, 1, 1, 1, 2, 1, 1, 1};
-    cpl_table *trace_wave = cpl_table_new(n);
-    cpl_table_wrap_int(trace_wave, data, CR2RES_COL_ORDER); //what table do we need ?
-    cpl_table_wrap_int(trace_wave, data2, CR2RES_COL_TRACENB);
-
-    int order = 5;
-    int trace_nb = 1;
-    cpl_size res;
-
-    //run test
-    cpl_test_eq(-1, cr2res_get_trace_table_index(NULL, order, trace_nb));
-    cpl_test_eq(-1, cr2res_get_trace_table_index(trace_wave, -1, trace_nb));
-    cpl_test_eq(-1, cr2res_get_trace_table_index(trace_wave, order, -50));
-
-    cpl_test(res = cr2res_get_trace_table_index(trace_wave, order, trace_nb));
-    //test output
-    cpl_test_eq(res, 4);
-
-    order = 7;
-    // trace would be 2, but we just look for 1
-    //run test
-    cpl_test(res = cr2res_get_trace_table_index(trace_wave, order, trace_nb));
-    //test output
-    cpl_test_eq(res, -1);
-
-    order = -10;
-    // order does not exist
-    //run test
-    cpl_test(res = cr2res_get_trace_table_index(trace_wave, order, trace_nb));
-    //test output
-    cpl_test_eq(res, -1);
-
-    //deallocate memory
-    cpl_table_unwrap(trace_wave, CR2RES_COL_ORDER);
-    cpl_table_unwrap(trace_wave, CR2RES_COL_TRACENB);
-    cpl_table_delete(trace_wave);
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-   @brief   Create a table and check if the same polynomial is recovered
- */
-/*----------------------------------------------------------------------------*/
-static void test_cr2res_get_trace_wave_poly(void)
-{
-    cpl_table *trace_wave = cpl_table_new(1);
-    cpl_table_new_column_array(trace_wave, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 3);
-    cpl_table_new_column(trace_wave, CR2RES_COL_ORDER, CPL_TYPE_INT);
-    cpl_table_new_column(trace_wave, CR2RES_COL_TRACENB, CPL_TYPE_INT);
-    cpl_table_set(trace_wave, CR2RES_COL_ORDER, 0, 1);
-    cpl_table_set(trace_wave, CR2RES_COL_TRACENB, 0, 1);
-    double pdata[] = {1.1, 2.2, 3.3};
-    cpl_array *parr = cpl_array_wrap_double(pdata, 3);
-    cpl_table_set_array(trace_wave, CR2RES_COL_WAVELENGTH, 0, parr);
-
-    //run test
-    cpl_polynomial *res_poly;
-    cpl_test_null(cr2res_get_trace_wave_poly(NULL, CR2RES_COL_WAVELENGTH, 1, 1));
-    cpl_test_null(cr2res_get_trace_wave_poly(trace_wave, "blub", 1, 1));
-    cpl_test_null(cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH, 20, 1));
-    cpl_test_null(cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH, 1, -90));
-
-    cpl_test(res_poly = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH, 1, 1));
-    //test output
-    cpl_size power = 0;
-    cpl_test_abs(1.1, cpl_polynomial_get_coeff(res_poly, &power), DBL_EPSILON);
-    power = 1;
-    cpl_test_abs(2.2, cpl_polynomial_get_coeff(res_poly, &power), DBL_EPSILON);
-    power = 2;
-    cpl_test_abs(3.3, cpl_polynomial_get_coeff(res_poly, &power), DBL_EPSILON);
-
-    cpl_array_unwrap(parr);
-    cpl_table_delete(trace_wave);
-    cpl_polynomial_delete(res_poly);
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Use a simple wavelength range to check the estimate, which is just a linear polynomial
- */
-/*----------------------------------------------------------------------------*/
-static void test_cr2res_wlestimate_compute(void)
-{
-    //define input
-    // these values return "simple" results
-    double wmin = 2000;
-    double wmax = 4047;
-    cpl_polynomial *res;
-
-    //run test
-    cpl_test_null(cr2res_wlestimate_compute(-1, 1));
-    cpl_test_null(cr2res_wlestimate_compute(5, -1));
-    cpl_test_null(cr2res_wlestimate_compute(5, 1));
-
-    cpl_test(res = cr2res_wlestimate_compute(wmin, wmax));
-    //test output
-    cpl_size power = 0;
-    cpl_test_abs(1999.0, cpl_polynomial_get_coeff(res, &power), DBL_EPSILON);
-    power = 1;
-    cpl_test_abs(1.0, cpl_polynomial_get_coeff(res, &power), DBL_EPSILON);
-
-    //deallocate memory
-    cpl_polynomial_delete(res);
-
-    // Test invalid wavelength ranges
-    wmin = 5000;
-    wmax = 4047;
-    cpl_test_null(cr2res_wlestimate_compute(wmin, wmax));
-
-    wmin = -10;
-    wmax = 0.11;
-    cpl_test_null(cr2res_wlestimate_compute(wmin, wmax));
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Test different edge cases of the conversion
- */
-/*----------------------------------------------------------------------------*/
-static void test_cr2res_io_convert_order_to_idx(void)
-{
-    //define input
-    int order;
-
-    //run test
-    order = 50;
-    cpl_test_eq(order, cr2res_io_convert_order_to_idx(order));
-
-    order = -49;
-    cpl_test_eq(order + 100, cr2res_io_convert_order_to_idx(order));
-
-    order = 51;
-    cpl_test_eq(-1, cr2res_io_convert_order_to_idx(order));
-
-    order = -50;
-    cpl_test_eq(-1, cr2res_io_convert_order_to_idx(order));
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Test different edge cases of the conversion
- */
-/*----------------------------------------------------------------------------*/
-static void test_cr2res_convert_idx_to_order(void)
-{
-    //define input
-    int order;
-
-    //run test
-    order = 0;
-    cpl_test_eq(order, cr2res_convert_idx_to_order(order));
-
-    order = 51;
-    cpl_test_eq(order - 100, cr2res_convert_idx_to_order(order));
-
-    order = -1;
-    cpl_test_eq(-1, cr2res_convert_idx_to_order(order));
-
-    order = 99;
-    cpl_test_eq(-1, cr2res_convert_idx_to_order(order));
-}
-
 /*----------------------------------------------------------------------------*/
 /**
    @brief   Check that the coefficients stay the same
@@ -794,50 +576,6 @@ static cpl_image *create_test_image()
 {
     cpl_image *img = cpl_image_load("cr2res_utils_test_image.fits", CPL_TYPE_INT, 0, 1);
     return img;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief Use two identical images (loaded from sample data) as input.
-         Check that Stokes X and N == 0, Stokes I == previous results.
- */
-/*----------------------------------------------------------------------------*/
-static void test_cr2res_demod(void)
-{
-    // Define all variables
-    cpl_table * trace_wave = create_test_table();
-    cpl_image * sum1 = create_test_image();
-    cpl_image * sum2 = create_test_image();
-    hdrl_image * sum1_hdrl = hdrl_image_create(sum1, NULL);
-    hdrl_image * sum2_hdrl = hdrl_image_create(sum2, NULL);
-    cpl_table * res;
-
-    // run test
-    cpl_test_null(cr2res_demod(NULL, sum2_hdrl, trace_wave));
-    cpl_test_null(cr2res_demod(sum1_hdrl, NULL, trace_wave));
-    cpl_test_null(cr2res_demod(sum1_hdrl, sum2_hdrl, NULL));
-
-    cpl_test(res = cr2res_demod(sum1_hdrl, sum2_hdrl, trace_wave));
-
-    // Check values
-    // Stokes X, and N should be 0, as both polarisations are the same picture
-    // Stokes I should be some value, depending on the point
-    cpl_test_abs(0., cpl_table_get_column_max(res, "POL_X_7"), DBL_EPSILON);
-    cpl_test_abs(0., cpl_table_get_column_max(res, "POL_N_7"), DBL_EPSILON);
-    // Stokes I mean value from previous run
-    cpl_test_abs(15919.8, cpl_table_get_column_mean(res, "POL_I_7"), 0.1);
-
-    // Save results for comparison
-    cpl_table_save(res, NULL, NULL, "./demod_table.fits", CPL_IO_CREATE);
-
-    // Delete cpl structures
-    cpl_table_delete(res);
-    cpl_table_delete(trace_wave);
-    cpl_image_delete(sum1);
-    cpl_image_delete(sum2);
-    hdrl_image_delete(sum1_hdrl);
-    hdrl_image_delete(sum2_hdrl);
-    return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1022,16 +760,10 @@ int main(void)
     test_cr2res_get_base_name();
     test_cr2res_get_root_name();
     test_cr2res_extract_frameset();
-    test_cr2res_get_trace_table_index();
-    test_cr2res_get_trace_wave_poly();
-    test_cr2res_wlestimate_compute();
-    test_cr2res_io_convert_order_to_idx();
-    test_cr2res_convert_idx_to_order();
     test_cr2res_convert_array_to_poly();
     test_cr2res_convert_poly_to_array();
     test_cr2res_detector_shotnoise_model();
     test_cr2res_get_license();
-    test_cr2res_demod();
     test_cr2res_fit_noise();
     test_cr2res_slit_pos();
     test_cr2res_slit_pos_img();
@@ -1040,3 +772,4 @@ int main(void)
 }
 
 /**@}*/
+

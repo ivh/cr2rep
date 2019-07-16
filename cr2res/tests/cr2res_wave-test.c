@@ -46,7 +46,7 @@ static void test_cr2res_wave_etalon(void);
 static void test_cr2res_wave_etalon_other(void);
 static void test_cr2res_wave_polys_1d_to_2d(void);
 static void test_cr2res_wave_poly_2d_to_1d(void);
-
+static void test_cr2res_wave_estimate_compute(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -585,6 +585,44 @@ static void test_cr2res_wave_poly_2d_to_1d()
     cpl_free(power);
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Use a simple wavelength range to check the estimate, which is just a linear polynomial
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_wave_estimate_compute(void)
+{
+    //define input
+    // these values return "simple" results
+    double wmin = 2000;
+    double wmax = 4047;
+    cpl_polynomial *res;
+
+    //run test
+    cpl_test_null(cr2res_wave_estimate_compute(-1, 1));
+    cpl_test_null(cr2res_wave_estimate_compute(5, -1));
+    cpl_test_null(cr2res_wave_estimate_compute(5, 1));
+
+    cpl_test(res = cr2res_wave_estimate_compute(wmin, wmax));
+    //test output
+    cpl_size power = 0;
+    cpl_test_abs(1999.0, cpl_polynomial_get_coeff(res, &power), DBL_EPSILON);
+    power = 1;
+    cpl_test_abs(1.0, cpl_polynomial_get_coeff(res, &power), DBL_EPSILON);
+
+    //deallocate memory
+    cpl_polynomial_delete(res);
+
+    // Test invalid wavelength ranges
+    wmin = 5000;
+    wmax = 4047;
+    cpl_test_null(cr2res_wave_estimate_compute(wmin, wmax));
+
+    wmin = -10;
+    wmax = 0.11;
+    cpl_test_null(cr2res_wave_estimate_compute(wmin, wmax));
+}
+
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -595,12 +633,12 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    test_cr2res_wave_1d();
-    test_cr2res_wave_2d();
-    test_cr2res_wave_etalon();
-    test_cr2res_wave_polys_1d_to_2d();
-    test_cr2res_wave_poly_2d_to_1d();
-
+    /* test_cr2res_wave_1d(); */
+    /* test_cr2res_wave_2d(); */
+    /* test_cr2res_wave_etalon(); */
+    /* test_cr2res_wave_polys_1d_to_2d(); */
+    /* test_cr2res_wave_poly_2d_to_1d(); */
+	/* test_cr2res_wave_estimate_compute(); */
     return cpl_test_end(0);
 }
 
