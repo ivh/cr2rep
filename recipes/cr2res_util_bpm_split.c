@@ -62,8 +62,8 @@ static char cr2res_util_bpm_split_description[] =
 "Each input BPM is splitted into several BPMs\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
 "raw.fits " CR2RES_BPM_PROTYPE"\n"
-" The recipe produces the following products:\n"
-"cr2res_util_bpm_split.fits " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
+" The recipe produces the following products for each input raw file:\n"
+"<input_name>_splitted_<bpm_code>.fits " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -212,7 +212,6 @@ static int cr2res_util_bpm_split(
 
     /* Initialise */
 
-
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_bpm_split.detector");
@@ -279,7 +278,7 @@ static int cr2res_util_bpm_split(
         /* SPLITTED_BPM */
         for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {
             out_file=cpl_sprintf("%s_splitted_%d.fits", 
-                    cr2res_get_base_name(cur_fname), bpm_types[j]) ;
+                    cr2res_get_root_name(cur_fname), bpm_types[j]) ;
             cr2res_io_save_BPM(out_file, frameset, frameset, parlist,
                     splitted_bpms[j], NULL, ext_plist, 
                     CR2RES_UTIL_BPM_SPLIT_PROCATG, RECIPE_STRING) ;
@@ -296,6 +295,7 @@ static int cr2res_util_bpm_split(
         }
         cpl_msg_indent_less() ;
     }
+    cpl_frameset_delete(rawframes) ;
     return (int)cpl_error_get_code();
 }
 
