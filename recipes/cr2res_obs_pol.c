@@ -114,6 +114,9 @@ static char cr2res_obs_pol_description[] =
 "master_dark.fits " CR2RES_MASTER_DARK_PROCATG "\n"
 "master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG "\n"
 "bpm.fits " CR2RES_FLAT_BPM_PROCATG "\n"
+"      or " CR2RES_DETLIN_BPM_PROCATG "\n"
+"      or " CR2RES_DARK_BPM_PROCATG "\n"
+"      or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
 " The recipe produces the following products:\n"
 "cr2res_obs_pol_specA.fits " CR2RES_OBS_POL_SPECA_PROCATG "\n"
 "cr2res_obs_pol_specB.fits " CR2RES_OBS_POL_SPECB_PROCATG "\n"
@@ -336,8 +339,7 @@ static int cr2res_obs_pol(
             CR2RES_MASTER_DARK_PROCATG) ; 
     master_flat_frame = cpl_frameset_find_const(frameset,
             CR2RES_FLAT_MASTER_FLAT_PROCATG) ; 
-    bpm_frame = cpl_frameset_find_const(frameset,
-            CR2RES_FLAT_BPM_PROCATG) ;
+    bpm_frame = cr2res_io_find_BPM(frameset) ;
 
     /* Get the RAW Frames */
     rawframes = cr2res_extract_frameset(frameset, CR2RES_OBS_POL_RAW) ;

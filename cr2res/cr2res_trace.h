@@ -68,6 +68,7 @@ cpl_vector * cr2res_trace_get_wl(
         int                 order,
         int                 trace_nb,
         int                 size) ;
+
 cpl_size cr2res_get_trace_table_index(
         const cpl_table     *   trace_wave,
         int                     order,

@@ -110,6 +110,30 @@ static int cr2res_io_save_one_table(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get the first BPM frame from a frameset
+  @param    set     Input frame set
+  @return   the bpm frame reference or NULL in error case or if it is missing
+ */
+/*----------------------------------------------------------------------------*/
+const cpl_frame * cr2res_io_find_BPM(const cpl_frameset * in)
+{
+    const cpl_frame *   out ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    out=cpl_frameset_find_const(in, CR2RES_DARK_BPM_PROCATG) ;
+    if (out == NULL) 
+        out = cpl_frameset_find_const(in, CR2RES_FLAT_BPM_PROCATG) ;
+    if (out == NULL) 
+        out = cpl_frameset_find_const(in, CR2RES_DETLIN_BPM_PROCATG) ;
+    if (out == NULL) 
+        out = cpl_frameset_find_const(in, CR2RES_UTIL_BPM_SPLIT_PROCATG) ;
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get the DITS from a frame set
   @param    set     Input frame set
   @return   the DITS or NULL in error case
