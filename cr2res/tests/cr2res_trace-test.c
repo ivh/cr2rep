@@ -170,7 +170,7 @@ static cpl_table *create_test_table()
         cpl_array_set(array, 0, lower_1[i]);
         cpl_array_set(array, 1, lower_2[i]);
         cpl_table_set_array(traces, CR2RES_COL_LOWER, i, array);
-        cpl_table_set(traces, CR2RES_COL_ORDER, i, cr2res_convert_idx_to_order(i + 1));
+        cpl_table_set(traces, CR2RES_COL_ORDER, i, cr2res_io_convert_idx_to_order(i + 1));
         cpl_table_set(traces, CR2RES_COL_TRACENB, i, 1);
     
         cpl_table_set_array(traces, CR2RES_COL_SLIT_FRACTION, i, slit_fraction);
@@ -299,14 +299,14 @@ static void test_cr2res_trace(void)
 
     // run tests
     /* NULL Input */
-    cpl_test_null(cr2res_trace(NULL, 1.0, 1, 2, 10));
-    cpl_test_null(cr2res_trace(trace_ima, -1.0, 1, 2, 10));
-    cpl_test_null(cr2res_trace(trace_ima, 1.0, -1, 2, 10));
-    cpl_test_null(cr2res_trace(trace_ima, 1.0, 1, -1, 10));
-    cpl_test_null(cr2res_trace(trace_ima, 1.0, 1, 2, -10));
+    cpl_test_null(cr2res_trace(NULL, 1.0, 1.0, 1, 2, 10));
+    cpl_test_null(cr2res_trace(trace_ima, -1.0, 1.0, 1, 2, 10));
+    cpl_test_null(cr2res_trace(trace_ima, 1.0, 1.0, -1, 2, 10));
+    cpl_test_null(cr2res_trace(trace_ima, 1.0, 1.0, 1, -1, 10));
+    cpl_test_null(cr2res_trace(trace_ima, 1.0, 1.0, 1, 2, -10));
 
     // regular run
-    cpl_test(out = cr2res_trace(trace_ima, 1.0, 1, 2, 10));
+    cpl_test(out = cr2res_trace(trace_ima, 1.0, 1.0, 1, 2, 10));
     // test results
     all = cpl_table_get_array(out, CR2RES_COL_ALL, 0);
     // cpl_test_abs(cpl_array_get(all, 0, NULL), 55.4330769821645, 1e-6);

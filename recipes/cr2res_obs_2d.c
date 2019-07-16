@@ -52,13 +52,19 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_obs_2d_check_inputs_validity(
+        const cpl_frame *   rawframe) ;
 static int cr2res_obs_2d_reduce(
-        const cpl_frameset  *   rawframes,
+        const cpl_frame     *   rawframe,
+        const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        int                     calib_cosmics_corr,
         int                     reduce_det,
+        int                     reduce_order,
+        int                     reduce_trace,
         cpl_table           **  extract,
         cpl_propertylist    **  ext_plist) ;
 
@@ -72,13 +78,15 @@ static int cr2res_obs_2d(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_obs_2d_description[] =
+
 "CRIRES+ 2d Observation recipe\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
 "raw-file.fits " CR2RES_OBS_2D_RAW"\n"
-"detlin.fits " CR2RES_DETLIN_COEFFS_PROTYPE "\n"
-"master_dark.fits " CR2RES_MASTER_DARK_PROTYPE "\n"
-"bpm.fits " CR2RES_BPM_PROTYPE "\n"
-"trace_wave.fits " CR2RES_TRACE_WAVE_PROTYPE "\n"
+"trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
+"detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG "\n"
+"master_dark.fits " CR2RES_MASTER_DARK_PROCATG "\n"
+"master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG "\n"
+"bpm.fits " CR2RES_FLAT_BPM_PROCATG "\n"
 " The recipe produces the following products:\n"
 "cr2res_obs_2d_extract.fits " CR2RES_OBS_2D_EXTRACT_PROCATG "\n"
 "\n";
@@ -233,6 +241,7 @@ static int cr2res_obs_2d(
     int                     reduce_det, reduce_order, 
                             reduce_trace ;
     cpl_frameset        *   rawframes ;
+    cpl_frame           *   rawframe ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   master_flat_frame ;
@@ -264,6 +273,12 @@ static int cr2res_obs_2d(
     }
 	
     /* Get Calibration frames */
+    trace_wave_frame = cpl_frameset_find_const(frameset,
+            CR2RES_FLAT_TRACE_WAVE_PROCATG) ;
+    if (trace_wave_frame == NULL) {
+        cpl_msg_error(__func__, "Could not find TRACE_WAVE frame") ;
+        return -1 ;
+    }
     detlin_frame = cpl_frameset_find_const(frameset,
             CR2RES_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
@@ -272,86 +287,194 @@ static int cr2res_obs_2d(
             CR2RES_FLAT_MASTER_FLAT_PROCATG) ; 
     bpm_frame = cpl_frameset_find_const(frameset,
             CR2RES_FLAT_BPM_PROCATG) ;
-    trace_wave_frame = cpl_frameset_find_const(frameset,
-            CR2RES_FLAT_TRACE_WAVE_PROCATG) ;
 
     /* Get the Frames for the current decker position */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_OBS_1D_RAW) ;
+    rawframes = cr2res_extract_frameset(frameset, CR2RES_OBS_2D_RAW) ;
     if (rawframes == NULL) {
         cpl_msg_error(__func__, "Could not find RAW frames") ;
         return -1 ;
     }
     cpl_msg_indent_more() ;
 
-    /* Loop on the detectors */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        /* Initialise */
-        extract[det_nr-1] = NULL ;
-        ext_plist[det_nr-1] = NULL ;
+	/* Loop on the RAW files */
+    for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
+        
+        /* Current frame */
+        rawframe = cpl_frameset_get_position(rawframes, i);
 
-        /* Compute only one detector */
-        if (reduce_det != 0 && det_nr != reduce_det) continue ;
-    
-        cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
-        cpl_msg_indent_more() ;
+        /* Loop on the detectors */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            /* Initialise */
+            extract[det_nr-1] = NULL ;
+            ext_plist[det_nr-1] = NULL ;
 
-        /* Call the reduction function */
-        if (cr2res_obs_2d_reduce(rawframes, detlin_frame, 
-                    master_dark_frame, master_flat_frame, bpm_frame, det_nr,
-                    &(extract[det_nr-1]),
-                    &(ext_plist[det_nr-1])) == -1) {
-            cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
+            /* Compute only one detector */
+            if (reduce_det != 0 && det_nr != reduce_det) continue ;
+        
+            cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
+            cpl_msg_indent_more() ;
+            
+            /* Call the reduction function */
+            if (cr2res_obs_2d_reduce(rawframe, trace_wave_frame, detlin_frame, 
+                        master_dark_frame, master_flat_frame, bpm_frame,
+                        0, det_nr, reduce_order, reduce_trace,
+                        &(extract[det_nr-1]),
+                        &(ext_plist[det_nr-1])) == -1) {
+                cpl_msg_warning(__func__, "Failed to reduce detector %d", 
+                        det_nr);
+            }
+            cpl_msg_indent_less() ;
+        }
+
+        /* Ѕave Products */
+
+        /* Extracted */
+        out_file = cpl_sprintf("%s_frame_%d_extracted.fits", 
+                RECIPE_STRING, i+1) ;
+        cr2res_io_save_EXTRACT_2D(out_file, frameset, rawframes, parlist, 
+                extract, NULL, ext_plist, CR2RES_OBS_2D_EXTRACT_PROCATG, 
+                RECIPE_STRING) ;
+        cpl_free(out_file);
+
+        /* Free */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            if (extract[det_nr-1] != NULL) 
+                cpl_table_delete(extract[det_nr-1]) ;
+            if (ext_plist[det_nr-1] != NULL) 
+                cpl_propertylist_delete(ext_plist[det_nr-1]) ;
         }
         cpl_msg_indent_less() ;
     }
-
-    /* Ѕave Products */
-
-    /* Extracted */
-    out_file = cpl_sprintf("%s_extracted.fits", RECIPE_STRING) ;
-    cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extract,
-            NULL, ext_plist, CR2RES_OBS_2D_EXTRACT_PROCATG, RECIPE_STRING) ;
-    cpl_free(out_file);
-
-    /* Free */
     cpl_frameset_delete(rawframes) ;
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        if (extract[det_nr-1] != NULL) 
-            cpl_table_delete(extract[det_nr-1]) ;
-        if (ext_plist[det_nr-1] != NULL) 
-            cpl_propertylist_delete(ext_plist[det_nr-1]) ;
-    }
-    cpl_msg_indent_less() ;
-
     return (int)cpl_error_get_code();
 }
  
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
-  @param 
-  @return  
+  @brief  Execute the 2d observation on one detector
+  @param rawframe              	Raw science frame
+  @param trace_wave_frame       Trace Wave file
+  @param detlin_frame           Associated detlin coefficients
+  @param master_dark_frame      Associated master dark
+  @param master_flat_frame      Associated master flat
+  @param bpm_frame              Associated BPM
+  @param calib_cosmics_corr     Flag to correct for cosmics
+  @param reduce_det             The detector to compute
+  @param reduce_order           The order to reduce (-1 for all)
+  @param reduce_trace           The trace to reduce (-1 for all)
+  @param extract                [out] extracted spectrum
+  @param ext_plist              [out] the header for saving the products
+  @return  0 if ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_obs_2d_reduce(
-        const cpl_frameset  *   rawframes,
+        const cpl_frame     *   rawframe,
+        const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        int                     calib_cosmics_corr,
         int                     reduce_det,
+        int                     reduce_order,
+        int                     reduce_trace,
         cpl_table           **  extract,
-        cpl_propertylist    **  ext_plist)
+        cpl_propertylist    **  ext_plist) 
 {
-    cpl_table * tab = cpl_table_new(1024) ;
+    hdrl_image          *   in ;
+    hdrl_image          *   in_calib ;
+    cpl_table           *   trace_wave ;
+    cpl_propertylist    *   plist ;
+    double                  dit ;
+    cpl_table           *   extracted ;
+    cpl_size                i ;
+    int                     det_nr ;
 
+    /* Check Inputs */
+    if (extract == NULL || ext_plist == NULL || rawframe == NULL || 
+            trace_wave_frame == NULL) return -1 ;
 
-    *extract = cpl_table_duplicate(tab) ;
+    /* Check raw frames consistency */
+    if (cr2res_obs_2d_check_inputs_validity(rawframe) != 1) {
+        cpl_msg_error(__func__, "Invalid Inputs") ;
+        return -1 ;
+    }
 
-    cpl_table_delete(tab) ;
+    /* Get the DIT */
+    plist = cpl_propertylist_load(cpl_frame_get_filename(rawframe), 0) ;
+    dit = cr2res_pfits_get_dit(plist) ;
+    cpl_propertylist_delete(plist); 
+    if (cpl_error_get_code()) {
+        cpl_msg_error(__func__, "Cannot read the DIT") ;
+        return -1 ;
+    }
+    cpl_msg_debug(__func__, "DIT value : %g", dit) ;
 
-    cpl_msg_warning(__func__,
-            "The recipe is not implemented - Results are fake") ;
+    /* Load the input image */
+    if ((in = cr2res_io_load_image(cpl_frame_get_filename(rawframe),
+                    reduce_det)) == NULL) {
+        cpl_msg_error(__func__, "Cannot load image") ;
+        return -1 ;
+    }
+
+    /* Calibrate the image */
+    if ((in_calib = cr2res_calib_image(in, reduce_det, 0, master_flat_frame,
+            master_dark_frame, bpm_frame, detlin_frame, dit)) == NULL) {
+        cpl_msg_error(__func__, "Failed to apply the calibrations") ;
+        hdrl_image_delete(in) ;
+        return -1 ;
+    }
+    hdrl_image_delete(in) ;
+
+    /* Load the trace wave */
+    cpl_msg_info(__func__, "Load the TRACE WAVE") ;
+    if ((trace_wave = cr2res_io_load_TRACE_WAVE(
+                    cpl_frame_get_filename(trace_wave_frame), 
+                    reduce_det)) == NULL) {
+        cpl_msg_error(__func__, "Failed to Load the traces file") ;
+        hdrl_image_delete(in_calib) ;
+        return -1 ;
+    }
+
+    /* Execute the extraction */
+    cpl_msg_info(__func__, "Spectra Extraction 2D") ;
+    if (cr2res_extract2d_traces(in_calib, trace_wave, reduce_order,
+                reduce_trace, &extracted) == -1) {
+        cpl_msg_error(__func__, "Failed to extract");
+        hdrl_image_delete(in_calib) ;
+        cpl_table_delete(trace_wave) ;
+        return -1 ;
+    }
+    cpl_table_delete(trace_wave) ;
+
+    /* QC parameters */
+    plist = cpl_propertylist_new() ;
+
+    /* Compute the QC parameters */
+    /* TODO */
+
+    /* Return */
+    *extract = extracted ;
+    *ext_plist = plist ;
+
     return 0 ;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  Run basic checks for the rawframe consistency
+  @param    rawframe   The input rawframe
+  @return   1 if valid, 0 if not, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_obs_2d_check_inputs_validity(
+        const cpl_frame *   rawframe)
+{
+    /* TODO */
+
+    /* Check Inputs */
+    if (rawframe == NULL) return -1 ;
+    return 1 ;
+}
+
 

@@ -361,11 +361,11 @@ int cr2res_qc_flat_nb_overexposed(
 double cr2res_qc_obs_1d_signal(
         const cpl_table     *   extracted)
 {
-    double      qc_signal ;
-    const char * colname;
-    double * data;
-    cpl_vector * vector, *vector2;
-    int nrows, size;
+    double          qc_signal ;
+    char        *   colname;
+    double      *   data;
+    cpl_vector  *   vector, *vector2;
+    int             nrows, size;
 
     /* Check Entries */
     if (extracted == NULL) return -1 ;

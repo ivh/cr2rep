@@ -1442,6 +1442,286 @@ int cr2res_extract_slitdec_curved(
     return 0;
 }
 
+
+/*----------------------------------------------------------------------------*/
+/*--------------------         EXTRACT 2d      -------------------------------*/
+/*----------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Extract2d all the passed traces at once
+  @param    img             Full detector image
+  @param    traces          The traces table
+  @param    reduce_order    The order to extract (-1 for all)
+  @param    reduce_trace    The Trace to extract (-1 for all)
+  @param    smooth_slit     
+  @param    extracted       [out] the extracted spectra 
+  @return   0 if ok, -1 otherwise
+
+  This func takes a single image (contining many orders), and a traces table.
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_extract2d_traces(
+        const hdrl_image    *   img,
+        const cpl_table     *   traces,
+        int                     reduce_order,
+        int                     reduce_trace,
+        cpl_table           **  extracted)
+{
+    cpl_bivector        **  spectrum ;
+    cpl_bivector        **  position ;
+    cpl_vector          **  wavelength ;
+    cpl_vector          **  slit_fraction ;
+    cpl_table           *   extract_loc ;
+    int                     nb_traces, i, order, trace_id ;
+
+    /* Check Entries */
+    if (img == NULL || traces == NULL) return -1 ;
+
+    /* Initialise */
+    nb_traces = cpl_table_get_nrow(traces) ;
+
+    /* Allocate Data containers */
+    spectrum = cpl_malloc(nb_traces * sizeof(cpl_bivector *)) ;
+    position = cpl_malloc(nb_traces * sizeof(cpl_bivector *)) ;
+    wavelength = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
+    slit_fraction = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
+
+    /* Loop over the traces and extract them */
+    for (i=0 ; i<nb_traces ; i++) {
+        /* Initialise */
+        spectrum[i] = NULL ;
+        position[i] = NULL ;
+        wavelength[i] = NULL ;
+        slit_fraction[i] = NULL ;
+
+        /* Get Order and trace id */
+        order = cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) ;
+        trace_id = cpl_table_get(traces, CR2RES_COL_TRACENB, i, NULL) ;
+
+        /* Check if this order needs to be skipped */
+        if (reduce_order > -1 && order != reduce_order) continue ;
+
+        /* Check if this trace needs to be skipped */
+        if (reduce_trace > -1 && trace_id != reduce_trace) continue ;
+
+        cpl_msg_info(__func__, "Process Order %d/Trace %d",order,trace_id) ;
+        cpl_msg_indent_more() ;
+
+        /* Call the Extraction */
+        if (cr2res_extract2d_trace(img, traces, order, trace_id, 
+                    &(spectrum[i]), &(position[i]), &(wavelength[i]),
+                    &(slit_fraction[i])) != 0) {
+            cpl_msg_error(__func__, "Cannot extract2d the trace") ;
+            spectrum[i] = NULL ;
+            position[i] = NULL ;
+            wavelength[i] = NULL ;
+            slit_fraction[i] = NULL ;
+            cpl_error_reset() ;
+            cpl_msg_indent_less() ;
+            continue ;
+        }
+        cpl_msg_indent_less() ;
+    }
+
+    /* Create the extracted_tab for the current detector */
+    extract_loc = cr2res_extract_EXTRACT2D_create(spectrum, position,
+            wavelength, slit_fraction, traces) ;
+
+    /* Deallocate Vectors */
+    for (i=0 ; i<nb_traces ; i++) {
+        if (spectrum[i] != NULL) cpl_bivector_delete(spectrum[i]) ;
+        if (position[i] != NULL) cpl_bivector_delete(position[i]) ;
+        if (wavelength[i] != NULL) cpl_vector_delete(wavelength[i]) ;
+        if (slit_fraction[i] != NULL) cpl_vector_delete(slit_fraction[i]) ;
+    }
+    cpl_free(spectrum) ;
+    cpl_free(position) ;
+    cpl_free(wavelength) ;
+    cpl_free(slit_fraction) ;
+
+    /* Return  */
+    *extracted = extract_loc ;
+    return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Extraction2d function
+  @param    img_in      full detector image
+  @param    trace_tab       The traces table
+  @param    order           The order to extract
+  @param    trace_id        The Trace to extract
+  @param    spectrum        [out] the spectrum and error
+  @param    position        [out] the x/y positions
+  @param    wavelength      [out] the wavelength values
+  @param    slit_fraction   [out] the slit_fraction values
+  @return   0 if ok, -1 otherwise
+
+  TODO
+
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_extract2d_trace(
+        const hdrl_image    *   in,
+        const cpl_table     *   trace_tab,
+        int                     order,
+        int                     trace_id,
+        cpl_bivector        **  spectrum,
+        cpl_bivector        **  position,
+        cpl_vector          **  wavelength,
+        cpl_vector          **  slit_fraction)
+{
+    cpl_bivector    *   spectrum_local ;
+    cpl_bivector    *   position_local ;
+    cpl_vector      *   wavelength_local ;
+    cpl_vector      *   slit_fraction_local ;
+
+    /* Check Entries */
+    if (in==NULL || trace_tab==NULL || spectrum==NULL || position==NULL
+            || wavelength==NULL || slit_fraction==NULL) return -1 ;
+
+    /* TODO */
+    spectrum_local = cpl_bivector_new(1000) ;
+    cpl_vector_fill(cpl_bivector_get_x(spectrum_local), 1.0) ;
+    cpl_vector_fill(cpl_bivector_get_y(spectrum_local), 2.0) ;
+    position_local = cpl_bivector_new(1000) ;
+    cpl_vector_fill(cpl_bivector_get_x(position_local), 3.0) ;
+    cpl_vector_fill(cpl_bivector_get_y(position_local), 4.0) ;
+    wavelength_local = cpl_vector_new(1000) ;
+    cpl_vector_fill(wavelength_local, 5.0) ;
+    slit_fraction_local = cpl_vector_new(1000) ;
+    cpl_vector_fill(slit_fraction_local, 6.0) ;
+
+    *spectrum = spectrum_local ;
+    *position = position_local ;
+    *wavelength = wavelength_local ;
+    *slit_fraction = slit_fraction_local ;
+    return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Create the extract 2D table to be saved
+  @param    spectrum        value and error of the spectrum
+  @param    position        x and y positions
+  @param    wavelength      WL value
+  @param    slit_fraction   slit fraction
+  @param    traces          Trace wave file used for extraction
+  @return   the extract_2D table or NULL
+ */
+/*----------------------------------------------------------------------------*/
+cpl_table * cr2res_extract_EXTRACT2D_create(
+        cpl_bivector    **  spectrum,
+        cpl_bivector    **  position,
+        cpl_vector      **  wavelength,
+        cpl_vector      **  slit_fraction,
+        const cpl_table *   trace_table)
+{
+    cpl_table       *   out ;
+    char            *   col_name ;
+    const double    *   pspec ;
+    const double    *   perr ;
+    const double    *   pxposition ;
+    const double    *   pyposition ;
+    const double    *   pwave ;
+    const double    *   pslit_frac ;
+    int                 nrows, all_null, i, order, trace_id, nb_traces ;
+
+    /* Check entries */
+    if (spectrum==NULL || trace_table==NULL || position==NULL ||
+            wavelength==NULL || slit_fraction==NULL || trace_table==NULL) 
+        return NULL ;
+
+    /* Initialise */
+    nb_traces = cpl_table_get_nrow(trace_table) ;
+
+    /* Check if all vectorѕ are not null */
+    all_null = 1 ;
+    for (i=0 ; i<nb_traces ; i++)
+        if (spectrum[i] != NULL) {
+            nrows = cpl_bivector_get_size(spectrum[i]) ;
+            all_null = 0 ;
+        }
+    if (all_null == 1) return NULL ;
+
+    /* Check the sizes */
+    for (i=0 ; i<nb_traces ; i++)
+        if (spectrum[i] != NULL && cpl_bivector_get_size(spectrum[i]) != nrows)
+            return NULL ;
+
+    /* Create the table */
+    out = cpl_table_new(nrows);
+    for (i=0 ; i<nb_traces ; i++) {
+        order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
+        trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
+        /* Create SPEC column */
+        col_name = cr2res_dfs_SPEC_colname(order, trace_id) ;
+        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+        cpl_free(col_name) ;
+        /* Create SPEC_ERR column */
+        col_name = cr2res_dfs_SPEC_ERR_colname(order, trace_id) ;
+        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+        cpl_free(col_name) ;
+        /* Create WAVELENGTH column */
+        col_name = cr2res_dfs_WAVELENGTH_colname(order, trace_id) ;
+        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+        cpl_free(col_name) ;
+        /* Create POSITIONX column */
+        col_name = cr2res_dfs_POSITIONX_colname(order, trace_id) ;
+        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+        cpl_free(col_name) ;
+        /* Create POSITIONY column */
+        col_name = cr2res_dfs_POSITIONY_colname(order, trace_id) ;
+        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+        cpl_free(col_name) ;
+        /* Create SLIT_FRACTION column */
+        col_name = cr2res_dfs_SLIT_FRACTION_colname(order, trace_id) ;
+        cpl_table_new_column(out, col_name, CPL_TYPE_DOUBLE);
+        cpl_free(col_name) ;
+    }
+
+    /* Fill the table */
+    for (i=0 ; i<nb_traces ; i++) {
+        if (spectrum[i]!=NULL && position[i]!=NULL &&
+                wavelength[i]!=NULL && slit_fraction[i]!=NULL) {
+            order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
+            trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
+            pspec = cpl_bivector_get_x_data_const(spectrum[i]) ;
+            perr = cpl_bivector_get_y_data_const(spectrum[i]);
+            pxposition = cpl_bivector_get_x_data_const(position[i]) ;
+            pyposition = cpl_bivector_get_y_data_const(position[i]) ;
+            pwave = cpl_vector_get_data_const(wavelength[i]) ;
+            pslit_frac = cpl_vector_get_data_const(slit_fraction[i]) ;
+            /* Fill SPEC column */
+            col_name = cr2res_dfs_SPEC_colname(order, trace_id) ;
+            cpl_table_copy_data_double(out, col_name, pspec) ;
+            cpl_free(col_name) ;
+            /* Fill SPEC_ERR column */
+            col_name = cr2res_dfs_SPEC_ERR_colname(order, trace_id) ;
+            cpl_table_copy_data_double(out, col_name, perr) ;
+            cpl_free(col_name) ;
+            /* Fill WAVELENGTH column */
+            col_name = cr2res_dfs_WAVELENGTH_colname(order, trace_id) ;
+            cpl_table_copy_data_double(out, col_name, pwave) ;
+            cpl_free(col_name) ;
+            /* Fill POSITIONX column */
+            col_name = cr2res_dfs_POSITIONX_colname(order, trace_id) ;
+            cpl_table_copy_data_double(out, col_name, pxposition) ;
+            cpl_free(col_name) ;
+            /* Fill POSITIONY column */
+            col_name = cr2res_dfs_POSITIONY_colname(order, trace_id) ;
+            cpl_table_copy_data_double(out, col_name, pyposition) ;
+            cpl_free(col_name) ;
+            /* Fill SLIT_FRACTION column */
+            col_name = cr2res_dfs_SLIT_FRACTION_colname(order, trace_id) ;
+            cpl_table_copy_data_double(out, col_name, pslit_frac) ;
+            cpl_free(col_name) ;
+        }
+    }
+    return out ;
+}
+
 /** @} */
 
 /*----------------------------------------------------------------------------*/

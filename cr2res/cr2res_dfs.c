@@ -294,6 +294,57 @@ char * cr2res_dfs_SLIT_FUNC_colname(int order, int trace)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get the POSITIONX table column name for a given order/trace
+  @param    order       The order number (1->)
+  @param    trace       The trace number (1->)
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_POSITIONX_colname(int order, int trace)
+{
+    int         order_loc ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_loc,trace,
+            CR2RES_COL_POSITIONX_SUFFIX);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the POSITIONY table column name for a given order/trace
+  @param    order       The order number (1->)
+  @param    trace       The trace number (1->)
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_POSITIONY_colname(int order, int trace)
+{
+    int         order_loc ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_loc,trace,
+            CR2RES_COL_POSITIONY_SUFFIX);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the SLIT_FRACTION table column name for a given order/trace
+  @param    order       The order number (1->)
+  @param    trace       The trace number (1->)
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_SLIT_FRACTION_colname(int order, int trace)
+{
+    int         order_loc ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_loc,trace,
+            CR2RES_COL_SLIT_FRACTION_SUFFIX);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Parse a column name ORDER_TRACE_TYPE format
   @param    colname     The column name to parse
   @param    order       [out] The order number (1->) 

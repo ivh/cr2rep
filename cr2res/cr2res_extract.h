@@ -107,4 +107,28 @@ int cr2res_extract_EXTRACT1D_get_spectrum(
         cpl_bivector        **  spec,
         cpl_bivector        **  spec_err) ;
 
+int cr2res_extract2d_traces(
+        const hdrl_image    *   img,
+        const cpl_table     *   traces,
+        int                     reduce_order,
+        int                     reduce_trace,
+        cpl_table           **  extracted) ;
+
+int cr2res_extract2d_trace(
+        const hdrl_image    *   in,
+        const cpl_table     *   trace_tab,
+        int                     order,
+        int                     trace_id,
+        cpl_bivector        **  spectrum,
+        cpl_bivector        **  position,
+        cpl_vector          **  wavelength,
+        cpl_vector          **  slit_fraction) ;
+
+cpl_table * cr2res_extract_EXTRACT2D_create(
+        cpl_bivector    **  spectrum,
+        cpl_bivector    **  position,
+        cpl_vector      **  wavelength,
+        cpl_vector      **  slit_fraction,
+        const cpl_table *   trace_table) ;
+
 #endif

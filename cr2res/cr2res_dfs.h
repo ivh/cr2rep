@@ -81,7 +81,9 @@
 #define CR2RES_COL_SPLICED_1D_WL    "SPLICED_1D_WL"    /* Wavelength */
 
 /* EXTRACT_2D Table */
-#define CR2RES_COL_2D_TODO          "2D_TODO"
+#define CR2RES_COL_POSITIONX_SUFFIX     "POSITIONX"     /* pixel position */
+#define CR2RES_COL_POSITIONY_SUFFIX     "POSITIONY"     /* pixel position */
+#define CR2RES_COL_SLIT_FRACTION_SUFFIX "SLIT_FRACTION" /* slit fraction */
 
 /******************************************/
 
@@ -126,7 +128,12 @@
 #define CR2RES_POL_SPEC_PROTYPE             "POL_SPEC"
 
 /* For  CR2RES_OBS_2D_EXTRACT_PROCATG */
-/* Table with columns CR2RES_COL_2D_TODO  */
+/* Table with columns cr2res_dfs_SPEC_colname() */
+/*                    cr2res_dfs_SPEC_ERR_colname() */
+/*                    cr2res_dfs_WAVELENGTH_colname() */
+/*                    cr2res_dfs_POSITIONX_colname() */
+/*                    cr2res_dfs_POSITIONY_colname() */
+/*                    cr2res_dfs_SLIT_FRACTION_colname() */
 #define CR2RES_EXTRACT_2D_PROTYPE           "EXTRACT_2D"
 
 /* For  CR2RES_OBS_1D_COMBINEDA_PROCATG */
@@ -297,6 +304,9 @@ char * cr2res_dfs_WAVELENGTH_colname(int, int);
 char * cr2res_dfs_SPEC_ERR_colname(int, int);
 char * cr2res_dfs_SLIT_FUNC_colname(int, int) ;
 char * cr2res_dfs_SLIT_CURV_colname(int, int) ;
+char * cr2res_dfs_POSITIONX_colname(int, int) ;
+char * cr2res_dfs_POSITIONY_colname(int, int) ;
+char * cr2res_dfs_SLIT_FRACTION_colname(int, int) ;
 char * cr2res_dfs_POL_WAVELENGTH_colname(int);
 char * cr2res_dfs_POL_STOKES_colname(int) ;
 char * cr2res_dfs_POL_STOKES_ERROR_colname(int) ;
