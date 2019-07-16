@@ -56,6 +56,24 @@ double * cr2res_vector_get_rest(
 int * cr2res_vector_get_int(
     const cpl_vector    * ycen);
 
+cpl_polynomial * cr2res_fit_noise(
+        cpl_image   *   img,
+        cpl_table   *   trace_wave,
+        cpl_size        order_x,
+        cpl_size        order_y) ;
+
+int cr2res_slit_pos(
+        cpl_table       *   tw_decker1,
+        cpl_table       *   tw_decker2,
+        cpl_polynomial  **  coef_slit,
+        cpl_polynomial  **  coef_wave) ;
+
+int cr2res_slit_pos_image(
+        cpl_table   *   tw_decker1,
+        cpl_table   *   tw_decker2,
+        cpl_image   *   slitpos,
+        cpl_image   *   wavelength) ;
+
 cpl_image * cr2res_image_cut_rectify(
         const cpl_image     * img_in,
         const cpl_vector    * ycen,

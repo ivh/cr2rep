@@ -110,6 +110,376 @@ double * cr2res_vector_get_rest(
    return ycen_rest;
 }
 
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Fit a 2D Polynomial to the interorder noise
+  @param    img         Image, Image with the noise and traces to fit (e.g. a 
+                        observation)
+  @param    trace_wave  Trace Wave Table
+  @param    order_x     maximum order of the polynomial in x direction
+  @param    order_y     maximum order of the polynomial in y direction
+  @return   the fitted polynomial if succesful, NULL on error
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_fit_noise(
+        cpl_image   *   img, 
+        cpl_table   *   trace_wave,
+        cpl_size        order_x, 
+        cpl_size        order_y)
+{
+
+    if (img == NULL || trace_wave == NULL) return NULL;
+    if (order_x < 0 || order_y < 0) return NULL;
+
+    //Step 1: identify areas inbetween traces
+
+    cpl_size order;
+    cpl_size trace1 = 1;
+    cpl_size trace2 = 2; // if decker, set to 2, otherwise 1
+
+    const cpl_array *lower;
+    const cpl_array *upper;
+    cpl_size power = 0;
+    cpl_polynomial *poly_lower = NULL; //lower border of image
+    cpl_polynomial *poly_upper = NULL;
+
+    int nb_orders;
+    int * orders = cr2res_trace_get_order_numbers(trace_wave, &nb_orders);
+    int * porders;
+    int * ptraces;
+
+    double y_lower, y_upper;
+    int c = 0; //counter for number of data points
+
+    cpl_matrix *samppos = cpl_matrix_new(2, cpl_image_get_size_x(img) * 
+            cpl_image_get_size_y(img));
+    cpl_vector *fitvals = cpl_vector_new(cpl_image_get_size_x(img) * 
+            cpl_image_get_size_y(img));
+    cpl_vector *x = cpl_vector_new(1);
+
+    double value;
+    int pis_rejected = 0;
+
+    // get array for order
+    // find location of order and trace
+    int nrows = cpl_table_get_nrow(trace_wave);
+    int k;
+    porders = cpl_table_get_data_int(trace_wave, CR2RES_COL_ORDER);
+    ptraces = cpl_table_get_data_int(trace_wave, CR2RES_COL_TRACENB);
+
+    for(int m = 0; m <= nb_orders; m++) {
+        // the last time is above the topmost border
+        if (m != nb_orders) order = orders[m];
+        else {
+            // find maximum order
+            order = orders[0];
+            for(int t = 1; t < nb_orders; t++) {
+                if (orders[t] > order) order = orders[t];
+            }
+            order = order + 1;
+        }
+
+        // lower = upper boundary of order-1, or 0 if order-1 = 0
+        // upper = lower boundary of order, or max_img of order = max
+        for (k=0 ; k<nrows ; k++) {
+            /* If order found */
+            if (porders[k] == order-1 && ptraces[k] == trace2) {
+                /* Get the polynomial*/
+                lower = cpl_table_get_array(trace_wave, CR2RES_COL_UPPER, k);
+                poly_lower = cr2res_convert_array_to_poly(lower);
+                break;
+            }
+        }
+        for (k=0 ; k<nrows ; k++) {
+            if (porders[k] == order && ptraces[k] == trace1) {
+                /* Get the polynomial*/
+                upper = cpl_table_get_array(trace_wave,CR2RES_COL_LOWER, k);
+                poly_upper = cr2res_convert_array_to_poly(upper);
+                break;
+            }
+        }
+
+        // if no order found use bottom of image
+        if (poly_lower == NULL) {
+            poly_lower = cpl_polynomial_new(1);
+            cpl_polynomial_set_coeff(poly_lower, &power, 1);
+        }
+        // if no order found, use top of image
+        if (poly_upper == NULL) {
+            poly_upper = cpl_polynomial_new(1);
+            cpl_polynomial_set_coeff(poly_upper, &power, 
+                    cpl_image_get_size_y(img));
+        }
+
+        // loop over image and set data points outside of traces
+
+        for(cpl_size i = 1; i < cpl_image_get_size_x(img)-1; i++) {
+            cpl_vector_set(x, 0, (double)i);
+            y_lower = cpl_polynomial_eval(poly_lower, x);
+            y_upper = cpl_polynomial_eval(poly_upper, x);
+
+            for(cpl_size j = y_lower; j < y_upper; j++) {
+                value = cpl_image_get(img, i, j, &pis_rejected);
+                if (pis_rejected == 0){
+                    cpl_matrix_set(samppos, 0, c, (double)i);
+                    cpl_matrix_set(samppos, 1, c, (double)j);
+
+                    cpl_vector_set(fitvals, c, value);
+                    c++;
+                }
+            }
+        }
+        cpl_polynomial_delete(poly_lower);
+        poly_lower = NULL;
+        cpl_polynomial_delete(poly_upper);
+        poly_upper = NULL;
+    }
+
+    // readjust size, to number of data points
+    cpl_matrix_set_size(samppos, 2, c);
+    cpl_vector_set_size(fitvals, c);
+
+    //Step 2: fit 2d polynomial
+    // 2d result polynomial
+    cpl_polynomial *fit = cpl_polynomial_new(2); 
+    //Matrix of p sample positions, with d rows and p columns
+    //const cpl_matrix *samppos = mat; 
+    //NULL, or d booleans, true iff the sampling is symmetric
+    const cpl_boolean *sampsym = NULL; 
+    //cpl_vector *fitvals = vec; //Vector of the p values to fit
+    //Uncertainties of the sampled values, or NULL for all ones
+    const cpl_vector *fitsigm = NULL; 
+    //True iff there is a fitting degree per dimension
+    const cpl_boolean dimdeg = TRUE; 
+    //Pointer to 1 or d minimum fitting degree(s), or NULL
+    const cpl_size * mindeg = NULL; 
+    //Pointer to 1 or d maximum fitting degree(s), at least mindeg
+    const cpl_size maxdeg[] = {order_x, order_y}; 
+
+    cpl_error_code ec = cpl_polynomial_fit(fit, samppos, sampsym, fitvals, 
+            fitsigm, dimdeg, mindeg, maxdeg);
+
+    cpl_free(orders);
+    cpl_matrix_delete(samppos);
+    cpl_vector_delete(fitvals);
+    cpl_vector_delete(x);
+    if (ec == CPL_ERROR_NONE) return fit;
+    else {
+        cpl_free(fit);
+        return NULL;
+    }
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get a picture of the slit position (and wavelength?) depend on x, y
+  @param
+  @param
+  @param
+  @param
+  @return   0 on success, -1 on fail
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_slit_pos(
+        cpl_table       *   tw_decker1, 
+        cpl_table       *   tw_decker2, 
+        cpl_polynomial  **  coef_slit, 
+        cpl_polynomial  **  coef_wave)
+{
+
+    if (tw_decker1 == NULL || tw_decker2 == NULL || coef_slit == NULL || 
+            coef_wave == NULL) return -1;
+
+    // load data
+    int i, j, k;
+    int order;
+    double _x, _y, _w;
+    cpl_array *tmp;
+    // orders and traces in decker 1
+    int nb_orders_1;
+    int *unique_orders_1 = cr2res_trace_get_order_numbers(tw_decker1, 
+            &nb_orders_1);
+
+    // orders and traces in decker 2
+    int nb_orders_2;
+    int *unique_orders_2 = cr2res_trace_get_order_numbers(tw_decker1, 
+            &nb_orders_2);
+
+    if (nb_orders_1 != nb_orders_2){
+        cpl_free(unique_orders_1);
+        cpl_free(unique_orders_2);
+        return -1;
+    }
+
+    volatile cpl_error_code errcode;
+
+    // fixed slit positions of each of the four trace per order
+    double slit[] = {8.75, 6.25, 3.75, 1.25};
+
+    // pixels x, only one because thats the same for all traces
+    cpl_vector *x = cpl_vector_new(CR2RES_DETECTOR_SIZE);
+    for (i = 0; i < CR2RES_DETECTOR_SIZE; i++) 
+        cpl_vector_set(x, i, (double)i+1);
+
+    for (i=0; i < nb_orders_1; i++) {
+        coef_wave[i] = cpl_polynomial_new(2);
+        coef_slit[i] = cpl_polynomial_new(2);
+    }
+
+    cpl_matrix *matrix_xy = cpl_matrix_new(2, CR2RES_DETECTOR_SIZE * 4);
+    cpl_matrix *matrix_wd = cpl_matrix_new(2, CR2RES_DETECTOR_SIZE * 4);
+
+    cpl_vector *vec_w = cpl_vector_new(CR2RES_DETECTOR_SIZE*4);
+    cpl_vector *vec_s = cpl_vector_new(CR2RES_DETECTOR_SIZE*4);
+
+    const cpl_size maxdeg = 2;
+
+    cpl_polynomial *wave;
+    cpl_polynomial *line;
+
+    for (j = 0; j < nb_orders_1; j++) {
+        // iterate over orders of trace wave 1, has to be the same number 
+        // of orders as trace wave 2
+        order = unique_orders_1[j];
+        // TODO better criterion
+        if ((order == 0) || (order == 8)) continue;
+
+        for (k = 1; k <= 4; k++) {
+            // load wavelenght polynomials, one per trace, note the
+            // numbering depends on decker
+            if (k == 1) {
+                line = cr2res_get_trace_wave_poly(tw_decker1, 
+                        CR2RES_COL_ALL, order, 1);
+                wave = cr2res_get_trace_wave_poly(tw_decker1, 
+                        CR2RES_COL_WAVELENGTH, order, 1);
+            } else if (k == 2) {
+                line = cr2res_get_trace_wave_poly(tw_decker2, 
+                        CR2RES_COL_ALL, order, 1);
+                wave = cr2res_get_trace_wave_poly(tw_decker2, 
+                        CR2RES_COL_WAVELENGTH, order, 1);
+            } else if (k == 3) {
+                line = cr2res_get_trace_wave_poly(tw_decker1, 
+                        CR2RES_COL_ALL, order, 2);
+                wave = cr2res_get_trace_wave_poly(tw_decker1, 
+                        CR2RES_COL_WAVELENGTH, order, 2);
+            } else if (k == 4) {
+                line = cr2res_get_trace_wave_poly(tw_decker2, 
+                        CR2RES_COL_ALL, order, 2);
+                wave = cr2res_get_trace_wave_poly(tw_decker2, 
+                        CR2RES_COL_WAVELENGTH, order, 2);
+            }
+            // calculate polynomials for all traces
+            for (i = 0; i < CR2RES_DETECTOR_SIZE; i++) {
+                // Center line
+                _x = cpl_vector_get(x, i);
+                _y = cpl_polynomial_eval_1d(line, _x, NULL);
+                _w = cpl_polynomial_eval_1d(wave, _x, NULL);
+
+                cpl_matrix_set(matrix_xy, 0, CR2RES_DETECTOR_SIZE*(k-1) + i,_x);
+                cpl_matrix_set(matrix_xy, 1, CR2RES_DETECTOR_SIZE*(k-1) + i,_y);
+
+                cpl_matrix_set(matrix_wd, 0, CR2RES_DETECTOR_SIZE*(k-1) + i,_w);
+                cpl_matrix_set(matrix_wd, 1, CR2RES_DETECTOR_SIZE*(k-1) + i,_y);
+
+                cpl_vector_set(vec_w, CR2RES_DETECTOR_SIZE*(k-1) + i, _w);
+                cpl_vector_set(vec_s, CR2RES_DETECTOR_SIZE*(k-1) + i,slit[k-1]);
+            }
+            cpl_polynomial_delete(line);
+            cpl_polynomial_delete(wave);
+        }
+
+        // fit 2D wavelengths
+        errcode = cpl_polynomial_fit(coef_wave[j], matrix_xy, NULL, vec_w, 
+                NULL, FALSE, NULL, &maxdeg);
+        errcode = cpl_polynomial_fit(coef_slit[j], matrix_wd, NULL, vec_s, 
+                NULL, FALSE, NULL, &maxdeg);
+    }
+
+    // delete cpl pointers
+    cpl_vector_delete(x);
+    cpl_matrix_delete(matrix_xy);
+    cpl_matrix_delete(matrix_wd);
+    cpl_vector_delete(vec_s);
+    cpl_vector_delete(vec_w);
+
+    cpl_free(unique_orders_1);
+    cpl_free(unique_orders_2);
+    return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    get a image of the slitposition (and wavelength) along the slit
+  @param    tw_decker_1     tracewave table for traces with decker 1
+  @param    tw_decker_2     tracewave_table for traces with decker 2
+  @param    slitpos         output image of slit positions
+  @param    wavelength      output image of wavelength
+  @return   return 0 if successful, -1 otherwise
+
+  Uses the polynomials from cr2res_slit_pos to calculate the slit position and wavelength of each pixel 
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_slit_pos_image(
+        cpl_table   *   tw_decker1, 
+        cpl_table   *   tw_decker2, 
+        cpl_image   *   slitpos, 
+        cpl_image   *   wavelength)
+{
+    if (tw_decker1 == NULL | tw_decker2 == NULL | slitpos == NULL | 
+            wavelength == NULL) return -1;
+    double w, s;
+    int nb_orders;
+    int *orders = cr2res_trace_get_order_numbers(tw_decker1, &nb_orders);
+    cpl_free(orders);
+
+    cpl_polynomial *coef_slit[nb_orders];
+    cpl_polynomial *coef_wave[nb_orders];
+
+    if (-1 == cr2res_slit_pos(tw_decker1, tw_decker2, coef_slit, coef_wave)){
+        return -1;
+    }
+
+    //slitpos = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, 
+    //              CPL_TYPE_DOUBLE);
+    //wavelength = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, 
+    //              CPL_TYPE_DOUBLE);
+
+    cpl_vector *vec_xy = cpl_vector_new(2);
+    cpl_vector *vec_wd = cpl_vector_new(2);
+
+    for (int k = 0; k < nb_orders; k++)
+    {
+        for (int x=1; x <= CR2RES_DETECTOR_SIZE; x++)
+        {
+            for (int y=1; y <= CR2RES_DETECTOR_SIZE; y++)
+            {
+                cpl_vector_set(vec_xy, 0, (double)x);
+                cpl_vector_set(vec_xy, 1, (double)y);
+                w = cpl_polynomial_eval(coef_wave[k], vec_xy);
+
+                cpl_vector_set(vec_wd, 0, w);
+                cpl_vector_set(vec_wd, 1, (double)y);
+                s = cpl_polynomial_eval(coef_slit[k], vec_wd);
+
+                if ((s > 0) && (s < 10))
+                {
+                    cpl_image_set(slitpos, x, y, s);
+                    cpl_image_set(wavelength, x, y, w);
+                }
+            }
+        }
+    }
+
+    for (int i=0; i < nb_orders; i++){
+        cpl_polynomial_delete(coef_wave[i]);
+        cpl_polynomial_delete(coef_slit[i]);
+    }
+    cpl_vector_delete(vec_wd);
+    cpl_vector_delete(vec_xy);
+    return 0;
+}
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Cut a bent order into a rectangle, shifting columns
