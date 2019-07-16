@@ -94,6 +94,11 @@ static char cr2res_obs_1d_description[] =
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
 "raw-file.fits " CR2RES_OBS_1D_RAW"\n"
 "trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
+"             or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "\n"
+"             or " CR2RES_UTIL_TRACE_WAVE_PROCATG "\n"
+"             or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "\n"
+"             or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "\n"
+"             or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "\n"
 "detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG "\n"
 "master_dark.fits " CR2RES_MASTER_DARK_PROCATG "\n"
 "master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG "\n"
@@ -322,8 +327,7 @@ static int cr2res_obs_1d(
     }
 	
     /* Get Calibration frames */
-    trace_wave_frame = cpl_frameset_find_const(frameset,
-            CR2RES_FLAT_TRACE_WAVE_PROCATG) ;
+    trace_wave_frame = cr2res_io_find_TRACE_WAVE(frameset) ;
     if (trace_wave_frame == NULL) {
         cpl_msg_error(__func__, "Could not find TRACE_WAVE frame") ;
         return -1 ;

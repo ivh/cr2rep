@@ -33,6 +33,7 @@
                                    Functions prototypes
  -----------------------------------------------------------------------------*/
 
+const cpl_frame * cr2res_io_find_TRACE_WAVE(const cpl_frameset * in) ;
 const cpl_frame * cr2res_io_find_BPM(const cpl_frameset * in) ;
 
 cpl_vector * cr2res_io_read_dits(const cpl_frameset * in) ;
