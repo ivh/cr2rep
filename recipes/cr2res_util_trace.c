@@ -61,7 +61,6 @@ static int cr2res_util_trace(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_util_trace_description[] =
-
 "CRIRES+ traces detection utility\n"
 "This utility detects the traces, fits polynomials on their edges (Upper\n"
 "and Lower) and in their centers (All), and stores these informations in \n"
@@ -80,7 +79,7 @@ CR2RES_COL_SLIT_FRACTION"\n"
 "are filled with default values.\n"
 "\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"traces.fits " CR2RES_COMMAND_LINE "\n"
+"traces.fits " CR2RES_FLAT_RAW "\n"
 "The recipe produces the following products:\n"
 "   input_tracewave.fits " CR2RES_UTIL_TRACE_WAVE_PROCATG"\n"
 "\n";
@@ -270,7 +269,9 @@ static int cr2res_util_trace(
     int                     min_cluster, degree, opening, reduce_det,
                             split_traces ;
     double                  smooth_x, smooth_y ;
-    const char          *   flat_file ;
+    cpl_frameset        *   rawframes ;
+    const cpl_frame     *   cur_frame ;
+    const char          *   cur_fname ;
     char                *   out_file;
     hdrl_image          *   flat_ima ;
     cpl_image           *   debug_ima ;
@@ -278,6 +279,7 @@ static int cr2res_util_trace(
     cpl_table           *   traces_tmp ;
     cpl_table           *   traces[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
+    int                     i ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -311,123 +313,137 @@ static int cr2res_util_trace(
         return -1 ;
     }
 
-    /* Get Inputs */
-    flat_file = cr2res_extract_filename(frameset, CR2RES_COMMAND_LINE) ;
-    if (flat_file == NULL) {
-        cpl_msg_error(__func__, "The utility needs a RAW file");
-        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+    /* Get Calibration frames */
+
+    /* Get the rawframes */
+    rawframes = cr2res_extract_frameset(frameset, CR2RES_FLAT_RAW) ;
+    if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
+        cpl_msg_error(__func__, "Cannot find any RAW file") ;
+        cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
         return -1 ;
     }
 
-    /* Loop over the detectors */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-
-        /* Initialise */
-        traces[det_nr-1] = NULL ;
-        ext_plist[det_nr-1] = NULL ;
-
-        /* Store the extenѕion header for product saving */
-        ext_plist[det_nr-1] = cpl_propertylist_load(flat_file,
-                cr2res_io_get_ext_idx(flat_file, det_nr, 1)) ;
-
-        /* Compute only one detector */
-        if (reduce_det != 0 && det_nr != reduce_det) continue ;
-
-        cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
+    /* Loop on the RAW frames */
+    for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
+        /* Get the Current Frame */
+        cur_frame = cpl_frameset_get_position(rawframes, i) ;
+        cur_fname = cpl_frame_get_filename(cur_frame) ;
+        cpl_msg_info(__func__, "Reduce Frame %s", cur_fname) ;
         cpl_msg_indent_more() ;
 
-        /* Load the image in which the orders are to extract*/
-        cpl_msg_info(__func__, "Load the Image") ;
-        if ((flat_ima = cr2res_io_load_image(flat_file, det_nr)) == NULL) {
-            cpl_msg_warning(__func__, "Cannot load the image - skip detector");
-            cpl_error_reset() ;
-            cpl_msg_indent_less() ;
-            continue ;
-        }
+        /* Loop over the detectors */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
-        /* Get the traces */
-        cpl_msg_info(__func__, "Compute the traces") ;
-        cpl_msg_indent_more() ;
-        if ((traces[det_nr-1] = cr2res_trace(hdrl_image_get_image(flat_ima), 
-                        smooth_x, smooth_y, opening, degree, 
-                        min_cluster)) == NULL) {
-            cpl_msg_warning(__func__, "Cannot compute trace - skip detector");
-            cpl_error_reset() ;
-            hdrl_image_delete(flat_ima) ;
-            cpl_msg_indent_less() ;
-            cpl_msg_indent_less() ;
-            continue ;
-        }
-        cpl_msg_indent_less() ;
-
-        /* Add The remaining Columns to the trace table */
-        if (cr2res_trace_add_extra_columns(traces[det_nr-1],
-                flat_file, det_nr) != 0) {
-            cpl_msg_warning(__func__, 
-                    "Cannot complete the trace table - skip detector");
-            cpl_error_reset() ;
-            hdrl_image_delete(flat_ima) ;
-            cpl_table_delete(traces[det_nr-1]) ;
+            /* Initialise */
             traces[det_nr-1] = NULL ;
-            cpl_msg_indent_less() ;
-            continue ;
-        }
+            ext_plist[det_nr-1] = NULL ;
 
-        /* Split the traces when required */
-        if (split_traces) {
-            cpl_msg_info(__func__, "Split the full slit traces in %d traces", 
-                    split_traces);
-            /* Split the full slit traces */
-            if ((traces_tmp = cr2res_trace_split(traces[det_nr-1], -1, 
-                            split_traces)) == NULL) {
+            /* Store the extenѕion header for product saving */
+            ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname,
+                    cr2res_io_get_ext_idx(cur_fname, det_nr, 1)) ;
+
+            /* Compute only one detector */
+            if (reduce_det != 0 && det_nr != reduce_det) continue ;
+
+            cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
+            cpl_msg_indent_more() ;
+
+            /* Load the image in which the orders are to extract*/
+            cpl_msg_info(__func__, "Load the Image") ;
+            if ((flat_ima = cr2res_io_load_image(cur_fname, det_nr)) == NULL) {
                 cpl_msg_warning(__func__, 
-                        "Failed splitting the traces - skip detector") ;
+                        "Cannot load the image - skip detector");
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+
+            /* Get the traces */
+            cpl_msg_info(__func__, "Compute the traces") ;
+            cpl_msg_indent_more() ;
+            if ((traces[det_nr-1] = cr2res_trace(hdrl_image_get_image(flat_ima), 
+                            smooth_x, smooth_y, opening, degree, 
+                            min_cluster)) == NULL) {
+                cpl_msg_warning(__func__, 
+                        "Cannot compute trace - skip detector");
+                cpl_error_reset() ;
+                hdrl_image_delete(flat_ima) ;
+                cpl_msg_indent_less() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+            cpl_msg_indent_less() ;
+
+            /* Add The remaining Columns to the trace table */
+            if (cr2res_trace_add_extra_columns(traces[det_nr-1],
+                    cur_fname, det_nr) != 0) {
+                cpl_msg_warning(__func__, 
+                        "Cannot complete the trace table - skip detector");
                 cpl_error_reset() ;
                 hdrl_image_delete(flat_ima) ;
                 cpl_table_delete(traces[det_nr-1]) ;
                 traces[det_nr-1] = NULL ;
                 cpl_msg_indent_less() ;
                 continue ;
-            } else {
+            }
+
+            /* Split the traces when required */
+            if (split_traces) {
+                cpl_msg_info(__func__, 
+                        "Split the full slit traces in %d traces", 
+                        split_traces);
+                /* Split the full slit traces */
+                if ((traces_tmp = cr2res_trace_split(traces[det_nr-1], -1, 
+                                split_traces)) == NULL) {
+                    cpl_msg_warning(__func__, 
+                            "Failed splitting the traces - skip detector") ;
+                    cpl_error_reset() ;
+                    hdrl_image_delete(flat_ima) ;
+                    cpl_table_delete(traces[det_nr-1]) ;
+                    traces[det_nr-1] = NULL ;
+                    cpl_msg_indent_less() ;
+                    continue ;
+                } else {
+                    cpl_table_delete(traces[det_nr-1]) ;
+                    traces[det_nr-1] = traces_tmp ;
+                    traces_tmp = NULL ;
+                } 
+            }
+
+            /* Debug Image */
+            if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+                debug_ima = cr2res_trace_gen_image(traces[det_nr-1],
+                        hdrl_image_get_size_x(flat_ima),
+                        hdrl_image_get_size_y(flat_ima)) ;
+                out_file = cpl_sprintf("debug_%s_trace_map_%d.fits", 
+                        cr2res_get_base_name(cr2res_get_root_name(cur_fname)),
+                        det_nr);
+                cpl_image_save(debug_ima, out_file, CPL_BPP_IEEE_DOUBLE, NULL, 
+                        CPL_IO_CREATE) ;
+                cpl_free(out_file);
+                cpl_image_delete(debug_ima) ;
+            }
+            hdrl_image_delete(flat_ima) ;
+            cpl_msg_indent_less() ;
+        }
+
+        /* Save the Products */
+        out_file = cpl_sprintf("%s_tracewave.fits", 
+                cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
+        cpl_msg_debug(__func__, "Writing to %s",out_file);
+        cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, traces,
+                NULL, ext_plist, CR2RES_UTIL_TRACE_WAVE_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+
+        /* Free and return */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            if (ext_plist[det_nr-1] != NULL)
+                cpl_propertylist_delete(ext_plist[det_nr-1]) ;
+            if (traces[det_nr-1] != NULL)
                 cpl_table_delete(traces[det_nr-1]) ;
-                traces[det_nr-1] = traces_tmp ;
-                traces_tmp = NULL ;
-            } 
         }
-
-        /* Debug Image */
-        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-            debug_ima = cr2res_trace_gen_image(traces[det_nr-1],
-                    hdrl_image_get_size_x(flat_ima),
-                    hdrl_image_get_size_y(flat_ima)) ;
-            out_file = cpl_sprintf("debug_%s_trace_map_%d.fits", 
-                    cr2res_get_base_name(cr2res_get_root_name(flat_file)),
-                    det_nr);
-            cpl_image_save(debug_ima, out_file, CPL_BPP_IEEE_DOUBLE, NULL, 
-                    CPL_IO_CREATE) ;
-            cpl_free(out_file);
-            cpl_image_delete(debug_ima) ;
-        }
-        hdrl_image_delete(flat_ima) ;
-        cpl_msg_indent_less() ;
     }
-
-    /* Save the Products */
-    out_file = cpl_sprintf("%s_tracewave.fits", 
-            cr2res_get_base_name(cr2res_get_root_name(flat_file)));
-    cpl_msg_debug(__func__, "Writing to %s",out_file);
-    cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, traces, 
-            NULL, ext_plist, CR2RES_UTIL_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
-    cpl_free(out_file);
-
-    /* Free and return */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        if (ext_plist[det_nr-1] != NULL)
-            cpl_propertylist_delete(ext_plist[det_nr-1]) ;
-        if (traces[det_nr-1] != NULL)
-            cpl_table_delete(traces[det_nr-1]) ;
-    }
-
+    cpl_frameset_delete(rawframes) ;
     return (int)cpl_error_get_code();
 }
 
