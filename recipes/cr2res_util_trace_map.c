@@ -235,6 +235,7 @@ static int cr2res_util_trace_map(
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   cur_frame ;
     const char          *   cur_fname ;
+    cpl_frameset        *   cur_fset ;
     char                *   out_file;
     cpl_image           *   img_tmp ;
     hdrl_image          *   wl_maps[CR2RES_NB_DETECTORS] ;
@@ -336,26 +337,30 @@ static int cr2res_util_trace_map(
 		}
 
 		/* Save the Products */
+        cur_fset = cpl_frameset_new() ;
+        cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
+
 		out_file = cpl_sprintf("%s_slit_curve.fits",
 						cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-		cr2res_io_save_SLIT_CURV_MAP(out_file, frameset, frameset, parlist, 
+		cr2res_io_save_SLIT_CURV_MAP(out_file, frameset, cur_fset, parlist, 
 				slit_curve_maps, NULL, ext_plist, 
 				CR2RES_UTIL_TRACE_MAP_SLIT_CURVE_PROCATG, RECIPE_STRING);
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_wave.fits",
 						cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-		cr2res_io_save_WAVE_MAP(out_file, frameset, frameset, parlist, wl_maps, 
+		cr2res_io_save_WAVE_MAP(out_file, frameset, cur_fset, parlist, wl_maps, 
 				NULL, ext_plist, CR2RES_UTIL_TRACE_MAP_WL_PROCATG, 
 				RECIPE_STRING);
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_trace.fits",
 						cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-		cr2res_io_save_TRACE_MAP(out_file, frameset, frameset, parlist, 
+		cr2res_io_save_TRACE_MAP(out_file, frameset, cur_fset, parlist, 
                 trace_maps, NULL, ext_plist, 
                 CR2RES_UTIL_TRACE_MAP_TRACE_PROCATG, RECIPE_STRING);
 		cpl_free(out_file);
+        cpl_frameset_delete(cur_fset) ;
 
 		/* Free and return */
 		for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {

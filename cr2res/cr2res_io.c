@@ -158,6 +158,8 @@ const cpl_frame * cr2res_io_find_BPM(const cpl_frameset * in)
         out = cpl_frameset_find_const(in, CR2RES_DETLIN_BPM_PROCATG) ;
     if (out == NULL) 
         out = cpl_frameset_find_const(in, CR2RES_UTIL_BPM_SPLIT_PROCATG) ;
+    if (out == NULL) 
+        out = cpl_frameset_find_const(in, CR2RES_UTIL_NORM_BPM_PROCATG) ;
     return out ;
 }
 

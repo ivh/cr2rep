@@ -272,6 +272,7 @@ static int cr2res_util_trace(
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   cur_frame ;
     const char          *   cur_fname ;
+    cpl_frameset        *   cur_fset ;
     char                *   out_file;
     hdrl_image          *   flat_ima ;
     cpl_image           *   debug_ima ;
@@ -430,9 +431,11 @@ static int cr2res_util_trace(
         /* Save the Products */
         out_file = cpl_sprintf("%s_tracewave.fits", 
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-        cpl_msg_debug(__func__, "Writing to %s",out_file);
+        cur_fset = cpl_frameset_new() ;
+        cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
         cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, traces,
                 NULL, ext_plist, CR2RES_UTIL_TRACE_WAVE_PROCATG, RECIPE_STRING);
+        cpl_frameset_delete(cur_fset) ;
         cpl_free(out_file);
 
         /* Free and return */

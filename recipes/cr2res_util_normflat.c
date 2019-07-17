@@ -25,6 +25,7 @@
                                 Includes
  -----------------------------------------------------------------------------*/
 
+#include <string.h>
 #include <cpl.h>
 
 #include "cr2res_utils.h"
@@ -56,10 +57,16 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
 static int cr2res_util_normflat_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frame     *   slitmodel_frame,
+        double                  bpm_low,
+        double                  bpm_high,
+        double                  bpm_linemax,
         int                     reduce_det,
         hdrl_image          **  master_flat,
+        cpl_image           **  bpm,
         cpl_propertylist    **  ext_plist) ;
-
+static int cr2res_util_normflat_compare(
+        const cpl_frame   *   frame1,
+        const cpl_frame   *   frame2) ;
 static int cr2res_util_normflat_create(cpl_plugin *);
 static int cr2res_util_normflat_exec(cpl_plugin *);
 static int cr2res_util_normflat_destroy(cpl_plugin *);
@@ -148,6 +155,29 @@ static int cr2res_util_normflat_create(cpl_plugin * plugin)
     /* Create the parameters list in the cpl_recipe object */
     recipe->parameters = cpl_parameterlist_new();
 
+    /* Fill the parameters list */
+    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.bpm_low",
+            CPL_TYPE_DOUBLE, "Low threshold for BPM detection",
+            "cr2res.cr2res_util_normflat", 0.5);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_low");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.bpm_high",
+            CPL_TYPE_DOUBLE, "High threshold for BPM detection",
+            "cr2res.cr2res_util_normflat", 2.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_high");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.bpm_lines_ratio",
+            CPL_TYPE_DOUBLE, "Maximum ratio of bad pixels per line",
+            "cr2res.cr2res_util_normflat", 0.5);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_lines_ratio");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_normflat.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
             "cr2res.cr2res_util_normflat", 0);
@@ -210,12 +240,21 @@ static int cr2res_util_normflat(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
+    int                     reduce_det ;
+    double                  bpm_low, bpm_high, bpm_lines_ratio ;
     cpl_frameset        *   rawframes ;
+    cpl_frameset        *   raw_one_setting ;
+    cpl_frameset        *   raw_one_setting_decker ;
+    cpl_size            *   labels ;
+    cpl_size                nlabels ;
+    cpl_propertylist    *   plist ;
+    char                *   setting_id ;
     const cpl_frame     *   slitmodel_frame ;
     hdrl_image          *   master_flat[CR2RES_NB_DETECTORS] ;
+    cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
-    int                     i, det_nr, reduce_det; 
+    int                     i, det_nr, l ; 
 
     /* Initialise */
     cr2res_decker decker_values[CR2RES_NB_DECKER_POSITIONS] = 
@@ -224,6 +263,15 @@ static int cr2res_util_normflat(
         {"Open", "Decker1", "Decker2"} ;
 
     /* RETRIEVE INPUT PARAMETERS */
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_normflat.bpm_low");
+    bpm_low = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_normflat.bpm_high");
+    bpm_high = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_normflat.bpm_lines_ratio");
+    bpm_lines_ratio = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_normflat.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -234,80 +282,146 @@ static int cr2res_util_normflat(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
-	
-    /* Get Calibration frames */
-    slitmodel_frame = cpl_frameset_find_const(frameset,
-                        CR2RES_SLIT_MODEL_PROTYPE);
 
-    /* Loop on the decker positions */
-    for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
-        /* Get the Frames for the current decker position */
-        rawframes = cr2res_io_extract_decker_frameset(frameset,
-                CR2RES_FLAT_RAW, decker_values[i]) ;
-        if (rawframes == NULL) continue ;
-        cpl_msg_info(__func__, "Reduce %s Frames", decker_desc[i]) ;
+    /* Extract RAW frames */
+    rawframes = cr2res_extract_frameset(frameset, CR2RES_FLAT_RAW) ;
+    if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
+        cpl_msg_error(__func__, "Cannot find any RAW file") ;
+        cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
+        return -1 ;
+    }
+
+    /* Labelise the raw frames with the different settings */
+    if ((labels = cpl_frameset_labelise(rawframes, cr2res_util_normflat_compare,
+                &nlabels)) == NULL) {
+        cpl_msg_error(__func__, "Cannot labelise input frames") ;
+        cpl_frameset_delete(rawframes) ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
+
+    /* Loop on the settings */
+    for (l=0 ; l<(int)nlabels ; l++) {
+        /* Get the frames for the current setting */
+        raw_one_setting = cpl_frameset_extract(rawframes, labels, (cpl_size)l) ;
+
+        /* Get the current setting */
+        plist = cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position(raw_one_setting, 0)), 0) ;
+        setting_id = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
+        cr2res_format_setting(setting_id) ;
+        cpl_propertylist_delete(plist) ;
+
+        cpl_msg_info(__func__, "Process SETTING %s", setting_id) ;
         cpl_msg_indent_more() ;
 
-        /* Loop on the detectors */
-        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-            /* Initialise */
-            master_flat[det_nr-1] = NULL ;
-            ext_plist[det_nr-1] = NULL ;
-
-            /* Compute only one detector */
-            if (reduce_det != 0 && det_nr != reduce_det) continue ;
-        
-            cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
+		/* Loop on the decker positions */
+		for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
+			/* Get the Frames for the current decker position */
+			raw_one_setting_decker = cr2res_io_extract_decker_frameset(
+                    raw_one_setting, CR2RES_FLAT_RAW, decker_values[i]) ;
+            if (raw_one_setting_decker == NULL) {
+                cpl_msg_info(__func__, "No files for decker: %s",
+                        decker_desc[i]) ;
+                continue ;
+            }
+            cpl_msg_info(__func__, "Reduce %s Frames", decker_desc[i]) ;
             cpl_msg_indent_more() ;
 
-            /* Call the reduction function */
-            if (cr2res_util_normflat_reduce(rawframes, slitmodel_frame, 
-                        det_nr,
-                        &(master_flat[det_nr-1]),
-                        &(ext_plist[det_nr-1])) == -1) {
-                cpl_msg_warning(__func__, 
-                        "Failed to reduce detector %d of %s Frames", 
-                        det_nr, decker_desc[i]);
-            }
+			/* TODO : Get the slit model for the setting / decker */
+			slitmodel_frame = cpl_frameset_find_const(frameset,
+								CR2RES_SLIT_MODEL_PROTYPE);
+
+			/* Loop on the detectors */
+			for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+				/* Initialise */
+				master_flat[det_nr-1] = NULL ;
+                bpm[det_nr-1] = NULL ;
+				ext_plist[det_nr-1] = NULL ;
+
+				/* Compute only one detector */
+				if (reduce_det != 0 && det_nr != reduce_det) continue ;
+			
+				cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
+				cpl_msg_indent_more() ;
+
+				/* Call the reduction function */
+				if (cr2res_util_normflat_reduce(raw_one_setting_decker, 
+                            slitmodel_frame, bpm_low, bpm_high, 
+                            bpm_lines_ratio, det_nr,
+							&(master_flat[det_nr-1]),
+							&(bpm[det_nr-1]),
+							&(ext_plist[det_nr-1])) == -1) {
+					cpl_msg_warning(__func__, 
+							"Failed to reduce detector %d of %s Frames", 
+							det_nr, decker_desc[i]);
+				}
+				cpl_msg_indent_less() ;
+			}
             cpl_msg_indent_less() ;
+
+			/* Ѕave Products */
+
+            /* MASTER_FLAT */
+            out_file = cpl_sprintf("%s_%s_%s_master_flat.fits", RECIPE_STRING,
+                    setting_id, decker_desc[i]) ;
+            cr2res_io_save_MASTER_FLAT(out_file, frameset,
+                    raw_one_setting_decker, parlist, master_flat, NULL,
+                    ext_plist, CR2RES_UTIL_MASTER_FLAT_PROCATG,
+                    RECIPE_STRING);
+            cpl_free(out_file);
+
+            /* BPM */
+            out_file = cpl_sprintf("%s_%s_%s_master_bpm.fits", RECIPE_STRING,
+                    setting_id, decker_desc[i]) ;
+            cr2res_io_save_BPM(out_file, frameset,
+                    raw_one_setting_decker, parlist, bpm, NULL,ext_plist,
+                    CR2RES_UTIL_NORM_BPM_PROCATG, RECIPE_STRING) ;
+            cpl_free(out_file);
+
+			/* Free */
+            cpl_frameset_delete(raw_one_setting_decker) ;
+			for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+				if (master_flat[det_nr-1] != NULL)
+                    hdrl_image_delete(master_flat[det_nr-1]) ;
+                if (bpm[det_nr-1] != NULL)
+                    cpl_image_delete(bpm[det_nr-1]) ;
+                if (ext_plist[det_nr-1] != NULL)
+                    cpl_propertylist_delete(ext_plist[det_nr-1]) ;
+			}
         }
-
-        /* Ѕave Products */
-
-        /* MASTER_FLAT */
-		out_file = cpl_sprintf("%s_%s_master_flat.fits", RECIPE_STRING,
-                decker_desc[i]) ;
-        cr2res_io_save_MASTER_FLAT(out_file, frameset, rawframes, parlist,
-                master_flat, NULL, ext_plist, CR2RES_UTIL_MASTER_FLAT_PROCATG, 
-                RECIPE_STRING) ;
-		cpl_free(out_file);
-
-        /* Free */
-        cpl_frameset_delete(rawframes) ;
-        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-            if (master_flat[det_nr-1] != NULL)
-                hdrl_image_delete(master_flat[det_nr-1]) ;
-          if (ext_plist[det_nr-1] != NULL)
-                cpl_propertylist_delete(ext_plist[det_nr-1]) ;
-        }
-
         cpl_msg_indent_less() ;
+        cpl_frameset_delete(raw_one_setting) ;
+        cpl_free(setting_id) ;
     }
+    cpl_free(labels);
+    cpl_frameset_delete(rawframes) ;
     return (int)cpl_error_get_code();
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
-  @param 
-  @return  
+  @brief  Normalise the flat for 1 setting, 1 decker position, 1 detector
+  @param rawframes          Input raw frames (same setting, same decker)
+  @param slitmodel_frame    Slit model frame for this setting/decker
+  @param bpm_low            Threshold for BPM detection
+  @param bpm_high           Threshold for BPM detection
+  @param bpm_linemax        Max fraction of BPM per line
+  @param reduce_det			The detector to compute
+  @param master_flat        [out] Master flat
+  @param bpm                [out] the BPM
+  @param ext_plist          [out] the header for saving the products
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_util_normflat_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frame     *   slitmodel_frame,
+        double                  bpm_low,
+        double                  bpm_high,
+        double                  bpm_linemax,
         int                     reduce_det,
         hdrl_image          **  master_flat,
+        cpl_image           **  bpm,
         cpl_propertylist    **  ext_plist)
 {
     const char          *   first_file ;
@@ -315,6 +429,8 @@ static int cr2res_util_normflat_reduce(
     hdrl_image          *   collapsed ;
     hdrl_image          *   slit_model ;
     cpl_image           *   contrib ;
+    cpl_image           *   bpm_im ;
+    cpl_mask            *   bpm_flat ;
     cpl_propertylist    *   plist ;
     hdrl_image          *   master_flat_loc ;
     int                     i, ext_nr ;
@@ -367,8 +483,8 @@ static int cr2res_util_normflat_reduce(
     /* Compute the Master flat */
     cpl_msg_info(__func__, "Compute the master flat") ;
     cpl_msg_indent_more() ;
-    if ((master_flat_loc = cr2res_master_flat(collapsed, 
-                    slit_model, -1.0, -1.0, -1.0, NULL)) == NULL) {
+    if ((master_flat_loc = cr2res_master_flat(collapsed, slit_model, bpm_low, 
+                    bpm_high, bpm_linemax, &bpm_flat)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the Master Flat") ;
         cpl_propertylist_delete(plist);
         hdrl_image_delete(collapsed) ;
@@ -380,9 +496,83 @@ static int cr2res_util_normflat_reduce(
     hdrl_image_delete(slit_model) ;
     hdrl_image_delete(collapsed) ;
 
+    /* Create the BPM image */
+    bpm_im = cpl_image_new(cpl_mask_get_size_x(bpm_flat),
+            cpl_mask_get_size_y(bpm_flat), CPL_TYPE_INT) ;
+    if (cr2res_bpm_add_mask(bpm_im, bpm_flat, CR2RES_BPM_FLAT)) {
+        cpl_msg_error(__func__, "Failed to add the mask to the BPM") ;
+        cpl_propertylist_delete(plist);
+        hdrl_image_delete(master_flat_loc) ;
+        cpl_mask_delete(bpm_flat) ;
+        cpl_image_delete(bpm_im) ;
+        return -1 ;
+    }
+    cpl_mask_delete(bpm_flat) ;
+
     /* Return the results */
     *master_flat = master_flat_loc ;
+    *bpm = bpm_im ;
     *ext_plist = plist ;
     return 0 ;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Comparison function to identify different settings
+  @param    frame1  first frame 
+  @param    frame2  second frame 
+  @return   0 if frame1!=frame2, 1 if frame1==frame2, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_util_normflat_compare(
+        const cpl_frame   *   frame1,
+        const cpl_frame   *   frame2)
+{
+    int                     comparison ;
+    cpl_propertylist    *   plist1 ;
+    cpl_propertylist    *   plist2 ;
+    const char          *   sval1 ;
+    const char          *   sval2 ;
+
+    /* Test entries */
+    if (frame1==NULL || frame2==NULL) return -1 ;
+
+    /* Get property lists */
+    if ((plist1=cpl_propertylist_load(cpl_frame_get_filename(frame1),0))==NULL){
+        cpl_msg_error(__func__, "getting header from reference frame");
+        return -1 ;
+    }
+    if ((plist2=cpl_propertylist_load(cpl_frame_get_filename(frame2),0))==NULL){
+        cpl_msg_error(__func__, "getting header from reference frame");
+        cpl_propertylist_delete(plist1) ;
+        return -1 ;
+    }
+
+    /* Test status */
+    if (cpl_error_get_code()) {
+        cpl_propertylist_delete(plist1) ;
+        cpl_propertylist_delete(plist2) ;
+        return -1 ;
+    }
+
+    comparison = 1 ;
+
+    /* Compare the SETTING used */
+    sval1 = cr2res_pfits_get_wlen_id(plist1) ;
+    sval2 = cr2res_pfits_get_wlen_id(plist2) ;
+    if (cpl_error_get_code()) {
+        cpl_msg_error(__func__, "Cannot get the reference wavelength");
+        cpl_propertylist_delete(plist1) ;
+        cpl_propertylist_delete(plist2) ;
+        return -1 ;
+    }
+    if (strcmp(sval1, sval2)) comparison = 0 ;
+
+    cpl_propertylist_delete(plist1) ;
+    cpl_propertylist_delete(plist2) ;
+    return comparison ;
+}
+
+
+
 

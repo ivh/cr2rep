@@ -203,6 +203,7 @@ static int cr2res_util_bpm_split(
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   cur_frame ;
     const char          *   cur_fname ;
+    cpl_frameset        *   cur_fset ;
     cpl_image           *   ima ;
     cpl_image   *   splitted_bpms[CR2RES_NB_BPM_TYPES][CR2RES_NB_DETECTORS] ;
     cpl_mask            *   my_mask ;
@@ -279,9 +280,12 @@ static int cr2res_util_bpm_split(
         for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {
             out_file=cpl_sprintf("%s_splitted_%d.fits", 
                     cr2res_get_root_name(cur_fname), bpm_types[j]) ;
-            cr2res_io_save_BPM(out_file, frameset, frameset, parlist,
+            cur_fset = cpl_frameset_new() ;
+            cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
+            cr2res_io_save_BPM(out_file, frameset, cur_fset, parlist,
                     splitted_bpms[j], NULL, ext_plist, 
                     CR2RES_UTIL_BPM_SPLIT_PROCATG, RECIPE_STRING) ;
+            cpl_frameset_delete(cur_fset) ;
             cpl_free(out_file);
         }
         /* Free */

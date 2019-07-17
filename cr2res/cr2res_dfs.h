@@ -101,6 +101,7 @@
 /*      CR2RES_DETLIN_BPM_PROCATG */
 /*      CR2RES_DARK_BPM_PROCATG */
 /*      CR2RES_UTIL_BPM_SPLIT_PROCATG */
+/*      CR2RES_UTIL_NORM_BPM_PROCATG */
 /* BPM Image with values CR2RES_BPM_DARK / CR2RES_BPM_FLAT... */
 #define CR2RES_BPM_PROTYPE                  "BPM"
 
@@ -263,6 +264,7 @@
 
 /* Produced by cr2res_util_normflat */
 #define CR2RES_UTIL_MASTER_FLAT_PROCATG     "UTIL_MASTER_FLAT"
+#define CR2RES_UTIL_NORM_BPM_PROCATG        "UTIL_NORM_BPM"
 
 /* Produced by cr2res_util_slit_curv */
 #define CR2RES_UTIL_SLIT_CURV_MAP_PROCATG   "UTIL_SLIT_CURV_MAP"
