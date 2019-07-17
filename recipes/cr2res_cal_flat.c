@@ -363,7 +363,6 @@ static int cr2res_cal_flat(
                             reduce_trace ;
     double                  bpm_low, bpm_high, bpm_lines_ratio, trace_smooth_x,
                             trace_smooth_y, extract_smooth ;
-
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   bpm_frame ;
