@@ -824,8 +824,8 @@ cpl_polynomial * cr2res_convert_array_to_poly(const cpl_array * arr)
 	for (i=0 ; i<cpl_array_get_size(arr) ; i++) {
         val = cpl_array_get(arr, i, NULL) ;
         if (isnan(val)) {
-            /* cpl_polynomial_delete(out) ; */
-            /* return NULL ; */
+            cpl_polynomial_delete(out) ;
+            return NULL ;
         } 
 		cpl_polynomial_set_coeff(out, &i, cpl_array_get(arr, i, NULL)) ;
     }
