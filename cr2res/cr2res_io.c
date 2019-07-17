@@ -110,10 +110,68 @@ static int cr2res_io_save_one_table(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get the first SLIT_MODEL frame from a frameset 
+  @param    set     Input frame set
+  @param    setting The setting to match 
+  @param    decker  The decker position to match
+  @return   The new allocated frame or NULL in error case or if it is missing
+ */
+/*----------------------------------------------------------------------------*/
+cpl_frame * cr2res_io_find_SLIT_MODEL(
+        const cpl_frameset  *   in,
+        const char          *   setting_id,
+        cr2res_decker           decker)
+{
+    cpl_frameset        *   fset ;
+    cpl_frame           *   out ;
+    const cpl_frame     *   cur_frame ;
+    const char          *   cur_fname ;
+    cpl_propertylist    *   plist ;
+    cr2res_decker           cur_decker ;
+    char                *   cur_setting ;
+    int                     i ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    /* Initialise */
+    out = NULL ;
+
+    /* Get the slit model frames */
+    fset=cr2res_extract_frameset(in, CR2RES_FLAT_SLIT_MODEL_PROCATG) ;
+    if (fset == NULL) 
+        fset=cr2res_extract_frameset(in, CR2RES_UTIL_SLIT_MODEL_PROCATG) ;
+    if (fset == NULL) 
+        fset=cr2res_extract_frameset(in, CR2RES_OBS_1D_SLITMODELA_PROCATG) ;
+    if (fset == NULL) 
+        fset=cr2res_extract_frameset(in, CR2RES_OBS_1D_SLITMODELB_PROCATG) ;
+    if (fset == NULL) return NULL ;
+
+    /* Find out if there is a matching one */
+    for (i=0 ; i<cpl_frameset_get_size(fset) ; i++) {
+        if (out == NULL) {
+			/* Get the Current Frame */
+			cur_frame = cpl_frameset_get_position(fset, i) ;
+			cur_fname = cpl_frame_get_filename(cur_frame) ;
+            plist = cpl_propertylist_load(cur_fname, 0);
+            cur_setting = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
+            cr2res_format_setting(cur_setting) ;
+            cur_decker = cr2res_pfits_get_decker_position(plist) ;
+            cpl_propertylist_delete(plist) ;
+            if (!strcmp(cur_setting, setting_id) && cur_decker == decker) 
+                out = cpl_frame_duplicate(cur_frame) ;
+            cpl_free(cur_setting) ;
+        }
+    }
+    cpl_frameset_delete(fset) ;
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get the first TRACE_WAVE frame from a frameset
   @param    set     Input frame set
-  @return   the trace_wave frame reference or NULL in error case or if it 
-            is missing
+  @return   the frame reference or NULL in error case or if it is missing
  */
 /*----------------------------------------------------------------------------*/
 const cpl_frame * cr2res_io_find_TRACE_WAVE(const cpl_frameset * in)
@@ -141,7 +199,7 @@ const cpl_frame * cr2res_io_find_TRACE_WAVE(const cpl_frameset * in)
 /**
   @brief    Get the first BPM frame from a frameset
   @param    set     Input frame set
-  @return   the bpm frame reference or NULL in error case or if it is missing
+  @return   the frame reference or NULL in error case or if it is missing
  */
 /*----------------------------------------------------------------------------*/
 const cpl_frame * cr2res_io_find_BPM(const cpl_frameset * in)

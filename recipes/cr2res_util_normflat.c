@@ -78,9 +78,15 @@ static int cr2res_util_normflat(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_util_normflat_description[] =
 "CRIRES+ flat normalization utility\n"
+"The input RAW files are grouped by setting/decker and each group is reduced\n"
+"ѕeparately. For each group, a slit model file with matching setting/decker\n"
+"is expected.\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
 "raw-file.fits " CR2RES_FLAT_RAW "\n"
-"slit_model.fits " CR2RES_SLIT_MODEL_PROTYPE "\n"
+"slit_model.fits " CR2RES_FLAT_SLIT_MODEL_PROCATG "\n"
+"             or " CR2RES_UTIL_SLIT_MODEL_PROCATG "\n"
+"             or " CR2RES_OBS_1D_SLITMODELA_PROCATG "\n"
+"             or " CR2RES_OBS_1D_SLITMODELB_PROCATG "\n"
 " The recipe produces the following products:\n"
 "cr2res_util_normflat_master.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG  "\n"
 "\n";
@@ -249,7 +255,7 @@ static int cr2res_util_normflat(
     cpl_size                nlabels ;
     cpl_propertylist    *   plist ;
     char                *   setting_id ;
-    const cpl_frame     *   slitmodel_frame ;
+    cpl_frame           *   slitmodel_frame ;
     hdrl_image          *   master_flat[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
@@ -328,9 +334,9 @@ static int cr2res_util_normflat(
             cpl_msg_info(__func__, "Reduce %s Frames", decker_desc[i]) ;
             cpl_msg_indent_more() ;
 
-			/* TODO : Get the slit model for the setting / decker */
-			slitmodel_frame = cpl_frameset_find_const(frameset,
-								CR2RES_SLIT_MODEL_PROTYPE);
+			/* Get the slit model for the setting / decker */
+			slitmodel_frame = cr2res_io_find_SLIT_MODEL(frameset,
+                    setting_id, decker_values[i]);
 
 			/* Loop on the detectors */
 			for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
@@ -359,6 +365,7 @@ static int cr2res_util_normflat(
 				cpl_msg_indent_less() ;
 			}
             cpl_msg_indent_less() ;
+            cpl_frame_delete(slitmodel_frame) ;
 
 			/* Ѕave Products */
 
