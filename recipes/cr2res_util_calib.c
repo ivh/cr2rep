@@ -67,7 +67,10 @@ static char cr2res_util_calib_description[] =
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
 "raw.fits " CR2RES_CALIB_RAW"\n"
 "detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG "\n"
-"bpm.fits " CR2RES_BPM_PROTYPE "\n"
+"bpm.fits " CR2RES_DARK_BPM_PROCATG "\n"
+"      or " CR2RES_FLAT_BPM_PROCATG "\n"
+"      or " CR2RES_DETLIN_BPM_PROCATG "\n"
+"      or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
 "master_dark.fits " CR2RES_MASTER_DARK_PROCATG "\n"
 "master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG "\n"
 " The recipe produces the following products:\n"
@@ -218,6 +221,7 @@ static int cr2res_util_calib(
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   cur_frame ;
     const char          *   cur_fname ;
+    cpl_frameset        *   cur_fset ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   master_flat_frame ;
@@ -231,7 +235,6 @@ static int cr2res_util_calib(
     int                     i, det_nr, wished_ext_nb; 
 
     /* Initialise */
-
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -255,8 +258,7 @@ static int cr2res_util_calib(
             CR2RES_MASTER_DARK_PROCATG) ; 
     master_flat_frame = cpl_frameset_find_const(frameset,
             CR2RES_FLAT_MASTER_FLAT_PROCATG) ; 
-    bpm_frame = cpl_frameset_find_const(frameset,
-            CR2RES_BPM_PROTYPE) ;
+    bpm_frame = cr2res_io_find_BPM(frameset) ;
 
     /* Get the rawframes */
     rawframes = cr2res_extract_frameset(frameset, CR2RES_CALIB_RAW) ;
@@ -318,9 +320,12 @@ static int cr2res_util_calib(
         /* CALIBRATED */
 		out_file=cpl_sprintf("%s_calibrated.fits", 
                 cr2res_get_root_name(cr2res_get_base_name(cur_fname))) ;
-        cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
+        cur_fset = cpl_frameset_new() ;
+        cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
+        cr2res_io_save_CALIBRATED(out_file, frameset, cur_fset, parlist,
                 calibrated, NULL, ext_plist, CR2RES_CALIBRATED_PROCATG, 
                 RECIPE_STRING) ;
+        cpl_frameset_delete(cur_fset) ;
 		cpl_free(out_file);
 
         /* Free */
