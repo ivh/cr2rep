@@ -69,8 +69,9 @@ static int cr2res_cal_flat_reduce(
         double                  bpm_linemax,
         int                     trace_degree,
         int                     trace_min_cluster,
-        double                  trace_smooth_x,
-        double                  trace_smooth_y,
+        int                     trace_smooth_x,
+        int                     trace_smooth_y,
+        double                  trace_threshold,
         int                     trace_opening,
         int                     extract_oversample,
         int                     extract_swath_width,
@@ -232,16 +233,23 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_smooth_x",
-            CPL_TYPE_DOUBLE, "Length of the smoothing kernel in x",
-            "cr2res.cr2res_cal_flat", 11.0);
+            CPL_TYPE_INT, "Length of the smoothing kernel in x",
+            "cr2res.cr2res_cal_flat", 11);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_smooth_x");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_smooth_y",
-            CPL_TYPE_DOUBLE, "Length of the smoothing kernel in y",
-            "cr2res.cr2res_cal_flat", 201.0);
+            CPL_TYPE_INT, "Length of the smoothing kernel in y",
+            "cr2res.cr2res_cal_flat", 201);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_smooth_y");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_threshold",
+            CPL_TYPE_DOUBLE, "Detection Threshold",
+            "cr2res.cr2res_cal_flat", -200.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_threshold");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -360,9 +368,9 @@ static int cr2res_cal_flat(
                             trace_opening,
                             extract_oversample, extract_swath_width,
                             extract_height, reduce_det, reduce_order,
-                            reduce_trace ;
-    double                  bpm_low, bpm_high, bpm_lines_ratio, trace_smooth_x,
-                            trace_smooth_y, extract_smooth ;
+                            reduce_trace, trace_smooth_x, trace_smooth_y ;
+    double                  bpm_low, bpm_high, bpm_lines_ratio,
+                            trace_threshold, extract_smooth ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   bpm_frame ;
@@ -416,10 +424,13 @@ static int cr2res_cal_flat(
     trace_min_cluster = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.trace_smooth_x");
-    trace_smooth_x = cpl_parameter_get_double(param);
+    trace_smooth_x = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.trace_smooth_y");
-    trace_smooth_y = cpl_parameter_get_double(param);
+    trace_smooth_y = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_flat.trace_threshold");
+    trace_threshold = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.trace_opening");
     trace_opening = cpl_parameter_get_bool(param);
@@ -530,10 +541,10 @@ static int cr2res_cal_flat(
                             master_dark_frame, bpm_frame, calib_cosmics_corr,
                             bpm_low, bpm_high, bpm_lines_ratio,
                             trace_degree, trace_min_cluster, trace_smooth_x,
-                            trace_smooth_y, trace_opening, extract_oversample,
-                            extract_swath_width, extract_height, 
-                            extract_smooth, 0,
-                            det_nr, reduce_order, reduce_trace,
+                            trace_smooth_y, trace_threshold, trace_opening, 
+                            extract_oversample, extract_swath_width, 
+                            extract_height, extract_smooth, 0, det_nr, 
+                            reduce_order, reduce_trace,
                             &(master_flat[det_nr-1]),
                             &(trace_wave[i][det_nr-1]),
                             &(slit_func[det_nr-1]),
@@ -698,6 +709,7 @@ static int cr2res_cal_flat(
   @param trace_min_cluster  Trace computation related
   @param trace_smooth_x     Trace computation related
   @param trace_smooth_y     Trace computation related
+  @param trace_threshold    Trace computation related
   @param trace_opening      Trace computation related
   @param extract_oversample Extraction related
   @param extract_swath_width Extraction related
@@ -728,8 +740,9 @@ static int cr2res_cal_flat_reduce(
         double                  bpm_linemax,
         int                     trace_degree,
         int                     trace_min_cluster,
-        double                  trace_smooth_x,
-        double                  trace_smooth_y,
+        int                     trace_smooth_x,
+        int                     trace_smooth_y,
+        double                  trace_threshold,
         int                     trace_opening,
         int                     extract_oversample,
         int                     extract_swath_width,
@@ -838,8 +851,8 @@ static int cr2res_cal_flat_reduce(
     cpl_msg_info(__func__, "Compute the traces") ;
     cpl_msg_indent_more() ;
     if ((traces = cr2res_trace(hdrl_image_get_image(collapsed),
-                    trace_smooth_x, trace_smooth_y, trace_opening, trace_degree,
-                    trace_min_cluster)) == NULL) {
+                    trace_smooth_x, trace_smooth_y, trace_threshold, 
+                    trace_opening, trace_degree, trace_min_cluster)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the traces") ;
         cpl_propertylist_delete(plist);
         hdrl_image_delete(collapsed) ;

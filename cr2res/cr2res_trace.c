@@ -66,8 +66,8 @@ static cpl_array * cr2res_trace_get_slit_frac(
         cr2res_decker       decker_pos) ;
 static cpl_mask * cr2res_trace_signal_detect(
         const cpl_image *   image,
-        double              smooth_x,
-        double              smooth_y,
+        int                 smooth_x,
+        int                 smooth_y,
         double              thresh) ;
 static cpl_table * cr2res_trace_fit_traces(
         cpl_table   *   clustertable,
@@ -106,8 +106,9 @@ static int cr2res_trace_get_subtrace(
 /**
   @brief  Main function for running all parts of the trace algorithm
   @param    ima             input image
-  @param    smooth_x        Used for detection
-  @param    smooth_y        Used for detection
+  @param    smooth_x        Low pass filter kernel size in x
+  @param    smooth_y        Low pass filter kernel size in y
+  @param    threshold       The threshold used for detection
   @param    opening         Used for cleaning the mask
   @param    degree          Fitted polynomial degree
   @param    min_cluster     A trace must be bigger - discarded otherwise
@@ -130,8 +131,9 @@ static int cr2res_trace_get_subtrace(
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace(
         cpl_image       *   ima,
-        double              smooth_x,
-        double              smooth_y,
+        int                 smooth_x,
+        int                 smooth_y,
+        double              threshold,
         int                 opening,
         int                 degree,
         int                 min_cluster)
@@ -147,17 +149,10 @@ cpl_table * cr2res_trace(
     /* Check Entries */
     if (ima == NULL) return NULL ;
 
-    /* Initialise */
-    /* TODO Should be set to noise level*/
-    /* Best to calcule from input image, not relying on external value */
-    /* E.g. mask with thresh=0 once, measure noise in non-signal regions */
-    /* and do a second pass with this thresh.  */
-    double                  thresh=-700.0;
-
     /* Apply detection */
     cpl_msg_info(__func__, "Detect the signal") ;
     if ((mask = cr2res_trace_signal_detect(ima, smooth_x, smooth_y,
-                    thresh)) == NULL) {
+                    threshold)) == NULL) {
         cpl_msg_error(__func__, "Detection failed") ;
         return NULL ;
     }
@@ -1314,8 +1309,9 @@ cpl_table * cr2res_trace_adjust(
     const char          *   first_file ;
     cpl_table           *   corrected_traces ;
     cpl_table           *   traces ;
-    int                     trace_opening, trace_degree, trace_min_cluster ;
-    double                  trace_smooth_x, trace_smooth_y, traces_shift ;
+    int                     trace_opening, trace_degree,
+                            trace_min_cluster, trace_smooth_x, trace_smooth_y ;
+    double                  trace_threshold, traces_shift ;
  
     /* Check Entries */
     if (trace_wave == NULL || flat_raw == NULL || 
@@ -1323,8 +1319,9 @@ cpl_table * cr2res_trace_adjust(
         return NULL ;
 
     /* Initialise */
-    trace_smooth_x = 200.0 ;
-    trace_smooth_y = 11.0 ;
+    trace_smooth_x = 200 ;
+    trace_smooth_y = 11 ;
+    trace_threshold = 5.0 ;
     trace_opening = 1 ;
     trace_degree = 5 ;
     trace_min_cluster = 10000 ;
@@ -1351,8 +1348,8 @@ cpl_table * cr2res_trace_adjust(
     /* Compute the trace */
     cpl_msg_info(__func__, "Compute the traces") ;
     if ((new_traces = cr2res_trace(hdrl_image_get_image(collapsed),
-                    trace_smooth_x, trace_smooth_y, trace_opening, trace_degree,
-                    trace_min_cluster)) == NULL) {
+                    trace_smooth_x, trace_smooth_y, trace_threshold,
+                    trace_opening, trace_degree, trace_min_cluster)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the traces") ;
         hdrl_image_delete(collapsed) ;
         cpl_msg_indent_less() ;
@@ -1682,8 +1679,8 @@ static cpl_array * cr2res_trace_get_slit_frac(
 /*----------------------------------------------------------------------------*/
 static cpl_mask * cr2res_trace_signal_detect(
         const cpl_image *   image,
-        double              smooth_x,
-        double              smooth_y,
+        int                 smooth_x,
+        int                 smooth_y,
         double              thresh)
 {
     cpl_image       *   sm_image ;

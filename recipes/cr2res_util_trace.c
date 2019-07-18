@@ -177,16 +177,23 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.smooth_x",
-            CPL_TYPE_DOUBLE, "Length of the smoothing kernel in x",
-            "cr2res.cr2res_util_trace", 11.0);
+            CPL_TYPE_INT, "Length of the smoothing kernel in x",
+            "cr2res.cr2res_util_trace", 11);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_x");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.smooth_y",
-            CPL_TYPE_DOUBLE, "Length of the smoothing kernel in y",
-            "cr2res.cr2res_util_trace", 201.0);
+            CPL_TYPE_INT, "Length of the smoothing kernel in y",
+            "cr2res.cr2res_util_trace", 201);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_y");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.threshold",
+            CPL_TYPE_DOUBLE, "Detection Threshold",
+            "cr2res.cr2res_util_trace", -200.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "threshold");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -267,8 +274,8 @@ static int cr2res_util_trace(
 {
     const cpl_parameter *   param;
     int                     min_cluster, degree, opening, reduce_det,
-                            split_traces ;
-    double                  smooth_x, smooth_y ;
+                            split_traces, smooth_x, smooth_y ;
+    double                  threshold ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   cur_frame ;
     const char          *   cur_fname ;
@@ -291,10 +298,13 @@ static int cr2res_util_trace(
     degree = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.smooth_x");
-    smooth_x = cpl_parameter_get_double(param);
+    smooth_x = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.smooth_y");
-    smooth_y = cpl_parameter_get_double(param);
+    smooth_y = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_trace.threshold");
+    threshold = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.opening");
     opening = cpl_parameter_get_bool(param);
@@ -362,8 +372,8 @@ static int cr2res_util_trace(
             /* Get the traces */
             cpl_msg_info(__func__, "Compute the traces") ;
             cpl_msg_indent_more() ;
-            if ((traces[det_nr-1] = cr2res_trace(hdrl_image_get_image(flat_ima), 
-                            smooth_x, smooth_y, opening, degree, 
+            if ((traces[det_nr-1] = cr2res_trace(hdrl_image_get_image(flat_ima),
+                            smooth_x, smooth_y, threshold, opening, degree, 
                             min_cluster)) == NULL) {
                 cpl_msg_warning(__func__, 
                         "Cannot compute trace - skip detector");

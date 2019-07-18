@@ -33,8 +33,9 @@
 
 cpl_table * cr2res_trace(
         cpl_image       *   ima,
-        double              smooth_x,
-        double              smooth_y,
+        int                 smooth_x,
+        int                 smooth_y,
+        double              threshold,
         int                 opening,
         int                 degree,
         int                 min_cluster) ;
