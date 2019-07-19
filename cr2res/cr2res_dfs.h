@@ -291,7 +291,6 @@
 #define CR2RES_DARK_RAW                     "DARK"
 #define CR2RES_FLAT_RAW                     "FLAT"
 #define CR2RES_WAVE_RAW                     "WAVE"
-#define CR2RES_CALIB_RAW                    "CALIB"
 #define CR2RES_OBS_1D_RAW                   "OBS_1D"
 #define CR2RES_OBS_2D_RAW                   "OBS_2D"
 #define CR2RES_OBS_POL_RAW                  "OBS_POL"
