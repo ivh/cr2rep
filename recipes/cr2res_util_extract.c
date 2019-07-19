@@ -70,7 +70,7 @@ static char cr2res_util_extract_description[] =
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
 "science.fits " CR2RES_FLAT_RAW "\n"
 "          or " CR2RES_WAVE_RAW "\n"
-"          or " CR2RES_OBS_1D_RAW "\n"
+"          or " CR2RES_OBS_NODDING_RAW "\n"
 "          or " CR2RES_OBS_2D_RAW "\n"
 "          or " CR2RES_OBS_POL_RAW "\n"
 "trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
@@ -555,7 +555,7 @@ static int cr2res_util_extract(
   @return   the RAW frameset or NULL in error case or if it is missing
     Allowed RAW types : CR2RES_FLAT_RAW
                         CR2RES_WAVE_RAW
-                        CR2RES_OBS_1D_RAW
+                        CR2RES_OBS_NODDING_RAW
                         CR2RES_OBS_2D_RAW
                         CR2RES_OBS_POL_RAW
  */
@@ -571,7 +571,7 @@ static cpl_frameset * cr2res_util_extract_find_RAW(const cpl_frameset * in)
     if (out == NULL)
         out = cr2res_extract_frameset(in, CR2RES_WAVE_RAW) ;
     if (out == NULL)
-        out = cr2res_extract_frameset(in, CR2RES_OBS_1D_RAW) ;
+        out = cr2res_extract_frameset(in, CR2RES_OBS_NODDING_RAW) ;
     if (out == NULL)
         out = cr2res_extract_frameset(in, CR2RES_OBS_2D_RAW) ;
     if (out == NULL)

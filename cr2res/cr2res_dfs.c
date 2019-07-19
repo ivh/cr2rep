@@ -78,7 +78,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_DARK_RAW) ||
                 !strcmp(tag, CR2RES_FLAT_RAW) ||
                 !strcmp(tag, CR2RES_WAVE_RAW) ||
-                !strcmp(tag, CR2RES_OBS_1D_RAW) ||
+                !strcmp(tag, CR2RES_OBS_NODDING_RAW) ||
                 !strcmp(tag, CR2RES_OBS_2D_RAW) ||
                 !strcmp(tag, CR2RES_OBS_POL_RAW) ||
                 /* PRO.TYPE tags that can be used as input RAWs */
@@ -106,15 +106,15 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 /* Produced by cr2res_cal_wave */
                 !strcmp(tag, CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG) ||
                 !strcmp(tag, CR2RES_CAL_WAVE_MAP_PROCATG) ||
-                /* Produced by cr2res_obs_1d */
-                !strcmp(tag, CR2RES_OBS_1D_EXTRACTA_PROCATG) ||
-                !strcmp(tag, CR2RES_OBS_1D_COMBINEDA_PROCATG) ||
-                !strcmp(tag, CR2RES_OBS_1D_SLITFUNCA_PROCATG) ||
-                !strcmp(tag, CR2RES_OBS_1D_SLITMODELA_PROCATG) ||
-                !strcmp(tag, CR2RES_OBS_1D_EXTRACTB_PROCATG) ||
-                !strcmp(tag, CR2RES_OBS_1D_COMBINEDB_PROCATG) ||
-                !strcmp(tag, CR2RES_OBS_1D_SLITFUNCB_PROCATG) ||
-                !strcmp(tag, CR2RES_OBS_1D_SLITMODELB_PROCATG) ||
+                /* Produced by cr2res_obs_nodding */
+                !strcmp(tag, CR2RES_OBS_NODDING_EXTRACTA_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_NODDING_COMBINEDA_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_NODDING_SLITFUNCA_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_NODDING_SLITMODELA_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_NODDING_EXTRACTB_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_NODDING_COMBINEDB_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_NODDING_SLITFUNCB_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_NODDING_SLITMODELB_PROCATG) ||
                 /* Produced by cr2res_obs_2d */
                 !strcmp(tag, CR2RES_OBS_2D_EXTRACT_PROCATG) ||
                 /* Produced by cr2res_obs_pol */

@@ -92,7 +92,7 @@ static int cr2res_obs_nodding(cpl_frameset *, const cpl_parameterlist *);
 static char cr2res_obs_nodding_description[] =
 "CRIRES+ 1d Observation recipe\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw-file.fits " CR2RES_OBS_1D_RAW"\n"
+"raw-file.fits " CR2RES_OBS_NODDING_RAW"\n"
 "trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
 "             or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "\n"
 "             or " CR2RES_UTIL_TRACE_WAVE_PROCATG "\n"
@@ -107,14 +107,14 @@ static char cr2res_obs_nodding_description[] =
 "      or " CR2RES_DARK_BPM_PROCATG "\n"
 "      or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
 " The recipe produces the following products:\n"
-"cr2res_obs_nodding_extractA.fits " CR2RES_OBS_1D_EXTRACTA_PROCATG "\n"
-"cr2res_obs_nodding_extractB.fits " CR2RES_OBS_1D_EXTRACTB_PROCATG "\n"
-"cr2res_obs_nodding_combinedA.fits " CR2RES_OBS_1D_COMBINEDA_PROCATG "\n"
-"cr2res_obs_nodding_combinedB.fits " CR2RES_OBS_1D_COMBINEDB_PROCATG "\n"
-"cr2res_obs_nodding_modelA.fits " CR2RES_OBS_1D_SLITMODELA_PROCATG "\n"
-"cr2res_obs_nodding_modelB.fits " CR2RES_OBS_1D_SLITMODELB_PROCATG "\n"
-"cr2res_obs_nodding_slitfuncA.fits " CR2RES_OBS_1D_SLITFUNCA_PROCATG "\n"
-"cr2res_obs_nodding_slitfuncB.fits " CR2RES_OBS_1D_SLITFUNCB_PROCATG "\n"
+"cr2res_obs_nodding_extractA.fits " CR2RES_OBS_NODDING_EXTRACTA_PROCATG "\n"
+"cr2res_obs_nodding_extractB.fits " CR2RES_OBS_NODDING_EXTRACTB_PROCATG "\n"
+"cr2res_obs_nodding_combinedA.fits " CR2RES_OBS_NODDING_COMBINEDA_PROCATG "\n"
+"cr2res_obs_nodding_combinedB.fits " CR2RES_OBS_NODDING_COMBINEDB_PROCATG "\n"
+"cr2res_obs_nodding_modelA.fits " CR2RES_OBS_NODDING_SLITMODELA_PROCATG "\n"
+"cr2res_obs_nodding_modelB.fits " CR2RES_OBS_NODDING_SLITMODELB_PROCATG "\n"
+"cr2res_obs_nodding_slitfuncA.fits " CR2RES_OBS_NODDING_SLITFUNCA_PROCATG "\n"
+"cr2res_obs_nodding_slitfuncB.fits " CR2RES_OBS_NODDING_SLITFUNCB_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------
@@ -341,7 +341,7 @@ static int cr2res_obs_nodding(
     bpm_frame = cr2res_io_find_BPM(frameset) ;
 
     /* Get the RAW Frames */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_OBS_1D_RAW) ;
+    rawframes = cr2res_extract_frameset(frameset, CR2RES_OBS_NODDING_RAW) ;
     if (rawframes == NULL) {
         cpl_msg_error(__func__, "Could not find RAW frames") ;
         return -1 ;
@@ -391,47 +391,47 @@ static int cr2res_obs_nodding(
     /* Ѕave Products */
     out_file = cpl_sprintf("%s_combinedA.fits", RECIPE_STRING) ;
     cr2res_io_save_COMBINED(out_file, frameset, rawframes, parlist,
-            combineda, NULL, ext_plist, CR2RES_OBS_1D_COMBINEDA_PROCATG, 
+            combineda, NULL, ext_plist, CR2RES_OBS_NODDING_COMBINEDA_PROCATG, 
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_extractedA.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extracta,
-            NULL, ext_plist, CR2RES_OBS_1D_EXTRACTA_PROCATG, RECIPE_STRING) ;
+            NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTA_PROCATG,RECIPE_STRING);
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_slitfuncA.fits", RECIPE_STRING) ;
     cr2res_io_save_SLIT_FUNC(out_file, frameset, rawframes, parlist,
-            slitfunca, NULL, ext_plist, CR2RES_OBS_1D_SLITFUNCA_PROCATG,
+            slitfunca, NULL, ext_plist, CR2RES_OBS_NODDING_SLITFUNCA_PROCATG,
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_modelA.fits", RECIPE_STRING) ;
     cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist,
-            modela, NULL, ext_plist, CR2RES_OBS_1D_SLITMODELA_PROCATG,
+            modela, NULL, ext_plist, CR2RES_OBS_NODDING_SLITMODELA_PROCATG,
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_combinedB.fits", RECIPE_STRING) ;
     cr2res_io_save_COMBINED(out_file, frameset, rawframes, parlist,
-            combinedb, NULL, ext_plist, CR2RES_OBS_1D_COMBINEDB_PROCATG, 
+            combinedb, NULL, ext_plist, CR2RES_OBS_NODDING_COMBINEDB_PROCATG, 
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_extractedB.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extractb,
-            NULL, ext_plist, CR2RES_OBS_1D_EXTRACTB_PROCATG, RECIPE_STRING) ;
+            NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTB_PROCATG,RECIPE_STRING);
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_slitfuncB.fits", RECIPE_STRING) ;
     cr2res_io_save_SLIT_FUNC(out_file, frameset, rawframes, parlist,
-            slitfuncb, NULL, ext_plist, CR2RES_OBS_1D_SLITFUNCB_PROCATG,
+            slitfuncb, NULL, ext_plist, CR2RES_OBS_NODDING_SLITFUNCB_PROCATG,
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_modelB.fits", RECIPE_STRING) ;
     cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist,
-            modelb, NULL, ext_plist, CR2RES_OBS_1D_SLITMODELB_PROCATG,
+            modelb, NULL, ext_plist, CR2RES_OBS_NODDING_SLITMODELB_PROCATG,
             RECIPE_STRING) ;
     cpl_free(out_file);
 

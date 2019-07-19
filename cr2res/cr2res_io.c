@@ -142,9 +142,9 @@ cpl_frame * cr2res_io_find_SLIT_MODEL(
     if (fset == NULL) 
         fset=cr2res_extract_frameset(in, CR2RES_UTIL_SLIT_MODEL_PROCATG) ;
     if (fset == NULL) 
-        fset=cr2res_extract_frameset(in, CR2RES_OBS_1D_SLITMODELA_PROCATG) ;
+        fset=cr2res_extract_frameset(in,CR2RES_OBS_NODDING_SLITMODELA_PROCATG) ;
     if (fset == NULL) 
-        fset=cr2res_extract_frameset(in, CR2RES_OBS_1D_SLITMODELB_PROCATG) ;
+        fset=cr2res_extract_frameset(in,CR2RES_OBS_NODDING_SLITMODELB_PROCATG) ;
     if (fset == NULL) return NULL ;
 
     /* Find out if there is a matching one */
