@@ -37,7 +37,7 @@ plugin_LTLIBRARIES = cr2res_cal_detlin.la \
                      cr2res_cal_dark.la \
                      cr2res_cal_flat.la \
                      cr2res_cal_wave.la \
-                     cr2res_obs_1d.la \
+                     cr2res_obs_nodding.la \
                      cr2res_obs_2d.la \
                      cr2res_obs_pol.la \
                      cr2res_util_bpm_split.la \
@@ -72,10 +72,10 @@ cr2res_cal_wave_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
 cr2res_cal_wave_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
 cr2res_cal_wave_la_DEPENDENCIES = $(LIBCR2RES)
 
-cr2res_obs_1d_la_SOURCES = cr2res_obs_1d.c
-cr2res_obs_1d_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
-cr2res_obs_1d_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
-cr2res_obs_1d_la_DEPENDENCIES = $(LIBCR2RES)
+cr2res_obs_nodding_la_SOURCES = cr2res_obs_nodding.c
+cr2res_obs_nodding_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
+cr2res_obs_nodding_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
+cr2res_obs_nodding_la_DEPENDENCIES = $(LIBCR2RES)
 
 cr2res_obs_2d_la_SOURCES = cr2res_obs_2d.c
 cr2res_obs_2d_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)

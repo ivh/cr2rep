@@ -358,7 +358,7 @@ int cr2res_qc_flat_nb_overexposed(
   @return   the computed signal
  */
 /*----------------------------------------------------------------------------*/
-double cr2res_qc_obs_1d_signal(
+double cr2res_qc_obs_nodding_signal(
         const cpl_table     *   extracted)
 {
     double          qc_signal ;
@@ -405,7 +405,7 @@ double cr2res_qc_obs_1d_signal(
   @return   the computed signal
  */
 /*----------------------------------------------------------------------------*/
-double cr2res_qc_obs_1d_transmission(
+double cr2res_qc_obs_nodding_transmission(
         const cpl_table     *   extracted)
 {
     double      qc_transm ;
