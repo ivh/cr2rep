@@ -116,7 +116,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CPL_PLUGIN_API,
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
-                    "cr2res_util_trace",
+                    RECIPE_STRING,
                     "Trace utility",
                     cr2res_util_trace_description,
                     "Thomas Marquart, Yves Jung",
@@ -443,7 +443,7 @@ static int cr2res_util_trace(
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
         cur_fset = cpl_frameset_new() ;
         cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
-        cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, traces,
+        cr2res_io_save_TRACE_WAVE(out_file, frameset, cur_fset, parlist, traces,
                 NULL, ext_plist, CR2RES_UTIL_TRACE_WAVE_PROCATG, RECIPE_STRING);
         cpl_frameset_delete(cur_fset) ;
         cpl_free(out_file);

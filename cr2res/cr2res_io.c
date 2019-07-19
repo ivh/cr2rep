@@ -1115,6 +1115,7 @@ cpl_table * cr2res_io_load_EXTRACT_2D(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Save EMISSION_LINES file
+  @param    filename    The file name
   @param   	table		The table to save
   @param    parlist     The recipe input parameters
   @param    set         The recipe input frames
@@ -1123,13 +1124,13 @@ cpl_table * cr2res_io_load_EXTRACT_2D(
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_io_save_EMISSION_LINES(
+        const char              *   filename,
         cpl_table               *   out_table,
         const cpl_parameterlist *   parlist,
         cpl_frameset            *   set,
         const char              *   recipe)
 {
     cpl_propertylist    *   plist ;
-    char                *   fname ;
 
     plist = cpl_propertylist_new();
     cpl_propertylist_append_string(plist, "INSTRUME", "CR2RES") ;
@@ -1138,16 +1139,13 @@ int cr2res_io_save_EMISSION_LINES(
     cpl_propertylist_append_string(plist, CPL_DFS_PRO_TYPE,
             CR2RES_PROTYPE_CATALOG) ;
 
-    fname = cpl_sprintf("%s.fits", recipe) ;
     if (cpl_dfs_save_table(set, NULL, parlist, set, NULL, out_table,
                 NULL, recipe, plist, NULL,
-                PACKAGE "/" PACKAGE_VERSION, fname) != CPL_ERROR_NONE) {
+                PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot save the table") ;
         cpl_propertylist_delete(plist) ;
-        cpl_free(fname);
         return -1 ;
     }
-    cpl_free(fname);
     cpl_propertylist_delete(plist) ;
 
     /* Return */
@@ -1157,6 +1155,7 @@ int cr2res_io_save_EMISSION_LINES(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Save a MASTER_DARK
+  @param    filename    The file name
   @param    allframes   The recipe input frames
   @param    inframes    The recipe used input frames
   @param    filename    The FITS file name
@@ -1188,6 +1187,7 @@ int cr2res_io_save_MASTER_DARK(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Save a DETLIN COEFFS
+  @param    filename    The file name
   @param    allframes   The recipe input frames
   @param    inframes    The recipe used input frames
   @param    filename    The FITS file name

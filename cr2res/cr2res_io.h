@@ -136,6 +136,7 @@ cpl_table * cr2res_io_load_EXTRACT_2D(
         int             detector);
 
 int cr2res_io_save_EMISSION_LINES(
+        const char              *   filename,
         cpl_table               *   out_table,
         const cpl_parameterlist *   parlist,
         cpl_frameset            *   set,

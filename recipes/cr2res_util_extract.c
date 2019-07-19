@@ -64,9 +64,9 @@ static int cr2res_util_extract(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_util_extract_description[] =
-"Utility to perform optimal extraction on single frame along\n"
-"pre-computed traces. Single detector, order or trace selectable\n"
-"via parameters\n"
+"CRIRES+ spectrum extraction utility\n"
+"This utility performs the optimal extraction along precomputed traces.\n"
+"The files listed in the Set Of Frames (sof-file) must be tagged:\n"
 "science.fits " CR2RES_COMMAND_LINE "\n"
 "trace.fits " CR2RES_COMMAND_LINE "\n"
 "bpm.fits(optional) " CR2RES_COMMAND_LINE "\n"

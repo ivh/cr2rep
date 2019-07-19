@@ -61,7 +61,7 @@ static int cr2res_util_genlines(cpl_frameset *, const cpl_parameterlist *);
 static char cr2res_util_genlines_description[] =
 "This recipe is used to generate spectrum calibration tables.\n"
 "The sof file contains the names of the input ASCII file\n"
-"tagged with "CR2RES_COMMAND_LINE".\n"
+"tagged with " CR2RES_EMISSION_LINES_PROCATG".\n"
 "The ASCII file must contain two columns:\n"
 "1st: Wavelengths in increasing order (the unit is corrected by\n"
 "     the factor option to obtain nanometers).\n"
@@ -96,7 +96,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CPL_PLUGIN_API,
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
-                    "cr2res_util_genlines",
+                    RECIPE_STRING,
                     "Generate spectrum calibration FITS tables",
                     cr2res_util_genlines_description,
                     "Thomas Marquart, Yves Jung",
@@ -214,9 +214,12 @@ static int cr2res_util_genlines(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   par ;
+    cpl_frameset        *   rawframes ;
+    const cpl_frame     *   cur_frame ;
+    const char          *   cur_fname ;
+    char                *   out_file;
     double                  wl_fac ;
     int                     display ;
-    cpl_frame           *   cur_frame ;
     cpl_bivector        *   bivec ;
     cpl_bivector        *   bivec_sorted ;
     double              *   pbivec_x ;
@@ -241,57 +244,84 @@ static int cr2res_util_genlines(
         return -1 ;
     }
 
-    /* Load the file */
-    cur_frame = cpl_frameset_get_position(frameset, 0) ;
-    if ((bivec=cpl_bivector_read(cpl_frame_get_filename(cur_frame)))==NULL) {
-        cpl_msg_error(__func__, "Cannot load the file in the bivector") ;
+    /* Get Calibration frames */
+
+    /* Get the rawframes */
+    rawframes = cr2res_extract_frameset(frameset, 
+            CR2RES_EMISSION_LINES_PROCATG) ;
+    if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
+        cpl_msg_error(__func__, "Cannot find any RAW file") ;
+        cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
         return -1 ;
     }
-    nvals = cpl_bivector_get_size(bivec) ;
 
-    /* Use wl_factor */
-    cpl_vector_multiply_scalar(cpl_bivector_get_x(bivec), wl_fac) ;
+    /* Loop on the RAW frames */
+    for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
+        /* Get the Current Frame */
+        cur_frame = cpl_frameset_get_position(rawframes, i) ;
+        cur_fname = cpl_frame_get_filename(cur_frame) ;
+        cpl_msg_info(__func__, "Handle File %s", cur_fname) ;
+        cpl_msg_indent_more() ;
 
-    /* Sort if needed */
-    int sort = 1 ;
-    if (sort) {
-        bivec_sorted = cpl_bivector_duplicate(bivec) ;
-        cpl_bivector_sort(bivec_sorted, bivec, CPL_SORT_ASCENDING,
-                CPL_SORT_BY_X) ;
-        cpl_bivector_delete(bivec) ;
-        bivec = bivec_sorted ;
-        bivec_sorted = NULL;
-    }
+		/* Load the file */
+		if ((bivec=cpl_bivector_read(cpl_frame_get_filename(cur_frame)))==NULL){
+			cpl_msg_error(__func__, "Cannot load the file in the bivector") ;
+			cpl_msg_indent_less() ;
+			return -1 ;
+		}
+		nvals = cpl_bivector_get_size(bivec) ;
 
-    /* Display if requested */
-    if (display) {
-        cpl_plot_bivector(
+		/* Use wl_factor */
+		cpl_vector_multiply_scalar(cpl_bivector_get_x(bivec), wl_fac) ;
+
+		/* Sort if needed */
+		int sort = 1 ;
+		if (sort) {
+			bivec_sorted = cpl_bivector_duplicate(bivec) ;
+			cpl_bivector_sort(bivec_sorted, bivec, CPL_SORT_ASCENDING,
+					CPL_SORT_BY_X) ;
+			cpl_bivector_delete(bivec) ;
+			bivec = bivec_sorted ;
+			bivec_sorted = NULL;
+		}
+
+		/* Display if requested */
+		if (display) {
+			cpl_plot_bivector(
                 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Emission';",
                 "t 'Catalog lines' w lines", "", bivec);
-    }
+		}
 
-    /* Allocate the data container */
-    tab = cpl_table_new(nvals) ;
-    cpl_table_wrap_double(tab, cpl_bivector_get_x_data(bivec),
-            CR2RES_COL_WAVELENGTH) ;
-    cpl_table_wrap_double(tab, cpl_bivector_get_y_data(bivec),
-            CR2RES_COL_EMISSION) ;
+		/* Allocate the data container */
+		tab = cpl_table_new(nvals) ;
+		cpl_table_wrap_double(tab, cpl_bivector_get_x_data(bivec),
+				CR2RES_COL_WAVELENGTH) ;
+		cpl_table_wrap_double(tab, cpl_bivector_get_y_data(bivec),
+				CR2RES_COL_EMISSION) ;
 
-    /* Save the table */
-    cpl_msg_info(__func__, "Saving the table with %d rows", nvals) ;
-    if (cr2res_io_save_EMISSION_LINES(tab, parlist, frameset,
-                "cr2res_util_genlines") == -1) {
-        cpl_msg_error(__func__, "Cannot write the table") ;
-        cpl_bivector_delete(bivec) ;
-        cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
-        cpl_table_unwrap(tab, CR2RES_COL_EMISSION) ;
-        cpl_table_delete(tab) ;
-        return -1 ;
+		/* Save the table */
+		cpl_msg_info(__func__, "Saving the table with %d rows", nvals) ;
+        out_file = cpl_sprintf("%s_catalog.fits",
+                cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
+		if (cr2res_io_save_EMISSION_LINES(out_file, tab, parlist, frameset,
+					RECIPE_STRING) == -1) {
+			cpl_msg_error(__func__, "Cannot write the table") ;
+			cpl_bivector_delete(bivec) ;
+			cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
+			cpl_table_unwrap(tab, CR2RES_COL_EMISSION) ;
+			cpl_table_delete(tab) ;
+	        cpl_free(out_file);
+			cpl_msg_indent_less() ;
+			return -1 ;
+		}
+		cpl_free(out_file);
+		cpl_bivector_delete(bivec) ;
+		cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
+		cpl_table_unwrap(tab, CR2RES_COL_EMISSION) ;
+		cpl_table_delete(tab) ;
+		cpl_msg_indent_less() ;
     }
-    cpl_bivector_delete(bivec) ;
-    cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
-    cpl_table_unwrap(tab, CR2RES_COL_EMISSION) ;
-    cpl_table_delete(tab) ;
+	cpl_frameset_delete(rawframes) ;
     return 0 ;
 }
 
