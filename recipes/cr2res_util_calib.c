@@ -52,6 +52,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+cpl_frameset * cr2res_util_calib_find_RAW(const cpl_frameset * in) ;
 static int cr2res_util_calib_create(cpl_plugin *);
 static int cr2res_util_calib_exec(cpl_plugin *);
 static int cr2res_util_calib_destroy(cpl_plugin *);
@@ -65,7 +66,11 @@ static char cr2res_util_calib_description[] =
 "CRIRES+ calibration utility\n"
 "Each input file is corrected with : BPM / Dark / Flat / Det. Lin. / Cosmics\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw.fits " CR2RES_CALIB_RAW"\n"
+"raw.fits " CR2RES_FLAT_RAW"\n"
+"      or " CR2RES_WAVE_RAW"\n"
+"      or " CR2RES_OBS_1D_RAW"\n"
+"      or " CR2RES_OBS_2D_RAW"\n"
+"      or " CR2RES_OBS_POL_RAW"\n"
 "detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG "\n"
 "bpm.fits " CR2RES_DARK_BPM_PROCATG "\n"
 "      or " CR2RES_FLAT_BPM_PROCATG "\n"
@@ -261,7 +266,7 @@ static int cr2res_util_calib(
     bpm_frame = cr2res_io_find_BPM(frameset) ;
 
     /* Get the rawframes */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_CALIB_RAW) ;
+    rawframes = cr2res_util_calib_find_RAW(frameset) ;
     if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
         cpl_msg_error(__func__, "Cannot find any RAW file") ;
         cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
@@ -342,4 +347,38 @@ static int cr2res_util_calib(
     cpl_frameset_delete(rawframes) ;
     return (int)cpl_error_get_code();
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the RAW frames from a frameset
+  @param    set     Input frame set
+  @return   the RAW frameset or NULL in error case or if it is missing
+	Allowed RAW types : CR2RES_FLAT_RAW
+						CR2RES_WAVE_RAW
+						CR2RES_OBS_1D_RAW
+						CR2RES_OBS_2D_RAW
+						CR2RES_OBS_POL_RAW
+ */
+/*----------------------------------------------------------------------------*/
+cpl_frameset * cr2res_util_calib_find_RAW(const cpl_frameset * in)
+{
+    cpl_frameset 	* 	out ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    out = cr2res_extract_frameset(in, CR2RES_FLAT_RAW) ;
+    if (out == NULL)
+		out = cr2res_extract_frameset(in, CR2RES_WAVE_RAW) ;
+    if (out == NULL)
+		out = cr2res_extract_frameset(in, CR2RES_OBS_1D_RAW) ;
+    if (out == NULL)
+		out = cr2res_extract_frameset(in, CR2RES_OBS_2D_RAW) ;
+    if (out == NULL)
+		out = cr2res_extract_frameset(in, CR2RES_OBS_POL_RAW) ;
+    return out ;
+}
+
+
+
 
