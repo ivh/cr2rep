@@ -192,7 +192,7 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.threshold",
             CPL_TYPE_DOUBLE, "Detection Threshold",
-            "cr2res.cr2res_util_trace", -200.0);
+            "cr2res.cr2res_util_trace", 300.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "threshold");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);

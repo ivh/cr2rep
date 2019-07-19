@@ -1693,9 +1693,9 @@ static cpl_mask * cr2res_trace_signal_detect(
     if (smooth_x < 0 || smooth_y < 0) return NULL;
 
     /* Prepare kernel */
-    kernel_x = (int)smooth_x ;
+    kernel_x = smooth_x ;
     if (kernel_x % 2 == 0) kernel_x++ ;
-    kernel_y = (int)smooth_y ;
+    kernel_y = smooth_y ;
     if (kernel_y % 2 == 0) kernel_y++ ;
     kernel = cpl_mask_new(kernel_x, kernel_y);
     cpl_mask_not(kernel);
@@ -1711,15 +1711,18 @@ static cpl_mask * cr2res_trace_signal_detect(
     }
     cpl_mask_delete(kernel);
     
+    /* Subtract input image from smoothed */
     cpl_image_subtract(sm_image, image);
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
         cpl_image_save(sm_image, "debug_smimage.fits", CPL_TYPE_DOUBLE, NULL,
                 CPL_IO_CREATE);
+        cpl_msg_debug(__func__, "Smooth X: %d, Y: %d, Threshold: %.1f",
+                kernel_x, kernel_y, thresh);
     }
 
-    /* The pixels we want are the ones with values below -thresh */
-    mask = cpl_mask_threshold_image_create(sm_image,-DBL_MAX,-thresh);
+    /* Wanted pixels are where input image exceeds sm_image by thresh */
+    mask = cpl_mask_threshold_image_create(sm_image,-DBL_MAX, thresh);
     cpl_image_delete(sm_image) ;
 
     return mask ;
