@@ -52,7 +52,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
-cpl_frameset * cr2res_util_calib_find_RAW(const cpl_frameset * in) ;
+static cpl_frameset * cr2res_util_calib_find_RAW(const cpl_frameset * in) ;
 static int cr2res_util_calib_create(cpl_plugin *);
 static int cr2res_util_calib_exec(cpl_plugin *);
 static int cr2res_util_calib_destroy(cpl_plugin *);
@@ -360,7 +360,7 @@ static int cr2res_util_calib(
 						CR2RES_OBS_POL_RAW
  */
 /*----------------------------------------------------------------------------*/
-cpl_frameset * cr2res_util_calib_find_RAW(const cpl_frameset * in)
+static cpl_frameset * cr2res_util_calib_find_RAW(const cpl_frameset * in)
 {
     cpl_frameset 	* 	out ;
 
