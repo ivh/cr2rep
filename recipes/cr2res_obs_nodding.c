@@ -370,10 +370,10 @@ static int cr2res_obs_nodding(
         cpl_msg_indent_more() ;
 
         /* Call the reduction function */
-        if (cr2res_obs_nodding_reduce(rawframes, raw_flat_frames, trace_wave_frame, 
-                    detlin_frame, master_dark_frame, master_flat_frame, 
-                    bpm_frame, 0, extract_oversample, extract_swath_width, 
-                    extract_height, extract_smooth, det_nr,
+        if (cr2res_obs_nodding_reduce(rawframes, raw_flat_frames, 
+                    trace_wave_frame, detlin_frame, master_dark_frame, 
+                    master_flat_frame, bpm_frame, 0, extract_oversample, 
+                    extract_swath_width, extract_height, extract_smooth, det_nr,
                     &(combineda[det_nr-1]),
                     &(extracta[det_nr-1]),
                     &(slitfunca[det_nr-1]),
@@ -755,6 +755,7 @@ static int cr2res_obs_nodding_reduce(
         cpl_array_delete(slit_frac_b) ;
         return -1 ;
     }
+
     cpl_array_delete(slit_frac_a) ;
     if ((trace_wave_b = cr2res_trace_new_slit_fraction(trace_wave,
             slit_frac_b)) == NULL) {

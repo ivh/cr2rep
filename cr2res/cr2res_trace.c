@@ -1047,6 +1047,7 @@ int cr2res_trace_add_extra_columns(
     return 0 ;
 }
 
+/* TODO : NOT WORKING - needs review / Fix */
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Recompute the traces at a newly specified slit fraction
@@ -1142,7 +1143,6 @@ cpl_table * cr2res_trace_new_slit_fraction(
             trace_upper_old = cpl_table_get_array(traces, CR2RES_COL_UPPER, k) ;
             trace_lower_old = cpl_table_get_array(traces, CR2RES_COL_LOWER, k) ;
 
-
             /* Unselect rows with wrong slit_fraction or without trace */
             /* to be erased below */
             if (cpl_table_is_selected(out, i) == 0 ||
@@ -1172,6 +1172,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
             cpl_free(trace_numbers);
             continue;
         }
+
 
         /* Set new trace */
         cpl_table_set_array(out, CR2RES_COL_ALL, i, trace_all_new);
