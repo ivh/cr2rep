@@ -100,14 +100,6 @@ static char cr2res_cal_wave_description[] =
 
 /*----------------------------------------------------------------------------*/
 /**
-  @defgroup cr2res_cal_wave    Wavelength Calibration
- */
-/*----------------------------------------------------------------------------*/
-
-/**@{*/
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Build the list of available plugins, for this module.
   @param    list    the plugin list
   @return   0 if everything is ok, 1 otherwise
@@ -148,8 +140,6 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
 
     return 0;
 }
-
-/**@}*/
 
 /*----------------------------------------------------------------------------*/
 /**

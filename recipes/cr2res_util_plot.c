@@ -83,14 +83,6 @@ static char cr2res_util_plot_description[] = "Plot the CR2RES tables.\n"
 
 /*----------------------------------------------------------------------------*/
 /**
-  @defgroup cr2res_util_plot        Plotting utilities
- */
-/*----------------------------------------------------------------------------*/
-
-/**@{*/
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Build the list of available plugins, for this module.
   @param    list    the plugin list
   @return   0 if everything is ok, 1 otherwise

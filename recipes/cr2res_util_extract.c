@@ -96,14 +96,6 @@ static char cr2res_util_extract_description[] =
 
 /*----------------------------------------------------------------------------*/
 /**
-  @defgroup cr2res_util_extract 	Optimal Extraction Utility
- */
-/*----------------------------------------------------------------------------*/
-
-/**@{*/
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Build the list of available plugins, for this module.
   @param    list    the plugin list
   @return   0 if everything is ok, 1 otherwise

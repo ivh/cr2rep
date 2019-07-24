@@ -90,14 +90,6 @@ CR2RES_COL_SLIT_FRACTION"\n"
 
 /*----------------------------------------------------------------------------*/
 /**
-  @defgroup cr2res_util_trace   Trace Utility
- */
-/*----------------------------------------------------------------------------*/
-
-/**@{*/
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Build the list of available plugins, for this module.
   @param    list    the plugin list
   @return   0 if everything is ok, 1 otherwise
@@ -459,5 +451,3 @@ static int cr2res_util_trace(
     cpl_frameset_delete(rawframes) ;
     return (int)cpl_error_get_code();
 }
-
-/**@}*/

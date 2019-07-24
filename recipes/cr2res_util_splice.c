@@ -74,14 +74,6 @@ static char cr2res_util_splice_description[] =
 
 /*----------------------------------------------------------------------------*/
 /**
-  @defgroup cr2res_util_splice  Splicing Utility
- */
-/*----------------------------------------------------------------------------*/
-
-/**@{*/
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Build the list of available plugins, for this module.
   @param    list    the plugin list
   @return   0 if everything is ok, 1 otherwise
@@ -436,6 +428,4 @@ static int cr2res_util_splice(
     cpl_frameset_delete(extracted_fset) ;
     return (int)cpl_error_get_code();
 }
-
-/**@}*/
 

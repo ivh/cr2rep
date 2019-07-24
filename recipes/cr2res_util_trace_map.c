@@ -82,14 +82,6 @@ static char cr2res_util_trace_map_description[] =
 
 /*----------------------------------------------------------------------------*/
 /**
-  @defgroup cr2res_util_trace_map  Create Maps for TRACE_WAVE visualisation
- */
-/*----------------------------------------------------------------------------*/
-
-/**@{*/
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Build the list of available plugins, for this module.
   @param    list    the plugin list
   @return   0 if everything is ok, 1 otherwise
@@ -378,6 +370,4 @@ static int cr2res_util_trace_map(
     cpl_frameset_delete(rawframes) ;
     return (int)cpl_error_get_code();
 }
-
-/**@}*/
 
