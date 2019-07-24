@@ -79,7 +79,7 @@ static char cr2res_util_extract_description[] =
 "        or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "\n"
 "        or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "\n"
 "        or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "\n"
-"bpm.fits " CR2RES_DARK_BPM_PROCATG "\n"
+"bpm.fits " CR2RES_DARK_BPM_PROCATG " (optional) \n"
 "      or " CR2RES_FLAT_BPM_PROCATG "\n"
 "      or " CR2RES_DETLIN_BPM_PROCATG "\n"
 "      or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
