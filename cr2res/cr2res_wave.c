@@ -160,7 +160,6 @@ int cr2res_wave_apply(
     cpl_array           *   wl_err_array ;
     int                     trace_id, order, i, j ;
 
-    
     /* Check Entries */
     if (wavecal_type != CR2RES_XCORR && wavecal_type != CR2RES_LINE1D && 
             wavecal_type != CR2RES_LINE2D && wavecal_type != CR2RES_ETALON) 
@@ -173,6 +172,7 @@ int cr2res_wave_apply(
         catalog_fname = cpl_frame_get_filename(catalog_frame) ;
     else    
         catalog_fname = NULL ;
+    lines_diagnostics_loc = NULL ;
 
     /* Load the spectra */
     nb_traces = cpl_table_get_nrow(tw_in) ;

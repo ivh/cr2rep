@@ -785,22 +785,13 @@ static int cr2res_cal_flat_reduce(
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
 
-    /* Get the Extension number */
+    /* Get the First RAW file  */
     first_file = cpl_frame_get_filename(
             cpl_frameset_get_position_const(rawframes, 0)) ;
-    ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
 
     /* Get the DIT for the Dark correction */
     if ((dits = cr2res_io_read_dits(rawframes)) == NULL) {
         cpl_msg_error(__func__, "Failed to read the dits") ;
-        return -1 ;
-    }
-
-    /* Load the extension header for saving */
-    plist = cpl_propertylist_load(first_file, ext_nr) ;
-    if (plist == NULL) {
-        cpl_vector_delete(dits) ;
-        cpl_msg_error(__func__, "Failed to load the plist") ;
         return -1 ;
     }
     /* Load the image list */
@@ -808,7 +799,6 @@ static int cr2res_cal_flat_reduce(
     if (imlist == NULL) {
         cpl_msg_error(__func__, "Failed to load the images") ;
         cpl_vector_delete(dits) ;
-        cpl_propertylist_delete(plist);
         return -1 ;
     }
 
@@ -819,7 +809,6 @@ static int cr2res_cal_flat_reduce(
                     calib_cosmics_corr, NULL, master_dark_frame, bpm_frame, 
                     detlin_frame, dits)) == NULL) {
         cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
-        cpl_propertylist_delete(plist);
         cpl_vector_delete(dits) ;
         hdrl_imagelist_delete(imlist) ;
         cpl_msg_indent_less() ;
@@ -838,7 +827,6 @@ static int cr2res_cal_flat_reduce(
     if (hdrl_imagelist_collapse_mean(imlist, &collapsed, &contrib) !=
             CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Failed to Collapse") ;
-        cpl_propertylist_delete(plist);
         hdrl_imagelist_delete(imlist) ;
         cpl_msg_indent_less() ;
         return -1 ;
@@ -854,7 +842,6 @@ static int cr2res_cal_flat_reduce(
                     trace_smooth_x, trace_smooth_y, trace_threshold, 
                     trace_opening, trace_degree, trace_min_cluster)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the traces") ;
-        cpl_propertylist_delete(plist);
         hdrl_image_delete(collapsed) ;
         cpl_msg_indent_less() ;
         return -1 ;
@@ -958,7 +945,6 @@ static int cr2res_cal_flat_reduce(
         cpl_table_delete(slit_func_tab) ;
         cpl_table_delete(extract_tab) ;
         hdrl_image_delete(model_master) ;
-        cpl_propertylist_delete(plist);
         hdrl_image_delete(collapsed) ;
         cpl_table_delete(traces) ;
         cpl_msg_indent_less() ;
@@ -988,7 +974,6 @@ static int cr2res_cal_flat_reduce(
         cpl_table_delete(extract_tab) ;
         hdrl_image_delete(model_master) ;
         hdrl_image_delete(master_flat_loc) ;
-        cpl_propertylist_delete(plist);
         cpl_image_delete(bpm_im) ;
         cpl_mask_delete(bpm_flat) ;
         cpl_table_delete(traces) ;
@@ -1005,8 +990,21 @@ static int cr2res_cal_flat_reduce(
     qc_overexposed = cr2res_qc_flat_nb_overexposed(NULL) ;
     qc_trace_centery = cr2res_qc_flat_trace_center_y(NULL) ;
     qc_nbbad = cpl_mask_count(bpm_flat) ;
-
     cpl_mask_delete(bpm_flat) ;
+
+    /* Load the extension header for saving */
+    ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
+    plist = cpl_propertylist_load(first_file, ext_nr) ;
+    if (plist == NULL) {
+        cpl_table_delete(traces) ;
+        cpl_table_delete(slit_func_tab) ;
+        cpl_table_delete(extract_tab) ;
+        hdrl_image_delete(model_master) ;
+        hdrl_image_delete(master_flat_loc) ;
+        cpl_image_delete(bpm_im) ;
+        cpl_msg_error(__func__, "Failed to load the plist") ;
+        return -1 ;
+    }
 
     /* Store the QC parameters in the plist */
     cpl_propertylist_append_double(plist, "ESO QC FLAT LAMP INTS", 

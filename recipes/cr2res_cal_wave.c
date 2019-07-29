@@ -80,8 +80,10 @@ static int cr2res_cal_wave_reduce(
         double                  wl_err_start,
         double                  wl_err_end,
         double                  wl_shift,
+        int                     log_flag,
         int                     display,
         cpl_table           **  out_trace_wave,
+        cpl_table           **  lines_diagnostics,
         hdrl_image          **  out_wave_map,
         cpl_propertylist    **  ext_plist) ;
 
@@ -364,6 +366,7 @@ static int cr2res_cal_wave(
     const cpl_frame     *   lines_frame ;
     char                *   out_file;
     cpl_table           *   out_trace_wave[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   lines_diagnostics[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     int                     det_nr, order, i ;
@@ -387,16 +390,16 @@ static int cr2res_cal_wave(
             "cr2res.cr2res_cal_wave.trace_nb");
     reduce_trace = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-           "cr2res.cr2res_util_extract.ext_oversample");
+           "cr2res.cr2res_cal_wave.ext_oversample");
     ext_oversample = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.ext_swath_width");
+            "cr2res.cr2res_cal_wave.ext_swath_width");
     ext_swath_width = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.ext_height");
+            "cr2res.cr2res_cal_wave.ext_height");
     ext_height = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_extract.ext_smooth_slit");
+            "cr2res.cr2res_cal_wave.ext_smooth_slit");
     ext_smooth_slit = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.wl_method");
@@ -482,6 +485,7 @@ static int cr2res_cal_wave(
 
         /* Initialise */
         out_trace_wave[det_nr-1] = NULL ;
+        lines_diagnostics[det_nr-1] = NULL ;
         out_wave_map[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
 
@@ -498,8 +502,9 @@ static int cr2res_cal_wave(
                     reduce_trace,  ext_height, ext_swath_width,
                     ext_oversample, ext_smooth_slit, wavecal_type, wl_degree, 
                     wl_start, wl_end, wl_err_start, wl_err_end, wl_shift, 
-                    display,
+                    log_flag, display,
                     &(out_trace_wave[det_nr-1]),
+                    &(lines_diagnostics[det_nr-1]),
                     &(out_wave_map[det_nr-1]),
                     &(ext_plist[det_nr-1])) == -1) {
             cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
@@ -527,6 +532,8 @@ static int cr2res_cal_wave(
             cpl_propertylist_delete(ext_plist[i]) ;
         if (out_trace_wave[i] != NULL)
             cpl_table_delete(out_trace_wave[i]) ;
+        if (lines_diagnostics[i] != NULL)
+            cpl_table_delete(lines_diagnostics[i]) ;
         if (out_wave_map[i] != NULL) {
             hdrl_image_delete(out_wave_map[i]) ;
         }
@@ -563,8 +570,10 @@ static int cr2res_cal_wave_reduce(
         double                  wl_err_start,
         double                  wl_err_end,
         double                  wl_shift,
+        int                     log_flag,
         int                     display,
         cpl_table           **  out_trace_wave,
+        cpl_table           **  lines_diagnostics,
         hdrl_image          **  out_wave_map,
         cpl_propertylist    **  ext_plist)
 {
@@ -577,14 +586,17 @@ static int cr2res_cal_wave_reduce(
     cpl_table           *   extracted ;
     cpl_table           *   slit_func ;
     hdrl_image          *   model_master ;
-
     hdrl_image          *   wl_map ;
     cpl_table           *   tw_out ;
+    cpl_table           *   lines_diagnostics_out ;
     cpl_propertylist    *   plist ;
+    const char          *   first_file ;
+    int                     ext_nr ;
     
     /* Check Inputs */
     if (rawframes==NULL || trace_wave_frame==NULL || out_trace_wave==NULL ||
-            out_wave_map==NULL || ext_plist==NULL) return -1 ;
+            lines_diagnostics == NULL || out_wave_map==NULL || ext_plist==NULL)
+        return -1 ;
 
     /* Load the DITs if necessary */
     if (master_dark_frame != NULL)  dits = cr2res_io_read_dits(rawframes) ;
@@ -655,16 +667,46 @@ static int cr2res_cal_wave_reduce(
     hdrl_image_delete(model_master) ;
     hdrl_image_delete(collapsed);
     
-    
-    
+    /* Compute the Wavelength Calibration */
+    cpl_msg_info(__func__, "Compute the Wavelength") ;
+    if (cr2res_wave_apply(tw_in, extracted, lines_frame, reduce_order, 
+                reduce_trace, wavecal_type, wl_degree, wl_start, wl_end, 
+                wl_err_start, wl_err_end, wl_shift, log_flag, display,
+                &lines_diagnostics_out,
+                &tw_out)) {
+        cpl_msg_error(__func__, "Failed to calibrate");
+        cpl_table_delete(tw_in) ;
+        cpl_table_delete(extracted) ;
+    }
     cpl_table_delete(tw_in) ;
     cpl_table_delete(extracted) ;
 
+	/* Generate the Wave Map */
+	wl_map = cr2res_wave_gen_wave_map(tw_out) ;
 
+    /* Load the extension header for saving */
+    first_file = cpl_frame_get_filename(
+            cpl_frameset_get_position_const(rawframes, 0)) ;
+    ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
+    plist = cpl_propertylist_load(first_file, ext_nr) ;
+    if (plist == NULL) {
+        cpl_table_delete(tw_out) ;
+        cpl_table_delete(lines_diagnostics_out) ;
+        hdrl_image_delete(wl_map) ;
+        cpl_msg_error(__func__, "Failed to load the plist") ;
+        return -1 ;
+    }
+
+    /* Compute the QC parameters */
+    /* TODO : */
+
+    /* Store the QC parameters in the plist */
+    /* cpl_propertylist_append_double(plist, "ESO QC ...", 1.0) ; */
 
     /* Return */
-    *out_wave_map = wl_map;
     *out_trace_wave = tw_out ;
+    *lines_diagnostics = lines_diagnostics_out ;
+    *out_wave_map = wl_map;
     *ext_plist = plist ;
     return 0 ;
 }

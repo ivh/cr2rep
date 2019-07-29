@@ -306,7 +306,7 @@ static int cr2res_util_wave(
     cpl_table           *   lines_diagnostics[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
-    int                     det_nr, order, i ;
+    int                     det_nr, order, i, j ;
 
     /* Needed for sscanf() */
     setlocale(LC_NUMERIC, "C");
@@ -515,16 +515,15 @@ static int cr2res_util_wave(
         cpl_frameset_delete(cur_fset) ;
 
 		/* Free and return */
-		for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
-			if (ext_plist[i] != NULL)
-				cpl_propertylist_delete(ext_plist[i]) ;
-			if (out_trace_wave[i] != NULL)
-				cpl_table_delete(out_trace_wave[i]) ;
-			if (lines_diagnostics[i] != NULL)
-				cpl_table_delete(lines_diagnostics[i]) ;
-			if (out_wave_map[i] != NULL) {
-				hdrl_image_delete(out_wave_map[i]) ;
-			}
+		for (j=0 ; j<CR2RES_NB_DETECTORS ; j++) {
+			if (ext_plist[j] != NULL)
+				cpl_propertylist_delete(ext_plist[j]) ;
+			if (out_trace_wave[j] != NULL)
+				cpl_table_delete(out_trace_wave[j]) ;
+			if (lines_diagnostics[j] != NULL)
+				cpl_table_delete(lines_diagnostics[j]) ;
+			if (out_wave_map[j] != NULL) 
+				hdrl_image_delete(out_wave_map[j]) ;
 		}
         cpl_msg_indent_less() ;
     }
