@@ -79,7 +79,7 @@ static char cr2res_util_calib_description[] =
 "master_dark.fits " CR2RES_MASTER_DARK_PROCATG " (optional) \n"
 "master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " (optional) \n"
 " The recipe produces the following products:\n"
-"cr2res_util_calib.fits " CR2RES_CALIBRATED_PROCATG "\n"
+"<input_name>_calibrated.fits " CR2RES_CALIBRATED_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------

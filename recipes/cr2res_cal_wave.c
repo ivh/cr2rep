@@ -100,7 +100,7 @@ static int cr2res_cal_wave(cpl_frameset *, const cpl_parameterlist *);
 static char cr2res_cal_wave_description[] =
 "CRIRES+ wavelength calibration recipe\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw-file.fits " CR2RES_WAVE_RAW "\n"
+"raw.fits " CR2RES_WAVE_RAW "\n"
 "trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
 "             or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "\n"
 "             or " CR2RES_UTIL_TRACE_WAVE_PROCATG "\n"
@@ -524,6 +524,7 @@ static int cr2res_cal_wave(
     }
 
     /* Ѕave Products */
+    /* TODO : Save Lines Diagnostics */
     out_file = cpl_sprintf("%s_trace.fits", RECIPE_STRING) ;
     cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist, 
             out_trace_wave, NULL, ext_plist, 

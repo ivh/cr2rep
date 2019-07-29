@@ -69,10 +69,10 @@ static int cr2res_cal_dark(cpl_frameset *, const cpl_parameterlist *);
 static char cr2res_cal_dark_description[] =
 "CRIRES+ dark recipe\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw-file.fits " CR2RES_DARK_RAW "\n"
-" The recipe produces the following products for each DITxNDIT found:\n"
-"cr2res_cal_dark_master_DITxNDIT.fits " CR2RES_MASTER_DARK_PROCATG "\n"
-"cr2res_cal_dark_bpm_DITxNDIT.fits " CR2RES_DARK_BPM_PROCATG "\n"
+"raw.fits " CR2RES_DARK_RAW "\n"
+"The recipe produces the following products for each DITxNDIT found:\n"
+"cr2res_cal_dark_DITxNDIT_master.fits " CR2RES_MASTER_DARK_PROCATG "\n"
+"cr2res_cal_dark_DITxNDIT_bpm.fits " CR2RES_DARK_BPM_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------

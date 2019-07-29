@@ -88,7 +88,9 @@ static char cr2res_util_normflat_description[] =
 "             or " CR2RES_OBS_NODDING_SLITMODELA_PROCATG "\n"
 "             or " CR2RES_OBS_NODDING_SLITMODELB_PROCATG "\n"
 " The recipe produces the following products:\n"
-"cr2res_util_normflat_master.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG  "\n"
+"cr2res_util_normflat_[setting]_[Decker]_bpm.fits " CR2RES_UTIL_MASTER_FLAT_PROCATG "\n"
+"cr2res_util_normflat_[setting]_[Decker]_master.fits " CR2RES_UTIL_MASTER_FLAT_PROCATG "\n"
+
 "\n";
 
 /*-----------------------------------------------------------------------------

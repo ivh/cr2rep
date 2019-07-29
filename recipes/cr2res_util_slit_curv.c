@@ -65,7 +65,7 @@ static int cr2res_util_slit_curv(cpl_frameset *, const cpl_parameterlist *);
 static char cr2res_util_slit_curv_description[] =
 "CRIRES+ slit curvature utility\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"trace_wave.fits " CR2RES_TRACE_WAVE_PROTYPE "\n"
+"raw.fits " CR2RES_TRACE_WAVE_PROTYPE "\n"
 "For each input trace_wave file, the slit curvature is derived from each\n"
 "order that has at least 2 traces.\n"
 "The recipe produces the following products:\n"

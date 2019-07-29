@@ -70,7 +70,7 @@ static char cr2res_util_wave_description[] =
 
 "CRIRES+ wavelength calibration utility\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"extracted-file.fits " CR2RES_EXTRACT_1D_PROTYPE "\n"
+"raw.fits " CR2RES_EXTRACT_1D_PROTYPE "\n"
 "trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
 "             or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "\n"
 "             or " CR2RES_UTIL_TRACE_WAVE_PROCATG "\n"
@@ -86,8 +86,8 @@ static char cr2res_util_wave_description[] =
 "   ETALON: Does not require any static calibration file.\n"
 "\n"
 "The recipe produces the following products:\n"
-"<input-file>_trace.fits " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "\n"
-"<input-file>_map.fits " CR2RES_UTIL_WAVE_MAP_PROCATG "\n"
+"<input_name>_trace.fits " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "\n"
+"<input_name>_map.fits " CR2RES_UTIL_WAVE_MAP_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------

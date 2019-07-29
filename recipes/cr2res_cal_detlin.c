@@ -87,7 +87,7 @@ static int cr2res_cal_detlin(cpl_frameset *, const cpl_parameterlist *);
 static char cr2res_cal_detlin_description[] =
 "CRIRES+ detector linearity recipe\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw-file.fits " CR2RES_DETLIN_RAW "\n"
+"raw.fits " CR2RES_DETLIN_RAW "\n"
 " The recipe produces the following products:\n"
 "cr2res_cal_detlin_coeffs.fits " CR2RES_DETLIN_COEFFS_PROCATG "\n"
 "cr2res_cal_detlin_bpm.fits " CR2RES_DETLIN_BPM_PROCATG "\n"

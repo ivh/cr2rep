@@ -79,9 +79,9 @@ CR2RES_COL_SLIT_FRACTION"\n"
 "are filled with default values.\n"
 "\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"traces.fits " CR2RES_FLAT_RAW "\n"
+"raw.fits " CR2RES_FLAT_RAW "\n"
 "The recipe produces the following products:\n"
-"   input_tracewave.fits " CR2RES_UTIL_TRACE_WAVE_PROCATG"\n"
+"<input_name>_tracewave.fits " CR2RES_UTIL_TRACE_WAVE_PROCATG"\n"
 "\n";
 
 /*-----------------------------------------------------------------------------

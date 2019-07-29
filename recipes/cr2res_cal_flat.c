@@ -100,23 +100,21 @@ static int cr2res_cal_flat(cpl_frameset *, const cpl_parameterlist *);
 static char cr2res_cal_flat_description[] =
 "CRIRES+ flat recipe\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw-file.fits " CR2RES_FLAT_RAW "\n"
+"raw.fits " CR2RES_FLAT_RAW "\n"
 "detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " (optional) \n"
 "master_dark.fits " CR2RES_MASTER_DARK_PROCATG " (optional) \n"
 "bpm.fits " CR2RES_DARK_BPM_PROCATG " (optional) \n"
 "      or " CR2RES_FLAT_BPM_PROCATG "\n"
 "      or " CR2RES_DETLIN_BPM_PROCATG "\n"
 "      or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
-" The recipe produces the following products:\n"
-"cr2res_cal_flat_bpm.fits " CR2RES_FLAT_BPM_PROCATG "\n"
-"cr2res_cal_flat_blaze.fits " CR2RES_FLAT_EXTRACT_1D_PROCATG "\n"
-"cr2res_cal_flat_slit_model.fits " CR2RES_FLAT_SLIT_MODEL_PROCATG "\n"
-"cr2res_cal_flat_slit_func.fits " CR2RES_FLAT_SLIT_FUNC_PROCATG "\n"
-"cr2res_cal_flat_master.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG  "\n"
-"cr2res_cal_flat_<Decker>_tracewave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG
-    " (One for each <Decker> position)" "\n"
-"cr2res_cal_flat_tracewave_merged.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG 
-    " (All traces from different deckers together)" "\n"
+"The recipe produces the following products:\n"
+"cr2res_cal_flat_[setting]_[Decker]_bpm.fits " CR2RES_FLAT_BPM_PROCATG "\n"
+"cr2res_cal_flat_[setting]_[Decker]_blaze.fits " CR2RES_FLAT_EXTRACT_1D_PROCATG "\n"
+"cr2res_cal_flat_[setting]_[Decker]_slit_model.fits " CR2RES_FLAT_SLIT_MODEL_PROCATG "\n"
+"cr2res_cal_flat_[setting]_[Decker]_slit_func.fits " CR2RES_FLAT_SLIT_FUNC_PROCATG "\n"
+"cr2res_cal_flat_[setting]_[Decker]_master.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG  "\n"
+"cr2res_cal_flat_[setting]_[Decker]_tracewave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
+"cr2res_cal_flat_[setting]_tracewave_merged.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
 "\n";
 
 /*-----------------------------------------------------------------------------

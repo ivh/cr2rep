@@ -81,7 +81,7 @@ static char cr2res_obs_2d_description[] =
 
 "CRIRES+ 2d Observation recipe\n"
 "The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw-file.fits " CR2RES_OBS_2D_RAW"\n"
+"raw.fits " CR2RES_OBS_2D_RAW"\n"
 "trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
 "             or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "\n"
 "             or " CR2RES_UTIL_TRACE_WAVE_PROCATG "\n"
