@@ -84,6 +84,8 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 /* PRO.TYPE tags that can be used as input RAWs */
                 /* For cr2res_util_bpm_split */
                 !strcmp(tag, CR2RES_BPM_PROTYPE) ||
+                /* For cr2res_util_extract */
+                !strcmp(tag, CR2RES_EXTRACT_1D_PROTYPE) ||
                 /* For cr2res_util_slit_curv  */
                 /*     cr2res_util_trace_map  */
                 !strcmp(tag, CR2RES_TRACE_WAVE_PROTYPE)) {

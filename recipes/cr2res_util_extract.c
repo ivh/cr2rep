@@ -503,25 +503,31 @@ static int cr2res_util_extract(
 		}
 		cpl_array_delete(slit_frac) ;
 
+        /* Generate the currently used frameset */
+        /* TODO : add calibrations */
+        cur_fset = cpl_frameset_new() ;
+        cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
+
 		/* Save the Products */
 		out_file = cpl_sprintf("%s_extrModel.fits",
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-		cr2res_io_save_SLIT_MODEL(out_file, frameset, frameset, parlist, 
+		cr2res_io_save_SLIT_MODEL(out_file, frameset, cur_fset, parlist, 
 				model_master, NULL, ext_plist, CR2RES_UTIL_SLIT_MODEL_PROCATG, 
 				RECIPE_STRING) ;
 		cpl_free(out_file);
 		out_file = cpl_sprintf("%s_extrSlitFu.fits",
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-		cr2res_io_save_SLIT_FUNC(out_file, frameset, frameset, parlist, 
+		cr2res_io_save_SLIT_FUNC(out_file, frameset, cur_fset, parlist, 
 				slit_func_tab, NULL, ext_plist, CR2RES_UTIL_SLIT_FUNC_PROCATG, 
 				RECIPE_STRING) ;
 		cpl_free(out_file);
 		out_file = cpl_sprintf("%s_extr1D.fits",
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
+		cr2res_io_save_EXTRACT_1D(out_file, frameset, cur_fset, parlist, 
 				extract_tab, NULL, ext_plist, CR2RES_UTIL_EXTRACT_1D_PROCATG, 
 				RECIPE_STRING) ;
 		cpl_free(out_file);
+        cpl_frameset_delete(cur_fset) ;
 
 		/* Free and return */
 		for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {

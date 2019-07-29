@@ -47,6 +47,24 @@ typedef enum {
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
+int cr2res_wave_apply(
+        cpl_table           *       tw_in,
+        cpl_table           *       spectra_tab,
+        const cpl_frame     *       catalog_frame,
+        int                         reduce_order,
+        int                         reduce_trace,
+        cr2res_wavecal_type         wavecal_type,
+        int                         degree,
+        double                      wl_start,
+        double                      wl_end,
+        double                      wl_err_start,
+        double                      wl_err_end,
+        double                      wl_shift,
+        int                         log_flag,
+        int                         display,
+        cpl_table           **      lines_diagnostics,
+        cpl_table           **      trace_wave_out) ;
+
 cpl_polynomial * cr2res_wave_1d(
         cpl_bivector        *   spectrum,
         cpl_bivector        *   spectrum_err,
