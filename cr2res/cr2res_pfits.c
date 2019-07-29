@@ -145,66 +145,6 @@ double cr2res_pfits_get_dit(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the Min wavelength for an order (all detectors)
-  @param    plist       property list to read from
-  @param    order       Order
-  @return   the requested value
- */
-/*----------------------------------------------------------------------------*/
-double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order)
-{
-    char    *   key_name ;
-    int         order_loc ;
-    double      val  ;
-
-    /* Check entries */
-    if (plist == NULL) return -1.0 ;
-
-    /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return -1.0 ;
-
-    /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN MIN%d", order_loc) ;
-
-    /* Get the value */
-    val = cpl_propertylist_get_double(plist, key_name) ;
-
-    cpl_free(key_name) ;
-    return val ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    find out the Max wavelength for an order (all detectors)
-  @param    plist       property list to read from
-  @param    order       Order INDEX
-  @return   the requested value
- */
-/*----------------------------------------------------------------------------*/
-double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order)
-{
-    char    *   key_name ;
-    int         order_loc ;
-    double      val  ;
-
-    /* Check entries */
-    if (plist == NULL) return -1.0 ;
-
-    /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return -1.0 ;
-
-    /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN MAX%d", order_loc) ;
-
-    /* Get the value */
-    val = cpl_propertylist_get_double(plist, key_name) ;
-
-    cpl_free(key_name) ;
-    return val ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    find out the Start wavelength for an order (current detector)
   @param    plist       property list to read from
   @param    order       Order INDEX
@@ -340,7 +280,6 @@ int cr2res_pfits_get_order(
     }
 
     for (i=min_order ; i <= max_order ; i++) {
-
         order_idx = cr2res_io_convert_order_to_idx(i);
         key_name = cpl_sprintf("ESO INS WLEN CENY%d", order_idx) ;
         ycen = cpl_propertylist_get_double(plist, key_name);

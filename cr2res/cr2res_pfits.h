@@ -41,11 +41,8 @@ const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
 
 double cr2res_pfits_get_nodthrow(const cpl_propertylist *) ;
 double cr2res_pfits_get_dit(const cpl_propertylist *) ;
-double cr2res_pfits_get_wmin(const cpl_propertylist * plist, int order) ;
-double cr2res_pfits_get_wmax(const cpl_propertylist * plist, int order) ;
 double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order) ;
 double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order) ;
-double cr2res_pfits_get_ceny(const cpl_propertylist * plist, int order) ;
 
 int cr2res_pfits_get_naxis1(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_naxis2(const cpl_propertylist * plist) ;
