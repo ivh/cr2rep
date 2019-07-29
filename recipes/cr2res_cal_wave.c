@@ -540,12 +540,37 @@ static int cr2res_cal_wave(
     }
     return (int)cpl_error_get_code();
 }
- 
+
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  
-  @param 
-  @return  
+  @brief Compute the Wavelength for a detector
+  @param rawframes          Input raw frames 
+  @param detlin_frame       Associated detlin coefficients
+  @param master_dark_frame  Associated master dark
+  @param master_flat_frame  Associated master flat
+  @param bpm_frame          Associated BPM
+  @param trace_wave_frame   Trace Wave table
+  @param lines_frame        Emission lines frame
+  @param reduce_det         The detector to compute
+  @param reduce_order       The order to compute (-1 for all)
+  @param reduce_trace       The trace to compute (-1 for all)
+  @param ext_height         Extraction related
+  @param ext_swath_width    Extraction related
+  @param ext_oversample     Extraction related
+  @param ext_smooth_slit    Extraction related
+  @param wavecal_type       CR2RES_XCORR/LINE1D/LINE2D/ETALON
+  @param wl_start           WL estimate of the first pixel
+  @param wl_end             WL estimate of the last pixel
+  @param wl_err_start       WL error of wl_start
+  @param wl_err_end         WL error of wl_end
+  @param wl_shift           wavelength shift to apply
+  @param log_flag           Flag to apply a log() to the lines intensities
+  @param display            Flag to enable display functionalities
+  @param out_trace_wave     [out] trace wave table
+  @param lines_diagnostics  [out] lines diagnostics table
+  @param out_wave_map       [out] Wave map
+  @param ext_plist          [out] the header for saving the products
+  @return   0 if ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_wave_reduce(
@@ -681,8 +706,8 @@ static int cr2res_cal_wave_reduce(
     cpl_table_delete(tw_in) ;
     cpl_table_delete(extracted) ;
 
-	/* Generate the Wave Map */
-	wl_map = cr2res_wave_gen_wave_map(tw_out) ;
+    /* Generate the Wave Map */
+    wl_map = cr2res_wave_gen_wave_map(tw_out) ;
 
     /* Load the extension header for saving */
     first_file = cpl_frame_get_filename(

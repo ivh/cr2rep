@@ -117,8 +117,23 @@ static cpl_vector * cr2res_wave_etalon_measure_fringes(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Apply the Wavelength Calibration
-  @param    
-  @return  
+  @param    tw_in           Trace wave table
+  @param    spectra_tab     Extracted Spectra
+  @param    catalog_frame   Catalog frame or NULL if not needed
+  @param    reduce_order    The order to compute (-1 for all)
+  @param    reduce_trace    The trace to compute (-1 for all)
+  @param    wavecal_type    CR2RES_XCORR/LINE1D/LINE2D/ETALON
+  @param    degree          Required polynomial degree
+  @param    wl_start        WL estimate of the first pixel
+  @param    wl_end          WL estimate of the last pixel
+  @param    wl_err_start    WL error of wl_start
+  @param    wl_err_end      WL error of wl_end
+  @param    wl_shift        wavelength shift to apply
+  @param    log_flag        Flag to apply a log() to the lines intensities
+  @param    display         Flag to enable display functionalities
+  @param    lines_diagnostics   [out] lines diagnostics table
+  @param    trace_wave_out      [out] trace wave table
+  @return   0 if ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_wave_apply(
@@ -963,7 +978,7 @@ cpl_polynomial * cr2res_wave_etalon(
     cpl_vector  *   li_true;
     cpl_matrix  *   px;
     cpl_polynomial * result;
-	double			l0, trueD;
+    double            l0, trueD;
     int             nxi, i, npeaks;
 
     if (spectrum == NULL | spectrum_err == NULL |
@@ -979,7 +994,7 @@ cpl_polynomial * cr2res_wave_etalon(
     li = cr2res_polynomial_eval_vector(wavesol_init, xi);
 
     /* Calculate delta lambda between peaks */
-	trueD = cr2res_wave_etalon_get_D(li);
+    trueD = cr2res_wave_etalon_get_D(li);
     cpl_msg_debug(__func__,"trueD: %e", trueD);
 
     /* Set vector with correct wavelength values */
@@ -1351,7 +1366,7 @@ static cpl_bivector * cr2res_wave_gen_lines_spectrum(
             wl_max+wl_error, wl_max, wl_error) ;
 
 
-	/* Zero the beginning and the end */
+    /* Zero the beginning and the end */
     lines_sub_wl = cpl_bivector_get_x_data(lines_sub) ;
     lines_sub_intens = cpl_bivector_get_y_data(lines_sub) ;
     for (i=0 ; i<cpl_bivector_get_size(lines_sub) ; i++) {
@@ -2125,17 +2140,17 @@ static double cr2res_wave_etalon_get_x0(
 static double cr2res_wave_etalon_get_D(
         cpl_vector      * li)
 {
-	int				i;
-	cpl_size		nxi;
-    double      	trueD=-1.0;
-	cpl_vector	*	diffs;
+    int                i;
+    cpl_size        nxi;
+    double          trueD=-1.0;
+    cpl_vector    *    diffs;
 
-	nxi = cpl_vector_get_size(li);
-	diffs = cpl_vector_new(nxi-1);
-	for (i=1; i<nxi; i++){
-		cpl_vector_set(diffs,i-1,
-			cpl_vector_get(li,i) - cpl_vector_get(li,i-1) );
-	}
+    nxi = cpl_vector_get_size(li);
+    diffs = cpl_vector_new(nxi-1);
+    for (i=1; i<nxi; i++){
+        cpl_vector_set(diffs,i-1,
+            cpl_vector_get(li,i) - cpl_vector_get(li,i-1) );
+    }
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
         cpl_table   *   tab;
@@ -2155,7 +2170,7 @@ static double cr2res_wave_etalon_get_D(
     }
 
     trueD = cpl_vector_get_median(diffs);
-	cpl_vector_delete(diffs);
+    cpl_vector_delete(diffs);
     return trueD;
 }
 
