@@ -81,6 +81,7 @@ static int cr2res_cal_wave_reduce(
         double                  wl_err_end,
         double                  wl_shift,
         int                     log_flag,
+        int                     propagate_flag,
         int                     display,
         cpl_table           **  out_trace_wave,
         cpl_table           **  lines_diagnostics,
@@ -289,6 +290,13 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.propagate",
+            CPL_TYPE_BOOL, "Flag for using the input WL when no computation",
+            "cr2res.cr2res_cal_wave", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "propagate");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.display",
             CPL_TYPE_BOOL, "Flag for display",
             "cr2res.cr2res_cal_wave", FALSE);
@@ -352,7 +360,7 @@ static int cr2res_cal_wave(
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
                             ext_oversample, ext_swath_width, ext_height,
-                            wl_degree, display, log_flag ;
+                            wl_degree, display, log_flag, propagate_flag ;
     double                  ext_smooth_slit, wl_start, wl_end, wl_err_start, 
                             wl_err_end, wl_shift ;
     cr2res_wavecal_type     wavecal_type ;
@@ -435,6 +443,9 @@ static int cr2res_cal_wave(
             "cr2res.cr2res_cal_wave.log");
     log_flag = cpl_parameter_get_bool(param) ;
     param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_wave.propagate");
+    propagate_flag = cpl_parameter_get_bool(param) ;
+    param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.display");
     display = cpl_parameter_get_bool(param) ;
 
@@ -502,7 +513,7 @@ static int cr2res_cal_wave(
                     reduce_trace,  ext_height, ext_swath_width,
                     ext_oversample, ext_smooth_slit, wavecal_type, wl_degree, 
                     wl_start, wl_end, wl_err_start, wl_err_end, wl_shift, 
-                    log_flag, display,
+                    log_flag, propagate_flag, display,
                     &(out_trace_wave[det_nr-1]),
                     &(lines_diagnostics[det_nr-1]),
                     &(out_wave_map[det_nr-1]),
@@ -565,6 +576,8 @@ static int cr2res_cal_wave(
   @param wl_err_end         WL error of wl_end
   @param wl_shift           wavelength shift to apply
   @param log_flag           Flag to apply a log() to the lines intensities
+  @param propagate_flag  	Flag to copy the input WL to the output when they 
+                            are not computed
   @param display            Flag to enable display functionalities
   @param out_trace_wave     [out] trace wave table
   @param lines_diagnostics  [out] lines diagnostics table
@@ -596,6 +609,7 @@ static int cr2res_cal_wave_reduce(
         double                  wl_err_end,
         double                  wl_shift,
         int                     log_flag,
+        int                     propagate_flag,
         int                     display,
         cpl_table           **  out_trace_wave,
         cpl_table           **  lines_diagnostics,
@@ -696,7 +710,8 @@ static int cr2res_cal_wave_reduce(
     cpl_msg_info(__func__, "Compute the Wavelength") ;
     if (cr2res_wave_apply(tw_in, extracted, lines_frame, reduce_order, 
                 reduce_trace, wavecal_type, wl_degree, wl_start, wl_end, 
-                wl_err_start, wl_err_end, wl_shift, log_flag, display,
+                wl_err_start, wl_err_end, wl_shift, log_flag, propagate_flag, 
+                display,
                 &lines_diagnostics_out,
                 &tw_out)) {
         cpl_msg_error(__func__, "Failed to calibrate");

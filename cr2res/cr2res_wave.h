@@ -61,6 +61,7 @@ int cr2res_wave_apply(
         double                      wl_err_end,
         double                      wl_shift,
         int                         log_flag,
+        int                         propagate_flag,
         int                         display,
         cpl_table           **      lines_diagnostics,
         cpl_table           **      trace_wave_out) ;

@@ -130,6 +130,8 @@ static cpl_vector * cr2res_wave_etalon_measure_fringes(
   @param    wl_err_end      WL error of wl_end
   @param    wl_shift        wavelength shift to apply
   @param    log_flag        Flag to apply a log() to the lines intensities
+  @param    propagate_flag  Flag to copy the input WL to the output when they 
+                            are not computed
   @param    display         Flag to enable display functionalities
   @param    lines_diagnostics   [out] lines diagnostics table
   @param    trace_wave_out      [out] trace wave table
@@ -150,6 +152,7 @@ int cr2res_wave_apply(
         double                      wl_err_end,
         double                      wl_shift,
         int                         log_flag,
+        int                         propagate_flag,
         int                         display,
         cpl_table           **      lines_diagnostics,
         cpl_table           **      trace_wave_out)
@@ -198,9 +201,6 @@ int cr2res_wave_apply(
     orders = cpl_malloc(nb_traces * sizeof(int));
     traces_nb = cpl_malloc(nb_traces * sizeof(int));
 
-    /* Output TRACE_WAVE copied from the input one */
-    tw_out = cpl_table_duplicate(tw_in) ;
-
     /* Loop over the traces spectra */
     for (i=0 ; i<nb_traces ; i++) {
         /* Initialise */
@@ -211,8 +211,8 @@ int cr2res_wave_apply(
         traces_nb[i] = -1 ;
 
         /* Get Order and trace id */
-        order = cpl_table_get(tw_out, CR2RES_COL_ORDER, i, NULL) ;
-        trace_id = cpl_table_get(tw_out, CR2RES_COL_TRACENB, i, NULL) ;
+        order = cpl_table_get(tw_in, CR2RES_COL_ORDER, i, NULL) ;
+        trace_id = cpl_table_get(tw_in, CR2RES_COL_TRACENB, i, NULL) ;
 
         /* Check if this order needs to be skipped */
         if (reduce_order > -1 && order != reduce_order) {
@@ -238,7 +238,7 @@ int cr2res_wave_apply(
         if (wl_start>0.0 && wl_end>0.0) {
             wavesol_init[i] = cr2res_wave_estimate_compute(wl_start, wl_end) ;
         } else {
-            if ((wavesol_init[i]=cr2res_get_trace_wave_poly(tw_out, 
+            if ((wavesol_init[i]=cr2res_get_trace_wave_poly(tw_in, 
                             CR2RES_COL_WAVELENGTH, order, trace_id)) == NULL) {
                 cpl_msg_error(__func__, "Cannot get the WL guess") ;
                 cpl_bivector_delete(spectra[i]);
@@ -255,9 +255,9 @@ int cr2res_wave_apply(
             cpl_array_set_double(wavesol_init_error[i], 1, wl_err_end) ;
         } else {
             if ((wavesol_init_error[i]=cpl_array_duplicate(
-                            cpl_table_get_array(tw_out,
+                            cpl_table_get_array(tw_in,
                                 CR2RES_COL_WAVELENGTH_ERROR,
-                                cr2res_get_trace_table_index(tw_out, order, 
+                                cr2res_get_trace_table_index(tw_in, order, 
                                     trace_id)))) == NULL) {
                 cpl_msg_error(__func__, "Cannot get the WL ERROR guess") ;
                 cpl_bivector_delete(spectra[i]);
@@ -281,28 +281,33 @@ int cr2res_wave_apply(
         }
     }
 
+    /* Output TRACE_WAVE copied from the input one */
+    tw_out = cpl_table_duplicate(tw_in) ;
+
     /* Rename old Wavelength column and create new with right degree */
     cpl_table_name_column(tw_out, CR2RES_COL_WAVELENGTH, "TMP_WL");
     cpl_table_new_column_array(tw_out, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 
             degree+1) ;
 
-    /* Copy incoming solution into output */
-    for (i = 0; i < nb_traces; i++) {
-        wl_array_tmp = cpl_table_get_array(tw_out, "TMP_WL", i);
-        wl_array = cpl_array_new(degree+1, CPL_TYPE_DOUBLE);
-        for (j=0; j <= degree; j++) {
-            if ( j+1 > cpl_array_get_size(wl_array_tmp)){
-                cpl_array_set(wl_array, j, 0.0);
-            } else {
-                coeff = cpl_array_get_double(wl_array_tmp, j, &flag);
-                if (flag != 0)
-                    cpl_msg_debug(__func__,"%d, %d, %s",j,flag,
-                    cpl_error_get_where());
-                else cpl_array_set(wl_array, j, coeff);
+    /* Copy incoming solution into output If explicitely requested */
+    if (propagate_flag) {
+        for (i = 0; i < nb_traces; i++) {
+            wl_array_tmp = cpl_table_get_array(tw_out, "TMP_WL", i);
+            wl_array = cpl_array_new(degree+1, CPL_TYPE_DOUBLE);
+            for (j=0; j <= degree; j++) {
+                if ( j+1 > cpl_array_get_size(wl_array_tmp)){
+                    cpl_array_set(wl_array, j, 0.0);
+                } else {
+                    coeff = cpl_array_get_double(wl_array_tmp, j, &flag);
+                    if (flag != 0)
+                        cpl_msg_debug(__func__,"%d, %d, %s",j,flag,
+                        cpl_error_get_where());
+                    else cpl_array_set(wl_array, j, coeff);
+                }
             }
+            cpl_table_set_array(tw_out, CR2RES_COL_WAVELENGTH, i, wl_array);
+            cpl_array_delete(wl_array);
         }
-        cpl_table_set_array(tw_out, CR2RES_COL_WAVELENGTH, i, wl_array);
-        cpl_array_delete(wl_array);
     }
     cpl_table_erase_column(tw_out, "TMP_WL");
 

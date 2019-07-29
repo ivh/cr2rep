@@ -226,6 +226,13 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.propagate",
+            CPL_TYPE_BOOL, "Flag for using the input WL when no computation",
+            "cr2res.cr2res_util_wave", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "propagate");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.display",
             CPL_TYPE_BOOL, "Flag for display",
             "cr2res.cr2res_util_wave", FALSE);
@@ -288,7 +295,7 @@ static int cr2res_util_wave(
 {
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
-                            wl_degree, display, log_flag ;
+                            wl_degree, display, log_flag, propagate_flag ;
     double                  wl_start, wl_end, wl_err_start, wl_err_end, 
                             wl_shift ;
     cr2res_wavecal_type     wavecal_type ;
@@ -359,6 +366,9 @@ static int cr2res_util_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.log");
     log_flag = cpl_parameter_get_bool(param) ;
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_wave.propagate");
+    propagate_flag = cpl_parameter_get_bool(param) ;
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.display");
     display = cpl_parameter_get_bool(param) ;
@@ -463,7 +473,7 @@ static int cr2res_util_wave(
 			if (cr2res_wave_apply(trace_wave, extracted_table,
                         lines_frame, reduce_order, reduce_trace, wavecal_type,
                         wl_degree, wl_start, wl_end, wl_err_start, wl_err_end, 
-                        wl_shift, log_flag, display, 
+                        wl_shift, log_flag, propagate_flag, display, 
                         &(lines_diagnostics[det_nr-1]),
                         &(out_trace_wave[det_nr-1]))) {
 				cpl_msg_error(__func__, "Failed to calibrate - skip detector");
