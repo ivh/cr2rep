@@ -123,7 +123,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CPL_PLUGIN_API,
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
-                    "cr2res_obs_2d",
+                    RECIPE_STRING,
                     "2D Observation recipe",
                     cr2res_obs_2d_description,
                     "Thomas Marquart, Yves Jung",

@@ -101,7 +101,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CPL_PLUGIN_API,
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
-                    "cr2res_util_plot",
+                    RECIPE_STRING,
                     "Plotting utility",
                     cr2res_util_plot_description,
                     "Thomas Marquart, Yves Jung",

@@ -92,7 +92,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CPL_PLUGIN_API,
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
-                    "cr2res_util_splice",
+                    RECIPE_STRING,
                     "Splicing utility",
                     cr2res_util_splice_description,
                     "Ansgar Wehrhahn, Thomas Marquart, Yves Jung",

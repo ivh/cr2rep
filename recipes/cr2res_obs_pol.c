@@ -151,7 +151,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CPL_PLUGIN_API,
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
-                    "cr2res_obs_pol",
+                    RECIPE_STRING,
                     "Polarimetry Observation recipe",
                     cr2res_obs_pol_description,
                     "Thomas Marquart, Yves Jung",

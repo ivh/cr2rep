@@ -63,24 +63,33 @@ static int cr2res_util_calib(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_util_calib_description[] =
-"CRIRES+ calibration utility\n"
-"Each input file is corrected with : BPM / Dark / Flat / Det. Lin. / Cosmics\n"
-"The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw.fits " CR2RES_FLAT_RAW"\n"
-"      or " CR2RES_WAVE_RAW"\n"
-"      or " CR2RES_OBS_NODDING_RAW"\n"
-"      or " CR2RES_OBS_2D_RAW"\n"
-"      or " CR2RES_OBS_POL_RAW"\n"
-"detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " (optional) \n"
-"bpm.fits " CR2RES_DARK_BPM_PROCATG " (optional) \n"
-"      or " CR2RES_FLAT_BPM_PROCATG "\n"
-"      or " CR2RES_DETLIN_BPM_PROCATG "\n"
-"      or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
-"master_dark.fits " CR2RES_MASTER_DARK_PROCATG " (optional) \n"
-"master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " (optional) \n"
-" The recipe produces the following products:\n"
-"<input_name>_calibrated.fits " CR2RES_CALIBRATED_PROCATG "\n"
-"\n";
+"Frames Calibration\n"
+"  Each input file is corrected with BPM / Dark / Flat / Det.Lin. / Cosmics\n"
+"  Inputs\n"
+"    raw.fits " CR2RES_FLAT_RAW" [1 to n]\n"
+"          or " CR2RES_WAVE_RAW"\n"
+"          or " CR2RES_OBS_NODDING_RAW"\n"
+"          or " CR2RES_OBS_2D_RAW"\n"
+"          or " CR2RES_OBS_POL_RAW"\n"
+"    detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " [0 to 1]\n"
+"    bpm.fits " CR2RES_DARK_BPM_PROCATG " [0 to 1]\n"
+"          or " CR2RES_FLAT_BPM_PROCATG "\n"
+"          or " CR2RES_DETLIN_BPM_PROCATG "\n"
+"          or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
+"    master_dark.fits " CR2RES_MASTER_DARK_PROCATG " [0 to 1]\n"
+"    master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " [0 to 1]\n"
+"  Outputs\n"
+"    <input_name>_calibrated.fits " CR2RES_CALIBRATED_PROCATG "\n"
+"  Description\n"
+"    loop on raw frames f:\n"
+"      loop on detectors d:\n"
+"        Call cr2res_calib_image() to calibrate --calib_cosmics_corr, \n"
+"               detlin, bpm, dark, flat\n"
+"    save calibrated frame\n"
+"Library functions uѕed:\n"
+"    cr2res_io_load_image()\n"
+"    cr2res_calib_image()\n"
+"    cr2res_io_save_CALIBRATED()\n";
 
 /*-----------------------------------------------------------------------------
                                 Function code
@@ -106,7 +115,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CPL_PLUGIN_API,
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
-                    "cr2res_util_calib",
+                    RECIPE_STRING,
                     "Calibration utility",
                     cr2res_util_calib_description,
                     "Thomas Marquart, Yves Jung",

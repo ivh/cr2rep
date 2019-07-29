@@ -65,30 +65,48 @@ static int cr2res_util_extract(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_util_extract_description[] =
-"CRIRES+ spectrum extraction utility\n"
-"This utility performs the optimal extraction along precomputed traces.\n"
-"The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"science.fits " CR2RES_FLAT_RAW "\n"
-"          or " CR2RES_WAVE_RAW "\n"
-"          or " CR2RES_OBS_NODDING_RAW "\n"
-"          or " CR2RES_OBS_2D_RAW "\n"
-"          or " CR2RES_OBS_POL_RAW "\n"
-"trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
-"        or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "\n"
-"        or " CR2RES_UTIL_TRACE_WAVE_PROCATG "\n"
-"        or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "\n"
-"        or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "\n"
-"        or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "\n"
-"bpm.fits " CR2RES_DARK_BPM_PROCATG " (optional) \n"
-"      or " CR2RES_FLAT_BPM_PROCATG "\n"
-"      or " CR2RES_DETLIN_BPM_PROCATG "\n"
-"      or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
-"\n"
-"The recipe produces the following products:\n"
-"<input_name>_extr1D.fits " CR2RES_UTIL_EXTRACT_1D_PROCATG "\n"
-"<input_name>_extrSlitFu.fits " CR2RES_UTIL_SLIT_FUNC_PROCATG "\n"
-"<input_name>_extrModel.fits " CR2RES_UTIL_SLIT_MODEL_PROCATG "\n"
-"\n";
+"Spectrum Extraction\n"
+"  This utility performs the optimal extraction along precomputed traces.\n"
+"  Inputs\n"
+"    science.fits " CR2RES_FLAT_RAW " [1 to n]\n"
+"              or " CR2RES_WAVE_RAW "\n"
+"              or " CR2RES_OBS_NODDING_RAW "\n"
+"              or " CR2RES_OBS_2D_RAW "\n"
+"              or " CR2RES_OBS_POL_RAW "\n"
+"    trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]\n"
+"            or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "\n"
+"            or " CR2RES_UTIL_TRACE_WAVE_PROCATG "\n"
+"            or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "\n"
+"            or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "\n"
+"            or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "\n"
+"    bpm.fits " CR2RES_DARK_BPM_PROCATG " [0 to 1]\n"
+"          or " CR2RES_FLAT_BPM_PROCATG "\n"
+"          or " CR2RES_DETLIN_BPM_PROCATG "\n"
+"          or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
+"  Outputs\n"
+"    <input_name>_extr1D.fits " CR2RES_UTIL_EXTRACT_1D_PROCATG "\n"
+"    <input_name>_extrSlitFu.fits " CR2RES_UTIL_SLIT_FUNC_PROCATG "\n"
+"    <input_name>_extrModel.fits " CR2RES_UTIL_SLIT_MODEL_PROCATG "\n"
+"  Description\n"
+"    loop on detectors d:\n"
+"      Load the trace wave\n"
+"      Recompute a new trace wave with the specified slit fraction \n"
+"               (--slit_frac) if needed\n"
+"      Load the image to extract\n"
+"      Load the BPM and set them in the image\n"
+"      Run the extraction cr2res_extract_traces(--method,--height,\n"
+"               --swath_width,--oversample,--smooth_slit)\n"
+"        -> creates SLIT_MODEL(d), SLIT_FUNC(d), EXTRACT_1D(d)\n"
+"    Save SLIT_MODEL, SLIT_FUNC, EXTRACT_1D\n"
+"Library functions uѕed:\n"
+"    cr2res_io_load_TRACE_WAVE()\n"
+"    cr2res_trace_new_slit_fraction()\n"
+"    cr2res_io_load_image()\n"
+"    cr2res_io_load_BPM()\n"
+"    cr2res_extract_traces()\n"
+"    cr2res_io_save_SLIT_MODEL()\n"
+"    cr2res_io_save_SLIT_FUNC()\n"
+"    cr2res_io_save_EXTRACT_1D()\n" ;
 
 /*-----------------------------------------------------------------------------
                                 Function code
@@ -396,150 +414,150 @@ static int cr2res_util_extract(
         cpl_msg_info(__func__, "Reduce Frame %s", cur_fname) ;
         cpl_msg_indent_more() ;
 
-		/* Loop over the detectors */
-		for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        /* Loop over the detectors */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
-			/* Initialise */
-			model_master[det_nr-1] = NULL ;
-			slit_func_tab[det_nr-1] = NULL ;
-			extract_tab[det_nr-1] = NULL ;
-			ext_plist[det_nr-1] = NULL ;
+            /* Initialise */
+            model_master[det_nr-1] = NULL ;
+            slit_func_tab[det_nr-1] = NULL ;
+            extract_tab[det_nr-1] = NULL ;
+            ext_plist[det_nr-1] = NULL ;
 
-			/* Store the extenѕion header for product saving */
-			ext_nr = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
-			if (ext_nr < 0) continue ;
-			ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname, ext_nr) ;
+            /* Store the extenѕion header for product saving */
+            ext_nr = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
+            if (ext_nr < 0) continue ;
+            ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname, ext_nr) ;
 
-			/* Compute only one detector */
-			if (reduce_det != 0 && det_nr != reduce_det) continue ;
+            /* Compute only one detector */
+            if (reduce_det != 0 && det_nr != reduce_det) continue ;
 
-			cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
-			cpl_msg_indent_more() ;
+            cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
+            cpl_msg_indent_more() ;
 
-			/* Load the trace table of this detector */
-			cpl_msg_info(__func__, "Load the trace table") ;
-			if ((trace_table = cr2res_io_load_TRACE_WAVE(
+            /* Load the trace table of this detector */
+            cpl_msg_info(__func__, "Load the trace table") ;
+            if ((trace_table = cr2res_io_load_TRACE_WAVE(
                             cpl_frame_get_filename(trace_frame),
                             det_nr)) == NULL) {
-				cpl_msg_error(__func__,
+                cpl_msg_error(__func__,
                         "Failed to get trace table - skip detector");
-				cpl_error_reset() ;
-				cpl_msg_indent_less() ;
-				continue ;
-			}
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
 
-			/* Extract at the specified slit fraction */
-			if (slit_frac != NULL) {
-				if ((trace_table_new = cr2res_trace_new_slit_fraction(
+            /* Extract at the specified slit fraction */
+            if (slit_frac != NULL) {
+                if ((trace_table_new = cr2res_trace_new_slit_fraction(
                                 trace_table, slit_frac)) == NULL) {
-					cpl_msg_warning(__func__,
+                    cpl_msg_warning(__func__,
             "Failed to compute the traces for user specified slit fraction") ;
-					cpl_error_reset() ;
-				} else {
-					cpl_table_delete(trace_table) ;
-					trace_table = trace_table_new ;
-					trace_table_new = NULL ;
-				}
-			}
+                    cpl_error_reset() ;
+                } else {
+                    cpl_table_delete(trace_table) ;
+                    trace_table = trace_table_new ;
+                    trace_table_new = NULL ;
+                }
+            }
 
-			/* Load the image in which the traces are to extract */
-			cpl_msg_info(__func__, "Load the Image") ;
-			if ((science_hdrl = cr2res_io_load_image(cur_fname, det_nr))==NULL){
-				cpl_table_delete(trace_table) ;
-				cpl_msg_error(__func__, 
+            /* Load the image in which the traces are to extract */
+            cpl_msg_info(__func__, "Load the Image") ;
+            if ((science_hdrl = cr2res_io_load_image(cur_fname, det_nr))==NULL){
+                cpl_table_delete(trace_table) ;
+                cpl_msg_error(__func__, 
                         "Failed to load the image - skip detector");
-				cpl_error_reset() ;
-				cpl_msg_indent_less() ;
-				continue ;
-			}
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
 
-			/* Load the BPM and assign to hdrl-mask*/
-			if (bpm_frame != NULL) {
-				cpl_msg_info(__func__, "Load and assign the BPM") ;
-				if ((bpm_img = cr2res_io_load_BPM(
+            /* Load the BPM and assign to hdrl-mask*/
+            if (bpm_frame != NULL) {
+                cpl_msg_info(__func__, "Load and assign the BPM") ;
+                if ((bpm_img = cr2res_io_load_BPM(
                                 cpl_frame_get_filename(bpm_frame), 
                                 det_nr, 1))==NULL) {
-					cpl_table_delete(trace_table) ;
-					hdrl_image_delete(science_hdrl) ;
-					cpl_msg_error(__func__, 
-							"Failed to load BPM - skip detector");
-					cpl_error_reset() ;
-					cpl_msg_indent_less() ;
-					continue ;
-				} else {
-					bpm_mask = cpl_mask_threshold_image_create(bpm_img, 0, 
+                    cpl_table_delete(trace_table) ;
+                    hdrl_image_delete(science_hdrl) ;
+                    cpl_msg_error(__func__, 
+                            "Failed to load BPM - skip detector");
+                    cpl_error_reset() ;
+                    cpl_msg_indent_less() ;
+                    continue ;
+                } else {
+                    bpm_mask = cpl_mask_threshold_image_create(bpm_img, 0, 
                             INT_MAX);
-					if (hdrl_image_reject_from_mask(science_hdrl, 
+                    if (hdrl_image_reject_from_mask(science_hdrl, 
                                 bpm_mask) != CPL_ERROR_NONE) {
-						cpl_msg_error(__func__, 
+                        cpl_msg_error(__func__, 
                             "Failed to assign BPM to image - skip detector");
-						cpl_table_delete(trace_table) ;
-						hdrl_image_delete(science_hdrl) ;
-						cpl_mask_delete(bpm_mask);
-						cpl_image_delete(bpm_img);
-						cpl_error_reset() ;
-						cpl_msg_indent_less() ;
-						continue ;
-					}
-				}
-				cpl_mask_delete(bpm_mask);
-				cpl_image_delete(bpm_img);
-			}
-			/* Compute the extraction */
-			cpl_msg_info(__func__, "Spectra Extraction") ;
-			if (cr2res_extract_traces(science_hdrl, trace_table, reduce_order,
-					reduce_trace, extr_method, extr_height, swath_width,
-					oversample, smooth_slit, &(extract_tab[det_nr-1]),
-					&(slit_func_tab[det_nr-1]), &(model_master[det_nr-1]))==-1){
-				cpl_table_delete(trace_table) ;
-				cpl_msg_error(__func__, "Failed to extract - skip detector");
-				cpl_error_reset() ;
-				cpl_msg_indent_less() ;
-				continue ;
-			}
-			hdrl_image_delete(science_hdrl) ;
-			cpl_table_delete(trace_table) ;
-			cpl_msg_indent_less() ;
-		}
-		cpl_array_delete(slit_frac) ;
+                        cpl_table_delete(trace_table) ;
+                        hdrl_image_delete(science_hdrl) ;
+                        cpl_mask_delete(bpm_mask);
+                        cpl_image_delete(bpm_img);
+                        cpl_error_reset() ;
+                        cpl_msg_indent_less() ;
+                        continue ;
+                    }
+                }
+                cpl_mask_delete(bpm_mask);
+                cpl_image_delete(bpm_img);
+            }
+            /* Compute the extraction */
+            cpl_msg_info(__func__, "Spectra Extraction") ;
+            if (cr2res_extract_traces(science_hdrl, trace_table, reduce_order,
+                    reduce_trace, extr_method, extr_height, swath_width,
+                    oversample, smooth_slit, &(extract_tab[det_nr-1]),
+                    &(slit_func_tab[det_nr-1]), &(model_master[det_nr-1]))==-1){
+                cpl_table_delete(trace_table) ;
+                cpl_msg_error(__func__, "Failed to extract - skip detector");
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+            hdrl_image_delete(science_hdrl) ;
+            cpl_table_delete(trace_table) ;
+            cpl_msg_indent_less() ;
+        }
+        cpl_array_delete(slit_frac) ;
 
         /* Generate the currently used frameset */
         /* TODO : add calibrations */
         cur_fset = cpl_frameset_new() ;
         cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
 
-		/* Save the Products */
-		out_file = cpl_sprintf("%s_extrModel.fits",
+        /* Save the Products */
+        out_file = cpl_sprintf("%s_extrModel.fits",
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-		cr2res_io_save_SLIT_MODEL(out_file, frameset, cur_fset, parlist, 
-				model_master, NULL, ext_plist, CR2RES_UTIL_SLIT_MODEL_PROCATG, 
-				RECIPE_STRING) ;
-		cpl_free(out_file);
-		out_file = cpl_sprintf("%s_extrSlitFu.fits",
+        cr2res_io_save_SLIT_MODEL(out_file, frameset, cur_fset, parlist, 
+                model_master, NULL, ext_plist, CR2RES_UTIL_SLIT_MODEL_PROCATG, 
+                RECIPE_STRING) ;
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extrSlitFu.fits",
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-		cr2res_io_save_SLIT_FUNC(out_file, frameset, cur_fset, parlist, 
-				slit_func_tab, NULL, ext_plist, CR2RES_UTIL_SLIT_FUNC_PROCATG, 
-				RECIPE_STRING) ;
-		cpl_free(out_file);
-		out_file = cpl_sprintf("%s_extr1D.fits",
+        cr2res_io_save_SLIT_FUNC(out_file, frameset, cur_fset, parlist, 
+                slit_func_tab, NULL, ext_plist, CR2RES_UTIL_SLIT_FUNC_PROCATG, 
+                RECIPE_STRING) ;
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extr1D.fits",
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, cur_fset, parlist, 
-				extract_tab, NULL, ext_plist, CR2RES_UTIL_EXTRACT_1D_PROCATG, 
-				RECIPE_STRING) ;
-		cpl_free(out_file);
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, cur_fset, parlist, 
+                extract_tab, NULL, ext_plist, CR2RES_UTIL_EXTRACT_1D_PROCATG, 
+                RECIPE_STRING) ;
+        cpl_free(out_file);
         cpl_frameset_delete(cur_fset) ;
 
-		/* Free and return */
-		for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-			if (ext_plist[det_nr-1] != NULL)
-				cpl_propertylist_delete(ext_plist[det_nr-1]) ;
-			if (slit_func_tab[det_nr-1] != NULL)
-				cpl_table_delete(slit_func_tab[det_nr-1]) ;
-			if (extract_tab[det_nr-1] != NULL)
-				cpl_table_delete(extract_tab[det_nr-1]) ;
-			if (model_master[det_nr-1] != NULL) 
-				hdrl_image_delete(model_master[det_nr-1]) ;
-		}
+        /* Free and return */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            if (ext_plist[det_nr-1] != NULL)
+                cpl_propertylist_delete(ext_plist[det_nr-1]) ;
+            if (slit_func_tab[det_nr-1] != NULL)
+                cpl_table_delete(slit_func_tab[det_nr-1]) ;
+            if (extract_tab[det_nr-1] != NULL)
+                cpl_table_delete(extract_tab[det_nr-1]) ;
+            if (model_master[det_nr-1] != NULL) 
+                hdrl_image_delete(model_master[det_nr-1]) ;
+        }
         cpl_msg_indent_less() ;
     }
     cpl_frameset_delete(rawframes) ;

@@ -59,18 +59,25 @@ static int cr2res_util_genlines(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_util_genlines_description[] =
-"This recipe is used to generate spectrum calibration tables.\n"
-"The sof file contains the names of the input ASCII file\n"
-"tagged with " CR2RES_EMISSION_LINES_PROCATG".\n"
-"The ASCII file must contain two columns:\n"
-"1st: Wavelengths in increasing order (the unit is corrected by\n"
-"     the factor option to obtain nanometers).\n"
-"2nd: The atmospheric emission.\n"
-"The ASCII files are in the catalogs/ directory of the CR2RES distribution.\n"
-"This recipe produces 1 file:\n"
-"First product:     the table with the lines.\n"
-"                   (PRO TYPE = "CR2RES_PROTYPE_CATALOG")\n" 
-"                   (PRO CATG = "CR2RES_EMISSION_LINES_PROCATG")\n" ;
+"Generate Lines calibration tables\n"
+"  Inputs\n"
+"    raw.txt " CR2RES_EMISSION_LINES_PROCATG" [1]\n"
+"    The ASCII file must contain two columns:\n"
+"      1st: Wavelengths in increasing order (the unit is corrected by\n"
+"               the factor option to obtain nanometers).\n"
+"      2nd: The atmospheric emission.\n"
+"      The ASCII files are in the catalogs/ directory of the CR2RES \n"
+"               distribution.\n"
+"  Output\n"
+"    cr2res_util_genlines.fits "CR2RES_EMISSION_LINES_PROCATG"\n"
+"  Description\n" 
+"    Parse the 2 column text file\n" 
+"    Apply the --wl_factor correction\n" 
+"    if (--display) plot it\n" 
+"    Create the CPL table\n" 
+"    Save the table\n" 
+"  Library functions uѕed:\n" 
+"    cr2res_io_save_EMISSION_LINES()\n" ;
 
 /*-----------------------------------------------------------------------------
                                 Function code
