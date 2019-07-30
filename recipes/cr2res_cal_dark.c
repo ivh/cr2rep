@@ -66,35 +66,36 @@ static int cr2res_cal_dark(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_cal_dark_description[] =
-"Dark\n"
-"  Inputs\n"
-"    raw.fits " CR2RES_DARK_RAW " [3 to n]\n"
-"  Outputs\n"
-"    cr2res_cal_dark_DITxNDIT_master.fits " CR2RES_MASTER_DARK_PROCATG "\n"
-"    cr2res_cal_dark_DITxNDIT_bpm.fits " CR2RES_DARK_BPM_PROCATG "\n"
-"  Algorithm\n"
-"    group the input frames by different valueѕ of DET SEQ1 DIT \n"
-"               or/and DET NDIT\n"
-"    loop on groups g:\n"
-"      loop on detectors d:\n"
-"        Load the images and create the associate error for each of \n"
-"               them using cr2res_detector_shotnoise_model(--gain)\n"
-"        Collapse the images with hdrl_imagelist_collapse(--collapse.*)\n"
-"        Compute BPM form the collapsed master dark using \n"
-"               cr2res_bpm_compute(--bpm_kappa, --bpm_lines_ratio)\n"
-"        Compute the QCs with statistics and \n"
-"               cr2res_dark_qc_ron(--ron_hsize, --ron_nsamples)\n"
-"      save master dark(g) (MASTER_DARK)\n"
-"      save bpm(g) (DARK_BPM)\n"
-"  Used Library Functions\n"
-"    cr2res_detector_shotnoise_model()\n"
-"    cr2res_bpm_compute()\n"
-"    cr2res_bpm_from_mask()\n"
-"    cr2res_dark_qc_ron()\n"
-"    cr2res_bpm_count()\n"
-"    cr2res_io_save_MASTER_DARK()\n"
-"    cr2res_io_save_BPM()\n";
+static char cr2res_cal_dark_description[] = "\
+Dark                                                                    \n\
+  Inputs                                                                \n\
+    raw.fits " CR2RES_DARK_RAW " [3 to n]                               \n\
+  Outputs                                                               \n\
+    cr2res_cal_dark_DITxNDIT_master.fits " CR2RES_MASTER_DARK_PROCATG " \n\
+    cr2res_cal_dark_DITxNDIT_bpm.fits " CR2RES_DARK_BPM_PROCATG "       \n\
+  Algorithm                                                             \n\
+    group the input frames by different valueѕ of DET SEQ1 DIT          \n\
+               or/and DET NDIT                                          \n\
+    loop on groups g:                                                   \n\
+      loop on detectors d:                                              \n\
+        Load the images and create the associate error for each of      \n\
+               them using cr2res_detector_shotnoise_model(--gain)       \n\
+        Collapse the images with hdrl_imagelist_collapse(--collapse.*)  \n\
+        Compute BPM form the collapsed master dark using                \n\
+               cr2res_bpm_compute(--bpm_kappa, --bpm_lines_ratio)       \n\
+        Compute the QCs with statistics and                             \n\
+               cr2res_dark_qc_ron(--ron_hsize, --ron_nsamples)          \n\
+      save master dark(g) (MASTER_DARK)                                 \n\
+      save bpm(g) (DARK_BPM)                                            \n\
+  Used Library Functions                                                \n\
+    cr2res_detector_shotnoise_model()                                   \n\
+    cr2res_bpm_compute()                                                \n\
+    cr2res_bpm_from_mask()                                              \n\
+    cr2res_dark_qc_ron()                                                \n\
+    cr2res_bpm_count()                                                  \n\
+    cr2res_io_save_MASTER_DARK()                                        \n\
+    cr2res_io_save_BPM()                                                \n\
+" ;
 
 /*-----------------------------------------------------------------------------
                                 Function code

@@ -76,48 +76,49 @@ static int cr2res_util_normflat(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_normflat_description[] =
-"Flat normalization\n"
-"  The input RAW files are grouped by setting/decker and each group is \n"
-"  reduced ѕeparately. For each group, a slit model file with matching \n"
-"  setting/decker is expected.\n"
-"  Inputs\n"
-"    raw.fits " CR2RES_FLAT_RAW " [1 to n]\n"
-"    slit_model.fits " CR2RES_FLAT_SLIT_MODEL_PROCATG " [1 to m]\n"
-"                 or " CR2RES_UTIL_SLIT_MODEL_PROCATG "\n"
-"                 or " CR2RES_OBS_NODDING_SLITMODELA_PROCATG "\n"
-"                 or " CR2RES_OBS_NODDING_SLITMODELB_PROCATG "\n"
-"  Outputs\n"
-"    cr2res_util_normflat_[setting]_[Decker]_bpm.fits " 
-CR2RES_UTIL_MASTER_FLAT_PROCATG "\n"
-"cr2res_util_normflat_[setting]_[Decker]_master.fits " 
-CR2RES_UTIL_MASTER_FLAT_PROCATG "\n"
-"  Description\n"
-"    group the input frames by different settings\n"
-"    loop on groups g:\n"
-"      group the input frames by different decker positions\n"
-"      loop on decker positions p:\n"
-"        loop on detectors d:\n"
-"          cr2res_util_normflat_reduce() computes (master_flat,bpm)(g,p,d)\n"
-"      Save master_flat(g,p) (FLAT_MASTER_FLAT)\n"
-"      Save bpm(g,p) (FLAT_BPM)\n"
-"\n"
-"    cr2res_util_normflat_reduce()\n"
-"      Load the images list\n"
-"      Average the images to avg\n"
-"      Load the input slit_model with the proper setting/decker\n"
-"      Compute the master flat with cr2res_master_flat(avg, \n"
-"               slit_model, --bpm_low, --bpm_high, --bpm_lines_ratio)\n"
-"        -> master_flat, bpm\n"
-"Library functions uѕed:\n"
-"    cr2res_extract_frameset()\n"
-"    cr2res_io_extract_decker_frameset()\n"
-"    cr2res_io_find_SLIT_MODEL()\n"
-"    cr2res_io_load_image_list_from_set()\n"
-"    cr2res_io_load_SLIT_MODEL()\n"
-"    cr2res_master_flat()\n"
-"    cr2res_io_save_MASTER_FLAT()\n"
-"    cr2res_io_save_BPM()\n" ;
+static char cr2res_util_normflat_description[] = "\
+Flat normalization                                                      \n\
+  The input RAW files are grouped by setting/decker and each group is   \n\
+  reduced ѕeparately. For each group, a slit model file with matching   \n\
+  setting/decker is expected.                                           \n\
+  Inputs                                                                \n\
+    raw.fits " CR2RES_FLAT_RAW " [1 to n]                               \n\
+    slit_model.fits " CR2RES_FLAT_SLIT_MODEL_PROCATG " [1 to m]         \n\
+                 or " CR2RES_UTIL_SLIT_MODEL_PROCATG "                  \n\
+                 or " CR2RES_OBS_NODDING_SLITMODELA_PROCATG "           \n\
+                 or " CR2RES_OBS_NODDING_SLITMODELB_PROCATG "           \n\
+  Outputs                                                               \n\
+    cr2res_util_normflat_[setting]_[Decker]_bpm.fits " 
+CR2RES_UTIL_MASTER_FLAT_PROCATG "                                       \n\
+cr2res_util_normflat_[setting]_[Decker]_master.fits " 
+CR2RES_UTIL_MASTER_FLAT_PROCATG "                                       \n\
+  Description                                                           \n\
+    group the input frames by different settings                        \n\
+    loop on groups g:                                                   \n\
+      group the input frames by different decker positions              \n\
+      loop on decker positions p:                                       \n\
+        loop on detectors d:                                            \n\
+          cr2res_util_normflat_reduce() computes (master_flat,bpm)(g,p,d)\n\
+      Save master_flat(g,p) (FLAT_MASTER_FLAT)                          \n\
+      Save bpm(g,p) (FLAT_BPM)                                          \n\
+                                                                        \n\
+    cr2res_util_normflat_reduce()                                       \n\
+      Load the images list                                              \n\
+      Average the images to avg                                         \n\
+      Load the input slit_model with the proper setting/decker          \n\
+      Compute the master flat with cr2res_master_flat(avg,              \n\
+               slit_model, --bpm_low, --bpm_high, --bpm_lines_ratio)    \n\
+        -> master_flat, bpm                                             \n\
+Library functions uѕed:                                                 \n\
+    cr2res_extract_frameset()                                           \n\
+    cr2res_io_extract_decker_frameset()                                 \n\
+    cr2res_io_find_SLIT_MODEL()                                         \n\
+    cr2res_io_load_image_list_from_set()                                \n\
+    cr2res_io_load_SLIT_MODEL()                                         \n\
+    cr2res_master_flat()                                                \n\
+    cr2res_io_save_MASTER_FLAT()                                        \n\
+    cr2res_io_save_BPM()                                                \n\
+";
 
 /*-----------------------------------------------------------------------------
                                 Function code

@@ -64,32 +64,33 @@ static int cr2res_util_trace_map(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_trace_map_description[] =
-"Maps creation\n"
-"  Each input TRACE_WAVE file is converted into maps to visualize the \n"
-"  traces, wavelengths and the slit curvature\n"
-"  Inputs\n"
-"    raw.fits " CR2RES_TRACE_WAVE_PROTYPE " [1 to n]\n"
-"  Outputs\n"
-"    <input_name>_slit_curve.fits " 
-CR2RES_UTIL_TRACE_MAP_SLIT_CURVE_PROCATG "\n"
-"    <input_name>_wave.fits " CR2RES_UTIL_TRACE_MAP_WL_PROCATG "\n"
-"    <input_name>_trace.fits " CR2RES_UTIL_TRACE_MAP_TRACE_PROCATG "\n"
-"  Description\n"
-"    loop on input raw frames f:\n"
-"      loop on detectors d:\n"
-"        Load the trace_wave extension\n"
-"        Call cr2res_wave_gen_wave_map() to generate wave_map(d)\n"
-"        Call cr2res_trace_gen_image() to generate traces_map(d)\n"
-"        Call cr2res_slit_curv_gen_map() to generate slit_curv_map(d)\n"
-"    Save wave_map, traces_map and slit_curv_map\n"
-"Library functions uѕed:\n"
-"    cr2res_io_load_TRACE_WAVE()\n"
-"    cr2res_trace_gen_image()\n"
-"    cr2res_slit_curv_gen_map()\n"
-"    cr2res_io_save_SLIT_CURV_MAP()\n"
-"    cr2res_io_save_WAVE_MAP()\n"
-"    cr2res_io_save_TRACE_MAP()\n" ;
+static char cr2res_util_trace_map_description[] = "\
+Maps creation                                                           \n\
+  Each input TRACE_WAVE file is converted into maps to visualize the    \n\
+  traces, wavelengths and the slit curvature                            \n\
+  Inputs                                                                \n\
+    raw.fits " CR2RES_TRACE_WAVE_PROTYPE " [1 to n]                     \n\
+  Outputs                                                               \n\
+    <input_name>_slit_curve.fits " 
+CR2RES_UTIL_TRACE_MAP_SLIT_CURVE_PROCATG "                              \n\
+    <input_name>_wave.fits " CR2RES_UTIL_TRACE_MAP_WL_PROCATG "         \n\
+    <input_name>_trace.fits " CR2RES_UTIL_TRACE_MAP_TRACE_PROCATG "     \n\
+  Description                                                           \n\
+    loop on input raw frames f:                                         \n\
+      loop on detectors d:                                              \n\
+        Load the trace_wave extension                                   \n\
+        Call cr2res_wave_gen_wave_map() to generate wave_map(d)         \n\
+        Call cr2res_trace_gen_image() to generate traces_map(d)         \n\
+        Call cr2res_slit_curv_gen_map() to generate slit_curv_map(d)    \n\
+    Save wave_map, traces_map and slit_curv_map                         \n\
+Library functions uѕed:                                                 \n\
+    cr2res_io_load_TRACE_WAVE()                                         \n\
+    cr2res_trace_gen_image()                                            \n\
+    cr2res_slit_curv_gen_map()                                          \n\
+    cr2res_io_save_SLIT_CURV_MAP()                                      \n\
+    cr2res_io_save_WAVE_MAP()                                           \n\
+    cr2res_io_save_TRACE_MAP()                                          \n\
+";
 
 /*-----------------------------------------------------------------------------
                                 Function code

@@ -60,44 +60,45 @@ static int cr2res_util_trace(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_trace_description[] =
-"Traces detection\n"
-"  This utility detects the traces, fits polynomials on their edges (Upper\n"
-"  and Lower) and in their centers (All), and stores these informations in \n"
-"  the TRACE_WAVE file.\n"
-"  Each trace is uniquely identified by its Order/TraceNb values.\n"
-"  The Order values refer to the keywords indices (e.g. HIERARCH ESO INS\n"
-"  WLEN CENY4) in the product headers.\n"
-"  The TraceNb starts with 1, and identifies traces within the same order.\n"
-"  The additional columns :\n"
-"    "CR2RES_COL_WAVELENGTH"\n"
-"    "CR2RES_COL_WAVELENGTH_ERROR"\n"
-"    "CR2RES_COL_SLIT_CURV_A"\n"
-"    "CR2RES_COL_SLIT_CURV_B"\n"
-"    "CR2RES_COL_SLIT_CURV_C"\n"
-"    "CR2RES_COL_SLIT_FRACTION"\n"
-"  are filled with default values.\n"
-"\n"
-"  Inputs\n"
-"    raw.fits " CR2RES_FLAT_RAW " [1 to n]\n"
-"  Outputs\n"
-"    <input_name>_tracewave.fits " CR2RES_UTIL_TRACE_WAVE_PROCATG"\n"
-"  Description\n"
-"    loop on input raw frames f:\n"
-"      loop on detectors d:\n"
-"        Use cr2res_trace(--degree, --min_cluster, --smooth, --opening) \n"
-"                to measure the traces\n"
-"        if --split_traces, call cr2res_trace_split_traces() to split \n"
-"               the traces\n"
-"        Use cr2res_trace_add_extra_columns() to add the additional \n"
-"                columns (slit fraction, wl, slit curvature)\n"
-"      Save the trace wave table\n"
-"Library functions uѕed\n"
-"    cr2res_io_load_image()\n"
-"    cr2res_trace()\n"
-"    cr2res_trace_add_extra_columns()\n"
-"    cr2res_trace_split_traces()\n"
-"    cr2res_io_save_TRACE_WAVE()\n" ;
+static char cr2res_util_trace_description[] = "\
+Traces detection                                                        \n\
+  This utility detects the traces, fits polynomials on their edges      \n\
+  (Upper and Lower) and in their centers (All), and stores these        \n\
+  informations in the TRACE_WAVE file.                                  \n\
+  Each trace is uniquely identified by its Order/TraceNb values.        \n\
+  The Order values refer to the keywords indices (e.g. HIERARCH ESO INS \n\
+  WLEN CENY4) in the product headers.                                   \n\
+  The TraceNb starts with 1, identifies traces within the same order.   \n\
+  The additional columns :                                              \n\
+    "CR2RES_COL_WAVELENGTH"                                             \n\
+    "CR2RES_COL_WAVELENGTH_ERROR"                                       \n\
+    "CR2RES_COL_SLIT_CURV_A"                                            \n\
+    "CR2RES_COL_SLIT_CURV_B"                                            \n\
+    "CR2RES_COL_SLIT_CURV_C"                                            \n\
+    "CR2RES_COL_SLIT_FRACTION"                                          \n\
+  are filled with default values.                                       \n\
+                                                                        \n\
+  Inputs                                                                \n\
+    raw.fits " CR2RES_FLAT_RAW " [1 to n]                               \n\
+  Outputs                                                               \n\
+    <input_name>_tracewave.fits " CR2RES_UTIL_TRACE_WAVE_PROCATG"       \n\
+  Description                                                           \n\
+    loop on input raw frames f:                                         \n\
+      loop on detectors d:                                              \n\
+        Use cr2res_trace(--degree, --min_cluster, --smooth, --opening)  \n\
+                to measure the traces                                   \n\
+        if --split_traces, call cr2res_trace_split_traces() to split    \n\
+               the traces                                               \n\
+        Use cr2res_trace_add_extra_columns() to add the additional      \n\
+                columns (slit fraction, wl, slit curvature)             \n\
+      Save the trace wave table                                         \n\
+  Library functions uѕed                                                \n\
+    cr2res_io_load_image()                                              \n\
+    cr2res_trace()                                                      \n\
+    cr2res_trace_add_extra_columns()                                    \n\
+    cr2res_trace_split_traces()                                         \n\ 
+    cr2res_io_save_TRACE_WAVE()                                         \n\
+" ;
 
 /*-----------------------------------------------------------------------------
                                 Function code

@@ -58,26 +58,27 @@ static int cr2res_util_genlines(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_genlines_description[] =
-"Generate Lines calibration tables\n"
-"  Inputs\n"
-"    raw.txt " CR2RES_EMISSION_LINES_PROCATG" [1]\n"
-"    The ASCII file must contain two columns:\n"
-"      1st: Wavelengths in increasing order (the unit is corrected by\n"
-"               the factor option to obtain nanometers).\n"
-"      2nd: The atmospheric emission.\n"
-"      The ASCII files are in the catalogs/ directory of the CR2RES \n"
-"               distribution.\n"
-"  Output\n"
-"    cr2res_util_genlines.fits "CR2RES_EMISSION_LINES_PROCATG"\n"
-"  Description\n" 
-"    Parse the 2 column text file\n" 
-"    Apply the --wl_factor correction\n" 
-"    if (--display) plot it\n" 
-"    Create the CPL table\n" 
-"    Save the table\n" 
-"  Library functions uѕed:\n" 
-"    cr2res_io_save_EMISSION_LINES()\n" ;
+static char cr2res_util_genlines_description[] = " \
+Generate Lines calibration tables                                       \n\
+  Inputs                                                                \n\
+    raw.txt " CR2RES_EMISSION_LINES_PROCATG" [1]                        \n\
+    The ASCII file must contain two columns:                            \n\
+      1st: Wavelengths in increasing order (the unit is corrected by    \n\
+               the factor option to obtain nanometers).                 \n\
+      2nd: The atmospheric emission.                                    \n\
+      The ASCII files are in the catalogs/ directory of the CR2RES      \n\
+               distribution.                                            \n\
+  Output                                                                \n\
+    cr2res_util_genlines.fits "CR2RES_EMISSION_LINES_PROCATG"           \n\
+  Description                                                           \n\ 
+    Parse the 2 column text file                                        \n\ 
+    Apply the --wl_factor correction                                    \n\ 
+    if (--display) plot it                                              \n\ 
+    Create the CPL table                                                \n\ 
+    Save the table                                                      \n\ 
+  Library functions uѕed:                                               \n\ 
+    cr2res_io_save_EMISSION_LINES()                                     \n\ 
+" ;
 
 /*-----------------------------------------------------------------------------
                                 Function code

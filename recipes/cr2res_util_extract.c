@@ -64,49 +64,50 @@ static int cr2res_util_extract(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_extract_description[] =
-"Spectrum Extraction\n"
-"  This utility performs the optimal extraction along precomputed traces.\n"
-"  Inputs\n"
-"    science.fits " CR2RES_FLAT_RAW " [1 to n]\n"
-"              or " CR2RES_WAVE_RAW "\n"
-"              or " CR2RES_OBS_NODDING_RAW "\n"
-"              or " CR2RES_OBS_2D_RAW "\n"
-"              or " CR2RES_OBS_POL_RAW "\n"
-"    trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]\n"
-"            or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "\n"
-"            or " CR2RES_UTIL_TRACE_WAVE_PROCATG "\n"
-"            or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "\n"
-"            or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "\n"
-"            or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "\n"
-"    bpm.fits " CR2RES_DARK_BPM_PROCATG " [0 to 1]\n"
-"          or " CR2RES_FLAT_BPM_PROCATG "\n"
-"          or " CR2RES_DETLIN_BPM_PROCATG "\n"
-"          or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
-"  Outputs\n"
-"    <input_name>_extr1D.fits " CR2RES_UTIL_EXTRACT_1D_PROCATG "\n"
-"    <input_name>_extrSlitFu.fits " CR2RES_UTIL_SLIT_FUNC_PROCATG "\n"
-"    <input_name>_extrModel.fits " CR2RES_UTIL_SLIT_MODEL_PROCATG "\n"
-"  Description\n"
-"    loop on detectors d:\n"
-"      Load the trace wave\n"
-"      Recompute a new trace wave with the specified slit fraction \n"
-"               (--slit_frac) if needed\n"
-"      Load the image to extract\n"
-"      Load the BPM and set them in the image\n"
-"      Run the extraction cr2res_extract_traces(--method,--height,\n"
-"               --swath_width,--oversample,--smooth_slit)\n"
-"        -> creates SLIT_MODEL(d), SLIT_FUNC(d), EXTRACT_1D(d)\n"
-"    Save SLIT_MODEL, SLIT_FUNC, EXTRACT_1D\n"
-"Library functions uѕed:\n"
-"    cr2res_io_load_TRACE_WAVE()\n"
-"    cr2res_trace_new_slit_fraction()\n"
-"    cr2res_io_load_image()\n"
-"    cr2res_io_load_BPM()\n"
-"    cr2res_extract_traces()\n"
-"    cr2res_io_save_SLIT_MODEL()\n"
-"    cr2res_io_save_SLIT_FUNC()\n"
-"    cr2res_io_save_EXTRACT_1D()\n" ;
+static char cr2res_util_extract_description[] = "\
+Spectrum Extraction                                                     \n\
+  This utility performs the optimal extraction along precomputed traces.\n\
+  Inputs                                                                \n\
+    science.fits " CR2RES_FLAT_RAW " [1 to n]                           \n\
+              or " CR2RES_WAVE_RAW "                                    \n\
+              or " CR2RES_OBS_NODDING_RAW "                             \n\
+              or " CR2RES_OBS_2D_RAW "                                  \n\
+              or " CR2RES_OBS_POL_RAW "                                 \n\
+    trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]                   \n\
+            or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "                \n\
+            or " CR2RES_UTIL_TRACE_WAVE_PROCATG "                       \n\
+            or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "                  \n\
+            or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "                   \n\
+            or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "             \n\
+    bpm.fits " CR2RES_DARK_BPM_PROCATG " [0 to 1]                       \n\
+          or " CR2RES_FLAT_BPM_PROCATG "                                \n\
+          or " CR2RES_DETLIN_BPM_PROCATG "                              \n\
+          or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
+  Outputs                                                               \n\
+    <input_name>_extr1D.fits " CR2RES_UTIL_EXTRACT_1D_PROCATG "         \n\
+    <input_name>_extrSlitFu.fits " CR2RES_UTIL_SLIT_FUNC_PROCATG "      \n\
+    <input_name>_extrModel.fits " CR2RES_UTIL_SLIT_MODEL_PROCATG "      \n\
+  Description                                                           \n\
+    loop on detectors d:                                                \n\
+      Load the trace wave                                               \n\
+      Recompute a new trace wave with the specified slit fraction       \n\
+               (--slit_frac) if needed                                  \n\
+      Load the image to extract                                         \n\
+      Load the BPM and set them in the image                            \n\
+      Run the extraction cr2res_extract_traces(--method,--height,       \n\
+               --swath_width,--oversample,--smooth_slit)                \n\
+        -> creates SLIT_MODEL(d), SLIT_FUNC(d), EXTRACT_1D(d)           \n\
+    Save SLIT_MODEL, SLIT_FUNC, EXTRACT_1D                              \n\
+  Library functions uѕed:                                               \n\
+    cr2res_io_load_TRACE_WAVE()                                         \n\
+    cr2res_trace_new_slit_fraction()                                    \n\
+    cr2res_io_load_image()                                              \n\
+    cr2res_io_load_BPM()                                                \n\
+   cr2res_extract_traces()                                              \n\
+    cr2res_io_save_SLIT_MODEL()                                         \n\
+    cr2res_io_save_SLIT_FUNC()                                          \n\
+    cr2res_io_save_EXTRACT_1D()                                         \n\
+" ;
 
 /*-----------------------------------------------------------------------------
                                 Function code

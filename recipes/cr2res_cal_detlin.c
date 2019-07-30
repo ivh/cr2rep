@@ -84,45 +84,46 @@ static int cr2res_cal_detlin(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_cal_detlin_description[] =
-"Detector Linearity\n"
-"  Inputs\n"
-"    raw.fits " CR2RES_DETLIN_RAW " [3 to n]\n"
-"  Outputs\n"
-"    cr2res_cal_detlin_coeffs.fits " CR2RES_DETLIN_COEFFS_PROCATG "\n"
-"    cr2res_cal_detlin_bpm.fits " CR2RES_DETLIN_BPM_PROCATG "\n"
-"  Algorithm\n"
-"    group the input raw frames by different settings\n"
-"    loop on groups g:\n"
-"      loop on detectors d:\n"
-"        cr2res_cal_detlin_reduce() computes bpm(g, d) and coeffs(g, d)\n"
-"        fill global_bpm(d) with bpm(g, d)\n"
-"        fill global_coeffs(d) with coeffs(g, d)\n"
-"\n"
-"      if (--single_settings)\n"
-"        save bpm(g) file (DETLIN_BPM)\n"
-"        save coeffs(g) file (DETLIN_COEFFS)\n"
-"    save global_bpm file (DETLIN_BPM)\n"
-"    save global_coeffs file (DETLIN_COEFFS)\n"
-"\n"
-"    cr2res_cal_detlin_reduce()\n"
-"      load input imlist and dits\n"
-"      compute the traces (from 1. image, or collapsed if --trace_collapse)\n"
-"        use cr2res_trace(--trace_smooth, --trace_degree,\n"
-"                         --trace_min_cluster, --trace_opening)\n"
-"      loop on the detector pixels pix:\n"
-"        if the pixel is within a trace:\n"
-"          cr2res_detlin_compute() computes polynolial(pix) and errors(pix)\n"
-"      use the coeffs for the bpm computation\n"
-"      store the qc parameters in the returned property list\n"
-"  Used Library Functions\n"
-"    cr2res_trace()\n"
-"    cr2res_detlin_compute()\n"
-"    cr2res_qc_detlin_gain()\n"
-"    cr2res_qc_detlin_median()\n"
-"    cr2res_qc_detlin_min_max_level()\n"
-"    cr2res_io_save_BPM()\n"
-"    cr2res_io_save_DETLIN_COEFFS()\n" ;
+static char cr2res_cal_detlin_description[] = "\
+Detector Linearity                                                      \n\
+  Inputs                                                                \n\
+    raw.fits " CR2RES_DETLIN_RAW " [3 to n]                             \n\
+  Outputs                                                               \n\
+    cr2res_cal_detlin_coeffs.fits " CR2RES_DETLIN_COEFFS_PROCATG "      \n\
+    cr2res_cal_detlin_bpm.fits " CR2RES_DETLIN_BPM_PROCATG "            \n\
+  Algorithm                                                             \n\
+    group the input raw frames by different settings                    \n\
+    loop on groups g:                                                   \n\
+      loop on detectors d:                                              \n\
+        cr2res_cal_detlin_reduce() computes bpm(g, d) and coeffs(g, d)  \n\
+        fill global_bpm(d) with bpm(g, d)                               \n\
+        fill global_coeffs(d) with coeffs(g, d)                         \n\
+                                                                        \n\
+      if (--single_settings)                                            \n\
+        save bpm(g) file (DETLIN_BPM)                                   \n\
+        save coeffs(g) file (DETLIN_COEFFS)                             \n\
+    save global_bpm file (DETLIN_BPM)                                   \n\
+    save global_coeffs file (DETLIN_COEFFS)                             \n\
+                                                                        \n\
+    cr2res_cal_detlin_reduce()                                          \n\
+      load input imlist and dits                                        \n\
+      compute the traces (from 1. image, or collapsed if --trace_collapse)\n\
+        use cr2res_trace(--trace_smooth, --trace_degree,                \n\
+                         --trace_min_cluster, --trace_opening)          \n\
+      loop on the detector pixels pix:                                  \n\
+        if the pixel is within a trace:                                 \n\
+          cr2res_detlin_compute() computes polynolial(pix) and errors(pix)\n\
+      use the coeffs for the bpm computation                            \n\
+      store the qc parameters in the returned property list             \n\
+  Used Library Functions                                                \n\
+    cr2res_trace()                                                      \n\
+    cr2res_detlin_compute()                                             \n\
+    cr2res_qc_detlin_gain()                                             \n\
+    cr2res_qc_detlin_median()                                           \n\
+    cr2res_qc_detlin_min_max_level()                                    \n\
+    cr2res_io_save_BPM()                                                \n\
+    cr2res_io_save_DETLIN_COEFFS()                                      \n\
+" ;
 
 /*-----------------------------------------------------------------------------
                                 Function code

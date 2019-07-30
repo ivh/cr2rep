@@ -57,24 +57,25 @@ static int cr2res_util_bpm_split(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_bpm_split_description[] =
-"BPM splitting\n"
-"  Each input BPM is splitted into several BPMs\n"
-"  Inputs\n"
-"    raw.fits " CR2RES_BPM_PROTYPE" [1 to n]\n"
-"  Outputs\n"
-"    <input_name>_splitted_<bpm_code>.fits " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
-"Description\n"
-"  loop on input raw frames f:\n"
-"    loop on detectors d:\n"
-"      loop on bpm types t:\n"
-"        call cr2res_bpm_from_mask() to compute bpm_single_type(t, d, f)\n"
-"    loop on bpm types t:\n"
-"      Save bpm_single_type(f, t) (UTIL_BPM_SPLIT)\n"
-"Library functions uѕed:\n"
-"    cr2res_io_load_BPM()\n"
-"    cr2res_bpm_from_mask()\n"
-"    cr2res_io_save_BPM()\n";
+static char cr2res_util_bpm_split_description[] = "\
+BPM splitting                                                           \n\
+  Each input BPM is splitted into several BPMs                          \n\
+  Inputs                                                                \n\
+    raw.fits " CR2RES_BPM_PROTYPE" [1 to n]                             \n\
+  Outputs                                                               \n\
+    <input_name>_splitted_<bpm_code>.fits " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n\
+Description                                                             \n\
+  loop on input raw frames f:                                           \n\
+    loop on detectors d:                                                \n\
+      loop on bpm types t:                                              \n\
+        call cr2res_bpm_from_mask() to compute bpm_single_type(t, d, f) \n\
+    loop on bpm types t:                                                \n\
+      Save bpm_single_type(f, t) (UTIL_BPM_SPLIT)                       \n\
+Library functions uѕed:                                                 \n\
+    cr2res_io_load_BPM()                                                \n\
+    cr2res_bpm_from_mask()                                              \n\
+    cr2res_io_save_BPM()                                                \n\
+";
 
 /*-----------------------------------------------------------------------------
                                 Function code
