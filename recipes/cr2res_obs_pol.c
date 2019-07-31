@@ -105,27 +105,103 @@ static int cr2res_obs_pol(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_obs_pol_description[] =
-"CRIRES+ Polarimetry Observation recipe\n"
-"The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw.fits " CR2RES_OBS_POL_RAW"\n"
-"trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "\n"
-"             or " CR2RES_UTIL_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "\n"
-"detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " (optional) \n"
-"master_dark.fits " CR2RES_MASTER_DARK_PROCATG " (optional) \n"
-"master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " (optional) \n"
-"bpm.fits " CR2RES_FLAT_BPM_PROCATG " (optional) \n"
-"      or " CR2RES_DETLIN_BPM_PROCATG "\n"
-"      or " CR2RES_DARK_BPM_PROCATG "\n"
-"      or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
-" The recipe produces the following products:\n"
-"cr2res_obs_pol_specA.fits " CR2RES_OBS_POL_SPECA_PROCATG "\n"
-"cr2res_obs_pol_specB.fits " CR2RES_OBS_POL_SPECB_PROCATG "\n"
-"\n";
+static char cr2res_obs_pol_description[] = "\
+Polarimetry Observation                                                 \n\
+  The input raw frames are separated in A and B nodding positions. A    \n\
+  and B frames are reduced separately. The frames are grouped by blocks \n\
+  of 4 frames. Each block generateѕ 8 extractions. For each order       \n\
+  found, 8 spectra are passed to the demodulation functions.            \n\
+  The results are stored in polarimetry tables (1 per group of 4        \n\
+  frames). The polarimetry tables are then merged together if there are \n\
+  several group of 4 frames available.                                  \n\
+                                                                        \n\
+  Inputs                                                                \n\
+    raw.fits " CR2RES_OBS_POL_RAW " [4 to 4n]                           \n\
+    trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]                   \n\
+            or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "                \n\
+            or " CR2RES_UTIL_TRACE_WAVE_PROCATG "                       \n\
+            or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "                  \n\
+            or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "                   \n\
+            or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "             \n\
+    detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " [0 to 1]               \n\
+    bpm.fits " CR2RES_DARK_BPM_PROCATG " [0 to 1]                       \n\
+          or " CR2RES_FLAT_BPM_PROCATG "                                \n\
+          or " CR2RES_DETLIN_BPM_PROCATG "                              \n\
+          or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
+    master_dark.fits " CR2RES_MASTER_DARK_PROCATG " [0 to 1]            \n\
+    master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " [0 to 1]       \n\
+                                                                        \n\
+  Outputs                                                               \n\
+    cr2res_obs_pol_specA.fits " CR2RES_OBS_POL_SPECA_PROCATG "          \n\
+    cr2res_obs_pol_specB.fits " CR2RES_OBS_POL_SPECB_PROCATG "          \n\
+                                                                        \n\
+  Algorithm                                                             \n\
+    loop on detectors d:                                                \n\
+      cr2res_obs_pol_reduce()                                           \n\
+        -> pol_speca(d)                                                 \n\
+        -> pol_specb(d)                                                 \n\
+    Save pol_speca                                                      \n\
+    Save pol_specb                                                      \n\
+                                                                        \n\
+    cr2res_obs_pol_reduce():                                            \n\
+      Read the nodding positions of the raw frames                      \n\
+      Split the rawframes in A and B positions                          \n\
+      Call cr2res_obs_pol_reduce_one() successively on A and B          \n\
+        -> pol_speca                                                    \n\
+        -> pol_specb                                                    \n\
+                                                                        \n\
+    cr2res_obs_pol_reduce_one():                                        \n\
+      Read the DITs                                                     \n\
+      Read the decker positions                                         \n\
+      Load the image list                                               \n\
+      Apply the calibrations to the image list                          \n\
+      Load the trace_wave                                               \n\
+      For each group of 4 images g:                                     \n\
+        Compute 8 extracted tables (2 per image):                       \n\
+            1u, 1d, 2u, 2d, 3u, 3d, 4u, 4d                              \n\
+            where u/d are for up and down                               \n\
+                  1->4 iѕ derived with cr2res_pol_sort_frames()         \n\
+                  The decker info is used to derive the 8 slit fractions\n\
+        Count norders the number of different orders in those 8 tables  \n\
+            [Note : 1 extracted table has 1 spectrum per order]         \n\
+        loop on orders o:                                               \n\
+          Get the 8 spectra/wl/error for this order from                \n\
+                1u, 1d, 2u, 2d, 3u, 3d, 4u, 4d                          \n\
+          Call the cr2res_pol_demod_stokes()                            \n\
+            -> demod_stokes(o, g)                                       \n\
+          Call cr2res_pol_demod_null()                                  \n\
+            -> demod_null(o, g)                                         \n\
+          Call cr2res_pol_demod_intens()                                \n\
+            -> demod_intenѕ(o, g)                                       \n\
+        Create pol_spec(g) from demod_stokes(g),                        \n\
+                                demod_null(g),                          \n\
+                                demod_intenѕ(g)                         \n\
+      Merge pol_spec(g) into pol_spec                                   \n\
+                                                                        \n\
+  Library functions uѕed                                                \n\
+    cr2res_io_find_TRACE_WAVE()                                         \n\
+    cr2res_io_find_BPM()                                                \n\
+    cr2res_obs_pol_reduce()                                             \n\
+    cr2res_nodding_read_positions()                                     \n\
+    cr2res_combine_nodding_split_frames()                               \n\
+    cr2res_obs_pol_reduce_one()                                         \n\
+    cr2res_io_read_dits()                                               \n\
+    cr2res_io_read_decker_positions()                                   \n\
+    cr2res_io_load_image_list_from_set()                                \n\
+    cr2res_calib_imagelist()                                            \n\
+    cr2res_io_load_TRACE_WAVE()                                         \n\
+    cr2res_pol_sort_frames()                                            \n\
+    cr2res_trace_slit_fraction_create()                                 \n\
+    cr2res_trace_new_slit_fraction()                                    \n\
+    cr2res_extract_traces()                                             \n\
+    cr2res_obs_pol_get_order_numbers()                                  \n\
+    cr2res_pol_demod_stokes()                                           \n\
+    cr2res_pol_demod_null()                                             \n\
+    cr2res_pol_demod_intens()                                           \n\
+    cr2res_pol_POL_SPEC_create()                                        \n\
+    cr2res_pol_spec_pol_merge()                                         \n\
+    cr2res_io_save_POL_SPEC()                                           \n\
+";
 
 /*-----------------------------------------------------------------------------
                                 Function code
@@ -330,7 +406,7 @@ static int cr2res_obs_pol(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
-	
+
     /* Get Calibration frames */
     trace_wave_frame = cr2res_io_find_TRACE_WAVE(frameset) ;
     if (trace_wave_frame == NULL) {
@@ -600,7 +676,6 @@ static int cr2res_obs_pol_reduce_one(
     /* Check Inputs */
     if (pol_spec == NULL || ext_plist == NULL || rawframes == NULL || 
             trace_wave_frame == NULL) return -1 ;
-
 
     /* Check number of frames */
     nframes = cpl_frameset_get_size(rawframes) ;
@@ -1039,7 +1114,7 @@ static int * cr2res_obs_pol_get_order_numbers(
             col_type = cr2res_dfs_SPEC_colname_parse(col_name, &order,
                     &trace_nb) ;
             if (col_type != NULL && !strcmp(col_type, "SPEC")) {
-				/* Is the current order a new one ? */
+                /* Is the current order a new one ? */
                 new_order = 1 ;
                 for (k=0 ; k<count_orders ; k++)
                     if (tmp_orders_list[k] == order)

@@ -91,6 +91,8 @@ static int cr2res_obs_nodding(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_obs_nodding_description[] = "\
 Nodding Observation                                                     \n\
+  This recipe handles nodding observations. It expects an even number   \n\
+  of rawframes in input, and as many A positions as B positions         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_OBS_NODDING_RAW" [2 to 2n]                        \n\
     trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]                   \n\
@@ -106,6 +108,7 @@ Nodding Observation                                                     \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
     master_dark.fits " CR2RES_MASTER_DARK_PROCATG " [0 to 1]            \n\
     master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " [0 to 1]       \n\
+                                                                        \n\
   Outputs                                                               \n\
     cr2res_obs_nodding_extractA.fits " 
     CR2RES_OBS_NODDING_EXTRACTA_PROCATG "                               \n\
@@ -123,6 +126,56 @@ Nodding Observation                                                     \n\
     CR2RES_OBS_NODDING_SLITFUNCA_PROCATG "                              \n\
     cr2res_obs_nodding_slitfuncB.fits " 
     CR2RES_OBS_NODDING_SLITFUNCB_PROCATG "                              \n\
+                                                                        \n\
+  Algorithm                                                             \n\
+    loop on detectors d:                                                \n\
+      call cr2res_obs_nodding_reduce()                                  \n\
+        -> combined[a|b](d)                                             \n\
+        -> extract[a|b](d)                                              \n\
+        -> slitfunc[a|b](d)                                             \n\
+        -> model[a|b](d)                                                \n\
+    Save combineda and combinedb                                        \n\
+    Save extracta and extractb                                          \n\
+    Save slitfunca and slitfuncb                                        \n\
+    Save modela and modelb                                              \n\
+                                                                        \n\
+    cr2res_obs_nodding_reduce()                                         \n\
+      Load the input raw frames in an image list                        \n\
+      Apply the calibrations to the image list                          \n\
+      Split the list in listA and listB image lists                     \n\
+      Compute diffA=listA-listB and diffB=listB-listA                   \n\
+      Collapse diffA and diffB                                          \n\
+        -> combined[a|b]                                                \n\
+      Load the input trace wave                                         \n\
+      Compute the slit fractions for A and B by using the nodthrow      \n\
+              and the assumption that A and B are at equal distances    \n\
+              from the slit center.                                     \n\
+      Compute 2 new trace_wave files  with these 2 computed slit fractions\n\
+      Extract the spectra for A and for B                               \n\
+        -> extracted[a|b]                                               \n\
+        -> slit_func[a|b]                                               \n\
+        -> model_master[a|b]                                            \n\
+      Compute QC parameters                                             \n\
+                                                                        \n\
+  Library functions uѕed                                                \n\
+    cr2res_io_find_TRACE_WAVE()                                         \n\
+    cr2res_io_find_BPM()                                                \n\
+    cr2res_obs_nodding_reduce()                                         \n\
+    cr2res_nodding_read_positions()                                     \n\
+    cr2res_io_read_dits()                                               \n\
+    cr2res_io_load_image_list_from_set()                                \n\
+    cr2res_calib_imagelist()                                            \n\
+    cr2res_combine_nodding_split()                                      \n\
+    cr2res_io_load_TRACE_WAVE()                                         \n\
+    cr2res_pfits_get_nodthrow()                                         \n\
+    cr2res_trace_new_slit_fraction()                                    \n\
+    cr2res_extract_traces()                                             \n\
+    cr2res_qc_obs_nodding_signal()                                      \n\
+    cr2res_qc_obs_nodding_transmission()                                \n\
+    cr2res_io_save_COMBINED()                                           \n\
+    cr2res_io_save_EXTRACT_1D()                                         \n\
+    cr2res_io_save_SLIT_FUNC()                                          \n\
+    cr2res_io_save_SLIT_MODEL()                                         \n\
 ";
 
 /*-----------------------------------------------------------------------------

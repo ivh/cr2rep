@@ -103,7 +103,7 @@ Spectrum Extraction                                                     \n\
           -> creates SLIT_MODEL(f,d), SLIT_FUNC(f,d), EXTRACT_1D(f,d)   \n\
       Save SLIT_MODEL(f), SLIT_FUNC(f), EXTRACT_1D(f)                   \n\
                                                                         \n\
-  Library functions uѕed:                                               \n\
+  Library functions uѕed                                                \n\
     cr2res_io_load_TRACE_WAVE()                                         \n\
     cr2res_trace_new_slit_fraction()                                    \n\
     cr2res_io_load_image()                                              \n\

@@ -77,27 +77,56 @@ static int cr2res_obs_2d(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_obs_2d_description[] =
-
-"CRIRES+ 2d Observation recipe\n"
-"The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw.fits " CR2RES_OBS_2D_RAW"\n"
-"trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "\n"
-"             or " CR2RES_UTIL_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "\n"
-"detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " (optional) \n"
-"master_dark.fits " CR2RES_MASTER_DARK_PROCATG " (optional) \n"
-"master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " (optional) \n"
-"bpm.fits " CR2RES_FLAT_BPM_PROCATG " (optional) \n"
-"      or " CR2RES_DETLIN_BPM_PROCATG "\n"
-"      or " CR2RES_DARK_BPM_PROCATG "\n"
-"      or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
-" The recipe produces the following products:\n"
-"cr2res_obs_2d_extract.fits " CR2RES_OBS_2D_EXTRACT_PROCATG "\n"
-"\n";
+static char cr2res_obs_2d_description[] = "\
+2D Observation                                                          \n\
+  This recipe is meant for extended objects. In each trace, the pixels  \n\
+  are calibrated, and stored in the output table.                       \n\
+                                                                        \n\
+  Inputs                                                                \n\
+    raw.fits " CR2RES_OBS_2D_RAW"                                       \n\
+    trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]                   \n\
+            or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "                \n\
+            or " CR2RES_UTIL_TRACE_WAVE_PROCATG "                       \n\
+            or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "                  \n\
+            or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "                   \n\
+            or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "             \n\
+    detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " [0 to 1]               \n\
+    bpm.fits " CR2RES_DARK_BPM_PROCATG " [0 to 1]                       \n\
+          or " CR2RES_FLAT_BPM_PROCATG "                                \n\
+          or " CR2RES_DETLIN_BPM_PROCATG "                              \n\
+          or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
+    master_dark.fits " CR2RES_MASTER_DARK_PROCATG " [0 to 1]            \n\
+    master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " [0 to 1]       \n\
+                                                                        \n\
+  Outputs                                                               \n\
+    cr2res_obs_2d_extract.fits " CR2RES_OBS_2D_EXTRACT_PROCATG "        \n\
+                                                                        \n\
+  Algorithm                                                             \n\
+    loop on raw frames f:                                               \n\
+      loop on detectors d:                                              \n\
+        cr2res_obs_2d_reduce()                                          \n\
+          -> extract(d)                                                 \n\
+      Save extract                                                      \n\
+                                                                        \n\
+    cr2res_obs_2d_reduce()                                              \n\
+      Load the input image                                              \n\
+      Apply the calibrations to the image                               \n\
+      Load the trace wave table                                         \n\
+      Call cr2res_extract2d_traces()                                    \n\
+        -> extract                                                      \n\
+                                                                        \n\
+  Library Functions uѕed                                                \n\
+    cr2res_io_find_TRACE_WAVE()                                         \n\
+    cr2res_io_find_BPM()                                                \n\
+    cr2res_obs_2d_reduce()                                              \n\
+    cr2res_obs_2d_check_inputs_validity()                               \n\
+    cr2res_pfits_get_dit()                                              \n\
+    cr2res_io_load_image()                                              \n\
+    cr2res_calib_image()                                                \n\
+    cr2res_io_load_TRACE_WAVE()                                         \n\
+    cr2res_extract2d_traces()                                           \n\
+    cr2res_io_save_EXTRACT_2D()                                         \n\
+";
 
 /*-----------------------------------------------------------------------------
                                 Function code
@@ -279,7 +308,7 @@ static int cr2res_obs_2d(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
-	
+
     /* Get Calibration frames */
     trace_wave_frame = cr2res_io_find_TRACE_WAVE(frameset) ;
     if (trace_wave_frame == NULL) {
@@ -302,7 +331,7 @@ static int cr2res_obs_2d(
     }
     cpl_msg_indent_more() ;
 
-	/* Loop on the RAW files */
+    /* Loop on the RAW files */
     for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
         
         /* Current frame */
@@ -358,7 +387,7 @@ static int cr2res_obs_2d(
 /*----------------------------------------------------------------------------*/
 /**
   @brief  Execute the 2d observation on one detector
-  @param rawframe              	Raw science frame
+  @param rawframe               Raw science frame
   @param trace_wave_frame       Trace Wave file
   @param detlin_frame           Associated detlin coefficients
   @param master_dark_frame      Associated master dark
