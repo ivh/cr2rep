@@ -62,7 +62,7 @@ static char cr2res_util_genlines_description[] = " \
 Generate Lines calibration tables                                       \n\
                                                                         \n\
   Inputs                                                                \n\
-    raw.txt " CR2RES_EMISSION_LINES_PROCATG" [1]                        \n\
+    raw.txt " CR2RES_EMISSION_LINES_TXT_RAW" [1]                        \n\
     The ASCII file must contain two columns:                            \n\
       1st: Wavelengths in increasing order (the unit is corrected by    \n\
                the factor option to obtain nanometers).                 \n\
@@ -260,7 +260,7 @@ static int cr2res_util_genlines(
 
     /* Get the rawframes */
     rawframes = cr2res_extract_frameset(frameset, 
-            CR2RES_EMISSION_LINES_PROCATG) ;
+            CR2RES_EMISSION_LINES_TXT_RAW) ;
     if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
         cpl_msg_error(__func__, "Cannot find any RAW file") ;
         cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;

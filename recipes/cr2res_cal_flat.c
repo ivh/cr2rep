@@ -119,7 +119,7 @@ CR2RES_FLAT_EXTRACT_1D_PROCATG "                                        \n\
 CR2RES_FLAT_SLIT_MODEL_PROCATG "                                        \n\
     cr2res_cal_flat_[setting]_[Decker]_slit_func.fits " 
 CR2RES_FLAT_SLIT_FUNC_PROCATG "                                         \n\
-    cr2res_cal_flat_[setting]_[Decker]_master.fits " 
+    cr2res_cal_flat_[setting]_[Decker]_master_flat.fits " 
 CR2RES_FLAT_MASTER_FLAT_PROCATG  "                                      \n\
     cr2res_cal_flat_[setting]_[Decker]_tracewave.fits " 
 CR2RES_FLAT_TRACE_WAVE_PROCATG "                                        \n\
@@ -664,7 +664,7 @@ static int cr2res_cal_flat(
             cpl_free(out_file);
 
             /* BPM */
-            out_file = cpl_sprintf("%s_%s_%s_master_bpm.fits", RECIPE_STRING,
+            out_file = cpl_sprintf("%s_%s_%s_bpm.fits", RECIPE_STRING,
                     setting_id, decker_desc[i]) ;
             cr2res_io_save_BPM(out_file, frameset,
                     raw_one_setting_decker, parlist, bpm, NULL,ext_plist[i], 

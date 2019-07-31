@@ -74,6 +74,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
             cpl_msg_warning(cpl_func, "Frame %d has no tag", i);
         } else if (!strcmp(tag, CR2RES_COMMAND_LINE) ||
                 /* DO.CATG Tags for the RAW files */
+                !strcmp(tag, CR2RES_EMISSION_LINES_TXT_RAW) ||
                 !strcmp(tag, CR2RES_DETLIN_RAW) ||
                 !strcmp(tag, CR2RES_DARK_RAW) ||
                 !strcmp(tag, CR2RES_FLAT_RAW) ||

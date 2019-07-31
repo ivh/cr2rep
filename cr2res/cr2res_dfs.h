@@ -287,6 +287,7 @@
 
 /* Define here the DO.CATG keywords */
 #define CR2RES_COMMAND_LINE                 "COMMAND_LINE"
+#define CR2RES_EMISSION_LINES_TXT_RAW       "EMISSION_LINES_TXT"
 #define CR2RES_DETLIN_RAW                   "DETLIN"
 #define CR2RES_DARK_RAW                     "DARK"
 #define CR2RES_FLAT_RAW                     "FLAT"
