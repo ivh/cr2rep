@@ -97,35 +97,86 @@ static int cr2res_cal_wave(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_cal_wave_description[] =
-"CRIRES+ wavelength calibration recipe\n"
-"The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw.fits " CR2RES_WAVE_RAW "\n"
-"trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "\n"
-"             or " CR2RES_UTIL_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "\n"
-"lines.fits " CR2RES_EMISSION_LINES_PROCATG " (optional) \n"
-"detlin_coeffs.fits " CR2RES_DETLIN_COEFFS_PROCATG " (optional) \n"
-"master_dark.fits " CR2RES_MASTER_DARK_PROCATG " (optional) \n"
-"master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " (optional) \n"
-"bpm.fits " CR2RES_FLAT_BPM_PROCATG " (optional) \n"
-"      or " CR2RES_DETLIN_BPM_PROCATG "\n"
-"      or " CR2RES_DARK_BPM_PROCATG "\n"
-"      or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
-"\n"
-"Four different methods are offered by the utility.\n"
-"   XCORR:  Cross Correlation with a emission lines catalog (default)\n"
-"   LINE1D: Line identification and fitting for each 1D spectra\n"
-"   LINE2D: Line identification and fitting for all 1D spectra at once\n"
-"   ETALON: Does not require any static calibration file.\n"
-"\n"
-"The recipe produces the following products:\n"
-"cr2res_cal_wave_trace.fits " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "\n"
-"cr2res_cal_wave_map.fits " CR2RES_CAL_WAVE_MAP_PROCATG "\n"
-"\n";
+static char cr2res_cal_wave_description[] = "\
+Spectrum Extraction and Wavelength Calibration                          \n\
+  This recipe performs the extraction of the various orders along       \n\
+  the provided traces, and the wavelength calibration of these          \n\
+  extracted spectra.                                                    \n\
+  It can support 4 different methods (--wl_method parameter):           \n\
+    XCORR:  Cross Correlation with a emission lines catalog (default)   \n\
+    LINE1D: Line identification and fitting for each 1D spectra         \n\
+    LINE2D: Line identification and fitting for all 1D spectra at once  \n\
+    ETALON: Does not require any static calibration file.               \n\
+  Inputs                                                                \n\
+    raw.fits " CR2RES_WAVE_RAW " [1 to n]                               \n\
+    trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]                   \n\
+            or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "                \n\
+            or " CR2RES_UTIL_TRACE_WAVE_PROCATG "                       \n\
+            or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "                  \n\
+            or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "                   \n\
+            or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "             \n\
+    detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " [0 to 1]               \n\
+    bpm.fits " CR2RES_DARK_BPM_PROCATG " [0 to 1]                       \n\
+          or " CR2RES_FLAT_BPM_PROCATG "                                \n\
+          or " CR2RES_DETLIN_BPM_PROCATG "                              \n\
+          or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
+    master_dark.fits " CR2RES_MASTER_DARK_PROCATG " [0 to 1]            \n\
+    master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " [0 to 1]       \n\
+    lines.fits " CR2RES_EMISSION_LINES_PROCATG " [0 to 1]               \n\
+  Outputs                                                               \n\
+    cr2res_cal_wave_tracewave.fits "
+CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG"                                     \n\
+    cr2res_cal_wave_map.fits "
+CR2RES_CAL_WAVE_MAP_PROCATG"                                            \n\
+  Description:                                                          \n\
+    loop on detectors d:                                                \n\
+      Call cr2res_cal_wave_reduce()                                     \n\
+        -> out_trace_wave(d)                                            \n\
+        -> lines_diagnostics(d)                                         \n\
+        -> out_wave_map(d)                                              \n\
+    Save out_trace_wave                                                 \n\
+    Save out_wave_map                                                   \n\
+                                                                        \n\
+    cr2res_cal_wave_reduce():                                           \n\
+        Load the raw image list                                         \n\
+        Apply the calibrations to the image list                        \n\
+        Collapse the image list                                         \n\
+        Extract along the traces from the collapsed image               \n\
+        Compute the Wavelength with cr2res_wave_apply()                 \n\
+         -> out_trace_wave                                              \n\
+         -> lines_diagnostics                                           \n\
+        Compute the Wavelength map                                      \n\
+         -> out_wave_map                                                \n\
+                                                                        \n\
+    cr2res_wave_apply()                                                 \n\
+      loop on the traces t:                                             \n\
+        Get the spectrum                                                \n\
+        Get the Initial guess                                           \n\
+        Switch on the required method:                                  \n\
+          CR2RES_LINE2D: cr2res_wave_2d()                               \n\
+          CR2RES_LINE1D: cr2res_wave_line_fitting()                     \n\
+          CR2RES_ETALON: cr2res_wave_etalon()                           \n\
+          CR2RES_XCORR:  cr2res_wave_xcorr()                            \n\
+                                                                        \n\
+  Library functions uѕed:                                               \n\
+    cr2res_io_find_TRACE_WAVE()                                         \n\
+    cr2res_io_find_BPM()                                                \n\
+    cr2res_io_read_dits()                                               \n\
+    cr2res_io_load_image_list_from_set()                                \n\
+    cr2res_calib_imagelist()                                            \n\
+    cr2res_io_load_TRACE_WAVE()                                         \n\
+    cr2res_extract_traces()                                             \n\
+    cr2res_wave_apply()                                                 \n\
+    cr2res_extract_EXTRACT1D_get_spectrum()                             \n\
+    cr2res_wave_estimate_compute()                                      \n\
+    cr2res_wave_2d()                                                    \n\
+    cr2res_wave_line_fitting()                                          \n\
+    cr2res_wave_etalon()                                                \n\
+    cr2res_wave_xcorr()                                                 \n\
+    cr2res_wave_gen_wave_map()                                          \n\
+    cr2res_io_save_TRACE_WAVE()                                         \n\
+    cr2res_io_save_WAVE_MAP()                                           \n\
+" ;
 
 /*-----------------------------------------------------------------------------
                                 Function code
@@ -577,7 +628,7 @@ static int cr2res_cal_wave(
   @param wl_err_end         WL error of wl_end
   @param wl_shift           wavelength shift to apply
   @param log_flag           Flag to apply a log() to the lines intensities
-  @param propagate_flag  	Flag to copy the input WL to the output when they 
+  @param propagate_flag     Flag to copy the input WL to the output when they 
                             are not computed
   @param display            Flag to enable display functionalities
   @param out_trace_wave     [out] trace wave table

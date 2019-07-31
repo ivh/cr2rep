@@ -1,4 +1,3 @@
-
 /*
  * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
@@ -66,29 +65,69 @@ static int cr2res_util_wave(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_wave_description[] =
-
-"CRIRES+ wavelength calibration utility\n"
-"The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw.fits " CR2RES_EXTRACT_1D_PROTYPE "\n"
-"trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "\n"
-"             or " CR2RES_UTIL_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "\n"
-"lines.fits " CR2RES_EMISSION_LINES_PROCATG " (optional) \n"
-"\n"
-"Four different methods are offered by the utility. \n" 
-"   XCORR:  Cross Correlation with a emission lines catalog (default)\n"
-"   LINE1D: Line identification and fitting for each 1D spectra\n"
-"   LINE2D: Line identification and fitting for all 1D spectra at once\n"
-"   ETALON: Does not require any static calibration file.\n"
-"\n"
-"The recipe produces the following products:\n"
-"<input_name>_trace.fits " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "\n"
-"<input_name>_map.fits " CR2RES_UTIL_WAVE_MAP_PROCATG "\n"
-"\n";
+static char cr2res_util_wave_description[] = "\
+Wavelength Calibration                                                  \n\
+  This utility performs the wavelength calibration on already extracted \n\
+  spectra. It can support 4 different methods (--wl_method parameter):  \n\
+    XCORR:  Cross Correlation with a emission lines catalog (default)   \n\
+    LINE1D: Line identification and fitting for each 1D spectra         \n\
+    LINE2D: Line identification and fitting for all 1D spectra at once  \n\
+    ETALON: Does not require any static calibration file.               \n\
+  Inputs                                                                \n\
+    raw.fits " CR2RES_EXTRACT_1D_PROTYPE " [1 to n]                     \n\
+    trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]                   \n\
+            or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "                \n\
+            or " CR2RES_UTIL_TRACE_WAVE_PROCATG "                       \n\
+            or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "                  \n\
+            or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "                   \n\
+            or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "             \n\
+    lines.fits " CR2RES_EMISSION_LINES_PROCATG " [0 to 1]               \n\
+  Outputs                                                               \n\
+    <input_name>_tracewave.fits " 
+CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG"                                    \n\
+    <input_name>_wave_map.fits " 
+CR2RES_UTIL_WAVE_MAP_PROCATG "                                          \n\
+    <input_name>_lines_diagnostics.fits " 
+CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG "                            \n\
+  Description:                                                          \n\
+    loop on raw frames f:                                               \n\
+      loop on detectors d:                                              \n\
+        Load the trace wave tw(f,d)                                     \n\
+        Load the extracted spectra table ext(f,d)                       \n\
+        Call cr2res_wave_apply(tw(f,d),ext(f,d),emission_lines)         \n\
+            -> lines diagnostics(f,d)                                   \n\
+            -> trace_wave_out(f,d)                                      \n\
+        Create the wavelength map wave_map(f,d)                         \n\
+      Save lines diagnostics(f)                                         \n\
+      Save wave_map(f)                                                  \n\
+      Save trace_wave_out(f)                                            \n\
+                                                                        \n\
+    cr2res_wave_apply()                                                 \n\
+      loop on the traces t:                                             \n\
+        Get the spectrum                                                \n\
+        Get the Initial guess                                           \n\
+        Switch on the required method:                                  \n\
+          CR2RES_LINE2D: cr2res_wave_2d()                               \n\
+          CR2RES_LINE1D: cr2res_wave_line_fitting()                     \n\
+          CR2RES_ETALON: cr2res_wave_etalon()                           \n\
+          CR2RES_XCORR:  cr2res_wave_xcorr()                            \n\
+                                                                        \n\
+Library functions uѕed:                                                 \n\
+    cr2res_io_find_TRACE_WAVE()                                         \n\
+    cr2res_io_load_TRACE_WAVE()                                         \n\
+    cr2res_io_load_EXTRACT_1D()                                         \n\
+    cr2res_wave_apply()                                                 \n\
+    cr2res_extract_EXTRACT1D_get_spectrum()                             \n\
+    cr2res_wave_estimate_compute()                                      \n\
+    cr2res_wave_2d()                                                    \n\
+    cr2res_wave_line_fitting()                                          \n\
+    cr2res_wave_etalon()                                                \n\
+    cr2res_wave_xcorr()                                                 \n\
+    cr2res_wave_gen_wave_map()                                          \n\
+    cr2res_io_save_TRACE_WAVE()                                         \n\
+    cr2res_io_save_WAVE_MAP()                                           \n\
+    cr2res_io_save_LINES_DIAGNOSTICS()                                  \n\
+" ;
 
 /*-----------------------------------------------------------------------------
                                 Function code
@@ -427,18 +466,18 @@ static int cr2res_util_wave(
         cpl_msg_info(__func__, "Reduce Frame %s", cur_fname) ;
         cpl_msg_indent_more() ;
 
-		/* Loop over the detectors */
-		for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        /* Loop over the detectors */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
-			/* Initialise */
-			out_trace_wave[det_nr-1] = NULL ;
-			lines_diagnostics[det_nr-1] = NULL ;
-			out_wave_map[det_nr-1] = NULL ;
-			ext_plist[det_nr-1] = NULL ;
+            /* Initialise */
+            out_trace_wave[det_nr-1] = NULL ;
+            lines_diagnostics[det_nr-1] = NULL ;
+            out_wave_map[det_nr-1] = NULL ;
+            ext_plist[det_nr-1] = NULL ;
 
-			/* Store the extenѕion header for product saving */
-			ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname,
-					cr2res_io_get_ext_idx(cur_fname, det_nr, 1)) ;
+            /* Store the extenѕion header for product saving */
+            ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname,
+                    cr2res_io_get_ext_idx(cur_fname, det_nr, 1)) ;
 
             /* Compute only one detector */
             if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -446,95 +485,95 @@ static int cr2res_util_wave(
             cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
             cpl_msg_indent_more() ;
 
-			/* Load the TRACE_WAVE table of this detector */
-			cpl_msg_info(__func__, "Load the TRACE_WAVE table") ;
-			if ((trace_wave = cr2res_io_load_TRACE_WAVE(
+            /* Load the TRACE_WAVE table of this detector */
+            cpl_msg_info(__func__, "Load the TRACE_WAVE table") ;
+            if ((trace_wave = cr2res_io_load_TRACE_WAVE(
                             cpl_frame_get_filename(trace_wave_frame), 
                             det_nr)) == NULL) {
-				cpl_msg_error(__func__,"Failed to load table - skip detector");
-				cpl_error_reset() ;
-				cpl_msg_indent_less() ;
-				continue ;
-			}
+                cpl_msg_error(__func__,"Failed to load table - skip detector");
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
 
-			/* Load the EXTRACT1D table of this detector */
-			cpl_msg_info(__func__, "Load the EXTRACT1D table") ;
-			if ((extracted_table = cr2res_io_load_EXTRACT_1D(cur_fname,
-							det_nr)) == NULL) {
-				cpl_msg_error(__func__,"Failed to load table - skip detector");
+            /* Load the EXTRACT1D table of this detector */
+            cpl_msg_info(__func__, "Load the EXTRACT1D table") ;
+            if ((extracted_table = cr2res_io_load_EXTRACT_1D(cur_fname,
+                            det_nr)) == NULL) {
+                cpl_msg_error(__func__,"Failed to load table - skip detector");
                 cpl_table_delete(trace_wave) ;
-				cpl_error_reset() ;
-				cpl_msg_indent_less() ;
-				continue ;
-			}
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
 
             /* Compute the Wavelength Calibration */
-			cpl_msg_info(__func__, "Compute the Wavelength") ;
-			if (cr2res_wave_apply(trace_wave, extracted_table,
+            cpl_msg_info(__func__, "Compute the Wavelength") ;
+            if (cr2res_wave_apply(trace_wave, extracted_table,
                         lines_frame, reduce_order, reduce_trace, wavecal_type,
                         wl_degree, wl_start, wl_end, wl_err_start, wl_err_end, 
                         wl_shift, log_flag, propagate_flag, display, 
                         &(lines_diagnostics[det_nr-1]),
                         &(out_trace_wave[det_nr-1]))) {
-				cpl_msg_error(__func__, "Failed to calibrate - skip detector");
+                cpl_msg_error(__func__, "Failed to calibrate - skip detector");
                 cpl_table_delete(trace_wave) ;
                 cpl_table_delete(extracted_table) ;
-				cpl_error_reset() ;
-				cpl_msg_indent_less() ;
-				continue ;
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
             }
             cpl_table_delete(trace_wave) ;
             cpl_table_delete(extracted_table) ;
 
-			/* Generate the Wave Map */
-			out_wave_map[det_nr-1] =
-				cr2res_wave_gen_wave_map(out_trace_wave[det_nr-1]) ;
-			cpl_msg_indent_less() ;
-		}
+            /* Generate the Wave Map */
+            out_wave_map[det_nr-1] =
+                cr2res_wave_gen_wave_map(out_trace_wave[det_nr-1]) ;
+            cpl_msg_indent_less() ;
+        }
 
         /* Generate the currently used frameset */
         /* TODO : add calibrations */
         cur_fset = cpl_frameset_new() ;
         cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
 
-		/* Save the new trace_wave table */
-		out_file = cpl_sprintf("%s_tracewave.fits",
-				cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-		cr2res_io_save_TRACE_WAVE(out_file, frameset, cur_fset, parlist,
-				out_trace_wave, NULL, ext_plist,
-				CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
-		cpl_free(out_file);
+        /* Save the new trace_wave table */
+        out_file = cpl_sprintf("%s_tracewave.fits",
+                cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
+        cr2res_io_save_TRACE_WAVE(out_file, frameset, cur_fset, parlist,
+                out_trace_wave, NULL, ext_plist,
+                CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
+        cpl_free(out_file);
 
-		/* Save the Wave Map */
-		out_file = cpl_sprintf("%s_wave_map.fits",
-				cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-		cr2res_io_save_WAVE_MAP(out_file, frameset, cur_fset, parlist, 
+        /* Save the Wave Map */
+        out_file = cpl_sprintf("%s_wave_map.fits",
+                cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
+        cr2res_io_save_WAVE_MAP(out_file, frameset, cur_fset, parlist, 
                 out_wave_map, NULL, ext_plist, 
                 CR2RES_UTIL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
-		cpl_free(out_file);
+        cpl_free(out_file);
 
-		if (wavecal_type == CR2RES_LINE2D || wavecal_type == CR2RES_LINE1D) {
-			/* Save the Lines Diagnostics */
-			out_file = cpl_sprintf("%s_lines_diagnostics.fits",
-					cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-			cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset, cur_fset, 
+        if (wavecal_type == CR2RES_LINE2D || wavecal_type == CR2RES_LINE1D) {
+            /* Save the Lines Diagnostics */
+            out_file = cpl_sprintf("%s_lines_diagnostics.fits",
+                    cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
+            cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset, cur_fset, 
                     parlist, lines_diagnostics, NULL, ext_plist,
-					CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG, RECIPE_STRING) ;
-			cpl_free(out_file);
-		}
+                    CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG, RECIPE_STRING) ;
+            cpl_free(out_file);
+        }
         cpl_frameset_delete(cur_fset) ;
 
-		/* Free and return */
-		for (j=0 ; j<CR2RES_NB_DETECTORS ; j++) {
-			if (ext_plist[j] != NULL)
-				cpl_propertylist_delete(ext_plist[j]) ;
-			if (out_trace_wave[j] != NULL)
-				cpl_table_delete(out_trace_wave[j]) ;
-			if (lines_diagnostics[j] != NULL)
-				cpl_table_delete(lines_diagnostics[j]) ;
-			if (out_wave_map[j] != NULL) 
-				hdrl_image_delete(out_wave_map[j]) ;
-		}
+        /* Free and return */
+        for (j=0 ; j<CR2RES_NB_DETECTORS ; j++) {
+            if (ext_plist[j] != NULL)
+                cpl_propertylist_delete(ext_plist[j]) ;
+            if (out_trace_wave[j] != NULL)
+                cpl_table_delete(out_trace_wave[j]) ;
+            if (lines_diagnostics[j] != NULL)
+                cpl_table_delete(lines_diagnostics[j]) ;
+            if (out_wave_map[j] != NULL) 
+                hdrl_image_delete(out_wave_map[j]) ;
+        }
         cpl_msg_indent_less() ;
     }
     cpl_frameset_delete(rawframes) ;
