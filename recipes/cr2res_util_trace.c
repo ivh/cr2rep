@@ -80,9 +80,11 @@ Traces detection                                                        \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_FLAT_RAW " [1 to n]                               \n\
+                                                                        \n\
   Outputs                                                               \n\
     <input_name>_tracewave.fits " CR2RES_UTIL_TRACE_WAVE_PROCATG"       \n\
-  Description                                                           \n\
+                                                                        \n\
+  Algorithm                                                             \n\
     loop on input raw frames f:                                         \n\
       loop on detectors d:                                              \n\
         Use cr2res_trace(--degree, --min_cluster, --smooth, --opening)  \n\
@@ -92,6 +94,7 @@ Traces detection                                                        \n\
         Use cr2res_trace_add_extra_columns() to add the additional      \n\
                 columns (slit fraction, wl, slit curvature)             \n\
       Save the trace wave table                                         \n\
+                                                                        \n\
   Library functions uѕed                                                \n\
     cr2res_io_load_image()                                              \n\
     cr2res_trace()                                                      \n\

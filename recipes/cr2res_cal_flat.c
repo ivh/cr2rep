@@ -99,6 +99,8 @@ static int cr2res_cal_flat(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_cal_flat_description[] = "\
 Flat                                                                    \n\
+  Compute the master flat and perform the traces detection              \n\
+                                                                        \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_FLAT_RAW " [1 to n]                               \n\
     detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " [0 to 1]               \n\
@@ -107,6 +109,7 @@ Flat                                                                    \n\
           or " CR2RES_FLAT_BPM_PROCATG "                                \n\
           or " CR2RES_DETLIN_BPM_PROCATG "                              \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
+                                                                        \n\
   Outputs                                                               \n\
     cr2res_cal_flat_[setting]_[Decker]_bpm.fits " 
 CR2RES_FLAT_BPM_PROCATG "                                               \n\
@@ -122,40 +125,43 @@ CR2RES_FLAT_MASTER_FLAT_PROCATG  "                                      \n\
 CR2RES_FLAT_TRACE_WAVE_PROCATG "                                        \n\
     cr2res_cal_flat_[setting]_tracewave_merged.fits " 
 CR2RES_FLAT_TRACE_WAVE_PROCATG "                                        \n\
-Description                                                             \n\
-  group the input frames by different settings                          \n\
-  loop on groups g:                                                     \n\
-    loop on decker positions p:                                         \n\
-      loop on detectors d:                                              \n\
-        cr2res_cal_flat_reduce() computes (master_flat, trace_wave,     \n\
-               slit_func,extract_1d,slit_model,bpm)(g,p,d)              \n\
-      Save slit_model(g,p) (FLAT_SLIT_MODEL)                            \n\
-      Save extract_1d(g,p) (FLAT_EXTRACT_1D)                            \n\
-      Save master_flat(g,p) (FLAT_MASTER_FLAT)                          \n\
-      Save trace_wave(g,p) (FLAT_TRACE_WAVE)                            \n\
-      Save slit_func(g,p) (FLAT_SLIT_FUNC)                              \n\
-      Save bpm(g,p) (FLAT_BPM)                                          \n\
-    Merge the trace_wave(g,p,d) into trace_wave(g,d)                    \n\
-    Save trace_wave(g) (FLAT_TRACE_WAVE)                                \n\
                                                                         \n\
-  cr2res_cal_flat_reduce()                                              \n\
-    Load the images list                                                \n\
-    Apply the detlin / dark / bpm calibrations                          \n\
-    Average the images to avg                                           \n\
-    Compute the traces with cr2res_trace(--trace_degree,                \n\
-               --trace_min_cluster, --trace_smooth, --trace_opening) on avg\n\
-    loop on the traces t:                                               \n\
-      cr2res_extract_slitdec_curved(--extract_oversample,               \n\
-               --extract_swath_width, --extract_height, --extract_smooth)\n\
-        -> slit_func(t), extract_1d(t), slit_model(t)                   \n\
-    Compute the master flat with cr2res_master_flat(avg, slit_model,    \n\
-               --bpm_low, --bpm_high, --bpm_lines_ratio)                \n\
-      -> master_flat, bpm                                               \n\
-    Merge the bpm with the input bpm                                    \n\
-    Compute QCs                                                         \n\
-    store the qc parameters in the returned property list               \n\
+  Algorithm                                                             \n\
+    group the input frames by different settings                        \n\
+    loop on groups g:                                                   \n\
+      loop on decker positions p:                                       \n\
+        loop on detectors d:                                            \n\
+          cr2res_cal_flat_reduce() computes (master_flat, trace_wave,   \n\
+                 slit_func,extract_1d,slit_model,bpm)(g,p,d)            \n\
+        Save slit_model(g,p) (FLAT_SLIT_MODEL)                          \n\
+        Save extract_1d(g,p) (FLAT_EXTRACT_1D)                          \n\
+        Save master_flat(g,p) (FLAT_MASTER_FLAT)                        \n\
+        Save trace_wave(g,p) (FLAT_TRACE_WAVE)                          \n\
+        Save slit_func(g,p) (FLAT_SLIT_FUNC)                            \n\
+        Save bpm(g,p) (FLAT_BPM)                                        \n\
+      Merge the trace_wave(g,p,d) into trace_wave(g,d)                  \n\
+      Save trace_wave(g) (FLAT_TRACE_WAVE)                              \n\
                                                                         \n\
-Library functions uѕed:                                                 \n\
+    cr2res_cal_flat_reduce()                                            \n\
+      Load the images list                                              \n\
+      Apply the detlin / dark / bpm calibrations                        \n\
+      Average the images to avg                                         \n\
+      Compute the traces with cr2res_trace(--trace_degree,              \n\
+                 --trace_min_cluster, --trace_smooth, --trace_opening)  \n\
+                on avg                                                  \n\
+      loop on the traces t:                                             \n\
+        cr2res_extract_slitdec_curved(--extract_oversample,             \n\
+                 --extract_swath_width, --extract_height,               \n\
+                 --extract_smooth)                                      \n\
+          -> slit_func(t), extract_1d(t), slit_model(t)                 \n\
+      Compute the master flat with cr2res_master_flat(avg, slit_model,  \n\
+                 --bpm_low, --bpm_high, --bpm_lines_ratio)              \n\
+        -> master_flat, bpm                                             \n\
+      Merge the bpm with the input bpm                                  \n\
+      Compute QCs                                                       \n\
+      store the qc parameters in the returned property list             \n\
+                                                                        \n\
+  Library functions uѕed:                                               \n\
     cr2res_io_extract_decker_frameset()                                 \n\
     cr2res_trace()                                                      \n\
     cr2res_extract_slitdec_curved()                                     \n\

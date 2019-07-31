@@ -65,9 +65,16 @@ static char cr2res_util_slit_curv_description[] = "\
 Slit curvature computation                                              \n\
   For each input trace_wave file, the slit curvature is derived from    \n\
   each order that has at least 2 traces.                                \n\
+                                                                        \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_TRACE_WAVE_PROTYPE " [1 to n]                     \n\
-  Description                                                           \n\
+                                                                        \n\
+  Outputs                                                               \n\
+    <input_name>_slit_curv_map.fits " CR2RES_UTIL_SLIT_CURV_MAP_PROCATG"\n\
+    <input_name>_slit_curv.fits " CR2RES_UTIL_SLIT_CURV_PROCATG "       \n\
+    <input_name>_trace.fits " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG" \n\
+                                                                        \n\
+  Algorithm                                                             \n\
     loop on input raw files f:                                          \n\
       loop on detectors d:                                              \n\
         Load the TRACE_WAVE table for the current detector              \n\
@@ -98,10 +105,6 @@ Slit curvature computation                                              \n\
     cr2res_io_save_SLIT_CURV_MAP()                                      \n\
     cr2res_io_save_SLIT_CURV()                                          \n\
     cr2res_io_save_TRACE_WAVE()                                         \n\
-  Outputs                                                               \n\
-    <input_name>_slit_curv_map.fits " CR2RES_UTIL_SLIT_CURV_MAP_PROCATG"\n\
-    <input_name>_slit_curv.fits " CR2RES_UTIL_SLIT_CURV_PROCATG "       \n\
-    <input_name>_trace.fits " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG" \n\
 ";
 
 /*-----------------------------------------------------------------------------

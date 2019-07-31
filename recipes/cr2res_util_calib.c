@@ -65,6 +65,7 @@ static int cr2res_util_calib(cpl_frameset *, const cpl_parameterlist *);
 static char cr2res_util_calib_description[] = "\
 Frames Calibration                                                      \n\
   Each input file is corrected with BPM / Dark / Flat / Det.Lin. / Cosmics\n\
+                                                                        \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_FLAT_RAW" [1 to n]                                \n\
           or " CR2RES_WAVE_RAW"                                         \n\
@@ -78,9 +79,11 @@ Frames Calibration                                                      \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
     master_dark.fits " CR2RES_MASTER_DARK_PROCATG " [0 to 1]            \n\
     master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " [0 to 1]       \n\
+                                                                        \n\
   Outputs                                                               \n\
     <input_name>_calibrated.fits " CR2RES_CALIBRATED_PROCATG "          \n\
-  Description                                                           \n\
+                                                                        \n\
+  Algorithm                                                             \n\
     loop on raw frames f:                                               \n\
       loop on detectors d:                                              \n\
         Call cr2res_calib_image() to calibrate --calib_cosmics_corr,    \n\
@@ -265,7 +268,7 @@ static int cr2res_util_calib(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
-	
+
     /* Get Calibration frames */
     detlin_frame = cpl_frameset_find_const(frameset,
             CR2RES_DETLIN_COEFFS_PROCATG);
@@ -287,7 +290,7 @@ static int cr2res_util_calib(
     /* Loop on the RAW frames */
     for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
         /* Get the Current Frame */
-		cur_frame = cpl_frameset_get_position(rawframes, i) ;
+        cur_frame = cpl_frameset_get_position(rawframes, i) ;
         cur_fname = cpl_frame_get_filename(cur_frame) ;
         cpl_msg_info(__func__, "Reduce Frame %s", cur_fname) ;
         cpl_msg_indent_more() ;
@@ -333,7 +336,7 @@ static int cr2res_util_calib(
 
         /* Ѕave Products */
         /* CALIBRATED */
-		out_file=cpl_sprintf("%s_calibrated.fits", 
+        out_file=cpl_sprintf("%s_calibrated.fits", 
                 cr2res_get_root_name(cr2res_get_base_name(cur_fname))) ;
         cur_fset = cpl_frameset_new() ;
         cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
@@ -341,7 +344,7 @@ static int cr2res_util_calib(
                 calibrated, NULL, ext_plist, CR2RES_CALIBRATED_PROCATG, 
                 RECIPE_STRING) ;
         cpl_frameset_delete(cur_fset) ;
-		cpl_free(out_file);
+        cpl_free(out_file);
 
         /* Free */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
@@ -363,29 +366,29 @@ static int cr2res_util_calib(
   @brief    Get the RAW frames from a frameset
   @param    set     Input frame set
   @return   the RAW frameset or NULL in error case or if it is missing
-	Allowed RAW types : CR2RES_FLAT_RAW
-						CR2RES_WAVE_RAW
-						CR2RES_OBS_NODDING_RAW
-						CR2RES_OBS_2D_RAW
-						CR2RES_OBS_POL_RAW
+    Allowed RAW types : CR2RES_FLAT_RAW
+                        CR2RES_WAVE_RAW
+                        CR2RES_OBS_NODDING_RAW
+                        CR2RES_OBS_2D_RAW
+                        CR2RES_OBS_POL_RAW
  */
 /*----------------------------------------------------------------------------*/
 static cpl_frameset * cr2res_util_calib_find_RAW(const cpl_frameset * in)
 {
-    cpl_frameset 	* 	out ;
+    cpl_frameset    *   out ;
 
     /* Check entries */
     if (in == NULL) return NULL ;
 
     out = cr2res_extract_frameset(in, CR2RES_FLAT_RAW) ;
+    if (out == NULL)    
+        out = cr2res_extract_frameset(in, CR2RES_WAVE_RAW) ;
+    if (out == NULL)    
+        out = cr2res_extract_frameset(in, CR2RES_OBS_NODDING_RAW) ;
     if (out == NULL)
-		out = cr2res_extract_frameset(in, CR2RES_WAVE_RAW) ;
+        out = cr2res_extract_frameset(in, CR2RES_OBS_2D_RAW) ;
     if (out == NULL)
-		out = cr2res_extract_frameset(in, CR2RES_OBS_NODDING_RAW) ;
-    if (out == NULL)
-		out = cr2res_extract_frameset(in, CR2RES_OBS_2D_RAW) ;
-    if (out == NULL)
-		out = cr2res_extract_frameset(in, CR2RES_OBS_POL_RAW) ;
+        out = cr2res_extract_frameset(in, CR2RES_OBS_POL_RAW) ;
     return out ;
 }
 

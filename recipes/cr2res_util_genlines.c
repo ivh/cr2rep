@@ -60,6 +60,7 @@ static int cr2res_util_genlines(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_util_genlines_description[] = " \
 Generate Lines calibration tables                                       \n\
+                                                                        \n\
   Inputs                                                                \n\
     raw.txt " CR2RES_EMISSION_LINES_PROCATG" [1]                        \n\
     The ASCII file must contain two columns:                            \n\
@@ -68,15 +69,18 @@ Generate Lines calibration tables                                       \n\
       2nd: The atmospheric emission.                                    \n\
       The ASCII files are in the catalogs/ directory of the CR2RES      \n\
                distribution.                                            \n\
+                                                                        \n\
   Output                                                                \n\
     cr2res_util_genlines.fits "CR2RES_EMISSION_LINES_PROCATG"           \n\
-  Description                                                           \n\ 
+                                                                        \n\
+  Algorithm                                                             \n\ 
     Parse the 2 column text file                                        \n\ 
     Apply the --wl_factor correction                                    \n\ 
     if (--display) plot it                                              \n\ 
     Create the CPL table                                                \n\ 
     Save the table                                                      \n\ 
-  Library functions uѕed:                                               \n\ 
+                                                                        \n\
+  Library functions uѕed                                                \n\ 
     cr2res_io_save_EMISSION_LINES()                                     \n\ 
 " ;
 
@@ -271,65 +275,65 @@ static int cr2res_util_genlines(
         cpl_msg_info(__func__, "Handle File %s", cur_fname) ;
         cpl_msg_indent_more() ;
 
-		/* Load the file */
-		if ((bivec=cpl_bivector_read(cpl_frame_get_filename(cur_frame)))==NULL){
-			cpl_msg_error(__func__, "Cannot load the file in the bivector") ;
-			cpl_msg_indent_less() ;
-			return -1 ;
-		}
-		nvals = cpl_bivector_get_size(bivec) ;
+        /* Load the file */
+        if ((bivec=cpl_bivector_read(cpl_frame_get_filename(cur_frame)))==NULL){
+            cpl_msg_error(__func__, "Cannot load the file in the bivector") ;
+            cpl_msg_indent_less() ;
+            return -1 ;
+        }
+        nvals = cpl_bivector_get_size(bivec) ;
 
-		/* Use wl_factor */
-		cpl_vector_multiply_scalar(cpl_bivector_get_x(bivec), wl_fac) ;
+        /* Use wl_factor */
+        cpl_vector_multiply_scalar(cpl_bivector_get_x(bivec), wl_fac) ;
 
-		/* Sort if needed */
-		int sort = 1 ;
-		if (sort) {
-			bivec_sorted = cpl_bivector_duplicate(bivec) ;
-			cpl_bivector_sort(bivec_sorted, bivec, CPL_SORT_ASCENDING,
-					CPL_SORT_BY_X) ;
-			cpl_bivector_delete(bivec) ;
-			bivec = bivec_sorted ;
-			bivec_sorted = NULL;
-		}
+        /* Sort if needed */
+        int sort = 1 ;
+        if (sort) {
+            bivec_sorted = cpl_bivector_duplicate(bivec) ;
+            cpl_bivector_sort(bivec_sorted, bivec, CPL_SORT_ASCENDING,
+                    CPL_SORT_BY_X) ;
+            cpl_bivector_delete(bivec) ;
+            bivec = bivec_sorted ;
+            bivec_sorted = NULL;
+        }
 
-		/* Display if requested */
-		if (display) {
-			cpl_plot_bivector(
+        /* Display if requested */
+        if (display) {
+            cpl_plot_bivector(
                 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Emission';",
                 "t 'Catalog lines' w lines", "", bivec);
-		}
+        }
 
-		/* Allocate the data container */
-		tab = cpl_table_new(nvals) ;
-		cpl_table_wrap_double(tab, cpl_bivector_get_x_data(bivec),
-				CR2RES_COL_WAVELENGTH) ;
-		cpl_table_wrap_double(tab, cpl_bivector_get_y_data(bivec),
-				CR2RES_COL_EMISSION) ;
+        /* Allocate the data container */
+        tab = cpl_table_new(nvals) ;
+        cpl_table_wrap_double(tab, cpl_bivector_get_x_data(bivec),
+                CR2RES_COL_WAVELENGTH) ;
+        cpl_table_wrap_double(tab, cpl_bivector_get_y_data(bivec),
+                CR2RES_COL_EMISSION) ;
 
-		/* Save the table */
-		cpl_msg_info(__func__, "Saving the table with %d rows", nvals) ;
+        /* Save the table */
+        cpl_msg_info(__func__, "Saving the table with %d rows", nvals) ;
         out_file = cpl_sprintf("%s_catalog.fits",
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-		if (cr2res_io_save_EMISSION_LINES(out_file, tab, parlist, frameset,
-					RECIPE_STRING) == -1) {
-			cpl_msg_error(__func__, "Cannot write the table") ;
-			cpl_bivector_delete(bivec) ;
-			cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
-			cpl_table_unwrap(tab, CR2RES_COL_EMISSION) ;
-			cpl_table_delete(tab) ;
-	        cpl_free(out_file);
-			cpl_msg_indent_less() ;
-			return -1 ;
-		}
-		cpl_free(out_file);
-		cpl_bivector_delete(bivec) ;
-		cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
-		cpl_table_unwrap(tab, CR2RES_COL_EMISSION) ;
-		cpl_table_delete(tab) ;
-		cpl_msg_indent_less() ;
+        if (cr2res_io_save_EMISSION_LINES(out_file, tab, parlist, frameset,
+                    RECIPE_STRING) == -1) {
+            cpl_msg_error(__func__, "Cannot write the table") ;
+            cpl_bivector_delete(bivec) ;
+            cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
+            cpl_table_unwrap(tab, CR2RES_COL_EMISSION) ;
+            cpl_table_delete(tab) ;
+            cpl_free(out_file);
+            cpl_msg_indent_less() ;
+            return -1 ;
+        }
+        cpl_free(out_file);
+        cpl_bivector_delete(bivec) ;
+        cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
+        cpl_table_unwrap(tab, CR2RES_COL_EMISSION) ;
+        cpl_table_delete(tab) ;
+        cpl_msg_indent_less() ;
     }
-	cpl_frameset_delete(rawframes) ;
+    cpl_frameset_delete(rawframes) ;
     return 0 ;
 }
 

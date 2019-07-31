@@ -89,33 +89,41 @@ static int cr2res_obs_nodding(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_obs_nodding_description[] =
-"CRIRES+ 1d Observation recipe\n"
-"The files listed in the Set Of Frames (sof-file) must be tagged:\n"
-"raw.fits " CR2RES_OBS_NODDING_RAW"\n"
-"trace_wave.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "\n"
-"             or " CR2RES_UTIL_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "\n"
-"             or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "\n"
-"detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " (optional) \n"
-"master_dark.fits " CR2RES_MASTER_DARK_PROCATG " (optional) \n"
-"master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " (optional) \n"
-"bpm.fits " CR2RES_FLAT_BPM_PROCATG " (optional) \n"
-"      or " CR2RES_DETLIN_BPM_PROCATG "\n"
-"      or " CR2RES_DARK_BPM_PROCATG "\n"
-"      or " CR2RES_UTIL_BPM_SPLIT_PROCATG "\n"
-" The recipe produces the following products:\n"
-"cr2res_obs_nodding_extractA.fits " CR2RES_OBS_NODDING_EXTRACTA_PROCATG "\n"
-"cr2res_obs_nodding_extractB.fits " CR2RES_OBS_NODDING_EXTRACTB_PROCATG "\n"
-"cr2res_obs_nodding_combinedA.fits " CR2RES_OBS_NODDING_COMBINEDA_PROCATG "\n"
-"cr2res_obs_nodding_combinedB.fits " CR2RES_OBS_NODDING_COMBINEDB_PROCATG "\n"
-"cr2res_obs_nodding_modelA.fits " CR2RES_OBS_NODDING_SLITMODELA_PROCATG "\n"
-"cr2res_obs_nodding_modelB.fits " CR2RES_OBS_NODDING_SLITMODELB_PROCATG "\n"
-"cr2res_obs_nodding_slitfuncA.fits " CR2RES_OBS_NODDING_SLITFUNCA_PROCATG "\n"
-"cr2res_obs_nodding_slitfuncB.fits " CR2RES_OBS_NODDING_SLITFUNCB_PROCATG "\n"
-"\n";
+static char cr2res_obs_nodding_description[] = "\
+Nodding Observation                                                     \n\
+  Inputs                                                                \n\
+    raw.fits " CR2RES_OBS_NODDING_RAW" [2 to 2n]                        \n\
+    trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]                   \n\
+            or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "                \n\
+            or " CR2RES_UTIL_TRACE_WAVE_PROCATG "                       \n\
+            or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "                  \n\
+            or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "                   \n\
+            or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "             \n\
+    detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " [0 to 1]               \n\
+    bpm.fits " CR2RES_DARK_BPM_PROCATG " [0 to 1]                       \n\
+          or " CR2RES_FLAT_BPM_PROCATG "                                \n\
+          or " CR2RES_DETLIN_BPM_PROCATG "                              \n\
+          or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
+    master_dark.fits " CR2RES_MASTER_DARK_PROCATG " [0 to 1]            \n\
+    master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " [0 to 1]       \n\
+  Outputs                                                               \n\
+    cr2res_obs_nodding_extractA.fits " 
+    CR2RES_OBS_NODDING_EXTRACTA_PROCATG "                               \n\
+    cr2res_obs_nodding_extractB.fits " 
+    CR2RES_OBS_NODDING_EXTRACTB_PROCATG "                               \n\
+    cr2res_obs_nodding_combinedA.fits " 
+    CR2RES_OBS_NODDING_COMBINEDA_PROCATG "                              \n\
+    cr2res_obs_nodding_combinedB.fits " 
+    CR2RES_OBS_NODDING_COMBINEDB_PROCATG "                              \n\
+    cr2res_obs_nodding_modelA.fits " 
+    CR2RES_OBS_NODDING_SLITMODELA_PROCATG "                             \n\
+    cr2res_obs_nodding_modelB.fits " 
+    CR2RES_OBS_NODDING_SLITMODELB_PROCATG "                             \n\
+    cr2res_obs_nodding_slitfuncA.fits " 
+    CR2RES_OBS_NODDING_SLITFUNCA_PROCATG "                              \n\
+    cr2res_obs_nodding_slitfuncB.fits " 
+    CR2RES_OBS_NODDING_SLITFUNCB_PROCATG "                              \n\
+";
 
 /*-----------------------------------------------------------------------------
                                 Function code
@@ -325,7 +333,7 @@ static int cr2res_obs_nodding(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
-	
+
     /* Get Calibration frames */
     trace_wave_frame = cr2res_io_find_TRACE_WAVE(frameset) ;
     if (trace_wave_frame == NULL) {
@@ -545,7 +553,7 @@ static int cr2res_obs_nodding_reduce(
                             slit_frac_b_mid, slit_frac_b_top, nod_throw ;
     double                  qc_signal_a, qc_signal_b, qc_transm ;
     int                     det_nr ;
-	
+
     /* Check Inputs */
     if (combineda == NULL || combinedb == NULL || extracta == NULL ||
             extractb == NULL || ext_plist == NULL || rawframes == NULL
@@ -647,7 +655,7 @@ static int cr2res_obs_nodding_reduce(
         return -1 ;
     }
     cpl_image_delete(contrib_a) ;
-	hdrl_imagelist_delete(diff_a) ;
+    hdrl_imagelist_delete(diff_a) ;
     if (hdrl_imagelist_collapse_mean(diff_b, &collapsed_b, &contrib_b) !=
             CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Failed to Collapse B-A") ;
@@ -657,7 +665,7 @@ static int cr2res_obs_nodding_reduce(
         return -1 ;
     }
     cpl_image_delete(contrib_b) ;
-	hdrl_imagelist_delete(diff_b) ;
+    hdrl_imagelist_delete(diff_b) ;
     cpl_msg_indent_less() ;
 
     /* Load the trace wave */
@@ -686,8 +694,8 @@ static int cr2res_obs_nodding_reduce(
 
     /* Compute the slit fractions for A and B positions extraction */   
     /*
-	The assumption is made here that :
-		- The slit center is exactly in the middle of A and B poѕitions
+    The assumption is made here that :  
+        - The slit center is exactly in the middle of A and B poѕitions
         - The nodthrow iѕ the distance in arcseconds between A and B
         - The slit size is 10 arcseconds
         - The A position is above the B position

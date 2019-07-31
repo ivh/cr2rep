@@ -107,6 +107,7 @@ Spectrum Extraction and Wavelength Calibration                          \n\
     LINE1D: Line identification and fitting for each 1D spectra         \n\
     LINE2D: Line identification and fitting for all 1D spectra at once  \n\
     ETALON: Does not require any static calibration file.               \n\
+                                                                        \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_WAVE_RAW " [1 to n]                               \n\
     trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]                   \n\
@@ -123,12 +124,14 @@ Spectrum Extraction and Wavelength Calibration                          \n\
     master_dark.fits " CR2RES_MASTER_DARK_PROCATG " [0 to 1]            \n\
     master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " [0 to 1]       \n\
     lines.fits " CR2RES_EMISSION_LINES_PROCATG " [0 to 1]               \n\
+                                                                        \n\
   Outputs                                                               \n\
     cr2res_cal_wave_tracewave.fits "
 CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG"                                     \n\
     cr2res_cal_wave_map.fits "
 CR2RES_CAL_WAVE_MAP_PROCATG"                                            \n\
-  Description:                                                          \n\
+                                                                        \n\
+  Algorithm                                                             \n\
     loop on detectors d:                                                \n\
       Call cr2res_cal_wave_reduce()                                     \n\
         -> out_trace_wave(d)                                            \n\
@@ -158,7 +161,7 @@ CR2RES_CAL_WAVE_MAP_PROCATG"                                            \n\
           CR2RES_ETALON: cr2res_wave_etalon()                           \n\
           CR2RES_XCORR:  cr2res_wave_xcorr()                            \n\
                                                                         \n\
-  Library functions uѕed:                                               \n\
+  Library Functions uѕed                                                \n\
     cr2res_io_find_TRACE_WAVE()                                         \n\
     cr2res_io_find_BPM()                                                \n\
     cr2res_io_read_dits()                                               \n\

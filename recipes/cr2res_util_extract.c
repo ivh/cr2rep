@@ -66,7 +66,8 @@ static int cr2res_util_extract(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_util_extract_description[] = "\
 Spectrum Extraction                                                     \n\
-  This utility performs the optimal extraction along precomputed traces.\n\
+  This utility performs the optimal extraction along precomputed traces \n\
+                                                                        \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_FLAT_RAW " [1 to n]                               \n\
           or " CR2RES_WAVE_RAW "                                        \n\
@@ -83,11 +84,13 @@ Spectrum Extraction                                                     \n\
           or " CR2RES_FLAT_BPM_PROCATG "                                \n\
           or " CR2RES_DETLIN_BPM_PROCATG "                              \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
+                                                                        \n\
   Outputs                                                               \n\
     <input_name>_extr1D.fits " CR2RES_UTIL_EXTRACT_1D_PROCATG "         \n\
     <input_name>_extrSlitFu.fits " CR2RES_UTIL_SLIT_FUNC_PROCATG "      \n\
     <input_name>_extrModel.fits " CR2RES_UTIL_SLIT_MODEL_PROCATG "      \n\
-  Description                                                           \n\
+                                                                        \n\
+  Algorithm                                                             \n\
     loop on raw frames f:                                               \n\
       loop on detectors d:                                              \n\
         Load the trace wave                                             \n\
@@ -99,6 +102,7 @@ Spectrum Extraction                                                     \n\
                  --swath_width,--oversample,--smooth_slit)              \n\
           -> creates SLIT_MODEL(f,d), SLIT_FUNC(f,d), EXTRACT_1D(f,d)   \n\
       Save SLIT_MODEL(f), SLIT_FUNC(f), EXTRACT_1D(f)                   \n\
+                                                                        \n\
   Library functions uѕed:                                               \n\
     cr2res_io_load_TRACE_WAVE()                                         \n\
     cr2res_trace_new_slit_fraction()                                    \n\

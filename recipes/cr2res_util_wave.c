@@ -73,6 +73,7 @@ Wavelength Calibration                                                  \n\
     LINE1D: Line identification and fitting for each 1D spectra         \n\
     LINE2D: Line identification and fitting for all 1D spectra at once  \n\
     ETALON: Does not require any static calibration file.               \n\
+                                                                        \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_EXTRACT_1D_PROTYPE " [1 to n]                     \n\
     trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]                   \n\
@@ -82,6 +83,7 @@ Wavelength Calibration                                                  \n\
             or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "                   \n\
             or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "             \n\
     lines.fits " CR2RES_EMISSION_LINES_PROCATG " [0 to 1]               \n\
+                                                                        \n\
   Outputs                                                               \n\
     <input_name>_tracewave.fits " 
 CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG"                                    \n\
@@ -89,7 +91,8 @@ CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG"                                    \n\
 CR2RES_UTIL_WAVE_MAP_PROCATG "                                          \n\
     <input_name>_lines_diagnostics.fits " 
 CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG "                            \n\
-  Description:                                                          \n\
+                                                                        \n\
+  Algorithm                                                             \n\
     loop on raw frames f:                                               \n\
       loop on detectors d:                                              \n\
         Load the trace wave tw(f,d)                                     \n\
@@ -112,7 +115,7 @@ CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG "                            \n\
           CR2RES_ETALON: cr2res_wave_etalon()                           \n\
           CR2RES_XCORR:  cr2res_wave_xcorr()                            \n\
                                                                         \n\
-Library functions uѕed:                                                 \n\
+  Library Functions uѕed                                                \n\
     cr2res_io_find_TRACE_WAVE()                                         \n\
     cr2res_io_load_TRACE_WAVE()                                         \n\
     cr2res_io_load_EXTRACT_1D()                                         \n\

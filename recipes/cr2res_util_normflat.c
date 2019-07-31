@@ -81,18 +81,21 @@ Flat normalization                                                      \n\
   The input RAW files are grouped by setting/decker and each group is   \n\
   reduced ѕeparately. For each group, a slit model file with matching   \n\
   setting/decker is expected.                                           \n\
+                                                                        \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_FLAT_RAW " [1 to n]                               \n\
     slit_model.fits " CR2RES_FLAT_SLIT_MODEL_PROCATG " [1 to m]         \n\
                  or " CR2RES_UTIL_SLIT_MODEL_PROCATG "                  \n\
                  or " CR2RES_OBS_NODDING_SLITMODELA_PROCATG "           \n\
                  or " CR2RES_OBS_NODDING_SLITMODELB_PROCATG "           \n\
+                                                                        \n\
   Outputs                                                               \n\
     cr2res_util_normflat_[setting]_[Decker]_bpm.fits " 
 CR2RES_UTIL_MASTER_FLAT_PROCATG "                                       \n\
 cr2res_util_normflat_[setting]_[Decker]_master.fits " 
 CR2RES_UTIL_MASTER_FLAT_PROCATG "                                       \n\
-  Description                                                           \n\
+                                                                        \n\
+  Algorithm                                                             \n\
     group the input frames by different settings                        \n\
     loop on groups g:                                                   \n\
       group the input frames by different decker positions              \n\
@@ -109,6 +112,7 @@ CR2RES_UTIL_MASTER_FLAT_PROCATG "                                       \n\
       Compute the master flat with cr2res_master_flat(avg,              \n\
                slit_model, --bpm_low, --bpm_high, --bpm_lines_ratio)    \n\
         -> master_flat, bpm                                             \n\
+                                                                        \n\
 Library functions uѕed:                                                 \n\
     cr2res_extract_frameset()                                           \n\
     cr2res_io_extract_decker_frameset()                                 \n\
@@ -350,10 +354,10 @@ static int cr2res_util_normflat(
         cpl_msg_info(__func__, "Process SETTING %s", setting_id) ;
         cpl_msg_indent_more() ;
 
-		/* Loop on the decker positions */
-		for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
-			/* Get the Frames for the current decker position */
-			raw_one_setting_decker = cr2res_io_extract_decker_frameset(
+        /* Loop on the decker positions */
+        for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
+            /* Get the Frames for the current decker position */
+            raw_one_setting_decker = cr2res_io_extract_decker_frameset(
                     raw_one_setting, CR2RES_FLAT_RAW, decker_values[i]) ;
             if (raw_one_setting_decker == NULL) {
                 cpl_msg_info(__func__, "No files for decker: %s",
@@ -363,40 +367,40 @@ static int cr2res_util_normflat(
             cpl_msg_info(__func__, "Reduce %s Frames", decker_desc[i]) ;
             cpl_msg_indent_more() ;
 
-			/* Get the slit model for the setting / decker */
-			slitmodel_frame = cr2res_io_find_SLIT_MODEL(frameset,
+            /* Get the slit model for the setting / decker */
+            slitmodel_frame = cr2res_io_find_SLIT_MODEL(frameset,
                     setting_id, decker_values[i]);
 
-			/* Loop on the detectors */
-			for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-				/* Initialise */
-				master_flat[det_nr-1] = NULL ;
+            /* Loop on the detectors */
+            for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+                /* Initialise */
+                master_flat[det_nr-1] = NULL ;
                 bpm[det_nr-1] = NULL ;
-				ext_plist[det_nr-1] = NULL ;
+                ext_plist[det_nr-1] = NULL ;
 
-				/* Compute only one detector */
-				if (reduce_det != 0 && det_nr != reduce_det) continue ;
-			
-				cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
-				cpl_msg_indent_more() ;
+                /* Compute only one detector */
+                if (reduce_det != 0 && det_nr != reduce_det) continue ;
+            
+                cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
+                cpl_msg_indent_more() ;
 
-				/* Call the reduction function */
-				if (cr2res_util_normflat_reduce(raw_one_setting_decker, 
+                /* Call the reduction function */
+                if (cr2res_util_normflat_reduce(raw_one_setting_decker, 
                             slitmodel_frame, bpm_low, bpm_high, 
                             bpm_lines_ratio, det_nr,
-							&(master_flat[det_nr-1]),
-							&(bpm[det_nr-1]),
-							&(ext_plist[det_nr-1])) == -1) {
-					cpl_msg_warning(__func__, 
-							"Failed to reduce detector %d of %s Frames", 
-							det_nr, decker_desc[i]);
-				}
-				cpl_msg_indent_less() ;
-			}
+                            &(master_flat[det_nr-1]),
+                            &(bpm[det_nr-1]),
+                            &(ext_plist[det_nr-1])) == -1) {
+                    cpl_msg_warning(__func__, 
+                            "Failed to reduce detector %d of %s Frames", 
+                            det_nr, decker_desc[i]);
+                }
+                cpl_msg_indent_less() ;
+            }
             cpl_msg_indent_less() ;
             cpl_frame_delete(slitmodel_frame) ;
 
-			/* Ѕave Products */
+            /* Ѕave Products */
 
             /* MASTER_FLAT */
             out_file = cpl_sprintf("%s_%s_%s_master_flat.fits", RECIPE_STRING,
@@ -415,16 +419,16 @@ static int cr2res_util_normflat(
                     CR2RES_UTIL_NORM_BPM_PROCATG, RECIPE_STRING) ;
             cpl_free(out_file);
 
-			/* Free */
+            /* Free */
             cpl_frameset_delete(raw_one_setting_decker) ;
-			for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-				if (master_flat[det_nr-1] != NULL)
+            for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+                if (master_flat[det_nr-1] != NULL)
                     hdrl_image_delete(master_flat[det_nr-1]) ;
                 if (bpm[det_nr-1] != NULL)
                     cpl_image_delete(bpm[det_nr-1]) ;
                 if (ext_plist[det_nr-1] != NULL)
                     cpl_propertylist_delete(ext_plist[det_nr-1]) ;
-			}
+            }
         }
         cpl_msg_indent_less() ;
         cpl_frameset_delete(raw_one_setting) ;
@@ -443,7 +447,7 @@ static int cr2res_util_normflat(
   @param bpm_low            Threshold for BPM detection
   @param bpm_high           Threshold for BPM detection
   @param bpm_linemax        Max fraction of BPM per line
-  @param reduce_det			The detector to compute
+  @param reduce_det            The detector to compute
   @param master_flat        [out] Master flat
   @param bpm                [out] the BPM
   @param ext_plist          [out] the header for saving the products

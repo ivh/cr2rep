@@ -68,11 +68,15 @@ static int cr2res_cal_dark(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_cal_dark_description[] = "\
 Dark                                                                    \n\
+  Compute the master dark                                               \n\
+                                                                        \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_DARK_RAW " [3 to n]                               \n\
+                                                                        \n\
   Outputs                                                               \n\
     cr2res_cal_dark_DITxNDIT_master.fits " CR2RES_MASTER_DARK_PROCATG " \n\
     cr2res_cal_dark_DITxNDIT_bpm.fits " CR2RES_DARK_BPM_PROCATG "       \n\
+                                                                        \n\
   Algorithm                                                             \n\
     group the input frames by different valueѕ of DET SEQ1 DIT          \n\
                or/and DET NDIT                                          \n\
@@ -87,7 +91,8 @@ Dark                                                                    \n\
                cr2res_dark_qc_ron(--ron_hsize, --ron_nsamples)          \n\
       save master dark(g) (MASTER_DARK)                                 \n\
       save bpm(g) (DARK_BPM)                                            \n\
-  Used Library Functions                                                \n\
+                                                                        \n\
+  Library Functions used                                                \n\
     cr2res_detector_shotnoise_model()                                   \n\
     cr2res_bpm_compute()                                                \n\
     cr2res_bpm_from_mask()                                              \n\

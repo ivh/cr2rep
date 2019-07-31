@@ -86,11 +86,15 @@ static int cr2res_cal_detlin(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_cal_detlin_description[] = "\
 Detector Linearity                                                      \n\
+  Measure the pixels non-linearity                                      \n\
+                                                                        \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_DETLIN_RAW " [3 to n]                             \n\
+                                                                        \n\
   Outputs                                                               \n\
     cr2res_cal_detlin_coeffs.fits " CR2RES_DETLIN_COEFFS_PROCATG "      \n\
     cr2res_cal_detlin_bpm.fits " CR2RES_DETLIN_BPM_PROCATG "            \n\
+                                                                        \n\
   Algorithm                                                             \n\
     group the input raw frames by different settings                    \n\
     loop on groups g:                                                   \n\
@@ -112,10 +116,11 @@ Detector Linearity                                                      \n\
                          --trace_min_cluster, --trace_opening)          \n\
       loop on the detector pixels pix:                                  \n\
         if the pixel is within a trace:                                 \n\
-          cr2res_detlin_compute() computes polynolial(pix) and errors(pix)\n\
+          cr2res_detlin_compute() computes polynomial(pix) and errors(pix)\n\
       use the coeffs for the bpm computation                            \n\
       store the qc parameters in the returned property list             \n\
-  Used Library Functions                                                \n\
+                                                                        \n\
+  Library Functions used                                                \n\
     cr2res_trace()                                                      \n\
     cr2res_detlin_compute()                                             \n\
     cr2res_qc_detlin_gain()                                             \n\
@@ -380,7 +385,7 @@ static int cr2res_cal_detlin(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
-	
+
     /* Get Calibration frames */
 
     /* Retrieve raw frames */
@@ -689,7 +694,7 @@ static int cr2res_cal_detlin_reduce(
     pti = cpl_image_get_data_int(trace_image) ;
     cpl_table_delete(traces) ;
 
-	/* Loop over the traces and compute the non-linearity */
+    /* Loop over the traces and compute the non-linearity */
     cpl_msg_info(__func__, "Compute Non Linearity") ;
     cpl_msg_indent_more() ;
 
