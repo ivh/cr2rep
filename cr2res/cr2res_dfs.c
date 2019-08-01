@@ -109,7 +109,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_CAL_FLAT_SLIT_FUNC_PROCATG) ||
                 !strcmp(tag, CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG) ||
                 !strcmp(tag, CR2RES_CAL_FLAT_TRACE_WAVE_MERGED_PROCATG) ||
-                !strcmp(tag, CR2RES_CAL_FLAT_MASTER_FLAT_PROCATG) ||
+                !strcmp(tag, CR2RES_CAL_FLAT_MASTER_PROCATG) ||
                 /* Produced by cr2res_cal_wave */
                 !strcmp(tag, CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG) ||
                 !strcmp(tag, CR2RES_CAL_WAVE_MAP_PROCATG) ||

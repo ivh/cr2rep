@@ -120,7 +120,7 @@ Flat                                                                    \n\
     cr2res_cal_flat_[setting]_[Decker]_slit_func.fits " 
     CR2RES_CAL_FLAT_SLIT_FUNC_PROCATG "\n\
     cr2res_cal_flat_[setting]_[Decker]_master_flat.fits " 
-    CR2RES_CAL_FLAT_MASTER_FLAT_PROCATG "\n\
+    CR2RES_CAL_FLAT_MASTER_PROCATG "\n\
     cr2res_cal_flat_[setting]_[Decker]_tracewave.fits " 
     CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG "\n\
     cr2res_cal_flat_[setting]_tracewave_merged.fits " 
@@ -133,14 +133,14 @@ Flat                                                                    \n\
         loop on detectors d:                                            \n\
           cr2res_cal_flat_reduce() computes (master_flat, trace_wave,   \n\
                  slit_func,extract_1d,slit_model,bpm)(g,p,d)            \n\
-        Save slit_model(g,p) (FLAT_SLIT_MODEL)                          \n\
-        Save extract_1d(g,p) (FLAT_EXTRACT_1D)                          \n\
-        Save master_flat(g,p) (FLAT_MASTER_FLAT)                        \n\
-        Save trace_wave(g,p) (FLAT_TRACE_WAVE)                          \n\
-        Save slit_func(g,p) (FLAT_SLIT_FUNC)                            \n\
-        Save bpm(g,p) (FLAT_BPM)                                        \n\
+        Save slit_model(g,p)                                            \n\
+        Save extract_1d(g,p)                                            \n\
+        Save master_flat(g,p)                                           \n\
+        Save trace_wave(g,p)                                            \n\
+        Save slit_func(g,p)                                             \n\
+        Save bpm(g,p)                                                   \n\
       Merge the trace_wave(g,p,d) into trace_wave(g,d)                  \n\
-      Save trace_wave(g) (FLAT_TRACE_WAVE)                              \n\
+      Save trace_wave(g)                                                \n\
                                                                         \n\
     cr2res_cal_flat_reduce()                                            \n\
       Load the images list                                              \n\
@@ -646,7 +646,7 @@ static int cr2res_cal_flat(
                     setting_id, decker_desc[i]) ;
             cr2res_io_save_MASTER_FLAT(out_file, frameset,
                     raw_one_setting_decker, parlist, master_flat, NULL, 
-                    ext_plist[i], CR2RES_CAL_FLAT_MASTER_FLAT_PROCATG,
+                    ext_plist[i], CR2RES_CAL_FLAT_MASTER_PROCATG,
                     RECIPE_STRING);
             cpl_free(out_file);
 

@@ -96,7 +96,7 @@ static char cr2res_obs_2d_description[] = "\
           or " CR2RES_CAL_DETLIN_BPM_PROCATG "                          \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
     master_dark.fits " CR2RES_CAL_DARK_MASTER_PROCATG " [0 to 1]        \n\
-    master_flat.fits " CR2RES_CAL_FLAT_MASTER_FLAT_PROCATG " [0 to 1]   \n\
+    master_flat.fits " CR2RES_CAL_FLAT_MASTER_PROCATG " [0 to 1]        \n\
                                                                         \n\
   Outputs                                                               \n\
     cr2res_obs_2d_extract.fits " CR2RES_OBS_2D_EXTRACT_PROCATG "        \n\
@@ -320,7 +320,7 @@ static int cr2res_obs_2d(
     master_dark_frame = cpl_frameset_find_const(frameset,
             CR2RES_CAL_DARK_MASTER_PROCATG) ; 
     master_flat_frame = cpl_frameset_find_const(frameset,
-            CR2RES_CAL_FLAT_MASTER_FLAT_PROCATG) ; 
+            CR2RES_CAL_FLAT_MASTER_PROCATG) ; 
     bpm_frame = cr2res_io_find_BPM(frameset) ;
 
     /* Get the Frames for the current decker position */
