@@ -121,10 +121,10 @@ Flat                                                                    \n\
     CR2RES_CAL_FLAT_SLIT_FUNC_PROCATG "\n\
     cr2res_cal_flat_[setting]_[Decker]_master_flat.fits " 
     CR2RES_CAL_FLAT_MASTER_PROCATG "\n\
-    cr2res_cal_flat_[setting]_[Decker]_tracewave.fits " 
-    CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG "\n\
-    cr2res_cal_flat_[setting]_tracewave_merged.fits " 
-    CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG "\n\
+    cr2res_cal_flat_[setting]_[Decker]_tw.fits " 
+    CR2RES_CAL_FLAT_TW_PROCATG "\n\
+    cr2res_cal_flat_[setting]_tw_merged.fits " 
+    CR2RES_CAL_FLAT_TW_MERGED_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
     group the input frames by different settings                        \n\
@@ -653,12 +653,11 @@ static int cr2res_cal_flat(
             cpl_free(out_file);
 
             /* TRACE_WAVE */
-            out_file = cpl_sprintf("%s_%s_%s_tracewave.fits", RECIPE_STRING,
+            out_file = cpl_sprintf("%s_%s_%s_tw.fits", RECIPE_STRING,
                     setting_id, decker_desc[i]) ;
             cr2res_io_save_TRACE_WAVE(out_file, frameset,
                     raw_one_setting_decker, parlist, trace_wave[i], NULL, 
-                    ext_plist[i], CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG,
-                    RECIPE_STRING);
+                    ext_plist[i], CR2RES_CAL_FLAT_TW_PROCATG, RECIPE_STRING);
             cpl_free(out_file);
 
             /* SLIT_FUNC */
@@ -735,11 +734,11 @@ static int cr2res_cal_flat(
 
 
         /* Save TRACE_WAVE_MERGED */
-        out_file = cpl_sprintf("%s_%s_tracewave_merged.fits", RECIPE_STRING, 
+        out_file = cpl_sprintf("%s_%s_tw_merged.fits", RECIPE_STRING, 
                 setting_id) ;
         cr2res_io_save_TRACE_WAVE(out_file, frameset, raw_one_setting, parlist,
                 trace_wave_merged, NULL, ext_plist[0],
-                CR2RES_CAL_FLAT_TRACE_WAVE_MERGED_PROCATG, RECIPE_STRING) ;
+                CR2RES_CAL_FLAT_TW_MERGED_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
         cpl_free(setting_id) ;
 

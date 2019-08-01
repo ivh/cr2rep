@@ -70,7 +70,7 @@ Maps creation                                                           \n\
   traces, wavelengths and the slit curvature                            \n\
                                                                         \n\
   Inputs                                                                \n\
-    raw.fits " CR2RES_TRACE_WAVE_PROTYPE " [1 to n]                     \n\
+    raw.fits " CR2RES_TW_PROTYPE " [1 to n]                             \n\
                                                                         \n\
   Outputs                                                               \n\
     <input_name>_slit_curve.fits " 
@@ -284,7 +284,7 @@ static int cr2res_util_trace_map(
     /* Get Calibration frames */
 
     /* Get the Rawframes */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_TRACE_WAVE_PROTYPE) ;
+    rawframes = cr2res_extract_frameset(frameset, CR2RES_TW_PROTYPE) ;
     if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
         cpl_msg_error(__func__, "Cannot find any RAW file") ;
         cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;

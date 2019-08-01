@@ -110,12 +110,12 @@ Spectrum Extraction and Wavelength Calibration                          \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_WAVE_RAW " [1 to n]                               \n\
-    trace.fits " CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG " [1]               \n\
-            or " CR2RES_CAL_FLAT_TRACE_WAVE_MERGED_PROCATG "            \n\
-            or " CR2RES_UTIL_TRACE_WAVE_PROCATG "                       \n\
-            or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "                  \n\
-            or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "                   \n\
-            or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "             \n\
+    trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [1]                       \n\
+            or " CR2RES_CAL_FLAT_TW_MERGED_PROCATG "                    \n\
+            or " CR2RES_UTIL_TRACE_TW_PROCATG "                         \n\
+            or " CR2RES_UTIL_WAVE_TW_PROCATG "                          \n\
+            or " CR2RES_CAL_WAVE_TW_PROCATG "                           \n\
+            or " CR2RES_UTIL_SLIT_CURV_TW_PROCATG "                     \n\
     detlin.fits " CR2RES_CAL_DETLIN_COEFFS_PROCATG " [0 to 1]           \n\
     bpm.fits " CR2RES_CAL_DARK_BPM_PROCATG " [0 to 1]                   \n\
           or " CR2RES_CAL_FLAT_BPM_PROCATG "                            \n\
@@ -126,10 +126,8 @@ Spectrum Extraction and Wavelength Calibration                          \n\
     lines.fits " CR2RES_EMISSION_LINES_PROCATG " [0 to 1]               \n\
                                                                         \n\
   Outputs                                                               \n\
-    cr2res_cal_wave_tracewave.fits "
-    CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG"\n\
-    cr2res_cal_wave_map.fits "
-    CR2RES_CAL_WAVE_MAP_PROCATG"\n\
+    cr2res_cal_wave_tw.fits " CR2RES_CAL_WAVE_TW_PROCATG"               \n\
+    cr2res_cal_wave_map.fits " CR2RES_CAL_WAVE_MAP_PROCATG"             \n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on detectors d:                                                \n\
@@ -579,10 +577,10 @@ static int cr2res_cal_wave(
 
     /* Ѕave Products */
     /* TODO : Save Lines Diagnostics */
-    out_file = cpl_sprintf("%s_trace.fits", RECIPE_STRING) ;
+    out_file = cpl_sprintf("%s_tw.fits", RECIPE_STRING) ;
     cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist, 
             out_trace_wave, NULL, ext_plist, 
-            CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
+            CR2RES_CAL_WAVE_TW_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_map.fits", RECIPE_STRING) ;

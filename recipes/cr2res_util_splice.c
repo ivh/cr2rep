@@ -63,7 +63,7 @@ static int cr2res_util_splice(cpl_frameset *, const cpl_parameterlist *);
 static char cr2res_util_splice_description[] =
 "TODO : Descripe here the recipe in / out / params / basic algo\n"
 "blaze.fits "CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG  "\n"
-"trace.fits "CR2RES_TRACE_WAVE_PROTYPE  "\n"
+"trace.fits "CR2RES_TW_PROTYPE  "\n"
 "extracted.fits "CR2RES_UTIL_EXTRACT_1D_PROCATG  "\n"
 " The recipe produces the following products:\n"
 "\n";
@@ -235,7 +235,7 @@ static int cr2res_util_splice(
 
     /* Get Inputs */
     trace_fset = cr2res_extract_frameset(frameset,
-            CR2RES_TRACE_WAVE_PROTYPE) ;
+            CR2RES_TW_PROTYPE) ;
     extracted_fset = cr2res_extract_frameset(frameset,
             CR2RES_UTIL_EXTRACT_1D_PROCATG) ;
     blaze_fset = cr2res_extract_frameset(frameset, 

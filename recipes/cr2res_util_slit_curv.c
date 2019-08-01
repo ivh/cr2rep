@@ -67,12 +67,12 @@ Slit curvature computation                                              \n\
   each order that has at least 2 traces.                                \n\
                                                                         \n\
   Inputs                                                                \n\
-    raw.fits " CR2RES_TRACE_WAVE_PROTYPE " [1 to n]                     \n\
+    raw.fits " CR2RES_TW_PROTYPE " [1 to n]                             \n\
                                                                         \n\
   Outputs                                                               \n\
-    <input_name>_slit_curv_map.fits " CR2RES_UTIL_SLIT_CURV_MAP_PROCATG"\n\
+    <input_name>_map.fits " CR2RES_UTIL_SLIT_CURV_MAP_PROCATG"          \n\
     <input_name>_slit_curv.fits " CR2RES_UTIL_SLIT_CURV_PROCATG "       \n\
-    <input_name>_trace.fits " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG" \n\
+    <input_name>_tw.fits " CR2RES_UTIL_SLIT_CURV_TW_PROCATG"            \n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on input raw files f:                                          \n\
@@ -306,7 +306,7 @@ static int cr2res_util_slit_curv(
     /* Get Calibration frames */
 
     /* Get the rawframes */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_TRACE_WAVE_PROTYPE) ;
+    rawframes = cr2res_extract_frameset(frameset, CR2RES_TW_PROTYPE) ;
     if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
         cpl_msg_error(__func__, "Cannot find any RAW file") ;
         cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
@@ -436,7 +436,7 @@ static int cr2res_util_slit_curv(
         }
 
         /* Save the SLIT_CURV_MAP */
-        out_file = cpl_sprintf("%s_slit_curv_map.fits",
+        out_file = cpl_sprintf("%s_map.fits",
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
         cr2res_io_save_SLIT_CURV_MAP(out_file, frameset, frameset, parlist, 
                 slit_curv_map, NULL, ext_plist, 
@@ -452,11 +452,11 @@ static int cr2res_util_slit_curv(
         cpl_free(out_file);
 
         /* Save the new TRACE_WAVE table */
-        out_file=cpl_sprintf("%s_trace.fits", 
+        out_file=cpl_sprintf("%s_tw.fits", 
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
         cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
-                trace_wave, NULL, ext_plist, 
-                CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
+                trace_wave, NULL, ext_plist, CR2RES_UTIL_SLIT_CURV_TW_PROCATG, 
+                RECIPE_STRING) ;
         cpl_free(out_file);
 
         /* Free and return */

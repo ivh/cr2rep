@@ -84,7 +84,7 @@ Traces detection                                                        \n\
           or " CR2RES_CALIBRATED_PROTYPE "                              \n\
                                                                         \n\
   Outputs                                                               \n\
-    <input_name>_tracewave.fits " CR2RES_UTIL_TRACE_WAVE_PROCATG"       \n\
+    <input_name>_tw.fits " CR2RES_UTIL_TRACE_TW_PROCATG"                \n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on input raw frames f:                                         \n\
@@ -452,12 +452,12 @@ static int cr2res_util_trace(
         }
 
         /* Save the Products */
-        out_file = cpl_sprintf("%s_tracewave.fits", 
+        out_file = cpl_sprintf("%s_tw.fits", 
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
         cur_fset = cpl_frameset_new() ;
         cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
         cr2res_io_save_TRACE_WAVE(out_file, frameset, cur_fset, parlist, traces,
-                NULL, ext_plist, CR2RES_UTIL_TRACE_WAVE_PROCATG, RECIPE_STRING);
+                NULL, ext_plist, CR2RES_UTIL_TRACE_TW_PROCATG, RECIPE_STRING);
         cpl_frameset_delete(cur_fset) ;
         cpl_free(out_file);
 

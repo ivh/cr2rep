@@ -117,12 +117,12 @@ Polarimetry Observation                                                 \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_OBS_POL_RAW " [4 to 4n]                           \n\
-    trace.fits " CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG " [1]               \n\
-            or " CR2RES_CAL_FLAT_TRACE_WAVE_MERGED_PROCATG "            \n\
-            or " CR2RES_UTIL_TRACE_WAVE_PROCATG "                       \n\
-            or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "                  \n\
-            or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "                   \n\
-            or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "             \n\
+    trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [1]                       \n\
+            or " CR2RES_CAL_FLAT_TW_MERGED_PROCATG "                    \n\
+            or " CR2RES_UTIL_TRACE_TW_PROCATG "                         \n\
+            or " CR2RES_UTIL_WAVE_TW_PROCATG "                          \n\
+            or " CR2RES_CAL_WAVE_TW_PROCATG "                           \n\
+            or " CR2RES_UTIL_SLIT_CURV_TW_PROCATG "                     \n\
     detlin.fits " CR2RES_CAL_DETLIN_COEFFS_PROCATG " [0 to 1]           \n\
     bpm.fits " CR2RES_CAL_DARK_BPM_PROCATG " [0 to 1]                   \n\
           or " CR2RES_CAL_FLAT_BPM_PROCATG "                            \n\

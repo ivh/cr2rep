@@ -76,17 +76,17 @@ Wavelength Calibration                                                  \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_EXTRACT_1D_PROTYPE " [1 to n]                     \n\
-    trace.fits " CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG " [1]               \n\
-            or " CR2RES_CAL_FLAT_TRACE_WAVE_MERGED_PROCATG "            \n\
-            or " CR2RES_UTIL_TRACE_WAVE_PROCATG "                       \n\
-            or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "                  \n\
-            or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "                   \n\
-            or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "             \n\
+    trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [1]                       \n\
+            or " CR2RES_CAL_FLAT_TW_MERGED_PROCATG "                    \n\
+            or " CR2RES_UTIL_TRACE_TW_PROCATG "                         \n\
+            or " CR2RES_UTIL_WAVE_TW_PROCATG "                          \n\
+            or " CR2RES_CAL_WAVE_TW_PROCATG "                           \n\
+            or " CR2RES_UTIL_SLIT_CURV_TW_PROCATG "                     \n\
     lines.fits " CR2RES_EMISSION_LINES_PROCATG " [0 to 1]               \n\
                                                                         \n\
   Outputs                                                               \n\
-    <input_name>_tracewave.fits " 
-    CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG"\n\
+    <input_name>_tw.fits " 
+    CR2RES_UTIL_WAVE_TW_PROCATG"\n\
     <input_name>_wave_map.fits " 
     CR2RES_UTIL_WAVE_MAP_PROCATG "\n\
     <input_name>_lines_diagnostics.fits " 
@@ -540,11 +540,11 @@ static int cr2res_util_wave(
         cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
 
         /* Save the new trace_wave table */
-        out_file = cpl_sprintf("%s_tracewave.fits",
+        out_file = cpl_sprintf("%s_tw.fits",
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
         cr2res_io_save_TRACE_WAVE(out_file, frameset, cur_fset, parlist,
-                out_trace_wave, NULL, ext_plist,
-                CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG, RECIPE_STRING) ;
+                out_trace_wave, NULL, ext_plist, CR2RES_UTIL_WAVE_TW_PROCATG,
+                RECIPE_STRING) ;
         cpl_free(out_file);
 
         /* Save the Wave Map */

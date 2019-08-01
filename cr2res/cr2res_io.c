@@ -181,18 +181,17 @@ const cpl_frame * cr2res_io_find_TRACE_WAVE(const cpl_frameset * in)
     /* Check entries */
     if (in == NULL) return NULL ;
 
-    out=cpl_frameset_find_const(in, CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG) ;
+    out=cpl_frameset_find_const(in, CR2RES_CAL_FLAT_TW_PROCATG) ;
     if (out == NULL) 
-        out=cpl_frameset_find_const(in, 
-                CR2RES_CAL_FLAT_TRACE_WAVE_MERGED_PROCATG) ;
+        out=cpl_frameset_find_const(in, CR2RES_CAL_FLAT_TW_MERGED_PROCATG) ;
     if (out == NULL) 
-        out=cpl_frameset_find_const(in, CR2RES_UTIL_TRACE_WAVE_PROCATG) ;
+        out=cpl_frameset_find_const(in, CR2RES_UTIL_TRACE_TW_PROCATG) ;
     if (out == NULL) 
-        out=cpl_frameset_find_const(in, CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG) ;
+        out=cpl_frameset_find_const(in, CR2RES_UTIL_WAVE_TW_PROCATG) ;
     if (out == NULL) 
-        out=cpl_frameset_find_const(in, CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG) ;
+        out=cpl_frameset_find_const(in, CR2RES_CAL_WAVE_TW_PROCATG) ;
     if (out == NULL) 
-       out=cpl_frameset_find_const(in,CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG);
+       out=cpl_frameset_find_const(in,CR2RES_UTIL_SLIT_CURV_TW_PROCATG);
     return out ;
 }
 
@@ -855,7 +854,7 @@ cpl_table * cr2res_io_load_TRACE_WAVE(
     if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Check PRO.TYPE */
-    if (cr2res_io_check_pro_type(filename, CR2RES_TRACE_WAVE_PROTYPE) != 1)
+    if (cr2res_io_check_pro_type(filename, CR2RES_TW_PROTYPE) != 1)
         return NULL ;
 
     /* Load the table */
@@ -1356,7 +1355,7 @@ int cr2res_io_save_TRACE_WAVE(
         const char              *   recipe)
 {
     return cr2res_io_save_table(filename, allframes, inframes, parlist, tables,
-            qc_list, ext_plist, recipe, procatg, CR2RES_TRACE_WAVE_PROTYPE) ;
+            qc_list, ext_plist, recipe, procatg, CR2RES_TW_PROTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
