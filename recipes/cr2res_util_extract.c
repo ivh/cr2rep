@@ -75,15 +75,15 @@ Spectrum Extraction                                                     \n\
           or " CR2RES_OBS_NODDING_RAW "                                 \n\
           or " CR2RES_OBS_2D_RAW "                                      \n\
           or " CR2RES_OBS_POL_RAW "                                     \n\
-    trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]                   \n\
-            or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "                \n\
+    trace.fits " CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG " [1]               \n\
+            or " CR2RES_CAL_FLAT_TRACE_WAVE_MERGED_PROCATG "            \n\
             or " CR2RES_UTIL_TRACE_WAVE_PROCATG "                       \n\
             or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "                  \n\
             or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "                   \n\
             or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "             \n\
-    bpm.fits " CR2RES_DARK_BPM_PROCATG " [0 to 1]                       \n\
-          or " CR2RES_FLAT_BPM_PROCATG "                                \n\
-          or " CR2RES_DETLIN_BPM_PROCATG "                              \n\
+    bpm.fits " CR2RES_CAL_DARK_BPM_PROCATG " [0 to 1]                   \n\
+          or " CR2RES_CAL_FLAT_BPM_PROCATG "                            \n\
+          or " CR2RES_CAL_DETLIN_BPM_PROCATG "                          \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
                                                                         \n\
   Outputs                                                               \n\

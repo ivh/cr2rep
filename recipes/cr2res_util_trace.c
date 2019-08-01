@@ -101,7 +101,7 @@ Traces detection                                                        \n\
     cr2res_io_load_image()                                              \n\
     cr2res_trace()                                                      \n\
     cr2res_trace_add_extra_columns()                                    \n\
-    cr2res_trace_split_traces()                                         \n\ 
+    cr2res_trace_split_traces()                                         \n\
     cr2res_io_save_TRACE_WAVE()                                         \n\
 " ;
 

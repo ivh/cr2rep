@@ -138,7 +138,7 @@ cpl_frame * cr2res_io_find_SLIT_MODEL(
     out = NULL ;
 
     /* Get the slit model frames */
-    fset=cr2res_extract_frameset(in, CR2RES_FLAT_SLIT_MODEL_PROCATG) ;
+    fset=cr2res_extract_frameset(in, CR2RES_CAL_FLAT_SLIT_MODEL_PROCATG) ;
     if (fset == NULL) 
         fset=cr2res_extract_frameset(in, CR2RES_UTIL_SLIT_MODEL_PROCATG) ;
     if (fset == NULL) 
@@ -181,9 +181,10 @@ const cpl_frame * cr2res_io_find_TRACE_WAVE(const cpl_frameset * in)
     /* Check entries */
     if (in == NULL) return NULL ;
 
-    out=cpl_frameset_find_const(in, CR2RES_FLAT_TRACE_WAVE_PROCATG) ;
+    out=cpl_frameset_find_const(in, CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG) ;
     if (out == NULL) 
-        out=cpl_frameset_find_const(in, CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG) ;
+        out=cpl_frameset_find_const(in, 
+                CR2RES_CAL_FLAT_TRACE_WAVE_MERGED_PROCATG) ;
     if (out == NULL) 
         out=cpl_frameset_find_const(in, CR2RES_UTIL_TRACE_WAVE_PROCATG) ;
     if (out == NULL) 
@@ -209,11 +210,11 @@ const cpl_frame * cr2res_io_find_BPM(const cpl_frameset * in)
     /* Check entries */
     if (in == NULL) return NULL ;
 
-    out=cpl_frameset_find_const(in, CR2RES_DARK_BPM_PROCATG) ;
+    out=cpl_frameset_find_const(in, CR2RES_CAL_DARK_BPM_PROCATG) ;
     if (out == NULL) 
-        out = cpl_frameset_find_const(in, CR2RES_FLAT_BPM_PROCATG) ;
+        out = cpl_frameset_find_const(in, CR2RES_CAL_FLAT_BPM_PROCATG) ;
     if (out == NULL) 
-        out = cpl_frameset_find_const(in, CR2RES_DETLIN_BPM_PROCATG) ;
+        out = cpl_frameset_find_const(in, CR2RES_CAL_DETLIN_BPM_PROCATG) ;
     if (out == NULL) 
         out = cpl_frameset_find_const(in, CR2RES_UTIL_BPM_SPLIT_PROCATG) ;
     if (out == NULL) 

@@ -74,8 +74,10 @@ Dark                                                                    \n\
     raw.fits " CR2RES_DARK_RAW " [3 to n]                               \n\
                                                                         \n\
   Outputs                                                               \n\
-    cr2res_cal_dark_DITxNDIT_master.fits " CR2RES_MASTER_DARK_PROCATG " \n\
-    cr2res_cal_dark_DITxNDIT_bpm.fits " CR2RES_DARK_BPM_PROCATG "       \n\
+    cr2res_cal_dark_DITxNDIT_master.fits " 
+    CR2RES_CAL_DARK_MASTER_PROCATG "\n\
+    cr2res_cal_dark_DITxNDIT_bpm.fits " 
+    CR2RES_CAL_DARK_BPM_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
     group the input frames by different valueѕ of DET SEQ1 DIT          \n\
@@ -554,8 +556,8 @@ static int cr2res_cal_dark(
         filename = cpl_sprintf("%s_%gx%d_master.fits", 
                 RECIPE_STRING, dit, ndit); 
         if (cr2res_io_save_MASTER_DARK(filename, frameset, raw_one, parlist, 
-                    master_darks, NULL, ext_plist, CR2RES_MASTER_DARK_PROCATG, 
-                    RECIPE_STRING) != 0) {
+                    master_darks, NULL, ext_plist, 
+                    CR2RES_CAL_DARK_MASTER_PROCATG, RECIPE_STRING) != 0) {
             cpl_frameset_delete(rawframes) ;
             cpl_frameset_delete(raw_one) ;
             for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
@@ -581,7 +583,8 @@ static int cr2res_cal_dark(
         filename = cpl_sprintf("%s_%gx%d_bpm.fits", 
                 RECIPE_STRING, dit, ndit); 
         if (cr2res_io_save_BPM(filename, frameset, raw_one, parlist, bpms, NULL,
-                    ext_plist, CR2RES_DARK_BPM_PROCATG, RECIPE_STRING) != 0) {
+                    ext_plist, CR2RES_CAL_DARK_BPM_PROCATG, 
+                    RECIPE_STRING) != 0) {
             cpl_frameset_delete(rawframes) ;
             cpl_frameset_delete(raw_one) ;
             for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {

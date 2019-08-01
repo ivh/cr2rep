@@ -73,15 +73,15 @@ Generate Lines calibration tables                                       \n\
   Output                                                                \n\
     cr2res_util_genlines.fits "CR2RES_EMISSION_LINES_PROCATG"           \n\
                                                                         \n\
-  Algorithm                                                             \n\ 
-    Parse the 2 column text file                                        \n\ 
-    Apply the --wl_factor correction                                    \n\ 
-    if (--display) plot it                                              \n\ 
-    Create the CPL table                                                \n\ 
-    Save the table                                                      \n\ 
+  Algorithm                                                             \n\
+    Parse the 2 column text file                                        \n\
+    Apply the --wl_factor correction                                    \n\
+    if (--display) plot it                                              \n\
+    Create the CPL table                                                \n\
+    Save the table                                                      \n\
                                                                         \n\
-  Library functions uѕed                                                \n\ 
-    cr2res_io_save_EMISSION_LINES()                                     \n\ 
+  Library functions uѕed                                                \n\
+    cr2res_io_save_EMISSION_LINES()                                     \n\
 " ;
 
 /*-----------------------------------------------------------------------------

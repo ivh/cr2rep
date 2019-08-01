@@ -86,7 +86,7 @@ Flat normalization                                                      \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_FLAT_RAW " [1 to n]                               \n\
           or " CR2RES_CALIBRATED_PROTYPE "                              \n\
-    slit_model.fits " CR2RES_FLAT_SLIT_MODEL_PROCATG " [1 to m]         \n\
+    slit_model.fits " CR2RES_CAL_FLAT_SLIT_MODEL_PROCATG " [1 to m]     \n\
                  or " CR2RES_UTIL_SLIT_MODEL_PROCATG "                  \n\
                  or " CR2RES_OBS_NODDING_SLITMODELA_PROCATG "           \n\
                  or " CR2RES_OBS_NODDING_SLITMODELB_PROCATG "           \n\

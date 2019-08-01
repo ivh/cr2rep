@@ -92,8 +92,8 @@ Detector Linearity                                                      \n\
     raw.fits " CR2RES_DETLIN_RAW " [3 to n]                             \n\
                                                                         \n\
   Outputs                                                               \n\
-    cr2res_cal_detlin_coeffs.fits " CR2RES_DETLIN_COEFFS_PROCATG "      \n\
-    cr2res_cal_detlin_bpm.fits " CR2RES_DETLIN_BPM_PROCATG "            \n\
+    cr2res_cal_detlin_coeffs.fits " CR2RES_CAL_DETLIN_COEFFS_PROCATG "  \n\
+    cr2res_cal_detlin_bpm.fits " CR2RES_CAL_DETLIN_BPM_PROCATG "        \n\
                                                                         \n\
   Algorithm                                                             \n\
     group the input raw frames by different settings                    \n\
@@ -104,10 +104,10 @@ Detector Linearity                                                      \n\
         fill global_coeffs(d) with coeffs(g, d)                         \n\
                                                                         \n\
       if (--single_settings)                                            \n\
-        save bpm(g) file (DETLIN_BPM)                                   \n\
-        save coeffs(g) file (DETLIN_COEFFS)                             \n\
-    save global_bpm file (DETLIN_BPM)                                   \n\
-    save global_coeffs file (DETLIN_COEFFS)                             \n\
+        save bpm(g) file                                                \n\
+        save coeffs(g) file                                             \n\
+    save global_bpm file                                                \n\
+    save global_coeffs file                                             \n\
                                                                         \n\
     cr2res_cal_detlin_reduce()                                          \n\
       load input imlist and dits                                        \n\
@@ -484,14 +484,14 @@ static int cr2res_cal_detlin(
             out_file = cpl_sprintf("%s_%s_bpm.fits", RECIPE_STRING,
                     setting_id) ;
             cr2res_io_save_BPM(out_file, frameset, raw_one, parlist, bpm, NULL, 
-                    ext_plist, CR2RES_DETLIN_BPM_PROCATG, RECIPE_STRING) ;
+                    ext_plist, CR2RES_CAL_DETLIN_BPM_PROCATG, RECIPE_STRING) ;
             cpl_free(out_file);
 
             /* COEFFS */
             out_file = cpl_sprintf("%s_%s_coeffs.fits", RECIPE_STRING,
                     setting_id) ;
             cr2res_io_save_DETLIN_COEFFS(out_file, frameset, raw_one, parlist, 
-                    coeffs, NULL, ext_plist, CR2RES_DETLIN_COEFFS_PROCATG, 
+                    coeffs, NULL, ext_plist, CR2RES_CAL_DETLIN_COEFFS_PROCATG, 
                     RECIPE_STRING) ;
             cpl_free(out_file);
         }
@@ -515,14 +515,15 @@ static int cr2res_cal_detlin(
     /* BPM */
     out_file = cpl_sprintf("%s_bpm.fits", RECIPE_STRING) ;
     cr2res_io_save_BPM(out_file, frameset, rawframes, parlist, bpm_merged, 
-            NULL, ext_plist_merged, CR2RES_DETLIN_BPM_PROCATG, RECIPE_STRING) ;
+            NULL, ext_plist_merged, CR2RES_CAL_DETLIN_BPM_PROCATG, 
+            RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* COEFFS */
     out_file = cpl_sprintf("%s_coeffs.fits", RECIPE_STRING) ;
     cr2res_io_save_DETLIN_COEFFS(out_file, frameset, rawframes, parlist, 
             coeffs_merged, NULL, ext_plist_merged, 
-            CR2RES_DETLIN_COEFFS_PROCATG, RECIPE_STRING) ;
+            CR2RES_CAL_DETLIN_COEFFS_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     cpl_frameset_delete(rawframes) ;

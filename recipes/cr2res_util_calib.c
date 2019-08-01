@@ -72,13 +72,13 @@ Frames Calibration                                                      \n\
           or " CR2RES_OBS_NODDING_RAW"                                  \n\
           or " CR2RES_OBS_2D_RAW"                                       \n\
           or " CR2RES_OBS_POL_RAW"                                      \n\
-    detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " [0 to 1]               \n\
-    bpm.fits " CR2RES_DARK_BPM_PROCATG " [0 to 1]                       \n\
-          or " CR2RES_FLAT_BPM_PROCATG "                                \n\
-          or " CR2RES_DETLIN_BPM_PROCATG "                              \n\
+    detlin.fits " CR2RES_CAL_DETLIN_COEFFS_PROCATG " [0 to 1]           \n\
+    bpm.fits " CR2RES_CAL_DARK_BPM_PROCATG " [0 to 1]                   \n\
+          or " CR2RES_CAL_FLAT_BPM_PROCATG "                            \n\
+          or " CR2RES_CAL_DETLIN_BPM_PROCATG "                          \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
-    master_dark.fits " CR2RES_MASTER_DARK_PROCATG " [0 to 1]            \n\
-    master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " [0 to 1]       \n\
+    master_dark.fits " CR2RES_CAL_DARK_MASTER_PROCATG " [0 to 1]        \n\
+    master_flat.fits " CR2RES_CAL_FLAT_MASTER_FLAT_PROCATG " [0 to 1]   \n\
                                                                         \n\
   Outputs                                                               \n\
     <input_name>_calibrated.fits " CR2RES_UTIL_CALIB_PROCATG "          \n\
@@ -271,11 +271,11 @@ static int cr2res_util_calib(
 
     /* Get Calibration frames */
     detlin_frame = cpl_frameset_find_const(frameset,
-            CR2RES_DETLIN_COEFFS_PROCATG);
+            CR2RES_CAL_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
-            CR2RES_MASTER_DARK_PROCATG) ; 
+            CR2RES_CAL_DARK_MASTER_PROCATG) ; 
     master_flat_frame = cpl_frameset_find_const(frameset,
-            CR2RES_FLAT_MASTER_FLAT_PROCATG) ; 
+            CR2RES_CAL_FLAT_MASTER_FLAT_PROCATG) ; 
     bpm_frame = cr2res_io_find_BPM(frameset) ;
 
     /* Get the rawframes */

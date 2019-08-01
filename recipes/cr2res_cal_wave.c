@@ -110,19 +110,19 @@ Spectrum Extraction and Wavelength Calibration                          \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_WAVE_RAW " [1 to n]                               \n\
-    trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]                   \n\
-            or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "                \n\
+    trace.fits " CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG " [1]               \n\
+            or " CR2RES_CAL_FLAT_TRACE_WAVE_MERGED_PROCATG "            \n\
             or " CR2RES_UTIL_TRACE_WAVE_PROCATG "                       \n\
             or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "                  \n\
             or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "                   \n\
             or " CR2RES_UTIL_SLIT_CURV_TRACE_WAVE_PROCATG "             \n\
-    detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " [0 to 1]               \n\
-    bpm.fits " CR2RES_DARK_BPM_PROCATG " [0 to 1]                       \n\
-          or " CR2RES_FLAT_BPM_PROCATG "                                \n\
-          or " CR2RES_DETLIN_BPM_PROCATG "                              \n\
+    detlin.fits " CR2RES_CAL_DETLIN_COEFFS_PROCATG " [0 to 1]           \n\
+    bpm.fits " CR2RES_CAL_DARK_BPM_PROCATG " [0 to 1]                   \n\
+          or " CR2RES_CAL_FLAT_BPM_PROCATG "                            \n\
+          or " CR2RES_CAL_DETLIN_BPM_PROCATG "                          \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
-    master_dark.fits " CR2RES_MASTER_DARK_PROCATG " [0 to 1]            \n\
-    master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " [0 to 1]       \n\
+    master_dark.fits " CR2RES_CAL_DARK_MASTER_PROCATG " [0 to 1]        \n\
+    master_flat.fits " CR2RES_CAL_FLAT_MASTER_FLAT_PROCATG " [0 to 1]   \n\
     lines.fits " CR2RES_EMISSION_LINES_PROCATG " [0 to 1]               \n\
                                                                         \n\
   Outputs                                                               \n\
@@ -529,11 +529,11 @@ static int cr2res_cal_wave(
         return -1 ;
     }
     detlin_frame = cpl_frameset_find_const(frameset,
-            CR2RES_DETLIN_COEFFS_PROCATG);
+            CR2RES_CAL_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
-            CR2RES_MASTER_DARK_PROCATG) ;
+            CR2RES_CAL_DARK_MASTER_PROCATG) ;
     master_flat_frame = cpl_frameset_find_const(frameset,
-            CR2RES_FLAT_MASTER_FLAT_PROCATG) ;
+            CR2RES_CAL_FLAT_MASTER_FLAT_PROCATG) ;
     bpm_frame = cr2res_io_find_BPM(frameset) ;
     lines_frame = cpl_frameset_find_const(frameset,
             CR2RES_EMISSION_LINES_PROCATG) ;

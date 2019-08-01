@@ -96,20 +96,20 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_TRACE_WAVE_PROTYPE)) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
-        } else if (!strcmp(tag, CR2RES_DETLIN_COEFFS_PROCATG) ||
+        } else if (!strcmp(tag, CR2RES_CAL_DETLIN_COEFFS_PROCATG) ||
                 /* Produced by cr2res_cal_detlin */
-                !strcmp(tag, CR2RES_DETLIN_BPM_PROCATG) ||
+                !strcmp(tag, CR2RES_CAL_DETLIN_BPM_PROCATG) ||
                 /* Produced by cr2res_cal_dark */
-                !strcmp(tag, CR2RES_MASTER_DARK_PROCATG) ||
-                !strcmp(tag, CR2RES_DARK_BPM_PROCATG) ||
+                !strcmp(tag, CR2RES_CAL_DARK_MASTER_PROCATG) ||
+                !strcmp(tag, CR2RES_CAL_DARK_BPM_PROCATG) ||
                 /* Produced by cr2res_cal_flat */
-                !strcmp(tag, CR2RES_FLAT_BPM_PROCATG) ||
-                !strcmp(tag, CR2RES_FLAT_EXTRACT_1D_PROCATG) ||
-                !strcmp(tag, CR2RES_FLAT_SLIT_MODEL_PROCATG) ||
-                !strcmp(tag, CR2RES_FLAT_SLIT_FUNC_PROCATG) ||
-                !strcmp(tag, CR2RES_FLAT_TRACE_WAVE_PROCATG) ||
-                !strcmp(tag, CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG) ||
-                !strcmp(tag, CR2RES_FLAT_MASTER_FLAT_PROCATG) ||
+                !strcmp(tag, CR2RES_CAL_FLAT_BPM_PROCATG) ||
+                !strcmp(tag, CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG) ||
+                !strcmp(tag, CR2RES_CAL_FLAT_SLIT_MODEL_PROCATG) ||
+                !strcmp(tag, CR2RES_CAL_FLAT_SLIT_FUNC_PROCATG) ||
+                !strcmp(tag, CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG) ||
+                !strcmp(tag, CR2RES_CAL_FLAT_TRACE_WAVE_MERGED_PROCATG) ||
+                !strcmp(tag, CR2RES_CAL_FLAT_MASTER_FLAT_PROCATG) ||
                 /* Produced by cr2res_cal_wave */
                 !strcmp(tag, CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG) ||
                 !strcmp(tag, CR2RES_CAL_WAVE_MAP_PROCATG) ||

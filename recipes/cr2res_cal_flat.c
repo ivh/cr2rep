@@ -103,28 +103,28 @@ Flat                                                                    \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_FLAT_RAW " [1 to n]                               \n\
-    detlin.fits " CR2RES_DETLIN_COEFFS_PROCATG " [0 to 1]               \n\
-    master_dark.fits " CR2RES_MASTER_DARK_PROCATG " [0 to 1]            \n\
-    bpm.fits " CR2RES_DARK_BPM_PROCATG " [0 to 1]                       \n\
-          or " CR2RES_FLAT_BPM_PROCATG "                                \n\
-          or " CR2RES_DETLIN_BPM_PROCATG "                              \n\
+    detlin.fits " CR2RES_CAL_DETLIN_COEFFS_PROCATG " [0 to 1]           \n\
+    master_dark.fits " CR2RES_CAL_DARK_MASTER_PROCATG " [0 to 1]        \n\
+    bpm.fits " CR2RES_CAL_DARK_BPM_PROCATG " [0 to 1]                   \n\
+          or " CR2RES_CAL_FLAT_BPM_PROCATG "                            \n\
+          or " CR2RES_CAL_DETLIN_BPM_PROCATG "                          \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
                                                                         \n\
   Outputs                                                               \n\
     cr2res_cal_flat_[setting]_[Decker]_bpm.fits " 
-    CR2RES_FLAT_BPM_PROCATG "\n\
+    CR2RES_CAL_FLAT_BPM_PROCATG "\n\
     cr2res_cal_flat_[setting]_[Decker]_blaze.fits " 
-    CR2RES_FLAT_EXTRACT_1D_PROCATG "\n\
+    CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG "\n\
     cr2res_cal_flat_[setting]_[Decker]_slit_model.fits " 
-    CR2RES_FLAT_SLIT_MODEL_PROCATG "\n\
+    CR2RES_CAL_FLAT_SLIT_MODEL_PROCATG "\n\
     cr2res_cal_flat_[setting]_[Decker]_slit_func.fits " 
-    CR2RES_FLAT_SLIT_FUNC_PROCATG "\n\
+    CR2RES_CAL_FLAT_SLIT_FUNC_PROCATG "\n\
     cr2res_cal_flat_[setting]_[Decker]_master_flat.fits " 
-    CR2RES_FLAT_MASTER_FLAT_PROCATG "\n\
+    CR2RES_CAL_FLAT_MASTER_FLAT_PROCATG "\n\
     cr2res_cal_flat_[setting]_[Decker]_tracewave.fits " 
-    CR2RES_FLAT_TRACE_WAVE_PROCATG "\n\
+    CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG "\n\
     cr2res_cal_flat_[setting]_tracewave_merged.fits " 
-    CR2RES_FLAT_TRACE_WAVE_PROCATG "\n\
+    CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
     group the input frames by different settings                        \n\
@@ -527,9 +527,9 @@ static int cr2res_cal_flat(
 
     /* Get Calibration frames */
     detlin_frame = cpl_frameset_find_const(frameset,
-            CR2RES_DETLIN_COEFFS_PROCATG);
+            CR2RES_CAL_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
-            CR2RES_MASTER_DARK_PROCATG) ;
+            CR2RES_CAL_DARK_MASTER_PROCATG) ;
     bpm_frame = cr2res_io_find_BPM(frameset) ;
 
     /* Extract RAW frames */
@@ -628,7 +628,8 @@ static int cr2res_cal_flat(
                     setting_id, decker_desc[i]) ;
             cr2res_io_save_SLIT_MODEL(out_file, frameset,
                     raw_one_setting_decker, parlist, slit_model, NULL, 
-                    ext_plist[i], CR2RES_FLAT_SLIT_MODEL_PROCATG,RECIPE_STRING);
+                    ext_plist[i], CR2RES_CAL_FLAT_SLIT_MODEL_PROCATG,
+                    RECIPE_STRING);
             cpl_free(out_file);
 
             /* BLAZE */
@@ -636,7 +637,8 @@ static int cr2res_cal_flat(
                     setting_id, decker_desc[i]) ;
             cr2res_io_save_EXTRACT_1D(out_file, frameset, 
                     raw_one_setting_decker, parlist, extract_1d, NULL, 
-                    ext_plist[i], CR2RES_FLAT_EXTRACT_1D_PROCATG,RECIPE_STRING);
+                    ext_plist[i], CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG,
+                    RECIPE_STRING);
             cpl_free(out_file);
 
             /* MASTER_FLAT */
@@ -644,7 +646,8 @@ static int cr2res_cal_flat(
                     setting_id, decker_desc[i]) ;
             cr2res_io_save_MASTER_FLAT(out_file, frameset,
                     raw_one_setting_decker, parlist, master_flat, NULL, 
-                    ext_plist[i],CR2RES_FLAT_MASTER_FLAT_PROCATG,RECIPE_STRING);
+                    ext_plist[i], CR2RES_CAL_FLAT_MASTER_FLAT_PROCATG,
+                    RECIPE_STRING);
             cpl_free(out_file);
 
             /* TRACE_WAVE */
@@ -652,7 +655,8 @@ static int cr2res_cal_flat(
                     setting_id, decker_desc[i]) ;
             cr2res_io_save_TRACE_WAVE(out_file, frameset,
                     raw_one_setting_decker, parlist, trace_wave[i], NULL, 
-                    ext_plist[i], CR2RES_FLAT_TRACE_WAVE_PROCATG,RECIPE_STRING);
+                    ext_plist[i], CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG,
+                    RECIPE_STRING);
             cpl_free(out_file);
 
             /* SLIT_FUNC */
@@ -660,7 +664,8 @@ static int cr2res_cal_flat(
                     setting_id, decker_desc[i]) ;
             cr2res_io_save_SLIT_FUNC(out_file, frameset,
                     raw_one_setting_decker, parlist, slit_func, NULL, 
-                    ext_plist[i], CR2RES_FLAT_SLIT_FUNC_PROCATG, RECIPE_STRING);
+                    ext_plist[i], CR2RES_CAL_FLAT_SLIT_FUNC_PROCATG, 
+                    RECIPE_STRING);
             cpl_free(out_file);
 
             /* BPM */
@@ -668,7 +673,7 @@ static int cr2res_cal_flat(
                     setting_id, decker_desc[i]) ;
             cr2res_io_save_BPM(out_file, frameset,
                     raw_one_setting_decker, parlist, bpm, NULL,ext_plist[i], 
-                    CR2RES_FLAT_BPM_PROCATG, RECIPE_STRING) ;
+                    CR2RES_CAL_FLAT_BPM_PROCATG, RECIPE_STRING) ;
             cpl_free(out_file);
 
             /* Free */
@@ -732,7 +737,7 @@ static int cr2res_cal_flat(
                 setting_id) ;
         cr2res_io_save_TRACE_WAVE(out_file, frameset, raw_one_setting, parlist,
                 trace_wave_merged, NULL, ext_plist[0],
-                CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG, RECIPE_STRING) ;
+                CR2RES_CAL_FLAT_TRACE_WAVE_MERGED_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
         cpl_free(setting_id) ;
 

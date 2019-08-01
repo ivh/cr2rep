@@ -76,8 +76,8 @@ Wavelength Calibration                                                  \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_EXTRACT_1D_PROTYPE " [1 to n]                     \n\
-    trace.fits " CR2RES_FLAT_TRACE_WAVE_PROCATG " [1]                   \n\
-            or " CR2RES_FLAT_TRACE_WAVE_MERGED_PROCATG "                \n\
+    trace.fits " CR2RES_CAL_FLAT_TRACE_WAVE_PROCATG " [1]               \n\
+            or " CR2RES_CAL_FLAT_TRACE_WAVE_MERGED_PROCATG "            \n\
             or " CR2RES_UTIL_TRACE_WAVE_PROCATG "                       \n\
             or " CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG "                  \n\
             or " CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG "                   \n\
