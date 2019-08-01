@@ -54,6 +54,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static cpl_frameset * cr2res_util_normflat_find_RAW(const cpl_frameset * in) ;
 static int cr2res_util_normflat_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frame     *   slitmodel_frame,
@@ -84,6 +85,7 @@ Flat normalization                                                      \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_FLAT_RAW " [1 to n]                               \n\
+          or " CR2RES_CALIBRATED_PROTYPE "                              \n\
     slit_model.fits " CR2RES_FLAT_SLIT_MODEL_PROCATG " [1 to m]         \n\
                  or " CR2RES_UTIL_SLIT_MODEL_PROCATG "                  \n\
                  or " CR2RES_OBS_NODDING_SLITMODELA_PROCATG "           \n\
@@ -323,7 +325,7 @@ static int cr2res_util_normflat(
     }
 
     /* Extract RAW frames */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_FLAT_RAW) ;
+    rawframes = cr2res_util_normflat_find_RAW(frameset) ;
     if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
         cpl_msg_error(__func__, "Cannot find any RAW file") ;
         cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
@@ -613,6 +615,27 @@ static int cr2res_util_normflat_compare(
     return comparison ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the RAW frames from a frameset
+  @param    set     Input frame set
+  @return   the RAW frameset or NULL in error case or if it is missing
+    Allowed RAW types : CR2RES_FLAT_RAW
+                        CR2RES_CALIBRATED_PROTYPE
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_frameset * cr2res_util_normflat_find_RAW(const cpl_frameset * in)
+{
+    cpl_frameset    *   out ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    out = cr2res_extract_frameset(in, CR2RES_FLAT_RAW) ;
+    if (out == NULL)
+        out = cr2res_extract_frameset(in, CR2RES_CALIBRATED_PROTYPE) ;
+    return out ;
+}
 
 
 

@@ -51,6 +51,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static cpl_frameset * cr2res_util_trace_find_RAW(const cpl_frameset * in) ;
 static int cr2res_util_trace_create(cpl_plugin *);
 static int cr2res_util_trace_exec(cpl_plugin *);
 static int cr2res_util_trace_destroy(cpl_plugin *);
@@ -80,6 +81,7 @@ Traces detection                                                        \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_FLAT_RAW " [1 to n]                               \n\
+          or " CR2RES_CALIBRATED_PROTYPE "                              \n\
                                                                         \n\
   Outputs                                                               \n\
     <input_name>_tracewave.fits " CR2RES_UTIL_TRACE_WAVE_PROCATG"       \n\
@@ -338,7 +340,7 @@ static int cr2res_util_trace(
     /* Get Calibration frames */
 
     /* Get the rawframes */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_FLAT_RAW) ;
+    rawframes = cr2res_util_trace_find_RAW(frameset) ;
     if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
         cpl_msg_error(__func__, "Cannot find any RAW file") ;
         cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
@@ -470,3 +472,28 @@ static int cr2res_util_trace(
     cpl_frameset_delete(rawframes) ;
     return (int)cpl_error_get_code();
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the RAW frames from a frameset
+  @param    set     Input frame set
+  @return   the RAW frameset or NULL in error case or if it is missing
+    Allowed RAW types : CR2RES_FLAT_RAW
+                        CR2RES_CALIBRATED_PROTYPE
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_frameset * cr2res_util_trace_find_RAW(const cpl_frameset * in)
+{
+    cpl_frameset    *   out ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    out = cr2res_extract_frameset(in, CR2RES_FLAT_RAW) ;
+    if (out == NULL)
+        out = cr2res_extract_frameset(in, CR2RES_CALIBRATED_PROTYPE) ;
+    return out ;
+}
+
+
+

@@ -86,6 +86,10 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 /* For cr2res_util_bpm_split */
                 !strcmp(tag, CR2RES_BPM_PROTYPE) ||
                 /* For cr2res_util_extract */
+                /* For cr2res_util_trace */
+                /* For cr2res_util_normflat */
+                !strcmp(tag, CR2RES_CALIBRATED_PROTYPE) ||
+                /* For cr2res_util_wave */
                 !strcmp(tag, CR2RES_EXTRACT_1D_PROTYPE) ||
                 /* For cr2res_util_slit_curv  */
                 /*     cr2res_util_trace_map  */
