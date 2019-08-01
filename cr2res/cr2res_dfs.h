@@ -172,7 +172,7 @@
 /* Master Flat image with values around 1 */
 #define CR2RES_MASTER_FLAT_PROTYPE          "MASTER_FLAT"
 
-/* For CR2RES_CALIBRATED_PROCATG */
+/* For CR2RES_UTIL_CALIB_PROCATG */
 #define CR2RES_CALIBRATED_PROTYPE           "CALIBRATED"
 
 /* For  CR2RES_UTIL_SLIT_CURV_PROCATG  */
@@ -249,7 +249,7 @@
 #define CR2RES_EMISSION_LINES_PROCATG       "EMISSION_LINES"
 
 /* Produced by cr2res_util_calib */
-#define CR2RES_CALIBRATED_PROCATG           "CALIBRATED"
+#define CR2RES_UTIL_CALIB_PROCATG           "UTIL_CALIB"
 
 /* Produced by cr2res_util_bpm_split */
 #define CR2RES_UTIL_BPM_SPLIT_PROCATG       "UTIL_BPM_SPLIT"

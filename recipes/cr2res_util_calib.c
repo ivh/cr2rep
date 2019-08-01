@@ -81,7 +81,7 @@ Frames Calibration                                                      \n\
     master_flat.fits " CR2RES_FLAT_MASTER_FLAT_PROCATG " [0 to 1]       \n\
                                                                         \n\
   Outputs                                                               \n\
-    <input_name>_calibrated.fits " CR2RES_CALIBRATED_PROCATG "          \n\
+    <input_name>_calibrated.fits " CR2RES_UTIL_CALIB_PROCATG "          \n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on raw frames f:                                               \n\
@@ -341,7 +341,7 @@ static int cr2res_util_calib(
         cur_fset = cpl_frameset_new() ;
         cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
         cr2res_io_save_CALIBRATED(out_file, frameset, cur_fset, parlist,
-                calibrated, NULL, ext_plist, CR2RES_CALIBRATED_PROCATG, 
+                calibrated, NULL, ext_plist, CR2RES_UTIL_CALIB_PROCATG, 
                 RECIPE_STRING) ;
         cpl_frameset_delete(cur_fset) ;
         cpl_free(out_file);

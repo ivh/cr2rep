@@ -126,7 +126,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 /* Produced by cr2res_util_genlines */
                 !strcmp(tag, CR2RES_EMISSION_LINES_PROCATG) ||
                 /* Produced by cr2res_util_calib */
-                !strcmp(tag, CR2RES_CALIBRATED_PROCATG) ||
+                !strcmp(tag, CR2RES_UTIL_CALIB_PROCATG) ||
                 /* Produced by cr2res_util_bpm_split */
                 !strcmp(tag, CR2RES_UTIL_BPM_SPLIT_PROCATG) ||
                 /* Produced by cr2res_util_trace */
