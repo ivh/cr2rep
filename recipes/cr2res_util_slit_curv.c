@@ -277,7 +277,7 @@ static int cr2res_util_slit_curv(
     char                *   col_name ;
     char                *   out_file;
     cpl_array           *   curv_array ;
-    int                     i, j ;
+    int                     i, j, k ;
 
     /* Initialise */
     curv_degree = 2 ;
@@ -354,12 +354,12 @@ static int cr2res_util_slit_curv(
             /* Allocate Data containers */
 
             /* Loop over the traces and get the slit curvature */
-            for (i=0 ; i<nb_traces ; i++) {
+            for (j=0 ; j<nb_traces ; j++) {
                 /* Get Order and trace id */
                 order = cpl_table_get(trace_wave[det_nr-1], 
-                        CR2RES_COL_ORDER, i, NULL) ;
+                        CR2RES_COL_ORDER, j, NULL) ;
                 trace_id = cpl_table_get(trace_wave[det_nr-1], 
-                        CR2RES_COL_TRACENB, i, NULL) ;
+                        CR2RES_COL_TRACENB, j, NULL) ;
 
                 /* Check if this order needs to be skipped */
                 if (reduce_order > -1 && order != reduce_order) continue ;
@@ -390,17 +390,17 @@ static int cr2res_util_slit_curv(
                     slit_array = cr2res_convert_poly_to_array(slit_polya, 3) ;
                     cpl_polynomial_delete(slit_polya) ;
                     cpl_table_set_array(trace_wave[det_nr-1],
-                            CR2RES_COL_SLIT_CURV_A, i, slit_array) ;
+                            CR2RES_COL_SLIT_CURV_A, j, slit_array) ;
                     cpl_array_delete(slit_array) ;
                     slit_array = cr2res_convert_poly_to_array(slit_polyb, 3) ;
                     cpl_polynomial_delete(slit_polyb) ;
                     cpl_table_set_array(trace_wave[det_nr-1],
-                            CR2RES_COL_SLIT_CURV_B, i, slit_array) ;
+                            CR2RES_COL_SLIT_CURV_B, j, slit_array) ;
                     cpl_array_delete(slit_array) ;
                     slit_array = cr2res_convert_poly_to_array(slit_polyc, 3) ;
                     cpl_polynomial_delete(slit_polyc) ;
                     cpl_table_set_array(trace_wave[det_nr-1],
-                            CR2RES_COL_SLIT_CURV_C, i, slit_array) ;
+                            CR2RES_COL_SLIT_CURV_C, j, slit_array) ;
                     cpl_array_delete(slit_array) ;
                 } 
 
@@ -410,15 +410,15 @@ static int cr2res_util_slit_curv(
                         CPL_TYPE_DOUBLE, curv_degree+1) ; 
 
                 /* Loop on the Column rows */
-                for (j=0 ; j<CR2RES_DETECTOR_SIZE ; j++) {
-                    if (curvatures[j] != NULL) {
+                for (k=0 ; k<CR2RES_DETECTOR_SIZE ; k++) {
+                    if (curvatures[k] != NULL) {
                         /* Ѕtore the polynomial in the table */
-                        curv_array=cr2res_convert_poly_to_array(curvatures[j],
+                        curv_array=cr2res_convert_poly_to_array(curvatures[k],
                                 curv_degree+1) ;
-                        cpl_polynomial_delete(curvatures[j]) ;
+                        cpl_polynomial_delete(curvatures[k]) ;
                         if (curv_array != NULL) {
                             cpl_table_set_array(slit_curv[det_nr-1], col_name, 
-                                    j, curv_array) ;
+                                    k, curv_array) ;
                             cpl_array_delete(curv_array) ;
                         }
                     }
@@ -460,13 +460,13 @@ static int cr2res_util_slit_curv(
         cpl_free(out_file);
 
         /* Free and return */
-        for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
-            if (slit_curv[i] != NULL) cpl_table_delete(slit_curv[i]) ;
-            if (trace_wave[i] != NULL) cpl_table_delete(trace_wave[i]) ;
-            if (slit_curv_map[i] != NULL) 
-                hdrl_image_delete(slit_curv_map[i]) ;
-            if (ext_plist[i] != NULL)
-                cpl_propertylist_delete(ext_plist[i]) ;
+        for (k=0 ; k<CR2RES_NB_DETECTORS ; k++) {
+            if (slit_curv[k] != NULL) cpl_table_delete(slit_curv[k]) ;
+            if (trace_wave[k] != NULL) cpl_table_delete(trace_wave[k]) ;
+            if (slit_curv_map[k] != NULL) 
+                hdrl_image_delete(slit_curv_map[k]) ;
+            if (ext_plist[k] != NULL)
+                cpl_propertylist_delete(ext_plist[k]) ;
         }
     }
     cpl_frameset_delete(rawframes) ;
