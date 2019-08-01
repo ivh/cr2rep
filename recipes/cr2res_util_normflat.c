@@ -90,10 +90,10 @@ Flat normalization                                                      \n\
                  or " CR2RES_OBS_NODDING_SLITMODELB_PROCATG "           \n\
                                                                         \n\
   Outputs                                                               \n\
-    cr2res_util_normflat_[setting]_[Decker]_bpm.fits " 
-CR2RES_UTIL_MASTER_FLAT_PROCATG "                                       \n\
-cr2res_util_normflat_[setting]_[Decker]_master.fits " 
-CR2RES_UTIL_MASTER_FLAT_PROCATG "                                       \n\
+    cr2res_util_normflat_[setting]_[Decker]_bpm.fits "
+    CR2RES_UTIL_MASTER_FLAT_PROCATG "\n\
+    cr2res_util_normflat_[setting]_[Decker]_master.fits "
+    CR2RES_UTIL_MASTER_FLAT_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
     group the input frames by different settings                        \n\

@@ -127,9 +127,9 @@ Spectrum Extraction and Wavelength Calibration                          \n\
                                                                         \n\
   Outputs                                                               \n\
     cr2res_cal_wave_tracewave.fits "
-CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG"                                     \n\
+    CR2RES_CAL_WAVE_TRACE_WAVE_PROCATG"\n\
     cr2res_cal_wave_map.fits "
-CR2RES_CAL_WAVE_MAP_PROCATG"                                            \n\
+    CR2RES_CAL_WAVE_MAP_PROCATG"\n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on detectors d:                                                \n\

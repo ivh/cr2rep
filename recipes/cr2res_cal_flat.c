@@ -112,19 +112,19 @@ Flat                                                                    \n\
                                                                         \n\
   Outputs                                                               \n\
     cr2res_cal_flat_[setting]_[Decker]_bpm.fits " 
-CR2RES_FLAT_BPM_PROCATG "                                               \n\
+    CR2RES_FLAT_BPM_PROCATG "\n\
     cr2res_cal_flat_[setting]_[Decker]_blaze.fits " 
-CR2RES_FLAT_EXTRACT_1D_PROCATG "                                        \n\
+    CR2RES_FLAT_EXTRACT_1D_PROCATG "\n\
     cr2res_cal_flat_[setting]_[Decker]_slit_model.fits " 
-CR2RES_FLAT_SLIT_MODEL_PROCATG "                                        \n\
+    CR2RES_FLAT_SLIT_MODEL_PROCATG "\n\
     cr2res_cal_flat_[setting]_[Decker]_slit_func.fits " 
-CR2RES_FLAT_SLIT_FUNC_PROCATG "                                         \n\
+    CR2RES_FLAT_SLIT_FUNC_PROCATG "\n\
     cr2res_cal_flat_[setting]_[Decker]_master_flat.fits " 
-CR2RES_FLAT_MASTER_FLAT_PROCATG  "                                      \n\
+    CR2RES_FLAT_MASTER_FLAT_PROCATG "\n\
     cr2res_cal_flat_[setting]_[Decker]_tracewave.fits " 
-CR2RES_FLAT_TRACE_WAVE_PROCATG "                                        \n\
+    CR2RES_FLAT_TRACE_WAVE_PROCATG "\n\
     cr2res_cal_flat_[setting]_tracewave_merged.fits " 
-CR2RES_FLAT_TRACE_WAVE_PROCATG "                                        \n\
+    CR2RES_FLAT_TRACE_WAVE_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
     group the input frames by different settings                        \n\

@@ -86,11 +86,11 @@ Wavelength Calibration                                                  \n\
                                                                         \n\
   Outputs                                                               \n\
     <input_name>_tracewave.fits " 
-CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG"                                    \n\
+    CR2RES_UTIL_WAVE_TRACE_WAVE_PROCATG"\n\
     <input_name>_wave_map.fits " 
-CR2RES_UTIL_WAVE_MAP_PROCATG "                                          \n\
+    CR2RES_UTIL_WAVE_MAP_PROCATG "\n\
     <input_name>_lines_diagnostics.fits " 
-CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG "                            \n\
+    CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on raw frames f:                                               \n\

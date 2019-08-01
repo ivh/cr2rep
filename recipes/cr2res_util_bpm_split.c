@@ -66,7 +66,7 @@ BPM splitting                                                           \n\
                                                                         \n\
   Outputs                                                               \n\
     <input_name>_splitted_<bpm_code>.fits " 
-    CR2RES_UTIL_BPM_SPLIT_PROCATG "                                     \n\
+    CR2RES_UTIL_BPM_SPLIT_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on input raw frames f:                                         \n\

@@ -111,21 +111,21 @@ Nodding Observation                                                     \n\
                                                                         \n\
   Outputs                                                               \n\
     cr2res_obs_nodding_extractA.fits " 
-    CR2RES_OBS_NODDING_EXTRACTA_PROCATG "                               \n\
+    CR2RES_OBS_NODDING_EXTRACTA_PROCATG "\n\
     cr2res_obs_nodding_extractB.fits " 
-    CR2RES_OBS_NODDING_EXTRACTB_PROCATG "                               \n\
+    CR2RES_OBS_NODDING_EXTRACTB_PROCATG "\n\
     cr2res_obs_nodding_combinedA.fits " 
-    CR2RES_OBS_NODDING_COMBINEDA_PROCATG "                              \n\
+    CR2RES_OBS_NODDING_COMBINEDA_PROCATG "\n\
     cr2res_obs_nodding_combinedB.fits " 
-    CR2RES_OBS_NODDING_COMBINEDB_PROCATG "                              \n\
+    CR2RES_OBS_NODDING_COMBINEDB_PROCATG "\n\
     cr2res_obs_nodding_modelA.fits " 
-    CR2RES_OBS_NODDING_SLITMODELA_PROCATG "                             \n\
+    CR2RES_OBS_NODDING_SLITMODELA_PROCATG "\n\
     cr2res_obs_nodding_modelB.fits " 
-    CR2RES_OBS_NODDING_SLITMODELB_PROCATG "                             \n\
+    CR2RES_OBS_NODDING_SLITMODELB_PROCATG "\n\
     cr2res_obs_nodding_slitfuncA.fits " 
-    CR2RES_OBS_NODDING_SLITFUNCA_PROCATG "                              \n\
+    CR2RES_OBS_NODDING_SLITFUNCA_PROCATG "\n\
     cr2res_obs_nodding_slitfuncB.fits " 
-    CR2RES_OBS_NODDING_SLITFUNCB_PROCATG "                              \n\
+    CR2RES_OBS_NODDING_SLITFUNCB_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on detectors d:                                                \n\

@@ -74,11 +74,11 @@ Maps creation                                                           \n\
                                                                         \n\
   Outputs                                                               \n\
     <input_name>_slit_curve.fits " 
-    CR2RES_UTIL_TRACE_MAP_SLIT_CURVE_PROCATG "                          \n\
+    CR2RES_UTIL_TRACE_MAP_SLIT_CURVE_PROCATG "\n\
     <input_name>_wave.fits " 
-    CR2RES_UTIL_TRACE_MAP_WL_PROCATG "                                  \n\
+    CR2RES_UTIL_TRACE_MAP_WL_PROCATG "\n\
     <input_name>_trace.fits " 
-    CR2RES_UTIL_TRACE_MAP_TRACE_PROCATG "                               \n\
+    CR2RES_UTIL_TRACE_MAP_TRACE_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on input raw frames f:                                         \n\
