@@ -437,6 +437,7 @@ static int cr2res_cal_flat(
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   bpm_frame ;
     cpl_frameset        *   rawframes ;
+    const char          *   used_tag ;
     cpl_frameset        *   raw_one_setting ;
     cpl_frameset        *   raw_one_setting_decker ;
     cpl_size            *   labels ;
@@ -533,7 +534,8 @@ static int cr2res_cal_flat(
     bpm_frame = cr2res_io_find_BPM(frameset) ;
 
     /* Extract RAW frames */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_FLAT_RAW) ;
+    used_tag = CR2RES_FLAT_RAW ;
+    rawframes = cr2res_extract_frameset(frameset, used_tag) ;
     if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
         cpl_msg_error(__func__, "Cannot find any RAW file") ;
         cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
@@ -574,7 +576,7 @@ static int cr2res_cal_flat(
 
             /* Get the Frames for the current decker position */
             raw_one_setting_decker = cr2res_io_extract_decker_frameset(
-                    raw_one_setting, CR2RES_FLAT_RAW, decker_values[i]) ;
+                    raw_one_setting, used_tag, decker_values[i]) ;
             if (raw_one_setting_decker == NULL) {
                 cpl_msg_info(__func__, "No files for decker: %s",
                         decker_desc[i]) ;

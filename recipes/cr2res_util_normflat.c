@@ -104,8 +104,8 @@ Flat normalization                                                      \n\
       loop on decker positions p:                                       \n\
         loop on detectors d:                                            \n\
           cr2res_util_normflat_reduce() computes (master_flat,bpm)(g,p,d)\n\
-      Save master_flat(g,p) (FLAT_MASTER_FLAT)                          \n\
-      Save bpm(g,p) (FLAT_BPM)                                          \n\
+      Save master_flat(g,p)                                             \n\
+      Save bpm(g,p)                                                     \n\
                                                                         \n\
     cr2res_util_normflat_reduce()                                       \n\
       Load the images list                                              \n\
@@ -284,6 +284,7 @@ static int cr2res_util_normflat(
     int                     reduce_det ;
     double                  bpm_low, bpm_high, bpm_lines_ratio ;
     cpl_frameset        *   rawframes ;
+    const char          *   used_tag ;
     cpl_frameset        *   raw_one_setting ;
     cpl_frameset        *   raw_one_setting_decker ;
     cpl_size            *   labels ;
@@ -331,6 +332,8 @@ static int cr2res_util_normflat(
         cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
         return -1 ;
     }
+    /* Keep track of the first file tag (should all be the same) */
+    used_tag = cpl_frame_get_tag(cpl_frameset_get_position_const(rawframes,0));
 
     /* Labelise the raw frames with the different settings */
     if ((labels = cpl_frameset_labelise(rawframes, cr2res_util_normflat_compare,
@@ -360,7 +363,7 @@ static int cr2res_util_normflat(
         for (i=0 ; i<CR2RES_NB_DECKER_POSITIONS ; i++) {
             /* Get the Frames for the current decker position */
             raw_one_setting_decker = cr2res_io_extract_decker_frameset(
-                    raw_one_setting, CR2RES_FLAT_RAW, decker_values[i]) ;
+                    raw_one_setting, used_tag, decker_values[i]) ;
             if (raw_one_setting_decker == NULL) {
                 cpl_msg_info(__func__, "No files for decker: %s",
                         decker_desc[i]) ;
