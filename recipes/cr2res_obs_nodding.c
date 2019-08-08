@@ -498,17 +498,26 @@ static int cr2res_obs_nodding(
 
     /* Free */
     cpl_frameset_delete(rawframes) ;
-    cpl_frameset_delete(raw_flat_frames) ;
+    if (raw_flat_frames != NULL) cpl_frameset_delete(raw_flat_frames) ;
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        hdrl_image_delete(combineda[det_nr-1]) ;
-        cpl_table_delete(extracta[det_nr-1]) ;
-        cpl_table_delete(slitfunca[det_nr-1]) ;
-        hdrl_image_delete(modela[det_nr-1]) ;
-        hdrl_image_delete(combinedb[det_nr-1]) ;
-        cpl_table_delete(extractb[det_nr-1]) ;
-        cpl_table_delete(slitfuncb[det_nr-1]) ;
-        hdrl_image_delete(modelb[det_nr-1]) ;
-        cpl_propertylist_delete(ext_plist[det_nr-1]) ;
+        if (combineda[det_nr-1] != NULL)
+            hdrl_image_delete(combineda[det_nr-1]) ;
+        if (extracta[det_nr-1] != NULL) 
+            cpl_table_delete(extracta[det_nr-1]) ;
+        if (slitfunca[det_nr-1] != NULL) 
+            cpl_table_delete(slitfunca[det_nr-1]) ;
+        if (modela[det_nr-1] != NULL)
+            hdrl_image_delete(modela[det_nr-1]) ;
+        if (combinedb[det_nr-1] != NULL)
+            hdrl_image_delete(combinedb[det_nr-1]) ;
+        if (extractb[det_nr-1] != NULL) 
+            cpl_table_delete(extractb[det_nr-1]) ;
+        if (slitfuncb[det_nr-1] != NULL) 
+            cpl_table_delete(slitfuncb[det_nr-1]) ;
+        if (modelb[det_nr-1] != NULL)
+            hdrl_image_delete(modelb[det_nr-1]) ;
+        if (ext_plist[det_nr-1] != NULL) 
+            cpl_propertylist_delete(ext_plist[det_nr-1]) ;
     }
 
     return (int)cpl_error_get_code();
@@ -566,32 +575,32 @@ static int cr2res_obs_nodding_reduce(
         hdrl_image          **  modelb,
         cpl_propertylist    **  ext_plist)
 {
-    hdrl_imagelist      *   in = NULL;
-    hdrl_imagelist      *   in_calib = NULL;
-    hdrl_imagelist      *   in_a = NULL;
-    hdrl_imagelist      *   in_b = NULL;
-    hdrl_imagelist      *   diff_a = NULL;
-    hdrl_imagelist      *   diff_b = NULL;
-    hdrl_image          *   collapsed_a = NULL;
-    hdrl_image          *   collapsed_b = NULL;
-    cpl_image           *   contrib_a = NULL;
-    cpl_image           *   contrib_b = NULL;
-    cr2res_nodding_pos  *   nod_positions = NULL;
-    cpl_vector          *   dits = NULL;
-    cpl_table           *   trace_wave = NULL;
-    cpl_table           *   trace_wave_corrected = NULL;
-    cpl_table           *   trace_wave_a = NULL;
-    cpl_table           *   trace_wave_b = NULL;
-    cpl_array           *   slit_frac_a = NULL;
-    cpl_array           *   slit_frac_b = NULL;
-    cpl_table           *   extracted_a = NULL;
-    cpl_table           *   extracted_b = NULL;
-    cpl_table           *   slit_func_a = NULL;
-    cpl_table           *   slit_func_b = NULL;
-    hdrl_image          *   model_master_a = NULL;
-    hdrl_image          *   model_master_b = NULL;
-    cpl_propertylist    *   plist = NULL;
-    cpl_size                nframes, i;
+    hdrl_imagelist      *   in ;
+    hdrl_imagelist      *   in_calib ;
+    hdrl_imagelist      *   in_a ;
+    hdrl_imagelist      *   in_b ;
+    hdrl_imagelist      *   diff_a ;
+    hdrl_imagelist      *   diff_b ;
+    hdrl_image          *   collapsed_a ;
+    hdrl_image          *   collapsed_b ;
+    cpl_image           *   contrib_a ;
+    cpl_image           *   contrib_b ;
+    cr2res_nodding_pos  *   nod_positions ;
+    cpl_vector          *   dits ;
+    cpl_table           *   trace_wave ;
+    cpl_table           *   trace_wave_corrected ;
+    cpl_table           *   trace_wave_a ;
+    cpl_table           *   trace_wave_b ;
+    cpl_array           *   slit_frac_a ;
+    cpl_array           *   slit_frac_b ;
+    cpl_table           *   extracted_a ;
+    cpl_table           *   extracted_b ;
+    cpl_table           *   slit_func_a ;
+    cpl_table           *   slit_func_b ;
+    hdrl_image          *   model_master_a ;
+    hdrl_image          *   model_master_b ;
+    cpl_propertylist    *   plist ;
+    cpl_size                nframes, i ;
     double                  slit_length, extr_width_frac, slit_frac_a_bot, 
                             slit_frac_a_mid, slit_frac_a_top, slit_frac_b_bot, 
                             slit_frac_b_mid, slit_frac_b_top, nod_throw ;
@@ -635,13 +644,13 @@ static int cr2res_obs_nodding_reduce(
                     reduce_det)) == NULL) {
         cpl_msg_error(__func__, "Cannot load images") ;
         cpl_free(nod_positions) ;    
-        cpl_vector_delete(dits) ;
+        if (dits != NULL) cpl_vector_delete(dits) ;
         return -1 ;
     }
     if (hdrl_imagelist_get_size(in) != cpl_frameset_get_size(rawframes)) {
         cpl_msg_error(__func__, "Inconsistent number of loaded images") ;
         cpl_free(nod_positions) ;    
-        cpl_vector_delete(dits) ;
+        if (dits != NULL) cpl_vector_delete(dits) ;
         hdrl_imagelist_delete(in) ;
         return -1 ;
     }
@@ -651,12 +660,12 @@ static int cr2res_obs_nodding_reduce(
             master_dark_frame, bpm_frame, detlin_frame, dits)) == NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         cpl_free(nod_positions) ;    
-        cpl_vector_delete(dits) ;
+        if (dits != NULL) cpl_vector_delete(dits) ;
         hdrl_imagelist_delete(in) ;
         return -1 ;
     }
     hdrl_imagelist_delete(in) ;
-    cpl_vector_delete(dits) ;
+    if (dits != NULL) cpl_vector_delete(dits) ;
 
     /* Split the image lists */
     if (cr2res_combine_nodding_split(in_calib, nod_positions, &in_a, 
