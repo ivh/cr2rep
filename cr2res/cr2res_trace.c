@@ -190,9 +190,13 @@ cpl_table * cr2res_trace(
 
     /* Analyse and dump traces */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        aperts = cpl_apertures_new_from_image(ima, labels);
-        cpl_apertures_dump(aperts, stdout) ;
-        cpl_apertures_delete(aperts) ;
+        if (cpl_image_get_max(labels) != 0){
+            aperts = cpl_apertures_new_from_image(ima, labels);
+            cpl_apertures_dump(aperts, stdout) ;
+            cpl_apertures_delete(aperts) ;
+        } else {
+            cpl_msg_debug(__func__, "No labels found, can not create aperture");
+        }
     }
 
     /* Create cluster table needed for fitting */

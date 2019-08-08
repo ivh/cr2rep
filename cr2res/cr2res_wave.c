@@ -1106,6 +1106,7 @@ cpl_array * cr2res_wave_get_estimate(
         cpl_msg_error(__func__,
                 "Cannot get WSTRT/WEND from header for Detector %d / Order %d",
                 detector, order) ;
+        cpl_error_reset();
         return NULL ;
     }
 
