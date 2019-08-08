@@ -74,6 +74,8 @@ double cr2res_qc_obs_nodding_signal(
         const cpl_table     *   extracted) ;
 double cr2res_qc_obs_nodding_transmission(
         const cpl_table     *   extracted) ;
+double cr2res_qc_obs_nodding_slit_psf(
+        const cpl_table     *   slitfu);
 
 #endif
 

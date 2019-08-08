@@ -32,6 +32,9 @@
 #include <cr2res_pfits.h>
 #include <cr2res_trace.h>
 #include <cr2res_trace.c>
+#include "cr2res_io.h"
+
+
 
 
 /*-----------------------------------------------------------------------------

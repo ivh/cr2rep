@@ -35,6 +35,7 @@
 #include "cr2res_dfs.h"
 #include "cr2res_calib.h"
 #include "cr2res_detlin.h"
+#include "cr2res_wave.h"
 
 #define CR2RES_NONLIN_LEVEL 15000
 #define CR2RES_QC_ORDER 4
@@ -433,21 +434,55 @@ double cr2res_qc_obs_nodding_transmission(
 double cr2res_qc_obs_nodding_slit_psf(
         const cpl_table     *   slitfu)
 {
-    double      qc_fwhm ;
+    cpl_array  * col_names ;
+    cpl_vector * fwhm ;
+    cpl_vector * x ;
+    cpl_vector * y ;
+    const double     * data ;
+
+    cpl_size i ;
+    int nrow, ncol ;
+    double qc_fwhm, x0, sigma, area, offset;
 
     /* Check Entries */
     if (slitfu == NULL) return -1 ;
 
     /* Initialise */
     qc_fwhm = -1.0 ;
+    ncol = cpl_table_get_ncol(slitfu);
+    nrow = cpl_table_get_nrow(slitfu);
+
+    fwhm = cpl_vector_new(ncol);
+    for (i = 0; i < ncol; i++) cpl_vector_set(fwhm, i, -1);
+    // x is just the element number
+    x = cpl_vector_new(nrow);
+    for (i = 0; i < nrow; i++) cpl_vector_set(x, i, i);
+    // Assuming that there are only slitfunc columns in the table
+    col_names = cpl_table_get_column_names(slitfu);
     
-    /* TODO */
-    // loop over slitfuncs in table.
-    // fit Gauss to each slitfu
-    // *2.35 for FWHM
-    // take median of all for return value
-    // save individual values as debug output
+    for (i = 0; i < ncol; i++)
+    {
+      data = cpl_table_get_data_double_const(slitfu, cpl_array_get_string(col_names, i));
+      y = cpl_vector_wrap(nrow, (double*) data);
+      cpl_vector_fit_gaussian(x, NULL, y, NULL, CPL_FIT_ALL, &x0, &sigma, &area, &offset, NULL, NULL, NULL);
+      cpl_vector_unwrap(y);
+
+      qc_fwhm = 2.355 * sigma; // 2.355 = 2 * sqrt(2 * ln(2))
+      cpl_vector_set(fwhm, i, qc_fwhm);
+    }
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG)
+    {
+      cpl_vector_save(fwhm, "debug_slitfunc_fwhm.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    }
+
+    qc_fwhm = cpl_vector_get_median(fwhm);
     
+    /* Free Memory */
+    cpl_array_delete(col_names);
+    cpl_vector_delete(x);
+    cpl_vector_delete(fwhm);
+
     return qc_fwhm ;
 }
 /**@}*/
