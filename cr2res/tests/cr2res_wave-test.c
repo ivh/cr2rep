@@ -355,7 +355,7 @@ static void test_cr2res_wave_2d()
             orders, traces, norders, catalog_name, degree_x, degree_y, display, &wavelength_error, &diagnostics));
 
     // Check output
-    // cpl_polynomial_dump(wavelength, stdout);
+    cpl_polynomial_dump(wavelength, stdout);
     // #----- 2 dimensional polynomial -----
     // 1.dim.power  2.dim.power  coefficient
     //     0            0      2500
@@ -368,9 +368,9 @@ static void test_cr2res_wave_2d()
 
     // first two are the linear component in x direction
     cpl_size idx[2] = {0, 0};
-    cpl_test_abs(wmin, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    cpl_test_abs(wmin, cpl_polynomial_get_coeff(wavelength, idx), 1e-3);
     idx[0] = 1;
-    cpl_test_abs((wmax-wmin)/(double)size, cpl_polynomial_get_coeff(wavelength, idx), 1e-10);
+    cpl_test_abs((wmax-wmin)/(double)size, cpl_polynomial_get_coeff(wavelength, idx), 1e-5);
     // all others should be 0 (or close to it), as there is no y dependance
     idx[0] = 0;
     idx[1] = 1;
@@ -633,12 +633,12 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    /* test_cr2res_wave_1d(); */
-    /* test_cr2res_wave_2d(); */
-    /* test_cr2res_wave_etalon(); */
-    /* test_cr2res_wave_polys_1d_to_2d(); */
-    /* test_cr2res_wave_poly_2d_to_1d(); */
-	/* test_cr2res_wave_estimate_compute(); */
+    test_cr2res_wave_1d();
+    test_cr2res_wave_2d();
+    test_cr2res_wave_etalon();
+    test_cr2res_wave_polys_1d_to_2d();
+    test_cr2res_wave_poly_2d_to_1d();
+	test_cr2res_wave_estimate_compute();
     return cpl_test_end(0);
 }
 

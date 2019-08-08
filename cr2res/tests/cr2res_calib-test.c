@@ -84,13 +84,13 @@ static void save_hdrl(char * filename, hdrl_image * hdrl, int mode, double dit)
     hdrl_image * list[] = {hdrl, NULL, NULL};
 
     if (mode == MODE_FLAT)
-        cr2res_io_save_MASTER_FLAT(filename, all, in, parlist, list, ext1, ext, CR2RES_FLAT_MASTER_FLAT_PROCATG, "debug");
+        cr2res_io_save_MASTER_FLAT(filename, all, in, parlist, list, ext1, ext, CR2RES_CAL_FLAT_MASTER_PROCATG, "debug");
     if (mode == MODE_DARK)
-        cr2res_io_save_MASTER_DARK(filename, all, in, parlist, list, ext1, ext, CR2RES_MASTER_DARK_PROCATG, "debug");
+        cr2res_io_save_MASTER_DARK(filename, all, in, parlist, list, ext1, ext, CR2RES_CAL_DARK_MASTER_PROCATG, "debug");
     if (mode == MODE_BPM)
     {
         cpl_image * list2[] = {hdrl_image_get_image(hdrl), NULL, NULL};
-        cr2res_io_save_BPM(filename, all, in, parlist, list2, ext1, ext, CR2RES_FLAT_BPM_PROCATG, "debug");    
+        cr2res_io_save_BPM(filename, all, in, parlist, list2, ext1, ext, CR2RES_CAL_FLAT_BPM_PROCATG, "debug");    
     }
     if (mode == MODE_DETLIN){
         hdrl_imagelist * list3 = hdrl_imagelist_new();
@@ -100,7 +100,7 @@ static void save_hdrl(char * filename, hdrl_image * hdrl, int mode, double dit)
 
         hdrl_imagelist * list4[] = {list3, NULL, NULL};
 
-        cr2res_io_save_DETLIN_COEFFS(filename, all, in, parlist, list4, ext1, ext, CR2RES_DETLIN_COEFFS_PROCATG, "debug");
+        cr2res_io_save_DETLIN_COEFFS(filename, all, in, parlist, list4, ext1, ext, CR2RES_CAL_DETLIN_COEFFS_PROCATG, "debug");
 
         // hdrl_imagelist_unset(list3, 0);
         // hdrl_imagelist_unset(list3, 1);
@@ -214,7 +214,7 @@ static cpl_frame * create_detlin(char * filename, hdrl_image * a, hdrl_image * b
 
     hdrl_imagelist * list4[] = {list3, NULL, NULL};
 
-    cr2res_io_save_DETLIN_COEFFS(filename, all, in, parlist, list4, ext1, ext, CR2RES_DETLIN_COEFFS_PROCATG, "debug");
+    cr2res_io_save_DETLIN_COEFFS(filename, all, in, parlist, list4, ext1, ext, CR2RES_CAL_DETLIN_COEFFS_PROCATG, "debug");
 
     hdrl_imagelist_unset(list3, 2);
     hdrl_imagelist_unset(list3, 1);

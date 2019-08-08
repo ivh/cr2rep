@@ -68,7 +68,9 @@ static void test_cr2res_pol_demod_stokes(void);
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_pol_demod_stokes(){
     int n = 8; // as it has to be
-    cpl_bivector ** speclist = cpl_malloc(n * sizeof(cpl_bivector*));
+    cpl_vector ** wl = cpl_malloc(n * sizeof(cpl_vector*));
+    cpl_vector ** intens = cpl_malloc(n * sizeof(cpl_vector*));
+    cpl_vector ** errors = cpl_malloc(n * sizeof(cpl_vector*));
     cpl_bivector * pol;
     double value = 0;
     double error = 1. / sqrt(8);
@@ -85,11 +87,14 @@ static void test_cr2res_pol_demod_stokes(){
     
     // just use the same spectrum 8 times
     for (int i = 0; i < n; i++)
-    {
-        speclist[i] = spec;
+    { 
+        // the wavelength doesn't matter it just needs to be set
+        wl[i] = cpl_bivector_get_x(spec); 
+        intens[i] = cpl_bivector_get_x(spec);
+        errors[i] = cpl_bivector_get_y(spec);
     }
 
-    cpl_test_nonnull(pol = cr2res_pol_demod_stokes(speclist, n));
+    cpl_test_nonnull(pol = cr2res_pol_demod_stokes(intens, wl, errors, n));
 
     // Check that the results are as expected    
     for (cpl_size i = 0; i < CR2RES_DETECTOR_SIZE; i++)
@@ -101,7 +106,9 @@ static void test_cr2res_pol_demod_stokes(){
     // Clean memory
     cpl_bivector_delete(pol);
     cpl_bivector_delete(spec);
-    cpl_free(speclist);
+    cpl_free(intens);
+    cpl_free(wl);
+    cpl_free(errors);
 }
 
 
