@@ -41,6 +41,16 @@
                                    Defines
  -----------------------------------------------------------------------------*/
 
+#define any(arr, f) ({  \
+    int isError = FALSE;\
+    for (cpl_size i = 0; i < cpl_array_get_size(arr); i++) \
+    {\
+        isError = f(cpl_array_get(arr, i, NULL));\
+        if (isError) break;\
+    }\
+    isError;\
+    })
+
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
@@ -1081,6 +1091,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
         const cpl_array     *   new_slit_fraction)
 {
     cpl_table       *   out ;
+    cpl_array *   slit_frac_old_trace ;
     const cpl_array *   slit_frac_old ;
     const cpl_array *   trace_all_old ;
     const cpl_array *   trace_upper_old ;
@@ -1102,13 +1113,14 @@ cpl_table * cr2res_trace_new_slit_fraction(
     cpl_polynomial  *   poly_b ;
     cpl_polynomial  *   poly_c ;
     cpl_polynomial  *   poly_tmp;
-    cpl_size            i, j, k, nrows ;
+    cpl_size            i, j, k, m, nrows ;
     int nb_orders, nb_traces;
     int * orders, * trace_numbers;
     double a, b, c;
     double pix_lower, pix_upper;
     double sf_lower, sf_upper, sf_all, sf_new;
     double pix_shift;
+    int isError = FALSE;
 
     /* Check entries */
     if (traces == NULL || new_slit_fraction == NULL) return NULL ;
@@ -1133,11 +1145,13 @@ cpl_table * cr2res_trace_new_slit_fraction(
     for (i=0 ; i<nb_orders; i++) {
         trace_numbers = cr2res_get_trace_numbers(traces, orders[i], &nb_traces);
         trace_old = cpl_malloc(nb_traces * 3 * sizeof(cpl_array*));
+        for (j = 0; j < nb_traces * 3; j++) trace_old[j] = NULL;
+        slit_frac_old_trace = cpl_array_new(nb_traces * 3, CPL_TYPE_DOUBLE);        
 
-        for(j = 0; j < nb_traces; j++) {
+        for(j = m = 0; j < nb_traces; j++ + m++) {
             k=cr2res_get_trace_table_index(traces, orders[i], trace_numbers[j]);
             /* Check if the input trace slit_fraction is available */
-            slit_frac_old = cpl_table_get_array(traces, 
+            slit_frac_old = cpl_table_get_array(traces,
                     CR2RES_COL_SLIT_FRACTION, k) ;
             trace_all_old = cpl_table_get_array(traces, CR2RES_COL_ALL, k) ;
             trace_upper_old = cpl_table_get_array(traces, CR2RES_COL_UPPER, k) ;
@@ -1150,12 +1164,28 @@ cpl_table * cr2res_trace_new_slit_fraction(
                     trace_upper_old == NULL || trace_lower_old == NULL ||
                     trace_all_old == NULL) {
                 cpl_table_unselect_row(out, i) ;
+                m--;
                 continue ;
             }
-            trace_old[j + 0] = trace_lower_old;
-            trace_old[j + 1] = trace_all_old;
-            trace_old[j + 2] = trace_upper_old;
+            trace_old[m + 0] = trace_lower_old;
+            trace_old[m + 1] = trace_all_old;
+            trace_old[m + 2] = trace_upper_old;
+            cpl_array_set(slit_frac_old_trace, m + 0, cpl_array_get(slit_frac_old, 0, NULL));
+            cpl_array_set(slit_frac_old_trace, m + 1, cpl_array_get(slit_frac_old, 1, NULL));
+            cpl_array_set(slit_frac_old_trace, m + 2, cpl_array_get(slit_frac_old, 2, NULL));
         }
+
+        if (m <= 0){
+            cpl_msg_error(__func__, 
+                    "No valid traces found for order %i", orders[i]) ;
+            cpl_array_delete(slit_frac_old_trace);
+            cpl_free(trace_numbers);
+            cpl_free(trace_old);
+            continue;
+        }
+
+        trace_old = cpl_realloc(trace_old, m * 3 * sizeof(cpl_array*));
+        cpl_array_set_size(slit_frac_old_trace, m * 3);
 
         /* Fill out fields */
         cpl_table_set_array(out, CR2RES_COL_SLIT_FRACTION, i,new_slit_fraction);
@@ -1163,16 +1193,17 @@ cpl_table * cr2res_trace_new_slit_fraction(
         cpl_table_set_int(out, CR2RES_COL_TRACENB, i, 1);
 
         /* Compute the new trace */
-        if (cr2res_trace_new_trace(slit_frac_old, trace_old, nb_traces, 
+        if (cr2res_trace_new_trace(slit_frac_old_trace, trace_old, nb_traces, 
                     new_slit_fraction, &trace_all_new, &trace_upper_new, 
                     &trace_lower_new) == -1) {
-            cpl_msg_warning(__func__, 
+            cpl_msg_error(__func__, 
                     "Cannot compute the new trace for order %i", orders[i]) ;
             cpl_free(trace_old);
             cpl_free(trace_numbers);
+            cpl_array_delete(slit_frac_old_trace);
             continue;
         }
-
+        cpl_array_delete(slit_frac_old_trace);
 
         /* Set new trace */
         cpl_table_set_array(out, CR2RES_COL_ALL, i, trace_all_new);
@@ -1183,8 +1214,17 @@ cpl_table * cr2res_trace_new_slit_fraction(
         cpl_array_delete(trace_lower_new) ;
 
         // Read data arrays from existing table
+        // TODO this only works if trace_numbers 0 is a valid trace
         k = cr2res_get_trace_table_index(traces, orders[i], trace_numbers[0]);
-        const_wave = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, k) ; 
+        const_wave = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, k) ;
+        if (any(const_wave, isnan)){
+            cpl_msg_error(__func__, 
+                    "Wavelength polynomial is not set for order %i", orders[i]) ;
+            cpl_free(trace_old);
+            cpl_free(trace_numbers);
+            continue;
+        }
+
         wave_err = cpl_array_duplicate(
                 cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH_ERROR, k)) ; 
 
@@ -2100,7 +2140,7 @@ static int cr2res_trace_check_slit_fraction(const cpl_array * slit_fraction)
     mid = cpl_array_get(slit_fraction, 1, NULL) ;
     up = cpl_array_get(slit_fraction, 2, NULL) ;
 
-    if (cpl_error_get_code()) return -1 ;
+    if (cpl_error_get_code() != CPL_ERROR_NONE) return -1 ;
 
     if (up<0.0 || low<0.0 || mid<0.0 || up>1.0 || low>1.0 || mid>1.0)
         return 0 ;
@@ -2170,6 +2210,7 @@ static int cr2res_trace_new_trace(
 
     // Allocate memory
     poly_in = cpl_malloc(3 * nb_traces * sizeof(cpl_polynomial*));
+    for (cpl_size i = 0; i < nb_traces * 3; i++) poly_in[i] = NULL;
     pix_in = cpl_vector_new(3 * nb_traces);
 
     /* Get input slit positions in pixels from middle of the traces */
@@ -2251,7 +2292,7 @@ static int cr2res_trace_new_trace(
     cpl_polynomial_delete(poly_lower_out) ;
    
     /* Check */
-    if (cpl_error_get_code()) {
+    if (cpl_error_get_code() != CPL_ERROR_NONE) {
         cpl_array_delete(trace_all_out) ;
         cpl_array_delete(trace_upper_out) ;
         cpl_array_delete(trace_lower_out) ;

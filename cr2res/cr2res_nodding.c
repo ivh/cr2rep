@@ -62,6 +62,7 @@ cr2res_nodding_pos * cr2res_nodding_read_positions(const cpl_frameset * in)
 
     /* Allocate the vector */
     out = cpl_malloc(nframes * sizeof(cr2res_nodding_pos)) ;
+    for (i = 0; i < nframes; i++) out[i] = CR2RES_NODDING_NONE;
 
     /* Loop on the frames */
     for (i=0 ; i< nframes ; i++) {

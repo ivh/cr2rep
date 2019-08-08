@@ -138,11 +138,11 @@ cpl_bivector * cr2res_pol_demod_stokes(
   // Calculate Error
   // sum((sigma / spec)**2)
   for (cpl_size i = 0; i < n; i++) {
-    tmp = cpl_vector_duplicate(errors[i]);
-    cpl_vector_divide(tmp, intens[i]);
-    cpl_vector_multiply(tmp, tmp);
-    cpl_vector_add(outerr, tmp);
-    cpl_vector_delete(tmp);
+      tmp = cpl_vector_duplicate(errors[i]);
+      cpl_vector_divide(tmp, intens[i]);
+      cpl_vector_multiply(tmp, tmp);
+      cpl_vector_add(outerr, tmp);
+      cpl_vector_delete(tmp);
   }
   
   // 0.5 * R / (R+1)**2 * sqrt(err)
@@ -159,6 +159,7 @@ cpl_bivector * cr2res_pol_demod_stokes(
 
   if (cpl_error_get_code() != CPL_ERROR_NONE) {
     cpl_msg_error(__func__, "Error code: %i", cpl_error_get_code());
+    cpl_bivector_delete(result);
     return NULL;
   }
 
@@ -284,9 +285,11 @@ cpl_bivector * cr2res_pol_demod_intens(
         cpl_vector  **  errors, 
         int             n)
 {
+  cpl_bivector * result;
   cpl_vector * outspec;
   cpl_vector * outerr;
   cpl_vector * tmp;
+  cpl_size size;
   int i;
 
   /* Check entries */
@@ -302,30 +305,35 @@ cpl_bivector * cr2res_pol_demod_intens(
   }
   /* TODO : Check that all vectors have the same size */
 
+  size = cpl_vector_get_size(intens[0]);
+  result = cpl_bivector_new(size);
+  outspec = cpl_bivector_get_x(result);
+  outerr = cpl_bivector_get_y(result);
 
   for (i=0;i<n;i++) {
     if (i==0) {
-      outspec = cpl_vector_duplicate(intens[i]);
-      outerr = cpl_vector_duplicate(errors[i]);
+      cpl_vector_copy(outspec, intens[i]);
+      cpl_vector_copy(outerr, errors[i]);
       cpl_vector_power(outerr, 2.0);
     } else {
       cpl_vector_add(outspec, intens[i]);
       tmp = cpl_vector_duplicate(errors[i]);
       cpl_vector_power(tmp, 2.0);
       cpl_vector_add(outerr, tmp);
+      cpl_vector_delete(tmp);
     }
   }
-  cpl_vector_delete(tmp);
   
   cpl_vector_divide_scalar(outspec, (double)n/2.0);
   cpl_vector_power(outerr, 0.5);
 
   if (cpl_error_get_code() != CPL_ERROR_NONE) {
     cpl_msg_error(__func__, "Error code: %i", cpl_error_get_code());
+    cpl_bivector_delete(result);
     return NULL;
   }
 
-  return cpl_bivector_wrap_vectors(outspec, outerr);
+  return result;
 }
 
 /*----------------------------------------------------------------------------*/
