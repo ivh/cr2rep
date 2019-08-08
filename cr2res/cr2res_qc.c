@@ -308,7 +308,8 @@ double cr2res_qc_flat_trace_center_y(
     traces = cr2res_get_trace_numbers(trace, central_order, &nb_traces);
     for(cpl_size i = 0; i < nb_traces; i++)
     {
-      vector = cr2res_trace_get_ycen(trace, central_order, traces[i], CR2RES_DETECTOR_SIZE);
+      vector = cr2res_trace_get_ycen(trace, central_order, traces[i], 
+                CR2RES_DETECTOR_SIZE);
       qc_trace_center_y += cpl_vector_get_mean(vector);
       cpl_vector_delete(vector);
     }
@@ -389,7 +390,8 @@ double cr2res_qc_obs_nodding_signal(
     if (nrows < size) size = nrows;
 
     vector = cpl_vector_wrap(nrows, data);
-    vector2 = cpl_vector_extract(vector, (nrows - size)/ 2, (nrows + size) / 2 - 1, 1);
+    vector2 = cpl_vector_extract(vector, (nrows - size)/ 2, (nrows + size) 
+                / 2 - 1, 1);
     qc_signal = cpl_vector_get_median(vector2);
 
     cpl_vector_unwrap(vector);
@@ -419,6 +421,34 @@ double cr2res_qc_obs_nodding_transmission(
     /* TODO */
     
     return qc_transm ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the FWHM of the PSF along the slit
+  @param    slitfu   Slit func table
+  @return   The computed FWHM
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_obs_nodding_slit_psf(
+        const cpl_table     *   slitfu)
+{
+    double      qc_fwhm ;
+
+    /* Check Entries */
+    if (slitfu == NULL) return -1 ;
+
+    /* Initialise */
+    qc_fwhm = -1.0 ;
+    
+    /* TODO */
+    // loop over slitfuncs in table.
+    // fit Gauss to each slitfu
+    // *2.35 for FWHM
+    // take median of all for return value
+    // save individual values as debug output
+    
+    return qc_fwhm ;
 }
 /**@}*/
 
