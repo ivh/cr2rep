@@ -649,7 +649,6 @@ static int cr2res_obs_pol_reduce_one(
     char                *   decker_name ;
     cpl_table           *   slit_func ;
     hdrl_image          *   model_master ;
-    cpl_table           *   extracted[2*CR2RES_POLARIMETRY_GROUP_SIZE];
     cpl_table           **  pol_spec_one_group ;
     cpl_table           **  extract_1d ;
     char                *   colname ;
@@ -681,7 +680,7 @@ static int cr2res_obs_pol_reduce_one(
     nframes = cpl_frameset_get_size(rawframes) ;
     if (nframes == 0 || nframes % CR2RES_POLARIMETRY_GROUP_SIZE) {
         cpl_msg_error(__func__, 
-    "Input number of frames is %"CPL_SIZE_FORMAT" and should be multiple of %d",
+            "Input number of frames is %"CPL_SIZE_FORMAT" and should be multiple of %d",
             nframes, CR2RES_POLARIMETRY_GROUP_SIZE) ;
         return -1 ;
     }
@@ -755,19 +754,17 @@ static int cr2res_obs_pol_reduce_one(
 
     /* Compute the number of groups */
     ngroups = nframes/CR2RES_POLARIMETRY_GROUP_SIZE ;
+    nspec_group = 2*CR2RES_POLARIMETRY_GROUP_SIZE ;
 
     /* Allocate pol_spec_group containers */
     pol_spec_one_group = cpl_malloc(ngroups * sizeof(cpl_table*)) ;
+    for (i = 0; i < ngroups; i++) pol_spec_one_group[i] = NULL;
 
     /* Loop on the groups */
     for (i=0 ; i<ngroups ; i++) {
         cpl_msg_info(__func__, "Process %d-group number %d/%d", 
                 CR2RES_POLARIMETRY_GROUP_SIZE, i+1, ngroups) ;
-        cpl_msg_indent_more() ;
-
-        /* Initialise */
-        pol_spec_one_group[i] = NULL ;
-        nspec_group = 2*CR2RES_POLARIMETRY_GROUP_SIZE ;
+        cpl_msg_indent_more() ;    
 
         /* Compute the proper order of the frames group */
         if ((pol_sorting = cr2res_pol_sort_frames(
@@ -793,6 +790,7 @@ static int cr2res_obs_pol_reduce_one(
 
         /* Container for extracted tables: 1u, 1d, 2u, 2d, 3u, 3d, 4u, 4d */
         extract_1d = cpl_malloc(nspec_group * sizeof(cpl_table*));
+        for (j = 0; j < nspec_group; j++) extract_1d[j] = NULL;
 
         /* Loop on the frames */
         for (j=0 ; j<CR2RES_POLARIMETRY_GROUP_SIZE ; j++) {
@@ -922,6 +920,12 @@ static int cr2res_obs_pol_reduce_one(
         demod_stokes = cpl_malloc(norders * sizeof(cpl_bivector*)) ;
         demod_null = cpl_malloc(norders * sizeof(cpl_bivector*)) ;
         demod_intens = cpl_malloc(norders * sizeof(cpl_bivector*)) ;
+        for (o = 0; o < norders; o++){
+            demod_wl[o] = NULL;
+            demod_stokes[o] = NULL;
+            demod_null[o] = NULL;
+            demod_intens[o] = NULL;
+        }
 
         /* Loop on the orders */
         for (o=0 ; o<norders ; o++) {
@@ -931,6 +935,12 @@ static int cr2res_obs_pol_reduce_one(
             intens = cpl_malloc(nspec_group * sizeof(cpl_vector*));
             wl = cpl_malloc(nspec_group * sizeof(cpl_vector*));
             errors = cpl_malloc(nspec_group * sizeof(cpl_vector*));
+            for (k = 0; k < nspec_group; k++){
+                intens[k] = NULL;
+                wl[k] = NULL;
+                errors[k] = NULL;
+            }
+
             for (k=0 ; k<nspec_group ; k++) {
                 spec_size = cpl_table_get_nrow(extract_1d[k]) ;
                 /* Get the SPEC for this order/trace 1 */
@@ -940,7 +950,6 @@ static int cr2res_obs_pol_reduce_one(
                 cpl_free(colname) ;
                 if (pcol_data == NULL) {
                     cpl_error_reset() ;
-                    intens[k] = NULL ;
                 } else {
                     intens[k] = cpl_vector_new(spec_size) ;
                     pvec_data = cpl_vector_get_data(intens[k]) ;
@@ -955,7 +964,6 @@ static int cr2res_obs_pol_reduce_one(
                 cpl_free(colname) ;
                 if (pcol_data == NULL) {
                     cpl_error_reset() ;
-                    wl[k] = NULL ;
                 } else {
                     wl[k] = cpl_vector_new(spec_size) ;
                     pvec_data = cpl_vector_get_data(wl[k]) ;
@@ -970,7 +978,6 @@ static int cr2res_obs_pol_reduce_one(
                 cpl_free(colname) ;
                 if (pcol_data == NULL) {
                     cpl_error_reset() ;
-                    errors[k] = NULL ;
                 } else {
                     errors[k] = cpl_vector_new(spec_size) ;
                     pvec_data = cpl_vector_get_data(errors[k]) ;
@@ -993,9 +1000,9 @@ static int cr2res_obs_pol_reduce_one(
 
             /* Free */
             for (k=0 ; k<nspec_group ; k++) {
-                if (intens[k]!= NULL) cpl_vector_delete(intens[k]) ;
-                if (wl[k] != NULL) cpl_vector_delete(wl[k]) ;
-                if (errors[k] != NULL) cpl_vector_delete(errors[k]) ;
+                cpl_vector_delete(intens[k]) ;
+                cpl_vector_delete(wl[k]) ;
+                cpl_vector_delete(errors[k]) ;
             }
             cpl_free(intens) ;
             cpl_free(wl) ;
