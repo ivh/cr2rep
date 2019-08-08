@@ -53,7 +53,7 @@
 cr2res_nodding_pos cr2res_pfits_get_nodding_pos(const cpl_propertylist * plist)
 {
     const char  *   sval ;
-    sval = cpl_propertylist_get_string(plist, "ESO SEQ NODPOS");
+    sval = cpl_propertylist_get_string(plist, CR2RES_HEADER_NODPOS);
 
     if (sval==NULL) {
         cpl_error_reset() ;
@@ -97,7 +97,7 @@ const char * cr2res_pfits_get_protype(const cpl_propertylist * plist)
 /*----------------------------------------------------------------------------*/
 const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
 {
-    return (const char *) cpl_propertylist_get_string(plist, "ARCFILE");
+    return (const char *) cpl_propertylist_get_string(plist, CR2RES_HEADER_ARCFILE);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -109,7 +109,7 @@ const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
 /*----------------------------------------------------------------------------*/
 const char * cr2res_pfits_get_wlen_id(const cpl_propertylist * plist)
 {
-    return (const char *) cpl_propertylist_get_string(plist, "ESO INS WLEN ID");
+    return (const char *) cpl_propertylist_get_string(plist, CR2RES_HEADER_WLEN_ID);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -121,7 +121,7 @@ const char * cr2res_pfits_get_wlen_id(const cpl_propertylist * plist)
 /*----------------------------------------------------------------------------*/
 double cr2res_pfits_get_nodthrow(const cpl_propertylist * plist)
 {
-    return cpl_propertylist_get_double(plist, "ESO SEQ NODTHROW")  ;
+    return cpl_propertylist_get_double(plist, CR2RES_HEADER_NODTHROW)  ;
 }
 
 
@@ -135,10 +135,10 @@ double cr2res_pfits_get_nodthrow(const cpl_propertylist * plist)
 double cr2res_pfits_get_dit(const cpl_propertylist * plist)
 {
     double val;
-    val = cpl_propertylist_get_double(plist, "ESO DET SEQ1 DIT")  ;
+    val = cpl_propertylist_get_double(plist, CR2RES_HEADER_DIT)  ;
     if (cpl_error_get_code() == CPL_ERROR_TYPE_MISMATCH){
         cpl_error_reset();
-        val = (double) cpl_propertylist_get_int(plist, "ESO DET SEQ1 DIT");
+        val = (double) cpl_propertylist_get_int(plist, CR2RES_HEADER_DIT);
     }
     return val;
 }
@@ -164,7 +164,7 @@ double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order)
     if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN BEGIN%d", order_loc) ;
+    key_name = cpl_sprintf(CR2RES_HEADER_WLEN_BEGIN, order_loc) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -194,7 +194,7 @@ double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order)
     if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf("ESO INS WLEN END%d", order_loc) ;
+    key_name = cpl_sprintf(CR2RES_HEADER_WLEN_END, order_loc) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -212,7 +212,7 @@ double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order)
 /*----------------------------------------------------------------------------*/
 int cr2res_pfits_get_naxis1(const cpl_propertylist * plist)
 {
-    return cpl_propertylist_get_int(plist, "NAXIS1")  ;
+    return cpl_propertylist_get_int(plist, CR2RES_HEADER_NAXIS1)  ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -224,7 +224,7 @@ int cr2res_pfits_get_naxis1(const cpl_propertylist * plist)
 /*----------------------------------------------------------------------------*/
 int cr2res_pfits_get_naxis2(const cpl_propertylist * plist)
 {
-    return cpl_propertylist_get_int(plist, "NAXIS2")  ;
+    return cpl_propertylist_get_int(plist, CR2RES_HEADER_NAXIS2)  ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -236,7 +236,7 @@ int cr2res_pfits_get_naxis2(const cpl_propertylist * plist)
 /*----------------------------------------------------------------------------*/
 int cr2res_pfits_get_expno(const cpl_propertylist * plist)
 {
-    return cpl_propertylist_get_int(plist, "ESO TPL EXPNO")  ;
+    return cpl_propertylist_get_int(plist, CR2RES_HEADER_EXPNO)  ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -248,7 +248,7 @@ int cr2res_pfits_get_expno(const cpl_propertylist * plist)
 /*----------------------------------------------------------------------------*/
 int cr2res_pfits_get_ndit(const cpl_propertylist * plist)
 {
-    return cpl_propertylist_get_int(plist, "ESO DET NDIT")  ;
+    return cpl_propertylist_get_int(plist, CR2RES_HEADER_NDIT)  ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -281,7 +281,7 @@ int cr2res_pfits_get_order(
 
     for (i=min_order ; i <= max_order ; i++) {
         order_idx = cr2res_io_convert_order_to_idx(i);
-        key_name = cpl_sprintf("ESO INS WLEN CENY%d", order_idx) ;
+        key_name = cpl_sprintf(CR2RES_HEADER_WLEN_CENY, order_idx) ;
         ycen = cpl_propertylist_get_double(plist, key_name);
         cpl_free(key_name) ;
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
@@ -311,7 +311,7 @@ int cr2res_pfits_get_order(
 cr2res_decker cr2res_pfits_get_decker_position(const cpl_propertylist * plist)
 {
     int         decker_value ;
-    decker_value = cpl_propertylist_get_int(plist, "ESO INS OPTI8 NO");
+    decker_value = cpl_propertylist_get_int(plist, CR2RES_HEADER_DECKER_POS);
     if (cpl_error_get_code() != CPL_ERROR_NONE) {
         cpl_error_reset();
         return CR2RES_DECKER_INVALID ;

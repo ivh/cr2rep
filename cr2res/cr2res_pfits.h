@@ -28,6 +28,22 @@
 #include "cr2res_nodding.h"
 #include "cr2res_utils.h"
 
+// define header property names
+#define CR2RES_HEADER_EXTNAME "EXTNAME"
+#define CR2RES_HEADER_NAXIS1 "NAXIS1"
+#define CR2RES_HEADER_NAXIS2 "NAXIS2"
+#define CR2RES_HEADER_EXPNO "ESO TPL EXPNO"
+#define CR2RES_HEADER_DECKER_POS "ESO INS OPTI8 NO"
+#define CR2RES_HEADER_NODPOS "ESO SEQ NODPOS"
+#define CR2RES_HEADER_NODTHROW "ESO SEQ NODTHROW"
+#define CR2RES_HEADER_ARCFILE "ARCFILE"
+#define CR2RES_HEADER_WLEN_ID "ESO INS WLEN ID"
+#define CR2RES_HEADER_WLEN_BEGIN "ESO INS WLEN BEGIN%d"
+#define CR2RES_HEADER_WLEN_END "ESO INS WLEN END%d"
+#define CR2RES_HEADER_WLEN_CENY "ESO INS WLEN CENY%d"
+#define CR2RES_HEADER_NDIT "ESO DET NDIT"
+#define CR2RES_HEADER_DIT "ESO DET SEQ1 DIT"
+
 /*-----------------------------------------------------------------------------
                                    Functions prototypes
  -----------------------------------------------------------------------------*/
