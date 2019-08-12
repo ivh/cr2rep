@@ -29,6 +29,7 @@
 #include "cr2res_utils.h"
 
 // define header property names
+#define CR2RES_HEADER_INSTRUMENT "INSTRUME"
 #define CR2RES_HEADER_EXTNAME "EXTNAME"
 #define CR2RES_HEADER_NAXIS1 "NAXIS1"
 #define CR2RES_HEADER_NAXIS2 "NAXIS2"
@@ -43,6 +44,10 @@
 #define CR2RES_HEADER_WLEN_CENY "ESO INS WLEN CENY%d"
 #define CR2RES_HEADER_NDIT "ESO DET NDIT"
 #define CR2RES_HEADER_DIT "ESO DET SEQ1 DIT"
+#define CR2RES_HEADER_QC_SIGNAL "ESO QC SIGNAL"
+#define CR2RES_HEADER_QC_TRANSM "ESO QC TRANSM"
+#define CR2RES_HEADER_QC_SLITFWHM "ESO QC SLITFWHM"
+
 
 /*-----------------------------------------------------------------------------
                                    Functions prototypes
