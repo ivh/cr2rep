@@ -604,7 +604,7 @@ static int cr2res_obs_nodding_reduce(
     double                  slit_length, extr_width_frac, slit_frac_a_bot, 
                             slit_frac_a_mid, slit_frac_a_top, slit_frac_b_bot, 
                             slit_frac_b_mid, slit_frac_b_top, nod_throw ;
-    double                  qc_signal_a, qc_signal_b, qc_transm ;
+    double                  qc_signal_a, qc_signal_b, qc_transm, qc_fwhm_a, qc_fwhm_b ;
     int                     det_nr ;
 
     /* Check Inputs */
@@ -870,11 +870,16 @@ static int cr2res_obs_nodding_reduce(
     qc_signal_a = cr2res_qc_obs_nodding_signal(extracted_a) ;
     qc_signal_b = cr2res_qc_obs_nodding_signal(extracted_b) ;
     qc_transm = cr2res_qc_obs_nodding_transmission(NULL) ;
+    qc_fwhm_a = cr2res_qc_obs_nodding_slit_psf(slit_func_a);
+    qc_fwhm_b = cr2res_qc_obs_nodding_slit_psf(slit_func_b);
 
     /* Store the QC parameters in the plist */
-    cpl_propertylist_append_double(plist, "ESO QC SIGNAL", 
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SIGNAL, 
             (qc_signal_a+qc_signal_b)/2.0) ;
-    cpl_propertylist_append_double(plist, "ESO QC TRANSM", qc_transm) ;
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_TRANSM,
+            qc_transm) ;
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SLITFWHM,
+            (qc_fwhm_a+qc_fwhm_b)/2.0) ;
 
     /* Return */
     *combineda = collapsed_a ;
