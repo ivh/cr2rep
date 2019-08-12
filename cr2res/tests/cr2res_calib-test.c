@@ -34,6 +34,7 @@
 #include <cr2res_dfs.h>
 #include <cr2res_calib.h>
 #include <cr2res_io.h>
+#include "cr2res_pfits.h"
 
 #define MODE_FLAT 0
 #define MODE_DARK 1
@@ -71,7 +72,7 @@ static void save_hdrl(char * filename, hdrl_image * hdrl, int mode, double dit)
 
     cpl_parameterlist * parlist = cpl_parameterlist_new();
     cpl_propertylist * ext1 = cpl_propertylist_new();
-    cpl_propertylist_append_double(ext1,"ESO DET SEQ1 DIT", dit);
+    cpl_propertylist_append_double(ext1, CR2RES_HEADER_DIT, dit);
     cpl_propertylist * ext[] = {ext1, NULL, NULL};
 
 

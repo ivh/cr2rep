@@ -320,8 +320,20 @@ int cr2res_wave_apply(
                         &wl_err_array,
                         &lines_diagnostics_loc)) == NULL) {
             cpl_msg_error(__func__, "Failed to compute 2d Wavelength solution");
-            /* TODO : Deallocate */
-            
+            /* De-allocate */
+            for (i=0 ; i<nb_traces ; i++) {
+                if (spectra[i] != NULL) cpl_bivector_delete(spectra[i]) ;
+                if (spectra_err[i] != NULL) cpl_bivector_delete(spectra_err[i]) ;
+                if (wavesol_init[i]!=NULL) cpl_polynomial_delete(wavesol_init[i]) ;
+                if (wavesol_init_error[i]!=NULL)
+                    cpl_array_delete(wavesol_init_error[i]) ;
+            }
+            cpl_free(spectra) ;
+            cpl_free(spectra_err) ;
+            cpl_free(wavesol_init) ;
+            cpl_free(wavesol_init_error) ;
+            cpl_free(orders) ;
+            cpl_free(traces_nb) ;
             return -1 ;
         }
 
@@ -1397,13 +1409,29 @@ static cpl_bivector * cr2res_wave_gen_lines_spectrum(
   @param    spectrum        Input spectrum
   @param    spectrum_err    Input spectrum error
   @param    wavesol_init    Starting wavelength solution
-  @param    wl_error        Max error in pixels of the initial guess
+  @param    wave_error_init Max error in pixels of the initial guess
   @param    lines_list      Lines List (flux, wavelengths)
   @param    display         Flag to display results
-  @return  Wavelength solution, i.e. polynomial that translates pixel
-            values to wavelength.
+  @param    px              [out] Pixel position of the good lines
+  @param    py              [out] Expected wavelength of the good lines
+  @param    sigma_py        [out] Width of the gaussian fit for each line
+  @param    heights         [out] Height of the gaussian fit for each line, if not NULL
+  @param    fit_error       [out] Reduced Chi-Square of the gaussian fit, if not NULL
+  @return   0 on success, -1 otherwise
 
-    TODO: Summarize method
+    For each line in the linelist, fit a gaussian to the spectrum,
+    around the pixels at which we expect the line based on the initial
+    wavelength guess
+
+    I.e. for each line:
+        Determine expected pixel position from the initial wavelength guess
+        Create a cutout of the spectrum around that position
+        Fit a gaussian to that cutout
+        Use the peak position of the gaussian as the position of the line on the detector
+        Ignore lines where the fit is bad
+
+    Return the position on the detector and the corresponding wavelength from the linelist
+
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_wave_extract_lines(
@@ -2187,7 +2215,7 @@ static double cr2res_wave_etalon_get_D(
   @return Vector with the fitted peak positions, in pixels.
 
   The peak positions start with 1 for the first pixel !!
-    TODO : Add unit test with an atificial vector
+    TODO : Add unit test with an artificial vector
  */
 /*----------------------------------------------------------------------------*/
 static cpl_vector * cr2res_wave_etalon_measure_fringes(

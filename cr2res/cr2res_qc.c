@@ -435,12 +435,15 @@ double cr2res_qc_obs_nodding_slit_psf(
         const cpl_table     *   slitfu)
 {
     cpl_array  * col_names ;
-    cpl_vector * fwhm ;
+    cpl_array * fwhm ;
     cpl_vector * x ;
     cpl_vector * y ;
+    cpl_vector * save;
     const double     * data ;
 
-    cpl_size i ;
+    cpl_size i, j ;
+    cpl_fit_mode fit_pars ;
+    cpl_error_code err;
     int nrow, ncol ;
     double qc_fwhm, x0, sigma, area, offset;
 
@@ -449,39 +452,63 @@ double cr2res_qc_obs_nodding_slit_psf(
 
     /* Initialise */
     qc_fwhm = -1.0 ;
+    fit_pars = CPL_FIT_CENTROID + CPL_FIT_STDEV + CPL_FIT_AREA;
+    offset = 0.;
+
     ncol = cpl_table_get_ncol(slitfu);
     nrow = cpl_table_get_nrow(slitfu);
 
-    fwhm = cpl_vector_new(ncol);
-    for (i = 0; i < ncol; i++) cpl_vector_set(fwhm, i, -1);
+    fwhm = cpl_array_new(ncol, CPL_TYPE_DOUBLE);
+    for (i = 0; i < ncol; i++) cpl_array_set(fwhm, i, -1);
     // x is just the element number
     x = cpl_vector_new(nrow);
-    for (i = 0; i < nrow; i++) cpl_vector_set(x, i, i);
+    y = cpl_vector_new(nrow);
+    for (i = 0; i < nrow; i++){
+      cpl_vector_set(x, i, i);
+      cpl_vector_set(y, i, 0);
+    }
     // Assuming that there are only slitfunc columns in the table
     col_names = cpl_table_get_column_names(slitfu);
     
     for (i = 0; i < ncol; i++)
     {
+      // We need to remove "strange" values, i.e. nan and unreasonably large values
+      // otherwise the fit will not work
+      // Slitfunc should be normalised to the oversampling rate(?)
       data = cpl_table_get_data_double_const(slitfu, cpl_array_get_string(col_names, i));
-      y = cpl_vector_wrap(nrow, (double*) data);
-      cpl_vector_fit_gaussian(x, NULL, y, NULL, CPL_FIT_ALL, &x0, &sigma, &area, &offset, NULL, NULL, NULL);
-      cpl_vector_unwrap(y);
+      for (j = 0; j < nrow; j++) 
+      {
+        if (isnan(data[j]) | (data[j] > 1)){
+          cpl_vector_set(y, j, 0);
+        }else{
+          cpl_vector_set(y, j, data[j]);}
+      }
 
+      err = cpl_vector_fit_gaussian(x, NULL, y, NULL, fit_pars, &x0, &sigma,
+                                    &area, &offset, NULL, NULL, NULL);
       qc_fwhm = 2.355 * sigma; // 2.355 = 2 * sqrt(2 * ln(2))
-      cpl_vector_set(fwhm, i, qc_fwhm);
+      cpl_array_set(fwhm, i, qc_fwhm);
+
+      if (err != CPL_ERROR_NONE){
+        cpl_error_reset();
+        cpl_array_set_invalid(fwhm, i);
+      }
     }
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG)
     {
-      cpl_vector_save(fwhm, "debug_slitfunc_fwhm.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+      save = cpl_vector_wrap(ncol, cpl_array_get_data_double(fwhm));
+      cpl_vector_save(save, "debug_slitfunc_fwhm.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+      cpl_vector_unwrap(save);
     }
 
-    qc_fwhm = cpl_vector_get_median(fwhm);
+    qc_fwhm = cpl_array_get_median(fwhm);
     
     /* Free Memory */
     cpl_array_delete(col_names);
     cpl_vector_delete(x);
-    cpl_vector_delete(fwhm);
+    cpl_vector_delete(y);
+    cpl_array_delete(fwhm);
 
     return qc_fwhm ;
 }

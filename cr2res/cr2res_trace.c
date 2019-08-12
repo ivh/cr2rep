@@ -1593,7 +1593,7 @@ cpl_table * cr2res_trace_split(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief  Compares 2 traces files, and returns the estimated shift betwwen both
+  @brief  Compares 2 traces files, and returns the estimated shift between both
   @param    traces1     A trace wave file
   @param    traces2     A trace wave file
   @return   The shift between both. Return 0.0 in case of problem

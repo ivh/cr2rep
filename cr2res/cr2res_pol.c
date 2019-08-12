@@ -90,14 +90,18 @@ cpl_bivector * cr2res_pol_demod_stokes(
     cpl_msg_error(__func__, "Need 8 spectra!");
     return NULL;
   }
+
+  if (intens[0]== NULL) return NULL;
+  size = cpl_vector_get_size(intens[0]);
   for (cpl_size i = 0; i < n; i++) {
     if (intens[i] == NULL) return NULL;
     if (wl[i] == NULL) return NULL;
     if (errors[i] == NULL) return NULL;
+    if (cpl_vector_get_size(intens[i]) != size) return NULL;
+    if (cpl_vector_get_size(wl[i]) != size) return NULL;
+    if (cpl_vector_get_size(errors[i]) != size) return NULL;
   }
-  /* TODO : Check that all vectors have the same size */
 
-  size = cpl_vector_get_size(intens[0]);
   result = cpl_bivector_new(size);
   outspec = cpl_bivector_get_x(result);
   outerr = cpl_bivector_get_y(result);
@@ -157,6 +161,10 @@ cpl_bivector * cr2res_pol_demod_stokes(
   cpl_vector_delete(R);
   cpl_vector_delete(tmp);
 
+  for (cpl_size i = 1; i< n; i++){
+    cpl_vector_delete(intens[i]);
+  }
+
   if (cpl_error_get_code() != CPL_ERROR_NONE) {
     cpl_msg_error(__func__, "Error code: %i", cpl_error_get_code());
     cpl_bivector_delete(result);
@@ -205,6 +213,7 @@ cpl_bivector * cr2res_pol_demod_null(
     cpl_vector  *   tmpwl;
     cpl_vector  *   tmperrors;
     cpl_bivector  * out ;
+    cpl_size        size;
     int             i;
 
   /* Check entries */
@@ -213,13 +222,16 @@ cpl_bivector * cr2res_pol_demod_null(
     cpl_msg_error(__func__, "Need 8 spectra!");
     return NULL;
   }
+  if (intens[0]== NULL) return NULL;
+  size = cpl_vector_get_size(intens[0]);
   for (cpl_size i = 0; i < n; i++) {
     if (intens[i] == NULL) return NULL;
     if (wl[i] == NULL) return NULL;
     if (errors[i] == NULL) return NULL;
+    if (cpl_vector_get_size(intens[i]) != size) return NULL;
+    if (cpl_vector_get_size(wl[i]) != size) return NULL;
+    if (cpl_vector_get_size(errors[i]) != size) return NULL;
   }
-  /* TODO : Check that all vectors have the same size */
-
 
   // copy list to leave original unchanged
   swapintens = cpl_malloc(n * sizeof(cpl_vector *));
@@ -298,14 +310,17 @@ cpl_bivector * cr2res_pol_demod_intens(
     cpl_msg_error(__func__, "Need 8 spectra!");
     return NULL;
   }
+  if (intens[0]== NULL) return NULL;
+  size = cpl_vector_get_size(intens[0]);
   for (cpl_size i = 0; i < n; i++) {
     if (intens[i] == NULL) return NULL;
     if (wl[i] == NULL) return NULL;
     if (errors[i] == NULL) return NULL;
+    if (cpl_vector_get_size(intens[i]) != size) return NULL;
+    if (cpl_vector_get_size(wl[i]) != size) return NULL;
+    if (cpl_vector_get_size(errors[i]) != size) return NULL;
   }
-  /* TODO : Check that all vectors have the same size */
 
-  size = cpl_vector_get_size(intens[0]);
   result = cpl_bivector_new(size);
   outspec = cpl_bivector_get_x(result);
   outerr = cpl_bivector_get_y(result);
