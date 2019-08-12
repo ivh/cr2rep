@@ -573,7 +573,6 @@ int cr2res_splice_orders(
             continue;
         }
 
-        // TODO check the order of values and stuff
         // It should be:
         // first.x : first index of the overlap on the left (lower wavelength) side of the order
         // first.y : first index of the overlap on the right (higher wavelength) side of the order

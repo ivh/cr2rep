@@ -1133,7 +1133,7 @@ int cr2res_io_save_EMISSION_LINES(
     cpl_propertylist    *   plist ;
 
     plist = cpl_propertylist_new();
-    cpl_propertylist_append_string(plist, "INSTRUME", "CR2RES") ;
+    cpl_propertylist_append_string(plist, CR2RES_HEADER_INSTRUMENT, "CR2RES") ;
     cpl_propertylist_append_string(plist, CPL_DFS_PRO_CATG,
             CR2RES_EMISSION_LINES_PROCATG) ;
     cpl_propertylist_append_string(plist, CPL_DFS_PRO_TYPE,
