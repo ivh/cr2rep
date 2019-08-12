@@ -481,6 +481,7 @@ static int cr2res_obs_2d_reduce(
         return -1 ;
     }
     cpl_table_delete(trace_wave) ;
+    hdrl_image_delete(in_calib) ;
 
     /* QC parameters */
     plist = cpl_propertylist_new() ;
