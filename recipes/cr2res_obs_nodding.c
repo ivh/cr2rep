@@ -172,6 +172,7 @@ Nodding Observation                                                     \n\
     cr2res_extract_traces()                                             \n\
     cr2res_qc_obs_nodding_signal()                                      \n\
     cr2res_qc_obs_nodding_transmission()                                \n\
+    cr2res_qc_obs_nodding_slit_psf()                                    \n\
     cr2res_io_save_COMBINED()                                           \n\
     cr2res_io_save_EXTRACT_1D()                                         \n\
     cr2res_io_save_SLIT_FUNC()                                          \n\
@@ -845,7 +846,7 @@ static int cr2res_obs_nodding_reduce(
         cpl_table_delete(trace_wave_b) ;
         return -1 ;
     }
-/* TODO : Save trace_wave_a and b as products */
+    /* TODO : Save trace_wave_a and b as products */
     cpl_table_delete(trace_wave_a) ;
     if (cr2res_extract_traces(collapsed_b, trace_wave_b, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 

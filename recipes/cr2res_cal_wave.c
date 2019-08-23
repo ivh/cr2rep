@@ -122,12 +122,14 @@ Spectrum Extraction and Wavelength Calibration                          \n\
           or " CR2RES_CAL_DETLIN_BPM_PROCATG "                          \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
     master_dark.fits " CR2RES_CAL_DARK_MASTER_PROCATG " [0 to 1]        \n\
-    master_flat.fits " CR2RES_CAL_FLAT_MASTER_PROCATG " [0 to 1]   \n\
+    master_flat.fits " CR2RES_CAL_FLAT_MASTER_PROCATG " [0 to 1]        \n\
     lines.fits " CR2RES_EMISSION_LINES_PROCATG " [0 to 1]               \n\
                                                                         \n\
   Outputs                                                               \n\
     cr2res_cal_wave_tw.fits " CR2RES_CAL_WAVE_TW_PROCATG"               \n\
-    cr2res_cal_wave_map.fits " CR2RES_CAL_WAVE_MAP_PROCATG"             \n\
+    cr2res_cal_wave_wave_map.fits " CR2RES_CAL_WAVE_MAP_PROCATG"        \n\
+    cr2res_cal_wave_lines_diagnostics.fits "
+    CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG"\n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on detectors d:                                                \n\
@@ -136,6 +138,7 @@ Spectrum Extraction and Wavelength Calibration                          \n\
         -> lines_diagnostics(d)                                         \n\
         -> out_wave_map(d)                                              \n\
     Save out_trace_wave                                                 \n\
+    Save lines_diagnostics                                              \n\
     Save out_wave_map                                                   \n\
                                                                         \n\
     cr2res_cal_wave_reduce():                                           \n\
@@ -177,6 +180,7 @@ Spectrum Extraction and Wavelength Calibration                          \n\
     cr2res_wave_gen_wave_map()                                          \n\
     cr2res_io_save_TRACE_WAVE()                                         \n\
     cr2res_io_save_WAVE_MAP()                                           \n\
+    cr2res_io_save_LINES_DIAGNOSTICS()                                  \n\
 " ;
 
 /*-----------------------------------------------------------------------------
@@ -576,18 +580,26 @@ static int cr2res_cal_wave(
     }
 
     /* Ѕave Products */
-    /* TODO : Save Lines Diagnostics */
     out_file = cpl_sprintf("%s_tw.fits", RECIPE_STRING) ;
     cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist, 
             out_trace_wave, NULL, ext_plist, 
             CR2RES_CAL_WAVE_TW_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
-    out_file = cpl_sprintf("%s_map.fits", RECIPE_STRING) ;
+    out_file = cpl_sprintf("%s_wave_map.fits", RECIPE_STRING) ;
     cr2res_io_save_WAVE_MAP(out_file, frameset, rawframes, parlist, 
             out_wave_map, NULL, ext_plist, 
             CR2RES_CAL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
+
+	if (wavecal_type == CR2RES_LINE2D || wavecal_type == CR2RES_LINE1D) {
+		/* Save the Lines Diagnostics */
+		out_file = cpl_sprintf("%s_lines_diagnostics.fits", RECIPE_STRING);
+		cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset, rawframes, parlist,
+                lines_diagnostics, NULL, ext_plist,
+				CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG, RECIPE_STRING) ;
+		cpl_free(out_file);
+	}
 
     /* Free and return */
     cpl_frameset_delete(rawframes) ;
