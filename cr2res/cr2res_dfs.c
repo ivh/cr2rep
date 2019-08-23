@@ -113,6 +113,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 /* Produced by cr2res_cal_wave */
                 !strcmp(tag, CR2RES_CAL_WAVE_TW_PROCATG) ||
                 !strcmp(tag, CR2RES_CAL_WAVE_MAP_PROCATG) ||
+                !strcmp(tag, CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG) ||
                 /* Produced by cr2res_obs_nodding */
                 !strcmp(tag, CR2RES_OBS_NODDING_EXTRACTA_PROCATG) ||
                 !strcmp(tag, CR2RES_OBS_NODDING_COMBINEDA_PROCATG) ||

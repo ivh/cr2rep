@@ -97,7 +97,8 @@ const char * cr2res_pfits_get_protype(const cpl_propertylist * plist)
 /*----------------------------------------------------------------------------*/
 const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
 {
-    return (const char *) cpl_propertylist_get_string(plist, CR2RES_HEADER_ARCFILE);
+    return (const char *) cpl_propertylist_get_string(plist, 
+            CR2RES_HEADER_ARCFILE);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -109,7 +110,8 @@ const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
 /*----------------------------------------------------------------------------*/
 const char * cr2res_pfits_get_wlen_id(const cpl_propertylist * plist)
 {
-    return (const char *) cpl_propertylist_get_string(plist, CR2RES_HEADER_WLEN_ID);
+    return (const char *) cpl_propertylist_get_string(plist, 
+            CR2RES_HEADER_WLEN_ID);
 }
 
 /*----------------------------------------------------------------------------*/
