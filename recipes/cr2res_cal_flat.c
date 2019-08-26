@@ -289,21 +289,21 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_min_cluster",
             CPL_TYPE_INT, "size in pixels of the smallest allowed cluster",
-            "cr2res.cr2res_cal_flat", 10000);
+            "cr2res.cr2res_cal_flat", 40000);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_min_cluster");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_smooth_x",
             CPL_TYPE_INT, "Length of the smoothing kernel in x",
-            "cr2res.cr2res_cal_flat", 11);
+            "cr2res.cr2res_cal_flat", 111);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_smooth_x");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_smooth_y",
             CPL_TYPE_INT, "Length of the smoothing kernel in y",
-            "cr2res.cr2res_cal_flat", 201);
+            "cr2res.cr2res_cal_flat", 401);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_smooth_y");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
