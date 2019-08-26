@@ -2566,17 +2566,18 @@ static int cr2res_extract_slit_func_curved(
         double      sP_stop,
         int         maxiter)
 {
-    int         x, xx, xxx, y, yy, iy, jy, n, m, ny, y_upper_lim, i;
+    int         x, xx, xxx, y, yy, iy, jy, n, m, ny, nx, y_upper_lim, i;
     double      sum, norm, dev, lambda, diag_tot, ww, www, sP_change, sP_max;
     int         info, iter, isum;
 
     /* The size of the sL array. */
     /* Extra osample is because ycen can be between 0 and 1. */
     ny = osample * (nrows + 1) + 1;
+    nx = delta_x;
 
     y_upper_lim = nrows - 1 - y_lower_lim;
     double *sP_old = cpl_malloc(ncols * sizeof(double));
-    double *l_Aij  = cpl_malloc(ny * (4*osample+1) * sizeof(double));
+    double *l_Aij  = cpl_malloc(ny * (4*osample+nx) * sizeof(double));
     double *p_Aij  = cpl_malloc(ncols * 5 * sizeof(double));
     double *l_bj   = cpl_malloc(ny * sizeof(double));
     double *p_bj   = cpl_malloc(ncols * sizeof(double));
@@ -2606,7 +2607,7 @@ static int cr2res_extract_slit_func_curved(
         for (iy = 0; iy < ny; iy++) {
             l_bj[iy] = 0.e0;
             /* Clean RHS                */
-            for (jy = 0; jy <= 4 * osample; jy++)
+            for (jy = 0; jy < 4 * osample + nx; jy++)
                 l_Aij[iy + ny * jy] = 0.e0;
         }
         /* Fill in SLE arrays for slit function */
