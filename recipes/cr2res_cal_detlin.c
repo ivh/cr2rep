@@ -72,6 +72,8 @@ static int cr2res_cal_detlin_reduce(
         int                     trace_opening,
         int                     trace_collapse,
         int                     reduce_det,
+        int                     plotx,
+        int                     ploty,
         hdrl_imagelist      **  coeffs,
         cpl_image           **  bpm,
         cpl_propertylist    **  ext_plist) ;
@@ -271,6 +273,20 @@ static int cr2res_cal_detlin_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.plot_x",
+            CPL_TYPE_INT, "X position for the plot",
+            "cr2res.cr2res_cal_detlin", 0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "plot_x");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.plot_y",
+            CPL_TYPE_INT, "Y position for the plot",
+            "cr2res.cr2res_cal_detlin", 0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "plot_y");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     return 0;
 }
 
@@ -328,7 +344,7 @@ static int cr2res_cal_detlin(
     const cpl_parameter *   param ;
     int                     trace_degree, trace_min_cluster, trace_collapse,
                             trace_opening, single_settings, reduce_det, 
-                            trace_smooth_x, trace_smooth_y ;
+                            trace_smooth_x, trace_smooth_y, plot_x, plot_y ;
     double                  bpm_kappa, trace_threshold ;
     cpl_frameset        *   rawframes ;
     cpl_size            *   labels ;
@@ -378,6 +394,12 @@ static int cr2res_cal_detlin(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_detlin.detector");
     reduce_det = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_detlin.plot_x");
+    plot_x = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_detlin.plot_y");
+    plot_y = cpl_parameter_get_int(param);
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
@@ -443,7 +465,7 @@ static int cr2res_cal_detlin(
             if (cr2res_cal_detlin_reduce(raw_one, bpm_kappa,
                         trace_degree, trace_min_cluster, trace_smooth_x,
                         trace_smooth_y, trace_threshold, trace_opening, 
-                        trace_collapse, det_nr,
+                        trace_collapse, det_nr, plot_x, plot_y,
                         &(coeffs[det_nr-1]),
                         &(bpm[det_nr-1]),
                         &(ext_plist[det_nr-1])) == -1) {
@@ -552,6 +574,8 @@ static int cr2res_cal_detlin(
   @param trace_opening      
   @param trace_collapse     Flag to collapse (or not) before tracing
   @param reduce_det         The detector to compute 
+  @param plotx              xposition to plot
+  @param ploty              yposition to plot
   @param coeffs             [out] the non-linearity coeffs and error
   @param bpm                [out] the BPM
   @param ext_plist          [out] the header for saving the products
@@ -569,6 +593,8 @@ static int cr2res_cal_detlin_reduce(
         int                     trace_opening,
         int                     trace_collapse,
         int                     reduce_det,
+        int                     plotx,
+        int                     ploty,
         hdrl_imagelist      **  coeffs,
         cpl_image           **  bpm,
         cpl_propertylist    **  ext_plist)
@@ -714,6 +740,8 @@ static int cr2res_cal_detlin_reduce(
                             hdrl_image_get_image(cur_im)) ;
                     cpl_vector_set(fitvals, k, (float)(pcur_im[idx])) ;
                 }
+
+
                 /* We are in a trace, let's compute the linearity */
                 if (cr2res_detlin_compute(dits, fitvals, max_degree,
                             &fitted_poly, &fitted_errors) == -1) {
@@ -730,6 +758,45 @@ static int cr2res_cal_detlin_reduce(
                     } 
                 } else {
                     qc_nbsuccess++ ;
+
+                    /* Plot the values and the fit */
+                    if (plotx==i+1 && ploty==j+1) {
+                        cpl_bivector * toplot_measure =
+                            cpl_bivector_wrap_vectors(dits, fitvals) ;
+                        cpl_vector * poly_eval = cr2res_polynomial_eval_vector(
+                                fitted_poly, dits) ;
+                        cpl_bivector * toplot_fitted =
+                            cpl_bivector_wrap_vectors(dits, poly_eval) ;
+
+                        cpl_bivector * toplot_measure_sort =
+                            cpl_bivector_duplicate(toplot_measure) ;
+                        cpl_bivector * toplot_fitted_sort =
+                            cpl_bivector_duplicate(toplot_fitted) ;
+
+                        cpl_bivector_sort(toplot_measure_sort,
+                                toplot_measure, CPL_SORT_ASCENDING,
+                                CPL_SORT_BY_X) ;
+                        cpl_bivector_sort(toplot_fitted_sort,
+                                toplot_fitted, CPL_SORT_ASCENDING,
+                                CPL_SORT_BY_X) ;
+
+                        cpl_plot_bivector(
+                        "set grid;set xlabel 'dits (s)';set ylabel 'int';",
+                        "t 'Measured Detlin' w lines", "",
+                        toplot_measure_sort);
+
+                        cpl_plot_bivector(
+                        "set grid;set xlabel 'dits (s)';set ylabel 'int';",
+                        "t 'Fitted Detlin' w lines", "",
+                        toplot_fitted_sort);
+
+                        cpl_bivector_delete(toplot_measure_sort) ;
+                        cpl_bivector_delete(toplot_fitted_sort) ;
+                        cpl_bivector_unwrap_vectors(toplot_fitted) ;
+                        cpl_vector_delete(poly_eval) ;
+                        cpl_bivector_unwrap_vectors(toplot_measure) ;
+                    }
+
                     /* Store the Coefficients in the output image list */
                     pbpm_loc[idx] = 0 ;
                     for (l=0 ; l<=max_degree ; l++) {
