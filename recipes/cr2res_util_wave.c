@@ -68,11 +68,12 @@ static int cr2res_util_wave(cpl_frameset *, const cpl_parameterlist *);
 static char cr2res_util_wave_description[] = "\
 Wavelength Calibration                                                  \n\
   This utility performs the wavelength calibration on already extracted \n\
-  spectra. It can support 4 different methods (--wl_method parameter):  \n\
+  spectra. It can support different methods (--wl_method parameter):    \n\
     XCORR:  Cross Correlation with a emission lines catalog (default)   \n\
     LINE1D: Line identification and fitting for each 1D spectra         \n\
     LINE2D: Line identification and fitting for all 1D spectra at once  \n\
-    ETALON: Does not require any static calibration file.               \n\
+    ETALON: Does not require any static calibration file                \n\
+    AUTO:   Guess the Method from the input file header                 \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_EXTRACT_1D_PROTYPE " [1 to n]                     \n\
@@ -225,8 +226,9 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.wl_method",
-            CPL_TYPE_STRING, "Data Type (XCORR / LINE1D / LINE2D / ETALON)",
-            "cr2res.cr2res_util_wave", "XCORR");
+            CPL_TYPE_STRING, 
+            "Wavelength Method (AUTO / XCORR / LINE1D / LINE2D / ETALON)",
+            "cr2res.cr2res_util_wave", "AUTO");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_method");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -382,6 +384,7 @@ static int cr2res_util_wave(
     else if (!strcmp(sval, "LINE1D"))   wavecal_type = CR2RES_LINE1D ;
     else if (!strcmp(sval, "LINE2D"))   wavecal_type = CR2RES_LINE2D ;
     else if (!strcmp(sval, "ETALON"))   wavecal_type = CR2RES_ETALON ;
+    else if (!strcmp(sval, "AUTO"))     wavecal_type = CR2RES_UNSPECIFIED ;
     else {
         cpl_msg_error(__func__, "Invalid Data Type specified");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -416,15 +419,6 @@ static int cr2res_util_wave(
     display = cpl_parameter_get_bool(param) ;
 
     /* Check Parameters */
-    if (wavecal_type == CR2RES_UNSPECIFIED) {
-        cpl_msg_error(__func__, "Please use the --wl_method option") ;
-        return -1 ;
-    }
-    if (reduce_order > -1 && wavecal_type == CR2RES_LINE2D) {
-        cpl_msg_error(__func__, "Limiting to one order with LINE2D impossible");
-        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
-        return -1 ;
-    }
     if (wl_degree < 0) {
         cpl_msg_error(__func__, "The degree needs to be >= 0");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -468,6 +462,28 @@ static int cr2res_util_wave(
         cur_fname = cpl_frame_get_filename(cur_frame) ;
         cpl_msg_info(__func__, "Reduce Frame %s", cur_fname) ;
         cpl_msg_indent_more() ;
+
+		/* Guess the method to be used from the RAW frames header */
+		if (wavecal_type == CR2RES_UNSPECIFIED) {
+			if ((wavecal_type = cr2res_wave_guess_method(
+							cpl_frameset_get_position(rawframes, 0))) ==
+					CR2RES_UNSPECIFIED) {
+				cpl_frameset_delete(rawframes) ;
+				cpl_msg_error(__func__, "Cannot guess the method") ;
+				cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+				return -1 ;
+			}
+			char * method_str = cr2res_wave_method_print(wavecal_type) ;
+			cpl_msg_info(__func__, "Method Automatically Guessed : %s",
+					method_str) ;
+			cpl_free(method_str) ;
+		}
+		if (reduce_order > -1 && wavecal_type == CR2RES_LINE2D) {
+			cpl_msg_error(__func__, 
+                    "Limiting to one order with LINE2D impossible");
+			cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+			return -1 ;
+		}
 
         /* Loop over the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {

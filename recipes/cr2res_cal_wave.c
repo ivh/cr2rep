@@ -102,11 +102,12 @@ Spectrum Extraction and Wavelength Calibration                          \n\
   This recipe performs the extraction of the various orders along       \n\
   the provided traces, and the wavelength calibration of these          \n\
   extracted spectra.                                                    \n\
-  It can support 4 different methods (--wl_method parameter):           \n\
+  It can support different methods (--wl_method parameter):             \n\
     XCORR:  Cross Correlation with a emission lines catalog (default)   \n\
     LINE1D: Line identification and fitting for each 1D spectra         \n\
     LINE2D: Line identification and fitting for all 1D spectra at once  \n\
-    ETALON: Does not require any static calibration file.               \n\
+    ETALON: Does not require any static calibration filer               \n\
+    AUTO:   Guess the Method from the input file header                 \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_WAVE_RAW " [1 to n]                               \n\
@@ -305,7 +306,7 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.wl_method",
             CPL_TYPE_STRING, 
-            "Data Type (AUTO / XCORR / LINE1D / LINE2D / ETALON)",
+            "Wavelength Method (AUTO / XCORR / LINE1D / LINE2D / ETALON)",
             "cr2res.cr2res_cal_wave", "AUTO");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_method");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
@@ -554,7 +555,7 @@ static int cr2res_cal_wave(
             return -1 ;
         }
         char * method_str = cr2res_wave_method_print(wavecal_type) ;
-        cpl_msg_info(__func__, "Method Automatically Guessed : %s\n",
+        cpl_msg_info(__func__, "Method Automatically Guessed : %s",
                 method_str) ;
         cpl_free(method_str) ;
     }
