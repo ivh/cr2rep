@@ -323,8 +323,10 @@ int cr2res_wave_apply(
             /* De-allocate */
             for (i=0 ; i<nb_traces ; i++) {
                 if (spectra[i] != NULL) cpl_bivector_delete(spectra[i]) ;
-                if (spectra_err[i] != NULL) cpl_bivector_delete(spectra_err[i]) ;
-                if (wavesol_init[i]!=NULL) cpl_polynomial_delete(wavesol_init[i]) ;
+                if (spectra_err[i] != NULL) 
+                    cpl_bivector_delete(spectra_err[i]) ;
+                if (wavesol_init[i]!=NULL) 
+                    cpl_polynomial_delete(wavesol_init[i]) ;
                 if (wavesol_init_error[i]!=NULL)
                     cpl_array_delete(wavesol_init_error[i]) ;
             }
@@ -1331,6 +1333,72 @@ cpl_polynomial * cr2res_wave_poly_2d_to_1d(
     cpl_polynomial_delete(tmp);
 
     return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  Print the Method
+  @param    wavecal_type    The method
+  @return   A string to deallocate
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_wave_method_print(
+        cr2res_wavecal_type     wavecal_type) 
+{
+    char    *   out_str ;
+    if (wavecal_type == CR2RES_XCORR)   
+        out_str = cpl_sprintf("Cross-Correlation") ;
+    else if (wavecal_type == CR2RES_LINE1D)  
+        out_str = cpl_sprintf("1d Lines Fitting") ;
+    else if (wavecal_type == CR2RES_LINE2D)  
+        out_str = cpl_sprintf("2d Lines Fitting") ;
+    else if (wavecal_type == CR2RES_ETALON)   
+        out_str = cpl_sprintf("Etalon") ;
+    else if (wavecal_type == CR2RES_UNSPECIFIED)    
+        out_str = cpl_sprintf("Unspecified") ;
+    else                         
+        out_str = cpl_sprintf("Unsupported") ;
+    return out_str ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief  Guess the wavelength method to use from the header
+  @param    in  The frame whose header is to be used
+  @return   The guessed method
+ */
+/*----------------------------------------------------------------------------*/
+cr2res_wavecal_type cr2res_wave_guess_method(
+        const cpl_frame     *   in) 
+{
+    cr2res_wavecal_type     wl_method ;
+    cpl_propertylist    *   plist ;
+    const char          *   l4_name ;
+    const char          *   l8_name ;
+
+    /* Check entries */
+    if (in == NULL) return CR2RES_UNSPECIFIED ;
+
+    /* Initialise */
+    wl_method = CR2RES_UNSPECIFIED ;
+
+    /* Load the property list */
+    if ((plist = cpl_propertylist_load(cpl_frame_get_filename(in), 0))==NULL) {
+        return wl_method ;
+    }
+
+    /* Get the Lamps names (NULL if missing) */
+    l4_name = cr2res_pfits_get_lamp4(plist) ;
+    cpl_error_reset() ;
+    l8_name = cr2res_pfits_get_lamp8(plist) ;
+    cpl_error_reset() ;
+    if (l4_name != NULL && !strcmp(l4_name, "UNe_HCL")) 
+        wl_method = CR2RES_XCORR ;
+    else if (l8_name != NULL && !strcmp(l8_name, "Etalon_Halogen"))
+        wl_method = CR2RES_ETALON ;
+    cpl_propertylist_delete(plist) ;
+
+    return wl_method ;
 }
 
 /**@}*/

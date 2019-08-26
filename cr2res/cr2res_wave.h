@@ -137,4 +137,8 @@ cpl_polynomial * cr2res_wave_poly_2d_to_1d(
         cpl_polynomial  *   poly_2d,
         int                 order) ;
 
+char * cr2res_wave_method_print(cr2res_wavecal_type wavecal_type) ;
+
+cr2res_wavecal_type cr2res_wave_guess_method(const cpl_frame * in) ;
+
 #endif

@@ -304,8 +304,9 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.wl_method",
-            CPL_TYPE_STRING, "Data Type (XCORR / LINE1D / LINE2D / ETALON)",
-            "cr2res.cr2res_cal_wave", "XCORR");
+            CPL_TYPE_STRING, 
+            "Data Type (AUTO / XCORR / LINE1D / LINE2D / ETALON)",
+            "cr2res.cr2res_cal_wave", "AUTO");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_method");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -439,7 +440,6 @@ static int cr2res_cal_wave(
     setlocale(LC_NUMERIC, "C");
 
     /* Initialise */
-    wavecal_type = CR2RES_UNSPECIFIED ;
     wl_start = wl_end = wl_err_start = wl_err_end = -1.0 ;
     wl_shift = 0.0 ;
 
@@ -472,6 +472,7 @@ static int cr2res_cal_wave(
     else if (!strcmp(sval, "LINE1D"))   wavecal_type = CR2RES_LINE1D ;
     else if (!strcmp(sval, "LINE2D"))   wavecal_type = CR2RES_LINE2D ;
     else if (!strcmp(sval, "ETALON"))   wavecal_type = CR2RES_ETALON ;
+    else if (!strcmp(sval, "AUTO"))     wavecal_type = CR2RES_UNSPECIFIED ;
     else {
         cpl_msg_error(__func__, "Invalid Data Type specified");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -506,11 +507,6 @@ static int cr2res_cal_wave(
     display = cpl_parameter_get_bool(param) ;
 
     /* Check Parameters */
-    if (reduce_order > -1 && wavecal_type == CR2RES_LINE2D) {
-        cpl_msg_error(__func__, "Limiting to one order with LINE2D impossible");
-        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
-        return -1 ;
-    }
     if (wl_degree < 0) {
         cpl_msg_error(__func__, "The degree needs to be >= 0");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -544,6 +540,27 @@ static int cr2res_cal_wave(
     rawframes = cr2res_extract_frameset(frameset, CR2RES_WAVE_RAW) ;
     if (rawframes == NULL) {
         cpl_msg_error(__func__, "Could not find RAW frames") ;
+        return -1 ;
+    }
+
+    /* Guess the method to be used from the RAW frames header */
+    if (wavecal_type == CR2RES_UNSPECIFIED) {
+        if ((wavecal_type = cr2res_wave_guess_method(
+                        cpl_frameset_get_position(rawframes, 0))) == 
+                CR2RES_UNSPECIFIED) {
+            cpl_frameset_delete(rawframes) ;
+            cpl_msg_error(__func__, "Cannot guess the method") ;
+            cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+            return -1 ;
+        }
+        char * method_str = cr2res_wave_method_print(wavecal_type) ;
+        cpl_msg_info(__func__, "Method Automatically Guessed : %s\n",
+                method_str) ;
+        cpl_free(method_str) ;
+    }
+    if (reduce_order > -1 && wavecal_type == CR2RES_LINE2D) {
+        cpl_msg_error(__func__, "Limiting to one order with LINE2D impossible");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
 
