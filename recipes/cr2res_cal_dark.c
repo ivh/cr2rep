@@ -521,9 +521,9 @@ static int cr2res_cal_dark(
                         ron_hsize, ron_nsamples, ndit) ;
 
                 cpl_propertylist_append_double(ext_plist[det_nr-1], 
-                        "ESO QC DARK RON1", ron1) ;
+                        CR2RES_HEADER_QC_DARK_RON1, ron1) ;
                 cpl_propertylist_append_double(ext_plist[det_nr-1], 
-                        "ESO QC DARK RON2", ron2) ;
+                        CR2RES_HEADER_QC_DARK_RON2, ron2) ;
             }
             hdrl_imagelist_delete(dark_cube);
 
@@ -536,17 +536,17 @@ static int cr2res_cal_dark(
                         hdrl_image_get_image(master_darks[det_nr-1])) ;
 
                 cpl_propertylist_append_double(ext_plist[det_nr-1], 
-                        "ESO QC DARK MEAN", mean) ;
+                        CR2RES_HEADER_QC_DARK_MEAN, mean) ;
                 cpl_propertylist_append_double(ext_plist[det_nr-1], 
-                        "ESO QC DARK MEDIAN", med) ;
+                        CR2RES_HEADER_QC_DARK_MEDIAN, med) ;
                 cpl_propertylist_append_double(ext_plist[det_nr-1], 
-                        "ESO QC DARK STDDEV", sigma) ;
+                        CR2RES_HEADER_QC_DARK_STDEV, sigma) ;
             }
             /* QCs from BPM */
             if (bpms[det_nr-1] != NULL) {
                 nb_bad = cr2res_bpm_count(bpms[det_nr-1], CR2RES_BPM_DARK) ;
                 cpl_propertylist_append_int(ext_plist[det_nr-1], 
-                        "ESO QC DARK NBAD", nb_bad) ;
+                        CR2RES_HEADER_QC_DARK_NBAD, nb_bad) ;
             }
             cpl_msg_indent_less() ;
         }

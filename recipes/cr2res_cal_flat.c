@@ -1075,20 +1075,22 @@ static int cr2res_cal_flat_reduce(
     }
 
     /* Store the QC parameters in the plist */
-    cpl_propertylist_append_double(plist, "ESO QC FLAT LAMP INTS", 
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_LAMP_INTS, 
             qc_lamp_ints) ;
-    cpl_propertylist_append_double(plist, "ESO QC FLAT MEAN LEVEL", 
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_MEAN_LEVEL, 
             qc_mean_level) ;
-    cpl_propertylist_append_double(plist, "ESO QC FLAT MEAN FLUX", 
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_MEAN_FLUX, 
             qc_mean_flux) ;
-    cpl_propertylist_append_double(plist, "ESO QC FLAT MEDIAN FLUX", 
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_MEDIAN_FLUX, 
             qc_med_flux) ;
-    cpl_propertylist_append_double(plist, "ESO QC FLAT MED SNR", qc_med_snr) ;
-    cpl_propertylist_append_int(plist, "ESO QC FLAT OVEREXPOSED", 
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_MED_SNR, 
+            qc_med_snr) ;
+    cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_FLAT_OVEREXPOSED, 
             qc_overexposed) ;
-    cpl_propertylist_append_double(plist, "ESO QC FLAT TRACE CENTERY",
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_TRACE_CENTERY,
             qc_trace_centery) ;
-    cpl_propertylist_append_int(plist, "ESO QC FLAT NBBAD", qc_nbbad) ;
+    cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_FLAT_NBBAD, 
+            qc_nbbad) ;
 
     /* Return the results */
     *trace_wave = traces ;

@@ -798,16 +798,21 @@ static int cr2res_cal_detlin_reduce(
     cr2res_qc_detlin_min_max_level(NULL, &qc_min_level, &qc_max_level) ;
 
     /* Store the QC parameters in the plist */
-    cpl_propertylist_append_int(plist, "ESO QC DETLIN NBBAD", qc_nb_bad) ;
-    cpl_propertylist_append_int(plist, "ESO QC DETLIN NBFAILED", qc_nbfailed) ;
-    cpl_propertylist_append_int(plist, "ESO QC DETLIN NBSUCCESS",qc_nbsuccess) ;
-    cpl_propertylist_append_double(plist, "ESO QC DETLIN FITQUALITY", 
+    cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_DETLIN_NBAD, 
+            qc_nb_bad) ;
+    cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_DETLIN_NBFAILED, 
+            qc_nbfailed) ;
+    cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_DETLIN_NBSUCCESS,
+            qc_nbsuccess) ;
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_DETLIN_FITQUALITY, 
             qc_fitquality) ;
-    cpl_propertylist_append_double(plist, "ESO QC DETLIN MEDIAN", qc_median) ;
-    cpl_propertylist_append_double(plist, "ESO QC DETLIN GAIN", qc_gain) ;
-    cpl_propertylist_append_double(plist, "ESO QC DETLIN MINLEVEL",
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_DETLIN_MEDIAN, 
+            qc_median) ;
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_DETLIN_GAIN, 
+            qc_gain) ;
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_DETLIN_MINLEVEL,
             qc_min_level) ;
-    cpl_propertylist_append_double(plist, "ESO QC DETLIN MAXLEVEL",
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_DETLIN_MAXLEVEL,
             qc_max_level) ;
 
     /* Return the results */
