@@ -366,9 +366,15 @@ int cr2res_slit_pos(
         // fit 2D wavelengths
         errcode = cpl_polynomial_fit((*coef_wave)[j], matrix_xy, NULL, vec_w, 
                 NULL, FALSE, NULL, &maxdeg);
+        if (errcode != CPL_ERROR_NONE){
+            // TODO: What to do in case of error?
+            cpl_error_reset();
+        }
         errcode = cpl_polynomial_fit((*coef_slit)[j], matrix_wd, NULL, vec_s, 
                 NULL, FALSE, NULL, &maxdeg);
-
+        if (errcode != CPL_ERROR_NONE){
+            cpl_error_reset();
+        }
         cpl_matrix_delete(matrix_xy);
         cpl_matrix_delete(matrix_wd);
         cpl_vector_delete(vec_s);

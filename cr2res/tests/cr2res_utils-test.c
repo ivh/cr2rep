@@ -645,50 +645,56 @@ static void test_cr2res_slit_pos()
 {
     int chip = 2;
     cpl_table *tw_decker1 = cpl_table_load("CRIFORS_H24_F_decker1_trace.fits", chip, 0);
-    cpl_table *tw_decker2 = cpl_table_load("CRIFORS_H24_F_decker2_trace.fits", chip, 0);
-
-
+    // cpl_table *tw_decker2 = cpl_table_load("CRIFORS_H24_F_decker2_trace.fits", chip, 0);
+    // TODO: Merge tables?
 
     int nb_orders;
     int *orders = cr2res_trace_get_order_numbers(tw_decker1, &nb_orders);
 
 
-    cpl_polynomial *coef_wave[nb_orders];
-    cpl_polynomial *coef_slit[nb_orders];
+    cpl_polynomial **coef_wave = cpl_malloc(nb_orders * sizeof(cpl_polynomial *));
+    cpl_polynomial **coef_slit = cpl_malloc(nb_orders * sizeof(cpl_polynomial *));
+
+    for (cpl_size i = 0; i < nb_orders; i++)
+    {
+        coef_wave[i] = cpl_polynomial_new(1);
+        coef_slit[i] = cpl_polynomial_new(1);
+    }
+    
 
     // test NULL input
-    cpl_test_eq(-1, cr2res_slit_pos(NULL, tw_decker2, coef_slit, coef_wave));
-    cpl_test_eq(-1, cr2res_slit_pos(tw_decker1, NULL, coef_slit, coef_wave));
-    cpl_test_eq(-1, cr2res_slit_pos(tw_decker1, tw_decker2, NULL, coef_wave));
-    cpl_test_eq(-1, cr2res_slit_pos(tw_decker1, tw_decker2, coef_slit, NULL));
+    cpl_test_eq(-1, cr2res_slit_pos(NULL, &coef_slit, &coef_wave));
+    cpl_test_eq(-1, cr2res_slit_pos(tw_decker1, NULL, &coef_wave));
+    cpl_test_eq(-1, cr2res_slit_pos(tw_decker1, &coef_slit, NULL));
 
     // normal run
-    cpl_test_eq(0, cr2res_slit_pos(tw_decker1, tw_decker2, coef_slit, coef_wave));
+    cpl_test_eq(0, cr2res_slit_pos(tw_decker1, &coef_slit, &coef_wave));
 
     cpl_table_delete(tw_decker1);
-    cpl_table_delete(tw_decker2);
     for (int i=0; i < nb_orders; i++){
 
-        if (i == 3){
-        FILE * file = fopen("slit.txt", "w");
-        char str[3];
-        sprintf(str, "%i\n", orders[i]);
-        fwrite(str, 1, sizeof(str), file);
-        cpl_polynomial_dump(coef_slit[i], file);
-        fclose(file);
+        // if (i == 3){
+        // FILE * file = fopen("slit.txt", "w");
+        // char str[3];
+        // sprintf(str, "%i\n", orders[i]);
+        // fwrite(str, 1, sizeof(str), file);
+        // cpl_polynomial_dump(coef_slit[i], file);
+        // fclose(file);
 
-        FILE * file2 = fopen("wave.txt", "w");
-        char str2[3];
-        sprintf(str2, "%i\n", orders[i]);
-        fwrite(str2, 1, sizeof(str2), file2);
-        cpl_polynomial_dump(coef_wave[i], file2);
-        fclose(file2);
-        }
+        // FILE * file2 = fopen("wave.txt", "w");
+        // char str2[3];
+        // sprintf(str2, "%i\n", orders[i]);
+        // fwrite(str2, 1, sizeof(str2), file2);
+        // cpl_polynomial_dump(coef_wave[i], file2);
+        // fclose(file2);
+        // }
 
         cpl_polynomial_delete(coef_wave[i]);
         cpl_polynomial_delete(coef_slit[i]);
     }
     cpl_free(orders);
+    cpl_free(coef_wave);
+    cpl_free(coef_slit);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -700,25 +706,21 @@ static void test_cr2res_slit_pos_img()
 {
     int chip = 2;
     cpl_table *tw_decker1 = cpl_table_load("CRIFORS_H24_F_decker1_trace.fits", chip, 0);
-    cpl_table *tw_decker2 = cpl_table_load("CRIFORS_H24_F_decker2_trace.fits", chip, 0);
-
+    // cpl_table *tw_decker2 = cpl_table_load("CRIFORS_H24_F_decker2_trace.fits", chip, 0);
     cpl_image *slitpos = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
     cpl_image *wavelength = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
 
+    cpl_test_eq(-1, cr2res_slit_pos_image(NULL, &slitpos, &wavelength));
+    cpl_test_eq(-1, cr2res_slit_pos_image(tw_decker1, NULL, &wavelength));
+    cpl_test_eq(-1, cr2res_slit_pos_image(tw_decker1, &slitpos, NULL));
 
-    cpl_test_eq(-1, cr2res_slit_pos_image(NULL, tw_decker2, slitpos, wavelength));
-    cpl_test_eq(-1, cr2res_slit_pos_image(tw_decker1, NULL, slitpos, wavelength));
-    cpl_test_eq(-1, cr2res_slit_pos_image(tw_decker1, tw_decker2, NULL, wavelength));
-    cpl_test_eq(-1, cr2res_slit_pos_image(tw_decker1, tw_decker2, slitpos, NULL));
-
-
-    cpl_test_eq(0, cr2res_slit_pos_image(tw_decker1, tw_decker2, slitpos, wavelength));
+    cpl_test_eq(0, cr2res_slit_pos_image(tw_decker1, &slitpos, &wavelength));
 
     cpl_image_save(slitpos, "slit.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
     cpl_image_save(wavelength, "wave.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
 
     cpl_table_delete(tw_decker1);
-    cpl_table_delete(tw_decker2);
+    // cpl_table_delete(tw_decker2);
     cpl_image_delete(slitpos);
     cpl_image_delete(wavelength);
 }

@@ -109,7 +109,7 @@ cpl_bivector * cr2res_pol_demod_stokes(
   // Initialize to 0
   for (cpl_size i = 0; i < size; i++)
   {
-    // cpl_vector_set(outspec, i, 0.);  
+    cpl_vector_set(outspec, i, 0.);  
     cpl_vector_set(outerr, i, 0.);
   }
 
@@ -160,10 +160,6 @@ cpl_bivector * cr2res_pol_demod_stokes(
 
   cpl_vector_delete(R);
   cpl_vector_delete(tmp);
-
-  for (cpl_size i = 1; i< n; i++){
-    cpl_vector_delete(intens[i]);
-  }
 
   if (cpl_error_get_code() != CPL_ERROR_NONE) {
     cpl_msg_error(__func__, "Error code: %i", cpl_error_get_code());
