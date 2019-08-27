@@ -599,6 +599,7 @@ static int cr2res_cal_detlin_reduce(
         cpl_image           **  bpm,
         cpl_propertylist    **  ext_plist)
 {
+    cpl_frameset        *   sorted_frames ;
     const char          *   first_file ;
     hdrl_imagelist      *   imlist ;
     hdrl_image          *   cur_im ;
@@ -633,33 +634,45 @@ static int cr2res_cal_detlin_reduce(
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
 
+    /* Sort the frames by increasing DIT */
+    if ((sorted_frames = cr2res_detlin_sort_frames(rawframes)) == NULL) {
+        cpl_msg_error(__func__, "Failed sorting frames by increasing DITs") ;
+        return -1 ;
+    }
+
     /* Initialise */
     max_degree = 2 ;
 
     /* Get the Extension number */
     first_file = cpl_frame_get_filename(
-            cpl_frameset_get_position_const(rawframes, 0)) ;
+            cpl_frameset_get_position_const(sorted_frames, 0)) ;
     ext_nr_data = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
 
     /* Load the extension header for saving */
     plist = cpl_propertylist_load(first_file, ext_nr_data) ;
-    if (plist == NULL) return -1 ;
+    if (plist == NULL) {
+        cpl_frameset_delete(sorted_frames) ;
+        return -1 ;
+    }
 
     /* Load the image list */
-    if ((imlist = cr2res_io_load_image_list_from_set(rawframes,
+    if ((imlist = cr2res_io_load_image_list_from_set(sorted_frames,
                     reduce_det)) == NULL) {
         cpl_propertylist_delete(plist);
+        cpl_frameset_delete(sorted_frames) ;
         cpl_msg_error(__func__, "Failed to Load the images") ;
         return -1 ;
     }
 
     /* Load the DITs */
-    if ((dits = cr2res_io_read_dits(rawframes)) == NULL) {
+    if ((dits = cr2res_io_read_dits(sorted_frames)) == NULL) {
         hdrl_imagelist_delete(imlist) ;
         cpl_propertylist_delete(plist);
+        cpl_frameset_delete(sorted_frames) ;
         cpl_msg_error(__func__, "Failed to Load the DIT values") ;
         return -1 ;
     }
+    cpl_frameset_delete(sorted_frames) ;
 
     /* Collapse all input images for the traces detection (only if wished) */
     if (trace_collapse) {
@@ -767,31 +780,12 @@ static int cr2res_cal_detlin_reduce(
                                 fitted_poly, dits) ;
                         cpl_bivector * toplot_fitted =
                             cpl_bivector_wrap_vectors(dits, poly_eval) ;
-
-                        cpl_bivector * toplot_measure_sort =
-                            cpl_bivector_duplicate(toplot_measure) ;
-                        cpl_bivector * toplot_fitted_sort =
-                            cpl_bivector_duplicate(toplot_fitted) ;
-
-                        cpl_bivector_sort(toplot_measure_sort,
-                                toplot_measure, CPL_SORT_ASCENDING,
-                                CPL_SORT_BY_X) ;
-                        cpl_bivector_sort(toplot_fitted_sort,
-                                toplot_fitted, CPL_SORT_ASCENDING,
-                                CPL_SORT_BY_X) ;
-
                         cpl_plot_bivector(
                         "set grid;set xlabel 'dits (s)';set ylabel 'int';",
-                        "t 'Measured Detlin' w lines", "",
-                        toplot_measure_sort);
-
+                        "t 'Measured Detlin' w lines", "", toplot_measure);
                         cpl_plot_bivector(
                         "set grid;set xlabel 'dits (s)';set ylabel 'int';",
-                        "t 'Fitted Detlin' w lines", "",
-                        toplot_fitted_sort);
-
-                        cpl_bivector_delete(toplot_measure_sort) ;
-                        cpl_bivector_delete(toplot_fitted_sort) ;
+                        "t 'Fitted Detlin' w lines", "", toplot_fitted);
                         cpl_bivector_unwrap_vectors(toplot_fitted) ;
                         cpl_vector_delete(poly_eval) ;
                         cpl_bivector_unwrap_vectors(toplot_measure) ;

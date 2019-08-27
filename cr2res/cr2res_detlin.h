@@ -46,4 +46,7 @@ int cr2res_detlin_compute(
         cpl_polynomial      **  fitted,
         cpl_vector          **  error) ;
 
+cpl_frameset * cr2res_detlin_sort_frames(
+        const cpl_frameset  *   in) ;
+
 #endif

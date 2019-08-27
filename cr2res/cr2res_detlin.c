@@ -159,7 +159,6 @@ int cr2res_detlin_correct(
     return 0 ;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Fits the response of a given pixel to the illumination increase
@@ -229,7 +228,6 @@ int cr2res_detlin_compute(
         cpl_vector_set(y, i, expected_counts / cpl_vector_get(values, i));
     }
 
-
     /* Fit  */
     fitted_local = cpl_polynomial_new(1);
     if (cpl_polynomial_fit(fitted_local, samppos, &sampsym, y, NULL,
@@ -242,7 +240,6 @@ int cr2res_detlin_compute(
         return -1 ;
     }
 
-
     /* Compute the error */
     error_local = cpl_vector_new(max_degree+1) ;
 
@@ -254,8 +251,7 @@ int cr2res_detlin_compute(
         {
             cpl_vector_set(error_local, i, 0);
         }
-    }
-    else {
+    } else {
         // lhs = vandermode(x, order)
         // hankel = dot(lhs.T, lhs)
         // cov = inv(hankel)
@@ -276,11 +272,9 @@ int cr2res_detlin_compute(
         cpl_matrix_multiply_scalar(inverse, 
             cpl_vector_get_sum(resids) / (double)(ndata - nc));
 
-        for (cpl_size i = 0; i < max_degree + 1; i++)
-        {
+        for (cpl_size i = 0; i < max_degree + 1; i++) {
             cpl_vector_set(error_local, i, cpl_matrix_get(inverse, i, i));
         }
-        
         cpl_matrix_delete(hankel);
         cpl_matrix_delete(mx);
         cpl_matrix_delete(inverse);
@@ -295,6 +289,28 @@ int cr2res_detlin_compute(
     else cpl_vector_delete(error_local) ;
     return 0 ;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Sort the frames by increaing DIT
+  @param    in  The input frameset
+  @return   the newly allocated sorted frameset
+ */
+/*----------------------------------------------------------------------------*/
+cpl_frameset * cr2res_detlin_sort_frames(
+        const cpl_frameset  *   in)
+{
+    cpl_frameset    *   sorted ;
+
+    /* Check Inputs */
+    if (in == NULL) return NULL ;
+
+
+   
+    return sorted ;
+}
+
+/**@}*/
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -429,4 +445,3 @@ static void cr2res_matrix_fill_normal_vandermonde(cpl_matrix * self,
 
 }
 
-/**@}*/
