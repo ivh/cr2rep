@@ -28,6 +28,7 @@
 #include <math.h>
 #include <cpl.h>
 #include "cr2res_detlin.h"
+#include "cr2res_pfits.h"
 
 /*-----------------------------------------------------------------------------
                                    	Defines
@@ -40,21 +41,9 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-/*----------------------------------------------------------------------------*/
-/**
-  @internal
-  @brief    Fill the Hankel Matrix H=V'*V, where V is a 1D-Vandermonde matrix
-  @param    self      The matrix H
-  @param    mx        A right multiplication with V', mx = V' * values
-  @param    xhat      The mean-transformed x-values
-  @param    is_eqdist True iff xhat contains equidistant points
-  @param    mindeg    The non-negative minimum fitting degree
-  @param    values    The values to be interpolated
-  @return   void
-  @note self must have its elements initialized to zero iff is_eqdist is true.
-
- */
-/*----------------------------------------------------------------------------*/
+static int cr2res_detlin_frames_dit_compare(
+        const cpl_frame *   in1,
+        const cpl_frame *   in2) ;
 static void cr2res_matrix_fill_normal_vandermonde(cpl_matrix * self,
                                                cpl_matrix * mx,
                                                const cpl_vector * xhat,
@@ -305,12 +294,51 @@ cpl_frameset * cr2res_detlin_sort_frames(
     /* Check Inputs */
     if (in == NULL) return NULL ;
 
-
-   
+    sorted = cpl_frameset_duplicate(in) ;
+    if (cpl_frameset_sort(sorted, 
+                cr2res_detlin_frames_dit_compare) != CPL_ERROR_NONE) {
+        cpl_frameset_delete(sorted) ;
+        return NULL ;
+    }
     return sorted ;
 }
 
 /**@}*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Frames comparison using DIT values
+  @param    in1 the first frame
+  @param    in2 the second frame
+  @return   -1, 0, or 1 if in1 is less than, equal or greater than in2
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_detlin_frames_dit_compare(
+        const cpl_frame *   in1,
+        const cpl_frame *   in2)
+{
+    cpl_propertylist    *   plist1 ;
+    cpl_propertylist    *   plist2 ;
+    double                  dit1, dit2 ;
+    
+    /* Test entries */
+    if (in1==NULL || in2==NULL) return 0 ;
+
+    /* Get property lists */
+    plist1=cpl_propertylist_load(cpl_frame_get_filename(in1),0) ;
+    plist2=cpl_propertylist_load(cpl_frame_get_filename(in2),0) ;
+
+    /* Get DITs */
+    dit1 = cr2res_pfits_get_dit(plist1) ;
+    dit2 = cr2res_pfits_get_dit(plist2) ;
+    if (plist1 != NULL) cpl_propertylist_delete(plist1) ;
+    if (plist2 != NULL) cpl_propertylist_delete(plist2) ;
+    if (cpl_error_get_code()) return 0 ;
+
+    if (dit1<dit2)          return -1 ;
+    else if (dit1>dit2)     return 1 ;
+    return 0 ;
+}
 
 /*----------------------------------------------------------------------------*/
 /**
