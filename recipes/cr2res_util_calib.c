@@ -412,6 +412,7 @@ static int cr2res_util_calib(
     } else {
         /* Save COLLAPSED calibrated image */
         cur_frame = cpl_frameset_get_position(rawframes, 0) ;
+        cur_fname = cpl_frame_get_filename(cur_frame) ;
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname, det_nr) ;
         }
