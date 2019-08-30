@@ -43,6 +43,10 @@
                                    Defines
  -----------------------------------------------------------------------------*/
 
+// The maximum difference to the neighbouring pixels to be considered a bad pixel
+// For the fitting of the gaussian line centers
+#define MAX_DEVIATION_FOR_BAD_PIXEL 300
+
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
@@ -1549,6 +1553,7 @@ static int cr2res_wave_extract_lines(
     double max_wl, min_wl;
     cpl_vector * fit, *fit_x;
     const cpl_vector ** plot;
+    cpl_vector * tmp;
 
     // For gaussian fit of each line
     // gauss = A * exp((x-mu)^2/(2*sig^2)) + cont
@@ -1632,17 +1637,23 @@ static int cr2res_wave_extract_lines(
         }
 
         // Filter out bad pixels
+        tmp = cpl_vector_duplicate(y);
+        // First element
+        if (fabs(cpl_vector_get(tmp, 0) - cpl_vector_get(tmp, 1)) > MAX_DEVIATION_FOR_BAD_PIXEL)
+            cpl_vector_set(y, 0, cpl_vector_get(tmp, 1));     
+        // Elements in between
         for (j = 1; j < window_size-1; j++){
-            diff = 2 * cpl_vector_get(y, j) - cpl_vector_get(y, j-1) - cpl_vector_get(y, j+1);
+            diff = 2 * cpl_vector_get(tmp, j) - cpl_vector_get(tmp, j-1) - cpl_vector_get(tmp, j+1);
             diff = fabs(diff);
-            if (diff > 300){
-                value = (cpl_vector_get(y, j-1) + cpl_vector_get(y, j+1)) / 2.;
+            if (diff > MAX_DEVIATION_FOR_BAD_PIXEL){
+                value = (cpl_vector_get(tmp, j-1) + cpl_vector_get(tmp, j+1)) / 2.;
                 cpl_vector_set(y, j, value);
             }
         }
-        cpl_vector_set(y, 0, 0);
-        cpl_vector_set(y, window_size-1, 0);
-
+        // Last element
+        if (fabs(cpl_vector_get(tmp, window_size-1) - cpl_vector_get(tmp, window_size-2)) > MAX_DEVIATION_FOR_BAD_PIXEL)
+            cpl_vector_set(y, window_size-1, cpl_vector_get(tmp, window_size-2));
+        cpl_vector_delete(tmp);
 
         // get initial guess for gaussian fit
         value = pixel_pos - window_size / 2 + cpl_vector_get_maxpos(y);

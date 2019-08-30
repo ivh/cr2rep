@@ -339,7 +339,7 @@ static void test_cr2res_qc_obs_nodding_slit_psf()
     int nrow = 100;
     // values for creating the default data
     double x0 = nrow / 2;
-    double A = 10;
+    double A = 1; // total area of the slitfunc should always be 1
     double offset = 0;
     double sigma = nrow / 20;
     double value = 0;
