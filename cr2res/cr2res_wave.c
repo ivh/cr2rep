@@ -1670,12 +1670,17 @@ static int cr2res_wave_extract_lines(
         // 3) the gaussian is centered outside the window
         // 4) the fitted height is negative
         // 5) Peak is smaller than the noise level (SNR > 1)
+        // 6) sigma is too large or too small
 
         if (error != CPL_ERROR_NONE
             // | red_chisq > 100
             | fabs(pixel_new - pixel_pos) > window_size
             | cpl_vector_get(a, 2) < 0
             | cpl_vector_get(a, 2) < cpl_vector_get(a, 3) * 5.
+
+            // TODO: Tweak these values and make into proper parameters?
+            | cpl_vector_get(a, 1) < 2 // lower line width limit
+            | cpl_vector_get(a, 1) > 6 // upper
         ){
             cpl_vector_set(flag_vec, i, 0);
             cpl_error_reset();
