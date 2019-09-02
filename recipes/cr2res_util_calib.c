@@ -25,6 +25,9 @@
                                 Includes
  -----------------------------------------------------------------------------*/
 
+#include <locale.h>
+#include <string.h>
+
 #include <cpl.h>
 
 #include "cr2res_utils.h"
@@ -186,8 +189,8 @@ static int cr2res_util_calib_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_calib.collapse",
-            CPL_TYPE_BOOL, "Collapse the inputs",
-            "cr2res.cr2res_util_calib", FALSE);
+            CPL_TYPE_STRING, "Collapse the input images (NONE, MEAN or MEDIAN)",
+            "cr2res.cr2res_util_calib", "NONE");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "collapse");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -247,7 +250,9 @@ static int cr2res_util_calib(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     calib_cosmics_corr, reduce_det, collapse ;
+    int                     calib_cosmics_corr, reduce_det ;
+    cr2res_collapse         collapse ;
+    const char          *   sval ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
@@ -266,8 +271,12 @@ static int cr2res_util_calib(
     char                *   out_file;
     int                     i, det_nr ; 
 
+    /* Needed for sscanf() */
+    setlocale(LC_NUMERIC, "C");
+
     /* Initialise */
     contrib = NULL ;
+    collapse = CR2RES_COLLAPSE_UNSPECIFIED ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -278,7 +287,15 @@ static int cr2res_util_calib(
     calib_cosmics_corr = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_calib.collapse");
-    collapse = cpl_parameter_get_bool(param);
+    sval = cpl_parameter_get_string(param);
+    if (!strcmp(sval, "NONE"))          collapse = CR2RES_COLLAPSE_NONE ;
+    else if (!strcmp(sval, "MEAN"))     collapse = CR2RES_COLLAPSE_MEAN ;
+    else if (!strcmp(sval, "MEDIAN"))   collapse = CR2RES_COLLAPSE_MEDIAN ;
+    if (collapse == CR2RES_COLLAPSE_UNSPECIFIED) {
+        cpl_msg_error(__func__, "Cannot understand the collapse method") ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
@@ -355,30 +372,34 @@ static int cr2res_util_calib(
         if (dits != NULL) cpl_vector_delete(dits) ;
 
         /* Collapse */
-        cpl_msg_info(__func__, "Collapse the calibrated images") ;
-        cpl_msg_indent_more() ;
-        if (hdrl_imagelist_collapse_mean(calibrated[det_nr-1],
-                    &(collapsed_ima[det_nr-1]), &contrib) != CPL_ERROR_NONE) {
-            collapsed_ima[det_nr-1] = NULL ;
-            if (contrib != NULL) {
-                cpl_image_delete(contrib) ;
-                contrib = NULL ;
-            }
-            cpl_msg_warning(__func__, "Failed to Collapse") ;
-            cpl_msg_indent_less() ;
-            cpl_msg_indent_less() ;
-            continue ;
+        if (collapse == CR2RES_COLLAPSE_MEAN) {
+            cpl_msg_info(__func__, "Collapse (Mean) the calibrated images") ;
+            cpl_msg_indent_more() ;
+            hdrl_imagelist_collapse_mean(calibrated[det_nr-1],
+                    &(collapsed_ima[det_nr-1]), &contrib) ;
+        } else if (collapse == CR2RES_COLLAPSE_MEDIAN) {
+            cpl_msg_info(__func__, "Collapse (Median) the calibrated images") ;
+            cpl_msg_indent_more() ;
+            hdrl_imagelist_collapse_median(calibrated[det_nr-1],
+                    &(collapsed_ima[det_nr-1]), &contrib) ;
         }
         if (contrib != NULL) {
             cpl_image_delete(contrib) ;
             contrib = NULL ;
+        }
+        if (cpl_error_get_code() != CPL_ERROR_NONE) {
+            collapsed_ima[det_nr-1] = NULL ;
+            cpl_msg_warning(__func__, "Failed to Collapse") ;
+            cpl_msg_indent_less() ;
+            cpl_msg_indent_less() ;
+            continue ;
         }
         cpl_msg_indent_less() ;
         cpl_msg_indent_less() ;
     }
 
     /* Ѕave Products */
-    if (!collapse) {
+    if (collapse == CR2RES_COLLAPSE_NONE) {
         /* Save individual calibrated images */
         /* Loop on the RAW frames */
         for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {

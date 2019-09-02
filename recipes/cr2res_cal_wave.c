@@ -69,6 +69,7 @@ static int cr2res_cal_wave_reduce(
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
+        cr2res_collapse         collapse,
         int                     ext_height,
         int                     ext_swath_width,
         int                     ext_oversample,
@@ -276,6 +277,13 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.collapse_method",
+            CPL_TYPE_STRING, "Collapse the input images (MEAN or MEDIAN)",
+            "cr2res.cr2res_cal_wave", "MEDIAN");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "collapse_method");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.ext_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
             "cr2res.cr2res_cal_wave", 3);
@@ -421,6 +429,7 @@ static int cr2res_cal_wave(
                             wl_degree, display, log_flag, propagate_flag ;
     double                  ext_smooth_slit, wl_start, wl_end, wl_err_start, 
                             wl_err_end, wl_shift ;
+    cr2res_collapse         collapse ;
     cr2res_wavecal_type     wavecal_type ;
     const char          *   sval ;
     cpl_frameset        *   rawframes ;
@@ -443,6 +452,7 @@ static int cr2res_cal_wave(
     /* Initialise */
     wl_start = wl_end = wl_err_start = wl_err_end = -1.0 ;
     wl_shift = 0.0 ;
+    collapse = CR2RES_COLLAPSE_UNSPECIFIED ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -454,6 +464,16 @@ static int cr2res_cal_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.trace_nb");
     reduce_trace = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_wave.collapse_method");
+    sval = cpl_parameter_get_string(param);
+    if (!strcmp(sval, "MEAN"))          collapse = CR2RES_COLLAPSE_MEAN ;
+    else if (!strcmp(sval, "MEDIAN"))   collapse = CR2RES_COLLAPSE_MEDIAN ;
+    if (collapse!=CR2RES_COLLAPSE_MEAN && collapse!=CR2RES_COLLAPSE_MEDIAN) {
+        cpl_msg_error(__func__, "Unsupported collapse method") ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
     param = cpl_parameterlist_find_const(parlist,
            "cr2res.cr2res_cal_wave.ext_oversample");
     ext_oversample = cpl_parameter_get_int(param);
@@ -584,7 +604,7 @@ static int cr2res_cal_wave(
         if (cr2res_cal_wave_reduce(rawframes, detlin_frame,
                     master_dark_frame, master_flat_frame, bpm_frame,
                     trace_wave_frame, lines_frame, det_nr, reduce_order,
-                    reduce_trace,  ext_height, ext_swath_width,
+                    reduce_trace, collapse, ext_height, ext_swath_width,
                     ext_oversample, ext_smooth_slit, wavecal_type, wl_degree, 
                     wl_start, wl_end, wl_err_start, wl_err_end, wl_shift, 
                     log_flag, propagate_flag, display,
@@ -648,6 +668,7 @@ static int cr2res_cal_wave(
   @param reduce_det         The detector to compute
   @param reduce_order       The order to compute (-1 for all)
   @param reduce_trace       The trace to compute (-1 for all)
+  @param collapse           CR2RES_COLLAPSE_MEAN or CR2RES_COLLAPSE_MEDIAN
   @param ext_height         Extraction related
   @param ext_swath_width    Extraction related
   @param ext_oversample     Extraction related
@@ -680,6 +701,7 @@ static int cr2res_cal_wave_reduce(
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
+        cr2res_collapse         collapse,
         int                     ext_height, 
         int                     ext_swath_width,
         int                     ext_oversample, 
@@ -719,6 +741,9 @@ static int cr2res_cal_wave_reduce(
     if (rawframes==NULL || trace_wave_frame==NULL || out_trace_wave==NULL ||
             lines_diagnostics == NULL || out_wave_map==NULL || ext_plist==NULL)
         return -1 ;
+    if (collapse!=CR2RES_COLLAPSE_MEAN && collapse!=CR2RES_COLLAPSE_MEDIAN) {
+        return -1 ;
+    }
 
     /* Load the DITs if necessary */
     if (master_dark_frame != NULL)  dits = cr2res_io_read_dits(rawframes) ;
@@ -752,17 +777,26 @@ static int cr2res_cal_wave_reduce(
     if (dits != NULL) cpl_vector_delete(dits) ;
 
     /* Collapse */
-    cpl_msg_info(__func__, "Collapse the input frames") ;
-    cpl_msg_indent_more() ;
-    if (hdrl_imagelist_collapse_mean(in_calib, &collapsed, &contrib) !=
-            CPL_ERROR_NONE) {
+    if (collapse == CR2RES_COLLAPSE_MEAN) {
+        cpl_msg_info(__func__, "Collapse (Mean) the input frames") ;
+        cpl_msg_indent_more() ;
+        hdrl_imagelist_collapse_mean(in_calib, &collapsed, &contrib) ;
+    } else if (collapse == CR2RES_COLLAPSE_MEDIAN) {
+        cpl_msg_info(__func__, "Collapse (Median) the input frames") ;
+        cpl_msg_indent_more() ;
+        hdrl_imagelist_collapse_median(in_calib, &collapsed, &contrib) ;
+    } else {
+        /* Should never happen */
+        collapsed = NULL ;
+        contrib = NULL ;
+    }
+    hdrl_imagelist_delete(in_calib) ;
+    if (contrib != NULL) cpl_image_delete(contrib) ;
+    if (cpl_error_get_code() != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Failed to Collapse") ;
-        hdrl_imagelist_delete(in_calib) ;
         cpl_msg_indent_less() ;
         return -1 ;
     }
-    cpl_image_delete(contrib) ;
-    hdrl_imagelist_delete(in_calib) ;
     cpl_msg_indent_less() ;
 
     /* Load the trace wave */
