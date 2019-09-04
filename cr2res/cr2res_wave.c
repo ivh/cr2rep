@@ -803,6 +803,7 @@ cpl_polynomial * cr2res_wave_xcorr(
     cpl_polynomial      *   sol_guess ;
     cpl_vector          *   spec_clean ;
     double              *   pspec_clean ;
+    cpl_bivector        *   lines_list_filtered ;
     cpl_vector          *   filtered ;
     cpl_vector          *   xcorrs ;
     double                  wl_min, wl_max, wl_error_nm, wl_error_pix ;
@@ -839,6 +840,20 @@ cpl_polynomial * cr2res_wave_xcorr(
         spec_clean = cpl_vector_duplicate(cpl_bivector_get_y(spectrum)) ;
     }
 
+    lines_list_filtered = cpl_bivector_duplicate(lines_list) ;
+    if (0) {
+    /* TODO */
+        /* Clean the lines list */
+        double  med = cpl_vector_get_median(cpl_bivector_get_y(lines_list)) ;
+        double sig = cpl_vector_get_stdev(cpl_bivector_get_y(lines_list)) ;
+        double * pylines_list_filtered = 
+            cpl_bivector_get_y_data(lines_list_filtered) ;
+        for (i=0 ; i<cpl_bivector_get_size(lines_list_filtered) ; i++) {
+            if  (pylines_list_filtered[i] < med +0* sig) 
+                pylines_list_filtered[i]=0.0 ;
+        }
+    }
+
     /* Remove Negative values */
     pspec_clean = cpl_vector_get_data(spec_clean) ;
     for (i=0 ; i<cpl_vector_get_size(spec_clean) ; i++)
@@ -849,7 +864,8 @@ cpl_polynomial * cr2res_wave_xcorr(
         /* Plot Catalog Spectrum */
         cpl_plot_bivector(
                 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Emission';",
-                "t 'Catalog Spectrum' w impulses", "", lines_list);
+                "t 'Catalog Spectrum' w impulses", "",
+                lines_list_filtered);
         /* Plot Extracted Spectrum */
         cpl_plot_vector(
     "set grid;set xlabel 'Position (Pixel)';set ylabel 'Intensity (ADU/sec)';",
@@ -858,7 +874,7 @@ cpl_polynomial * cr2res_wave_xcorr(
 
     /* Pass #1 */
     degree_loc = 2 ;
-    nsamples = 30 ;
+    nsamples = 100;
     wl_error_nm = wl_error ;
     sol_guess = wavesol_init ;
 
@@ -870,9 +886,9 @@ cpl_polynomial * cr2res_wave_xcorr(
         degree_loc,wl_error_nm,wl_error_pix,nsamples,pow(nsamples,
             degree_loc+1)) ;
     cpl_msg_indent_more() ;
-    if ((sol=irplib_wlxcorr_best_poly(spec_clean, lines_list, degree_loc,
-                    sol_guess, wl_errors, nsamples, slit_width, fwhm, &xc, NULL,
-                    &xcorrs)) == NULL) {
+    if ((sol=irplib_wlxcorr_best_poly(spec_clean, lines_list_filtered, 
+                    degree_loc, sol_guess, wl_errors, nsamples, slit_width, 
+                    fwhm, &xc, NULL, &xcorrs)) == NULL) {
         cpl_msg_error(__func__, "Cannot get the best polynomial") ;
         cpl_vector_delete(wl_errors) ;
         cpl_vector_delete(spec_clean) ;
@@ -909,6 +925,7 @@ cpl_polynomial * cr2res_wave_xcorr(
     cpl_msg_indent_less() ;
 
     /* Pass #2 */
+    /*
     degree_loc = degree ;
     nsamples = 10 ;
     wl_error_nm= wl_error/2 ;
@@ -922,9 +939,9 @@ cpl_polynomial * cr2res_wave_xcorr(
             degree_loc,wl_error_nm,wl_error_pix,nsamples,
             pow(nsamples,degree_loc+1)) ;
     cpl_msg_indent_more() ;
-    if ((sol=irplib_wlxcorr_best_poly(spec_clean, lines_list, degree_loc,
-                    sol_guess, wl_errors, nsamples, slit_width, fwhm, &xc, NULL,
-                    &xcorrs)) == NULL) {
+    if ((sol=irplib_wlxcorr_best_poly(spec_clean, lines_list_filtered, 
+                    degree_loc, sol_guess, wl_errors, nsamples, slit_width, 
+                    fwhm, &xc, NULL, &xcorrs)) == NULL) {
         cpl_msg_error(__func__, "Cannot get the best polynomial") ;
         cpl_msg_indent_less() ;
         cpl_vector_delete(wl_errors) ;
@@ -937,7 +954,6 @@ cpl_polynomial * cr2res_wave_xcorr(
     cpl_vector_delete(wl_errors) ;
     cpl_msg_info(__func__, "Cross-Correlation factor: %g", xc) ;
 
-    /* Plot the correlation values */
     if (display) {
         cpl_plot_vector("set grid;", "t 'Correlation values (Pass #2)' w lines",
                 "", xcorrs) ;
@@ -945,10 +961,13 @@ cpl_polynomial * cr2res_wave_xcorr(
                 CR2RES_DETECTOR_SIZE);
     }
     if (xcorrs != NULL) cpl_vector_delete(xcorrs) ;
+    cpl_polynomial_delete(sol_guess) ;
     cpl_msg_indent_less() ;
+    */
+
+    /* RM pass#2 */
 
     cpl_vector_delete(spec_clean) ;
-    cpl_polynomial_delete(sol_guess) ;
 
     /* Set teh Wavelength error */
     if (wavelength_error != NULL){

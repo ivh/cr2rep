@@ -146,17 +146,17 @@ static int cr2res_util_plot_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
-    p = cpl_parameter_new_value("cr2res.cr2res_util_plot.pmin",
-            CPL_TYPE_INT, "Minimum pixel to plot",
-            "cr2res.cr2res_util_plot", -1);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "pmin");
+    p = cpl_parameter_new_value("cr2res.cr2res_util_plot.xmin",
+            CPL_TYPE_DOUBLE, "Minimum x value to plot",
+            "cr2res.cr2res_util_plot", -1.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "xmin");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_plot.pmax",
-            CPL_TYPE_INT, "Maximum pixel to plot",
-            "cr2res.cr2res_util_plot", -1);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "pmax");
+    p = cpl_parameter_new_value("cr2res.cr2res_util_plot.xmax",
+            CPL_TYPE_DOUBLE, "Maximum x value to plot",
+            "cr2res.cr2res_util_plot", -1.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "xmax");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -243,24 +243,24 @@ static int cr2res_util_plot(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param;
-    int                     pmin, pmax, reduce_det, reduce_trace,
+    int                     xmin, xmax, reduce_det, reduce_trace,
                             reduce_order, adjust ;
     const char          *   fname ;
     const char          *   fname_opt ;
     const char          *   title ;
-    const char          *   procatg ;
     const char          *   protype ;
     cpl_propertylist    *   plist ;
     cpl_table           *   tab ;
+    cpl_table           *   sel_tab ;
     cpl_table           *   tab_opt ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_plot.pmin");
-    pmin = cpl_parameter_get_int(param);
+            "cr2res.cr2res_util_plot.xmin");
+    xmin = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_plot.pmax");
-    pmax = cpl_parameter_get_int(param);
+            "cr2res.cr2res_util_plot.xmax");
+    xmax = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_plot.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -276,28 +276,8 @@ static int cr2res_util_plot(
 
     /* Initialise */
     
-    /* Identify the RAW and CALIB frames in the input frameset */
-    if (cr2res_dfs_set_groups(frameset)) {
-        cpl_msg_error(__func__, "Cannot identify RAW and CALIB frames") ;
-        return -1 ;
-    }
-
     /* Retrieve raw frames */
     fname = cpl_frame_get_filename(cpl_frameset_get_position(frameset, 0)) ;
-    if (cpl_frameset_get_size(frameset) > 1) {
-        fname_opt = cpl_frame_get_filename(
-                cpl_frameset_get_position(frameset, 1)) ;
-    } else {
-        fname_opt = NULL ;
-    }
-
-    /* Load the table */
-    tab = cr2res_load_table(fname, reduce_det, pmin, pmax) ;
-    tab_opt = cr2res_load_table(fname_opt, reduce_det, pmin, pmax) ;
-    if (tab == NULL) {
-        cpl_msg_error(__func__, "Cannot load the first input table") ;
-        return -1 ;
-    }
 
     /* Read the PRO.TYPE */
     plist = cpl_propertylist_load(fname, 0) ;
@@ -305,33 +285,45 @@ static int cr2res_util_plot(
 
     /* CR2RES_PROTYPE_CATALOG */
     if (!strcmp(protype, CR2RES_PROTYPE_CATALOG)) {
-        /* CR2RES_EMISSION_LINES_PROCATG */
-        if (!strcmp(procatg, CR2RES_EMISSION_LINES_PROCATG))
-            title = "t 'Emission lines' w lines" ;
-        /* Default */
-        else        
-            title = "t 'signal' w lines" ;
+        title = "t 'Emission lines' w lines" ;
+        tab = cpl_table_load(fname, 1, 0) ;
+
+        /* Sub selection of the catalog */
+        if (xmin > 0.0 && xmax >.0) {
+            cpl_table_and_selected_double(tab, CR2RES_COL_WAVELENGTH,
+                    CPL_GREATER_THAN, xmin) ;
+            cpl_table_and_selected_double(tab, CR2RES_COL_WAVELENGTH,
+                    CPL_LESS_THAN, xmax) ;
+            sel_tab = cpl_table_extract_selected(tab) ;
+            cpl_table_delete(tab) ;
+            tab = sel_tab ;
+        }
 
         /* Plot */
         cpl_plot_column(
                 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Emission';",
                 title, "", tab, CR2RES_COL_WAVELENGTH, CR2RES_COL_EMISSION) ;
+        cpl_table_delete(tab) ;
     }
  
     /* CR2RES_EXTRACT_1D_PROTYPE */
     if (!strcmp(protype, CR2RES_EXTRACT_1D_PROTYPE)) {
+        /* Load the table */
+        tab = cr2res_load_table(fname, reduce_det, (int)xmin, (int)xmax) ;
         cr2res_util_plot_spec_1d(tab, tab_opt, adjust, reduce_order, 
                 reduce_trace) ;
+        cpl_table_delete(tab) ;
     }
 
    /* CR2RES_PROTYPE_XCORR */
     if (!strcmp(protype, CR2RES_PROTYPE_XCORR)) {
+        /* Load the table */
+        tab = cr2res_load_table(fname, reduce_det, (int)xmin, (int)xmax) ;
         irplib_wlxcorr_plot_spc_table(tab, "", 1, 5) ;
+        cpl_table_delete(tab) ;
     }
 
     /* Delete */
-    cpl_table_delete(tab) ;
-    if (tab_opt != NULL) cpl_table_delete(tab_opt) ;
     cpl_propertylist_delete(plist) ;
 
     /* Return */
@@ -401,7 +393,6 @@ static int cr2res_util_plot_spec_1d_one(
             return -1 ;
         }
     }
-
     if (tab_opt != NULL) {
         vectors = cpl_malloc(3*sizeof(cpl_vector*)) ;
         vectors[0]=cpl_vector_wrap(nrows,cpl_table_get_data_double(tab, 
