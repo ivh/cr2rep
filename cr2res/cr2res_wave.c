@@ -873,9 +873,12 @@ cpl_polynomial * cr2res_wave_xcorr(
     }
 
     /* Pass #1 */
-    degree_loc = 2 ;
-    nsamples = 100;
+    degree_loc = 1 ;
+    nsamples = 30;
     wl_error_nm = wl_error ;
+    wl_error_nm = 0.5 ;
+
+
     sol_guess = wavesol_init ;
 
     wl_error_pix = CR2RES_DETECTOR_SIZE *wl_error_nm/(wl_max-wl_min) ;
