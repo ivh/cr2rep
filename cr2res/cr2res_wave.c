@@ -43,14 +43,22 @@
                                    Defines
  -----------------------------------------------------------------------------*/
 
-// The maximum difference to the neighbouring pixels to be considered a bad pixel
-// For the fitting of the gaussian line centers
+// The maximum difference to the neighbouring pixels to be considered a 
+// bad pixel for the fitting of the gaussian line centers
 #define MAX_DEVIATION_FOR_BAD_PIXEL 300
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_wave_xcorr_plot_result(
+        const cpl_vector        *   extracted_spec,
+        const cpl_bivector      *   catalog,
+        const cpl_polynomial    *   init,
+        const cpl_polynomial    *   sol,
+        double                      wmin,
+        double                      wmax) ;
+ 
 static cpl_bivector * cr2res_wave_gen_lines_spectrum(
         const char      *   catalog,
         cpl_polynomial  *   wavesol_init,
@@ -390,8 +398,6 @@ int cr2res_wave_apply(
                 cpl_error_reset() ;
                 continue ;
             }
-            cpl_msg_debug(__func__,"Error after cr2res_wave_1d() %s",
-                     cpl_error_get_where());
 
             /* Merge the lines_diagnostics */
             if (lines_diagnostics_loc == NULL) {
@@ -482,7 +488,8 @@ cpl_polynomial * cr2res_wave_1d(
     double                  wl_error_nm ;
 
     /* Check Inputs */
-    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL || wavelength_error == NULL || lines_diagnostics == NULL)
+    if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL ||
+            wavelength_error == NULL || lines_diagnostics == NULL)
         return NULL ;
     if ((wavecal_type == CR2RES_XCORR || wavecal_type == CR2RES_LINE1D) &&
             catalog == NULL) return NULL ;
@@ -502,11 +509,14 @@ cpl_polynomial * cr2res_wave_1d(
         /* Currently Hardcoded */
         double slit_width = 2.0 ;
         double fwhm = 2.0 ;
-        int zoom = 1 ;
+        int zoom = 3 ;
         int cleaning_filter_size = 9 ;
         solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error_nm,
                 ref_spectrum, degree, cleaning_filter_size, slit_width, fwhm,
                 display, wavelength_error) ;
+
+        /* Plot Using irplib standard plot */
+        /*
         cpl_table * spc_table = irplib_wlxcorr_gen_spc_table(
                 cpl_bivector_get_y(spectrum), ref_spectrum, slit_width, fwhm,
                 wavesol_init, solution) ;
@@ -515,7 +525,20 @@ cpl_polynomial * cr2res_wave_1d(
         } else if (display && spc_table != NULL)
             irplib_wlxcorr_plot_spc_table(spc_table, "XC", 1, zoom) ;
         if (spc_table != NULL) cpl_table_delete(spc_table) ;
+        */
 
+        if (cpl_error_get_code() != CPL_ERROR_NONE) {
+            cpl_error_reset();
+        } else if (display) {
+            double display_wave_min = -1.0 ;
+            double display_wave_max = -1.0 ;
+            cr2res_wave_xcorr_plot_result(
+                    cpl_bivector_get_y(spectrum),
+                    ref_spectrum,
+                    wavesol_init, solution,
+                    display_wave_min,
+                    display_wave_max) ;
+        }
     } else if (wavecal_type == CR2RES_LINE1D) {
         solution = cr2res_wave_line_fitting(spectrum, spectrum_err,
                 wavesol_init, wave_error_init, order, trace_nb,
@@ -600,7 +623,8 @@ cpl_polynomial * cr2res_wave_2d(
 
     /* Check Inputs */
     if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
-            orders==NULL || catalog==NULL || wavelength_error == NULL || lines_diagnostics==NULL)
+            orders==NULL || catalog==NULL || wavelength_error == NULL || 
+            lines_diagnostics==NULL)
         return NULL ;
 
     /* Initialise */
@@ -841,19 +865,7 @@ cpl_polynomial * cr2res_wave_xcorr(
     }
 
     lines_list_filtered = cpl_bivector_duplicate(lines_list) ;
-    if (0) {
-    /* TODO */
-        /* Clean the lines list */
-        double  med = cpl_vector_get_median(cpl_bivector_get_y(lines_list)) ;
-        double sig = cpl_vector_get_stdev(cpl_bivector_get_y(lines_list)) ;
-        double * pylines_list_filtered = 
-            cpl_bivector_get_y_data(lines_list_filtered) ;
-        for (i=0 ; i<cpl_bivector_get_size(lines_list_filtered) ; i++) {
-            if  (pylines_list_filtered[i] < med +0* sig) 
-                pylines_list_filtered[i]=0.0 ;
-        }
-    }
-
+    
     /* Remove Negative values */
     pspec_clean = cpl_vector_get_data(spec_clean) ;
     for (i=0 ; i<cpl_vector_get_size(spec_clean) ; i++)
@@ -873,10 +885,9 @@ cpl_polynomial * cr2res_wave_xcorr(
     }
 
     /* Pass #1 */
-    degree_loc = 1 ;
-    nsamples = 30;
+    degree_loc = 2 ;
+    nsamples = 100 ;
     wl_error_nm = wl_error ;
-    wl_error_nm = 0.5 ;
 
 
     sol_guess = wavesol_init ;
@@ -1428,6 +1439,68 @@ cr2res_wavecal_type cr2res_wave_guess_method(
 }
 
 /**@}*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Plot the spectrum with the catalog
+  @return   
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_wave_xcorr_plot_result(
+        const cpl_vector        *   extracted_spec,
+        const cpl_bivector      *   catalog,
+        const cpl_polynomial    *   init,
+        const cpl_polynomial    *   sol,
+        double                      wmin,
+        double                      wmax)
+{
+    cpl_bivector    **  bivectors ;
+    double          *   px ;
+    double          *   py ;
+    double          *   pextracted_spec ;
+    int                 nsamples, i ;
+
+    /* Check entries */
+    if (extracted_spec==NULL||catalog==NULL||init==NULL||sol==NULL)
+        return -1 ;
+
+    /* Initialise */
+    nsamples = cpl_vector_get_size(extracted_spec) ;
+
+    /* First Plot with the initial guess */
+
+
+    /* Create bivectors */
+    bivectors = cpl_malloc(2*sizeof(cpl_bivector*)) ;
+    bivectors[0] = cpl_bivector_new(nsamples) ;
+    bivectors[1] = (cpl_bivector *)catalog ;
+    px = cpl_bivector_get_x_data(bivectors[0]) ;
+    py = cpl_bivector_get_y_data(bivectors[0]) ;
+    pextracted_spec = cpl_vector_get_data((cpl_vector*)extracted_spec) ;
+
+    /* First plot with the lambda/pixel relation */
+    /* Fill vectors */
+    for (i=0 ; i<nsamples ; i++) {
+        px[i] = cpl_polynomial_eval_1d(init, (double)(i), NULL) ;
+        py[i] = pextracted_spec[i] ;
+    }
+
+    /* Plot */
+    char ** options = cpl_malloc(2*sizeof(char*)) ;
+    options[0] = "t '1-Extracted / 2-Catalog' w lines" ;
+    options[1] = "t '1-Extracted / 2-Catalog' w lines" ;
+    cpl_plot_bivectors("set grid;set xlabel 'Position (pixels)';",
+        (const char **)options,
+        "", (const cpl_bivector **)bivectors, 2);
+
+    /* Free */
+    cpl_free(options) ;
+    cpl_bivector_delete(bivectors[0]) ;
+    cpl_bivector_delete(bivectors[1]) ;
+    cpl_free(bivectors) ;
+
+    return 0 ;
+}
 
 /*----------------------------------------------------------------------------*/
 /**
