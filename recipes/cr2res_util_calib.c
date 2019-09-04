@@ -181,6 +181,13 @@ static int cr2res_util_calib_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_calib.clean_bad",
+            CPL_TYPE_BOOL, "Apply the cleaning to the bad pixels",
+            "cr2res.cr2res_util_calib", TRUE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "clean_bad");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_calib.calib_cosmics_corr",
             CPL_TYPE_BOOL, "Correct the Cosmics",
             "cr2res.cr2res_util_calib", FALSE);
@@ -250,7 +257,7 @@ static int cr2res_util_calib(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     calib_cosmics_corr, reduce_det ;
+    int                     clean_bad, calib_cosmics_corr, reduce_det ;
     cr2res_collapse         collapse ;
     const char          *   sval ;
     cpl_frameset        *   rawframes ;
@@ -282,6 +289,9 @@ static int cr2res_util_calib(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_calib.detector");
     reduce_det = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_calib.clean_bad");
+    clean_bad = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_calib.calib_cosmics_corr");
     calib_cosmics_corr = cpl_parameter_get_bool(param);
@@ -359,9 +369,9 @@ static int cr2res_util_calib(
 
         /* Calibrate the images */
         cpl_msg_info(__func__, "Calibrate the input images") ;
-        if ((calibrated[det_nr-1] = cr2res_calib_imagelist(in, det_nr, 0, 
-                        master_flat_frame, master_dark_frame, bpm_frame, 
-                        detlin_frame, dits)) == NULL) {
+        if ((calibrated[det_nr-1] = cr2res_calib_imagelist(in, det_nr,
+                        clean_bad, 0, master_flat_frame, master_dark_frame, 
+                        bpm_frame, detlin_frame, dits)) == NULL) {
             cpl_msg_warning(__func__, "Failed to apply the calibrations") ;
             if (dits != NULL) cpl_vector_delete(dits) ;
             hdrl_imagelist_delete(in) ;

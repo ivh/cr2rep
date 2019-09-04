@@ -453,7 +453,7 @@ static int cr2res_obs_2d_reduce(
     }
 
     /* Calibrate the image */
-    if ((in_calib = cr2res_calib_image(in, reduce_det, 0, master_flat_frame,
+    if ((in_calib = cr2res_calib_image(in, reduce_det, 0, 0, master_flat_frame,
             master_dark_frame, bpm_frame, detlin_frame, dit)) == NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         hdrl_image_delete(in) ;

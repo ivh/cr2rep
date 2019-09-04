@@ -51,6 +51,7 @@
   @brief    The images calibration routine for a given chip on a list
   @param    in          the input hdrl image list
   @param    chip        the chip to calibrate (1 to CR2RES_NB_DETECTORS)
+  @param    clean_bad   Flag to activate the cleaning of the bad pixels 
   @param    cosmics_corr    Flag to correct for cosmics
   @param    flat        the flat frame or NULL
   @param    dark        the dark frame or NULL
@@ -65,6 +66,7 @@
 hdrl_imagelist * cr2res_calib_imagelist(
         const hdrl_imagelist    *   in,
         int                         chip,
+        int                         clean_bad,
         int                         cosmics_corr,
         const cpl_frame         *   flat,
         const cpl_frame         *   dark,
@@ -93,8 +95,8 @@ hdrl_imagelist * cr2res_calib_imagelist(
         if (dark != NULL) dit = cpl_vector_get(dits, i) ;
 
         /* Calibrate */
-        if ((cur_ima_calib = cr2res_calib_image(cur_ima, chip, cosmics_corr, 
-                        flat, dark, bpm, detlin, dit)) == NULL) {
+        if ((cur_ima_calib = cr2res_calib_image(cur_ima, chip, clean_bad, 
+                        cosmics_corr, flat, dark, bpm, detlin, dit)) == NULL) {
             cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
             hdrl_imagelist_delete(out) ;
             return NULL ;
@@ -111,6 +113,7 @@ hdrl_imagelist * cr2res_calib_imagelist(
   @brief    The images calibration routine for a given chip
   @param    in          the input hdrl image
   @param    chip        the chip to calibrate (1 to CR2RES_NB_DETECTORS)
+  @param    clean_bad   Flag to activate the cleaning of the bad pixels 
   @param    cosmics_corr    Flag to correct for cosmics
   @param    flat        the flat frame or NULL
   @param    dark        the dark frame or NULL
@@ -125,6 +128,7 @@ hdrl_imagelist * cr2res_calib_imagelist(
 hdrl_image * cr2res_calib_image(
         const hdrl_image    *   in,
         int                     chip,
+        int                     clean_bad,
         int                     cosmics_corr,
         const cpl_frame     *   flat,
         const cpl_frame     *   dark,
@@ -149,7 +153,7 @@ hdrl_image * cr2res_calib_image(
     if (bpm != NULL) {
         cpl_msg_info(__func__, "Correct the bad pixels") ;
         if (cr2res_bpm_set_and_correct_image(hdrl_image_get_image(out),
-                    cpl_frame_get_filename(bpm), chip, 0) != 0) {
+                    cpl_frame_get_filename(bpm), chip, clean_bad) != 0) {
             cpl_msg_error(__func__, "Cannot clean the bad pixels");
             hdrl_image_delete(out);
             return NULL ;
