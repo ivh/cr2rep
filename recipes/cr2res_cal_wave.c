@@ -829,7 +829,7 @@ static int cr2res_cal_wave_reduce(
     if (cr2res_wave_apply(tw_in, extracted, lines_frame, reduce_order, 
                 reduce_trace, wavecal_type, wl_degree, wl_start, wl_end, 
                 wl_err_start, wl_err_end, wl_shift, log_flag, propagate_flag, 
-                display,
+                display, -1.0, -1.0,
                 &lines_diagnostics_out,
                 &tw_out)) {
         cpl_msg_error(__func__, "Failed to calibrate");

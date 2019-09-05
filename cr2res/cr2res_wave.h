@@ -63,6 +63,8 @@ int cr2res_wave_apply(
         int                         log_flag,
         int                         propagate_flag,
         int                         display,
+        double                      display_wmin,
+        double                      display_wmax,
         cpl_table           **      lines_diagnostics,
         cpl_table           **      trace_wave_out) ;
 
@@ -78,6 +80,8 @@ cpl_polynomial * cr2res_wave_1d(
         int                     degree,
         int                     log_flag,
         int                     display,
+        double                  display_wmin,
+        double                  display_wmax,
         cpl_array           **  wavelength_error,
         cpl_table           **  lines_diagnostics) ;
 

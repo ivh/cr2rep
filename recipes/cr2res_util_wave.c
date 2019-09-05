@@ -283,6 +283,16 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.display_range",
+            CPL_TYPE_STRING,
+            "Wavelength range to display [start, end] (in nm)",
+            "cr2res.cr2res_util_wave", "-1.0, -1.0");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display_range");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+
     return 0;
 }
 
@@ -341,7 +351,7 @@ static int cr2res_util_wave(
     int                     reduce_det, reduce_order, reduce_trace,
                             wl_degree, display, log_flag, propagate_flag ;
     double                  wl_start, wl_end, wl_err_start, wl_err_end, 
-                            wl_shift ;
+                            wl_shift, display_wmin, display_wmax ;
     cr2res_wavecal_type     wavecal_type ;
     const char          *   sval ;
     cpl_frameset        *   rawframes ;
@@ -366,6 +376,7 @@ static int cr2res_util_wave(
     wavecal_type = CR2RES_UNSPECIFIED ;
     wl_start = wl_end = wl_err_start = wl_err_end = -1.0 ;
     wl_shift = 0.0 ;
+    display_wmin = display_wmax = -1.0 ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -417,7 +428,13 @@ static int cr2res_util_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.display");
     display = cpl_parameter_get_bool(param) ;
-
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_wave.display_range");
+    sval = cpl_parameter_get_string(param) ;
+    if (sscanf(sval, "%lg,%lg", &display_wmin, &display_wmax) != 2) {
+        return -1 ;
+    }
+ 
     /* Check Parameters */
     if (wl_degree < 0) {
         cpl_msg_error(__func__, "The degree needs to be >= 0");
@@ -531,7 +548,8 @@ static int cr2res_util_wave(
             if (cr2res_wave_apply(trace_wave, extracted_table,
                         lines_frame, reduce_order, reduce_trace, wavecal_type,
                         wl_degree, wl_start, wl_end, wl_err_start, wl_err_end, 
-                        wl_shift, log_flag, propagate_flag, display, 
+                        wl_shift, log_flag, propagate_flag, display,
+                        display_wmin, display_wmax,
                         &(lines_diagnostics[det_nr-1]),
                         &(out_trace_wave[det_nr-1]))) {
                 cpl_msg_error(__func__, "Failed to calibrate - skip detector");
