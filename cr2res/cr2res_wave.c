@@ -515,7 +515,6 @@ cpl_polynomial * cr2res_wave_1d(
         /* Currently Hardcoded */
         double slit_width = 2.0 ;
         double fwhm = 2.0 ;
-        int zoom = 3 ;
         int cleaning_filter_size = 9 ;
         solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error_nm,
                 ref_spectrum, degree, cleaning_filter_size, slit_width, fwhm,
@@ -864,6 +863,7 @@ cpl_polynomial * cr2res_wave_xcorr(
         spec_clean = cpl_vector_duplicate(cpl_bivector_get_y(spectrum)) ;
     }
 
+    /* Currently the lines list is not filtered */
     lines_list_filtered = cpl_bivector_duplicate(lines_list) ;
     
     /* Remove Negative values */
@@ -886,9 +886,8 @@ cpl_polynomial * cr2res_wave_xcorr(
 
     /* Pass #1 */
     degree_loc = 2 ;
-    nsamples = 10 ;
+    nsamples = 30 ;
     wl_error_nm = wl_error ;
-
     sol_guess = wavesol_init ;
 
     wl_error_pix = CR2RES_DETECTOR_SIZE *wl_error_nm/(wl_max-wl_min) ;
@@ -981,6 +980,7 @@ cpl_polynomial * cr2res_wave_xcorr(
     /* RM pass#2 */
 
     cpl_vector_delete(spec_clean) ;
+    cpl_bivector_delete(lines_list_filtered) ;
 
     /* Set teh Wavelength error */
     if (wavelength_error != NULL){
