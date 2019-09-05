@@ -84,6 +84,8 @@ static int cr2res_cal_wave_reduce(
         int                     log_flag,
         int                     propagate_flag,
         int                     display,
+        double                  display_wmin,
+        double                  display_wmax,
         cpl_table           **  out_trace_wave,
         cpl_table           **  lines_diagnostics,
         hdrl_image          **  out_wave_map,
@@ -369,6 +371,15 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.display_range",
+            CPL_TYPE_STRING,
+            "Wavelength range to display [start, end] (in nm)",
+            "cr2res.cr2res_cal_wave", "-1.0, -1.0");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display_range");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     return 0;
 }
 
@@ -428,7 +439,7 @@ static int cr2res_cal_wave(
                             ext_oversample, ext_swath_width, ext_height,
                             wl_degree, display, log_flag, propagate_flag ;
     double                  ext_smooth_slit, wl_start, wl_end, wl_err_start, 
-                            wl_err_end, wl_shift ;
+                            wl_err_end, wl_shift, display_wmin, display_wmax ;
     cr2res_collapse         collapse ;
     cr2res_wavecal_type     wavecal_type ;
     const char          *   sval ;
@@ -453,6 +464,7 @@ static int cr2res_cal_wave(
     wl_start = wl_end = wl_err_start = wl_err_end = -1.0 ;
     wl_shift = 0.0 ;
     collapse = CR2RES_COLLAPSE_UNSPECIFIED ;
+    display_wmin = display_wmax = -1.0 ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -526,6 +538,12 @@ static int cr2res_cal_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.display");
     display = cpl_parameter_get_bool(param) ;
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_wave.display_range");
+    sval = cpl_parameter_get_string(param) ;
+    if (sscanf(sval, "%lg,%lg", &display_wmin, &display_wmax) != 2) {
+        return -1 ;
+    }
 
     /* Check Parameters */
     if (wl_degree < 0) {
@@ -607,7 +625,8 @@ static int cr2res_cal_wave(
                     reduce_trace, collapse, ext_height, ext_swath_width,
                     ext_oversample, ext_smooth_slit, wavecal_type, wl_degree, 
                     wl_start, wl_end, wl_err_start, wl_err_end, wl_shift, 
-                    log_flag, propagate_flag, display,
+                    log_flag, propagate_flag, display, display_wmin,
+                    display_wmax, 
                     &(out_trace_wave[det_nr-1]),
                     &(lines_diagnostics[det_nr-1]),
                     &(out_wave_map[det_nr-1]),
@@ -683,6 +702,8 @@ static int cr2res_cal_wave(
   @param propagate_flag     Flag to copy the input WL to the output when they 
                             are not computed
   @param display            Flag to enable display functionalities
+  @param display_wmin       Minimum Wavelength to  display
+  @param display_wmax       Maximum Wavelength to  display
   @param out_trace_wave     [out] trace wave table
   @param lines_diagnostics  [out] lines diagnostics table
   @param out_wave_map       [out] Wave map
@@ -716,6 +737,8 @@ static int cr2res_cal_wave_reduce(
         int                     log_flag,
         int                     propagate_flag,
         int                     display,
+        double                  display_wmin,
+        double                  display_wmax,
         cpl_table           **  out_trace_wave,
         cpl_table           **  lines_diagnostics,
         hdrl_image          **  out_wave_map,
@@ -829,7 +852,7 @@ static int cr2res_cal_wave_reduce(
     if (cr2res_wave_apply(tw_in, extracted, lines_frame, reduce_order, 
                 reduce_trace, wavecal_type, wl_degree, wl_start, wl_end, 
                 wl_err_start, wl_err_end, wl_shift, log_flag, propagate_flag, 
-                display, -1.0, -1.0,
+                display, display_wmin, display_wmax,
                 &lines_diagnostics_out,
                 &tw_out)) {
         cpl_msg_error(__func__, "Failed to calibrate");

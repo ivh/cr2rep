@@ -292,7 +292,6 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-
     return 0;
 }
 
