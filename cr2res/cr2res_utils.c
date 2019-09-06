@@ -914,6 +914,139 @@ cpl_error_code cr2res_detector_shotnoise_model(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Plot the spectrum with the catalog
+  @param    extracted_spec  The extracted spectrum
+  @param    catalog         The lines catalog
+  @param    poly            The polynomial solution
+  @param    title           The title for the plot
+  @param    wmin            Min Wavelength to display or -1
+  @param    wmax            Max Wavelength to display or -1
+  @return   0 if ok
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_plot_wavecal_result(
+        const cpl_vector        *   extracted_spec,
+        const cpl_bivector      *   catalog,
+        const cpl_polynomial    *   poly,
+        const char              *   title,
+        double                      wmin,
+        double                      wmax)
+{
+    cpl_bivector    **  bivectors ;
+    double          *   p0x ;
+    double          *   p0y ;
+    double          *   pextracted_spec ;
+    double          *   p1x ;
+    double          *   p1y ;
+    double          *   ptmp_biv0x ;
+    double          *   ptmp_biv0y ;
+    double          *   ptmp_biv1x ;
+    double          *   ptmp_biv1y ;
+    cpl_bivector    *   tmp_biv0 ;
+    cpl_bivector    *   tmp_biv1 ;
+    double              rate ;
+    int                 n0, n1, nsamples, i ;
+
+    /* Check entries */
+    if (extracted_spec==NULL||catalog==NULL||poly==NULL||title==NULL)
+        return -1 ;
+
+    /* Initialise */
+    nsamples = cpl_vector_get_size(extracted_spec) ;
+    n0 = n1 = 0 ;
+
+    /* Create bivectors */
+    bivectors = cpl_malloc(2*sizeof(cpl_bivector*)) ;
+    bivectors[0] = cpl_bivector_new(nsamples) ;
+    bivectors[1] = cpl_bivector_duplicate(catalog) ;
+
+    p0x = cpl_bivector_get_x_data(bivectors[0]) ;
+    p0y = cpl_bivector_get_y_data(bivectors[0]) ;
+    pextracted_spec = cpl_vector_get_data((cpl_vector*)extracted_spec) ;
+
+    /* Apply the pix - wl transformation to the extracted spectrum */
+    for (i=0 ; i<nsamples ; i++) {
+        p0x[i] = cpl_polynomial_eval_1d(poly, (double)(i), NULL) ;
+        p0y[i] = pextracted_spec[i] ;
+    }
+
+    /* Sort the bivectors - Should not be necessary */
+    cpl_bivector_sort(bivectors[0], bivectors[0], CPL_SORT_ASCENDING,
+            CPL_SORT_BY_X);
+    p0x = cpl_bivector_get_x_data(bivectors[0]) ;
+    p0y = cpl_bivector_get_y_data(bivectors[0]) ;
+    cpl_bivector_sort(bivectors[1], bivectors[1], CPL_SORT_ASCENDING,
+            CPL_SORT_BY_X);
+    p1x = cpl_bivector_get_x_data(bivectors[1]) ;
+    p1y = cpl_bivector_get_y_data(bivectors[1]) ;
+
+    /* Shrink bivectors to wmin-wmax only if requested */
+    if (wmin > 0.0 && wmax > 0.0 && wmax > wmin) {
+
+        /* Count the bins falling in the wished interval  */
+        for (i=0 ; i<cpl_bivector_get_size(bivectors[0]) ; i++)
+            if (p0x[i] >= wmin && p0x[i] <= wmax) n0++ ;
+        for (i=0 ; i<cpl_bivector_get_size(bivectors[1]) ; i++)
+            if (p1x[i] >= wmin && p1x[i] <= wmax) n1++ ;
+
+        if (n0 > 0 && n1 > 0) {
+            /* Allocate the smaller bivectors */
+            tmp_biv0 = cpl_bivector_new(n0) ;
+            ptmp_biv0x = cpl_bivector_get_x_data(tmp_biv0) ;
+            ptmp_biv0y = cpl_bivector_get_y_data(tmp_biv0) ;
+            n0 = 0 ;
+            for (i=0 ; i<cpl_bivector_get_size(bivectors[0]) ; i++)
+                if (p0x[i] >= wmin && p0x[i] <= wmax) {
+                    ptmp_biv0x[n0] = p0x[i] ;
+                    ptmp_biv0y[n0] = p0y[i] ;
+                    n0++ ;
+                }
+            tmp_biv1 = cpl_bivector_new(n1) ;
+            ptmp_biv1x = cpl_bivector_get_x_data(tmp_biv1) ;
+            ptmp_biv1y = cpl_bivector_get_y_data(tmp_biv1) ;
+            n1 = 0 ;
+            for (i=0 ; i<cpl_bivector_get_size(bivectors[1]) ; i++)
+                if (p1x[i] >= wmin && p1x[i] <= wmax) {
+                    ptmp_biv1x[n1] = p1x[i] ;
+                    ptmp_biv1y[n1] = p1y[i] ;
+                    n1++ ;
+                }
+            cpl_bivector_delete(bivectors[0]) ;
+            cpl_bivector_delete(bivectors[1]) ;
+
+            bivectors[0] = tmp_biv0 ;
+            bivectors[1] = tmp_biv1 ;
+        }
+    }
+
+    /* Adjust the signal */
+    rate = -1* fabs(10*cpl_vector_get_mean(cpl_bivector_get_y(bivectors[0])) /
+        cpl_vector_get_mean(cpl_bivector_get_y(bivectors[1]))) ;
+    cpl_vector_multiply_scalar(cpl_bivector_get_y(bivectors[1]), rate) ;
+
+    /* Plot */
+    if (cpl_bivector_get_size(bivectors[0]) > 0 &&
+                cpl_bivector_get_size(bivectors[1]) > 0) {
+
+        char ** options = cpl_malloc(2*sizeof(char*)) ;
+        options[0] = cpl_sprintf("t '1-Extracted %s' w lines", title) ;
+        options[1] = "t '2-Catalog' w impulses" ;
+        cpl_plot_bivectors("set grid;set xlabel 'Wavelength (nm)';",
+            (const char **)options,
+            "", (const cpl_bivector **)bivectors, 2);
+        cpl_free(options[0]) ;
+        cpl_free(options) ;
+    }
+
+    /* Free */
+    cpl_bivector_delete(bivectors[0]) ;
+    cpl_bivector_delete(bivectors[1]) ;
+    cpl_free(bivectors) ;
+    return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get the pipeline copyright and license
   @return   The copyright and license string
 

@@ -51,13 +51,6 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static int cr2res_wave_xcorr_plot_result(
-        const cpl_vector        *   extracted_spec,
-        const cpl_bivector      *   catalog,
-        const cpl_polynomial    *   poly,
-        const char              *   title,
-        double                      wmin,
-        double                      wmax) ;
 static cpl_bivector * cr2res_wave_gen_lines_spectrum(
         const char      *   catalog,
         cpl_polynomial  *   wavesol_init,
@@ -146,6 +139,7 @@ static cpl_vector * cr2res_wave_etalon_measure_fringes(
   @param    display         Flag to enable display functionalities
   @param    display_wmin    Minimum Wavelength to display or -1.0
   @param    display_wmax    Maximum Wavelength to display or -1.0
+  @param    qcs                 [out] QC parameters
   @param    lines_diagnostics   [out] lines diagnostics table
   @param    trace_wave_out      [out] trace wave table
   @return   0 if ok, -1 otherwise
@@ -169,6 +163,7 @@ int cr2res_wave_apply(
         int                         display,
         double                      display_wmin,
         double                      display_wmax,
+        cpl_propertylist    **      qcs,
         cpl_table           **      lines_diagnostics,
         cpl_table           **      trace_wave_out)
 {
@@ -188,10 +183,12 @@ int cr2res_wave_apply(
     cpl_polynomial      *   wave_sol_2d ;
     cpl_table           *   lines_diagnostics_tmp ;
     cpl_table           *   lines_diagnostics_loc ;
+    cpl_propertylist    *   qcs_plist ;
     hdrl_image          *   wave_map_out ;
     cpl_polynomial      *   wave_sol_1d ;
     cpl_array           *   wl_err_array ;
     int                     trace_id, order, i, j ;
+    double                  best_xcorr ;
 
     /* Check Entries */
     if (wavecal_type != CR2RES_XCORR && wavecal_type != CR2RES_LINE1D && 
@@ -326,6 +323,9 @@ int cr2res_wave_apply(
     }
     cpl_table_erase_column(tw_out, "TMP_WL");
 
+    /* Allocate qcs_plist */
+    qcs_plist = cpl_propertylist_new() ;
+
     /* Actual calibration */
     if (wavecal_type == CR2RES_LINE2D) {
         /* 2D Calibration */
@@ -396,11 +396,19 @@ int cr2res_wave_apply(
                             wavesol_init[i], wavesol_init_error[i], order,
                             trace_id, wavecal_type, catalog_fname,
                             degree, log_flag, display, display_wmin,
-                            display_wmax, &wl_err_array,
+                            display_wmax, &best_xcorr, &wl_err_array,
                             &lines_diagnostics_tmp)) == NULL) {
                 cpl_msg_warning(__func__, "Cannot calibrate in Wavelength") ;
                 cpl_error_reset() ;
                 continue ;
+            }
+
+            /* Add The QC parameters */
+            if (best_xcorr > 0.0) {
+                char * qc_name = cpl_sprintf("%s_%02d_%02d",
+                        CR2RES_HEADER_QC_WAVE_BESTXCORR, order, trace_id) ;
+                cpl_propertylist_append_double(qcs_plist, qc_name, best_xcorr);
+                cpl_free(qc_name) ;
             }
 
             /* Merge the lines_diagnostics */
@@ -446,6 +454,8 @@ int cr2res_wave_apply(
     cpl_free(orders) ;
     cpl_free(traces_nb) ;
 
+    if (qcs != NULL) *qcs = qcs_plist ;
+    else cpl_propertylist_delete(qcs_plist) ;
     *lines_diagnostics = lines_diagnostics_loc ;
     *trace_wave_out = tw_out ;
     return 0 ;
@@ -464,6 +474,7 @@ int cr2res_wave_apply(
   @param    degree          The polynomial degree of the solution
   @param    log_flag        Flag to get the log of the intensity
   @param    display         Flag to display results
+  @param    best_xcorr          [out] Best XCORR value when applicable
   @param    wavelength_error    [out] array of wave_mean_error, wave_max_error
   @param    lines_diagnostics   [out] table with lines diagnostics
   @return   Wavelength solution, i.e. polynomial that translates pixel
@@ -484,6 +495,7 @@ cpl_polynomial * cr2res_wave_1d(
         int                     display,
         double                  display_wmin,
         double                  display_wmax,
+        double              *   best_xcorr,
         cpl_array           **  wavelength_error,
         cpl_table           **  lines_diagnostics)
 {
@@ -518,19 +530,19 @@ cpl_polynomial * cr2res_wave_1d(
         int cleaning_filter_size = 9 ;
         solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error_nm,
                 ref_spectrum, degree, cleaning_filter_size, slit_width, fwhm,
-                display, wavelength_error) ;
+                display, best_xcorr, wavelength_error) ;
 
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
             cpl_error_reset();
         } else if (display) {
-            cr2res_wave_xcorr_plot_result(
+            cr2res_plot_wavecal_result(
                     cpl_bivector_get_y(spectrum),
                     ref_spectrum,
                     wavesol_init,
                     " (INITIAL GUESS)",
                     display_wmin,
                     display_wmax) ;
-            cr2res_wave_xcorr_plot_result(
+            cr2res_plot_wavecal_result(
                     cpl_bivector_get_y(spectrum),
                     ref_spectrum,
                     solution,
@@ -802,7 +814,8 @@ cpl_polynomial * cr2res_wave_2d(
   @param slit_width
   @param fwhm
   @param display        Value matching the pass to display (0 for none, )
-  @param wavelength_error   [out] array of wave_mean_error, wave_max_error
+  @param best_xcorr             [out] Best Cross correlation factor 
+  @param wavelength_error       [out] array of wave_mean_error, wave_max_error
   @return Wavelength solution, i.e. polynomial that translates pixel values
             to wavelength.
 
@@ -819,6 +832,7 @@ cpl_polynomial * cr2res_wave_xcorr(
         double              slit_width,
         double              fwhm,
         int                 display,
+        double          *   best_xcorr,
         cpl_array       **  wavelength_error)
 {
     cpl_vector          *   wl_errors ;
@@ -834,7 +848,8 @@ cpl_polynomial * cr2res_wave_xcorr(
     int                     i, nsamples, degree_loc ;
 
     /* Check Entries */
-    if (spectrum == NULL || wavesol_init == NULL || lines_list == NULL)
+    if (spectrum == NULL || wavesol_init == NULL || lines_list == NULL
+            || best_xcorr == NULL)
         return NULL ;
 
     /* Compute wl boundaries */
@@ -872,7 +887,7 @@ cpl_polynomial * cr2res_wave_xcorr(
         if (pspec_clean[i] < 0.0) pspec_clean[i] = 0 ;
 
     /* Display */
-    if (display) {
+    if (display && 0) {
         /* Plot Catalog Spectrum */
         cpl_plot_bivector(
                 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Emission';",
@@ -884,23 +899,23 @@ cpl_polynomial * cr2res_wave_xcorr(
                 "t 'Cleaned Extracted spectrum' w lines", "", spec_clean);
     }
 
-    /* Pass #1 */
+    /* Prepare inputs for X-corr */
     degree_loc = 2 ;
     nsamples = 30 ;
     wl_error_nm = wl_error ;
     sol_guess = wavesol_init ;
-
     wl_error_pix = CR2RES_DETECTOR_SIZE *wl_error_nm/(wl_max-wl_min) ;
     wl_errors = cpl_vector_new(degree_loc+1) ;
     cpl_vector_fill(wl_errors, wl_error_nm) ;
+
     cpl_msg_info(__func__,
-"Pass #1 : Degree %d / Error %g nm (%g pix) / %d samples -> %g polynomials",
-        degree_loc,wl_error_nm,wl_error_pix,nsamples,pow(nsamples,
-            degree_loc+1)) ;
+            "XCORR: Deg:%d - Err:%g nm (%g pix) - %d samples -> %g polys",
+            degree_loc,wl_error_nm,wl_error_pix,nsamples,pow(nsamples,
+                degree_loc+1)) ;
     cpl_msg_indent_more() ;
     if ((sol=irplib_wlxcorr_best_poly(spec_clean, lines_list_filtered, 
                     degree_loc, sol_guess, wl_errors, nsamples, slit_width, 
-                    fwhm, &xc, NULL, &xcorrs)) == NULL) {
+                    fwhm, best_xcorr, NULL, &xcorrs)) == NULL) {
         cpl_msg_error(__func__, "Cannot get the best polynomial") ;
         cpl_vector_delete(wl_errors) ;
         cpl_vector_delete(spec_clean) ;
@@ -910,7 +925,8 @@ cpl_polynomial * cr2res_wave_xcorr(
         return NULL ;
     }
     cpl_vector_delete(wl_errors) ;
-    cpl_msg_info(__func__, "Cross-Correlation factor: %g", xc) ;
+    cpl_msg_info(__func__, "Best Cross-Correlation factor: %g",
+            *best_xcorr) ;
 
     /* Compute the strongest line distance */
     int x_max = -1 ;
@@ -936,54 +952,12 @@ cpl_polynomial * cr2res_wave_xcorr(
     if (xcorrs != NULL) cpl_vector_delete(xcorrs) ;
     cpl_msg_indent_less() ;
 
-    /* Pass #2 */
-    /*
-    degree_loc = degree ;
-    nsamples = 10 ;
-    wl_error_nm= wl_error/2 ;
-    sol_guess = sol ;
-
-    wl_error_pix = CR2RES_DETECTOR_SIZE *wl_error_nm/(wl_max-wl_min) ;
-    wl_errors = cpl_vector_new(degree_loc+1) ;
-    cpl_vector_fill(wl_errors, wl_error_nm) ;
-    cpl_msg_info(__func__,
-    "Pass #2 : Degree %d / Error %g nm (%g pix) / %d samples -> %g Polys",
-            degree_loc,wl_error_nm,wl_error_pix,nsamples,
-            pow(nsamples,degree_loc+1)) ;
-    cpl_msg_indent_more() ;
-    if ((sol=irplib_wlxcorr_best_poly(spec_clean, lines_list_filtered, 
-                    degree_loc, sol_guess, wl_errors, nsamples, slit_width, 
-                    fwhm, &xc, NULL, &xcorrs)) == NULL) {
-        cpl_msg_error(__func__, "Cannot get the best polynomial") ;
-        cpl_msg_indent_less() ;
-        cpl_vector_delete(wl_errors) ;
-        cpl_vector_delete(spec_clean) ;
-        if (xcorrs != NULL) cpl_vector_delete(xcorrs) ;
-        cpl_polynomial_delete(sol_guess) ;
-        cpl_error_reset() ;
-        return NULL ;
-    }
-    cpl_vector_delete(wl_errors) ;
-    cpl_msg_info(__func__, "Cross-Correlation factor: %g", xc) ;
-
-    if (display) {
-        cpl_plot_vector("set grid;", "t 'Correlation values (Pass #2)' w lines",
-                "", xcorrs) ;
-        irplib_wlxcorr_plot_solution(sol_guess, sol, NULL, 1,
-                CR2RES_DETECTOR_SIZE);
-    }
-    if (xcorrs != NULL) cpl_vector_delete(xcorrs) ;
-    cpl_polynomial_delete(sol_guess) ;
-    cpl_msg_indent_less() ;
-    */
-
-    /* RM pass#2 */
-
     cpl_vector_delete(spec_clean) ;
     cpl_bivector_delete(lines_list_filtered) ;
 
-    /* Set teh Wavelength error */
+    /* Use the Line Fitting to compute the Error */
     if (wavelength_error != NULL){
+        /* TODO */
         *wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
         cpl_array_set_double(*wavelength_error, 0, wl_error_nm) ;
         cpl_array_set_double(*wavelength_error, 1, wl_error_nm) ;
@@ -1438,139 +1412,6 @@ cr2res_wavecal_type cr2res_wave_guess_method(
 }
 
 /**@}*/
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Plot the spectrum with the catalog
-  @param    extracted_spec  The extracted spectrum
-  @param    catalog         The lines catalog
-  @param    poly            The polynomial solution
-  @param    title           The title for the plot
-  @param    wmin            Min Wavelength to display or -1
-  @param    wmax            Max Wavelength to display or -1
-  @return   0 if ok
- */
-/*----------------------------------------------------------------------------*/
-static int cr2res_wave_xcorr_plot_result(
-        const cpl_vector        *   extracted_spec,
-        const cpl_bivector      *   catalog,
-        const cpl_polynomial    *   poly,
-        const char              *   title,
-        double                      wmin,
-        double                      wmax)
-{
-    cpl_bivector    **  bivectors ;
-    double          *   p0x ;
-    double          *   p0y ;
-    double          *   pextracted_spec ;
-    double          *   p1x ;
-    double          *   p1y ;
-    double          *   ptmp_biv0x ;
-    double          *   ptmp_biv0y ;
-    double          *   ptmp_biv1x ;
-    double          *   ptmp_biv1y ;
-    cpl_bivector    *   tmp_biv0 ;
-    cpl_bivector    *   tmp_biv1 ;
-    double              rate ;
-    int                 n0, n1, nsamples, i ;
-
-    /* Check entries */
-    if (extracted_spec==NULL||catalog==NULL||poly==NULL||title==NULL)
-        return -1 ;
-
-    /* Initialise */
-    nsamples = cpl_vector_get_size(extracted_spec) ;
-    n0 = n1 = 0 ;
-
-    /* Create bivectors */
-    bivectors = cpl_malloc(2*sizeof(cpl_bivector*)) ;
-    bivectors[0] = cpl_bivector_new(nsamples) ;
-    bivectors[1] = cpl_bivector_duplicate(catalog) ;
-
-    p0x = cpl_bivector_get_x_data(bivectors[0]) ;
-    p0y = cpl_bivector_get_y_data(bivectors[0]) ;
-    pextracted_spec = cpl_vector_get_data((cpl_vector*)extracted_spec) ;
-
-    /* Apply the pix - wl transformation to the extracted spectrum */
-    for (i=0 ; i<nsamples ; i++) {
-        p0x[i] = cpl_polynomial_eval_1d(poly, (double)(i), NULL) ;
-        p0y[i] = pextracted_spec[i] ;
-    }
-
-    /* Sort the bivectors - Should not be necessary */
-    cpl_bivector_sort(bivectors[0], bivectors[0], CPL_SORT_ASCENDING,
-            CPL_SORT_BY_X);
-    p0x = cpl_bivector_get_x_data(bivectors[0]) ;
-    p0y = cpl_bivector_get_y_data(bivectors[0]) ;
-    cpl_bivector_sort(bivectors[1], bivectors[1], CPL_SORT_ASCENDING,
-            CPL_SORT_BY_X);
-    p1x = cpl_bivector_get_x_data(bivectors[1]) ;
-    p1y = cpl_bivector_get_y_data(bivectors[1]) ;
-
-    /* Shrink bivectors to wmin-wmax only if requested */
-    if (wmin > 0.0 && wmax > 0.0 && wmax > wmin) {
-
-        /* Count the bins falling in the wished interval  */
-        for (i=0 ; i<cpl_bivector_get_size(bivectors[0]) ; i++) 
-            if (p0x[i] >= wmin && p0x[i] <= wmax) n0++ ;
-        for (i=0 ; i<cpl_bivector_get_size(bivectors[1]) ; i++) 
-            if (p1x[i] >= wmin && p1x[i] <= wmax) n1++ ;
-
-        if (n0 > 0 && n1 > 0) {
-            /* Allocate the smaller bivectors */
-            tmp_biv0 = cpl_bivector_new(n0) ;
-            ptmp_biv0x = cpl_bivector_get_x_data(tmp_biv0) ;
-            ptmp_biv0y = cpl_bivector_get_y_data(tmp_biv0) ;
-            n0 = 0 ;
-            for (i=0 ; i<cpl_bivector_get_size(bivectors[0]) ; i++) 
-                if (p0x[i] >= wmin && p0x[i] <= wmax) {
-                    ptmp_biv0x[n0] = p0x[i] ;
-                    ptmp_biv0y[n0] = p0y[i] ;
-                    n0++ ;
-                }
-            tmp_biv1 = cpl_bivector_new(n1) ;
-            ptmp_biv1x = cpl_bivector_get_x_data(tmp_biv1) ;
-            ptmp_biv1y = cpl_bivector_get_y_data(tmp_biv1) ;
-            n1 = 0 ;
-            for (i=0 ; i<cpl_bivector_get_size(bivectors[1]) ; i++) 
-                if (p1x[i] >= wmin && p1x[i] <= wmax) {
-                    ptmp_biv1x[n1] = p1x[i] ;
-                    ptmp_biv1y[n1] = p1y[i] ;
-                    n1++ ;
-                }
-            cpl_bivector_delete(bivectors[0]) ;
-            cpl_bivector_delete(bivectors[1]) ;
-
-            bivectors[0] = tmp_biv0 ;
-            bivectors[1] = tmp_biv1 ;
-        }
-    }
-
-    /* Adjust the signal */
-    rate = -1* fabs(10*cpl_vector_get_mean(cpl_bivector_get_y(bivectors[0])) /
-        cpl_vector_get_mean(cpl_bivector_get_y(bivectors[1]))) ;
-    cpl_vector_multiply_scalar(cpl_bivector_get_y(bivectors[1]), rate) ;
-
-    /* Plot */
-    if (cpl_bivector_get_size(bivectors[0]) > 0 && 
-                cpl_bivector_get_size(bivectors[1]) > 0) {
-
-        char ** options = cpl_malloc(2*sizeof(char*)) ;
-        options[0] = cpl_sprintf("t '1-Extracted %s' w lines", title) ;
-        options[1] = "t '2-Catalog' w impulses" ;
-        cpl_plot_bivectors("set grid;set xlabel 'Wavelength (nm)';",
-            (const char **)options,
-            "", (const cpl_bivector **)bivectors, 2);
-        cpl_free(options[0]) ;
-        cpl_free(options) ;
-    }
-
-    /* Free */
-    cpl_bivector_delete(bivectors[0]) ;
-    cpl_bivector_delete(bivectors[1]) ;
-    cpl_free(bivectors) ;
-    return 0 ;
-}
 
 /*----------------------------------------------------------------------------*/
 /**

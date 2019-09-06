@@ -757,8 +757,10 @@ static int cr2res_cal_wave_reduce(
     cpl_table           *   tw_out ;
     cpl_table           *   lines_diagnostics_out ;
     cpl_propertylist    *   plist ;
+    cpl_propertylist    *   qcs_plist ;
     const char          *   first_file ;
     int                     ext_nr ;
+    double                  best_xcorr ;
     
     /* Check Inputs */
     if (rawframes==NULL || trace_wave_frame==NULL || out_trace_wave==NULL ||
@@ -767,6 +769,9 @@ static int cr2res_cal_wave_reduce(
     if (collapse!=CR2RES_COLLAPSE_MEAN && collapse!=CR2RES_COLLAPSE_MEDIAN) {
         return -1 ;
     }
+
+    /* Initialise */
+    best_xcorr = -1 ;
 
     /* Load the DITs if necessary */
     if (master_dark_frame != NULL)  dits = cr2res_io_read_dits(rawframes) ;
@@ -853,11 +858,13 @@ static int cr2res_cal_wave_reduce(
                 reduce_trace, wavecal_type, wl_degree, wl_start, wl_end, 
                 wl_err_start, wl_err_end, wl_shift, log_flag, propagate_flag, 
                 display, display_wmin, display_wmax,
+                &qcs_plist,
                 &lines_diagnostics_out,
                 &tw_out)) {
         cpl_msg_error(__func__, "Failed to calibrate");
         cpl_table_delete(tw_in) ;
         cpl_table_delete(extracted) ;
+        return -1 ;
     }
     cpl_table_delete(tw_in) ;
     cpl_table_delete(extracted) ;
@@ -878,11 +885,11 @@ static int cr2res_cal_wave_reduce(
         return -1 ;
     }
 
-    /* Compute the QC parameters */
-    /* TODO : */
-
     /* Store the QC parameters in the plist */
-    /* cpl_propertylist_append_double(plist, "ESO QC ...", 1.0) ; */
+    if (qcs_plist != NULL) {
+        cpl_propertylist_append(plist, qcs_plist) ;
+        cpl_propertylist_delete(qcs_plist) ;
+    }
 
     /* Return */
     *out_trace_wave = tw_out ;

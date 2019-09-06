@@ -549,6 +549,7 @@ static int cr2res_util_wave(
                         wl_degree, wl_start, wl_end, wl_err_start, wl_err_end, 
                         wl_shift, log_flag, propagate_flag, display,
                         display_wmin, display_wmax,
+                        NULL,
                         &(lines_diagnostics[det_nr-1]),
                         &(out_trace_wave[det_nr-1]))) {
                 cpl_msg_error(__func__, "Failed to calibrate - skip detector");
