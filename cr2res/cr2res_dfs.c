@@ -114,6 +114,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_CAL_WAVE_TW_PROCATG) ||
                 !strcmp(tag, CR2RES_CAL_WAVE_MAP_PROCATG) ||
                 !strcmp(tag, CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG) ||
+                !strcmp(tag, CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG) ||
                 /* Produced by cr2res_obs_nodding */
                 !strcmp(tag, CR2RES_OBS_NODDING_EXTRACTA_PROCATG) ||
                 !strcmp(tag, CR2RES_OBS_NODDING_COMBINEDA_PROCATG) ||
@@ -150,8 +151,8 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 /* Produced by cr2res_util_wave */
                 !strcmp(tag, CR2RES_UTIL_WAVE_TW_PROCATG) ||
                 !strcmp(tag, CR2RES_UTIL_WAVE_MAP_PROCATG) ||
-                !strcmp(tag, CR2RES_UTIL_WAVE_XCORR_PROCATG) ||
                 !strcmp(tag, CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG) ||
+                !strcmp(tag, CR2RES_UTIL_WAVE_EXTRACT_1D_PROCATG) ||
                 /* Produced by cr2res_util_trace_maps */
                 !strcmp(tag, CR2RES_UTIL_TRACE_MAP_SLIT_CURVE_PROCATG) ||
                 !strcmp(tag, CR2RES_UTIL_TRACE_MAP_WL_PROCATG) ||

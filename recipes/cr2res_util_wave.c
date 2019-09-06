@@ -92,6 +92,8 @@ Wavelength Calibration                                                  \n\
     CR2RES_UTIL_WAVE_MAP_PROCATG "\n\
     <input_name>_lines_diagnostics.fits " 
     CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG "\n\
+    <input_name>_extracted.fits " 
+    CR2RES_UTIL_WAVE_EXTRACT_1D_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on raw frames f:                                               \n\
@@ -100,9 +102,11 @@ Wavelength Calibration                                                  \n\
         Load the extracted spectra table ext(f,d)                       \n\
         Call cr2res_wave_apply(tw(f,d),ext(f,d),emission_lines)         \n\
             -> lines diagnostics(f,d)                                   \n\
+            -> updated_extracted(f,d)                                   \n\
             -> trace_wave_out(f,d)                                      \n\
         Create the wavelength map wave_map(f,d)                         \n\
       Save lines diagnostics(f)                                         \n\
+      Save updated_extracted(f)                                         \n\
       Save wave_map(f)                                                  \n\
       Save trace_wave_out(f)                                            \n\
                                                                         \n\
@@ -131,6 +135,7 @@ Wavelength Calibration                                                  \n\
     cr2res_io_save_TRACE_WAVE()                                         \n\
     cr2res_io_save_WAVE_MAP()                                           \n\
     cr2res_io_save_LINES_DIAGNOSTICS()                                  \n\
+    cr2res_io_save_EXTRACT_1D()                                         \n\
 " ;
 
 /*-----------------------------------------------------------------------------
@@ -364,6 +369,7 @@ static int cr2res_util_wave(
     char                *   out_file;
     cpl_table           *   out_trace_wave[CR2RES_NB_DETECTORS] ;
     cpl_table           *   lines_diagnostics[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   updated_extracted_table[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     int                     det_nr, order, i, j ;
@@ -507,6 +513,7 @@ static int cr2res_util_wave(
             /* Initialise */
             out_trace_wave[det_nr-1] = NULL ;
             lines_diagnostics[det_nr-1] = NULL ;
+            updated_extracted_table[det_nr-1] = NULL ;
             out_wave_map[det_nr-1] = NULL ;
             ext_plist[det_nr-1] = NULL ;
 
@@ -551,6 +558,7 @@ static int cr2res_util_wave(
                         display_wmin, display_wmax,
                         NULL,
                         &(lines_diagnostics[det_nr-1]),
+                        &(updated_extracted_table[det_nr-1]),
                         &(out_trace_wave[det_nr-1]))) {
                 cpl_msg_error(__func__, "Failed to calibrate - skip detector");
                 cpl_table_delete(trace_wave) ;
@@ -589,6 +597,14 @@ static int cr2res_util_wave(
                 CR2RES_UTIL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
+        /* Save the Wave Map */
+        out_file = cpl_sprintf("%s_extracted.fits",
+                cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, cur_fset, parlist, 
+                updated_extracted_table, NULL, ext_plist, 
+                CR2RES_UTIL_WAVE_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
+        cpl_free(out_file);
+
         if (wavecal_type == CR2RES_LINE2D || wavecal_type == CR2RES_LINE1D) {
             /* Save the Lines Diagnostics */
             out_file = cpl_sprintf("%s_lines_diagnostics.fits",
@@ -608,6 +624,8 @@ static int cr2res_util_wave(
                 cpl_table_delete(out_trace_wave[j]) ;
             if (lines_diagnostics[j] != NULL)
                 cpl_table_delete(lines_diagnostics[j]) ;
+            if (updated_extracted_table[j] != NULL)
+                cpl_table_delete(updated_extracted_table[j]) ;
             if (out_wave_map[j] != NULL) 
                 hdrl_image_delete(out_wave_map[j]) ;
         }

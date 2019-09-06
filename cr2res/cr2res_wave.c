@@ -141,6 +141,7 @@ static cpl_vector * cr2res_wave_etalon_measure_fringes(
   @param    display_wmax    Maximum Wavelength to display or -1.0
   @param    qcs                 [out] QC parameters
   @param    lines_diagnostics   [out] lines diagnostics table
+  @param    extracted_out       [out] extracte table with updated WL
   @param    trace_wave_out      [out] trace wave table
   @return   0 if ok, -1 otherwise
  */
@@ -165,6 +166,7 @@ int cr2res_wave_apply(
         double                      display_wmax,
         cpl_propertylist    **      qcs,
         cpl_table           **      lines_diagnostics,
+        cpl_table           **      extracted_out,
         cpl_table           **      trace_wave_out)
 {
     const char          *   catalog_fname ;
@@ -176,6 +178,7 @@ int cr2res_wave_apply(
     int                  *  traces_nb ;
     int                     nb_traces ;
     cpl_table           *   tw_out ;
+    cpl_table           *   extracted_out_loc ;
     const cpl_array     *   wl_array_tmp ;
     cpl_array           *   wl_array ;
     int                     flag ;
@@ -439,6 +442,10 @@ int cr2res_wave_apply(
         }
     }
 
+    /* Recompute the extracted table wavelengths with the results */
+    /* TODO */
+    extracted_out_loc = cpl_table_duplicate(spectra_tab) ;
+
     /* De-allocate */
     for (i=0 ; i<nb_traces ; i++) {
         if (spectra[i] != NULL) cpl_bivector_delete(spectra[i]) ;
@@ -456,6 +463,8 @@ int cr2res_wave_apply(
 
     if (qcs != NULL) *qcs = qcs_plist ;
     else cpl_propertylist_delete(qcs_plist) ;
+    if (extracted_out != NULL) *extracted_out = extracted_out_loc ;
+    else cpl_table_delete(extracted_out_loc) ;
     *lines_diagnostics = lines_diagnostics_loc ;
     *trace_wave_out = tw_out ;
     return 0 ;

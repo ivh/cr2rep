@@ -67,6 +67,7 @@ int cr2res_wave_apply(
         double                      display_wmax,
         cpl_propertylist    **      qcs,
         cpl_table           **      lines_diagnostics,
+        cpl_table           **      extracted_out,
         cpl_table           **      trace_wave_out) ;
 
 cpl_polynomial * cr2res_wave_1d(

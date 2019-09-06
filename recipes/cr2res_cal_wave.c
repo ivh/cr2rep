@@ -88,9 +88,9 @@ static int cr2res_cal_wave_reduce(
         double                  display_wmax,
         cpl_table           **  out_trace_wave,
         cpl_table           **  lines_diagnostics,
+        cpl_table           **  out_extracted,
         hdrl_image          **  out_wave_map,
         cpl_propertylist    **  ext_plist) ;
-
 static int cr2res_cal_wave_create(cpl_plugin *);
 static int cr2res_cal_wave_exec(cpl_plugin *);
 static int cr2res_cal_wave_destroy(cpl_plugin *);
@@ -134,15 +134,18 @@ Spectrum Extraction and Wavelength Calibration                          \n\
     cr2res_cal_wave_wave_map.fits " CR2RES_CAL_WAVE_MAP_PROCATG"        \n\
     cr2res_cal_wave_lines_diagnostics.fits "
     CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG"\n\
+    cr2res_cal_wave_extracted.fits " CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG"\n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on detectors d:                                                \n\
       Call cr2res_cal_wave_reduce()                                     \n\
         -> out_trace_wave(d)                                            \n\
         -> lines_diagnostics(d)                                         \n\
+        -> out_extracted(d)                                             \n\
         -> out_wave_map(d)                                              \n\
     Save out_trace_wave                                                 \n\
     Save lines_diagnostics                                              \n\
+    Save out_extracted                                                  \n\
     Save out_wave_map                                                   \n\
                                                                         \n\
     cr2res_cal_wave_reduce():                                           \n\
@@ -153,6 +156,7 @@ Spectrum Extraction and Wavelength Calibration                          \n\
         Compute the Wavelength with cr2res_wave_apply()                 \n\
          -> out_trace_wave                                              \n\
          -> lines_diagnostics                                           \n\
+         -> out_extracted                                               \n\
         Compute the Wavelength map                                      \n\
          -> out_wave_map                                                \n\
                                                                         \n\
@@ -185,6 +189,7 @@ Spectrum Extraction and Wavelength Calibration                          \n\
     cr2res_io_save_TRACE_WAVE()                                         \n\
     cr2res_io_save_WAVE_MAP()                                           \n\
     cr2res_io_save_LINES_DIAGNOSTICS()                                  \n\
+    cr2res_io_save_EXTRACT_1D()                                         \n\
 " ;
 
 /*-----------------------------------------------------------------------------
@@ -453,6 +458,7 @@ static int cr2res_cal_wave(
     char                *   out_file;
     cpl_table           *   out_trace_wave[CR2RES_NB_DETECTORS] ;
     cpl_table           *   lines_diagnostics[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   out_extracted[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     int                     det_nr, order, i ;
@@ -609,6 +615,7 @@ static int cr2res_cal_wave(
         /* Initialise */
         out_trace_wave[det_nr-1] = NULL ;
         lines_diagnostics[det_nr-1] = NULL ;
+        out_extracted[det_nr-1] = NULL ;
         out_wave_map[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
 
@@ -629,6 +636,7 @@ static int cr2res_cal_wave(
                     display_wmax, 
                     &(out_trace_wave[det_nr-1]),
                     &(lines_diagnostics[det_nr-1]),
+                    &(out_extracted[det_nr-1]),
                     &(out_wave_map[det_nr-1]),
                     &(ext_plist[det_nr-1])) == -1) {
             cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
@@ -649,6 +657,12 @@ static int cr2res_cal_wave(
             CR2RES_CAL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
+    out_file = cpl_sprintf("%s_extracted.fits", RECIPE_STRING) ;
+    cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            out_extracted, NULL, ext_plist, 
+            CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
+    cpl_free(out_file);
+
 	if (wavecal_type == CR2RES_LINE2D || wavecal_type == CR2RES_LINE1D) {
 		/* Save the Lines Diagnostics */
 		out_file = cpl_sprintf("%s_lines_diagnostics.fits", RECIPE_STRING);
@@ -667,6 +681,8 @@ static int cr2res_cal_wave(
             cpl_table_delete(out_trace_wave[i]) ;
         if (lines_diagnostics[i] != NULL)
             cpl_table_delete(lines_diagnostics[i]) ;
+        if (out_extracted[i] != NULL)
+            cpl_table_delete(out_extracted[i]) ;
         if (out_wave_map[i] != NULL) {
             hdrl_image_delete(out_wave_map[i]) ;
         }
@@ -706,6 +722,7 @@ static int cr2res_cal_wave(
   @param display_wmax       Maximum Wavelength to  display
   @param out_trace_wave     [out] trace wave table
   @param lines_diagnostics  [out] lines diagnostics table
+  @param out_extracted      [out] extracted table with updated WL
   @param out_wave_map       [out] Wave map
   @param ext_plist          [out] the header for saving the products
   @return   0 if ok, -1 otherwise
@@ -741,6 +758,7 @@ static int cr2res_cal_wave_reduce(
         double                  display_wmax,
         cpl_table           **  out_trace_wave,
         cpl_table           **  lines_diagnostics,
+        cpl_table           **  out_extracted,
         hdrl_image          **  out_wave_map,
         cpl_propertylist    **  ext_plist)
 {
@@ -756,6 +774,7 @@ static int cr2res_cal_wave_reduce(
     hdrl_image          *   wl_map ;
     cpl_table           *   tw_out ;
     cpl_table           *   lines_diagnostics_out ;
+    cpl_table           *   extracted_out ;
     cpl_propertylist    *   plist ;
     cpl_propertylist    *   qcs_plist ;
     const char          *   first_file ;
@@ -764,8 +783,8 @@ static int cr2res_cal_wave_reduce(
     
     /* Check Inputs */
     if (rawframes==NULL || trace_wave_frame==NULL || out_trace_wave==NULL ||
-            lines_diagnostics == NULL || out_wave_map==NULL || ext_plist==NULL)
-        return -1 ;
+            lines_diagnostics == NULL || out_extracted == NULL || 
+            out_wave_map==NULL || ext_plist==NULL) return -1 ;
     if (collapse!=CR2RES_COLLAPSE_MEAN && collapse!=CR2RES_COLLAPSE_MEDIAN) {
         return -1 ;
     }
@@ -860,6 +879,7 @@ static int cr2res_cal_wave_reduce(
                 display, display_wmin, display_wmax,
                 &qcs_plist,
                 &lines_diagnostics_out,
+                &extracted_out,
                 &tw_out)) {
         cpl_msg_error(__func__, "Failed to calibrate");
         cpl_table_delete(tw_in) ;
@@ -880,6 +900,7 @@ static int cr2res_cal_wave_reduce(
     if (plist == NULL) {
         cpl_table_delete(tw_out) ;
         cpl_table_delete(lines_diagnostics_out) ;
+        cpl_table_delete(extracted_out) ;
         hdrl_image_delete(wl_map) ;
         cpl_msg_error(__func__, "Failed to load the plist") ;
         return -1 ;
@@ -894,6 +915,7 @@ static int cr2res_cal_wave_reduce(
     /* Return */
     *out_trace_wave = tw_out ;
     *lines_diagnostics = lines_diagnostics_out ;
+    *out_extracted = extracted_out ;
     *out_wave_map = wl_map;
     *ext_plist = plist ;
     return 0 ;

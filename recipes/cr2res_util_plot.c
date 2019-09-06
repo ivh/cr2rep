@@ -65,17 +65,22 @@ static int cr2res_util_plot(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_plot_description[] = "Plot the CR2RES tables.\n" 
-"This recipe accepts possibly 2 parameter:\n"
-"First parameter:       the table to plot.\n"
-"                       (PRO TYPE = "CR2RES_PROTYPE_CATALOG") or\n"
-"                       (PRO TYPE = "CR2RES_EXTRACT_1D_PROTYPE") or\n"
-"                       (PRO TYPE = "CR2RES_PROTYPE_XCORR") or\n"
-"Second parameter is optional and must be of the same type and same\n"
-"                 table length as the first one. If provided, the two\n"
-"                 signals are overplotted. In this case, --adjust can \n"
-"                 be used to adjust the second plot average level to \n"
-"                 the first one.\n" ;
+static char cr2res_util_plot_description[] = "\
+Plotting                                                                \n\
+  This utility detects the type of the first passed file, and plots     \n\
+  relevant graphs accordingly.                                          \n\
+                                                                        \n\
+  Inputs                                                                \n\
+    first.fits " CR2RES_PROTYPE_CATALOG " [1]                           \n\
+            or " CR2RES_EXTRACT_1D_PROTYPE "                            \n\
+    second.fits " CR2RES_PROTYPE_CATALOG " [0 to 1]                     \n\
+  Outputs                                                               \n\
+    -                                                                   \n\
+                                                                        \n\
+  Algorithm                                                             \n\
+                                                                        \n\
+  Library Functions uѕed                                                \n\
+" ;
 
 /*-----------------------------------------------------------------------------
                                 Function code
@@ -312,14 +317,6 @@ static int cr2res_util_plot(
         tab = cr2res_load_table(fname, reduce_det, (int)xmin, (int)xmax) ;
         cr2res_util_plot_spec_1d(tab, tab_opt, adjust, reduce_order, 
                 reduce_trace) ;
-        cpl_table_delete(tab) ;
-    }
-
-   /* CR2RES_PROTYPE_XCORR */
-    if (!strcmp(protype, CR2RES_PROTYPE_XCORR)) {
-        /* Load the table */
-        tab = cr2res_load_table(fname, reduce_det, (int)xmin, (int)xmax) ;
-        irplib_wlxcorr_plot_spc_table(tab, "", 1, 5) ;
         cpl_table_delete(tab) ;
     }
 
