@@ -929,7 +929,7 @@ cpl_polynomial * cr2res_wave_xcorr(
     }
 
     /* Prepare inputs for X-corr */
-    degree_loc = 2 ;
+    degree_loc = degree ;
     nsamples = 30 ;
     wl_error_nm = wl_error ;
     sol_guess = wavesol_init ;
