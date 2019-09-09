@@ -105,9 +105,8 @@ cpl_error_code cr2res_detector_shotnoise_model(
         cpl_image       **  ima_errs) ;
 
 int cr2res_plot_wavecal_result(
-        const cpl_vector        *   extracted_spec,
+        const cpl_bivector      *   extracted_spec,
         const cpl_bivector      *   catalog,
-        const cpl_polynomial    *   poly,
         const char              *   title,
         double                      wmin,
         double                      wmax) ;

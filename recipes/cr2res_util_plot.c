@@ -33,6 +33,7 @@
 #include "irplib_wlxcorr.h"
 
 #include "cr2res_utils.h"
+#include "cr2res_extract.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
 #include "cr2res_io.h"
@@ -250,14 +251,20 @@ static int cr2res_util_plot(
     const cpl_parameter *   param;
     int                     xmin, xmax, reduce_det, reduce_trace,
                             reduce_order, adjust ;
-    const char          *   fname ;
-    const char          *   fname_opt ;
+    const char          *   fname1 ;
+    const char          *   fname2 ;
     const char          *   title ;
     const char          *   protype ;
     cpl_propertylist    *   plist ;
-    cpl_table           *   tab ;
+    cpl_table           *   tab1 ;
     cpl_table           *   sel_tab ;
     cpl_table           *   tab_opt ;
+    cpl_bivector        *   spectrum ;
+    cpl_bivector        *   spectrum_err ;
+    cpl_bivector        *   ref_spectrum ;
+    cpl_bivector        *   ref_spectrum_extract ;
+    double              *   px ;
+    double                  wmin, wmax ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -279,45 +286,88 @@ static int cr2res_util_plot(
             "cr2res.cr2res_util_plot.adjust_level");
     adjust = cpl_parameter_get_bool(param);
 
-    /* Initialise */
-    
     /* Retrieve raw frames */
-    fname = cpl_frame_get_filename(cpl_frameset_get_position(frameset, 0)) ;
+    fname1 = cpl_frame_get_filename(cpl_frameset_get_position(frameset, 0)) ;
+    fname2 = cpl_frame_get_filename(cpl_frameset_get_position(frameset, 1)) ;
 
-    /* Read the PRO.TYPE */
-    plist = cpl_propertylist_load(fname, 0) ;
+    /* Read the PRO.TYPE of the first frame */
+    plist = cpl_propertylist_load(fname1, 0) ;
     protype = cr2res_pfits_get_protype(plist) ;
 
     /* CR2RES_PROTYPE_CATALOG */
     if (!strcmp(protype, CR2RES_PROTYPE_CATALOG)) {
         title = "t 'Emission lines' w lines" ;
-        tab = cpl_table_load(fname, 1, 0) ;
+        tab1 = cpl_table_load(fname1, 1, 0) ;
 
         /* Sub selection of the catalog */
         if (xmin > 0.0 && xmax >.0) {
-            cpl_table_and_selected_double(tab, CR2RES_COL_WAVELENGTH,
+            cpl_table_and_selected_double(tab1, CR2RES_COL_WAVELENGTH,
                     CPL_GREATER_THAN, xmin) ;
-            cpl_table_and_selected_double(tab, CR2RES_COL_WAVELENGTH,
+            cpl_table_and_selected_double(tab1, CR2RES_COL_WAVELENGTH,
                     CPL_LESS_THAN, xmax) ;
-            sel_tab = cpl_table_extract_selected(tab) ;
-            cpl_table_delete(tab) ;
-            tab = sel_tab ;
+            sel_tab = cpl_table_extract_selected(tab1) ;
+            cpl_table_delete(tab1) ;
+            tab1 = sel_tab ;
         }
 
         /* Plot */
         cpl_plot_column(
                 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Emission';",
-                title, "", tab, CR2RES_COL_WAVELENGTH, CR2RES_COL_EMISSION) ;
-        cpl_table_delete(tab) ;
+                title, "", tab1, CR2RES_COL_WAVELENGTH, CR2RES_COL_EMISSION) ;
+        cpl_table_delete(tab1) ;
     }
  
     /* CR2RES_EXTRACT_1D_PROTYPE */
     if (!strcmp(protype, CR2RES_EXTRACT_1D_PROTYPE)) {
+
+        /* Only support a single detector */
+        if (reduce_det < 1) {
+            cpl_msg_error(__func__, "Please specify a detector - abort") ;
+            cpl_propertylist_delete(plist) ;
+            return -1 ;
+        }
+
         /* Load the table */
-        tab = cr2res_load_table(fname, reduce_det, (int)xmin, (int)xmax) ;
-        cr2res_util_plot_spec_1d(tab, tab_opt, adjust, reduce_order, 
-                reduce_trace) ;
-        cpl_table_delete(tab) ;
+        tab1 = cr2res_io_load_EXTRACT_1D(fname1, reduce_det) ;
+        if (fname2 == NULL) {
+            cr2res_util_plot_spec_1d(tab1, NULL, adjust, reduce_order, 
+                    reduce_trace) ;
+        } else {
+            if (reduce_order < 1 || reduce_trace < 1) {
+                cpl_msg_error(__func__, "Please specify a order/trace - abort");
+                cpl_propertylist_delete(plist) ;
+                cpl_table_delete(tab1) ;
+                return -1 ;
+            }
+
+            /* Get the Spectrum  */
+            if (cr2res_extract_EXTRACT1D_get_spectrum(tab1, reduce_order, 
+                        reduce_trace, &spectrum, &spectrum_err)) {
+                cpl_msg_error(__func__, "Cannot get the extracted spectrum") ;
+                cpl_propertylist_delete(plist) ;
+                cpl_table_delete(tab1) ;
+                return -1 ;
+            }
+            cpl_bivector_delete(spectrum_err) ;
+            
+            /* Get the catalog */
+            ref_spectrum = cr2res_io_load_EMISSION_LINES(fname2) ;
+            
+            /* Extract the catalog in the proper Wave range */
+            px = cpl_bivector_get_x_data(spectrum) ;
+            ref_spectrum_extract = irplib_wlxcorr_cat_extract(ref_spectrum,
+                    px[0], px[cpl_bivector_get_size(spectrum)-1]) ;
+            cpl_bivector_delete(ref_spectrum) ;
+
+            /* Plot */
+            cr2res_plot_wavecal_result(spectrum, ref_spectrum_extract, "", 
+                    xmin, xmax) ;
+
+            /* Free */
+            cpl_bivector_delete(spectrum) ;
+            cpl_bivector_delete(ref_spectrum_extract) ;
+        }
+        cpl_table_delete(tab1) ;
     }
 
     /* Delete */
@@ -341,9 +391,11 @@ static int cr2res_util_plot_spec_1d(
     char    *   spec_col ;
     char    *   err_col ;
 
-    /* Protect empty chips in windowing mode */
-    if (cpl_table_get_nrow(tab) == 0) {
-        return 0 ;
+    /* Check entries */
+    if (cpl_table_get_nrow(tab) == 0) return -1 ;
+    if (order < 1 || trace < 1) {
+        cpl_msg_error(__func__, "Please specify the order/trace") ;
+        return -1 ;
     }
 
     /* Get column names */

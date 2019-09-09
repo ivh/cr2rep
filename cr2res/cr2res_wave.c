@@ -51,6 +51,9 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static cpl_table * cr2res_wave_recompute_wl(
+        const cpl_table *   spectra,
+        const cpl_table *   tw) ;
 static cpl_bivector * cr2res_wave_gen_lines_spectrum(
         const char      *   catalog,
         cpl_polynomial  *   wavesol_init,
@@ -443,8 +446,7 @@ int cr2res_wave_apply(
     }
 
     /* Recompute the extracted table wavelengths with the results */
-    /* TODO */
-    extracted_out_loc = cpl_table_duplicate(spectra_tab) ;
+    extracted_out_loc = cr2res_wave_recompute_wl(spectra_tab, tw_out) ;
 
     /* De-allocate */
     for (i=0 ; i<nb_traces ; i++) {
@@ -509,10 +511,13 @@ cpl_polynomial * cr2res_wave_1d(
         cpl_table           **  lines_diagnostics)
 {
     cpl_polynomial      *   solution ;
+    cpl_bivector        *   spectrum_corrected ;
+    double              *   px ;
     cpl_bivector        *   ref_spectrum ;
     cpl_bivector        *   simple_ref_spectrum ;
     const cpl_bivector  **  plot;
     double                  wl_error_nm ;
+    int                     i ;
 
     /* Check Inputs */
     if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL ||
@@ -544,20 +549,35 @@ cpl_polynomial * cr2res_wave_1d(
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
             cpl_error_reset();
         } else if (display) {
+            /* Recompute the wavelengths for the spectrum */
+            spectrum_corrected = cpl_bivector_duplicate(spectrum) ;
+            px = cpl_bivector_get_x_data(spectrum_corrected) ;
+            for (i=0 ; i<cpl_bivector_get_size(spectrum_corrected) ; i++) 
+                px[i] = cpl_polynomial_eval_1d(wavesol_init,(double)(i+1),NULL);
+            
+            /* Run the plot */
             cr2res_plot_wavecal_result(
-                    cpl_bivector_get_y(spectrum),
+                    spectrum_corrected,
                     ref_spectrum,
-                    wavesol_init,
                     " (INITIAL GUESS)",
                     display_wmin,
                     display_wmax) ;
+            cpl_bivector_delete(spectrum_corrected) ;
+
+            /* Recompute the wavelengths for the spectrum */
+            spectrum_corrected = cpl_bivector_duplicate(spectrum) ;
+            px = cpl_bivector_get_x_data(spectrum_corrected) ;
+            for (i=0 ; i<cpl_bivector_get_size(spectrum_corrected) ; i++) 
+                px[i] = cpl_polynomial_eval_1d(solution, (double)(i+1), NULL) ;
+            
+            /* Run the plot */
             cr2res_plot_wavecal_result(
-                    cpl_bivector_get_y(spectrum),
+                    spectrum_corrected,
                     ref_spectrum,
-                    solution,
                     " (COMPUTED SOLUTION)",
                     display_wmin,
                     display_wmax) ;
+            cpl_bivector_delete(spectrum_corrected) ;
         }
     } else if (wavecal_type == CR2RES_LINE1D) {
         solution = cr2res_wave_line_fitting(spectrum, spectrum_err,
@@ -1421,6 +1441,63 @@ cr2res_wavecal_type cr2res_wave_guess_method(
 }
 
 /**@}*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Recompute the wavelengths of an extracted spectrum
+  @param    
+  @return   The newly allocated extracted spectra with updated wavelengthѕ
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_table * cr2res_wave_recompute_wl(
+        const cpl_table *   spectra,
+        const cpl_table *   tw)
+{
+    cpl_table       *   spectra_out ;
+    cpl_polynomial  *   wave_poly ;
+    char            *   wave_name ;
+    double          *   pwave ;
+    int                 i, j, nrows, order, trace_nb ;
+
+    /* Check entries */
+    if (spectra == NULL || tw == NULL) return NULL ;
+
+    /* Initialise */
+    nrows = cpl_table_get_nrow(tw) ;
+
+    /* Create output spectra */
+    spectra_out = cpl_table_duplicate(spectra) ;
+
+    /* Loop on the traces */
+    for (i=0 ; i<nrows ; i++) {
+        order = cpl_table_get(tw, CR2RES_COL_ORDER, i, NULL) ;
+        trace_nb = cpl_table_get(tw, CR2RES_COL_TRACENB, i, NULL);
+        wave_poly = cr2res_get_trace_wave_poly(tw,
+                CR2RES_COL_WAVELENGTH, order, trace_nb) ;
+
+        /* Get the column name */
+        wave_name = cr2res_dfs_WAVELENGTH_colname(order, trace_nb) ;
+
+        /* If the column is there, update it */
+        if (cpl_table_has_column(spectra_out, wave_name)) {
+            if ((pwave = cpl_table_get_data_double(spectra_out, 
+                            wave_name)) == NULL) {
+                cpl_msg_error(__func__, "Cannot access the wavelength") ;
+                cpl_free(wave_name) ;
+                cpl_polynomial_delete(wave_poly) ;
+                cpl_table_delete(spectra_out) ;
+                return NULL ;
+            }
+
+            /* Update the Wavelength */
+            for (j=0 ; j<cpl_table_get_nrow(spectra_out) ; j++) 
+                pwave[j] = cpl_polynomial_eval_1d(wave_poly, j+1, NULL) ;
+        }
+        cpl_free(wave_name) ;
+        cpl_polynomial_delete(wave_poly) ;
+    }
+    return spectra_out ;
+}
 
 /*----------------------------------------------------------------------------*/
 /**

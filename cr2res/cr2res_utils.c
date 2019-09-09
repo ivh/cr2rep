@@ -917,7 +917,6 @@ cpl_error_code cr2res_detector_shotnoise_model(
   @brief    Plot the spectrum with the catalog
   @param    extracted_spec  The extracted spectrum
   @param    catalog         The lines catalog
-  @param    poly            The polynomial solution
   @param    title           The title for the plot
   @param    wmin            Min Wavelength to display or -1
   @param    wmax            Max Wavelength to display or -1
@@ -925,9 +924,8 @@ cpl_error_code cr2res_detector_shotnoise_model(
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_plot_wavecal_result(
-        const cpl_vector        *   extracted_spec,
+        const cpl_bivector      *   extracted_spec,
         const cpl_bivector      *   catalog,
-        const cpl_polynomial    *   poly,
         const char              *   title,
         double                      wmin,
         double                      wmax)
@@ -935,7 +933,6 @@ int cr2res_plot_wavecal_result(
     cpl_bivector    **  bivectors ;
     double          *   p0x ;
     double          *   p0y ;
-    double          *   pextracted_spec ;
     double          *   p1x ;
     double          *   p1y ;
     double          *   ptmp_biv0x ;
@@ -945,30 +942,19 @@ int cr2res_plot_wavecal_result(
     cpl_bivector    *   tmp_biv0 ;
     cpl_bivector    *   tmp_biv1 ;
     double              rate ;
-    int                 n0, n1, nsamples, i ;
+    int                 n0, n1, i ;
 
     /* Check entries */
-    if (extracted_spec==NULL||catalog==NULL||poly==NULL||title==NULL)
+    if (extracted_spec==NULL||catalog==NULL||title==NULL)
         return -1 ;
 
     /* Initialise */
-    nsamples = cpl_vector_get_size(extracted_spec) ;
     n0 = n1 = 0 ;
 
     /* Create bivectors */
     bivectors = cpl_malloc(2*sizeof(cpl_bivector*)) ;
-    bivectors[0] = cpl_bivector_new(nsamples) ;
+    bivectors[0] = cpl_bivector_duplicate(extracted_spec) ;
     bivectors[1] = cpl_bivector_duplicate(catalog) ;
-
-    p0x = cpl_bivector_get_x_data(bivectors[0]) ;
-    p0y = cpl_bivector_get_y_data(bivectors[0]) ;
-    pextracted_spec = cpl_vector_get_data((cpl_vector*)extracted_spec) ;
-
-    /* Apply the pix - wl transformation to the extracted spectrum */
-    for (i=0 ; i<nsamples ; i++) {
-        p0x[i] = cpl_polynomial_eval_1d(poly, (double)(i), NULL) ;
-        p0y[i] = pextracted_spec[i] ;
-    }
 
     /* Sort the bivectors - Should not be necessary */
     cpl_bivector_sort(bivectors[0], bivectors[0], CPL_SORT_ASCENDING,
