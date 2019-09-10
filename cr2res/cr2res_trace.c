@@ -1728,7 +1728,8 @@ static cpl_mask * cr2res_trace_signal_detect(
         int                 smooth_y,
         double              thresh)
 {
-    cpl_image       *   sm_image ;
+    cpl_image       *   smx_image ;
+    cpl_image       *   smxy_image ;
     int                 kernel_x, kernel_y ;
     cpl_mask        *   kernel ;
     cpl_mask        *   mask ;
@@ -1742,33 +1743,52 @@ static cpl_mask * cr2res_trace_signal_detect(
     if (kernel_x % 2 == 0) kernel_x++ ;
     kernel_y = smooth_y ;
     if (kernel_y % 2 == 0) kernel_y++ ;
-    kernel = cpl_mask_new(kernel_x, kernel_y);
+
+    // Start with smooth in X
+    kernel = cpl_mask_new(kernel_x, 1);
     cpl_mask_not(kernel);
     
-    sm_image = cpl_image_duplicate(image);
-    if (cpl_image_filter_mask(sm_image, image, kernel, CPL_FILTER_AVERAGE_FAST,
+    smx_image = cpl_image_duplicate(image);
+    if (cpl_image_filter_mask(smx_image, image, kernel, CPL_FILTER_AVERAGE_FAST,
                 CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot filter the image") ;
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         cpl_mask_delete(kernel);
-        cpl_image_delete(sm_image) ;
+        cpl_image_delete(smx_image) ;
+        return NULL ;
+    }
+    cpl_mask_delete(kernel);
+
+    // Now smooth Y
+    kernel = cpl_mask_new(1, kernel_y);
+    cpl_mask_not(kernel);
+    
+    smxy_image = cpl_image_duplicate(smx_image);
+    if (cpl_image_filter_mask(smxy_image, smx_image, kernel, CPL_FILTER_AVERAGE_FAST,
+                CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Cannot filter the image") ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        cpl_mask_delete(kernel);
+        cpl_image_delete(smx_image) ;
+        cpl_image_delete(smxy_image) ;
         return NULL ;
     }
     cpl_mask_delete(kernel);
     
-    /* Subtract input image from smoothed */
-    cpl_image_subtract(sm_image, image);
+    /* Subtract x-smoothed image from xy-smoothed */
+    cpl_image_subtract(smxy_image, smx_image);
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_image_save(sm_image, "debug_smimage.fits", CPL_TYPE_DOUBLE, NULL,
+        cpl_image_save(smxy_image, "debug_smimage.fits", CPL_TYPE_DOUBLE, NULL,
                 CPL_IO_CREATE);
         cpl_msg_debug(__func__, "Smooth X: %d, Y: %d, Threshold: %.1f",
                 kernel_x, kernel_y, thresh);
     }
 
     /* Wanted pixels are where input image exceeds sm_image by thresh */
-    mask = cpl_mask_threshold_image_create(sm_image,-DBL_MAX, thresh);
-    cpl_image_delete(sm_image) ;
+    mask = cpl_mask_threshold_image_create(smxy_image,-DBL_MAX, thresh);
+    cpl_image_delete(smx_image) ;
+    cpl_image_delete(smxy_image) ;
 
     return mask ;
 }
