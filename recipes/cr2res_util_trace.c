@@ -184,21 +184,21 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.min_cluster",
             CPL_TYPE_INT, "size in pixels of the smallest allowed cluster",
-            "cr2res.cr2res_util_trace", 10000);
+            "cr2res.cr2res_util_trace", 40000);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "min_cluster");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.smooth_x",
             CPL_TYPE_INT, "Length of the smoothing kernel in x",
-            "cr2res.cr2res_util_trace", 11);
+            "cr2res.cr2res_util_trace", 111);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_x");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.smooth_y",
             CPL_TYPE_INT, "Length of the smoothing kernel in y",
-            "cr2res.cr2res_util_trace", 201);
+            "cr2res.cr2res_util_trace", 401);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_y");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -212,7 +212,7 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.opening",
             CPL_TYPE_BOOL, "Use a morphological opening to rejoin clusters",
-            "cr2res.cr2res_util_trace", FALSE);
+            "cr2res.cr2res_util_trace", TRUE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "opening");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
