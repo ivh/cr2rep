@@ -40,6 +40,10 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_io_set_bpm_as_NaNs(
+        cpl_image   *   in) ;
+static int cr2res_io_set_NaNs_as_bpm(
+        cpl_image   *   in) ;
 static int cr2res_io_check_pro_type(
         const char  *   filename,
         const char  *   expected_protype) ;
@@ -497,11 +501,16 @@ hdrl_image * cr2res_io_load_image(
         err = cpl_image_load(in, CPL_TYPE_DOUBLE, 0, ext_nr_err) ;
     else    
         err = NULL ;
+
+    /* Set the NaN pixels as bad  */
+    cr2res_io_set_NaNs_as_bpm(data) ;
+
+    /* Create output hdrl image */
     out = hdrl_image_create(data, err) ;
-    if (data != NULL) cpl_image_delete(data) ;
-    if (err != NULL) cpl_image_delete(err) ;
 
     /* Return  */
+    if (data != NULL) cpl_image_delete(data) ;
+    if (err != NULL) cpl_image_delete(err) ;
     return out ;
 }
 
@@ -523,6 +532,7 @@ hdrl_imagelist * cr2res_io_load_image_list(
     hdrl_imagelist  *   out ;
     cpl_imagelist   *   data ;
     cpl_imagelist   *   error ;
+    cpl_size            i ;
     int                 wished_ext_nb_data, wished_ext_nb_error ;
 
     /* Check entries */
@@ -542,11 +552,17 @@ hdrl_imagelist * cr2res_io_load_image_list(
         error = cpl_imagelist_load(in, CPL_TYPE_DOUBLE, wished_ext_nb_error);
     else 
         error = NULL ;
+
+    /* Set the NaN pixels as bad  */
+    for (i=0 ; i<cpl_imagelist_get_size(data) ; i++) 
+        cr2res_io_set_NaNs_as_bpm(cpl_imagelist_get(data, i)) ;
+
+    /* Create output hdrl image */
     out = hdrl_imagelist_create(data, error) ;
-    if (data != NULL) cpl_imagelist_delete(data) ;
-    if (error != NULL) cpl_imagelist_delete(error) ;
 
     /* Return  */
+    if (data != NULL) cpl_imagelist_delete(data) ;
+    if (error != NULL) cpl_imagelist_delete(error) ;
     return out ;
 }
 
@@ -571,6 +587,7 @@ hdrl_imagelist * cr2res_io_load_image_list_from_set(
     hdrl_imagelist  *   out ;
     cpl_imagelist   *   data ;
     cpl_imagelist   *   err ;
+    cpl_size            i ;
     int                 ext_nr_data, ext_nr_err ;
 
     /* Check entries */
@@ -592,11 +609,17 @@ hdrl_imagelist * cr2res_io_load_image_list_from_set(
         err = cpl_imagelist_load_frameset(in, CPL_TYPE_DOUBLE, 1, ext_nr_err) ;
     else 
         err = NULL ;
+
+    /* Set the NaN pixels as bad  */
+    for (i=0 ; i<cpl_imagelist_get_size(data) ; i++) 
+        cr2res_io_set_NaNs_as_bpm(cpl_imagelist_get(data, i)) ;
+
+    /* Create output hdrl image */
     out = hdrl_imagelist_create(data, err) ;
-    if (data != NULL) cpl_imagelist_delete(data) ;
-    if (err != NULL) cpl_imagelist_delete(err) ;
 
     /* Return  */
+    if (data != NULL) cpl_imagelist_delete(data) ;
+    if (err != NULL) cpl_imagelist_delete(err) ;
     return out ;
 }
 
@@ -1730,6 +1753,69 @@ int cr2res_io_save_POL_SPEC(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Set to nan the pixels that are bad
+  @param    in      Image
+  @return   0 if ok, -1 in error case
+  Only supports DOUBLE images
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_io_set_bpm_as_NaNs(
+        cpl_image   *   in) 
+{
+    cpl_size        nx, ny, i, j ;
+    double      *   pdata ;
+
+    /* Check Entries */
+    if (in == NULL) return -1 ;
+    if (cpl_image_get_type(in) != CPL_TYPE_DOUBLE) return 0 ;
+
+    /* Initialize */
+    nx = cpl_image_get_size_x(in) ;
+    ny = cpl_image_get_size_y(in) ;
+    pdata = cpl_image_get_data_double(in) ;
+
+    /* Loop on the pixels */
+    for (j=0 ; j<ny ; j++) {
+        for (i=0 ; i<nx ; i++) {
+            if (cpl_image_is_rejected(in, i+1, j+1)) pdata[i+j*nx] = 0./0. ;
+        }
+    }
+    return 0 ;
+}
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Set to bad the pixels whose value is nan
+  @param    in      Image
+  @return   0 if ok, -1 in error case
+  Only supports DOUBLE images
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_io_set_NaNs_as_bpm(
+        cpl_image   *   in) 
+{
+    cpl_size        nx, ny, i, j ;
+    double      *   pdata ;
+
+    /* Check Entries */
+    if (in == NULL) return -1 ;
+    if (cpl_image_get_type(in) != CPL_TYPE_DOUBLE) return 0 ;
+
+    /* Initialize */
+    nx = cpl_image_get_size_x(in) ;
+    ny = cpl_image_get_size_y(in) ;
+    pdata = cpl_image_get_data_double(in) ;
+
+    /* Loop on the pixels */
+    for (j=0 ; j<ny ; j++) {
+        for (i=0 ; i<nx ; i++) {
+            if (isnan(pdata[i+j*nx])) cpl_image_reject(in, i+1, j+1) ;
+        }
+    }
+    return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Save a multi extension table
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
@@ -1966,8 +2052,13 @@ static int cr2res_io_save_image(
 
         if (data[det_nr-1] == NULL)
             to_save = NULL ;
-        else                        
+        else                       
             to_save = hdrl_image_get_image(data[det_nr-1]);
+
+        /* Set BPMs as NaNs */
+        if (to_save != NULL) cr2res_io_set_bpm_as_NaNs(to_save) ;
+
+        /* Ѕave */
         cpl_image_save(to_save, filename, type, qclist_loc, CPL_IO_EXTEND) ;
         cpl_free(wished_extname) ;
 
@@ -2021,6 +2112,7 @@ static int cr2res_io_save_imagelist(
     cpl_imagelist       *   list_noise ;
     char          		*   wished_extname ;
     int                     det_nr ;
+    cpl_size                i ;
 
     /* Create a local QC list and add the PRO.CATG */
     if (qc_list == NULL) {
@@ -2052,6 +2144,11 @@ static int cr2res_io_save_imagelist(
             list_data = cr2res_hdrl_to_cpl_list(data[det_nr-1], 1) ;
             list_noise = cr2res_hdrl_to_cpl_list(data[det_nr-1], 0) ;
         }
+
+        /* Set BPMs as NaNs */
+        if (list_data != NULL) 
+            for (i=0 ; i<cpl_imagelist_get_size(list_data) ; i++) 
+                cr2res_io_set_bpm_as_NaNs(cpl_imagelist_get(list_data, i)) ;
 
         /* Prepare header */
         if (ext_plist[det_nr-1] == NULL) {
