@@ -494,6 +494,7 @@ static int cr2res_util_extract(
                 } else {
                     bpm_mask = cpl_mask_threshold_image_create(bpm_img, 0, 
                             INT_MAX);
+                    cpl_mask_or(bpm_mask, hdrl_image_get_mask_const(science_hdrl));
                     if (hdrl_image_reject_from_mask(science_hdrl, 
                                 bpm_mask) != CPL_ERROR_NONE) {
                         cpl_msg_error(__func__, 

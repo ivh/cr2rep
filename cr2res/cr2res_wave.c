@@ -43,8 +43,8 @@
                                    Defines
  -----------------------------------------------------------------------------*/
 
-// The maximum difference to the neighbouring pixels to be considered a 
-// bad pixel for the fitting of the gaussian line centers
+// The maximum difference to the neighbouring pixels to be considered a bad pixel
+// For the fitting of the gaussian line centers
 #define MAX_DEVIATION_FOR_BAD_PIXEL 300
 
 /*-----------------------------------------------------------------------------
