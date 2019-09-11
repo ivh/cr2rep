@@ -110,6 +110,9 @@ double cr2res_qc_detlin_median(
     /* Check Entries */
     if (coeffs == NULL) return -1.0 ;
 
+    /* TODO FIX - > the function returns occasioanlly NaN */
+    return 0.0 ;
+
     /* Initialise */
     qc_detlin_median = -1.0 ;
 
