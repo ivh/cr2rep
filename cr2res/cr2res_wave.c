@@ -306,10 +306,14 @@ int cr2res_wave_apply(
     cpl_table_name_column(tw_out, CR2RES_COL_WAVELENGTH, "TMP_WL");
     cpl_table_new_column_array(tw_out, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 
             degree+1) ;
+    cpl_table_name_column(tw_out, CR2RES_COL_WAVELENGTH_ERROR, "TMP_WL_ERR");
+    cpl_table_new_column_array(tw_out, CR2RES_COL_WAVELENGTH_ERROR, 
+            CPL_TYPE_DOUBLE, 2) ;
 
     /* Copy incoming solution into output If explicitely requested */
     if (propagate_flag) {
         for (i = 0; i < nb_traces; i++) {
+            /* Propagate WAVELENGTH  */
             wl_array_tmp = cpl_table_get_array(tw_out, "TMP_WL", i);
             wl_array = cpl_array_new(degree+1, CPL_TYPE_DOUBLE);
             for (j=0; j <= degree; j++) {
@@ -325,9 +329,15 @@ int cr2res_wave_apply(
             }
             cpl_table_set_array(tw_out, CR2RES_COL_WAVELENGTH, i, wl_array);
             cpl_array_delete(wl_array);
+
+            /* Propagate WAVELENGTH_ERROR */
+            wl_array_tmp = cpl_table_get_array(tw_out, "TMP_WL_ERR", i);
+            cpl_table_set_array(tw_out, CR2RES_COL_WAVELENGTH_ERROR, i, 
+                    wl_array_tmp);
         }
     }
     cpl_table_erase_column(tw_out, "TMP_WL");
+    cpl_table_erase_column(tw_out, "TMP_WL_ERROR");
 
     /* Allocate qcs_plist */
     qcs_plist = cpl_propertylist_new() ;
@@ -411,7 +421,7 @@ int cr2res_wave_apply(
 
             /* Add The QC parameters */
             if (best_xcorr > 0.0) {
-                char * qc_name = cpl_sprintf("%s_%02d_%02d",
+                char * qc_name = cpl_sprintf("%s-%02d-%02d",
                         CR2RES_HEADER_QC_WAVE_BESTXCORR, order, trace_id) ;
                 cpl_propertylist_append_double(qcs_plist, qc_name, best_xcorr);
                 cpl_free(qc_name) ;
@@ -1472,30 +1482,33 @@ static cpl_table * cr2res_wave_recompute_wl(
     for (i=0 ; i<nrows ; i++) {
         order = cpl_table_get(tw, CR2RES_COL_ORDER, i, NULL) ;
         trace_nb = cpl_table_get(tw, CR2RES_COL_TRACENB, i, NULL);
-        wave_poly = cr2res_get_trace_wave_poly(tw,
-                CR2RES_COL_WAVELENGTH, order, trace_nb) ;
+       
+        if ((wave_poly = cr2res_get_trace_wave_poly(tw,
+                CR2RES_COL_WAVELENGTH, order, trace_nb)) != NULL) {
 
-        /* Get the column name */
-        wave_name = cr2res_dfs_WAVELENGTH_colname(order, trace_nb) ;
+            /* Get the column name */
+            wave_name = cr2res_dfs_WAVELENGTH_colname(order, trace_nb) ;
 
-        /* If the column is there, update it */
-        if (cpl_table_has_column(spectra_out, wave_name)) {
-            if ((pwave = cpl_table_get_data_double(spectra_out, 
-                            wave_name)) == NULL) {
-                cpl_msg_error(__func__, "Cannot access the wavelength") ;
-                cpl_free(wave_name) ;
-                cpl_polynomial_delete(wave_poly) ;
-                cpl_table_delete(spectra_out) ;
-                return NULL ;
+            /* If the column is there, update it */
+            if (cpl_table_has_column(spectra_out, wave_name)) {
+                if ((pwave = cpl_table_get_data_double(spectra_out, 
+                                wave_name)) == NULL) {
+                    cpl_msg_error(__func__, "Cannot access the wavelength") ;
+                    cpl_free(wave_name) ;
+                    cpl_polynomial_delete(wave_poly) ;
+                    cpl_table_delete(spectra_out) ;
+                    return NULL ;
+                }
+
+                /* Update the Wavelength */
+                for (j=0 ; j<cpl_table_get_nrow(spectra_out) ; j++) 
+                    pwave[j] = cpl_polynomial_eval_1d(wave_poly, j+1, NULL) ;
             }
-
-            /* Update the Wavelength */
-            for (j=0 ; j<cpl_table_get_nrow(spectra_out) ; j++) 
-                pwave[j] = cpl_polynomial_eval_1d(wave_poly, j+1, NULL) ;
+            cpl_free(wave_name) ;
+            cpl_polynomial_delete(wave_poly) ;
         }
-        cpl_free(wave_name) ;
-        cpl_polynomial_delete(wave_poly) ;
     }
+
     return spectra_out ;
 }
 
