@@ -845,10 +845,12 @@ static int cr2res_cal_flat_reduce(
     cpl_table           *   extract_tab ;
     hdrl_image          *   model_tmp ;
     cpl_vector          *   dits ;
+    int                 *   qc_order_nb ;
+    double              *   qc_order_pos ;
     double                  qc_lamp_ints, qc_mean_level, qc_mean_flux,
                             qc_med_flux, qc_med_snr, qc_trace_centery ;
     int                     i, ext_nr, nb_traces, order, trace_id,
-                            qc_overexposed, qc_nbbad ;
+                            qc_overexposed, qc_nbbad, nbvals ;
 
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
@@ -1059,6 +1061,7 @@ static int cr2res_cal_flat_reduce(
     qc_trace_centery = cr2res_qc_flat_trace_center_y(NULL) ;
     qc_nbbad = cpl_mask_count(bpm_flat) ;
     cpl_mask_delete(bpm_flat) ;
+    cr2res_qc_flat_order_positions(traces,&qc_order_nb,&qc_order_pos,&nbvals);
 
     /* Load the extension header for saving */
     ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
@@ -1075,6 +1078,16 @@ static int cr2res_cal_flat_reduce(
     }
 
     /* Store the QC parameters in the plist */
+    if (qc_order_nb != NULL && qc_order_pos != NULL) {
+        for (i=0 ; i<nbvals ; i++) {
+			char * qc_name = cpl_sprintf("%s%02d",
+					CR2RES_HEADER_QC_FLAT_ORDERPOS, qc_order_nb[i]) ;
+			cpl_propertylist_append_double(plist, qc_name, qc_order_pos[i]);
+			cpl_free(qc_name) ;
+        }
+    }
+    if (qc_order_nb != NULL) cpl_free(qc_order_nb) ;
+    if (qc_order_pos != NULL) cpl_free(qc_order_pos) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_LAMP_INTS, 
             qc_lamp_ints) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_MEAN_LEVEL, 

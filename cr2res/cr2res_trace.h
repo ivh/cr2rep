@@ -110,8 +110,8 @@ int cr2res_trace_compute_height(
         int                 vector_size) ;
 
 double cr2res_trace_get_trace_ypos(
-        cpl_table   *   traces,
-        int             idx) ;
+        const cpl_table *   traces,
+        int                 idx) ;
 
 int cr2res_trace_add_extra_columns(
         cpl_table           *   traces,
@@ -126,6 +126,10 @@ cpl_table * cr2res_trace_adjust(
         const cpl_table     *   trace_wave,
         const cpl_frameset  *   flat_raw,
         int                     det_nr) ;
+
+cr2res_decker cr2res_trace_slit_fraction_info(
+        const cpl_array *   slit_frac,
+        int             *   up_or_down) ;
 
 cpl_array * cr2res_trace_slit_fraction_create(
         cr2res_decker   decker_position,

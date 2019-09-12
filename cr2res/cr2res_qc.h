@@ -63,6 +63,11 @@ double cr2res_qc_flat_trace_center_y(
         const cpl_table     *   trace) ;
 int cr2res_qc_flat_nb_overexposed(
         const cpl_image     *   ima) ;
+int cr2res_qc_flat_order_positions(
+        const cpl_table *   tw,
+        int             **  order_nb,
+        double          **  order_pos,
+        int             *   nbvals) ;
 
 /* WAVE */
 

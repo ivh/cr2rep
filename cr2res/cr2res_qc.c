@@ -188,6 +188,69 @@ int cr2res_qc_detlin_min_max_level(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Compute the central orders positions
+  @param    tw          trave Wave table
+  @param    order_nb    [out] Array of orders numbers
+  @param    order_pos   [out] Array of orders positions
+  @param    nbvals      [out] Size of the arrays
+  @return   0 if ok, -1 otherwise
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_qc_flat_order_positions(
+        const cpl_table *   tw,
+        int             **  order_nb,
+        double          **  order_pos,
+        int             *   nbvals)
+{
+    const cpl_array *   slit_frac ;
+    int             *   order_nb_loc ;
+    double          *   order_pos_loc ;
+    int                 i, n_full, nrows ;
+
+    /* Check Entries */
+    if (tw == NULL || order_nb==NULL || order_pos==NULL || nbvals==NULL) 
+        return -1 ;
+
+    /* Initialise */
+    *nbvals = 0 ;
+    *order_nb = NULL ;
+    *order_pos = NULL ;
+    nrows = cpl_table_get_nrow(tw) ;
+    if (nrows <= 0) return 0 ;
+    
+    /* Count the number of full slit orders in tw */
+    n_full = 0 ;
+    for (i=0 ; i<nrows ; i++) {
+        slit_frac = cpl_table_get_array(tw, CR2RES_COL_SLIT_FRACTION, i) ;
+        if (cr2res_trace_slit_fraction_info(slit_frac, 
+                    NULL) == CR2RES_DECKER_NONE) n_full++ ;
+    }
+
+    /* Allocate output arrays */
+    order_nb_loc = cpl_malloc(n_full * sizeof(int)) ;
+    order_pos_loc = cpl_malloc(n_full * sizeof(double)) ;
+
+    /* Fill the arrays */
+    n_full = 0 ;
+    for (i=0 ; i<nrows ; i++) {
+        slit_frac = cpl_table_get_array(tw, CR2RES_COL_SLIT_FRACTION, i) ;
+        if (cr2res_trace_slit_fraction_info(slit_frac, 
+                    NULL) == CR2RES_DECKER_NONE) {
+            order_nb_loc[n_full] = cpl_table_get(tw, CR2RES_COL_ORDER, i, NULL);
+            order_pos_loc[n_full] = cr2res_trace_get_trace_ypos(tw, i) ;
+            n_full++ ;
+        }
+    }
+
+    /* Return */
+    *nbvals = n_full ;
+    *order_nb = order_nb_loc ;
+    *order_pos = order_pos_loc ;
+    return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Computes the total lamp intensity over a limited spectral region
   @param    ima     input image
   @return   The computed intensity or -1.0 in error case
@@ -305,13 +368,14 @@ double cr2res_qc_flat_trace_center_y(
     // Step 1: find central order
     orders = cr2res_trace_get_order_numbers((cpl_table*) trace, &nb_orders);
     array = cpl_array_wrap_int(orders, nb_orders);
+
+/* TODO : Is the median really the CENTRAL order ?? */
     central_order = cpl_array_get_median(array);
     cpl_array_unwrap(array);
 
     // Step 2: Sum all traces together
     traces = cr2res_get_trace_numbers(trace, central_order, &nb_traces);
-    for(cpl_size i = 0; i < nb_traces; i++)
-    {
+    for(cpl_size i = 0; i < nb_traces; i++) {
       vector = cr2res_trace_get_ycen(trace, central_order, traces[i], 
                 CR2RES_DETECTOR_SIZE);
       qc_trace_center_y += cpl_vector_get_mean(vector);
@@ -381,13 +445,11 @@ double cr2res_qc_obs_nodding_signal(
     data = cpl_table_get_data_double((cpl_table*) extracted, colname);
     cpl_free(colname);
 
-    if (cpl_error_get_code() == CPL_ERROR_DATA_NOT_FOUND)
-    {
+    if (cpl_error_get_code() == CPL_ERROR_DATA_NOT_FOUND) {
       // QC order or trace not found in the table
       cpl_error_reset();
       return -1;
     }
-
     
     nrows = cpl_table_get_nrow(extracted);
     size = CR2RES_QC_SIZE;

@@ -71,7 +71,7 @@ static int cr2res_trace_new_trace(
         cpl_array           **  trace_lower_new) ;
 static int cr2res_trace_check_slit_fraction(const cpl_array * slit_fraction) ;
 static cpl_array * cr2res_trace_get_slit_frac(
-        cpl_table       *   traces,
+        const cpl_table *   traces,
         cpl_size            idx,
         cr2res_decker       decker_pos) ;
 static cpl_mask * cr2res_trace_signal_detect(
@@ -860,8 +860,8 @@ int cr2res_trace_compute_height(
  */
 /*----------------------------------------------------------------------------*/
 double cr2res_trace_get_trace_ypos(
-        cpl_table   *   traces,
-        int             idx)
+        const cpl_table *   traces,
+        int                 idx)
 {
     const cpl_array *   coeffs ;
     cpl_polynomial  *   poly ;
@@ -1424,6 +1424,55 @@ cpl_table * cr2res_trace_adjust(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get a standard slit fraction information
+  @param    slit_frac   Slit Fraction array
+  @param    up_or_down  [out]   0 (if CR2RES_DECKER_NONE), 1 for up, 2 for down
+  @return   CR2RES_DECKER_NONE, _1_3 or _2_4 or CR2RES_DECKER_INVALID
+ */
+/*----------------------------------------------------------------------------*/
+cr2res_decker cr2res_trace_slit_fraction_info(
+        const cpl_array *   slit_frac,
+        int             *   up_or_down)
+{
+    double          up, down, mid ;
+    cr2res_decker   decker_pos ;
+
+    /* Initialise */
+    if (up_or_down != NULL) *up_or_down=-1 ;
+
+    /* Check entries */
+    if (slit_frac == NULL) return CR2RES_DECKER_INVALID ;
+
+    /* Read the positions */
+    down = cpl_array_get(slit_frac, 0, NULL) ;
+    mid = cpl_array_get(slit_frac, 1, NULL) ;
+    up = cpl_array_get(slit_frac, 2, NULL) ;
+    if (cpl_error_get_code()) return CR2RES_DECKER_INVALID ;
+
+    if (fabs((down-0.0)<1e-3) && fabs((up-1.0)<1e-3)) {
+        decker_pos = CR2RES_DECKER_NONE ;
+        if (up_or_down != NULL) *up_or_down=0 ;
+    } else if (fabs((down-0.750)<1e-3) && fabs((up-1.000)<1e-3)) {
+        decker_pos = CR2RES_DECKER_1_3 ;
+        if (up_or_down != NULL) *up_or_down=1 ;
+    } else if (fabs((down-0.250)<1e-3) && fabs((up-0.500)<1e-3)) {
+        decker_pos = CR2RES_DECKER_1_3 ;
+        if (up_or_down != NULL) *up_or_down=2 ;
+    } else if (fabs((down-0.500)<1e-3) && fabs((up-0.750)<1e-3)) {
+        decker_pos = CR2RES_DECKER_2_4 ;
+        if (up_or_down != NULL) *up_or_down=1 ;
+    } else if (fabs((down-0.000)<1e-3) && fabs((up-0.250)<1e-3)) {
+        decker_pos = CR2RES_DECKER_2_4 ;
+        if (up_or_down != NULL) *up_or_down=2 ;
+    } else {
+        decker_pos = CR2RES_DECKER_INVALID ;
+        if (up_or_down != NULL) *up_or_down=-1 ;
+    }
+    return decker_pos ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get a standard slit fraction
   @param    decker_position     CR2RES_DECKER_NONE, _1_3 or _2_4
   @param    up_or_down          0 (if CR2RES_DECKER_NONE), 1 for up, 2 for down
@@ -1658,7 +1707,7 @@ static int cr2res_trace_apply_shift(
  */
 /*----------------------------------------------------------------------------*/
 static cpl_array * cr2res_trace_get_slit_frac(
-        cpl_table       *   traces,
+        const cpl_table *   traces,
         cpl_size            idx,
         cr2res_decker       decker_pos)
 {
