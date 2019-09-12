@@ -315,6 +315,7 @@ static int cr2res_cal_dark(
 
     hdrl_image          *   master;
     cpl_image           *   contrib_map;
+    cpl_mask            *   bpm ;
     char                *   filename ;
     int                     nb_frames, i, l, det_nr, nb_bad ;
 
@@ -505,6 +506,24 @@ static int cr2res_cal_dark(
                     }
                 }
             }
+                        
+            /* Set the BPM in the master dark and the RAW */
+            if (bpms[det_nr-1] != NULL) {
+                /* Get Mask */
+                bpm = cpl_mask_threshold_image_create(bpms[det_nr-1],-0.5,0.5) ;
+                cpl_mask_not(bpm) ;
+
+                /* In dark_cube */
+                for (i=0; i<hdrl_imagelist_get_size(dark_cube) ; i++) {
+                    hdrl_image_reject_from_mask(hdrl_imagelist_get(dark_cube, 
+                                i), bpm) ;
+                }
+
+                /* In Master Dark */
+                hdrl_image_reject_from_mask(master_darks[det_nr-1], bpm) ;
+
+                cpl_mask_delete(bpm) ;
+            }
 
             /* QCs */
             ext_plist[det_nr-1] = cpl_propertylist_new() ;
@@ -519,11 +538,14 @@ static int cr2res_cal_dark(
                         hdrl_image_get_image(hdrl_imagelist_get(dark_cube,1)), 
                         hdrl_image_get_image(hdrl_imagelist_get(dark_cube,2)), 
                         ron_hsize, ron_nsamples, ndit) ;
-
-                cpl_propertylist_append_double(ext_plist[det_nr-1], 
-                        CR2RES_HEADER_QC_DARK_RON1, ron1) ;
-                cpl_propertylist_append_double(ext_plist[det_nr-1], 
-                        CR2RES_HEADER_QC_DARK_RON2, ron2) ;
+                if (cpl_error_get_code()) { 
+                    cpl_error_reset() ;
+                } else {
+                    cpl_propertylist_append_double(ext_plist[det_nr-1], 
+                            CR2RES_HEADER_QC_DARK_RON1, ron1) ;
+                    cpl_propertylist_append_double(ext_plist[det_nr-1], 
+                            CR2RES_HEADER_QC_DARK_RON2, ron2) ;
+                }
             }
             hdrl_imagelist_delete(dark_cube);
 
