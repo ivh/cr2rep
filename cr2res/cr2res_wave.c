@@ -901,7 +901,7 @@ cpl_polynomial * cr2res_wave_xcorr(
     if (cleaning_filter_size > 0) {
         cpl_msg_info(__func__, "Low Frequency removal from spectrum") ;
         cpl_msg_indent_more() ;
-        /* Subrtract the low frequency part */
+        /* Subtract the low frequency part */
         if ((filtered=cpl_vector_filter_median_create(
                         cpl_bivector_get_y(spectrum),
                         cleaning_filter_size))==NULL){
@@ -922,8 +922,10 @@ cpl_polynomial * cr2res_wave_xcorr(
     
     /* Remove Negative values */
     pspec_clean = cpl_vector_get_data(spec_clean) ;
-    for (i=0 ; i<cpl_vector_get_size(spec_clean) ; i++)
+    for (i=0 ; i<cpl_vector_get_size(spec_clean) ; i++){
         if (pspec_clean[i] < 0.0) pspec_clean[i] = 0 ;
+        if (isnan(pspec_clean[i])) pspec_clean[i] = 0;
+    }
 
     /* Display */
     if (display) {
