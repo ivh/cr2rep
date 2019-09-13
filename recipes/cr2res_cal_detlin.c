@@ -120,6 +120,7 @@ Detector Linearity                                                      \n\
         if the pixel is within a trace:                                 \n\
           cr2res_detlin_compute() computes polynomial(pix) and errors(pix)\n\
       use the coeffs for the bpm computation                            \n\
+      set the bad pixel coefficients as NaN                             \n\
       store the qc parameters in the returned property list             \n\
                                                                         \n\
   Library Functions used                                                \n\
@@ -726,9 +727,6 @@ static int cr2res_cal_detlin_reduce(
         cpl_imagelist_set(errors_loc, cpl_image_new(nx, ny,CPL_TYPE_DOUBLE),l) ;
     }
 
-    /* Initialise the BPM as Out of Order */
-    cpl_image_add_scalar(bpm_loc, CR2RES_BPM_OUTOFORDER); 
-
     /* Create the trace image */
     trace_image = cr2res_trace_gen_image(traces, nx, ny) ;
     pti = cpl_image_get_data_int(trace_image) ;
@@ -754,7 +752,6 @@ static int cr2res_cal_detlin_reduce(
                     cpl_vector_set(fitvals, k, (float)(pcur_im[idx])) ;
                 }
 
-
                 /* We are in a trace, let's compute the linearity */
                 if (cr2res_detlin_compute(dits, fitvals, max_degree,
                             &fitted_poly, &fitted_errors) == -1) {
@@ -764,10 +761,10 @@ static int cr2res_cal_detlin_reduce(
                     for (l=0 ; l<=max_degree ; l++) {
                         cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
                         pcur_coeffs = cpl_image_get_data_double(cur_coeffs) ;
-                        pcur_coeffs[idx] = 0.0 ;
+                        pcur_coeffs[idx] = 0.0/0.0 ;
                         cur_errors = cpl_imagelist_get(errors_loc, l) ;
                         pcur_errors = cpl_image_get_data_double(cur_errors) ;
-                        pcur_errors[idx] = 0.0 ;
+                        pcur_errors[idx] = 0.0/0.0 ;
                     } 
                 } else {
                     qc_nbsuccess++ ;
@@ -812,6 +809,19 @@ static int cr2res_cal_detlin_reduce(
                     cpl_polynomial_delete(fitted_poly) ;
                 }
                 cpl_vector_delete(fitvals) ;
+            } else {
+                /* Outside the orders */
+                /* Set the values as NaNs */
+                for (l=0 ; l<=max_degree ; l++) {
+                    cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
+                    pcur_coeffs = cpl_image_get_data_double(cur_coeffs) ;
+                    pcur_coeffs[idx] = 0.0/0.0 ;
+                    cur_errors = cpl_imagelist_get(errors_loc, l) ;
+                    pcur_errors = cpl_image_get_data_double(cur_errors) ;
+                    pcur_errors[idx] = 0.0/0.0 ;
+                }
+                /* Set the BPM as bad */
+                pbpm_loc[idx] = CR2RES_BPM_OUTOFORDER ;
             }
         }
     }
@@ -820,37 +830,55 @@ static int cr2res_cal_detlin_reduce(
     hdrl_imagelist_delete(imlist) ;
     cpl_vector_delete(dits); 
 
+    /* Reject the bad pixels in the image lists */
+    /* Get Mask */
+    bpm_mask = cpl_mask_threshold_image_create(bpm_loc,-0.5,0.5) ;
+    cpl_mask_not(bpm_mask) ;
+
+    /* Set the Bad pixels in coeffs / errors */
+    for (l=0 ; l<=max_degree ; l++) {
+        cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
+        cpl_image_reject_from_mask(cur_coeffs, bpm_mask) ;
+        cur_errors = cpl_imagelist_get(errors_loc, l) ;
+        cpl_image_reject_from_mask(cur_errors, bpm_mask) ;
+    }
+    cpl_mask_delete(bpm_mask); 
+
     /* Use the second coefficient stats for the BPM detection */
     cpl_msg_info(__func__, "BPM detection") ;
     cur_coeffs = cpl_imagelist_get(coeffs_loc, 1) ;
-    pcur_coeffs = cpl_image_get_data_double(cur_coeffs) ;
-    bpm_mask = cpl_mask_new(nx, ny) ;
-    cpl_mask_threshold_image(bpm_mask, cur_coeffs,
-            (double)CR2RES_BPM_OUTOFORDER-0.5, 
-            (double)CR2RES_BPM_OUTOFORDER+0.5,
-            CPL_BINARY_1) ;
-    cpl_image_reject_from_mask(cur_coeffs, bpm_mask) ;
-    cpl_mask_delete(bpm_mask); 
-    median = cpl_image_get_median_dev(cur_coeffs, &sigma) ;
-    cpl_image_accept_all(cur_coeffs) ;
 
+    median = cpl_image_get_median_dev(cur_coeffs, &sigma) ;
     low_thresh = median - bpm_kappa * sigma ;
     high_thresh = median + bpm_kappa * sigma ;
-    qc_nb_bad = 0;
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
             idx = i + j*nx ;
-            if (pbpm_loc[idx] != CR2RES_BPM_OUTOFORDER && 
+            if (pbpm_loc[idx] == 0  && 
                     (pcur_coeffs[idx] < low_thresh || 
                      pcur_coeffs[idx] > high_thresh)) {
                 pbpm_loc[idx] = CR2RES_BPM_DETLIN ;
-                qc_nb_bad ++ ;
             }
         }
     }
 
+    /* Reject *again* the bad pixels in the image lists */
+    /* Get Mask */
+    bpm_mask = cpl_mask_threshold_image_create(bpm_loc,-0.5,0.5) ;
+    cpl_mask_not(bpm_mask) ;
+
+    /* Set the Bad pixels in coeffs / errors */
+    for (l=0 ; l<=max_degree ; l++) {
+        cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
+        cpl_image_reject_from_mask(cur_coeffs, bpm_mask) ;
+        cur_errors = cpl_imagelist_get(errors_loc, l) ;
+        cpl_image_reject_from_mask(cur_errors, bpm_mask) ;
+    }
+    cpl_mask_delete(bpm_mask); 
+
     /* Compute the QC parameters */
     /* TODO  */
+    qc_nb_bad = 0;
     qc_fitquality = 0.0;
     qc_median = cr2res_qc_detlin_median(coeffs_loc) ;
     qc_gain = cr2res_qc_detlin_gain(coeffs_loc) ;

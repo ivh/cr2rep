@@ -179,8 +179,9 @@ int cr2res_detlin_compute(
     cpl_vector          *   error_local ;
     cpl_vector          *   y;
     cpl_bivector        *   first_dits, *tmp;
-    double   x0, x1, y0, y1, m;
-    double expected_counts;
+    double                  x0, x1, y0, y1, m, cur_coeff;
+    double                  expected_counts;
+    cpl_size                i ;
 
     /* Test entries */
     if (fitted == NULL || dits == NULL || values == NULL) return -1 ;
@@ -271,6 +272,18 @@ int cr2res_detlin_compute(
     }
     cpl_vector_delete(y);
     cpl_matrix_unwrap(samppos) ;    
+
+    /* Check Result - Polynomial coefficients are NaN sometimes */
+    for (i=0 ; i<=max_degree ; i++) {
+        cur_coeff = cpl_polynomial_get_coeff(fitted_local, &i) ;
+        if (isnan(cur_coeff)) {
+            cpl_polynomial_delete(fitted_local) ;
+            cpl_vector_delete(error_local) ;
+            *fitted = NULL ;
+            *error = NULL ;
+            return -1 ;
+        }
+    }
 
     /* Return */
     *fitted = fitted_local ;

@@ -89,6 +89,7 @@ Dark                                                                    \n\
         Collapse the images with hdrl_imagelist_collapse(--collapse.*)  \n\
         Compute BPM form the collapsed master dark using                \n\
                cr2res_bpm_compute(--bpm_kappa, --bpm_lines_ratio)       \n\
+        Set the BPM in the master dark                                  \n\
         Compute the QCs with statistics and                             \n\
                cr2res_dark_qc_ron(--ron_hsize, --ron_nsamples)          \n\
       save master dark(g) (MASTER_DARK)                                 \n\
