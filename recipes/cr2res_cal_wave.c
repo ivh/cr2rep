@@ -825,6 +825,7 @@ static int cr2res_cal_wave_reduce(
     if (dits != NULL) cpl_vector_delete(dits) ;
 
     /* Collapse */
+    contrib = NULL ;
     if (collapse == CR2RES_COLLAPSE_MEAN) {
         cpl_msg_info(__func__, "Collapse (Mean) the input frames") ;
         cpl_msg_indent_more() ;
