@@ -351,7 +351,7 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.wl_degree",
             CPL_TYPE_INT, "Wavelegth Polynomial degree",
-            "cr2res.cr2res_cal_wave", 3);
+            "cr2res.cr2res_cal_wave", 2);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_degree");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
