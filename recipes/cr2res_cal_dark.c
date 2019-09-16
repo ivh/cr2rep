@@ -26,6 +26,7 @@
  -----------------------------------------------------------------------------*/
 
 #include <math.h>
+#include <string.h>
 #include <cpl.h>
 #include "hdrl.h"
 
@@ -74,14 +75,14 @@ Dark                                                                    \n\
     raw.fits " CR2RES_DARK_RAW " [3 to n]                               \n\
                                                                         \n\
   Outputs                                                               \n\
-    cr2res_cal_dark_DITxNDIT_master.fits " 
+    cr2res_cal_dark_[setting]_DITxNDIT_master.fits " 
     CR2RES_CAL_DARK_MASTER_PROCATG "\n\
-    cr2res_cal_dark_DITxNDIT_bpm.fits " 
+    cr2res_cal_dark_[setting]_DITxNDIT_bpm.fits " 
     CR2RES_CAL_DARK_BPM_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
     group the input frames by different valueѕ of DET SEQ1 DIT          \n\
-               or/and DET NDIT                                          \n\
+               or/and DET NDIT or/and WLEN ID                           \n\
     loop on groups g:                                                   \n\
       loop on detectors d:                                              \n\
         Load the images and create the associate error for each of      \n\
@@ -302,6 +303,7 @@ static int cr2res_cal_dark(
     cpl_size            *   labels ;
     cpl_size                nlabels ;
     cpl_propertylist    *   plist ;
+    char                *   setting_id ;
     
     hdrl_image          *   master_darks[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpms[CR2RES_NB_DETECTORS] ;
@@ -399,9 +401,12 @@ static int cr2res_cal_dark(
                     cpl_frameset_get_position(raw_one, 0)), 0) ;
         dit = cr2res_pfits_get_dit(plist) ;
         ndit = cr2res_pfits_get_ndit(plist) ;
+        setting_id = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
+        cr2res_format_setting(setting_id) ;
         cpl_propertylist_delete(plist) ;
 
-        cpl_msg_info(__func__, "Process DIT %g / %d", dit, ndit) ;
+        cpl_msg_info(__func__, "Process SETTING %s / DIT %g / %d",
+                setting_id, dit, ndit) ;
         cpl_msg_indent_more() ;
 
         /* Loop on the detectors */
@@ -437,6 +442,7 @@ static int cr2res_cal_dark(
                     cpl_frameset_delete(rawframes) ;
                     hdrl_parameter_destroy(collapse_params) ;
                     cpl_free(labels);
+                    cpl_free(setting_id) ;
                     cpl_frameset_delete(raw_one) ;
                     hdrl_imagelist_delete(dark_cube) ;
                     return -1 ;
@@ -455,6 +461,7 @@ static int cr2res_cal_dark(
                     cpl_msg_indent_less() ;
                     cpl_frameset_delete(rawframes) ;
                     hdrl_parameter_destroy(collapse_params) ;
+                    cpl_free(setting_id) ;
                     cpl_free(labels);
                     cpl_frameset_delete(raw_one) ;
                     hdrl_imagelist_delete(dark_cube) ;
@@ -576,8 +583,8 @@ static int cr2res_cal_dark(
 
         /* Save the results */
         /* MASTER DARK */
-        filename = cpl_sprintf("%s_%gx%d_master.fits", 
-                RECIPE_STRING, dit, ndit); 
+        filename = cpl_sprintf("%s_%s_%gx%d_master.fits", 
+                RECIPE_STRING, setting_id, dit, ndit); 
         if (cr2res_io_save_MASTER_DARK(filename, frameset, raw_one, parlist, 
                     master_darks, NULL, ext_plist, 
                     CR2RES_CAL_DARK_MASTER_PROCATG, RECIPE_STRING) != 0) {
@@ -592,6 +599,7 @@ static int cr2res_cal_dark(
                     cpl_propertylist_delete(ext_plist[det_nr-1]);
             }
             cpl_free(labels);
+            cpl_free(setting_id);
             hdrl_parameter_destroy(collapse_params) ;
             cpl_free(filename) ;
             cpl_msg_error(__func__, "Cannot save the MASTER DARK") ;
@@ -603,8 +611,8 @@ static int cr2res_cal_dark(
         cpl_free(filename) ;
 
         /* BPM */
-        filename = cpl_sprintf("%s_%gx%d_bpm.fits", 
-                RECIPE_STRING, dit, ndit); 
+        filename = cpl_sprintf("%s_%s_%gx%d_bpm.fits", 
+                RECIPE_STRING, setting_id, dit, ndit); 
         if (cr2res_io_save_BPM(filename, frameset, raw_one, parlist, bpms, NULL,
                     ext_plist, CR2RES_CAL_DARK_BPM_PROCATG, 
                     RECIPE_STRING) != 0) {
@@ -619,6 +627,7 @@ static int cr2res_cal_dark(
                     cpl_propertylist_delete(ext_plist[det_nr-1]);
             }
             cpl_free(labels);
+            cpl_free(setting_id);
             hdrl_parameter_destroy(collapse_params) ;
             cpl_free(filename) ;
             cpl_msg_error(__func__, "Cannot save the BPM") ;
@@ -630,6 +639,7 @@ static int cr2res_cal_dark(
         cpl_free(filename) ;
 
         /* Free */
+        cpl_free(setting_id);
         cpl_frameset_delete(raw_one) ;
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             if (bpms[det_nr-1] != NULL) 
@@ -665,6 +675,8 @@ static int cr2res_cal_dark_compare(
     cpl_propertylist    *   plist2 ;
     double                  dval1, dval2 ;
     int                     ival1, ival2 ;
+    const char          *   sval1 ;
+    const char          *   sval2 ;
 
     /* Test entries */
     if (frame1==NULL || frame2==NULL) return -1 ;
@@ -688,6 +700,17 @@ static int cr2res_cal_dark_compare(
     }
 
     comparison = 1 ;
+
+    /* Compare the SETTING used */
+    sval1 = cr2res_pfits_get_wlen_id(plist1) ;
+    sval2 = cr2res_pfits_get_wlen_id(plist2) ;
+    if (cpl_error_get_code()) {
+        cpl_msg_error(__func__, "Cannot get the reference wavelength");
+        cpl_propertylist_delete(plist1) ;
+        cpl_propertylist_delete(plist2) ;
+        return -1 ;
+    }
+    if (strcmp(sval1, sval2)) comparison = 0 ;
 
     /* Compare the DIT used */
     dval1 = cr2res_pfits_get_dit(plist1) ;
