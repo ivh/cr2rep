@@ -461,6 +461,8 @@ static int cr2res_cal_wave(
     cpl_table           *   out_extracted[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   plist ;
+    char                *   setting_id ;
     int                     det_nr, order, i ;
 
     /* Needed for sscanf() */
@@ -644,20 +646,27 @@ static int cr2res_cal_wave(
         cpl_msg_indent_less() ;
     }
 
+    /* Get the setting */
+    plist = cpl_propertylist_load(cpl_frame_get_filename(
+                cpl_frameset_get_position(rawframes, 0)), 0) ;
+    setting_id = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
+    cr2res_format_setting(setting_id) ;
+    cpl_propertylist_delete(plist) ;
+
     /* Ѕave Products */
-    out_file = cpl_sprintf("%s_tw.fits", RECIPE_STRING) ;
+    out_file = cpl_sprintf("%s_%s_tw.fits", RECIPE_STRING, setting_id) ;
     cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist, 
             out_trace_wave, NULL, ext_plist, 
             CR2RES_CAL_WAVE_TW_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
-    out_file = cpl_sprintf("%s_wave_map.fits", RECIPE_STRING) ;
+    out_file = cpl_sprintf("%s_%s_wave_map.fits", RECIPE_STRING, setting_id) ;
     cr2res_io_save_WAVE_MAP(out_file, frameset, rawframes, parlist, 
             out_wave_map, NULL, ext_plist, 
             CR2RES_CAL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
-    out_file = cpl_sprintf("%s_extracted.fits", RECIPE_STRING) ;
+    out_file = cpl_sprintf("%s_%s_extracted.fits", RECIPE_STRING, setting_id) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
             out_extracted, NULL, ext_plist, 
             CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
@@ -665,7 +674,8 @@ static int cr2res_cal_wave(
 
 	if (wavecal_type == CR2RES_LINE2D || wavecal_type == CR2RES_LINE1D) {
 		/* Save the Lines Diagnostics */
-		out_file = cpl_sprintf("%s_lines_diagnostics.fits", RECIPE_STRING);
+		out_file = cpl_sprintf("%s_%s_lines_diagnostics.fits", 
+                RECIPE_STRING, setting_id);
 		cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset, rawframes, parlist,
                 lines_diagnostics, NULL, ext_plist,
 				CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG, RECIPE_STRING) ;
@@ -673,6 +683,7 @@ static int cr2res_cal_wave(
 	}
 
     /* Free and return */
+    cpl_free(setting_id);
     cpl_frameset_delete(rawframes) ;
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
         if (ext_plist[i] != NULL)
