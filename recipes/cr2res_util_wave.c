@@ -353,7 +353,8 @@ static int cr2res_util_wave(
 {
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
-                            wl_degree, display, log_flag, propagate_flag ;
+                            wl_degree, display, log_flag, propagate_flag, 
+                            clean_spectrum ;
     double                  wl_start, wl_end, wl_err_start, wl_err_end, 
                             wl_shift, display_wmin, display_wmax ;
     cr2res_wavecal_type     wavecal_type ;
@@ -430,6 +431,9 @@ static int cr2res_util_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.propagate");
     propagate_flag = cpl_parameter_get_bool(param) ;
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_wave.clean_spectrum");
+    clean_spectrum = cpl_parameter_get_bool(param) ;
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.display");
     display = cpl_parameter_get_bool(param) ;
@@ -554,8 +558,8 @@ static int cr2res_util_wave(
             if (cr2res_wave_apply(trace_wave, extracted_table,
                         lines_frame, reduce_order, reduce_trace, wavecal_type,
                         wl_degree, wl_start, wl_end, wl_err_start, wl_err_end, 
-                        wl_shift, log_flag, propagate_flag, display,
-                        display_wmin, display_wmax,
+                        wl_shift, log_flag, propagate_flag, clean_spectrum, 
+                        display, display_wmin, display_wmax,
                         NULL,
                         &(lines_diagnostics[det_nr-1]),
                         &(updated_extracted_table[det_nr-1]),

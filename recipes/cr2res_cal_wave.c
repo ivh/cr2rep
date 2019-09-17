@@ -83,6 +83,7 @@ static int cr2res_cal_wave_reduce(
         double                  wl_shift,
         int                     log_flag,
         int                     propagate_flag,
+        int                     clean_spectrum,
         int                     display,
         double                  display_wmin,
         double                  display_wmax,
@@ -370,6 +371,13 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.clean_spectrum",
+            CPL_TYPE_BOOL, "Flag to automatically clean the missing lines",
+            "cr2res.cr2res_cal_wave", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "clean_spectrum");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.display",
             CPL_TYPE_BOOL, "Flag for display",
             "cr2res.cr2res_cal_wave", FALSE);
@@ -442,7 +450,8 @@ static int cr2res_cal_wave(
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
                             ext_oversample, ext_swath_width, ext_height,
-                            wl_degree, display, log_flag, propagate_flag ;
+                            wl_degree, display, log_flag, propagate_flag, 
+                            clean_spectrum ;
     double                  ext_smooth_slit, wl_start, wl_end, wl_err_start, 
                             wl_err_end, wl_shift, display_wmin, display_wmax ;
     cr2res_collapse         collapse ;
@@ -544,6 +553,9 @@ static int cr2res_cal_wave(
             "cr2res.cr2res_cal_wave.propagate");
     propagate_flag = cpl_parameter_get_bool(param) ;
     param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_wave.clean_spectrum");
+    clean_spectrum = cpl_parameter_get_bool(param) ;
+    param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.display");
     display = cpl_parameter_get_bool(param) ;
     param = cpl_parameterlist_find_const(parlist,
@@ -634,8 +646,8 @@ static int cr2res_cal_wave(
                     reduce_trace, collapse, ext_height, ext_swath_width,
                     ext_oversample, ext_smooth_slit, wavecal_type, wl_degree, 
                     wl_start, wl_end, wl_err_start, wl_err_end, wl_shift, 
-                    log_flag, propagate_flag, display, display_wmin,
-                    display_wmax, 
+                    log_flag, propagate_flag, clean_spectrum, display, 
+                    display_wmin, display_wmax, 
                     &(out_trace_wave[det_nr-1]),
                     &(lines_diagnostics[det_nr-1]),
                     &(out_extracted[det_nr-1]),
@@ -728,6 +740,7 @@ static int cr2res_cal_wave(
   @param log_flag           Flag to apply a log() to the lines intensities
   @param propagate_flag     Flag to copy the input WL to the output when they 
                             are not computed
+  @param clean_spectrum     Remove the lines that are not in the catalog (1d)
   @param display            Flag to enable display functionalities
   @param display_wmin       Minimum Wavelength to  display
   @param display_wmax       Maximum Wavelength to  display
@@ -764,6 +777,7 @@ static int cr2res_cal_wave_reduce(
         double                  wl_shift,
         int                     log_flag,
         int                     propagate_flag,
+        int                     clean_spectrum,
         int                     display,
         double                  display_wmin,
         double                  display_wmax,
@@ -888,7 +902,7 @@ static int cr2res_cal_wave_reduce(
     if (cr2res_wave_apply(tw_in, extracted, lines_frame, reduce_order, 
                 reduce_trace, wavecal_type, wl_degree, wl_start, wl_end, 
                 wl_err_start, wl_err_end, wl_shift, log_flag, propagate_flag, 
-                display, display_wmin, display_wmax,
+                clean_spectrum, display, display_wmin, display_wmax,
                 &qcs_plist,
                 &lines_diagnostics_out,
                 &extracted_out,

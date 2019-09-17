@@ -62,6 +62,7 @@ int cr2res_wave_apply(
         double                      wl_shift,
         int                         log_flag,
         int                         propagate_flag,
+        int                         clean_spectrum,
         int                         display,
         double                      display_wmin,
         double                      display_wmax,
@@ -80,11 +81,12 @@ cpl_polynomial * cr2res_wave_1d(
         cr2res_wavecal_type     wavecal_type,
         const char          *   catalog,
         int                     degree,
+        int                     clean_spectrum,
         int                     log_flag,
         int                     display,
         double                  display_wmin,
         double                  display_wmax,
-        double              *       best_xcorr,
+        double              *   best_xcorr,
         cpl_array           **  wavelength_error,
         cpl_table           **  lines_diagnostics) ;
 

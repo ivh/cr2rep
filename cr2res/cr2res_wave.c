@@ -51,6 +51,11 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static cpl_vector * cr2res_wave_clean_spectrum(
+        const cpl_vector        *   spec_intens,
+        const cpl_polynomial    *   wl_poly,
+        const cpl_bivector      *   catalog,
+        double                      wl_error) ;
 static cpl_table * cr2res_wave_recompute_wl(
         const cpl_table *   spectra,
         const cpl_table *   tw) ;
@@ -139,6 +144,7 @@ static cpl_vector * cr2res_wave_etalon_measure_fringes(
   @param    log_flag        Flag to apply a log() to the lines intensities
   @param    propagate_flag  Flag to copy the input WL to the output when they 
                             are not computed
+  @param    clean_spectrum  Remove the lines that are not in the catalog (1d)
   @param    display         Flag to enable display functionalities
   @param    display_wmin    Minimum Wavelength to display or -1.0
   @param    display_wmax    Maximum Wavelength to display or -1.0
@@ -164,6 +170,7 @@ int cr2res_wave_apply(
         double                      wl_shift,
         int                         log_flag,
         int                         propagate_flag,
+        int                         clean_spectrum,
         int                         display,
         double                      display_wmin,
         double                      display_wmax,
@@ -411,9 +418,9 @@ int cr2res_wave_apply(
             if ((wave_sol_1d = cr2res_wave_1d(spectra[i], spectra_err[i],
                             wavesol_init[i], wavesol_init_error[i], order,
                             trace_id, wavecal_type, catalog_fname,
-                            degree, log_flag, display, display_wmin,
-                            display_wmax, &best_xcorr, &wl_err_array,
-                            &lines_diagnostics_tmp)) == NULL) {
+                            degree, clean_spectrum, log_flag, display, 
+                            display_wmin, display_wmax, &best_xcorr, 
+                            &wl_err_array, &lines_diagnostics_tmp)) == NULL) {
                 cpl_msg_warning(__func__, "Cannot calibrate in Wavelength") ;
                 cpl_error_reset() ;
                 continue ;
@@ -493,8 +500,11 @@ int cr2res_wave_apply(
   @param    trace_nb        Trace Number
   @param    catalog         Line catalog or template spectrum or NULL
   @param    degree          The polynomial degree of the solution
-  @param    log_flag        Flag to get the log of the intensity
+  @param    clean_spectrum  Remove the lines that are not in the catalog
+  @param    log_flag        Flag to get the log() of the catalog intens.
   @param    display         Flag to display results
+  @param    display_wmin    Minimum Wavelength to display or -1.0
+  @param    display_wmax    Maximum Wavelength to display or -1.0
   @param    best_xcorr          [out] Best XCORR value when applicable
   @param    wavelength_error    [out] array of wave_mean_error, wave_max_error
   @param    lines_diagnostics   [out] table with lines diagnostics
@@ -512,6 +522,7 @@ cpl_polynomial * cr2res_wave_1d(
         cr2res_wavecal_type     wavecal_type,
         const char          *   catalog,
         int                     degree,
+        int                     clean_spectrum,
         int                     log_flag,
         int                     display,
         double                  display_wmin,
@@ -520,6 +531,8 @@ cpl_polynomial * cr2res_wave_1d(
         cpl_array           **  wavelength_error,
         cpl_table           **  lines_diagnostics)
 {
+    cpl_bivector        *   spectrum_local ;
+    cpl_vector          *   clean_spec_vec ;
     cpl_polynomial      *   solution ;
     cpl_bivector        *   spectrum_corrected ;
     double              *   px ;
@@ -543,8 +556,30 @@ cpl_polynomial * cr2res_wave_1d(
     *lines_diagnostics = NULL ;
 
     /* Create the lines spectrum from the lines list */
-    ref_spectrum = cr2res_wave_gen_lines_spectrum(catalog, wavesol_init,
+    if (catalog != NULL) 
+        ref_spectrum = cr2res_wave_gen_lines_spectrum(catalog, wavesol_init,
             wl_error_nm, -1.0, log_flag) ;
+    else 
+        ref_spectrum = NULL ;
+
+    /* Clean the input spectrum if requested */
+    if (clean_spectrum && ref_spectrum != NULL) {
+        /* Clean the spectrum */
+        if ((clean_spec_vec = cr2res_wave_clean_spectrum(
+                        cpl_bivector_get_y(spectrum), wavesol_init,
+                        ref_spectrum, wl_error_nm)) == NULL) {
+            cpl_msg_warning(__func__, "Failed cleaning the spectrum lines") ;
+            cpl_error_reset() ;
+            spectrum_local = cpl_bivector_duplicate(spectrum) ;
+        } else {
+            /* Replace the input spectrum by the clean one */
+            spectrum_local = cpl_bivector_wrap_vectors(
+                    cpl_vector_duplicate(cpl_bivector_get_x(spectrum)),
+                    clean_spec_vec) ;
+        }
+    } else {
+        spectrum_local = cpl_bivector_duplicate(spectrum) ;
+    }
 
     /* Switch on the possible methods */
     if (wavecal_type == CR2RES_XCORR) {
@@ -552,7 +587,7 @@ cpl_polynomial * cr2res_wave_1d(
         double slit_width = 2.0 ;
         double fwhm = 2.0 ;
         int cleaning_filter_size = 9 ;
-        solution = cr2res_wave_xcorr(spectrum, wavesol_init, wl_error_nm,
+        solution = cr2res_wave_xcorr(spectrum_local, wavesol_init, wl_error_nm,
                 ref_spectrum, degree, cleaning_filter_size, slit_width, fwhm,
                 display, best_xcorr, wavelength_error) ;
 
@@ -560,7 +595,7 @@ cpl_polynomial * cr2res_wave_1d(
             cpl_error_reset();
         } else if (display) {
             /* Recompute the wavelengths for the spectrum */
-            spectrum_corrected = cpl_bivector_duplicate(spectrum) ;
+            spectrum_corrected = cpl_bivector_duplicate(spectrum_local) ;
             px = cpl_bivector_get_x_data(spectrum_corrected) ;
             for (i=0 ; i<cpl_bivector_get_size(spectrum_corrected) ; i++) 
                 px[i] = cpl_polynomial_eval_1d(wavesol_init,(double)(i+1),NULL);
@@ -575,7 +610,7 @@ cpl_polynomial * cr2res_wave_1d(
             cpl_bivector_delete(spectrum_corrected) ;
 
             /* Recompute the wavelengths for the spectrum */
-            spectrum_corrected = cpl_bivector_duplicate(spectrum) ;
+            spectrum_corrected = cpl_bivector_duplicate(spectrum_local) ;
             px = cpl_bivector_get_x_data(spectrum_corrected) ;
             for (i=0 ; i<cpl_bivector_get_size(spectrum_corrected) ; i++) 
                 px[i] = cpl_polynomial_eval_1d(solution, (double)(i+1), NULL) ;
@@ -590,15 +625,16 @@ cpl_polynomial * cr2res_wave_1d(
             cpl_bivector_delete(spectrum_corrected) ;
         }
     } else if (wavecal_type == CR2RES_LINE1D) {
-        solution = cr2res_wave_line_fitting(spectrum, spectrum_err,
+        solution = cr2res_wave_line_fitting(spectrum_local, spectrum_err,
                 wavesol_init, wave_error_init, order, trace_nb,
                 ref_spectrum, degree, display, NULL, wavelength_error,
                 lines_diagnostics) ;
     } else if (wavecal_type == CR2RES_ETALON) {
-        solution = cr2res_wave_etalon(spectrum, spectrum_err, wavesol_init,
-                degree, wavelength_error);
+        solution = cr2res_wave_etalon(spectrum_local, spectrum_err, 
+                wavesol_init, degree, wavelength_error);
     }
 
+    cpl_bivector_delete(spectrum_local) ;
     if (ref_spectrum != NULL) cpl_bivector_delete(ref_spectrum) ;
 
     return solution ;
@@ -1456,8 +1492,44 @@ cr2res_wavecal_type cr2res_wave_guess_method(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Clean the spectrum from lines that are not in the catalog
+  @param    spec_intens     Input spectrum
+  @param    wl_poly         Wavelength Polynomial
+  @param    catalog         Catalog spectrum
+  @param    wl_error        Wavelength error in Nanometers
+  @return   The newly allocated cleaned spectrum intensities
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_vector * cr2res_wave_clean_spectrum(
+        const cpl_vector        *   spec_intens,
+        const cpl_polynomial    *   wl_poly,
+        const cpl_bivector      *   catalog,
+        double                      wl_error)
+{
+    cpl_vector  *   out ;
+    double      *   pout ;
+    cpl_size        nbins, i ;
+
+    /* Check entries */
+    if (spec_intens == NULL || wl_poly == NULL || catalog == NULL ||
+            wl_error < 0.0) return NULL ;
+
+    /* Initialise */
+    out = cpl_vector_duplicate(spec_intens) ;
+    pout = cpl_vector_get_data(out) ;
+    nbins = cpl_vector_get_size(out) ;
+
+    for (i=0 ; i<nbins ; i++) {
+        if (i > 100 && i<400) pout[i] = 0.0/0.0 ;
+    }
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Recompute the wavelengths of an extracted spectrum
-  @param    
+  @param    spectra 
+  @param    tw      Trace Wave table
   @return   The newly allocated extracted spectra with updated wavelengthѕ
  */
 /*----------------------------------------------------------------------------*/
