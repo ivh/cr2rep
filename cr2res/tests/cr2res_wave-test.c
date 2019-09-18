@@ -32,6 +32,7 @@
 #include <hdrl.h>
 #include <cr2res_dfs.h>
 #include <cr2res_wave.h>
+#include <cr2res_wave.c>
 
 #define CR2RES_DETECTOR_SIZE            2048
 
@@ -47,6 +48,7 @@ static void test_cr2res_wave_etalon_other(void);
 static void test_cr2res_wave_polys_1d_to_2d(void);
 static void test_cr2res_wave_poly_2d_to_1d(void);
 static void test_cr2res_wave_estimate_compute(void);
+static void test_cr2res_wave_clean_spectrum(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -634,6 +636,66 @@ static void test_cr2res_wave_estimate_compute(void)
     cpl_test_null(cr2res_wave_estimate_compute(wmin, wmax));
 }
 
+static void test_cr2res_wave_clean_spectrum(void)
+{
+    int ncols = 100;
+    cpl_size pow = 0;
+    cpl_vector        *   spec_intens = cpl_vector_new(ncols);
+    cpl_polynomial    *   wl_poly = cpl_polynomial_new(1);
+    cpl_bivector      *   catalog = cpl_bivector_new(5);
+    double wl_error = 5.;
+
+    cpl_vector * res = NULL;
+
+    // Flat Spectrum (doesn't actually matter as long as its not NaN)
+    for (int i = 0; i < ncols; i++){
+        cpl_vector_set(spec_intens, i, 1);
+    }
+
+    // Add two lines to the catalog
+    cpl_vector_set(cpl_bivector_get_x(catalog), 0, 20);
+    cpl_vector_set(cpl_bivector_get_y(catalog), 0, 1);
+    cpl_vector_set(cpl_bivector_get_x(catalog), 1, 23);
+    cpl_vector_set(cpl_bivector_get_y(catalog), 1, 1);
+    cpl_vector_set(cpl_bivector_get_x(catalog), 2, 23.2);
+    cpl_vector_set(cpl_bivector_get_y(catalog), 2, 1);
+    cpl_vector_set(cpl_bivector_get_x(catalog), 3, 23.3);
+    cpl_vector_set(cpl_bivector_get_y(catalog), 3, 1);
+    cpl_vector_set(cpl_bivector_get_x(catalog), 4, 50);
+    cpl_vector_set(cpl_bivector_get_y(catalog), 4, 1);
+
+    // Just linear spectrum
+    pow = 1;
+    cpl_polynomial_set_coeff(wl_poly, &pow, 1);
+
+    cpl_test(res = cr2res_wave_clean_spectrum(spec_intens, wl_poly, catalog, wl_error));
+
+    for (int i = 0; i < 15 ; i++){
+        cpl_test(isnan(cpl_vector_get(res, i)));
+    }
+    for (int i = 15; i < 29 ; i++){
+        cpl_test_abs(1, cpl_vector_get(res, i), DBL_EPSILON);
+    }
+    for (int i = 29; i < 45 ; i++){
+        cpl_test(isnan(cpl_vector_get(res, i)));
+    }
+    for (int i = 45; i < 56 ; i++){
+        cpl_test_abs(1, cpl_vector_get(res, i), DBL_EPSILON);
+    }
+    for (int i = 56; i < ncols ; i++){
+        cpl_test(isnan(cpl_vector_get(res, i)));
+    }
+
+    // FILE * f = fopen("debug_spec_clean.txt", "w");
+    // cpl_vector_dump(res, f);
+    // fclose(f);
+
+    cpl_vector_delete(spec_intens);
+    cpl_polynomial_delete(wl_poly);
+    cpl_bivector_delete(catalog);
+    cpl_vector_delete(res);
+
+}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -650,6 +712,7 @@ int main(void)
     test_cr2res_wave_polys_1d_to_2d();
     test_cr2res_wave_poly_2d_to_1d();
 	test_cr2res_wave_estimate_compute();
+    test_cr2res_wave_clean_spectrum();
     return cpl_test_end(0);
 }
 
