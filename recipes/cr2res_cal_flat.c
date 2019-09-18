@@ -849,7 +849,7 @@ static int cr2res_cal_flat_reduce(
     double              *   qc_order_pos ;
     double                  qc_lamp_ints, qc_mean_level, qc_mean_flux,
                             qc_med_flux, qc_med_snr, qc_trace_centery ;
-    int                     i, ext_nr, nb_traces, order, trace_id,
+    int                     i, j, badpix, ext_nr, nb_traces, order, trace_id,
                             qc_overexposed, qc_nbbad, nbvals ;
 
     /* Check Inputs */
@@ -989,7 +989,17 @@ static int cr2res_cal_flat_reduce(
         }
         cpl_msg_indent_less() ;
     }
+    for (i=0; i < hdrl_image_get_size_x(model_master); i++){
+        for (j=0; j < hdrl_image_get_size_y(model_master); j++){
+            if (cpl_image_get(hdrl_image_get_image(model_master), i+1, j+1, &badpix) == 0){
+                cpl_image_set(hdrl_image_get_image(model_master), i+1, j+1, 1);
+            }
+        }
+    }
+
+
     cpl_msg_indent_less() ;
+
 
     /* Create the slit_func_tab for the current detector */
     slit_func_tab = cr2res_extract_SLITFUNC_create(slit_func_vec, traces) ;
