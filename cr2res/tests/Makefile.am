@@ -79,7 +79,22 @@ XFAIL_TESTS =
 
 # We need to remove any files that the above tests created.
 clean-local: 
-	$(RM) *.log *.paf .logfile
+	$(RM) *.log \
+        *.paf \
+        .logfile \
+        debug_cluster_table.fits \
+        res.fits \
+        TEST2.fits \
+        debug_labels.fits \
+        debug_mask_before_cleaning.fits \
+        test_table.fits \
+        new_table.fits \
+        debug_diff_mask.fits \
+        debug_smimage.fits \
+        TEST.fits \
+        debug_trace_table.fits \
+        debug_mask.fits
+
 
 
 
