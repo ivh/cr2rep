@@ -1506,22 +1506,68 @@ static cpl_vector * cr2res_wave_clean_spectrum(
         const cpl_bivector      *   catalog,
         double                      wl_error)
 {
+    cpl_vector  *   x;
+    cpl_vector  *   wave;
     cpl_vector  *   out ;
     double      *   pout ;
-    cpl_size        nbins, i ;
+    cpl_size        ncols, nlines, i, k ;
+    double          line, line_min, line_max;
 
     /* Check entries */
     if (spec_intens == NULL || wl_poly == NULL || catalog == NULL ||
             wl_error < 0.0) return NULL ;
 
+
     /* Initialise */
     out = cpl_vector_duplicate(spec_intens) ;
     pout = cpl_vector_get_data(out) ;
-    nbins = cpl_vector_get_size(out) ;
+    ncols = cpl_vector_get_size(out) ;
+    nlines = cpl_bivector_get_size(catalog);
 
-    for (i=0 ; i<nbins ; i++) {
-        if (i > 100 && i<400) pout[i] = 0.0/0.0 ;
+    // If there are no lines in the catalog
+    // just return all NaN
+    if (cpl_bivector_get_size(catalog) == 0){
+        for (i=0 ; i<ncols ; i++) {
+            pout[i] = NAN ;
+        }
+        return out;
     }
+
+    x = cpl_vector_new(ncols);
+    for (i = 0; i < ncols; i++) cpl_vector_set(x, i, i);
+    wave = cr2res_polynomial_eval_vector(wl_poly, x);
+
+    // Lines MUST be in wavelength order
+    k = 0;
+    line = cpl_vector_get(cpl_bivector_get_x_const(catalog), k);
+    line_min = line - wl_error;
+    line_max = line + wl_error;
+
+    for (i=0 ; i<ncols ; i++) {
+        if (cpl_vector_get(wave, i) < line_min){
+            pout[i] = NAN;
+        } else {
+            // Find next relevant line
+            while (cpl_vector_get(wave, i) > line_max)
+            {
+                k++;
+                if (k < nlines){
+                    line = cpl_vector_get(cpl_bivector_get_x_const(catalog), k);
+                    line_min = line - wl_error;
+                    line_max = line + wl_error;
+                } else {
+                    break;
+                }
+            }
+            if (cpl_vector_get(wave, i) > line_max)
+                    pout[i] = NAN;
+            if (cpl_vector_get(wave, i) < line_min)
+                    pout[i] = NAN;
+        }
+    }
+
+    cpl_vector_delete(x);
+    cpl_vector_delete(wave);
     return out ;
 }
 
