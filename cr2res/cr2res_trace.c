@@ -40,7 +40,7 @@
 /*-----------------------------------------------------------------------------
                                    Defines
  -----------------------------------------------------------------------------*/
-
+#define min(a,b) (((a)<(b))?(a):(b))
 #define any(arr, f) ({  \
     int isError = FALSE;\
     for (cpl_size i = 0; i < cpl_array_get_size(arr); i++) \
@@ -93,16 +93,7 @@ static int cr2res_trace_extract_edges(
         cpl_table   *   pixels_table,
         cpl_table   **  edge_lower_table,
         cpl_table   **  edge_upper_table) ;
-static int cr2res_trace_get_subtrace(
-        cpl_table   *   trace_wave, 
-        double          slit_pos, 
-        double          height, 
-        int             order,
-        cpl_array   **  bottom, 
-        cpl_array   **  center, 
-        cpl_array   **  top,
-        cpl_array   **  fraction, 
-        cpl_array   **  wave) ;
+
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -2446,6 +2437,12 @@ static int cr2res_trace_get_subtrace(
    
     // check input values
     if (slit_pos < 0 | slit_pos > 1) return -1;
+    if (bottom != NULL & *bottom == NULL) return -1;
+    if (center != NULL & *center == NULL) return -1;
+    if (top != NULL & *top == NULL) return -1;
+    if (fraction != NULL & *fraction == NULL) return -1;
+    if (wave != NULL & *wave == NULL) return -1;
+
     // get trace numbers
     int nb_traces;
     int * traces;
@@ -2460,10 +2457,9 @@ static int cr2res_trace_get_subtrace(
     cpl_vector *fitvals;
     cpl_polynomial * poly;
 
-    cpl_size mindeg = 1;
+    // Each trace has 3 components, so we can always fit a 2nd order polynomial
     cpl_size maxdeg = 2;
     cpl_error_code error;
-
     
     // interpolate order tracing
     ndegree = cpl_table_get_column_dimension(trace_wave, CR2RES_COL_ALL, 0);
@@ -2493,61 +2489,70 @@ static int cr2res_trace_get_subtrace(
         error = cpl_polynomial_fit(poly, samppos, NULL, fitvals, NULL, 1, 
                 NULL, &maxdeg);
         
-        res = cpl_polynomial_eval_1d(poly, slit_pos, NULL);
-        cpl_array_set_double(*center, i, res);
+        if (center != NULL){
+            res = cpl_polynomial_eval_1d(poly, slit_pos, NULL);
+            cpl_array_set_double(*center, i, res);
+        }
 
-        res = cpl_polynomial_eval_1d(poly, slit_pos + height, NULL);
-        cpl_array_set_double(*top, i, res);
+        if (top != NULL){
+            res = cpl_polynomial_eval_1d(poly, slit_pos + height, NULL);
+            cpl_array_set_double(*top, i, res);
+        }
 
-        res = cpl_polynomial_eval_1d(poly, slit_pos - height, NULL);
-        cpl_array_set_double(*bottom, i, res);
+        if (bottom != NULL){
+            res = cpl_polynomial_eval_1d(poly, slit_pos - height, NULL);
+            cpl_array_set_double(*bottom, i, res);
+        }
         
     }
     cpl_matrix_delete(samppos);
     cpl_vector_delete(fitvals);
     cpl_polynomial_delete(poly);
 
-    cpl_array_set_double(*fraction, 0, slit_pos-height);
-    cpl_array_set_double(*fraction, 1, slit_pos);
-    cpl_array_set_double(*fraction, 2, slit_pos+height);
+    if (fraction != NULL){
+        cpl_array_set_double(*fraction, 0, slit_pos-height);
+        cpl_array_set_double(*fraction, 1, slit_pos);
+        cpl_array_set_double(*fraction, 2, slit_pos+height);
+    }
 
-    // interpolate wavelength solution
-    ndegree = cpl_table_get_column_dimension(trace_wave, CR2RES_COL_WAVELENGTH, 0);
+    // interpolate wavelength solution, if we have more than one trace
+    if (wave != NULL){
+        if (nb_traces == 1){
+            j = cr2res_get_trace_table_index(trace_wave, order, traces[0]);
+            old_wave = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, j);
+            cpl_array_copy_data_double(*wave, 
+                    cpl_array_get_data_double_const(old_wave));
+        } else {
+            ndegree = cpl_table_get_column_dimension(trace_wave, CR2RES_COL_WAVELENGTH, 0);
+            maxdeg = min(2, nb_traces - 1);
+            samppos = cpl_matrix_new(1, nb_traces);
+            fitvals = cpl_vector_new(nb_traces);
+            poly = cpl_polynomial_new(1);
+            for (i = 0; i < ndegree; i++){
+                for (k = 0; k < nb_traces; k++){
+                    j = cr2res_get_trace_table_index(trace_wave, order, traces[k]);
+                    old_fraction = cpl_table_get_array(trace_wave, 
+                            CR2RES_COL_SLIT_FRACTION, j);
+                    old_wave = cpl_table_get_array(trace_wave, 
+                            CR2RES_COL_WAVELENGTH, j);
 
-    samppos = cpl_matrix_new(1, nb_traces);
-    fitvals = cpl_vector_new(nb_traces);
-    poly = cpl_polynomial_new(1);
+                    res = cpl_array_get_double(old_fraction, j, NULL);
+                    if (res == -1) res = 0.5 * j; // bottom: 0, center: 0.5, top: 1
 
-    if (nb_traces == 1){
-        j = cr2res_get_trace_table_index(trace_wave, order, traces[0]);
-        old_wave = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, j);
-        cpl_array_copy_data_double(*wave, 
-                cpl_array_get_data_double_const(old_wave));
-    } else {
-        for (i = 0; i < ndegree; i++){
-            for (k = 0; k < nb_traces; k++){
-                j = cr2res_get_trace_table_index(trace_wave, order, traces[k]);
-                old_fraction = cpl_table_get_array(trace_wave, 
-                        CR2RES_COL_SLIT_FRACTION, j);
-                old_wave = cpl_table_get_array(trace_wave, 
-                        CR2RES_COL_WAVELENGTH, j);
-
-                res = cpl_array_get_double(old_fraction, j, NULL);
-                if (res == -1) res = 0.5 * j; // bottom: 0, center: 0.5, top: 1
-
-                cpl_matrix_set(samppos, 0, k, res);
-                cpl_vector_set(fitvals, k, cpl_array_get_double(old_wave, i, 
-                            NULL));
+                    cpl_matrix_set(samppos, 0, k, res);
+                    cpl_vector_set(fitvals, k, cpl_array_get_double(old_wave, i, 
+                                NULL));
+                }
+                error = cpl_polynomial_fit(poly, samppos, NULL, fitvals, NULL, 1, 
+                        NULL, &maxdeg);
+                res = cpl_polynomial_eval_1d(poly, slit_pos, NULL);
+                cpl_array_set_double(*wave, i, res);
             }
-            error = cpl_polynomial_fit(poly, samppos, NULL, fitvals, NULL, 1, 
-                    NULL, &maxdeg);
-            res = cpl_polynomial_eval_1d(poly, slit_pos, NULL);
-            cpl_array_set_double(*wave, i, res);
+            cpl_matrix_delete(samppos);
+            cpl_vector_delete(fitvals);
+            cpl_polynomial_delete(poly);
         }
     }
-    cpl_matrix_delete(samppos);
-    cpl_vector_delete(fitvals);
-    cpl_polynomial_delete(poly);
     cpl_free(traces);
 
     if (error != CPL_ERROR_NONE){

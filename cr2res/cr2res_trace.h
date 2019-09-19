@@ -140,4 +140,15 @@ cpl_table * cr2res_trace_split(
         int             order,
         int             nb_subtraces) ;
 
+static int cr2res_trace_get_subtrace(
+        cpl_table   *   trace_wave, 
+        double          slit_pos, 
+        double          height, 
+        int             order,
+        cpl_array   **  bottom, 
+        cpl_array   **  center, 
+        cpl_array   **  top,
+        cpl_array   **  fraction, 
+        cpl_array   **  wave) ;
+
 #endif
