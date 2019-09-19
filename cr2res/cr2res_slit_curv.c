@@ -430,9 +430,9 @@ hdrl_image * cr2res_slit_curv_gen_map(
                         x2 = x1 + 1 ;
                         val1 = value * (x2-x_slit_pos) ;
                         val2 = value - val1 ;
-                        cpl_msg_debug(__func__, 
+                        /*cpl_msg_debug(__func__, 
                                 "%"CPL_SIZE_FORMAT" %"CPL_SIZE_FORMAT" (%g) / %"CPL_SIZE_FORMAT" %"CPL_SIZE_FORMAT" (%g)", 
-                                x1-1, j, val1, x2-1, j, val2) ;
+                                x1-1, j, val1, x2-1, j, val2) ; */
                         if (x1>=1 && x1<=nx) pout_ima[(x1-1)+j*nx] = val1 ;
                         if (x2>=1 && x2<=nx) pout_ima[(x2-1)+j*nx] = val2 ;
                     }

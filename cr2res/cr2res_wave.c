@@ -1565,6 +1565,10 @@ static cpl_vector * cr2res_wave_clean_spectrum(
                     pout[i] = NAN;
         }
     }
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_vector_save(out, "debug_cleanedspec.fits", CPL_TYPE_DOUBLE,
+                NULL, CPL_IO_CREATE);
+    }
 
     cpl_vector_delete(x);
     cpl_vector_delete(wave);
