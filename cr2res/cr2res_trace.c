@@ -2491,7 +2491,7 @@ static int cr2res_trace_get_subtrace(
         }
 
         error = cpl_polynomial_fit(poly, samppos, NULL, fitvals, NULL, 1, 
-                &mindeg, &maxdeg);
+                NULL, &maxdeg);
         
         res = cpl_polynomial_eval_1d(poly, slit_pos, NULL);
         cpl_array_set_double(*center, i, res);
@@ -2540,7 +2540,7 @@ static int cr2res_trace_get_subtrace(
                             NULL));
             }
             error = cpl_polynomial_fit(poly, samppos, NULL, fitvals, NULL, 1, 
-                    &mindeg, &maxdeg);
+                    NULL, &maxdeg);
             res = cpl_polynomial_eval_1d(poly, slit_pos, NULL);
             cpl_array_set_double(*wave, i, res);
         }
