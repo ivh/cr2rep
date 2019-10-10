@@ -93,8 +93,15 @@ static char cr2res_obs_nodding_description[] = "\
 Nodding Observation                                                     \n\
   This recipe handles nodding observations. It expects an even number   \n\
   of rawframes in input, and as many A positions as B positions         \n\
+  If the input are standard stars, it computes a post processing step   \n\
+  to determine the throughput.                                          \n\
+  If the input are spectro astrometric data, it will apply the nodding  \n\
+  on each of the sub-groups                                             \n\
+                                                                        \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_OBS_NODDING_RAW" [2 to 2n]                        \n\
+          or " CR2RES_CAL_NODDING_RAW" [2 to 2n]                        \n\
+          or " CR2RES_OBS_NODDING_ASTOMETRY_RAW" [2 to 2n]              \n\
     trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [1]                       \n\
             or " CR2RES_CAL_FLAT_TW_MERGED_PROCATG "                    \n\
             or " CR2RES_UTIL_TRACE_TW_PROCATG "                         \n\
@@ -408,7 +415,11 @@ static int cr2res_obs_nodding(
         cpl_msg_error(__func__, "Could not find RAW frames") ;
         return -1 ;
     }
-   
+    /*
+    TODO : Also support CR2RES_CAL_NODDING_RAW and
+                   CR2RES_OBS_NODDING_ASTROMETRY__RAW
+     */
+       
     /* Get the RAW flat frames */
     raw_flat_frames = cr2res_extract_frameset(frameset, CR2RES_FLAT_RAW) ;
 
