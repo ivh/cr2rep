@@ -21,6 +21,11 @@ AUTOMAKE_OPTIONS = 1.6 foreign
 
 DISTCLEANFILES = *~
 
+EXTRA_DIST = cr2res_utils_test_image.fits \
+             cr2res_utils_test_image_trace.fits \
+             CRIFORS_H24_F_decker1_trace.fits \
+             CRIFORS_H24_F_decker2_trace.fits \
+             empty.fits
 
 if MAINTAINER_MODE
 
