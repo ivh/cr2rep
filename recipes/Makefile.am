@@ -44,6 +44,7 @@ plugin_LTLIBRARIES = cr2res_cal_detlin.la \
                      cr2res_util_calib.la \
                      cr2res_util_extract.la \
                      cr2res_util_genlines.la \
+                     cr2res_util_genstd.la \
                      cr2res_util_plot.la \
                      cr2res_util_normflat.la \
                      cr2res_util_slit_curv.la \
@@ -106,6 +107,11 @@ cr2res_util_genlines_la_SOURCES = cr2res_util_genlines.c
 cr2res_util_genlines_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
 cr2res_util_genlines_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
 cr2res_util_genlines_la_DEPENDENCIES = $(LIBCR2RES)
+
+cr2res_util_genstd_la_SOURCES = cr2res_util_genstd.c
+cr2res_util_genstd_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
+cr2res_util_genstd_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
+cr2res_util_genstd_la_DEPENDENCIES = $(LIBCR2RES)
 
 cr2res_util_plot_la_SOURCES = cr2res_util_plot.c
 cr2res_util_plot_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
