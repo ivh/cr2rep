@@ -574,7 +574,10 @@ static cpl_table *create_test_table()
 
 static cpl_image *create_test_image()
 {
-    cpl_image *img = cpl_image_load("cr2res_utils_test_image.fits", CPL_TYPE_INT, 0, 1);
+    char *my_path = cpl_sprintf("%s/cr2res_utils_test_image.fits", 
+            getenv("srcdir"));
+    cpl_image *img = cpl_image_load(my_path, CPL_TYPE_INT, 0, 1);
+    cpl_free(my_path) ;
     return img;
 }
 
@@ -644,7 +647,11 @@ static void test_cr2res_fit_noise(void)
 static void test_cr2res_slit_pos()
 {
     int chip = 2;
-    cpl_table *tw_decker1 = cpl_table_load("CRIFORS_H24_F_decker1_trace.fits", chip, 0);
+        
+    char *my_path = cpl_sprintf("%s/CRIFORS_H24_F_decker1_trace.fits", 
+            getenv("srcdir"));
+    cpl_table *tw_decker1 = cpl_table_load(my_path, chip, 0);
+    cpl_free(my_path) ;
     // cpl_table *tw_decker2 = cpl_table_load("CRIFORS_H24_F_decker2_trace.fits", chip, 0);
     // TODO: Merge tables?
 
@@ -705,7 +712,10 @@ static void test_cr2res_slit_pos()
 static void test_cr2res_slit_pos_img()
 {
     int chip = 2;
-    cpl_table *tw_decker1 = cpl_table_load("CRIFORS_H24_F_decker1_trace.fits", chip, 0);
+    char *my_path = cpl_sprintf("%s/CRIFORS_H24_F_decker1_trace.fits", 
+            getenv("srcdir"));
+    cpl_table *tw_decker1 = cpl_table_load(my_path, chip, 0);
+    cpl_free(my_path) ;
     // cpl_table *tw_decker2 = cpl_table_load("CRIFORS_H24_F_decker2_trace.fits", chip, 0);
     cpl_image *slitpos = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
     cpl_image *wavelength = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
@@ -724,9 +734,6 @@ static void test_cr2res_slit_pos_img()
     cpl_image_delete(slitpos);
     cpl_image_delete(wavelength);
 }
-
-
-
 
 /*----------------------------------------------------------------------------*/
 /**

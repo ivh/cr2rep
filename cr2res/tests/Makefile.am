@@ -39,35 +39,34 @@ AM_CPPFLAGS = $(all_includes)
 AM_LDFLAGS = $(CPL_LDFLAGS) $(HDRL_LDFLAGS)
 LDADD = $(LIBCR2RES) $(LIBCPLDFS) $(LIBCPLUI) $(LIBCPLDRS) $(LIBCPLCORE) $(HDRL_LIBS)
 
-check_PROGRAMS = cr2res_trace-test
-#\
-#                 cr2res_utils-test \
-#                 cr2res_qc-test \
-#                 cr2res_extract-test \
-#                 cr2res_splice-test \
-#                 cr2res_wave-test \
-#                 cr2res_calib-test \
-#                 cr2res_pol-test
+check_PROGRAMS = cr2res_trace-test \
+                 cr2res_utils-test \
+                 cr2res_qc-test \
+                 cr2res_extract-test \
+                 cr2res_splice-test \
+                 cr2res_wave-test \
+                 cr2res_calib-test \
+                 cr2res_pol-test
 
 
 cr2res_trace_test_SOURCES = cr2res_trace-test.c
-#cr2res_utils_test_SOURCES = cr2res_utils-test.c
-#cr2res_qc_test_SOURCES = cr2res_qc-test.c
-#cr2res_extract_test_SOURCES = cr2res_extract-test.c
-#cr2res_splice_test_SOURCES = cr2res_splice-test.c
-#cr2res_wave_test_SOURCES = cr2res_wave-test.c
-#cr2res_calib_test_SOURCES = cr2res_calib-test.c
-#cr2res_pol_test_SOURCES = cr2res_pol-test.c
+cr2res_utils_test_SOURCES = cr2res_utils-test.c
+cr2res_qc_test_SOURCES = cr2res_qc-test.c
+cr2res_extract_test_SOURCES = cr2res_extract-test.c
+cr2res_splice_test_SOURCES = cr2res_splice-test.c
+cr2res_wave_test_SOURCES = cr2res_wave-test.c
+cr2res_calib_test_SOURCES = cr2res_calib-test.c
+cr2res_pol_test_SOURCES = cr2res_pol-test.c
 
 
 cr2res_trace_test_DEPENDENCIES = $(LIBCR2RES)
-#cr2res_utils_test_DEPENDENCIES = $(LIBCR2RES)
-#cr2res_qc_test_DEPENDENCIES = $(LIBCR2RES)
-#cr2res_extract_test_DEPENDENCIES = $(LIBCR2RES)
-#cr2res_splice_test_DEPENDENCIES = $(LIBCR2RES)
-#cr2res_wave_test_DEPENDENCIES = $(LIBCR2RES)
-#cr2res_calib_test_DEPENDENCIES = $(LIBCR2RES)
-#cr2res_pol_test_DEPENDENCIES = $(LIBCR2RES)
+cr2res_utils_test_DEPENDENCIES = $(LIBCR2RES)
+cr2res_qc_test_DEPENDENCIES = $(LIBCR2RES)
+cr2res_extract_test_DEPENDENCIES = $(LIBCR2RES)
+cr2res_splice_test_DEPENDENCIES = $(LIBCR2RES)
+cr2res_wave_test_DEPENDENCIES = $(LIBCR2RES)
+cr2res_calib_test_DEPENDENCIES = $(LIBCR2RES)
+cr2res_pol_test_DEPENDENCIES = $(LIBCR2RES)
 
 
 # Be sure to reexport important environment variables.
@@ -87,18 +86,17 @@ clean-local:
 	$(RM) *.log \
         *.paf \
         .logfile \
-        debug_cluster_table.fits \
         res.fits \
+        TEST.fits \
         TEST2.fits \
-        debug_labels.fits \
-        debug_mask_before_cleaning.fits \
         test_table.fits \
         new_table.fits \
-        debug_diff_mask.fits \
-        debug_smimage.fits \
-        TEST.fits \
-        debug_trace_table.fits \
-        debug_mask.fits
+        wave.fits \
+        cmp.fits \
+        out.fits \
+        slit.fits \
+        debug_*.fits 
+
 
 
 
