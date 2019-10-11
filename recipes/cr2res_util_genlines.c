@@ -144,9 +144,6 @@ static int cr2res_util_genlines_create(cpl_plugin * plugin)
 {
     cpl_recipe          *   recipe ;
     cpl_parameter       *   p ;
-    cpl_parameterlist   *   collapse_par ;
-    hdrl_parameter      *   sigclip_def ;
-    hdrl_parameter      *   minmax_def ;
 
     /* Check that the plugin is part of a valid recipe */
     if (cpl_plugin_get_type(plugin) == CPL_PLUGIN_TYPE_RECIPE)
@@ -160,13 +157,13 @@ static int cr2res_util_genlines_create(cpl_plugin * plugin)
     /* Fill the parameters list */
     p = cpl_parameter_new_value("cr2res_util_genlines.wl_factor", 
             CPL_TYPE_DOUBLE, "The factor used to multiply the wl",
-            "cr2res_util_genlines", 1.0);
+            RECIPE_STRING, 1.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_factor");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res_util_genlines.display", 
-            CPL_TYPE_BOOL, "Flag to plot", "cr2res_util_genlines", FALSE);
+            CPL_TYPE_BOOL, "Flag to plot", RECIPE_STRING, FALSE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);

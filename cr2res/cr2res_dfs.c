@@ -38,8 +38,6 @@
 /*----------------------------------------------------------------------------*/
 /**
  * @defgroup cr2res_dfs  DFS related functions
- *
- * TBD
  */
 /*----------------------------------------------------------------------------*/
 
@@ -75,6 +73,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
         } else if (!strcmp(tag, CR2RES_COMMAND_LINE) ||
                 /* DO.CATG Tags for the RAW files */
                 !strcmp(tag, CR2RES_EMISSION_LINES_TXT_RAW) ||
+                !strcmp(tag, CR2RES_PHOTO_FLUX_TXT_RAW) ||
                 !strcmp(tag, CR2RES_DETLIN_RAW) ||
                 !strcmp(tag, CR2RES_DARK_RAW) ||
                 !strcmp(tag, CR2RES_FLAT_RAW) ||
@@ -133,6 +132,8 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_OBS_POL_SPECB_PROCATG) ||
                 /* Produced by cr2res_util_genlines */
                 !strcmp(tag, CR2RES_EMISSION_LINES_PROCATG) ||
+                /* Produced by cr2res_util_genstd */
+                !strcmp(tag, CR2RES_PHOTO_FLUX_PROCATG) ||
                 /* Produced by cr2res_util_calib */
                 !strcmp(tag, CR2RES_UTIL_CALIB_PROCATG) ||
                 /* Produced by cr2res_util_bpm_split */

@@ -26,9 +26,16 @@
 
 /******************************************/
 /* DEFINE HERE THE DIFFERENT COLUMN NAMES */
-/*** EMISSION_LINES Table ***/
+
+/*** PHOTO_FLUX Table ***/
+#define CR2RES_COL_STDNAME          "Std_Star_Name"     /* No Unit */
+#define CR2RES_COL_RA               "Right_Ascension"   /* In degrees */
+#define CR2RES_COL_DEC              "Declination"       /* In degrees */
+#define CR2RES_COL_PHOTOFLUX        "Photospheric_Flux" /* In Jy */
+
+/*** CATALOG Table ***/
 #define CR2RES_COL_EMISSION         "Emission"      /* No Unit */
-/*** EMISSION_LINES and TRACE_WAVE Table ***/
+/*** CATALOG and TRACE_WAVE Table ***/
 #define CR2RES_COL_WAVELENGTH       "Wavelength"    /* In Nanometers */
 #define CR2RES_COL_WAVELENGTH_ERROR "Wavelength_Error"  /* In Nanometers */
 /*** TRACE_WAVE Table ***/
@@ -93,6 +100,13 @@
 /* For  CR2RES_EMISSION_LINES_PROCATG */
 /* Table with columns CR2RES_COL_EMISSION / CR2RES_COL_WAVELENGTH */
 #define CR2RES_PROTYPE_CATALOG              "CATALOG"
+
+/* For  CR2RES_PHOTO_FLUX_PROCATG */
+/* Col: CR2RES_COL_STDNAME      */
+/*      CR2RES_COL_RA           */
+/*      CR2RES_COL_DEC          */
+/*      CR2RES_COL_PHOTOFLUX    */
+#define CR2RES_PHOTO_FLUX_PROTYPE       	"PHOTO_FLUX"
 
 /* For CR2RES_CAL_DETLIN_COEFFS_PROCATG */
 #define CR2RES_DETLIN_COEFFS_PROTYPE        "DETLIN_COEFFS"
@@ -246,6 +260,9 @@
 /* Produced by cr2res_util_genlines */
 #define CR2RES_EMISSION_LINES_PROCATG       "EMISSION_LINES"
 
+/* Produced by cr2res_util_genstd */
+#define CR2RES_PHOTO_FLUX_PROCATG           "PHOTO_FLUX"
+
 /* Produced by cr2res_util_calib */
 #define CR2RES_UTIL_CALIB_PROCATG           "UTIL_CALIB"
 
@@ -286,6 +303,7 @@
 /* Define here the DO.CATG keywords */
 #define CR2RES_COMMAND_LINE                 "COMMAND_LINE"
 #define CR2RES_EMISSION_LINES_TXT_RAW       "EMISSION_LINES_TXT"
+#define CR2RES_PHOTO_FLUX_TXT_RAW           "PHOTO_FLUX_TXT"
 #define CR2RES_DETLIN_RAW                   "DETLIN"
 #define CR2RES_DARK_RAW                     "DARK"
 #define CR2RES_FLAT_RAW                     "FLAT"

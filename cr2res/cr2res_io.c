@@ -1137,6 +1137,46 @@ cpl_table * cr2res_io_load_EXTRACT_2D(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Save PHOTO_FLUX file
+  @param    filename    The file name
+  @param   	table		The table to save
+  @param    parlist     The recipe input parameters
+  @param    set         The recipe input frames
+  @param    recipe      The recipe name
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_PHOTO_FLUX(
+        const char              *   filename,
+        cpl_table               *   out_table,
+        const cpl_parameterlist *   parlist,
+        cpl_frameset            *   set,
+        const char              *   recipe)
+{
+    cpl_propertylist    *   plist ;
+
+    plist = cpl_propertylist_new();
+    cpl_propertylist_append_string(plist, CR2RES_HEADER_INSTRUMENT, "CRIRES") ;
+    cpl_propertylist_append_string(plist, CPL_DFS_PRO_CATG,
+            CR2RES_PHOTO_FLUX_PROCATG) ;
+    cpl_propertylist_append_string(plist, CPL_DFS_PRO_TYPE,
+            CR2RES_PHOTO_FLUX_PROTYPE) ;
+
+    if (cpl_dfs_save_table(set, NULL, parlist, set, NULL, out_table,
+                NULL, recipe, plist, NULL,
+                PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Cannot save the table") ;
+        cpl_propertylist_delete(plist) ;
+        return -1 ;
+    }
+    cpl_propertylist_delete(plist) ;
+
+    /* Return */
+    return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Save EMISSION_LINES file
   @param    filename    The file name
   @param   	table		The table to save
@@ -1156,7 +1196,7 @@ int cr2res_io_save_EMISSION_LINES(
     cpl_propertylist    *   plist ;
 
     plist = cpl_propertylist_new();
-    cpl_propertylist_append_string(plist, CR2RES_HEADER_INSTRUMENT, "CR2RES") ;
+    cpl_propertylist_append_string(plist, CR2RES_HEADER_INSTRUMENT, "CRIRES") ;
     cpl_propertylist_append_string(plist, CPL_DFS_PRO_CATG,
             CR2RES_EMISSION_LINES_PROCATG) ;
     cpl_propertylist_append_string(plist, CPL_DFS_PRO_TYPE,

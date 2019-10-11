@@ -47,6 +47,9 @@ typedef enum {
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
+double cr2res_ra_hms2deg(int hh, int mm, double ss) ;
+double cr2res_dec_hms2deg(int dd, int mm, double ss) ;
+
 char * cr2res_decker_print_position(cr2res_decker dpos) ;
 
 int cr2res_format_setting(char * setting_id) ;

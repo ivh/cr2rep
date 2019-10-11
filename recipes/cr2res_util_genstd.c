@@ -1,6 +1,5 @@
-/* $Id: crires_util_genstd.c,v 1.12 2011-11-24 08:27:46 yjung Exp $
- *
- * This file is part of the CRIRES Pipeline
+/*
+ * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
  *
  * This program is free software; you can redistribute it and/or modify
@@ -15,14 +14,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
-/*
- * $Author: yjung $
- * $Date: 2011-11-24 08:27:46 $
- * $Revision: 1.12 $
- * $Name: not supported by cvs2svn $
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,57 +26,177 @@
  -----------------------------------------------------------------------------*/
 
 #include <locale.h>
-#include "crires_recipe.h"
+#include <cpl.h>
+#include "hdrl.h"
+
+#include "cr2res_utils.h"
+#include "cr2res_dfs.h"
+#include "cr2res_io.h"
 
 /*-----------------------------------------------------------------------------
                                 Define
  -----------------------------------------------------------------------------*/
 
-#define RECIPE_STRING "crires_util_genstd"
+#define RECIPE_STRING "cr2res_util_genstd"
 
 /*-----------------------------------------------------------------------------
-                            Functions prototypes
+                             Plugin registration
  -----------------------------------------------------------------------------*/
 
-static int crires_util_genstd_save(cpl_table *, const cpl_parameterlist *, 
-        cpl_frameset *);
-
-static char crires_util_genstd_description[] =
-"This recipe is used to generate standard star photospheric flux tables.\n"
-"The sof consists of file names tagged with "CRIRES_UTIL_GENSTD_RAW".\n"
-"The specified files are named after the standard star they represent\n"
-"(e.g. HIP61007.txt).\n"
-"The first line of the file must contain the RA and DEC (hh mm ss).\n"
-"(e.g. # 13 20 35.818        -36 42 44.26).\n"
-"The rest of the file must contain two columns:\n"
-"1st: Wavelengths in increasing order (the unit is corrected by\n"
-"     the factor option to obtain nanometers).\n"
-"2nd: The atmospheric emission.\n"
-"The file is generated using the ASCII files in the catalogs/stdstar\n"
-"directory of the CRIRES source-code distribution."
-"\n"
-"This recipe produces 1 file for each input file:\n"
-"First product:     the table with the photospheric flux of the std.\n"
-"                   (PRO TYPE = "CRIRES_PROTYPE_PHO_FLUX")\n" ;
-
-CRIRES_RECIPE_DEFINE(crires_util_genstd,
-        CRIRES_PARAM_PLOT,
-        "Generate standard star FITS tables",
-        crires_util_genstd_description) ;
+int cpl_plugin_get_info(cpl_pluginlist * list);
 
 /*-----------------------------------------------------------------------------
-                            Static variables
+                            Private function prototypes
  -----------------------------------------------------------------------------*/
 
-static struct {
-    /* Inputs */
-    int             display ;
-    /* Outputs */
-} crires_util_genstd_config ;
+static int cr2res_util_genstd_create(cpl_plugin *);
+static int cr2res_util_genstd_exec(cpl_plugin *);
+static int cr2res_util_genstd_destroy(cpl_plugin *);
+static int cr2res_util_genstd(cpl_frameset *, const cpl_parameterlist *);
+
+/*-----------------------------------------------------------------------------
+                          	Static variables
+ -----------------------------------------------------------------------------*/
+
+static char cr2res_util_genstd_description[] = "\
+Photospheric flux table generation                                      \n\
+                                                                        \n\
+  This utility is used to generate the photospheric flux table          \n\
+                                                                        \n\
+  Inputs                                                                \n\
+    raw.txt " CR2RES_PHOTO_FLUX_TXT_RAW " [1 to n]                      \n\
+    The specified files are named after the standard star they represent\n\
+    (e.g. HIP61007.txt).                                                \n\
+    The first line of the file must contain the RA and DEC (hh mm ss).  \n\
+    (e.g. # 13 20 35.818        -36 42 44.26).                          \n\
+    The rest of the file must contain two columns:                      \n\
+    1st: Wavelengths in increasing order                                \n\
+    2nd: The atmospheric emission                                       \n\
+                                                                        \n\
+  Outputs                                                               \n\
+    cr2res_util_genstd.fits " CR2RES_PHOTO_FLUX_PROCATG"                \n\
+                                                                        \n\
+  Algorithm                                                             \n\
+                                                                        \n\
+  Library functions uѕed                                                \n\
+" ;
 
 /*-----------------------------------------------------------------------------
                                 Functions code
  -----------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Build the list of available plugins, for this module. 
+  @param    list    the plugin list
+  @return   0 if everything is ok, 1 otherwise
+  @note     Only this function is exported
+
+  Create the recipe instance and make it available to the application using the 
+  interface. 
+ */
+/*----------------------------------------------------------------------------*/
+int cpl_plugin_get_info(cpl_pluginlist * list)
+{
+    cpl_recipe  *   recipe = cpl_calloc(1, sizeof *recipe );
+    cpl_plugin  *   plugin = &recipe->interface;
+
+    if (cpl_plugin_init(plugin,
+                    CPL_PLUGIN_API,
+                    CR2RES_BINARY_VERSION,
+                    CPL_PLUGIN_TYPE_RECIPE,
+                    RECIPE_STRING,
+                    "Generate standard star FITS tables",
+                    cr2res_util_genstd_description,
+                    "Thomas Marquart, Yves Jung",
+                    PACKAGE_BUGREPORT,
+                    cr2res_get_license(),
+                    cr2res_util_genstd_create,
+                    cr2res_util_genstd_exec,
+                    cr2res_util_genstd_destroy)) {
+        cpl_msg_error(cpl_func, "Plugin initialization failed");
+        (void)cpl_error_set_where(cpl_func);
+        return 1;
+    }
+
+    if (cpl_pluginlist_append(list, plugin)) {
+        cpl_msg_error(cpl_func, "Error adding plugin to list");
+        (void)cpl_error_set_where(cpl_func);
+        return 1;
+    }
+    return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Setup the recipe options    
+  @param    plugin  the plugin
+  @return   0 if everything is ok
+
+  Defining the command-line/configuration parameters for the recipe.
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_util_genstd_create(cpl_plugin * plugin)
+{
+    cpl_recipe          *   recipe ;
+    cpl_parameter       *   p ;
+
+    /* Check that the plugin is part of a valid recipe */
+    if (cpl_plugin_get_type(plugin) == CPL_PLUGIN_TYPE_RECIPE)
+        recipe = (cpl_recipe *)plugin;
+    else
+        return -1;
+
+    /* Create the parameters list in the cpl_recipe object */
+    recipe->parameters = cpl_parameterlist_new();
+
+    /* Fill the parameters list */
+    p = cpl_parameter_new_value("cr2res_util_genstd.display",
+            CPL_TYPE_BOOL, "Flag to plot", RECIPE_STRING, FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    return 0;
+}
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Execute the plugin instance given by the interface
+  @param    plugin  the plugin
+  @return   0 if everything is ok
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_util_genstd_exec(cpl_plugin * plugin)
+{
+    cpl_recipe  *recipe;
+
+    /* Get the recipe out of the plugin */
+    if (cpl_plugin_get_type(plugin) == CPL_PLUGIN_TYPE_RECIPE)
+        recipe = (cpl_recipe *)plugin;
+    else return -1;
+
+    return cr2res_util_genstd(recipe->frames, recipe->parameters);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Destroy what has been created by the 'create' function
+  @param    plugin  the plugin
+  @return   0 if everything is ok
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_util_genstd_destroy(cpl_plugin * plugin)
+{
+    cpl_recipe *recipe;
+
+    /* Get the recipe out of the plugin */
+    if (cpl_plugin_get_type(plugin) == CPL_PLUGIN_TYPE_RECIPE)
+        recipe = (cpl_recipe *)plugin;
+    else return -1 ;
+
+    cpl_parameterlist_delete(recipe->parameters);
+    return 0 ;
+}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -96,10 +208,11 @@ static struct {
   out of it. 
  */
 /*----------------------------------------------------------------------------*/
-static int crires_util_genstd(
+static int cr2res_util_genstd(
         cpl_frameset            *   framelist,
         const cpl_parameterlist *   parlist)
 {
+    const cpl_parameter *   par ;
     FILE            *   in ;
     char                line[1024] ;
     cpl_bivector    *   bivec_ref ;
@@ -111,7 +224,7 @@ static int crires_util_genstd(
     cpl_frame       *   cur_frame ;
     const char      *   cur_fname ;
     cpl_table       *   tab ;
-    int                 nvals, nframes, nvals_ref ;
+    int                 nvals, nframes, nvals_ref, display ;
     double          *   pwave ;
     double          *   pemiss ;
     double          *   pwave_ref ;
@@ -122,11 +235,11 @@ static int crires_util_genstd(
     setlocale(LC_NUMERIC, "C");
 
     /* Retrieve input parameters */
-    crires_util_genstd_config.display = crires_parameterlist_get_bool(
-            parlist, RECIPE_STRING, CRIRES_PARAM_PLOT) ;
- 
+    par=cpl_parameterlist_find_const(parlist, "cr2res_util_genstd.display");
+    display = cpl_parameter_get_bool(par);
+
     /* Identify the RAW and CALIB frames in the input frameset */
-    if (crires_dfs_set_groups(framelist, NULL)) {
+    if (cr2res_dfs_set_groups(framelist)) {
         cpl_msg_error(__func__, "Cannot identify RAW and CALIB frames") ;
         return -1 ;
     }
@@ -144,18 +257,18 @@ static int crires_util_genstd(
 
     /* Create the table */
     tab = cpl_table_new(nframes+1) ;
-    cpl_table_new_column(tab, CRIRES_COL_STDNAME, CPL_TYPE_STRING) ;
-    cpl_table_new_column(tab, CRIRES_COL_RA, CPL_TYPE_DOUBLE) ;
-    cpl_table_new_column(tab, CRIRES_COL_DEC, CPL_TYPE_DOUBLE) ;
-    cpl_table_new_column_array(tab, CRIRES_COL_PHOTOFLUX, CPL_TYPE_DOUBLE, 
+    cpl_table_new_column(tab, CR2RES_COL_STDNAME, CPL_TYPE_STRING) ;
+    cpl_table_new_column(tab, CR2RES_COL_RA, CPL_TYPE_DOUBLE) ;
+    cpl_table_new_column(tab, CR2RES_COL_DEC, CPL_TYPE_DOUBLE) ;
+    cpl_table_new_column_array(tab, CR2RES_COL_PHOTOFLUX, CPL_TYPE_DOUBLE, 
             nvals_ref) ;
     
     /* Write the wavelength */
-    cpl_table_set_string(tab, CRIRES_COL_STDNAME, 0, "WAVE") ;
-    cpl_table_set_double(tab, CRIRES_COL_RA, 0, -1.0) ;
-    cpl_table_set_double(tab, CRIRES_COL_DEC, 0, -1.0) ;
+    cpl_table_set_string(tab, CR2RES_COL_STDNAME, 0, "WAVE") ;
+    cpl_table_set_double(tab, CR2RES_COL_RA, 0, -1.0) ;
+    cpl_table_set_double(tab, CR2RES_COL_DEC, 0, -1.0) ;
     array = cpl_array_wrap_double(pwave_ref, nvals_ref) ;
-    cpl_table_set_array(tab, CRIRES_COL_PHOTOFLUX, 0, array) ;
+    cpl_table_set_array(tab, CR2RES_COL_PHOTOFLUX, 0, array) ;
     cpl_array_unwrap(array) ;
 
     /* Loop on the input frames */
@@ -187,8 +300,8 @@ static int crires_util_genstd(
             return -1 ;
         }
         fclose(in) ;
-        ra = crires_ra_hms2deg(ra1, ra2, ra3) ;
-        dec = crires_dec_hms2deg(dec1, dec2, dec3) ;
+        ra = cr2res_ra_hms2deg(ra1, ra2, ra3) ;
+        dec = cr2res_dec_hms2deg(dec1, dec2, dec3) ;
         if (isign == '-') dec *= -1.0 ;
      
         /* Load the file */
@@ -223,23 +336,23 @@ static int crires_util_genstd(
         }
             
         /* Display if requested */
-        if (crires_util_genstd_config.display) {
+        if (display) {
             cpl_plot_bivector(
                 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Flux (jy)';",
                 "t 'Photospheric flux' w lines", "", bivec);
         }
         
         /* Write the star name */
-        cpl_table_set_string(tab, CRIRES_COL_STDNAME, i+1,
-                crires_get_root_name(crires_get_base_name(cur_fname))) ;
+        cpl_table_set_string(tab, CR2RES_COL_STDNAME, i+1,
+                cr2res_get_root_name(cr2res_get_base_name(cur_fname))) ;
         
         /* Write the RA/DEC  */
-        cpl_table_set_double(tab, CRIRES_COL_RA, i+1, ra) ;
-        cpl_table_set_double(tab, CRIRES_COL_DEC, i+1, dec) ;
+        cpl_table_set_double(tab, CR2RES_COL_RA, i+1, ra) ;
+        cpl_table_set_double(tab, CR2RES_COL_DEC, i+1, dec) ;
 
         /* Write the signal */
         array = cpl_array_wrap_double(pemiss, nvals) ;
-        cpl_table_set_array(tab, CRIRES_COL_PHOTOFLUX, i+1, array) ;
+        cpl_table_set_array(tab, CR2RES_COL_PHOTOFLUX, i+1, array) ;
         cpl_array_unwrap(array) ;
     
         cpl_bivector_delete(bivec) ;
@@ -248,48 +361,14 @@ static int crires_util_genstd(
     
     /* Save the table */
     cpl_msg_info(__func__, "Save the table") ;
-    if (crires_util_genstd_save(tab, parlist, framelist) == -1) {
+
+    if (cr2res_io_save_PHOTO_FLUX("cr2res_util_genstd.fits", tab,
+                parlist, framelist, RECIPE_STRING) == -1) {
         cpl_msg_error(__func__, "Cannot write the table") ;
         cpl_table_delete(tab) ;
         return -1 ;
     }
     cpl_table_delete(tab) ;
 
-    return 0 ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Save the product of the recipe
-  @param    out_table   the table 
-  @param    parlist     the input list of parameters
-  @param    set         the input frame set
-  @return   0 if everything is ok, -1 otherwise
- */
-/*----------------------------------------------------------------------------*/
-static int crires_util_genstd_save(
-        cpl_table               *   out_table,
-        const cpl_parameterlist *   parlist,
-        cpl_frameset            *   set)
-{
-    cpl_propertylist    *   plist ;
-
-    plist = cpl_propertylist_new();
-    cpl_propertylist_append_string(plist, "INSTRUME", "CRIRES") ;
-    cpl_propertylist_append_string(plist, CPL_DFS_PRO_CATG,
-            CRIRES_CALPRO_STD_PHOTOFLUX) ;
-    cpl_propertylist_append_string(plist, CPL_DFS_PRO_TYPE,
-            CRIRES_PROTYPE_PHO_FLUX) ;
-
-    if (cpl_dfs_save_table(set, NULL, parlist, set, NULL, out_table,
-                NULL, "crires_util_genstd", plist, NULL, 
-                PACKAGE "/" PACKAGE_VERSION,
-                "crires_util_genstd.fits") != CPL_ERROR_NONE) {
-        cpl_msg_error(__func__, "Cannot save the table") ;
-        return -1 ;
-    }
-    cpl_propertylist_delete(plist) ;
-
-    /* Return */
     return 0 ;
 }

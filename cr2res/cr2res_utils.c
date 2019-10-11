@@ -43,6 +43,42 @@
 
 /**@{*/
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Convert the RA from hh mm ss to degrees 
+  @param    hh      hours
+  @param    mm      minutes 
+  @param    ss      seconds 
+  @return   RA in degrees 
+
+  An arc-hour is 15 degrees,
+  60 arc-minutes is one arc-hour and
+  60 arc-seconds is one arc-minute.
+  
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_ra_hms2deg(int hh, int mm, double ss)
+{
+    return 15.0 * cr2res_dec_hms2deg(hh, mm, ss);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Convert the DEC from dd mm ss to degrees
+  @param    dd      degrees
+  @param    mm      minutes 
+  @param    ss      seconds  
+  @return   DEC in degrees
+
+  60 arc-minutes is one degree and
+  60 arc-seconds is one arc-minute.
+
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_dec_hms2deg(int dd, int mm, double ss)
+{
+    return ((double)ss/60.0 + (double)mm)/60.0 + dd;
+}
 
 /*----------------------------------------------------------------------------*/
 /**
