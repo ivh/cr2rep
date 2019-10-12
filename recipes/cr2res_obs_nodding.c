@@ -37,6 +37,7 @@
 #include "cr2res_extract.h"
 #include "cr2res_io.h"
 #include "cr2res_qc.h"
+#include "cr2res_photom.h"
 
 /*-----------------------------------------------------------------------------
                                 Define
@@ -54,6 +55,9 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static cpl_frameset * cr2res_obs_nodding_find_RAW(
+        const cpl_frameset  *   in,
+        int                 *   type) ;
 static int cr2res_obs_nodding_check_inputs_validity(
         const cpl_frameset  *   rawframes) ;
 static int cr2res_obs_nodding_reduce(
@@ -101,7 +105,7 @@ Nodding Observation                                                     \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_OBS_NODDING_RAW" [2 to 2n]                        \n\
           or " CR2RES_CAL_NODDING_RAW" [2 to 2n]                        \n\
-          or " CR2RES_OBS_NODDING_ASTOMETRY_RAW" [2 to 2n]              \n\
+          or " CR2RES_OBS_NODDING_ASTROMETRY_RAW" [2 to 2n]             \n\
     trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [1]                       \n\
             or " CR2RES_CAL_FLAT_TW_MERGED_PROCATG "                    \n\
             or " CR2RES_UTIL_TRACE_TW_PROCATG "                         \n\
@@ -348,13 +352,14 @@ static int cr2res_obs_nodding(
 {
     const cpl_parameter *   param ;
     int                     extract_oversample, extract_swath_width,
-                            extract_height, reduce_det ;
-    double                  extract_smooth ;
+                            extract_height, reduce_det, ndit, nexp ;
+    double                  extract_smooth, ra, dec, dit ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_flat_frames ;
     const cpl_frame     *   trace_wave_frame ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
+    const cpl_frame     *   photo_flux_frame ;
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
     hdrl_image          *   combineda[CR2RES_NB_DETECTORS] ;
@@ -365,9 +370,13 @@ static int cr2res_obs_nodding(
     cpl_table           *   extractb[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slitfuncb[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   modelb[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   conversion[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   sensitivity[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   throughput[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   plist ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
-    int                     i, det_nr; 
+    int                     i, det_nr, type; 
 
     /* Initialise */
 
@@ -405,21 +414,19 @@ static int cr2res_obs_nodding(
             CR2RES_CAL_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
             CR2RES_CAL_DARK_MASTER_PROCATG) ; 
+    photo_flux_frame = cpl_frameset_find_const(frameset,
+            CR2RES_PHOTO_FLUX_PROCATG) ; 
     master_flat_frame = cpl_frameset_find_const(frameset,
             CR2RES_CAL_FLAT_MASTER_PROCATG) ; 
     bpm_frame = cr2res_io_find_BPM(frameset) ;
 
     /* Get the RAW Frames */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_OBS_NODDING_RAW) ;
+    rawframes = cr2res_obs_nodding_find_RAW(frameset, &type) ;
     if (rawframes == NULL) {
         cpl_msg_error(__func__, "Could not find RAW frames") ;
         return -1 ;
     }
-    /*
-    TODO : Also support CR2RES_CAL_NODDING_RAW and
-                   CR2RES_OBS_NODDING_ASTROMETRY__RAW
-     */
-       
+      
     /* Get the RAW flat frames */
     raw_flat_frames = cr2res_extract_frameset(frameset, CR2RES_FLAT_RAW) ;
 
@@ -435,6 +442,9 @@ static int cr2res_obs_nodding(
         slitfuncb[det_nr-1] = NULL ;
         modelb[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
+        conversion[det_nr-1] = NULL ;
+        sensitivity[det_nr-1] = NULL ;
+        throughput[det_nr-1] = NULL ;
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -457,6 +467,46 @@ static int cr2res_obs_nodding(
                     &(modelb[det_nr-1]),
                     &(ext_plist[det_nr-1])) == -1) {
             cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
+        } else if (type == 2) {
+            cpl_msg_info(__func__,
+                    "Sensitivity / Conversion / Throughput computation") ;
+            cpl_msg_indent_more() ;
+
+			/* Get the RA and DEC observed */
+			plist=cpl_propertylist_load(cpl_frame_get_filename(
+                        cpl_frameset_get_position_const(rawframes, 0)), 0) ;
+			ra = cr2res_pfits_get_ra(plist) ;
+			dec = cr2res_pfits_get_dec(plist) ;
+            dit = cr2res_pfits_get_dit(plist) ;
+            ndit = cr2res_pfits_get_ndit(plist) ;
+            nexp = cr2res_pfits_get_nexp(plist) ;
+			cpl_propertylist_delete(plist) ;
+            if (cpl_error_get_code()) {
+                cpl_msg_indent_less() ;
+                cpl_error_reset() ;
+                cpl_msg_warning(__func__, "Missing Header Informations") ;
+            } else {
+                /* Compute the photometry */
+                if (cr2res_photom_engine(extracta[det_nr-1],
+                            cpl_frame_get_filename(photo_flux_frame),
+                            ra, dec, 1.0, dit*ndit*nexp, 0, 
+                            &(conversion[det_nr-1]),
+                            &(sensitivity[det_nr-1]),
+                            &(throughput[det_nr-1]))) {
+                }
+            }
+
+            /* TEST */
+            cr2res_photom_engine(extracta[det_nr-1], 
+                    cpl_frame_get_filename(photo_flux_frame),
+                    190.467, 17.5222, 1.0, 20.0, 0,
+                    &(conversion[det_nr-1]),
+                    &(sensitivity[det_nr-1]),
+                    &(throughput[det_nr-1])) ;
+            /* **** */
+
+
+            cpl_msg_indent_less() ;
         }
         cpl_msg_indent_less() ;
     }
@@ -975,5 +1025,42 @@ static int cr2res_obs_nodding_check_inputs_validity(
         }
     }
     return 1 ;
+}
+ 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the RAW frames from a frameset
+  @param    set     Input frame set
+  @param    type    [out] 0 - none, 1-OBS_NODDING, 2-CAL_NODDING, 3-ASTROMETRY
+  @return   the RAW frameset or NULL in error case or if it is missing
+    Allowed RAW types : CR2RES_OBS_NODDING_RAW
+                     	CR2RES_CAL_NODDING_RAW
+						CR2RES_OBS_NODDING_ASTROMETRY_RAW
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_frameset * cr2res_obs_nodding_find_RAW(
+        const cpl_frameset  *   in,
+        int                 *   type)
+{
+    cpl_frameset    *   out ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    out = cr2res_extract_frameset(in, CR2RES_OBS_NODDING_RAW) ;
+    if (type != NULL) *type = 1 ;
+    if (out == NULL) {
+        out = cr2res_extract_frameset(in, CR2RES_CAL_NODDING_RAW) ;
+        if (type != NULL) *type = 2 ;
+    }
+    if (out == NULL) {
+        out = cr2res_extract_frameset(in, CR2RES_OBS_NODDING_ASTROMETRY_RAW) ;
+        if (type != NULL) *type = 3 ;
+    }
+    if (out == NULL) {
+        if (type != NULL) *type = 0 ;
+    }
+
+    return out ;
 }
 

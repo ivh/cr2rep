@@ -80,7 +80,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_WAVE_RAW) ||
                 !strcmp(tag, CR2RES_CAL_NODDING_RAW) ||
                 !strcmp(tag, CR2RES_OBS_NODDING_RAW) ||
-                !strcmp(tag, CR2RES_OBS_NODDING_ASTOMETRY_RAW) ||
+                !strcmp(tag, CR2RES_OBS_NODDING_ASTROMETRY_RAW) ||
                 !strcmp(tag, CR2RES_OBS_2D_RAW) ||
                 !strcmp(tag, CR2RES_OBS_POL_RAW) ||
                 /* PRO.TYPE tags that can be used as input RAWs */

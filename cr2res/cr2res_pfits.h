@@ -38,6 +38,7 @@
 #define CR2RES_HEADER_NAXIS1            "NAXIS1"
 #define CR2RES_HEADER_NAXIS2            "NAXIS2"
 #define CR2RES_HEADER_EXPNO             "ESO TPL EXPNO"
+#define CR2RES_HEADER_NEXP              "ESO TPL NEXP"
 #define CR2RES_HEADER_DECKER_POS        "ESO INS OPTI8 NO"
 #define CR2RES_HEADER_NODPOS            "ESO SEQ NODPOS"
 #define CR2RES_HEADER_NODTHROW          "ESO SEQ NODTHROW"
@@ -93,6 +94,8 @@ const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_lamp4(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_lamp8(const cpl_propertylist *) ;
 
+double cr2res_pfits_get_ra(const cpl_propertylist *) ;
+double cr2res_pfits_get_dec(const cpl_propertylist *) ;
 double cr2res_pfits_get_nodthrow(const cpl_propertylist *) ;
 double cr2res_pfits_get_dit(const cpl_propertylist *) ;
 double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order) ;
@@ -101,6 +104,7 @@ double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order) ;
 int cr2res_pfits_get_naxis1(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_naxis2(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_expno(const cpl_propertylist * plist) ;
+int cr2res_pfits_get_nexp(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_ndit(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_order(const cpl_propertylist * plist, double yposition) ;
 cr2res_decker cr2res_pfits_get_decker_position(const cpl_propertylist * plist) ;

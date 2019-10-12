@@ -142,6 +142,30 @@ const char * cr2res_pfits_get_wlen_id(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    find out the DEC
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_pfits_get_dec(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_double(plist, "DEC") ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the RA
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_pfits_get_ra(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_double(plist, "RA") ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    find out the NODTHROW value
   @param    plist       property list to read from
   @return   the requested value
@@ -253,6 +277,18 @@ int cr2res_pfits_get_naxis1(const cpl_propertylist * plist)
 int cr2res_pfits_get_naxis2(const cpl_propertylist * plist)
 {
     return cpl_propertylist_get_int(plist, CR2RES_HEADER_NAXIS2)  ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the NEXP value
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_pfits_get_nexp(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_int(plist, CR2RES_HEADER_NEXP)  ;
 }
 
 /*----------------------------------------------------------------------------*/

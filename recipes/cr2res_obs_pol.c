@@ -1121,7 +1121,7 @@ static int * cr2res_obs_pol_get_order_numbers(
             col_name = cpl_array_get_string(col_names, j);
             col_type = cr2res_dfs_SPEC_colname_parse(col_name, &order,
                     &trace_nb) ;
-            if (col_type != NULL && !strcmp(col_type, "SPEC")) {
+            if (col_type != NULL && !strcmp(col_type, CR2RES_COL_SPEC_SUFFIX)) {
                 /* Is the current order a new one ? */
                 new_order = 1 ;
                 for (k=0 ; k<count_orders ; k++)
