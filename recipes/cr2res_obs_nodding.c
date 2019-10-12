@@ -137,6 +137,8 @@ Nodding Observation                                                     \n\
     CR2RES_OBS_NODDING_SLITFUNCA_PROCATG "\n\
     cr2res_obs_nodding_slitfuncB.fits " 
     CR2RES_OBS_NODDING_SLITFUNCB_PROCATG "\n\
+    cr2res_obs_nodding_throughput.fits " 
+    CR2RES_OBS_NODDING_THROUGHPUT_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on detectors d:                                                \n\
@@ -149,6 +151,7 @@ Nodding Observation                                                     \n\
     Save extracta and extractb                                          \n\
     Save slitfunca and slitfuncb                                        \n\
     Save modela and modelb                                              \n\
+    Save throughput                                                     \n\
                                                                         \n\
     cr2res_obs_nodding_reduce()                                         \n\
       Load the input raw frames in an image list                        \n\
@@ -167,6 +170,8 @@ Nodding Observation                                                     \n\
         -> slit_func[a|b]                                               \n\
         -> model_master[a|b]                                            \n\
       Compute QC parameters                                             \n\
+      If STD star, compute the throughput                               \n\
+        -> throughput                                                   \n\
                                                                         \n\
   Library functions uѕed                                                \n\
     cr2res_io_find_TRACE_WAVE()                                         \n\
@@ -184,10 +189,12 @@ Nodding Observation                                                     \n\
     cr2res_qc_obs_nodding_signal()                                      \n\
     cr2res_qc_obs_nodding_transmission()                                \n\
     cr2res_qc_obs_nodding_slit_psf()                                    \n\
+    cr2res_photom_engine()                                              \n\
     cr2res_io_save_COMBINED()                                           \n\
     cr2res_io_save_EXTRACT_1D()                                         \n\
     cr2res_io_save_SLIT_FUNC()                                          \n\
     cr2res_io_save_SLIT_MODEL()                                         \n\
+    cr2res_io_save_THROUGHPUT()                                         \n\
 ";
 
 /*-----------------------------------------------------------------------------
@@ -296,6 +303,20 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.display_order",
+            CPL_TYPE_INT, "Apply the display for the specified order",
+            "cr2res.cr2res_obs_nodding", 0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display_order");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.display_trace",
+            CPL_TYPE_INT, "Apply the display for the specified trace",
+            "cr2res.cr2res_obs_nodding", 0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display_trace");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     return 0;
 }
 
@@ -352,8 +373,9 @@ static int cr2res_obs_nodding(
 {
     const cpl_parameter *   param ;
     int                     extract_oversample, extract_swath_width,
-                            extract_height, reduce_det, ndit, nexp ;
-    double                  extract_smooth, ra, dec, dit ;
+                            extract_height, reduce_det, ndit, nexp,
+                            disp_order, disp_trace ;
+    double                  extract_smooth, ra, dec, dit, gain ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_flat_frames ;
     const cpl_frame     *   trace_wave_frame ;
@@ -370,8 +392,6 @@ static int cr2res_obs_nodding(
     cpl_table           *   extractb[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slitfuncb[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   modelb[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   conversion[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   sensitivity[CR2RES_NB_DETECTORS] ;
     cpl_table           *   throughput[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   plist ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
@@ -379,6 +399,7 @@ static int cr2res_obs_nodding(
     int                     i, det_nr, type; 
 
     /* Initialise */
+    gain = 0.0 ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -396,6 +417,12 @@ static int cr2res_obs_nodding(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.detector");
     reduce_det = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_nodding.display_order");
+    disp_order = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_nodding.display_trace");
+    disp_trace = cpl_parameter_get_int(param);
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
@@ -442,8 +469,6 @@ static int cr2res_obs_nodding(
         slitfuncb[det_nr-1] = NULL ;
         modelb[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
-        conversion[det_nr-1] = NULL ;
-        sensitivity[det_nr-1] = NULL ;
         throughput[det_nr-1] = NULL ;
 
         /* Compute only one detector */
@@ -472,6 +497,11 @@ static int cr2res_obs_nodding(
                     "Sensitivity / Conversion / Throughput computation") ;
             cpl_msg_indent_more() ;
 
+            /* Define the gain */
+            if (det_nr==1) gain = CRIRES_GAIN_CHIP1 ;
+            if (det_nr==2) gain = CRIRES_GAIN_CHIP2 ;
+            if (det_nr==3) gain = CRIRES_GAIN_CHIP3 ;
+
 			/* Get the RA and DEC observed */
 			plist=cpl_propertylist_load(cpl_frame_get_filename(
                         cpl_frameset_get_position_const(rawframes, 0)), 0) ;
@@ -489,23 +519,10 @@ static int cr2res_obs_nodding(
                 /* Compute the photometry */
                 if (cr2res_photom_engine(extracta[det_nr-1],
                             cpl_frame_get_filename(photo_flux_frame),
-                            ra, dec, 1.0, dit*ndit*nexp, 0, 
-                            &(conversion[det_nr-1]),
-                            &(sensitivity[det_nr-1]),
-                            &(throughput[det_nr-1]))) {
+                            ra, dec, gain, dit*ndit*nexp, disp_order,
+                            disp_trace, &(throughput[det_nr-1]))) {
                 }
             }
-
-            /* TEST */
-            cr2res_photom_engine(extracta[det_nr-1], 
-                    cpl_frame_get_filename(photo_flux_frame),
-                    190.467, 17.5222, 1.0, 20.0, 0,
-                    &(conversion[det_nr-1]),
-                    &(sensitivity[det_nr-1]),
-                    &(throughput[det_nr-1])) ;
-            /* **** */
-
-
             cpl_msg_indent_less() ;
         }
         cpl_msg_indent_less() ;
@@ -558,6 +575,12 @@ static int cr2res_obs_nodding(
             RECIPE_STRING) ;
     cpl_free(out_file);
 
+    out_file = cpl_sprintf("%s_throughput.fits", RECIPE_STRING) ;
+    cr2res_io_save_THROUGHPUT(out_file, frameset, rawframes, parlist,
+            throughput, NULL, ext_plist, CR2RES_OBS_NODDING_THROUGHPUT_PROCATG,
+            RECIPE_STRING) ;
+    cpl_free(out_file);
+
     /* Free */
     cpl_frameset_delete(rawframes) ;
     if (raw_flat_frames != NULL) cpl_frameset_delete(raw_flat_frames) ;
@@ -578,6 +601,8 @@ static int cr2res_obs_nodding(
             cpl_table_delete(slitfuncb[det_nr-1]) ;
         if (modelb[det_nr-1] != NULL)
             hdrl_image_delete(modelb[det_nr-1]) ;
+        if (throughput[det_nr-1] != NULL) 
+            cpl_table_delete(throughput[det_nr-1]) ;
         if (ext_plist[det_nr-1] != NULL) 
             cpl_propertylist_delete(ext_plist[det_nr-1]) ;
     }

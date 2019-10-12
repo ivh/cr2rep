@@ -79,6 +79,11 @@
 #define CR2RES_COL_ERROR_SUFFIX     "ERR"           /* Error */
 #define CR2RES_COL_WL_SUFFIX        "WL"            /* Wavelength */
 
+/* THROUGHPUT Table */
+#define CR2RES_COL_CONVERSION_SUFFIX    "CONVERSION"    /* Intensity */
+#define CR2RES_COL_SENSITIVITY_SUFFIX   "SENSITIVITY"   /* Intensity */
+#define CR2RES_COL_THROUGHPUT_SUFFIX    "THROUGHPUT"    /* Intensity */
+
 /* SLIT_CURV Table */
 #define CR2RES_COL_SLIT_CURV_SUFFIX "SLIT_CURV"     /* Polynomial */
 
@@ -132,6 +137,13 @@
 /*                    cr2res_dfs_WAVELENGTH_colname() */
 /*                    cr2res_dfs_SPEC_ERR_colname() */
 #define CR2RES_EXTRACT_1D_PROTYPE           "EXTRACT_1D"
+
+/* For  CR2RES_OBS_NODDING_THROUGHPUT_PROCATG */
+/* Table with columns cr2res_dfs_WAVELENGTH_colname() */
+/*                    cr2res_dfs_CONVERSION_colname() */
+/*                    cr2res_dfs_THROUGHPUT_colname() */
+/*                    cr2res_dfs_SENSITIVITY_colname() */
+#define CR2RES_THROUGHPUT_PROTYPE           "THROUGHPUT"
 
 /* For CR2RES_OBS_POL_SPECA_PROCATG */
 /*     CR2RES_OBS_POL_SPECB_PROCATG */
@@ -249,6 +261,7 @@
 #define CR2RES_OBS_NODDING_COMBINEDB_PROCATG    "OBS_NODDING_COMBINEDB"
 #define CR2RES_OBS_NODDING_SLITFUNCB_PROCATG    "OBS_NODDING_SLITFUNCB"
 #define CR2RES_OBS_NODDING_SLITMODELB_PROCATG   "OBS_NODDING_SLITMODELB"
+#define CR2RES_OBS_NODDING_THROUGHPUT_PROCATG   "OBS_NODDING_THROUGHPUT"
 
 /* Produced by cr2res_obs_2d */
 #define CR2RES_OBS_2D_EXTRACT_PROCATG       "OBS_2D_EXTRACT"
@@ -320,6 +333,9 @@
 
 cpl_error_code cr2res_dfs_set_groups(cpl_frameset *);
 char * cr2res_dfs_SPEC_colname(int, int) ;
+char * cr2res_dfs_THROUGHPUT_colname(int, int) ;
+char * cr2res_dfs_SENSITIVITY_colname(int, int) ;
+char * cr2res_dfs_CONVERSION_colname(int, int) ;
 char * cr2res_dfs_WAVELENGTH_colname(int, int);
 char * cr2res_dfs_SPEC_ERR_colname(int, int);
 char * cr2res_dfs_SLIT_FUNC_colname(int, int) ;

@@ -125,6 +125,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_OBS_NODDING_COMBINEDB_PROCATG) ||
                 !strcmp(tag, CR2RES_OBS_NODDING_SLITFUNCB_PROCATG) ||
                 !strcmp(tag, CR2RES_OBS_NODDING_SLITMODELB_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_NODDING_THROUGHPUT_PROCATG) ||
                 /* Produced by cr2res_obs_2d */
                 !strcmp(tag, CR2RES_OBS_2D_EXTRACT_PROCATG) ||
                 /* Produced by cr2res_obs_pol */
@@ -290,6 +291,57 @@ char * cr2res_dfs_POL_INTENS_ERROR_colname(int order)
     if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
     return cpl_sprintf("%02d_%s", order_loc,
             CR2RES_COL_POL_INTENS_ERROR_SUFFIX) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the CONVERSION column name for a given order/trace
+  @param    order       The order number (1->) 
+  @param    trace       The trace number (1->)
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_CONVERSION_colname(int order, int trace)
+{
+    int         order_loc ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
+            CR2RES_COL_CONVERSION_SUFFIX);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the SENSITIVITY column name for a given order/trace
+  @param    order       The order number (1->) 
+  @param    trace       The trace number (1->)
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_SENSITIVITY_colname(int order, int trace)
+{
+    int         order_loc ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
+            CR2RES_COL_SENSITIVITY_SUFFIX);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the THROUGHPUT column name for a given order/trace
+  @param    order       The order number (1->) 
+  @param    trace       The trace number (1->)
+  @return   the column name or NULL in error case
+  The return string needs to be deallocated with cpl_free() 
+ */
+/*----------------------------------------------------------------------------*/
+char * cr2res_dfs_THROUGHPUT_colname(int order, int trace)
+{
+    int         order_loc ;
+    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
+            CR2RES_COL_THROUGHPUT_SUFFIX);
 }
 
 /*----------------------------------------------------------------------------*/

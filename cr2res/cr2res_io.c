@@ -1482,6 +1482,36 @@ int cr2res_io_save_EXTRACT_1D(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Save a THROUGHPUT table
+  @param    filename    The FITS file name
+  @param    allframes   The recipe input frames
+  @param    inframes    The recipe used input frames
+  @param    parlist     The recipe input parameters
+  @param    tables      The tables to save (1 per detector)
+  @param    qc_list     The QC parameters
+  @param    ext_plist   The extensions property lists
+  @param    procatg     The PRO CATG value
+  @param    recipe      The recipe name
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_io_save_THROUGHPUT(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        cpl_frameset            *   inframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  tables,
+        const cpl_propertylist  *   qc_list,
+        cpl_propertylist        **  ext_plist,
+        const char              *   procatg,
+        const char              *   recipe)
+{
+    return cr2res_io_save_table(filename, allframes, inframes, parlist, tables,
+            qc_list, ext_plist, recipe, procatg, CR2RES_THROUGHPUT_PROTYPE) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Save a SLIT_FUNC
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
