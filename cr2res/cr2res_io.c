@@ -2322,6 +2322,7 @@ static int cr2res_io_check_pro_type(
     plist = cpl_propertylist_load(filename, 0) ;
     if (plist == NULL) return -1;
     protype = cr2res_pfits_get_protype(plist) ;
+    if (protype == NULL) return -1;
     if (strcmp(protype, expected_protype)) {
         cpl_msg_error(__func__, "Unexpected PRO.TYPE: %s != %s",
                 protype, expected_protype) ;

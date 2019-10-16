@@ -85,19 +85,9 @@ XFAIL_TESTS =
 clean-local: 
 	$(RM) *.log \
         *.paf \
-        .logfile \
-        res.fits \
-        TEST.fits \
-        TEST2.fits \
-        test_table.fits \
-        new_table.fits \
-        wave.fits \
-        cmp.fits \
-        out.fits \
-        slit.fits \
-        debug_*.fits 
+        debug_*.fits \
+        TEST_*.fits \
+        .logfile
 
-
-
-
-
+EXTRA_DIST = cr2res_utils_test_image.fits \
+        CRIFORS_H24_F_decker1_trace.fits

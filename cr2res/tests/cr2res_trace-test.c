@@ -215,7 +215,7 @@ static cpl_table *create_test_table()
     
     cpl_propertylist_append_int(main_header, CR2RES_HEADER_DECKER_POS, CR2RES_DECKER_2_4);
 
-    cpl_table_save(traces, main_header, hdr, "test_table.fits", CPL_IO_CREATE);
+    cpl_table_save(traces, main_header, hdr, "TEST_table.fits", CPL_IO_CREATE);
 
     cpl_array_delete(array);
     cpl_array_delete(slit_fraction);
@@ -247,7 +247,7 @@ static cpl_image *create_test_image(void)
     cpl_image_add_scalar(trace_ima, 1.);
     cpl_image_multiply_scalar(trace_ima, 10.);
     cpl_table_delete(traces);
-    cpl_image_save(trace_ima, "TEST.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+    cpl_image_save(trace_ima, "TEST_trace.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
     return trace_ima;
 }
 
@@ -309,7 +309,7 @@ static void test_cr2res_trace(void)
     
     all = cpl_table_get_array(out, CR2RES_COL_ALL, 0);
 
-    cpl_table_save(out, NULL, NULL, "TEST2.fits", CPL_IO_CREATE);
+    cpl_table_save(out, NULL, NULL, "TEST_table2.fits", CPL_IO_CREATE);
     cpl_table_delete(out);
     cpl_image_delete(trace_ima);
     return;
@@ -354,7 +354,7 @@ static void test_cr2res_trace_clean(void)
 
     cpl_test_null(cr2res_trace_clean(NULL, opening, min_cluster));
     cpl_test(res = cr2res_trace_clean(mask, opening, min_cluster));
-    cpl_mask_save(res, "res.fits", NULL, CPL_IO_CREATE);
+    cpl_mask_save(res, "TEST_res.fits", NULL, CPL_IO_CREATE);
     cpl_test_eq_mask(cmp, res);
     cpl_mask_unwrap(mask);
     cpl_mask_unwrap(cmp);
@@ -623,7 +623,7 @@ static void test_cr2res_trace_add_extra_columns(void)
     cpl_table_erase_column(traces, CR2RES_COL_SLIT_CURV_C);
 
     cpl_table *tmp = cpl_table_duplicate(traces);
-    char *file_for_wl = "test_table.fits";
+    char *file_for_wl = "TEST_table.fits";
     int det_nr = 1;
     int res;
     const cpl_array *wl;
@@ -647,7 +647,7 @@ static void test_cr2res_trace_add_extra_columns(void)
 
     cpl_test_eq(0, cr2res_trace_add_extra_columns(tmp, file_for_wl, det_nr));
     //test output
-    cpl_table_save(tmp, NULL, NULL, "new_table.fits", CPL_IO_CREATE);
+    cpl_table_save(tmp, NULL, NULL, "TEST_new_table.fits", CPL_IO_CREATE);
 
     // Check that all columns are there
     cpl_test(cpl_table_has_column(tmp, CR2RES_COL_ORDER));
@@ -852,7 +852,6 @@ static void test_cr2res_trace_fit_traces(void)
 
     cpl_test(res = cr2res_trace_fit_traces(cluster, degree));
     //test output
-    //cpl_table_save(res, NULL, NULL, "fit_traces.fits", CPL_IO_CREATE);
     // use tolerance * 10, because reading the data in the array is not that precise ?
 
     arr = cpl_table_get_array(res, CR2RES_COL_UPPER, 0);
@@ -957,7 +956,7 @@ static void test_cr2res_trace_fit_trace(void)
 
 //     cpl_test(res = cr2res_trace_convert_cluster_to_labels(cluster, nx, ny));
 //     //test output
-//     //cpl_image_save(res, "labels.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+//     //cpl_image_save(res, "TEST_labels.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
 //     cpl_test_image_abs(res, cmp, 0);
 
 //     //deallocate memory
@@ -993,7 +992,7 @@ static void test_cr2res_trace_convert_labels_to_cluster(void)
     cpl_test_null(cr2res_trace_convert_labels_to_cluster(NULL));
     cpl_test(res = cr2res_trace_convert_labels_to_cluster(labels));
     //test output
-    // cpl_table_save(res, NULL, NULL, "convert.fits", CPL_IO_CREATE);
+    // cpl_table_save(res, NULL, NULL, "TEST_convert.fits", CPL_IO_CREATE);
 
     for (int i = 0; i < 17; i++)
     {

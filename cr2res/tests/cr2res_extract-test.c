@@ -42,29 +42,6 @@ static void test_cr2res_slitdec_vert(void);
 static void test_cr2res_slitdec_compare_vert_curved(void);
 static void test_cr2res_slitdec_errors(void);
 
-static cpl_table *load_table()
-{
-    cpl_table * table;
-    if (access("./tests/lamp_trace.fits", F_OK) != -1){
-        table = cpl_table_load("./tests/lamp_trace.fits", 1, 0);
-    } else{
-        table = cpl_table_load("./lamp_trace.fits", 1, 0);
-    }
-    return table;
-}
-
-static cpl_image *load_image()
-{
-    cpl_image * image;
-    if (access("./tests/XDGH.fits", F_OK) != -1){
-        image = cpl_image_load("./tests/XDGH.fits", CPL_TYPE_INT, 0, 1);
-    }
-    else{
-        image = cpl_image_load("./XDGH.fits", CPL_TYPE_INT, 0, 1);
-    }
-    return image;
-}
-
 static cpl_table *create_test_table()
 {
     int poly_order = 2;
@@ -289,13 +266,6 @@ static void test_cr2res_slitdec_vert_regression(void)
     static double data_err[] = {523.439, 499.701, 473.877, 445.496, 387.684, 342.322, 329.536, 333.608, 322.94, 304.494, 343.882, 361.009, 302.392, 307.149, 332.682, 323.992, 362.454, 340.802, 359.662, 340.305, 357.704, 383.636, 364.937, 362.076, 365.54, 352.365, 404.616, 386.916, 364.15, 340.36, 326.278, 354.856, 428.537, 436.106, 429.022, 449.069, 413.98, 416.991, 358.546, 288.909, 305.632, 328.581, 416.744, 466.815, 541.072, 511.904, 405.265, 361.332, 385.985, 403.975, 347.848, 490.804, 469.661, 414.215, 378.947, 372.721, 377.953, 395.166, 419.834, 417.746, 435.44, 433.026, 405.965, 355.437, 374.395, 397.416, 363.972, 388.46, 337.569, 314.348, 269.74, 251.195, 262.08, 312.284, 343.845, 339.1, 332.913, 298.026, 248.648, 281.622, 355.802, 352.142, 346.707, 307.605, 344.607, 458.379, 503.564, 575.246, 589.224, 566.922, 444.094, 374.106, 392.472, 429.108, 462.171, 452.507, 402.114, 336.127, 323.267, 274.167, 258.247, 239.089, 255.083, 341.934, 327.816, 356.862, 376.879, 403.153, 391.552, 369.626, 548.004, 534.1, 551.036, 483.023, 407.938, 367.108, 421.151, 424.767, 455.302, 493.192, 477.779, 471.41, 465.075, 474.877, 379.919, 337.061, 418.257, 508.22, 514.854, 504.106, 458.198, 459.895, 387.318, 290.826, 291.78, 269.617, 270.05, 255.638, 300.431, 329.948, 337.552, 365.143, 374.223, 405.786, 402.211, 377.809, 358.27, 345.365, 342.418, 301.744, 340.773, 347.53, 484.977, 568.101, 600.923, 584.527, 555.079, 468.593, 383.9, 329.843, 444.453, 591.095, 623.873, 590.857, 464.361, 399.636, 366.96, 415.829, 422.989, 425.515, 497.843, 520.913, 585.245, 559.485, 455.038, 428.321, 417.609, 423.205, 410.085, 380.559, 458.3, 498.045, 444.246, 343.187, 325.428, 343.338, 374.162, 317.982, 256.119, 262.269, 335.95, 402.572, 393.778, 395.558, 364.628, 270.383, 256.734, 313.647, 396.637, 381.443, 425.537, 384.808, 448.483, 484.637, 479.905, 489.266, 422.141, 335.441, 319.878, 303.223, 327.866, 369.895, 407.826, 433.113, 539.369, 578.454, 574.983, 440.167, 386.225, 382.11};
     cpl_vector * cmp_err = cpl_vector_wrap(width, data_err);
 
-    // cpl_image * cmp_model;
-    // if (access("./tests/debug_model.fits", F_OK) != -1){
-    //     cmp_model = cpl_image_load("./tests/debug_model.fits",  CPL_TYPE_DOUBLE, 0, 0);
-    // } else {
-    //     cmp_model = cpl_image_load("./debug_model.fits", CPL_TYPE_DOUBLE, 0, 0);
-    // }
-
     res = cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, swath, oversample, smooth_slit, &slit_func, &spec, &model);
 
     // Tests compare with expected results
@@ -306,13 +276,13 @@ static void test_cr2res_slitdec_vert_regression(void)
     // cpl_test_image_abs(hdrl_image_get_image(model), cmp_model, 1e-4);
 
     // // in case the files are needed again (e.g. when the input is changed)
-    // cpl_vector_save(cpl_bivector_get_x(spec), "debug_spec.fits", CPL_TYPE_DOUBLE, NULL,
+    // cpl_vector_save(cpl_bivector_get_x(spec), "TEST_spec.fits", CPL_TYPE_DOUBLE, NULL,
     //     CPL_IO_CREATE);
-    // cpl_vector_save(cpl_bivector_get_y(spec), "debug_err.fits", CPL_TYPE_DOUBLE, NULL,
+    // cpl_vector_save(cpl_bivector_get_y(spec), "TEST_err.fits", CPL_TYPE_DOUBLE, NULL,
     //     CPL_IO_CREATE);
-    // cpl_vector_save(slit_func, "debug_slitfunc.fits", CPL_TYPE_DOUBLE,
+    // cpl_vector_save(slit_func, "TEST_slitfunc.fits", CPL_TYPE_DOUBLE,
     //     NULL, CPL_IO_CREATE);
-    // cpl_image_save(hdrl_image_get_image(model), "debug_model.fits", CPL_TYPE_FLOAT,
+    // cpl_image_save(hdrl_image_get_image(model), "TEST_model.fits", CPL_TYPE_FLOAT,
     //     NULL, CPL_IO_CREATE);
 
     // Free memory
@@ -441,13 +411,13 @@ static void test_cr2res_slitdec_vert(void)
     cpl_test_abs(ratio, 1, DBL_EPSILON);
 
 
-    cpl_vector_save(cpl_bivector_get_x(spec), "debug_spec.fits", CPL_TYPE_DOUBLE, NULL,
+    cpl_vector_save(cpl_bivector_get_x(spec), "TEST_spec.fits", CPL_TYPE_DOUBLE, NULL,
         CPL_IO_CREATE);
-    cpl_vector_save(cpl_bivector_get_y(spec), "debug_err.fits", CPL_TYPE_DOUBLE, NULL,
+    cpl_vector_save(cpl_bivector_get_y(spec), "TEST_err.fits", CPL_TYPE_DOUBLE, NULL,
         CPL_IO_CREATE);
-    cpl_vector_save(slit_func, "debug_slitfunc.fits", CPL_TYPE_DOUBLE,
+    cpl_vector_save(slit_func, "TEST_slitfunc.fits", CPL_TYPE_DOUBLE,
         NULL, CPL_IO_CREATE);
-    cpl_image_save(hdrl_image_get_image(model), "debug_model.fits", CPL_TYPE_FLOAT,
+    cpl_image_save(hdrl_image_get_image(model), "TEST_model.fits", CPL_TYPE_FLOAT,
         NULL, CPL_IO_CREATE);
 
     // Free memory
@@ -509,13 +479,13 @@ static void test_cr2res_slitdec_curved(void)
     ratio = cpl_vector_get_sum(slit_func) / oversample;
     cpl_test_abs(ratio, 1, FLT_EPSILON);
 
-    cpl_vector_save(cpl_bivector_get_x(spec), "debug_spec.fits", CPL_TYPE_DOUBLE, NULL,
+    cpl_vector_save(cpl_bivector_get_x(spec), "TEST_spec.fits", CPL_TYPE_DOUBLE, NULL,
         CPL_IO_CREATE);
-    cpl_vector_save(cpl_bivector_get_y(spec), "debug_err.fits", CPL_TYPE_DOUBLE, NULL,
+    cpl_vector_save(cpl_bivector_get_y(spec), "TEST_err.fits", CPL_TYPE_DOUBLE, NULL,
         CPL_IO_CREATE);
-    cpl_vector_save(slit_func, "debug_slitfunc.fits", CPL_TYPE_DOUBLE,
+    cpl_vector_save(slit_func, "TEST_slitfunc.fits", CPL_TYPE_DOUBLE,
         NULL, CPL_IO_CREATE);
-    cpl_image_save(hdrl_image_get_image(model), "debug_model.fits", CPL_TYPE_FLOAT,
+    cpl_image_save(hdrl_image_get_image(model), "TEST_model.fits", CPL_TYPE_FLOAT,
         NULL, CPL_IO_CREATE);
 
     // Free memory
@@ -547,11 +517,9 @@ static void test_cr2res_slitdec_compare_vert_curved(void)
 
     //cpl_image * img_in = create_image_sinusoidal(width, height * 2, spec_in);
     cpl_image * img_in = create_image_linear_increase(width, height * 2, spec_in);
-    //cpl_image * img_in = load_image();
     hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
     
     cpl_table * trace_table = create_table_linear_increase(width, height * 2, const_shear);
-    //cpl_table * trace_table = load_table();
 
     cpl_vector * slit_func_vert;
     cpl_bivector * spec_vert;
@@ -560,7 +528,7 @@ static void test_cr2res_slitdec_compare_vert_curved(void)
     cpl_bivector * spec_curved;
     hdrl_image * model_curved;
 
-    cpl_image_save(img_in, "debug_img_in_vert.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    cpl_image_save(img_in, "TEST_img_in_vert.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
 
     cpl_test_eq(0, cr2res_extract_slitdec_vert(img_hdrl, trace_table, order, trace, height, swath,
                 oversample, smooth_slit, &slit_func_vert, &spec_vert, &model_vert));
@@ -569,25 +537,25 @@ static void test_cr2res_slitdec_compare_vert_curved(void)
     img_in = apply_shear(img_in, width, height * 2, const_shear);
     hdrl_image_delete(img_hdrl);
     img_hdrl = hdrl_image_create(img_in, NULL);
-    cpl_image_save(img_in, "debug_img_in.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-    cpl_table_save(trace_table, NULL, NULL, "debug_tracetable.fits", CPL_IO_CREATE);
+    cpl_image_save(img_in, "TEST_img_in.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    cpl_table_save(trace_table, NULL, NULL, "TEST_tracetable.fits", CPL_IO_CREATE);
 
     cpl_test_eq(0, cr2res_extract_slitdec_curved(img_hdrl, trace_table, order, trace, height,
                 swath, oversample, smooth_slit * oversample, &slit_func_curved, &spec_curved, &model_curved));
 
 
 
-    cpl_vector_save(cpl_bivector_get_x(spec_vert), "debug_spec_vert.fits", CPL_TYPE_DOUBLE, NULL,
+    cpl_vector_save(cpl_bivector_get_x(spec_vert), "TEST_spec_vert.fits", CPL_TYPE_DOUBLE, NULL,
         CPL_IO_CREATE);
 
-    cpl_vector_save(slit_func_vert, "debug_slitf_vert.fits", CPL_TYPE_DOUBLE, NULL,
+    cpl_vector_save(slit_func_vert, "TEST_slitf_vert.fits", CPL_TYPE_DOUBLE, NULL,
         CPL_IO_CREATE);
 
-    cpl_vector_save(cpl_bivector_get_x(spec_curved), "debug_spec_curved.fits", CPL_TYPE_DOUBLE, NULL,
+    cpl_vector_save(cpl_bivector_get_x(spec_curved), "TEST_spec_curved.fits", CPL_TYPE_DOUBLE, NULL,
         CPL_IO_CREATE);
 
 
-    cpl_vector_save(slit_func_curved, "debug_slitf_curved.fits", CPL_TYPE_DOUBLE, NULL,
+    cpl_vector_save(slit_func_curved, "TEST_slitf_curved.fits", CPL_TYPE_DOUBLE, NULL,
         CPL_IO_CREATE);
 
 

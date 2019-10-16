@@ -193,8 +193,8 @@ static void test_cr2res_image_insert_rect(void)
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG)
     {
-        cpl_image_save(img_out, "out.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
-        cpl_image_save(compare, "cmp.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+        cpl_image_save(img_out, "TEST_out.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+        cpl_image_save(compare, "TEST_cmp.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
     }
 
     // img_out == compare ?
@@ -626,11 +626,6 @@ static void test_cr2res_fit_noise(void)
     // thats as precise as it gets, from the polynomial dump
     cpl_test_polynomial_abs(res, cmp, 1e-4);
 
-    // save polynomial for plotting and/or comparison
-    // FILE * file = fopen("fit_noise.txt", "w");
-    // cpl_polynomial_dump(res, file);
-    // fclose(file);
-
     // delete cpl objects
     cpl_table_delete(trace_wave);
     cpl_polynomial_delete(res);
@@ -652,8 +647,6 @@ static void test_cr2res_slit_pos()
             getenv("srcdir"));
     cpl_table *tw_decker1 = cpl_table_load(my_path, chip, 0);
     cpl_free(my_path) ;
-    // cpl_table *tw_decker2 = cpl_table_load("CRIFORS_H24_F_decker2_trace.fits", chip, 0);
-    // TODO: Merge tables?
 
     int nb_orders;
     int *orders = cr2res_trace_get_order_numbers(tw_decker1, &nb_orders);
@@ -716,7 +709,6 @@ static void test_cr2res_slit_pos_img()
             getenv("srcdir"));
     cpl_table *tw_decker1 = cpl_table_load(my_path, chip, 0);
     cpl_free(my_path) ;
-    // cpl_table *tw_decker2 = cpl_table_load("CRIFORS_H24_F_decker2_trace.fits", chip, 0);
     cpl_image *slitpos = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
     cpl_image *wavelength = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
 
@@ -726,8 +718,8 @@ static void test_cr2res_slit_pos_img()
 
     cpl_test_eq(0, cr2res_slit_pos_image(tw_decker1, &slitpos, &wavelength));
 
-    cpl_image_save(slitpos, "slit.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-    cpl_image_save(wavelength, "wave.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    cpl_image_save(slitpos, "TEST_slit.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    cpl_image_save(wavelength, "TEST_wave.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
 
     cpl_table_delete(tw_decker1);
     // cpl_table_delete(tw_decker2);

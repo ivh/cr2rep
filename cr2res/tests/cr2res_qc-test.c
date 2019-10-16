@@ -199,7 +199,7 @@ static cpl_table *create_test_table()
     
     cpl_propertylist_append_int(main_header, CR2RES_HEADER_DECKER_POS, CR2RES_DECKER_2_4);
 
-    cpl_table_save(traces, main_header, hdr, "test_table.fits", CPL_IO_CREATE);
+    cpl_table_save(traces, main_header, hdr, "TEST_table.fits", CPL_IO_CREATE);
 
     cpl_array_delete(array);
     cpl_array_delete(slit_fraction);

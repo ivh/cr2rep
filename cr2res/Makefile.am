@@ -78,3 +78,4 @@ libcr2res_la_SOURCES =  cr2res_bpm.c \
 libcr2res_la_LDFLAGS = $(CPL_LDFLAGS) $(HDRL_LDFLAGS) -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 libcr2res_la_LIBADD = $(LIBIRPLIB) $(HDRL_LIBS) $(LIBCPLDFS) $(LIBCPLUI) $(LIBCPLDRS) $(LIBCPLCORE)
 libcr2res_la_DEPENDENCIES = $(LIBIRPLIB)
+

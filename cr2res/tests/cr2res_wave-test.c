@@ -58,36 +58,6 @@ static void test_cr2res_wave_clean_spectrum(void);
 /*----------------------------------------------------------------------------*/
 /**@{*/
 
-static cpl_bivector * load_etalon()
-{
-    cpl_table * table;
-    double * data;
-    cpl_size n;
-    cpl_bivector * result;
-    cpl_vector * wave, *spec;
-
-    if (access("./tests/etalon.fits", F_OK) != -1){
-        table = cpl_table_load("./tests/etalon.fits", 1, 0);
-    } else{
-        table = cpl_table_load("./etalon.fits", 1, 0);
-    }
-
-    n = cpl_table_get_nrow(table);
-    data = cpl_table_get_data_double(table, "99_04_SPEC");
-
-    result = cpl_bivector_new(n);
-    wave = cpl_bivector_get_x(result);    
-    spec = cpl_bivector_get_y(result);
-
-    for (cpl_size i = 0; i < n; i++){
-        cpl_vector_set(spec, i, data[i]);
-    }
-
-    cpl_table_delete(table);
-
-    return result;
-}
-
 // make a test line list catalog with just 2 lines
 static cpl_table * make_test_catalog()
 {
@@ -110,7 +80,7 @@ static cpl_table * make_test_catalog()
 }
 
 static const char * save_catalog(cpl_table * catalog){
-    const char * filename = "debug_linelist.fits";
+    const char * filename = "TEST_linelist.fits";
     cpl_propertylist * header = cpl_propertylist_new();
     cpl_propertylist_append_string(header, CPL_DFS_PRO_TYPE, CR2RES_PROTYPE_CATALOG);
 
@@ -120,7 +90,7 @@ static const char * save_catalog(cpl_table * catalog){
 }
 
 static const char * save_linelist(cpl_bivector * linelist){
-    const char * filename = "debug_linelist.fits";
+    const char * filename = "TEST_linelist.fits";
     cpl_propertylist * header = cpl_propertylist_new();
     cpl_propertylist_append_string(header, CPL_DFS_PRO_TYPE, CR2RES_PROTYPE_CATALOG);
     
@@ -686,7 +656,7 @@ static void test_cr2res_wave_clean_spectrum(void)
         cpl_test(isnan(cpl_vector_get(res, i)));
     }
 
-    // FILE * f = fopen("debug_spec_clean.txt", "w");
+    // FILE * f = fopen("TEST_spec_clean.txt", "w");
     // cpl_vector_dump(res, f);
     // fclose(f);
 
