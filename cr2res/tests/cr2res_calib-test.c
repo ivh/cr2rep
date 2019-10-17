@@ -76,7 +76,7 @@ static void save_hdrl(char * filename, hdrl_image * hdrl, int mode, double dit)
     // Need an empty fits file with header for the framesets
     cpl_frame * empty = cpl_frame_new();
 
-	char *my_path = cpl_sprintf("%s/empty.fits", getenv("srcdir"));
+	char *my_path = cpl_sprintf("%s/TEST_empty.fits", getenv("srcdir"));
     cpl_frame_set_filename(empty, my_path);
     cpl_frame_set_tag(empty, "DEBUG");
     cpl_frame_set_group(empty, CPL_FRAME_GROUP_CALIB);
@@ -276,9 +276,9 @@ static void test_cr2res_calib_image()
     int chip = 1;
     int cosmics_corr = 1;
 
-	char *my_path1 = cpl_sprintf("%s/master_flat.fits", getenv("srcdir"));
-	char *my_path2 = cpl_sprintf("%s/master_dark.fits", getenv("srcdir"));
-	char *my_path3 = cpl_sprintf("%s/bpm.fits", getenv("srcdir"));
+	char *my_path1 = cpl_sprintf("%s/TEST_master_flat.fits", getenv("srcdir"));
+	char *my_path2 = cpl_sprintf("%s/TEST_master_dark.fits", getenv("srcdir"));
+	char *my_path3 = cpl_sprintf("%s/TEST_bpm.fits", getenv("srcdir"));
     cpl_frame * flat = create_master_flat(my_path1, nx, ny, 1, 0, NULL);
     cpl_frame * dark = create_master_dark(my_path2, nx, ny, 10, 1, 10, NULL);
     cpl_frame * bpm = create_bpm(my_path3, nx, ny, 0);
@@ -385,7 +385,7 @@ static void test_cr2res_calib_flat()
     // Case 1: Flat is just 1 and no error, i.e. no change
     flat_value = 1;
     flat_error = 0;
-	char *my_path1 = cpl_sprintf("%s/master_flat.fits", getenv("srcdir"));
+	char *my_path1 = cpl_sprintf("%s/TEST_master_flat.fits", getenv("srcdir"));
     flat = create_master_flat(my_path1, nx, ny, flat_value, flat_error, NULL);
     out = cr2res_calib_image(in, chip, 0, 0, flat, NULL, NULL, NULL, dit);
     
@@ -454,7 +454,7 @@ static void test_cr2res_calib_flat()
 
     // Case 7: DataFile is empty, i.e. only header
     flat = cpl_frame_new();
-	char *my_path2 = cpl_sprintf("%s/empty.fits", getenv("srcdir"));
+	char *my_path2 = cpl_sprintf("%s/TEST_empty.fits", getenv("srcdir"));
     cpl_frame_set_filename(flat, my_path2);
     out = cr2res_calib_image(in, chip, 0, 0, flat, NULL, NULL, NULL, dit);
     cpl_test_null(out);
@@ -463,7 +463,7 @@ static void test_cr2res_calib_flat()
     // // Case 8: BPM is set 
     // flat_value = 1;
     // flat_error = 1;
-    // flat = create_master_flat("master_flat.fits", nx, ny, flat_value, flat_error, &bpm);
+    // flat = create_master_flat("TEST_master_flat.fits", nx, ny, flat_value, flat_error, &bpm);
     // out = cr2res_calib_image(in, chip, 0, 0, flat, NULL, NULL, NULL, dit);
     
     // cpl_test_eq_mask(bpm, hdrl_image_get_mask(out));
@@ -677,7 +677,7 @@ static void test_cr2res_calib_dark()
     // dark_value = 10;
     // dark_error = 0;
     // dark_dit = 10;
-    // dark = create_master_dark("master_dark.fits", nx, ny, dark_value, dark_error, dark_dit, &bpm);
+    // dark = create_master_dark("TEST_master_dark.fits", nx, ny, dark_value, dark_error, dark_dit, &bpm);
     // out = cr2res_calib_image(in, chip, 0, 0, NULL, dark, NULL, NULL, dit);
     
     // cpl_test_eq_mask(bpm, hdrl_image_get_mask(out));
