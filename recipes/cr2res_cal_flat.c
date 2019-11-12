@@ -925,7 +925,7 @@ static int cr2res_cal_flat_reduce(
     nb_traces = cpl_table_get_nrow(traces) ;
     spectrum = cpl_malloc(nb_traces * sizeof(cpl_bivector *)) ;
     slit_func_vec = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
-    model_master = hdrl_image_duplicate(collapsed) ;
+    model_master = hdrl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE) ;
     hdrl_image_mul_scalar(model_master, (hdrl_value){0.0, 0.0}) ;
 
     /* Loop over the traces and extract them */
