@@ -45,6 +45,8 @@
 #define detlin(x, a, b, c) (x) * ((a) + (x) * ((b) + (x) * (c)))
 #define deterr(x, a, b, c, sx, sa, sb, sc) sqrt(detlin(pow2(x), pow2(sa), pow2(sb), pow2(sc)) + pow2(sx) * pow2((a) + 2 * (b) * (x) + 3 * (c) * pow2(x)))
 
+#define localdir "." //getenv("srcdir")
+
 static hdrl_image * create_hdrl(int nx, int ny, double value, double error);
 
 static void test_cr2res_calib_image(void);
@@ -59,10 +61,12 @@ static void create_empty_fits()
 {
     // Many tests require a empty fits file, since crires code checks if a file exists
     // when adding a filename to a frame
+	char *my_path = cpl_sprintf("%s/TEST_empty.fits", localdir);
     cpl_propertylist * list = cpl_propertylist_new();
     cpl_propertylist_append_string(list, CPL_DFS_PRO_TYPE, "DEBUG");
-    cpl_propertylist_save(list, "TEST_empty.fits", CPL_IO_CREATE);
+    cpl_propertylist_save(list, my_path, CPL_IO_CREATE);
     cpl_propertylist_delete(list);
+    cpl_free(my_path);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -76,7 +80,7 @@ static void save_hdrl(char * filename, hdrl_image * hdrl, int mode, double dit)
     // Need an empty fits file with header for the framesets
     cpl_frame * empty = cpl_frame_new();
 
-	char *my_path = cpl_sprintf("%s/TEST_empty.fits", getenv("srcdir"));
+	char *my_path = cpl_sprintf("%s/TEST_empty.fits", localdir);
     cpl_frame_set_filename(empty, my_path);
     cpl_frame_set_tag(empty, "DEBUG");
     cpl_frame_set_group(empty, CPL_FRAME_GROUP_CALIB);
@@ -203,10 +207,12 @@ static cpl_frame * create_bpm(char * filename, int nx, int ny, double value)
 /*----------------------------------------------------------------------------*/
 static cpl_frame * create_detlin(char * filename, hdrl_image * a, hdrl_image * b, hdrl_image * c)
 {
+	char *my_path = cpl_sprintf("%s/TEST_empty.fits", localdir);
+
     // Empty structures needed for master flat frame, but not for the test
     // Need an empty fits file with header for the framesets
     cpl_frame * empty = cpl_frame_new();
-    cpl_frame_set_filename(empty, "./TEST_empty.fits");
+    cpl_frame_set_filename(empty, my_path);
     cpl_frame_set_tag(empty, "DEBUG");
     cpl_frame_set_group(empty, CPL_FRAME_GROUP_CALIB);
 
@@ -245,6 +251,8 @@ static cpl_frame * create_detlin(char * filename, hdrl_image * a, hdrl_image * b
     cpl_frame_set_tag(out, "DETLIN");
     cpl_frame_set_group(out, CPL_FRAME_GROUP_CALIB);
 
+    cpl_free(my_path);
+
     return out;
 }
 
@@ -276,9 +284,9 @@ static void test_cr2res_calib_image()
     int chip = 1;
     int cosmics_corr = 1;
 
-	char *my_path1 = cpl_sprintf("%s/TEST_master_flat.fits", getenv("srcdir"));
-	char *my_path2 = cpl_sprintf("%s/TEST_master_dark.fits", getenv("srcdir"));
-	char *my_path3 = cpl_sprintf("%s/TEST_bpm.fits", getenv("srcdir"));
+	char *my_path1 = cpl_sprintf("%s/TEST_master_flat.fits", localdir);
+	char *my_path2 = cpl_sprintf("%s/TEST_master_dark.fits", localdir);
+	char *my_path3 = cpl_sprintf("%s/TEST_bpm.fits", localdir);
     cpl_frame * flat = create_master_flat(my_path1, nx, ny, 1, 0, NULL);
     cpl_frame * dark = create_master_dark(my_path2, nx, ny, 10, 1, 10, NULL);
     cpl_frame * bpm = create_bpm(my_path3, nx, ny, 0);
@@ -385,7 +393,7 @@ static void test_cr2res_calib_flat()
     // Case 1: Flat is just 1 and no error, i.e. no change
     flat_value = 1;
     flat_error = 0;
-	char *my_path1 = cpl_sprintf("%s/TEST_master_flat.fits", getenv("srcdir"));
+	char *my_path1 = cpl_sprintf("%s/TEST_master_flat.fits", localdir);
     flat = create_master_flat(my_path1, nx, ny, flat_value, flat_error, NULL);
     out = cr2res_calib_image(in, chip, 0, 0, flat, NULL, NULL, NULL, dit);
     
@@ -454,7 +462,7 @@ static void test_cr2res_calib_flat()
 
     // Case 7: DataFile is empty, i.e. only header
     flat = cpl_frame_new();
-	char *my_path2 = cpl_sprintf("%s/TEST_empty.fits", getenv("srcdir"));
+	char *my_path2 = cpl_sprintf("%s/TEST_empty.fits", localdir);
     cpl_frame_set_filename(flat, my_path2);
     out = cr2res_calib_image(in, chip, 0, 0, flat, NULL, NULL, NULL, dit);
     cpl_test_null(out);
@@ -497,12 +505,15 @@ static void test_cr2res_calib_dark()
     double dit = 10;
 
     in = create_hdrl(nx, ny, img_value, img_error);
+	char *my_path = cpl_sprintf("%s/TEST_master_dark.fits", localdir);
+	char *my_path2 = cpl_sprintf("%s/TEST_empty.fits", localdir);
+
 
     // Case 1: Dark is 0, dit is the same as the image, i.e. no correction
     dark_value = 0;
     dark_error = 0;
     dark_dit = dit;
-    dark = create_master_dark("TEST_master_dark.fits", nx, ny, dark_value, dark_error, dark_dit, NULL);
+    dark = create_master_dark(my_path, nx, ny, dark_value, dark_error, dark_dit, NULL);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, dark, NULL, NULL, dit);
     
     out_value = img_value - dit/dark_dit * dark_value;
@@ -520,7 +531,7 @@ static void test_cr2res_calib_dark()
     dark_value = 0;
     dark_error = 0;
     dark_dit = dit * 2.3;
-    dark = create_master_dark("TEST_master_dark.fits", nx, ny, dark_value, dark_error, dark_dit, NULL);
+    dark = create_master_dark(my_path, nx, ny, dark_value, dark_error, dark_dit, NULL);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, dark, NULL, NULL, dit);
     
     out_value = img_value - dit/dark_dit * dark_value;
@@ -538,7 +549,7 @@ static void test_cr2res_calib_dark()
     dark_value = 0;
     dark_error = 2;
     dark_dit = dit;
-    dark = create_master_dark("TEST_master_dark.fits", nx, ny, dark_value, dark_error, dark_dit, NULL);
+    dark = create_master_dark(my_path, nx, ny, dark_value, dark_error, dark_dit, NULL);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, dark, NULL, NULL, dit);
     
     out_value = img_value - dit/dark_dit * dark_value;
@@ -556,7 +567,7 @@ static void test_cr2res_calib_dark()
     dark_value = 10;
     dark_error = 2;
     dark_dit = dit;
-    dark = create_master_dark("TEST_master_dark.fits", nx, ny, dark_value, dark_error, dark_dit, NULL);
+    dark = create_master_dark(my_path, nx, ny, dark_value, dark_error, dark_dit, NULL);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, dark, NULL, NULL, dit);
     
     out_value = img_value - dit/dark_dit * dark_value;
@@ -574,7 +585,7 @@ static void test_cr2res_calib_dark()
     dark_value = 10;
     dark_error = 2;
     dark_dit = dit * 2.3;
-    dark = create_master_dark("TEST_master_dark.fits", nx, ny, dark_value, dark_error, dark_dit, NULL);
+    dark = create_master_dark(my_path, nx, ny, dark_value, dark_error, dark_dit, NULL);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, dark, NULL, NULL, dit);
     
     out_value = img_value - dit/dark_dit * dark_value;
@@ -592,7 +603,7 @@ static void test_cr2res_calib_dark()
     dark_value = -10;
     dark_error = 2;
     dark_dit = dit * 2.3;
-    dark = create_master_dark("TEST_master_dark.fits", nx, ny, dark_value, dark_error, dark_dit, NULL);
+    dark = create_master_dark(my_path, nx, ny, dark_value, dark_error, dark_dit, NULL);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, dark, NULL, NULL, dit);
     
     out_value = img_value - dit/dark_dit * dark_value;
@@ -610,7 +621,7 @@ static void test_cr2res_calib_dark()
     dark_value = 10;
     dark_error = 2;
     dark_dit = -dit * 2.3;
-    dark = create_master_dark("TEST_master_dark.fits", nx, ny, dark_value, dark_error, dark_dit, NULL);
+    dark = create_master_dark(my_path, nx, ny, dark_value, dark_error, dark_dit, NULL);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, dark, NULL, NULL, dit);
     
     out_value = img_value - dit/dark_dit * dark_value;
@@ -628,7 +639,7 @@ static void test_cr2res_calib_dark()
     dark_value = -10;
     dark_error = 2;
     dark_dit = -dit * 2.3;
-    dark = create_master_dark("TEST_master_dark.fits", nx, ny, dark_value, dark_error, dark_dit, NULL);
+    dark = create_master_dark(my_path, nx, ny, dark_value, dark_error, dark_dit, NULL);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, dark, NULL, NULL, dit);
     
     out_value = img_value - dit/dark_dit * dark_value;
@@ -654,7 +665,7 @@ static void test_cr2res_calib_dark()
     cpl_frame_delete(dark);
 
     // Case 10: image is in a wrong group
-    dark = create_master_flat("TEST_master_dark.fits", nx, ny, 1, 0, NULL);
+    dark = create_master_flat(my_path, nx, ny, 1, 0, NULL);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, dark, NULL, NULL, dit);
     cpl_test_null(out);
     cpl_frame_delete(dark);
@@ -666,9 +677,11 @@ static void test_cr2res_calib_dark()
     cpl_test_null(out);
     cpl_frame_delete(dark);
 
+
+
     // Case 12: DataFile is empty, i.e. only header
     dark = cpl_frame_new();
-    cpl_frame_set_filename(dark, "TEST_empty.fits");
+    cpl_frame_set_filename(dark, my_path2);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, dark, NULL, NULL, dit);
     cpl_test_null(out);
     cpl_frame_delete(dark);
@@ -685,6 +698,9 @@ static void test_cr2res_calib_dark()
     // cpl_mask_delete(bpm);
     // hdrl_image_delete(out);
     // cpl_frame_delete(dark);
+
+    cpl_free(my_path);
+    cpl_free(my_path2);
 
     hdrl_image_delete(in);
 }
@@ -712,8 +728,12 @@ static void test_cr2res_calib_bpm()
     value.data = 10; value.error = img_error;
     hdrl_image_set_pixel(in, 2, 2, value);
 
+	char *my_path = cpl_sprintf("%s/TEST_master_bpm.fits", localdir);
+	char *my_path2 = cpl_sprintf("%s/TEST_empty.fits", localdir);
+    
+
     // Case 1: BPM is all 0, i.e. all good pixels
-    bpm = create_bpm("TEST_master_bpm.fits", nx, ny, 0);
+    bpm = create_bpm(my_path, nx, ny, 0);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, bpm, NULL, dit);
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(in), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(in), DBL_EPSILON);
@@ -721,7 +741,7 @@ static void test_cr2res_calib_bpm()
     hdrl_image_delete(out);
 
     // Case 2: BPM is all 1, i.e all pixels are bad
-    bpm = create_bpm("TEST_master_bpm.fits", nx, ny, 1);
+    bpm = create_bpm(my_path, nx, ny, 1);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, bpm, NULL, dit);
     cpl_test_nonnull(out);
     cpl_test_eq(hdrl_image_count_rejected(out), nx * ny);
@@ -730,14 +750,14 @@ static void test_cr2res_calib_bpm()
 
     // Case 3: One Bad Pixel
     bpm = cpl_frame_new();
-    cpl_frame_set_filename(bpm, "TEST_master_bpm.fits");
+    cpl_frame_set_filename(bpm, my_path);
     cpl_frame_set_tag(bpm, "BPM");
     cpl_frame_set_group(bpm, CPL_FRAME_GROUP_CALIB);
 
     hdrl = create_hdrl(nx, ny, 0, 0);
     value.data = 1;
     hdrl_image_set_pixel(hdrl, 2, 2, value);
-    save_hdrl("TEST_master_bpm.fits", hdrl, MODE_BPM, 0);
+    save_hdrl(my_path, hdrl, MODE_BPM, 0);
     hdrl_image_delete(hdrl);
 
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, bpm, NULL, dit);
@@ -751,14 +771,14 @@ static void test_cr2res_calib_bpm()
 
     // Case 4: Only one good pixel
     bpm = cpl_frame_new();
-    cpl_frame_set_filename(bpm, "TEST_master_bpm.fits");
+    cpl_frame_set_filename(bpm, my_path);
     cpl_frame_set_tag(bpm, "BPM");
     cpl_frame_set_group(bpm, CPL_FRAME_GROUP_CALIB);
 
     hdrl = create_hdrl(nx, ny, 1, 0);
     value.data = 0;
     hdrl_image_set_pixel(hdrl, 2, 2, value);
-    save_hdrl("TEST_master_bpm.fits", hdrl, MODE_BPM, 0);
+    save_hdrl(my_path, hdrl, MODE_BPM, 0);
     hdrl_image_delete(hdrl);
 
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, bpm, NULL, dit);
@@ -781,7 +801,7 @@ static void test_cr2res_calib_bpm()
     cpl_frame_delete(bpm);
 
     // Case 6: image is in a wrong group
-    bpm = create_master_flat("TEST_master_bpm.fits", nx, ny, 1, 0, NULL);
+    bpm = create_master_flat(my_path, nx, ny, 1, 0, NULL);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, bpm, NULL, dit);
     cpl_test_null(out);
     cpl_frame_delete(bpm);
@@ -793,12 +813,16 @@ static void test_cr2res_calib_bpm()
     cpl_test_null(out);
     cpl_frame_delete(bpm);
 
+
     // Case 8: DataFile is empty, i.e. only header
     bpm = cpl_frame_new();
-    cpl_frame_set_filename(bpm, "TEST_empty.fits");
+    cpl_frame_set_filename(bpm, my_path2);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, bpm, NULL, dit);
     cpl_test_null(out);
     cpl_frame_delete(bpm);
+
+    cpl_free(my_path);
+    cpl_free(my_path2);
 
     hdrl_image_delete(in);
 }
@@ -828,6 +852,9 @@ static void test_cr2res_calib_detlin()
     in = create_hdrl(nx, ny, img_value, img_error);
     i = img_value; si = img_error;
 
+	char *my_path = cpl_sprintf("%s/TEST_master_detlin.fits", localdir);
+	char *my_path2 = cpl_sprintf("%s/TEST_empty.fits", localdir);
+
     // DetLin images aren't actually images, but polynomial coefficients for each pixel
     // The new image is the evaluation of that polynomial for each pixel
     // new image = old_image * detlin_poly(old_image)
@@ -839,7 +866,7 @@ static void test_cr2res_calib_detlin()
     imb = create_hdrl(nx, ny, b, sb);
     imc = create_hdrl(nx, ny, c, sc);
 
-    detlin = create_detlin("TEST_master_detlin.fits", ima, imb, imc);
+    detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(in), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(in), DBL_EPSILON);
@@ -855,7 +882,7 @@ static void test_cr2res_calib_detlin()
     ima = create_hdrl(nx, ny, a, sa);
     imb = create_hdrl(nx, ny, b, sb);
     imc = create_hdrl(nx, ny, c, sc);
-    detlin = create_detlin("TEST_master_detlin.fits", ima, imb, imc);
+    detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
     cmp = create_hdrl(nx, ny, detlin(img_value, a, b, c), deterr(img_value, a, b, c, img_error, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
@@ -874,7 +901,7 @@ static void test_cr2res_calib_detlin()
     ima = create_hdrl(nx, ny, a, sa);
     imb = create_hdrl(nx, ny, b, sb);
     imc = create_hdrl(nx, ny, c, sc);
-    detlin = create_detlin("TEST_master_detlin.fits", ima, imb, imc);
+    detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
     cmp = create_hdrl(nx, ny, 0, 0);
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
@@ -892,7 +919,7 @@ static void test_cr2res_calib_detlin()
     ima = create_hdrl(nx, ny, a, sa);
     imb = create_hdrl(nx, ny, b, sb);
     imc = create_hdrl(nx, ny, c, sc);
-    detlin = create_detlin("TEST_master_detlin.fits", ima, imb, imc);
+    detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
     cmp = create_hdrl(nx, ny, img_value * a, img_error * a);
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
@@ -911,7 +938,7 @@ static void test_cr2res_calib_detlin()
     ima = create_hdrl(nx, ny, a, sa);
     imb = create_hdrl(nx, ny, b, sb);
     imc = create_hdrl(nx, ny, c, sc);
-    detlin = create_detlin("TEST_master_detlin.fits", ima, imb, imc);
+    detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
     cmp = create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
@@ -930,7 +957,7 @@ static void test_cr2res_calib_detlin()
     ima = create_hdrl(nx, ny, a, sa);
     imb = create_hdrl(nx, ny, b, sb);
     imc = create_hdrl(nx, ny, c, sc);
-    detlin = create_detlin("TEST_master_detlin.fits", ima, imb, imc);
+    detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
     cmp = create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
@@ -949,7 +976,7 @@ static void test_cr2res_calib_detlin()
     ima = create_hdrl(nx, ny, a, sa);
     imb = create_hdrl(nx, ny, b, sb);
     imc = create_hdrl(nx, ny, c, sc);
-    detlin = create_detlin("TEST_master_detlin.fits", ima, imb, imc);
+    detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
     cmp = create_hdrl(nx, ny, pow2(img_value), deterr(i, a, b, c, si, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
@@ -967,7 +994,7 @@ static void test_cr2res_calib_detlin()
     ima = create_hdrl(nx, ny, a, sa);
     imb = create_hdrl(nx, ny, b, sb);
     imc = create_hdrl(nx, ny, c, sc);
-    detlin = create_detlin("TEST_master_detlin.fits", ima, imb, imc);
+    detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
     cmp = create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
@@ -987,7 +1014,7 @@ static void test_cr2res_calib_detlin()
     ima = create_hdrl(nx, ny, a, sa);
     imb = create_hdrl(nx, ny, b, sb);
     imc = create_hdrl(nx, ny, c, sc);
-    detlin = create_detlin("TEST_master_detlin.fits", ima, imb, imc);
+    detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
     cmp = create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
@@ -1007,7 +1034,7 @@ static void test_cr2res_calib_detlin()
     ima = create_hdrl(nx, ny, a, sa);
     imb = create_hdrl(nx, ny, b, sb);
     imc = create_hdrl(nx, ny, c, sc);
-    detlin = create_detlin("TEST_master_detlin.fits", ima, imb, imc);
+    detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
     cmp = create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
@@ -1026,12 +1053,16 @@ static void test_cr2res_calib_detlin()
     cpl_test_null(out);
     cpl_frame_delete(detlin);
 
+
     // Case 12: DataFile is empty, i.e. only header
     detlin = cpl_frame_new();
-    cpl_frame_set_filename(detlin, "TEST_empty.fits");
+    cpl_frame_set_filename(detlin, my_path2);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
     cpl_test_null(out);
     cpl_frame_delete(detlin);
+
+    cpl_free(my_path);
+    cpl_free(my_path2);
 
     hdrl_image_delete(in);
 
