@@ -180,9 +180,7 @@ int cr2res_extract_traces(
     /* Allocate Data containers */
     spectrum = cpl_malloc(nb_traces * sizeof(cpl_bivector *)) ;
     slit_func_vec = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
-    model_loc = hdrl_image_duplicate(img) ;
-    cpl_image_unset_bpm(hdrl_image_get_image(model_loc));
-    hdrl_image_mul_scalar(model_loc, (hdrl_value){0.0, 0.0}) ;
+    model_loc = hdrl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE);
 
     /* Loop over the traces and extract them */
     for (i=0 ; i<nb_traces ; i++) {
@@ -1127,6 +1125,7 @@ int cr2res_extract_slitdec_curved(
         return -1;
     }
     nswaths = cpl_vector_get_size(bins_begin);
+    cpl_msg_debug(__func__, "Number of swaths: %d", nswaths);
 
     // Get cut-out rectified order
     img_rect = cr2res_image_cut_rectify(img_in, ycen, height);
