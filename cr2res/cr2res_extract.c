@@ -181,6 +181,7 @@ int cr2res_extract_traces(
     spectrum = cpl_malloc(nb_traces * sizeof(cpl_bivector *)) ;
     slit_func_vec = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
     model_loc = hdrl_image_duplicate(img) ;
+    cpl_image_unset_bpm(hdrl_image_get_image(model_loc));
     hdrl_image_mul_scalar(model_loc, (hdrl_value){0.0, 0.0}) ;
 
     /* Loop over the traces and extract them */
