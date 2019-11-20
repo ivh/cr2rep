@@ -477,7 +477,6 @@ static int cr2res_util_extract(
                 cpl_msg_indent_less() ;
                 continue ;
             }
-
             /* Load the BPM and assign to hdrl-mask*/
             if (bpm_frame != NULL) {
                 cpl_msg_info(__func__, "Load and assign the BPM") ;
@@ -494,7 +493,7 @@ static int cr2res_util_extract(
                 } else {
                     bpm_mask = cpl_mask_threshold_image_create(bpm_img, 0, 
                             INT_MAX);
-                    cpl_mask_or(bpm_mask, hdrl_image_get_mask_const(science_hdrl));
+                    cpl_mask_or(bpm_mask, hdrl_image_get_mask(science_hdrl));
                     if (hdrl_image_reject_from_mask(science_hdrl, 
                                 bpm_mask) != CPL_ERROR_NONE) {
                         cpl_msg_error(__func__, 
@@ -518,6 +517,7 @@ static int cr2res_util_extract(
                     oversample, smooth_slit, &(extract_tab[det_nr-1]),
                     &(slit_func_tab[det_nr-1]), &(model_master[det_nr-1]))==-1){
                 cpl_table_delete(trace_table) ;
+                hdrl_image_delete(science_hdrl) ;
                 cpl_msg_error(__func__, "Failed to extract - skip detector");
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
