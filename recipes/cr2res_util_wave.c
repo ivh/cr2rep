@@ -282,6 +282,13 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.clean_spectrum",
+            CPL_TYPE_BOOL, "Clean spectrum to use only around catalogue lines",
+            "cr2res.cr2res_util_wave", TRUE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "clean_spectrum");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.display",
             CPL_TYPE_BOOL, "Flag for display",
             "cr2res.cr2res_util_wave", FALSE);
