@@ -920,7 +920,7 @@ cpl_polynomial * cr2res_wave_xcorr(
     cpl_vector          *   xcorrs ;
     double                  wl_min, wl_max, wl_error_nm, wl_error_pix ;
     double                  xc ;
-    int                     i, nsamples, degree_loc ;
+    int                     i, nsamples, degree_loc, npolys ;
 
     /* Check Entries */
     if (spectrum == NULL || wavesol_init == NULL || lines_list == NULL
@@ -978,7 +978,8 @@ cpl_polynomial * cr2res_wave_xcorr(
 
     /* Prepare inputs for X-corr */
     degree_loc = degree ;
-    nsamples = 30 ;
+    npolys = 50000;
+    nsamples = pow(npolys,1.0/(degree_loc+1)) +1 ;
     wl_error_nm = wl_error ;
     sol_guess = wavesol_init ;
     wl_error_pix = CR2RES_DETECTOR_SIZE *wl_error_nm/(wl_max-wl_min) ;
