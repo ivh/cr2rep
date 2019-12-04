@@ -33,6 +33,8 @@
 
 typedef enum {
     CR2RES_EXTR_SUM,
+    CR2RES_EXTR_MEDIAN,
+    CR2RES_EXTR_TILTSUM,
     CR2RES_EXTR_OPT_VERT,
     CR2RES_EXTR_OPT_CURV,
 } cr2res_extr_method ;

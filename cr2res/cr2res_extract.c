@@ -217,6 +217,32 @@ int cr2res_extract_traces(
                 cpl_msg_indent_less() ;
                 continue ;
             }
+        } else if (extr_method == CR2RES_EXTR_MEDIAN) {
+            /* Call the SUM ONLY extraction */
+            if (cr2res_extract_median(img, traces, order,
+                        trace_id, extr_height, &(slit_func_vec[i]),
+                        &(spectrum[i]), &model_loc_one) != 0) {
+                cpl_msg_error(__func__, "Cannot (median-)extract the trace") ;
+                slit_func_vec[i] = NULL ;
+                spectrum[i] = NULL ;
+                model_loc_one = NULL ;
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+        } else if (extr_method == CR2RES_EXTR_TILTSUM) {
+            /* Call the SUM ONLY extraction */
+            if (cr2res_extract_sum_tilt(img, traces, order,
+                        trace_id, extr_height, &(slit_func_vec[i]),
+                        &(spectrum[i]), &model_loc_one) != 0) {
+                cpl_msg_error(__func__, "Cannot (tiltsum-)extract the trace") ;
+                slit_func_vec[i] = NULL ;
+                spectrum[i] = NULL ;
+                model_loc_one = NULL ;
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
         } else if (extr_method == CR2RES_EXTR_OPT_VERT) {
             /* Call the vertical SLIT DECOMPOSITION */
             if (cr2res_extract_slitdec_vert(img, traces,
