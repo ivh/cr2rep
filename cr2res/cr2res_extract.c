@@ -462,13 +462,14 @@ int cr2res_extract_sum_vert(
   height.
   It uses the trace to shift the image columns by integer values,
   thereby straightening the order. The output spectra and slit
-  function are then the collapsed (with the median) image in x and y, respectively.
+  function are then the collapsed (with the median) image in x and y,
+  respectively.
   Also returned is the "model", i.e. an image reconstruction from
   the two extracted vectors.
 
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_extract_sum_median(
+int cr2res_extract_median(
         const hdrl_image    *   hdrl_in,
         const cpl_table     *   trace_tab,
         int                     order,
@@ -534,7 +535,7 @@ int cr2res_extract_sum_median(
     spc = cpl_vector_new_from_image_row(img_1d, 1);
     cpl_image_delete(img_1d);
 
-    img_1d = cpl_image_collapse_median_create(img_tmp, 1, 0, 0); // sum of columns
+    img_1d = cpl_image_collapse_median_create(img_tmp, 1, 0, 0); // sum of cols
     slitfu = cpl_vector_new_from_image_column(img_1d, 1);
     cpl_vector_divide_scalar(slitfu, cpl_vector_get_sum(slitfu));
     cpl_image_delete(img_1d);
@@ -702,14 +703,18 @@ int cr2res_extract_sum_tilt(
             a = a - i + yc * b + yc * yc * c; // a = 0
             b += 2 * yc * c;
         
-            cpl_vector_set(cpl_bivector_get_x(xt), j, cpl_vector_get(xi, j) - yt * b - yt * yt * c);
-            cpl_vector_set(cpl_bivector_get_y(xt), j, cpl_image_get(img_tmp, j + 1, i + 1, &badpix));
+            cpl_vector_set(cpl_bivector_get_x(xt), j, 
+                cpl_vector_get(cpl_bivector_get_y(xi), j)
+                                        - yt * b - yt * yt * c);
+            cpl_vector_set(cpl_bivector_get_y(xt), j, 
+                            cpl_image_get(img_tmp, j + 1, i + 1, &badpix));
         }
 
         cpl_bivector_interpolate_linear(xi, xt);
 
         for (j = 0; j < lenx; j++){
-            cpl_image_set(img_tmp, j+1, i+1, cpl_vector_get(cpl_bivector_get_y(xt), j));
+            cpl_image_set(img_tmp, j+1, i+1, 
+                            cpl_vector_get(cpl_bivector_get_y(xt), j));
         }
     }
 
@@ -1300,7 +1305,8 @@ int cr2res_extract_slitdec_vert(
             cpl_vector_set(spc, j,
                 cpl_vector_get(spec_sw, j-sw_start) + cpl_vector_get(spc, j) );
             cpl_vector_set(unc_decomposition, j, 
-                cpl_vector_get(unc_sw, j - sw_start) + cpl_vector_get(unc_decomposition, j));
+                cpl_vector_get(unc_sw, j - sw_start) +
+                    cpl_vector_get(unc_decomposition, j));
         }
         cpl_vector_delete(spec_sw);
 
@@ -1494,8 +1500,10 @@ int cr2res_extract_slitdec_curved(
                     order, trace_id);
     slitcurve_C = cr2res_get_trace_wave_poly(trace_tab, CR2RES_COL_SLIT_CURV_C,
                     order, trace_id);
-    if ((slitcurve_A == NULL) || (slitcurve_B == NULL) || (slitcurve_C == NULL)){
-        cpl_msg_error(__func__, "No (or incomplete) slitcurve data found in trace table");
+    if ((slitcurve_A == NULL) || (slitcurve_B == NULL) || (slitcurve_C == NULL))
+    {
+        cpl_msg_error(__func__, 
+                "No (or incomplete) slitcurve data found in trace table");
         cpl_vector_delete(ycen);
         cpl_vector_delete(bins_begin);
         cpl_vector_delete(bins_end);
@@ -1528,7 +1536,7 @@ int cr2res_extract_slitdec_curved(
                 fabs(a + (c*height/-2. + b)*height/-2.));
         if (delta_tmp > delta_x) delta_x = (int)ceil(delta_tmp);
     }
-    cpl_msg_debug(__func__, "Max delta_x from slit curvature is %d pix.", delta_x);
+    cpl_msg_debug(__func__, "Max delta_x from slit curv: %d pix.", delta_x);
 
     /* Allocate */
     mask_sw = cpl_malloc(height * swath*sizeof(int));
@@ -1612,7 +1620,8 @@ int cr2res_extract_slitdec_curved(
             cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow,
                 cpl_polynomial_eval_1d(slitcurve_A, x, NULL) - x);
             /* and shift the polynomial to the central line */
-            cpl_polynomial_shift_1d(slitcurves_sw[col-1], 0, cpl_vector_get(ycen, x-1));
+            cpl_polynomial_shift_1d(slitcurves_sw[col-1], 0,
+                                            cpl_vector_get(ycen, x-1));
         }
 
         img_sw_data = cpl_image_get_data_double(img_sw);
@@ -1635,8 +1644,8 @@ int cr2res_extract_slitdec_curved(
 
         if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
             img_tmp = cpl_image_wrap_int(swath, height, mask_sw);
-            cpl_image_save(img_tmp, "debug_mask_before_sw.fits", CPL_TYPE_INT, NULL,
-                    CPL_IO_CREATE);
+            cpl_image_save(img_tmp, "debug_mask_before_sw.fits", CPL_TYPE_INT, 
+                    NULL, CPL_IO_CREATE);
             cpl_image_unwrap(img_tmp);
         }
         /* Finally ready to call the slit-decomp */
@@ -1715,7 +1724,7 @@ int cr2res_extract_slitdec_curved(
                     cpl_vector_get(unc_sw, j) * cpl_vector_get(weights_sw, j));
             }
         } else if (i == nswaths - 1) {
-            for (j = sw_end - sw_start - 1; j >= sw_end - sw_start - delta_x - 1; j--)
+            for (j = sw_end-sw_start-1; j >= sw_end-sw_start-delta_x-1; j--)
             {
                 cpl_vector_set(spec_sw, j, 0);
                 cpl_vector_set(unc_sw, j, 0);
@@ -1737,9 +1746,11 @@ int cr2res_extract_slitdec_curved(
         for (j=sw_start;j<sw_end;j++) {
             cpl_vector_set(spc, j,
                 cpl_vector_get(spec_sw, j-sw_start) + cpl_vector_get(spc, j));
-            // just add weighted errors (instead of squared sum), as they are not independant
-            cpl_vector_set(unc_decomposition, j,
-                cpl_vector_get(unc_sw, j - sw_start) + cpl_vector_get(unc_decomposition, j));
+            // just add weighted errors (instead of squared sum)
+            // as they are not independent
+            cpl_vector_set(unc_decomposition, j, 
+                cpl_vector_get(unc_sw, j - sw_start)
+                + cpl_vector_get(unc_decomposition, j));
         }
 
         cpl_vector_delete(spec_sw);
@@ -1836,11 +1847,14 @@ int cr2res_extract2d_traces(
     slit_fraction = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
 
     // Calculate wavelength and slitfunction map once
-    wavemap = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
-    slitmap = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
+    wavemap = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE,
+                                                         CPL_TYPE_DOUBLE);
+    slitmap = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE,
+                                                        CPL_TYPE_DOUBLE);
     if (cr2res_slit_pos_image(traces, &slitmap, &wavemap) != 0)
     {
-        cpl_msg_error(__func__, "Could not create wavelength / slit_fraction image");
+        cpl_msg_error(__func__,
+            "Could not create wavelength / slit_fraction image");
         cpl_free(spectrum);
         cpl_free(position);
         cpl_free(wavelength);
@@ -1924,7 +1938,8 @@ int cr2res_extract2d_traces(
   @param    slit_fraction   [out] the slit_fraction values
   @return   0 if ok, -1 otherwise
 
-  Return the position, value, wavelength, and slitfraction of each pixel inside a trace
+  Return the position, value, wavelength, and slitfraction of each pixel
+  inside a trace
 
  */
 /*----------------------------------------------------------------------------*/
@@ -2005,8 +2020,10 @@ int cr2res_extract2d_trace(
             row++;
             cpl_vector_set(position_x, row, i +1);
             cpl_vector_set(position_y, row, j);
-            flux = cpl_image_get(hdrl_image_get_image_const(in), i + 1, j, &bad_pix);
-            err = cpl_image_get(hdrl_image_get_error_const(in), i + 1, j, &bad_pix);
+            flux = cpl_image_get(hdrl_image_get_image_const(in), i + 1, j,
+                                                                     &bad_pix);
+            err = cpl_image_get(hdrl_image_get_error_const(in), i + 1, j,
+                                                                     &bad_pix);
             cpl_vector_set(spectrum_flux, row, flux);
             cpl_vector_set(spectrum_error, row, err);
 
@@ -2215,7 +2232,7 @@ static int cr2res_extract_slit_func_vert(
     step=1.e0/osample;
     double * E = cpl_malloc(ncols*sizeof(double)); // double E[ncols];
     double * sP_old = cpl_malloc(ncols*sizeof(double)); // double sP_old[ncols];
-    double * Aij = cpl_malloc(ny*(2 * osample + 1)*sizeof(double)); // double Aij[ny*ny];
+    double * Aij = cpl_malloc(ny*(2 * osample + 1)*sizeof(double)); //double Aij[ny*ny];
     double * bj = cpl_malloc(ny*sizeof(double)); // double bj[ny];
     // double Adiag[ncols*3];
     double * Adiag = cpl_malloc(ncols*3*sizeof(double));
