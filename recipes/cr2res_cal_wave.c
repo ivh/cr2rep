@@ -294,7 +294,7 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.ext_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
-            "cr2res.cr2res_cal_wave", 3);
+            "cr2res.cr2res_cal_wave", 2);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ext_oversample");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -307,7 +307,7 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.ext_height",
             CPL_TYPE_INT, "Extraction height",
-            "cr2res.cr2res_cal_wave", 25);
+            "cr2res.cr2res_cal_wave", 65);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ext_height");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -315,7 +315,7 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.ext_smooth_slit",
             CPL_TYPE_DOUBLE,
             "Smoothing along the slit (1 for high S/N, 5 for low)",
-            "cr2res.cr2res_cal_wave", 1.0);
+            "cr2res.cr2res_cal_wave", 5.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ext_smooth_slit");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
