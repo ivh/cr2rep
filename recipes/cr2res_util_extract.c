@@ -215,7 +215,8 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.method",
-            CPL_TYPE_STRING, "Extraction method (SUM / OPT_VERT / OPT_CURV )",
+            CPL_TYPE_STRING, "Extraction method (SUM / MEDIAN / TILTSUM"
+            "OPT_VERT / OPT_CURV )",
             "cr2res.cr2res_util_extract", "OPT_CURV");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "method");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
@@ -360,6 +361,8 @@ static int cr2res_util_extract(
     else if (!strcmp(sval, "OPT_VERT")) extr_method = CR2RES_EXTR_OPT_VERT;
     else if (!strcmp(sval, "OPT_CURV")) extr_method = CR2RES_EXTR_OPT_CURV;
     else if (!strcmp(sval, "SUM"))      extr_method = CR2RES_EXTR_SUM;
+    else if (!strcmp(sval, "MEDIAN"))   extr_method = CR2RES_EXTR_MEDIAN;
+    else if (!strcmp(sval, "TILTSUM"))   extr_method = CR2RES_EXTR_TILTSUM;
     else {
         cpl_msg_error(__func__, "Invalid Extraction Method specified");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
