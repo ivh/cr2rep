@@ -704,7 +704,7 @@ int cr2res_extract_sum_tilt(
             b += 2 * yc * c;
         
             cpl_vector_set(cpl_bivector_get_x(xt), j, 
-                cpl_vector_get(cpl_bivector_get_y(xi), j)
+                cpl_vector_get(cpl_bivector_get_x(xi), j)
                                         - yt * b - yt * yt * c);
             cpl_vector_set(cpl_bivector_get_y(xt), j, 
                             cpl_image_get(img_tmp, j + 1, i + 1, &badpix));
