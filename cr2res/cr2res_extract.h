@@ -68,6 +68,26 @@ int cr2res_extract_sum_vert(
         cpl_bivector        **  spec,
         hdrl_image          **  model) ;
 
+int cr2res_extract_sum_median(
+        const hdrl_image    *   hdrl_in,
+        const cpl_table     *   trace_tab,
+        int                     order,
+        int                     trace_id,
+        int                     height,
+        cpl_vector          **  slit_func,
+        cpl_bivector        **  spec,
+        hdrl_image          **  model) ;
+
+int cr2res_extract_sum_tilt(
+        const hdrl_image    *   hdrl_in,
+        const cpl_table     *   trace_tab,
+        int                     order,
+        int                     trace_id,
+        int                     height,
+        cpl_vector          **  slit_func,
+        cpl_bivector        **  spec,
+        hdrl_image          **  model) ;
+
 int cr2res_extract_slitdec_vert(
         const hdrl_image    *   img_hdrl,
         const cpl_table     *   trace_tab,

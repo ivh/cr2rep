@@ -446,6 +446,324 @@ int cr2res_extract_sum_vert(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Simple extraction function with the median
+  @param    img_in      full detector image
+  @param    trace_tab   The traces table
+  @param    order       The order to extract
+  @param    trace_id    The Trace to extract
+  @param    height      number of pix above and below mid-line or -1
+  @param    slit_func   the returned slit function, normalized to sum=1
+  @param    spec        the returned spectrum, sum of rows
+  @param    model       the reconstructed image
+  @return   0 if ok, -1 otherwise
+
+  This func takes a single image (containing many orders), a trace table,
+  the order and trace numbers to extract (one each), and the extraction
+  height.
+  It uses the trace to shift the image columns by integer values,
+  thereby straightening the order. The output spectra and slit
+  function are then the collapsed (with the median) image in x and y, respectively.
+  Also returned is the "model", i.e. an image reconstruction from
+  the two extracted vectors.
+
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_extract_sum_median(
+        const hdrl_image    *   hdrl_in,
+        const cpl_table     *   trace_tab,
+        int                     order,
+        int                     trace_id,
+        int                     height,
+        cpl_vector          **  slit_func,
+        cpl_bivector        **  spec,
+        hdrl_image          **  model)
+{
+    int             *   ycen_int;
+    cpl_vector      *   ycen ;
+    cpl_image       *   img_tmp;
+    cpl_image       *   img_1d;
+    const cpl_image       *   img_in;
+    const cpl_image       *   err_in;
+    cpl_vector      *   spc;
+    cpl_vector      *   slitfu;
+    cpl_vector      *   sigma;
+    cpl_size            lenx, leny;
+    int                 i, j;
+    int                 ymin, ymax;
+    int                 empty_bottom = 0;
+    cpl_type            imtyp;
+
+    /* Check Entries */
+    if (hdrl_in == NULL || trace_tab == NULL) return -1 ;
+
+    img_in = hdrl_image_get_image_const(hdrl_in);
+    err_in = hdrl_image_get_error_const(hdrl_in);
+
+    /* use the same type as input for temp images below */
+    imtyp = cpl_image_get_type(img_in);
+    lenx = cpl_image_get_size_x(img_in);
+    leny = cpl_image_get_size_y(img_in);
+
+    /* Compute height if not given */
+    if (height <= 0) {
+        height = cr2res_trace_get_height(trace_tab, order, trace_id);
+        if (height <= 0) {
+            cpl_msg_error(__func__, "Cannot compute height");
+            return -1;
+        }
+    }
+    /* Get ycen */
+    if ((ycen = cr2res_trace_get_ycen(trace_tab, order,
+                    trace_id, lenx)) == NULL) {
+        cpl_msg_error(__func__, "Cannot get ycen");
+        return -1 ;
+    }
+
+    img_tmp = cr2res_image_cut_rectify(img_in, ycen, height);
+    if (img_tmp == NULL) {
+        cpl_msg_error(__func__, "Cannot rectify order");
+        cpl_vector_delete(ycen);
+        return -1;
+    }
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_image_save(img_tmp, "debug_rectorder.fits", imtyp,
+                NULL, CPL_IO_CREATE);
+    }
+    img_1d = cpl_image_collapse_median_create(img_tmp, 0, 0, 0); // sum of rows
+    spc = cpl_vector_new_from_image_row(img_1d, 1);
+    cpl_image_delete(img_1d);
+
+    img_1d = cpl_image_collapse_median_create(img_tmp, 1, 0, 0); // sum of columns
+    slitfu = cpl_vector_new_from_image_column(img_1d, 1);
+    cpl_vector_divide_scalar(slitfu, cpl_vector_get_sum(slitfu));
+    cpl_image_delete(img_1d);
+    cpl_image_delete(img_tmp);
+
+    img_tmp = cpl_image_multiply_create(err_in, err_in);
+    img_1d = cpl_image_collapse_create(img_tmp, 0);
+    sigma = cpl_vector_new_from_image_row(img_1d, 1);
+    cpl_vector_sqrt(sigma);
+    cpl_image_delete(img_tmp);
+    cpl_image_delete(img_1d);
+
+    // reconstruct the 2d image with the "model"
+    img_tmp = cpl_image_new(lenx, leny, imtyp);
+    ycen_int = cr2res_vector_get_int(ycen);
+    for (i=1;i<=lenx;i++){
+        for (j=1;j<=height;j++){
+            cpl_image_set(img_tmp, i, ycen_int[i-1]-(height/2)+j,
+                cpl_vector_get(spc,i-1)*cpl_vector_get(slitfu,j-1) );
+        }
+    }
+    cpl_vector_delete(ycen);
+    cpl_free(ycen_int);
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_image_save(img_tmp, "debug_model.fits", imtyp,
+                NULL, CPL_IO_CREATE);
+    }
+
+
+    *slit_func = slitfu;
+    *spec = cpl_bivector_wrap_vectors(spc, sigma);
+    *model = hdrl_image_create(img_tmp, NULL);
+    cpl_image_delete(img_tmp);
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Simple extraction function
+  @param    img_in      full detector image
+  @param    trace_tab   The traces table
+  @param    order       The order to extract
+  @param    trace_id    The Trace to extract
+  @param    height      number of pix above and below mid-line or -1
+  @param    slit_func   the returned slit function, normalized to sum=1
+  @param    spec        the returned spectrum, sum of rows
+  @param    model       the reconstructed image
+  @return   0 if ok, -1 otherwise
+
+  This func takes a single image (containing many orders), a trace table,
+  the order and trace numbers to extract (one each), and the extraction
+  height.
+  It uses the trace to shift the image columns by integer values,
+  thereby straightening the order. The output spectra and slit
+  function are then the collapsed image in x and y, respectively.
+  Also returned is the "model", i.e. an image reconstruction from
+  the two extracted vectors.
+
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_extract_sum_tilt(
+        const hdrl_image    *   hdrl_in,
+        const cpl_table     *   trace_tab,
+        int                     order,
+        int                     trace_id,
+        int                     height,
+        cpl_vector          **  slit_func,
+        cpl_bivector        **  spec,
+        hdrl_image          **  model)
+{
+    int             *   ycen_int;
+    cpl_vector      *   ycen ;
+    cpl_image       *   img_tmp;
+    cpl_image       *   img_1d;
+    const cpl_image       *   img_in;
+    const cpl_image       *   err_in;
+    cpl_vector      *   spc;
+    cpl_vector      *   slitfu;
+    cpl_vector      *   sigma;
+    cpl_size            lenx, leny;
+    int                 i, j;
+    int                 ymin, ymax;
+    int                 empty_bottom = 0;
+    cpl_type            imtyp;
+
+    int yc, yt, badpix;
+    double a, b, c;
+    cpl_polynomial * slitcurve_A, * slitcurve_B, *slitcurve_C;
+    cpl_bivector * xi, *xt;
+
+    /* Check Entries */
+    if (hdrl_in == NULL || trace_tab == NULL) return -1 ;
+
+    img_in = hdrl_image_get_image_const(hdrl_in);
+    err_in = hdrl_image_get_error_const(hdrl_in);
+
+    /* use the same type as input for temp images below */
+    imtyp = cpl_image_get_type(img_in);
+    lenx = cpl_image_get_size_x(img_in);
+    leny = cpl_image_get_size_y(img_in);
+
+    /* Compute height if not given */
+    if (height <= 0) {
+        height = cr2res_trace_get_height(trace_tab, order, trace_id);
+        if (height <= 0) {
+            cpl_msg_error(__func__, "Cannot compute height");
+            return -1;
+        }
+    }
+    /* Get ycen */
+    if ((ycen = cr2res_trace_get_ycen(trace_tab, order,
+                    trace_id, lenx)) == NULL) {
+        cpl_msg_error(__func__, "Cannot get ycen");
+        return -1 ;
+    }
+
+    img_tmp = cr2res_image_cut_rectify(img_in, ycen, height);
+    if (img_tmp == NULL) {
+        cpl_msg_error(__func__, "Cannot rectify order");
+        cpl_vector_delete(ycen);
+        return -1;
+    }
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_image_save(img_tmp, "debug_rectorder.fits", imtyp,
+                NULL, CPL_IO_CREATE);
+    }
+
+    // Fix curvature if existing
+    // def correct_for_curvature(img_order, tilt, shear, xwd):
+    // img_order = np.ma.filled(img_order, 0)
+    // xt = np.arange(img_order.shape[1])
+    // for y, yt in zip(range(xwd[0] + xwd[1]), range(-xwd[0], xwd[1])):
+    //     xi = xt + yt * tilt + yt ** 2 * shear
+    //     img_order[y] = np.interp(xi, xt, img_order[y])
+    // return img_order
+
+    // Read the slitcurvature from the trace table
+    slitcurve_A = cr2res_get_trace_wave_poly(trace_tab, CR2RES_COL_SLIT_CURV_A,
+                    order, trace_id);
+    slitcurve_B = cr2res_get_trace_wave_poly(trace_tab, CR2RES_COL_SLIT_CURV_B,
+                    order, trace_id);
+    slitcurve_C = cr2res_get_trace_wave_poly(trace_tab, CR2RES_COL_SLIT_CURV_C,
+                    order, trace_id);
+     
+
+    // xi is the regular coordinates
+    // xt is the shifted coordinates
+    xi = cpl_bivector_new(lenx);
+    xt = cpl_bivector_new(lenx);
+    for (i = 0; i < lenx; i++) cpl_vector_set(cpl_bivector_get_x(xt), i, i);
+
+    for (i = 0; i < height; i++){
+        yt = i + height / 2;      
+        yc = cpl_vector_get(ycen, i-1);
+
+        for (j = 0; j < lenx; j++){
+            a = cpl_polynomial_eval_1d(slitcurve_A, j, NULL);
+            b = cpl_polynomial_eval_1d(slitcurve_B, j, NULL);
+            c = cpl_polynomial_eval_1d(slitcurve_C, j, NULL);              
+
+            // shift polynomial to local frame
+            a = a - i + yc * b + yc * yc * c; // a = 0
+            b += 2 * yc * c;
+        
+            cpl_vector_set(cpl_bivector_get_x(xt), j, cpl_vector_get(xi, j) - yt * b - yt * yt * c);
+            cpl_vector_set(cpl_bivector_get_y(xt), j, cpl_image_get(img_tmp, j + 1, i + 1, &badpix));
+        }
+
+        cpl_bivector_interpolate_linear(xi, xt);
+
+        for (j = 0; j < lenx; j++){
+            cpl_image_set(img_tmp, j+1, i+1, cpl_vector_get(cpl_bivector_get_y(xt), j));
+        }
+    }
+
+    cpl_bivector_delete(xi);
+    cpl_bivector_delete(xt);
+    cpl_polynomial_delete(slitcurve_A);
+    cpl_polynomial_delete(slitcurve_B);
+    cpl_polynomial_delete(slitcurve_C);
+
+    img_1d = cpl_image_collapse_create(img_tmp, 0); // sum of rows
+    spc = cpl_vector_new_from_image_row(img_1d, 1);
+    cpl_image_delete(img_1d);
+
+    img_1d = cpl_image_collapse_create(img_tmp, 1); // sum of columns
+    slitfu = cpl_vector_new_from_image_column(img_1d, 1);
+    cpl_vector_divide_scalar(slitfu, cpl_vector_get_sum(slitfu));
+    cpl_image_delete(img_1d);
+    cpl_image_delete(img_tmp);
+
+    img_tmp = cpl_image_multiply_create(err_in, err_in);
+    img_1d = cpl_image_collapse_create(img_tmp, 0);
+    sigma = cpl_vector_new_from_image_row(img_1d, 1);
+    cpl_vector_sqrt(sigma);
+    cpl_image_delete(img_tmp);
+    cpl_image_delete(img_1d);
+
+    // reconstruct the 2d image with the "model"
+    img_tmp = cpl_image_new(lenx, leny, imtyp);
+    ycen_int = cr2res_vector_get_int(ycen);
+    for (i=1;i<=lenx;i++){
+        for (j=1;j<=height;j++){
+            cpl_image_set(img_tmp, i, ycen_int[i-1]-(height/2)+j,
+                cpl_vector_get(spc,i-1)*cpl_vector_get(slitfu,j-1) );
+        }
+    }
+    cpl_vector_delete(ycen);
+    cpl_free(ycen_int);
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_image_save(img_tmp, "debug_model.fits", imtyp,
+                NULL, CPL_IO_CREATE);
+    }
+
+
+    *slit_func = slitfu;
+    *spec = cpl_bivector_wrap_vectors(spc, sigma);
+    *model = hdrl_image_create(img_tmp, NULL);
+    cpl_image_delete(img_tmp);
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Create the extract 1D table to be saved
   @param    spectrum    The extracted spectra of the different orders
   @param    trace_table The trace table
