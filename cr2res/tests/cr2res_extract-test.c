@@ -36,6 +36,9 @@
 #include <cr2res_trace.h>
 #include <cr2res_slit_curv.h>
 
+static void test_cr2res_extract_sum(void);
+static void test_cr2res_extract_median(void);
+static void test_cr2res_extract_sum_tilt(void);
 static void test_cr2res_slitdec_vert_regression(void);
 static void test_cr2res_slitdec_vert_edge_cases(void);
 static void test_cr2res_slitdec_vert(void);
@@ -236,6 +239,242 @@ static cpl_table * create_table_linear_increase(
     cpl_array_delete(array);
     cpl_array_delete(wl);
     return traces;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Simple extraction function
+  @param    img_in      full detector image
+  @param    trace_tab   The traces table
+  @param    order       The order to extract
+  @param    trace_id    The Trace to extract
+  @param    height      number of pix above and below mid-line or -1
+  @param    slit_func   the returned slit function, normalized to sum=1
+  @param    spec        the returned spectrum, sum of rows
+  @param    model       the reconstructed image
+  @return   0 if ok, -1 otherwise
+
+  This func takes a single image (containing many orders), a trace table,
+  the order and trace numbers to extract (one each), and the extraction
+  height.
+  It uses the trace to shift the image columns by integer values,
+  thereby straightening the order. The output spectra and slit
+  function are then the collapsed image in x and y, respectively.
+  Also returned is the "model", i.e. an image reconstruction from
+  the two extracted vectors.
+
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_extract_sum(void)
+{
+    int width = 2000;
+    int height = 50;
+    double spec_in[width];
+    double shear[width];
+    cpl_image * img_in = create_image_linear_increase(width, height, spec_in);
+    hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
+    cpl_table * trace_table = create_table_linear_increase(width, height, 0);
+    int order = 1;
+    int trace = 1;
+
+    cpl_vector * slit_func;
+    cpl_bivector * spec;
+    hdrl_image * model;
+    int res;
+
+    cpl_test_eq( 0, cr2res_extract_sum_vert(img_hdrl, trace_table, order, trace, height, &slit_func, &spec, &model));
+
+    // check results
+    double ratio0 = cpl_bivector_get_x_data(spec)[0] / spec_in[0];
+    double ratio;
+    for(int i = 0; i < width; i++)
+    {
+        //spectrum, with linear increase
+        ratio = cpl_bivector_get_x_data(spec)[i] / spec_in[i];
+        cpl_test_abs(ratio, ratio0, FLT_EPSILON);
+
+        //relative error
+        ratio = cpl_bivector_get_y_data(spec)[i] / cpl_bivector_get_x_data(spec)[i];
+        cpl_test_abs(ratio, 0, DBL_EPSILON);
+    }
+
+    cpl_test_abs(cpl_vector_get_sum(slit_func), 1, DBL_EPSILON);
+
+
+    cpl_vector_save(cpl_bivector_get_x(spec), "TEST_spec.fits", CPL_TYPE_DOUBLE, NULL,
+        CPL_IO_CREATE);
+    cpl_vector_save(cpl_bivector_get_y(spec), "TEST_err.fits", CPL_TYPE_DOUBLE, NULL,
+        CPL_IO_CREATE);
+    cpl_vector_save(slit_func, "TEST_slitfunc.fits", CPL_TYPE_DOUBLE,
+        NULL, CPL_IO_CREATE);
+    cpl_image_save(hdrl_image_get_image(model), "TEST_model.fits", CPL_TYPE_FLOAT,
+        NULL, CPL_IO_CREATE);
+
+    // Free memory
+    cpl_vector_delete(slit_func);
+    cpl_bivector_delete(spec);
+    hdrl_image_delete(model);
+    cpl_image_delete(img_in);
+    cpl_table_delete(trace_table);
+    hdrl_image_delete(img_hdrl);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Simple extraction function
+  @param    img_in      full detector image
+  @param    trace_tab   The traces table
+  @param    order       The order to extract
+  @param    trace_id    The Trace to extract
+  @param    height      number of pix above and below mid-line or -1
+  @param    slit_func   the returned slit function, normalized to sum=1
+  @param    spec        the returned spectrum, sum of rows
+  @param    model       the reconstructed image
+  @return   0 if ok, -1 otherwise
+
+  This func takes a single image (containing many orders), a trace table,
+  the order and trace numbers to extract (one each), and the extraction
+  height.
+  It uses the trace to shift the image columns by integer values,
+  thereby straightening the order. The output spectra and slit
+  function are then the collapsed image in x and y, respectively.
+  Also returned is the "model", i.e. an image reconstruction from
+  the two extracted vectors.
+
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_extract_median(void)
+{
+    int width = 2000;
+    int height = 50;
+    double spec_in[width];
+    double shear[width];
+    cpl_image * img_in = create_image_linear_increase(width, height, spec_in);
+    hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
+    cpl_table * trace_table = create_table_linear_increase(width, height, 0);
+    int order = 1;
+    int trace = 1;
+
+    cpl_vector * slit_func;
+    cpl_bivector * spec;
+    hdrl_image * model;
+    int res;
+
+    cpl_test_eq( 0, cr2res_extract_median(img_hdrl, trace_table, order, trace, height, &slit_func, &spec, &model));
+
+    // check results
+    double ratio0 = cpl_bivector_get_x_data(spec)[0] / spec_in[0];
+    double ratio;
+    for(int i = 0; i < width; i++)
+    {
+        //spectrum, with linear increase
+        ratio = cpl_bivector_get_x_data(spec)[i] / spec_in[i];
+        cpl_test_abs(ratio, ratio0, FLT_EPSILON);
+
+        //relative error
+        ratio = cpl_bivector_get_y_data(spec)[i] / cpl_bivector_get_x_data(spec)[i];
+        cpl_test_abs(ratio, 0, DBL_EPSILON);
+    }
+
+    cpl_test_abs(cpl_vector_get_sum(slit_func), 1, DBL_EPSILON);
+
+
+    cpl_vector_save(cpl_bivector_get_x(spec), "TEST_spec.fits", CPL_TYPE_DOUBLE, NULL,
+        CPL_IO_CREATE);
+    cpl_vector_save(cpl_bivector_get_y(spec), "TEST_err.fits", CPL_TYPE_DOUBLE, NULL,
+        CPL_IO_CREATE);
+    cpl_vector_save(slit_func, "TEST_slitfunc.fits", CPL_TYPE_DOUBLE,
+        NULL, CPL_IO_CREATE);
+    cpl_image_save(hdrl_image_get_image(model), "TEST_model.fits", CPL_TYPE_FLOAT,
+        NULL, CPL_IO_CREATE);
+
+    // Free memory
+    cpl_vector_delete(slit_func);
+    cpl_bivector_delete(spec);
+    hdrl_image_delete(model);
+    cpl_image_delete(img_in);
+    cpl_table_delete(trace_table);
+    hdrl_image_delete(img_hdrl);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Simple extraction function
+  @param    img_in      full detector image
+  @param    trace_tab   The traces table
+  @param    order       The order to extract
+  @param    trace_id    The Trace to extract
+  @param    height      number of pix above and below mid-line or -1
+  @param    slit_func   the returned slit function, normalized to sum=1
+  @param    spec        the returned spectrum, sum of rows
+  @param    model       the reconstructed image
+  @return   0 if ok, -1 otherwise
+
+  This func takes a single image (containing many orders), a trace table,
+  the order and trace numbers to extract (one each), and the extraction
+  height.
+  It uses the trace to shift the image columns by integer values,
+  thereby straightening the order. The output spectra and slit
+  function are then the collapsed image in x and y, respectively.
+  Also returned is the "model", i.e. an image reconstruction from
+  the two extracted vectors.
+
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_extract_sum_tilt(void)
+{
+    int width = 2000;
+    int height = 50;
+    double spec_in[width];
+    double shear[width];
+    cpl_image * img_in = create_image_sinusoidal(width, height, spec_in);
+    img_in = apply_shear(img_in, width, height, 1);
+    hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
+    cpl_table * trace_table = create_table_linear_increase(width, height, 1);
+    int order = 1;
+    int trace = 1;
+
+    cpl_vector * slit_func;
+    cpl_bivector * spec;
+    hdrl_image * model;
+    int res;
+
+    cpl_test_eq( 0, cr2res_extract_sum_tilt(img_hdrl, trace_table, order, trace, height, &slit_func, &spec, &model));
+
+    // check results
+    int delta_x = height / 2 + 1;
+    double ratio0 = cpl_bivector_get_x_data(spec)[delta_x] / spec_in[delta_x];
+    double ratio;
+    for(int i = delta_x; i < width - delta_x; i++)
+    {
+        //spectrum, with linear increase
+        ratio = cpl_bivector_get_x_data(spec)[i] / spec_in[i];
+        cpl_test_abs(ratio, ratio0, 1);
+
+        //relative error
+        ratio = cpl_bivector_get_y_data(spec)[i] / cpl_bivector_get_x_data(spec)[i];
+        cpl_test_abs(ratio, 0, 0.1);
+    }
+
+    cpl_test_abs(cpl_vector_get_sum(slit_func), 1, DBL_EPSILON);
+
+
+    cpl_vector_save(cpl_bivector_get_x(spec), "TEST_spec.fits", CPL_TYPE_DOUBLE, NULL,
+        CPL_IO_CREATE);
+    cpl_vector_save(cpl_bivector_get_y(spec), "TEST_err.fits", CPL_TYPE_DOUBLE, NULL,
+        CPL_IO_CREATE);
+    cpl_vector_save(slit_func, "TEST_slitfunc.fits", CPL_TYPE_DOUBLE,
+        NULL, CPL_IO_CREATE);
+    cpl_image_save(hdrl_image_get_image(model), "TEST_model.fits", CPL_TYPE_FLOAT,
+        NULL, CPL_IO_CREATE);
+
+    // Free memory
+    cpl_vector_delete(slit_func);
+    cpl_bivector_delete(spec);
+    hdrl_image_delete(model);
+    cpl_image_delete(img_in);
+    cpl_table_delete(trace_table);
+    hdrl_image_delete(img_hdrl);
 }
 
 static void test_cr2res_slitdec_vert_regression(void)
@@ -633,6 +872,9 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
+    test_cr2res_extract_sum();
+    test_cr2res_extract_median();
+    test_cr2res_extract_sum_tilt();
     test_cr2res_slitdec_vert_edge_cases();
     // test_cr2res_slitdec_vert_regression();
     test_cr2res_slitdec_vert();

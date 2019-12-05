@@ -576,7 +576,7 @@ int cr2res_extract_median(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Simple extraction function
+  @brief    Simple extraction function with curvature correction
   @param    img_in      full detector image
   @param    trace_tab   The traces table
   @param    order       The order to extract
@@ -591,7 +591,8 @@ int cr2res_extract_median(
   the order and trace numbers to extract (one each), and the extraction
   height.
   It uses the trace to shift the image columns by integer values,
-  thereby straightening the order. The output spectra and slit
+  thereby straightening the order. Additionaly the image is corrected
+  for the curvature by linear interpolation. The output spectra and slit
   function are then the collapsed image in x and y, respectively.
   Also returned is the "model", i.e. an image reconstruction from
   the two extracted vectors.
@@ -624,7 +625,7 @@ int cr2res_extract_sum_tilt(
     cpl_type            imtyp;
 
     int yc, yt, badpix;
-    double a, b, c;
+    double a, b, c, value;
     cpl_polynomial * slitcurve_A, * slitcurve_B, *slitcurve_C;
     cpl_bivector * xi, *xt;
 
@@ -682,39 +683,55 @@ int cr2res_extract_sum_tilt(
                     order, trace_id);
     slitcurve_C = cr2res_get_trace_wave_poly(trace_tab, CR2RES_COL_SLIT_CURV_C,
                     order, trace_id);
+
+    if ((slitcurve_A == NULL) || (slitcurve_B == NULL) || (slitcurve_C == NULL))
+    {
+        cpl_msg_error(__func__, 
+                "No (or incomplete) slitcurve data found in trace table");
+        cpl_vector_delete(ycen);
+        cpl_polynomial_delete(slitcurve_A);
+        cpl_polynomial_delete(slitcurve_B);
+        cpl_polynomial_delete(slitcurve_C);
+        return -1;
+    }
      
 
     // xi is the regular coordinates
     // xt is the shifted coordinates
     xi = cpl_bivector_new(lenx);
     xt = cpl_bivector_new(lenx);
-    for (i = 0; i < lenx; i++) cpl_vector_set(cpl_bivector_get_x(xt), i, i);
+    for (i = 0; i < lenx; i++){
+        cpl_vector_set(cpl_bivector_get_x(xi), i, i); 
+        cpl_vector_set(cpl_bivector_get_x(xt), i, i);
+        cpl_vector_set(cpl_bivector_get_y(xi), i, 0);
+        cpl_vector_set(cpl_bivector_get_y(xt), i, 0);
+    }
 
     for (i = 0; i < height; i++){
-        yt = i + height / 2;      
-        yc = cpl_vector_get(ycen, i-1);
+        yt = i - height / 2;      
+        yc = cpl_vector_get(ycen, i);
 
-        for (j = 0; j < lenx; j++){
+        for (j = 1; j < lenx - 1; j++){
             a = cpl_polynomial_eval_1d(slitcurve_A, j, NULL);
             b = cpl_polynomial_eval_1d(slitcurve_B, j, NULL);
             c = cpl_polynomial_eval_1d(slitcurve_C, j, NULL);              
 
             // shift polynomial to local frame
-            a = a - i + yc * b + yc * yc * c; // a = 0
+            a = a - j + yc * b + yc * yc * c;
             b += 2 * yc * c;
         
-            cpl_vector_set(cpl_bivector_get_x(xt), j, 
-                cpl_vector_get(cpl_bivector_get_x(xi), j)
-                                        - yt * b - yt * yt * c);
-            cpl_vector_set(cpl_bivector_get_y(xt), j, 
-                            cpl_image_get(img_tmp, j + 1, i + 1, &badpix));
+            value = j - a - yt * b - yt * yt * c;
+            value = max(min(value, lenx-1), 0);
+            cpl_vector_set(cpl_bivector_get_x(xt), j, value);
+            value = cpl_image_get(img_tmp, j + 1, i + 1, &badpix);
+            cpl_vector_set(cpl_bivector_get_y(xt), j, value);
         }
 
         cpl_bivector_interpolate_linear(xi, xt);
 
         for (j = 0; j < lenx; j++){
             cpl_image_set(img_tmp, j+1, i+1, 
-                            cpl_vector_get(cpl_bivector_get_y(xt), j));
+                            cpl_vector_get(cpl_bivector_get_y(xi), j));
         }
     }
 
@@ -723,6 +740,11 @@ int cr2res_extract_sum_tilt(
     cpl_polynomial_delete(slitcurve_A);
     cpl_polynomial_delete(slitcurve_B);
     cpl_polynomial_delete(slitcurve_C);
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_image_save(img_tmp, "debug_img_shifted.fits", imtyp,
+                NULL, CPL_IO_CREATE);
+    }
 
     img_1d = cpl_image_collapse_create(img_tmp, 0); // sum of rows
     spc = cpl_vector_new_from_image_row(img_1d, 1);
@@ -1507,6 +1529,9 @@ int cr2res_extract_slitdec_curved(
         cpl_vector_delete(ycen);
         cpl_vector_delete(bins_begin);
         cpl_vector_delete(bins_end);
+        cpl_polynomial_delete(slitcurve_A);
+        cpl_polynomial_delete(slitcurve_B);
+        cpl_polynomial_delete(slitcurve_C);
         return -1;
     }
 
@@ -1518,8 +1543,8 @@ int cr2res_extract_slitdec_curved(
         /* Note: The index i is subtracted from a because the polys have */
         /* their origin at the edge of the full frame */
         a = cpl_polynomial_eval_1d(slitcurve_A, i, NULL);
-        b =    cpl_polynomial_eval_1d(slitcurve_B, i, NULL);
-        c =    cpl_polynomial_eval_1d(slitcurve_C, i, NULL);
+        b = cpl_polynomial_eval_1d(slitcurve_B, i, NULL);
+        c = cpl_polynomial_eval_1d(slitcurve_C, i, NULL);
         yc = cpl_vector_get(ycen, i-1);
 
         // shift polynomial to local frame
