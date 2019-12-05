@@ -319,6 +319,13 @@ int cr2res_wave_apply(
     cpl_table_new_column_array(tw_out, CR2RES_COL_WAVELENGTH_ERROR, 
             CPL_TYPE_DOUBLE, 2) ;
 
+    if (cpl_error_get_code()){
+        cpl_msg_error(__func__, "Table error renaming old columns: %d", 
+                        cpl_error_get_code());
+        // TODO: deallocate so that this fails cleanly
+        return -1;
+    }
+
     /* Copy incoming solution into output If explicitely requested */
     if (propagate_flag) {
         for (i = 0; i < nb_traces; i++) {
@@ -346,7 +353,13 @@ int cr2res_wave_apply(
         }
     }
     cpl_table_erase_column(tw_out, "TMP_WL");
-    cpl_table_erase_column(tw_out, "TMP_WL_ERROR");
+    cpl_table_erase_column(tw_out, "TMP_WL_ERR");
+    if (cpl_error_get_code()){
+        cpl_msg_error(__func__, "Table error after (not) propagating: %d", 
+                        cpl_error_get_code());
+        // TODO: deallocate so that this fails cleanly
+        return -1;
+    }
 
     /* Allocate qcs_plist */
     qcs_plist = cpl_propertylist_new() ;
