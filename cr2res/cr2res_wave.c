@@ -314,6 +314,8 @@ int cr2res_wave_apply(
     cpl_table_new_column_array(tw_out, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 
             degree+1) ;
     cpl_table_name_column(tw_out, CR2RES_COL_WAVELENGTH_ERROR, "TMP_WL_ERR");
+    cpl_msg_debug(__func__, "DEBUG ERR: %d", cpl_error_get_code()) ;
+    cpl_msg_debug(__func__, "%s", cpl_error_get_where()) ;
     cpl_table_new_column_array(tw_out, CR2RES_COL_WAVELENGTH_ERROR, 
             CPL_TYPE_DOUBLE, 2) ;
 
@@ -464,6 +466,7 @@ int cr2res_wave_apply(
 
     /* Recompute the extracted table wavelengths with the results */
     extracted_out_loc = cr2res_wave_recompute_wl(spectra_tab, tw_out) ;
+
 
     /* De-allocate */
     for (i=0 ; i<nb_traces ; i++) {

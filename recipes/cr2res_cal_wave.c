@@ -867,7 +867,7 @@ static int cr2res_cal_wave_reduce(
     hdrl_imagelist_delete(in_calib) ;
     if (contrib != NULL) cpl_image_delete(contrib) ;
     if (cpl_error_get_code() != CPL_ERROR_NONE) {
-        cpl_msg_error(__func__, "Failed to Collapse") ;
+        cpl_msg_error(__func__, "Failed to Collapse: %d", cpl_error_get_code()) ;
         cpl_msg_indent_less() ;
         return -1 ;
     }
@@ -906,7 +906,7 @@ static int cr2res_cal_wave_reduce(
                 &qcs_plist,
                 &lines_diagnostics_out,
                 &extracted_out,
-                &tw_out)) {
+                &tw_out) || cpl_error_get_code()) {
         cpl_msg_error(__func__, "Failed to calibrate");
         cpl_table_delete(tw_in) ;
         cpl_table_delete(extracted) ;
