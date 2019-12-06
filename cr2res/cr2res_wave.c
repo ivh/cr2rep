@@ -43,7 +43,7 @@
                                    Defines
  -----------------------------------------------------------------------------*/
 
-// The maximum difference to the neighbouring pixels to be considered a bad pixel
+// The maximum difference to the neighbouring pixels to be considered a bad pix
 // For the fitting of the gaussian line centers
 #define MAX_DEVIATION_FOR_BAD_PIXEL 300
 
@@ -1105,7 +1105,8 @@ cpl_polynomial * cr2res_wave_etalon(
     int             nxi, i, npeaks;
 
     if (spectrum == NULL | spectrum_err == NULL |
-        wavesol_init == NULL | degree < 0 | wavelength_error == NULL) return NULL;
+        wavesol_init == NULL | degree < 0 | wavelength_error == NULL)
+            return NULL;
 
     // Find etalon peaks xi in spectrum
     // TODO: Use Spectrum Error
@@ -1364,10 +1365,11 @@ cpl_polynomial * cr2res_wave_polys_1d_to_2d(
         for (cpl_size j = 0; j < npolys; j++)
         {
             cpl_matrix_set(samppos, 0, j, orders[j]);
-            cpl_vector_set(values, j, cpl_polynomial_get_coeff(poly_1ds[j], &i));
+            cpl_vector_set(values, j, cpl_polynomial_get_coeff(poly_1ds[j],&i));
         }
 
-        error = cpl_polynomial_fit(fit, samppos, NULL, values, NULL, FALSE, NULL, &degree);
+        error = cpl_polynomial_fit(fit, samppos, NULL, values, NULL, FALSE,
+                                                             NULL, &degree);
 
         if (error != CPL_ERROR_NONE) printf("%i", error);
 
@@ -1375,7 +1377,8 @@ cpl_polynomial * cr2res_wave_polys_1d_to_2d(
         {
             coef_pos[0] = (cpl_size) i;
             coef_pos[1] = (cpl_size) j;
-            error = cpl_polynomial_set_coeff(out, coef_pos, cpl_polynomial_get_coeff(fit, &j));
+            error = cpl_polynomial_set_coeff(out, coef_pos,
+                                    cpl_polynomial_get_coeff(fit, &j));
             if (error != CPL_ERROR_NONE) printf("%i", error);
 
         }
@@ -1733,8 +1736,8 @@ static cpl_bivector * cr2res_wave_gen_lines_spectrum(
   @param    px              [out] Pixel position of the good lines
   @param    py              [out] Expected wavelength of the good lines
   @param    sigma_py        [out] Width of the gaussian fit for each line
-  @param    heights         [out] Height of the gaussian fit for each line, if not NULL
-  @param    fit_error       [out] Reduced Chi-Square of the gaussian fit, if not NULL
+  @param    heights         [out] Height of the gaussian fits, if not NULL
+  @param    fit_error       [out] Reduced Chi-Square of the fit, if not NULL
   @return   0 on success, -1 otherwise
 
     For each line in the linelist, fit a gaussian to the spectrum,
@@ -1742,13 +1745,15 @@ static cpl_bivector * cr2res_wave_gen_lines_spectrum(
     wavelength guess
 
     I.e. for each line:
-        Determine expected pixel position from the initial wavelength guess
-        Create a cutout of the spectrum around that position
-        Fit a gaussian to that cutout
-        Use the peak position of the gaussian as the position of the line on the detector
-        Ignore lines where the fit is bad
+        Determine expected pixel position from the initial wavelength guess.
+        Create a cutout of the spectrum around that position.
+        Fit a gaussian to that cutout.
+        Use the peak position of the gaussian as the position of the line
+        on the detector.
+        Ignore lines where the fit is bad.
 
-    Return the position on the detector and the corresponding wavelength from the linelist
+    Return the position on the detector and the corresponding wavelength from
+    the linelist.
 
  */
 /*----------------------------------------------------------------------------*/
@@ -2388,7 +2393,8 @@ static int cr2res_gauss(const double x[], const double a[], double *result)
 
 */
 /*----------------------------------------------------------------------------*/
-static int cr2res_gauss_derivative(const double x[], const double a[], double result[])
+static int cr2res_gauss_derivative(const double x[], const double a[],
+                                                         double result[])
 {
 
     if (a[1] != 0.0) {
@@ -2402,7 +2408,7 @@ static int cr2res_gauss_derivative(const double x[], const double a[], double re
          *
          * df/d(my) = A/sqrt(2 pi s^2) exp(-(x-my)^2/2s^2) * (x-my)  / s^2
          *          = A * fac. * (x-my)  / s^2
-         * df/ds    = A/sqrt(2 pi s^2) exp(-(x-my)^2/2s^2) * ((x-my)^2/s^3 - 1/s)
+         * df/ds    = A/sqrt(2 pi s^2) exp(-(x-my)^2/2s^2) * ((x-my)^2/s^3 -1/s)
          *          = A * fac. * ((x-my)^2 / s^2 - 1) / s
          * df/dA    = 1/sqrt(2 pi s^2) exp(-(x-my)^2/2s^2)
          *          = fac.
@@ -2624,6 +2630,11 @@ static cpl_vector * cr2res_wave_etalon_measure_fringes(
     peak_vec = cpl_vector_new(k) ;
     for (i=0; i<k; i++)
         cpl_vector_set(peak_vec, i, cpl_array_get(peaks, i, NULL) );
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_vector_save(peak_vec, "debug_peakpos.fits", CPL_TYPE_DOUBLE,
+                NULL, CPL_IO_CREATE);
+    }
 
     cpl_vector_delete(spec_thresh) ;
     cpl_vector_delete(X_all) ;
