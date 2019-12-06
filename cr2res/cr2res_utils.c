@@ -608,7 +608,7 @@ int cr2res_image_insert_rect(
 
     ycen_int = cr2res_vector_get_int(ycen);
 
-    for (i=1;i<=lenx;i++){ // All image indx start at 1!
+    for (i=1;i<=lenx;i++){ // All image indices start at 1!
         empty_bottom = 0;
         /* treat edge cases, shorten column where needed*/
         ymin = ycen_int[i-1]-(height/2);
