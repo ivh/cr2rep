@@ -492,6 +492,7 @@ static int cr2res_obs_nodding(
                     &(modelb[det_nr-1]),
                     &(ext_plist[det_nr-1])) == -1) {
             cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
+            cpl_error_reset() ;
         } else if (type == 2) {
             cpl_msg_info(__func__,
                     "Sensitivity / Conversion / Throughput computation") ;
@@ -521,6 +522,9 @@ static int cr2res_obs_nodding(
                             cpl_frame_get_filename(photo_flux_frame),
                             ra, dec, gain, dit*ndit*nexp, disp_order,
                             disp_trace, &(throughput[det_nr-1]))) {
+                    cpl_msg_warning(__func__, 
+                            "Failed to reduce detector %d", det_nr);
+                    cpl_error_reset() ;
                 }
             }
             cpl_msg_indent_less() ;

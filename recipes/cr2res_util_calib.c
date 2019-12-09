@@ -373,6 +373,7 @@ static int cr2res_util_calib(
                         clean_bad, 0, master_flat_frame, master_dark_frame, 
                         bpm_frame, detlin_frame, dits)) == NULL) {
             cpl_msg_warning(__func__, "Failed to apply the calibrations") ;
+            cpl_error_reset() ;
             if (dits != NULL) cpl_vector_delete(dits) ;
             hdrl_imagelist_delete(in) ;
             cpl_msg_indent_less() ;
@@ -402,6 +403,7 @@ static int cr2res_util_calib(
             cpl_msg_warning(__func__, "Failed to Collapse") ;
             cpl_msg_indent_less() ;
             cpl_msg_indent_less() ;
+            cpl_error_reset() ;
             continue ;
         }
         cpl_msg_indent_less() ;

@@ -357,6 +357,7 @@ static int cr2res_obs_2d(
                         &(ext_plist[det_nr-1])) == -1) {
                 cpl_msg_warning(__func__, "Failed to reduce detector %d", 
                         det_nr);
+                cpl_error_reset() ;
             }
             cpl_msg_indent_less() ;
         }

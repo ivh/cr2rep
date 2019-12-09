@@ -619,6 +619,7 @@ static int cr2res_cal_flat(
                     cpl_msg_warning(__func__,
                             "Failed to reduce detector %d of %s Frames",
                             det_nr, decker_desc[i]);
+                    cpl_error_reset() ;
                 }
                 cpl_msg_indent_less() ;
             }
