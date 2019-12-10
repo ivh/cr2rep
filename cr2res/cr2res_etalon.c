@@ -37,7 +37,7 @@
  -----------------------------------------------------------------------------*/
 
 static cpl_mask * cr2res_etalon_binary_image(const cpl_image *) ;
-static cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector *) ;
+
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -195,7 +195,7 @@ static cpl_mask * cr2res_etalon_binary_image(const cpl_image * in)
   @return   The vector with the maxima positions
  */
 /*----------------------------------------------------------------------------*/
-static cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector * in)
+cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector * in)
 {
     const double    *   pin ;
     cpl_vector      *   maxima_pos ;

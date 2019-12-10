@@ -35,6 +35,7 @@
 #include <cr2res_trace.h>
 #include <cr2res_wave.h>
 #include <cr2res_io.h>
+#include <cr2res_slit_curv.h>
 
 
 /*-----------------------------------------------------------------------------
@@ -58,6 +59,7 @@ static void test_cr2res_fit_noise(void);
 static void test_cr2res_slit_pos(void);
 static void test_cr2res_slit_pos_img(void);
 static void test_cr2res_get_license(void);
+static void test_cr2res_slit_curv_from_image(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -193,8 +195,10 @@ static void test_cr2res_image_insert_rect(void)
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG)
     {
-        cpl_image_save(img_out, "TEST_out.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
-        cpl_image_save(compare, "TEST_cmp.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+        cpl_image_save(img_out, "TEST_out.fits", CPL_TYPE_INT, NULL,
+            CPL_IO_CREATE);
+        cpl_image_save(compare, "TEST_cmp.fits", CPL_TYPE_INT, NULL,
+            CPL_IO_CREATE);
     }
 
     // img_out == compare ?
@@ -270,7 +274,8 @@ static void test_cr2res_threshold_spec(void)
     // expected data = data - median of boxcar - thresh
     // what is the expected behaviour at the borders?
     // -3, -3, -4, 0, -3, -4, 10, -2, -3, -1
-    double outdata[] = {1 - 1 - 3, 2 - 1 - 3, 1 - 2 - 3, 5 - 3 - 3, 3 - 3 - 3, 1 - 3 - 3, 15 - 2 - 3, 2 - 2 - 3, 0 - 1 - 3, 1 - 1 - 3};
+    double outdata[] = {1 - 1 - 3, 2 - 1 - 3, 1 - 2 - 3, 5 - 3 - 3, 3 - 3 - 3,
+        1 - 3 - 3, 15 - 2 - 3, 2 - 2 - 3, 0 - 1 - 3, 1 - 1 - 3};
     cpl_vector *outvector = cpl_vector_wrap(n, outdata);
 
     //boxcar size = smooth + 3, for even values, and smooth + 2 for odd values
@@ -343,7 +348,8 @@ static void test_cr2res_get_root_name(void)
 
 /*----------------------------------------------------------------------------*/
 /**
-   @brief   Create a frameset two frames, with different tags, and check that only the correct one is recovered
+   @brief   Create a frameset two frames, with different tags, and check that 
+            only the correct one is recovered
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_extract_filename(void)
@@ -414,7 +420,8 @@ static void test_cr2res_extract_frameset(void)
     cpl_test_eq(1, cpl_frameset_get_size(res));
     //check if filenames fit
     const char *fname1 = "bla-test.log";
-    const char *fname2 = cpl_frame_get_filename(cpl_frameset_get_position(res, 0));
+    const char *fname2 = cpl_frame_get_filename(
+        cpl_frameset_get_position(res, 0));
     cpl_test_eq_string(fname1, fname2); //Is that the right comparison?
     //check that the reference was copied as it is supposed to
     cpl_test_noneq_ptr(cpl_frameset_get_position(res, 0), frame);
@@ -505,7 +512,8 @@ static void test_cr2res_detector_shotnoise_model(void)
  
     cpl_image *ima_data = cpl_image_new(width, height, CPL_TYPE_INT);
     cpl_image_add_scalar(ima_data, count);
-    cpl_image_set(ima_data, 1, 1, -1); // set first pixel to negative to check behaviour
+    // set first pixel to negative to check behaviour
+    cpl_image_set(ima_data, 1, 1, -1);
 
     cpl_image *ima_errs;
     cpl_error_code res;
@@ -515,16 +523,21 @@ static void test_cr2res_detector_shotnoise_model(void)
     cpl_image_set(compare, 1, 1, ron);
 
     //run test
-    cpl_test_eq(CPL_ERROR_NULL_INPUT, cr2res_detector_shotnoise_model(NULL, gain, ron, &ima_errs));
+    cpl_test_eq(CPL_ERROR_NULL_INPUT, 
+        cr2res_detector_shotnoise_model(NULL, gain, ron, &ima_errs));
     cpl_test_error(CPL_ERROR_NULL_INPUT);
-    cpl_test_eq(CPL_ERROR_ILLEGAL_INPUT, cr2res_detector_shotnoise_model(ima_data, 0, ron, &ima_errs));
+    cpl_test_eq(CPL_ERROR_ILLEGAL_INPUT, 
+        cr2res_detector_shotnoise_model(ima_data, 0, ron, &ima_errs));
     cpl_test_error(CPL_ERROR_ILLEGAL_INPUT);
-    cpl_test_eq(CPL_ERROR_ILLEGAL_INPUT, cr2res_detector_shotnoise_model(ima_data, gain, -1, &ima_errs));
+    cpl_test_eq(CPL_ERROR_ILLEGAL_INPUT, 
+        cr2res_detector_shotnoise_model(ima_data, gain, -1, &ima_errs));
     cpl_test_error(CPL_ERROR_ILLEGAL_INPUT);
-    cpl_test_eq(CPL_ERROR_NULL_INPUT, cr2res_detector_shotnoise_model(ima_data, gain, ron, NULL));
+    cpl_test_eq(CPL_ERROR_NULL_INPUT, cr2res_detector_shotnoise_model(ima_data,
+        gain, ron, NULL));
     cpl_test_error(CPL_ERROR_NULL_INPUT);
 
-    cpl_test_eq(CPL_ERROR_NONE, cr2res_detector_shotnoise_model(ima_data, gain, ron, &ima_errs));
+    cpl_test_eq(CPL_ERROR_NONE, cr2res_detector_shotnoise_model(ima_data, gain,
+        ron, &ima_errs));
     //test output
     cpl_test_image_abs(ima_errs, compare, 0);
 
@@ -539,9 +552,12 @@ static cpl_table *create_test_table()
     int poly_order = 2;
     int n_orders = 2;
     cpl_table * traces = cpl_table_new(n_orders);
-    cpl_table_new_column_array(traces, CR2RES_COL_ALL, CPL_TYPE_DOUBLE, poly_order);
-    cpl_table_new_column_array(traces, CR2RES_COL_UPPER, CPL_TYPE_DOUBLE, poly_order);
-    cpl_table_new_column_array(traces, CR2RES_COL_LOWER, CPL_TYPE_DOUBLE, poly_order);
+    cpl_table_new_column_array(traces, CR2RES_COL_ALL,
+        CPL_TYPE_DOUBLE, poly_order);
+    cpl_table_new_column_array(traces, CR2RES_COL_UPPER,
+        CPL_TYPE_DOUBLE, poly_order);
+    cpl_table_new_column_array(traces, CR2RES_COL_LOWER,
+        CPL_TYPE_DOUBLE, poly_order);
     cpl_table_new_column(traces, CR2RES_COL_ORDER, CPL_TYPE_INT);
     cpl_table_new_column(traces, CR2RES_COL_TRACENB, CPL_TYPE_INT);
 
@@ -652,8 +668,10 @@ static void test_cr2res_slit_pos()
     int *orders = cr2res_trace_get_order_numbers(tw_decker1, &nb_orders);
 
 
-    cpl_polynomial **coef_wave = cpl_malloc(nb_orders * sizeof(cpl_polynomial *));
-    cpl_polynomial **coef_slit = cpl_malloc(nb_orders * sizeof(cpl_polynomial *));
+    cpl_polynomial **coef_wave = cpl_malloc(nb_orders *
+        sizeof(cpl_polynomial *));
+    cpl_polynomial **coef_slit = cpl_malloc(nb_orders *
+        sizeof(cpl_polynomial *));
 
     for (cpl_size i = 0; i < nb_orders; i++)
     {
@@ -709,8 +727,10 @@ static void test_cr2res_slit_pos_img()
             getenv("srcdir"));
     cpl_table *tw_decker1 = cpl_table_load(my_path, chip, 0);
     cpl_free(my_path) ;
-    cpl_image *slitpos = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
-    cpl_image *wavelength = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
+    cpl_image *slitpos = cpl_image_new(CR2RES_DETECTOR_SIZE,
+        CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
+    cpl_image *wavelength = cpl_image_new(CR2RES_DETECTOR_SIZE,
+        CR2RES_DETECTOR_SIZE, CPL_TYPE_DOUBLE);
 
     cpl_test_eq(-1, cr2res_slit_pos_image(NULL, &slitpos, &wavelength));
     cpl_test_eq(-1, cr2res_slit_pos_image(tw_decker1, NULL, &wavelength));
@@ -718,13 +738,71 @@ static void test_cr2res_slit_pos_img()
 
     cpl_test_eq(0, cr2res_slit_pos_image(tw_decker1, &slitpos, &wavelength));
 
-    cpl_image_save(slitpos, "TEST_slit.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-    cpl_image_save(wavelength, "TEST_wave.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    cpl_image_save(slitpos, "TEST_slit.fits", CPL_TYPE_DOUBLE,
+        NULL, CPL_IO_CREATE);
+    cpl_image_save(wavelength, "TEST_wave.fits", CPL_TYPE_DOUBLE,
+        NULL, CPL_IO_CREATE);
 
     cpl_table_delete(tw_decker1);
     // cpl_table_delete(tw_decker2);
     cpl_image_delete(slitpos);
     cpl_image_delete(wavelength);
+}
+
+static cpl_image * load_etalon_image(){
+    char * path = cpl_sprintf("%s/cr2res_slit_curv_test.fits", 
+            getenv("srcdir"));
+    cpl_image * img = cpl_image_load(path, CPL_TYPE_INT, 0, 1);
+    cpl_free(path) ;
+    return img;
+}
+
+static cpl_table * load_etalon_table(){
+    char * path = cpl_sprintf("%s/cr2res_slit_curv_test_tw.fits", 
+            getenv("srcdir"));
+    cpl_table * trace_wave = cpl_table_load(path, 1, 0);
+    cpl_free(path);
+    return trace_wave;
+}
+
+static void test_cr2res_slit_curv_from_image(){
+
+    hdrl_image * img_hdrl;
+    cpl_image * img_in = load_etalon_image();
+    cpl_table * trace_wave = load_etalon_table();
+
+    cpl_polynomial * poly_a;
+    cpl_polynomial * poly_b;
+    cpl_polynomial * poly_c;
+
+    int order = 1;
+    int trace = 1;
+    int height = 100; // The height of the order
+    int window = 15;  // The spacing between peaks
+    int degree = 2;   // That is the default format
+    int fit_c = 1;    // Thats what we want most of the time
+
+    // cpl_table_save(trace_wave, NULL, NULL, "debug_tw.fits", CPL_IO_CREATE);
+
+    img_hdrl = hdrl_image_create(img_in, NULL);
+
+    cpl_test_eq(0, cr2res_slit_curv_from_image(img_hdrl, trace_wave,
+        order, trace, height, window, degree, fit_c,
+        &poly_a, &poly_b, &poly_c));
+
+    cpl_polynomial_dump(poly_a, stderr);
+    cpl_polynomial_dump(poly_b, stderr);
+    cpl_polynomial_dump(poly_c, stderr);
+
+    cpl_image_delete(img_in);
+    hdrl_image_delete(img_hdrl);
+    cpl_table_delete(trace_wave);
+
+    cpl_polynomial_delete(poly_a);
+    cpl_polynomial_delete(poly_b);
+    cpl_polynomial_delete(poly_c);
+
+
 }
 
 /*----------------------------------------------------------------------------*/
@@ -768,6 +846,7 @@ int main(void)
     test_cr2res_fit_noise();
     test_cr2res_slit_pos();
     test_cr2res_slit_pos_img();
+    test_cr2res_slit_curv_from_image();
 
     return cpl_test_end(0);
 }

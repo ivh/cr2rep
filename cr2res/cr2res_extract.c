@@ -121,6 +121,16 @@ static int cr2res_extract_slitdec_adjust_swath(
         cpl_vector  *   bins_begin,
         cpl_vector  *   bins_end) ;
 
+static int debug_output(int         ncols,
+        int         nrows,
+        int         osample,
+        double  *   im,
+        double  *   pix_unc,
+        int     *   mask,
+        double  *   ycen,
+        int     *   ycen_offset,
+        int         y_lower_lim,
+        cpl_polynomial  ** slitcurves);
 /*----------------------------------------------------------------------------*/
 /**
   @defgroup cr2res_extract  Extraction routines (Slit Decomposition,...)
@@ -3151,6 +3161,10 @@ static int cr2res_extract_slit_func_curved(
         if (info) cpl_msg_info(__func__, "info(sP)=%d\n", info);
         for (x = 0; x < ncols; x++) sP[x] = p_bj[x];
 
+        if (isnan(sP[0])){
+            debug_output(ncols, nrows, osample, im, pix_unc, mask, ycen, ycen_offset, y_lower_lim, slitcurves);
+        }
+
         /* Compute the model */
         for (y = 0; y < nrows * ncols; y++) {
                 model[y] = 0.;
@@ -3279,7 +3293,7 @@ static int cr2res_extract_slitdec_bandsol(
     for(i=0; i<n-1; i++)
     {
         aa=a[i+n*(nd/2)];
-        if(aa==0.e0) aa = lambda; //return -3;
+        // if(aa==0.e0) aa = lambda; //return -3;
         r[i]/=aa;
         for(j=0; j<nd; j++) a[i+j*n]/=aa;
         for(j=1; j<min(nd/2+1,n-i); j++)
@@ -3292,7 +3306,7 @@ static int cr2res_extract_slitdec_bandsol(
 
     /* Backward sweep */
     aa = a[n-1+n*(nd/2)];
-    if (aa == 0) aa = lambda; //return -4;
+    // if (aa == 0) aa = lambda; //return -4;
     r[n-1]/=aa;
     for(i=n-1; i>0; i--)
     {
@@ -3300,13 +3314,13 @@ static int cr2res_extract_slitdec_bandsol(
             r[i-j]-=r[i]*a[i-j+n*(nd/2+j)];
         }
         aa = a[i-1+n*(nd/2)];
-        if(aa==0.e0) aa = lambda; //return -5;
+        // if(aa==0.e0) aa = lambda; //return -5;
         
         r[i-1]/=aa;
     }
 
     aa = a[n*(nd/2)];
-    if(aa==0.e0) aa = lambda; //return -6;
+    // if(aa==0.e0) aa = lambda; //return -6;
     r[0]/=aa;
     return 0;
 }
@@ -3358,3 +3372,57 @@ static int cr2res_extract_slitdec_adjust_swath(
     return sw;
 }
 
+static int debug_output( 
+        int         ncols,
+        int         nrows,
+        int         osample,
+        double  *   im,
+        double  *   pix_unc,
+        int     *   mask,
+        double  *   ycen,
+        int     *   ycen_offset,
+        int         y_lower_lim,
+        cpl_polynomial  ** slitcurves)
+{
+    cpl_image * img;
+    cpl_vector * vec;
+    cpl_propertylist * pl;
+
+    pl = cpl_propertylist_new();
+    cpl_propertylist_append_int(pl, "osample", osample);
+    cpl_propertylist_append_int(pl, "y_lower_lim", y_lower_lim);
+
+    img = cpl_image_wrap_double(ncols, nrows, im);
+    cpl_image_save(img, "debug_image_at_error.fits", CPL_TYPE_DOUBLE, pl, CPL_IO_CREATE);
+    cpl_image_unwrap(img);
+
+    img = cpl_image_wrap_int(ncols, nrows, mask);
+    cpl_image_save(img, "debug_mask_after_error.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+    cpl_image_unwrap(img);
+
+    img = cpl_image_wrap_double(ncols, nrows, pix_unc);
+    cpl_image_save(img, "debug_unc_at_error.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    cpl_image_unwrap(img);
+
+    vec = cpl_vector_wrap(ncols, ycen);
+    cpl_vector_save(vec, "debug_ycen_after_error.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    cpl_vector_unwrap(vec);
+
+    vec = cpl_vector_new(ncols);
+    for (int i = 0; i < ncols; i++) cpl_vector_set(vec, i, ycen_offset[i]);
+    cpl_vector_save(vec, "debug_offset_after_error.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+    cpl_vector_delete(vec);
+
+    img = cpl_image_new(ncols, 3, CPL_TYPE_DOUBLE);
+    for (cpl_size i = 0; i < ncols; i++){
+        for (cpl_size j = 0; j < 3 ; j++){
+            cpl_image_set(img, i+1, j+1, cpl_polynomial_get_coeff(slitcurves[i], &j));
+        }
+    }
+    cpl_image_save(img, "debug_slitcurves_at_error.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    cpl_image_delete(img);
+
+    cpl_propertylist_delete(pl);
+
+    return 0;
+}
