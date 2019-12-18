@@ -550,11 +550,14 @@ int cr2res_extract_median(
         cpl_image_save(img_tmp, "debug_rectorder.fits", imtyp,
                 NULL, CPL_IO_CREATE);
     }
-    img_1d = cpl_image_collapse_median_create(img_tmp, 0, 0, 0); // sum of rows
+    img_1d = cpl_image_collapse_median_create(img_tmp, 0, 0, 0); // rows
     spc = cpl_vector_new_from_image_row(img_1d, 1);
+
+    // Multiply so that scaling matches a vertical sum
+    cpl_vector_multiply_scalar(spc,(double)height);
     cpl_image_delete(img_1d);
 
-    img_1d = cpl_image_collapse_median_create(img_tmp, 1, 0, 0); // sum of cols
+    img_1d = cpl_image_collapse_median_create(img_tmp, 1, 0, 0); // cols
     slitfu = cpl_vector_new_from_image_column(img_1d, 1);
     cpl_vector_divide_scalar(slitfu, cpl_vector_get_sum(slitfu));
     cpl_image_delete(img_1d);

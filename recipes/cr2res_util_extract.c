@@ -215,7 +215,7 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.method",
-            CPL_TYPE_STRING, "Extraction method (SUM / MEDIAN / TILTSUM"
+            CPL_TYPE_STRING, "Extraction method (SUM / MEDIAN / TILTSUM / "
             "OPT_VERT / OPT_CURV )",
             "cr2res.cr2res_util_extract", "OPT_CURV");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "method");
