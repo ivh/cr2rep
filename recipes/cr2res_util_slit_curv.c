@@ -67,15 +67,17 @@ Slit curvature computation                                              \n\
   each order that has at least 2 traces.                                \n\
                                                                         \n\
   Inputs                                                                \n\
-    raw.fits " CR2RES_TW_PROTYPE " [1 to n]                             \n\
+    trace.fits " CR2RES_TW_PROTYPE " [1 to n]                           \n\
+    lamp.fits " CR2RES_WAVE_RAW " [1 to n]                              \n\
                                                                         \n\
   Outputs                                                               \n\
-    <input_name>_map.fits " CR2RES_UTIL_SLIT_CURV_MAP_PROCATG"          \n\
-    <input_name>_slit_curv.fits " CR2RES_UTIL_SLIT_CURV_PROCATG "       \n\
-    <input_name>_tw.fits " CR2RES_UTIL_SLIT_CURV_TW_PROCATG"            \n\
+    <input_lamp_name>_map.fits " CR2RES_UTIL_SLIT_CURV_MAP_PROCATG"     \n\
+    <input_lamp_name>_slit_curv.fits " CR2RES_UTIL_SLIT_CURV_PROCATG "  \n\
+    <input_lamp_name>_tw.fits " CR2RES_UTIL_SLIT_CURV_TW_PROCATG"       \n\
                                                                         \n\
+                     TODO\n\
   Algorithm                                                             \n\
-    loop on input raw files f:                                          \n\
+    loop on input raw files pairs (t,l):                                \n\
       loop on detectors d:                                              \n\
         Load the TRACE_WAVE table for the current detector              \n\
         Loop over the traces t:                                         \n\
@@ -261,13 +263,15 @@ static int cr2res_util_slit_curv(
 {
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace, display ;
-    cpl_frameset        *   rawframes ;
-    const cpl_frame     *   cur_frame ;
-    const char          *   cur_fname ;
-    cpl_polynomial      **  curvatures ;
+    cpl_frameset        *   rawframes_tw ;
+    cpl_frameset        *   rawframes_lamp ;
+    const cpl_frame     *   cur_frame_tw ;
+    const char          *   cur_fname_tw ;
+    const cpl_frame     *   cur_frame_lamp ;
+    const char          *   cur_fname_lamp ;
     cpl_table           *   trace_wave[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   lamp_image[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   slit_curv_map[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   slit_curv[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_polynomial      *   slit_polya ;
     cpl_polynomial      *   slit_polyb ;
@@ -306,33 +310,43 @@ static int cr2res_util_slit_curv(
     /* Get Calibration frames */
 
     /* Get the rawframes */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_TW_PROTYPE) ;
-    if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
-        cpl_msg_error(__func__, "Cannot find any RAW file") ;
-        cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
+    rawframes_tw = cr2res_extract_frameset(frameset, CR2RES_TW_PROTYPE) ;
+    rawframes_lamp = cr2res_extract_frameset(frameset, CR2RES_WAVE_RAW) ;
+    if (rawframes_tw == NULL || rawframes_lamp == NULL || 
+            cpl_frameset_get_size(rawframes_lamp) <= 0 ||
+            cpl_frameset_get_size(rawframes_tw) <= 0 ||
+            cpl_frameset_get_size(rawframes_lamp) != 
+            cpl_frameset_get_size(rawframes_tw)) {
+        cpl_msg_error(__func__, "Input files not consistent") ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        if (rawframes_tw != NULL) cpl_frameset_delete(rawframes_tw) ; 
+        if (rawframes_lamp != NULL) cpl_frameset_delete(rawframes_lamp) ; 
         return -1 ;
     }
 
     /* Loop on the RAW frames */
-    for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
+    for (i=0 ; i<cpl_frameset_get_size(rawframes_tw) ; i++) {
         /* Get the Current Frame */
-        cur_frame = cpl_frameset_get_position(rawframes, i) ;
-        cur_fname = cpl_frame_get_filename(cur_frame) ;
-        cpl_msg_info(__func__, "Reduce Frame %s", cur_fname) ;
+        cur_frame_tw = cpl_frameset_get_position(rawframes_tw, i) ;
+        cur_fname_tw = cpl_frame_get_filename(cur_frame_tw) ;
+        cur_frame_lamp = cpl_frameset_get_position(rawframes_lamp, i) ;
+        cur_fname_lamp = cpl_frame_get_filename(cur_frame_lamp) ;
+        cpl_msg_info(__func__, "Reduce Frames %s / %s ", 
+                cur_fname_tw, cur_fname_lamp) ;
         cpl_msg_indent_more() ;
 
         /* Loop over the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
             /* Initialise */
-            slit_curv[det_nr-1] = cpl_table_new(CR2RES_DETECTOR_SIZE) ;
             slit_curv_map[det_nr-1] = NULL ;
             ext_plist[det_nr-1] = NULL ;
             trace_wave[det_nr-1] = NULL ;
+            lamp_image[det_nr-1] = NULL ;
 
             /* Store the extenѕion header for product saving */
-            ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname,
-                    cr2res_io_get_ext_idx(cur_fname, det_nr, 1)) ;
+            ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname_tw,
+                    cr2res_io_get_ext_idx(cur_fname_tw, det_nr, 1)) ;
 
             /* Compute only one detector */
             if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -342,7 +356,7 @@ static int cr2res_util_slit_curv(
 
             /* Load the TRACE_WAVE table of this detector */
             cpl_msg_info(__func__, "Load the TRACE_WAVE table") ;
-            if ((trace_wave[det_nr-1] = cr2res_io_load_TRACE_WAVE(cur_fname,
+            if ((trace_wave[det_nr-1] = cr2res_io_load_TRACE_WAVE(cur_fname_tw,
                             det_nr)) == NULL) {
                 cpl_msg_error(__func__,"Failed to load table - skip detector");
                 cpl_error_reset() ;
@@ -351,7 +365,15 @@ static int cr2res_util_slit_curv(
             }
             nb_traces = cpl_table_get_nrow(trace_wave[det_nr-1]) ;
 
-            /* Allocate Data containers */
+            /* Load the lamp image of this detector */
+            cpl_msg_info(__func__, "Load the LAMP image") ;
+            if ((lamp_image[det_nr-1] = cr2res_io_load_image(cur_fname_lamp,
+                            det_nr)) == NULL) {
+                cpl_msg_error(__func__,"Failed to load image - skip detector");
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
 
             /* Loop over the traces and get the slit curvature */
             for (j=0 ; j<nb_traces ; j++) {
@@ -372,9 +394,13 @@ static int cr2res_util_slit_curv(
                 cpl_msg_indent_more() ;
         
                 /* Call the Slit Curvature Computation */
-                if ((curvatures = cr2res_slit_curv_compute_order_trace(
-                                trace_wave[det_nr-1], order, trace_id, 
-                                curv_degree, display)) == NULL) {
+                int height = 100 ;
+                int window = 15 ;
+                int fit_c = 1 ;
+                if (cr2res_slit_curv_from_image(lamp_image[det_nr-1], 
+                            trace_wave[det_nr-1], order, trace_id,
+                            height, window, curv_degree, fit_c, 
+                            &slit_polya, &slit_polyb, &slit_polyc)) {
                     cpl_msg_warning(__func__, 
                             "Cannot Compute Slit curvature for Order %d",
                             order);
@@ -384,47 +410,22 @@ static int cr2res_util_slit_curv(
                 }
 
                 /* Fill the SLIT_CURVE_A/B/C for the current trace */
-                if (cr2res_slit_curv_fit_coefficients(curvatures,
-                            CR2RES_DETECTOR_SIZE,
-                            &slit_polya, &slit_polyb, &slit_polyc) == 0) {
-                    slit_array = cr2res_convert_poly_to_array(slit_polya, 3) ;
-                    cpl_polynomial_delete(slit_polya) ;
-                    cpl_table_set_array(trace_wave[det_nr-1],
-                            CR2RES_COL_SLIT_CURV_A, j, slit_array) ;
-                    cpl_array_delete(slit_array) ;
-                    slit_array = cr2res_convert_poly_to_array(slit_polyb, 3) ;
-                    cpl_polynomial_delete(slit_polyb) ;
-                    cpl_table_set_array(trace_wave[det_nr-1],
-                            CR2RES_COL_SLIT_CURV_B, j, slit_array) ;
-                    cpl_array_delete(slit_array) ;
-                    slit_array = cr2res_convert_poly_to_array(slit_polyc, 3) ;
-                    cpl_polynomial_delete(slit_polyc) ;
-                    cpl_table_set_array(trace_wave[det_nr-1],
-                            CR2RES_COL_SLIT_CURV_C, j, slit_array) ;
-                    cpl_array_delete(slit_array) ;
-                } 
+                slit_array = cr2res_convert_poly_to_array(slit_polya, 3) ;
+                cpl_polynomial_delete(slit_polya) ;
+                cpl_table_set_array(trace_wave[det_nr-1],
+                        CR2RES_COL_SLIT_CURV_A, j, slit_array) ;
+                cpl_array_delete(slit_array) ;
+                slit_array = cr2res_convert_poly_to_array(slit_polyb, 3) ;
+                cpl_polynomial_delete(slit_polyb) ;
+                cpl_table_set_array(trace_wave[det_nr-1],
+                        CR2RES_COL_SLIT_CURV_B, j, slit_array) ;
+                cpl_array_delete(slit_array) ;
+                slit_array = cr2res_convert_poly_to_array(slit_polyc, 3) ;
+                cpl_polynomial_delete(slit_polyc) ;
+                cpl_table_set_array(trace_wave[det_nr-1],
+                        CR2RES_COL_SLIT_CURV_C, j, slit_array) ;
+                cpl_array_delete(slit_array) ;
 
-                /* Store the Solution in the table SLIT_CURV */
-                col_name = cr2res_dfs_SLIT_CURV_colname(order, trace_id) ;
-                cpl_table_new_column_array(slit_curv[det_nr-1], col_name, 
-                        CPL_TYPE_DOUBLE, curv_degree+1) ; 
-
-                /* Loop on the Column rows */
-                for (k=0 ; k<CR2RES_DETECTOR_SIZE ; k++) {
-                    if (curvatures[k] != NULL) {
-                        /* Ѕtore the polynomial in the table */
-                        curv_array=cr2res_convert_poly_to_array(curvatures[k],
-                                curv_degree+1) ;
-                        cpl_polynomial_delete(curvatures[k]) ;
-                        if (curv_array != NULL) {
-                            cpl_table_set_array(slit_curv[det_nr-1], col_name, 
-                                    k, curv_array) ;
-                            cpl_array_delete(curv_array) ;
-                        }
-                    }
-                }
-                cpl_free(col_name) ;
-                cpl_free(curvatures) ; 
                 cpl_msg_indent_less() ;
             }
 
@@ -437,23 +438,15 @@ static int cr2res_util_slit_curv(
 
         /* Save the SLIT_CURV_MAP */
         out_file = cpl_sprintf("%s_map.fits",
-                cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
+                cr2res_get_base_name(cr2res_get_root_name(cur_fname_tw)));
         cr2res_io_save_SLIT_CURV_MAP(out_file, frameset, frameset, parlist, 
                 slit_curv_map, NULL, ext_plist, 
                 CR2RES_UTIL_SLIT_CURV_MAP_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
-        /* Save the new SLIT_CURV table */
-        out_file=cpl_sprintf("%s_slit_curv.fits", 
-                cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-        cr2res_io_save_SLIT_CURV(out_file, frameset, frameset, parlist, 
-                slit_curv, NULL, ext_plist, CR2RES_UTIL_SLIT_CURV_PROCATG, 
-                RECIPE_STRING) ;
-        cpl_free(out_file);
-
         /* Save the new TRACE_WAVE table */
         out_file=cpl_sprintf("%s_tw.fits", 
-                cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
+                cr2res_get_base_name(cr2res_get_root_name(cur_fname_tw)));
         cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
                 trace_wave, NULL, ext_plist, CR2RES_UTIL_SLIT_CURV_TW_PROCATG, 
                 RECIPE_STRING) ;
@@ -461,15 +454,16 @@ static int cr2res_util_slit_curv(
 
         /* Free and return */
         for (k=0 ; k<CR2RES_NB_DETECTORS ; k++) {
-            if (slit_curv[k] != NULL) cpl_table_delete(slit_curv[k]) ;
             if (trace_wave[k] != NULL) cpl_table_delete(trace_wave[k]) ;
+            if (lamp_image[k] != NULL) hdrl_image_delete(lamp_image[k]) ;
             if (slit_curv_map[k] != NULL) 
                 hdrl_image_delete(slit_curv_map[k]) ;
             if (ext_plist[k] != NULL)
                 cpl_propertylist_delete(ext_plist[k]) ;
         }
     }
-    cpl_frameset_delete(rawframes) ;
+    cpl_frameset_delete(rawframes_lamp) ;
+    cpl_frameset_delete(rawframes_tw) ;
     return (int)cpl_error_get_code();
 }
 

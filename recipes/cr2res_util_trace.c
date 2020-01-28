@@ -450,6 +450,7 @@ static int cr2res_util_trace(
             hdrl_image_delete(flat_ima) ;
             cpl_msg_indent_less() ;
         }
+        cpl_msg_indent_less() ;
 
         /* Save the Products */
         out_file = cpl_sprintf("%s_tw.fits", 
