@@ -47,6 +47,12 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static cpl_polynomial * cr2res_slit_curv_build_poly(
+        cpl_polynomial  *   slit_poly_a,
+        cpl_polynomial  *   slit_poly_b,
+        cpl_polynomial  *   slit_poly_c,
+        cpl_size            x) ;
+
 static int cr2res_slit_curv_get_position(
         cpl_polynomial  *   trace,
         cpl_polynomial  *   wave,
@@ -56,6 +62,28 @@ static int cr2res_slit_curv_get_position(
 
 static int fmodel(const double x[], const double a[], double *result) CPL_ATTR_NONNULL;
 static int dmodel_da(const double x[], const double a[], double *result) CPL_ATTR_NONNULL;
+static int cr2res_slit_curv_remove_peaks_at_edge(
+    cpl_vector ** peaks,
+    int width,
+    int ncols) ;
+static int cr2res_slit_curv_single_peak(
+    cpl_image  * img_peak,
+    cpl_vector * ycen,
+    double       peak,
+    cpl_matrix * x,
+    cpl_vector * y,
+    cpl_vector * a,
+    int        * ia,
+    double     * value_b,
+    double     * value_c) ;
+static int cr2res_slit_curv_all_peaks(
+    cpl_vector * peaks,
+    cpl_image  * img_rect,
+    cpl_vector * ycen,
+    int window,
+    int fit_second_order,
+    cpl_vector ** vec_b,
+    cpl_vector ** vec_c) ;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -67,265 +95,121 @@ static int dmodel_da(const double x[], const double a[], double *result) CPL_ATT
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief Compute the slit curvature along a specific trace
-  @param trace_wave     The trace_wave table
-  @param order          The order number
-  @param trace_id       The trace_id number
-  @param max_curv_degree    The maximum degree for the slit curv polynomial
-  @param display        The flag used to display something
-  @return   An array of polynomials or NULL in error case
+  @brief Get the slit curvature directly from the image
+  @param img   The input image
+  @param trace_wave  The trace wave, with the order tracing
+  @param order  The order to determine the curvature for
+  @param trace  The trace to determine the curvature for
+  @return   0 if ok, -1 in error case
 
-  order and trace_id identify the trace along which the slit curve is computed.
-  For each x along the trace, the slit curvature Px is computed.
-  The wavelength ref_wl at the x position along the input trace is evaluated.
-  All other traces in the current order are used.
-  On each of these traces, the point (x,Y) on the trace that has the same 
-    wavelength as ref_wl is identified. 
-  All these points are along the slit and used to fit its shape.
+  To determine the curvature we perform several steps. First, find all peaks in
+  the spectrum. Next for each peak, fit a Gaussian with a shifted peak to the
+  image. The shift of the peak determines the curvature.
+  Finally fit the curvature to all 
 
-  The returned array contains potentially CR2RES_DETECTOR_SIZE
-  polynomials (1 for each x position in the detector). Each non-NULL 
-  polynomial needs to be deallocated (cpl_polynomial_delete()) and the
-  returned pointer needs to be freed (cpl_free()).
-
-  The polynomial number x Px gives the slit curvature:
-        X=Px(Y)
-  where (X,Y) are the detector position, (1, 1) being the lower left pixel.
-        Px is the polynomial to use along x
  */
 /*----------------------------------------------------------------------------*/
-cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
-        cpl_table           *   trace_wave,
+int cr2res_slit_curv_compute_order_trace(
+        const hdrl_image    *   img,
+        const cpl_table     *   trace_wave,
         int                     order,
-        int                     trace_id,
-        int                     max_curv_degree,
-        int                     display)
+        int                     trace,
+        int                     height,
+        int                     window,
+        cpl_size                degree,
+        int                     fit_second_order,
+        cpl_polynomial      **  slit_poly_a,
+        cpl_polynomial      **  slit_poly_b,
+        cpl_polynomial      **  slit_poly_c)
 {
-    cpl_polynomial  **  out_polys ;
-    cpl_polynomial  *   trace_in ;
-    cpl_polynomial  *   wave_poly_in ;
-    cpl_polynomial  *   cur_trace_in ;
-    cpl_polynomial  *   cur_wave_poly_in ;
-    double              ref_wl, ref_y, cur_x, cur_y ;
-    cpl_matrix      *   x_points ;
-    cpl_vector      *   y_points ;
-    cpl_polynomial  *   slit_curve ;
-    int                 cur_order, cur_trace_id, abort_fit ;
-    cpl_size            ntraces, ref_x, power, poly_degree, idx, i ;
+    const cpl_image     *   img_in;
+    cpl_vector          *   sfunc;
+    cpl_vector          *   ycen;
+    cpl_bivector        *   spec_bi;
+    hdrl_image          *   model;
+    cpl_vector          *   peaks;
+    cpl_image           *   img_rect;
+    cpl_vector          *   vec_b;
+    cpl_vector          *   vec_c;
+    int                     ncols;
+    cpl_size                power;
+    cpl_matrix          *   samppos;
 
-    /* Check Entries */
-    if (trace_wave == NULL) return NULL ;
+    if (img == NULL || trace_wave == NULL || slit_poly_a == NULL ||
+        slit_poly_b == NULL || slit_poly_c == NULL) return -1;
 
-    /* Get the number of traces */
-    ntraces = cr2res_get_nb_traces_with_wavelength(trace_wave, order) ;
-    if (ntraces < 2) return NULL ;
+    img_in = hdrl_image_get_image_const(img);
+    ncols = cpl_image_get_size_x(img_in);
 
-    cpl_msg_debug(__func__, "%"CPL_SIZE_FORMAT" traces in the current order", 
-            ntraces) ;
-
-    /* Set the fitting polynomial degree */
-    poly_degree = ntraces - 1 ;
-    if (poly_degree > max_curv_degree) poly_degree = max_curv_degree ;
-
-    /* Get the input trace wavelength */
-    wave_poly_in = cr2res_get_trace_wave_poly(trace_wave, 
-            CR2RES_COL_WAVELENGTH, order, trace_id) ;
-    if (wave_poly_in == NULL) return NULL ;
-
-    /* Get the input trace polynomial */
-    trace_in = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_ALL, order, 
-            trace_id) ;
-
-    /* Allocate Output array */
-    out_polys = cpl_malloc(CR2RES_DETECTOR_SIZE * sizeof(cpl_polynomial*)) ;
-
-    /* Loop on all x positions */
-    for (ref_x=1 ; ref_x<=CR2RES_DETECTOR_SIZE ; ref_x++) {
-
-        /* Get the Wavelength on the input trace */
-        ref_wl = cpl_polynomial_eval_1d(wave_poly_in, (double)ref_x, NULL) ;
-        x_points = cpl_matrix_new(1, ntraces) ;
-        y_points = cpl_vector_new(ntraces) ;
-
-		/* Store the reference point */
-		idx = 0 ;
-		ref_y = cpl_polynomial_eval_1d(trace_in, (double)ref_x, NULL) ;
-        cpl_matrix_set(x_points, 0, idx, ref_y) ;
-        cpl_vector_set(y_points, idx, (double)ref_x) ;
-
-        if (display == ref_x)
-            cpl_msg_debug(__func__, 
-                    "[REF. TRACE] Order/Trace: %d/%d - (x,y,wl)=(%g, %g, %g)", 
-                    order, trace_id, (double)ref_x, ref_y, ref_wl) ;
-
-        /* Store the other traces points */
-        abort_fit = 0 ;
-        for (i=0 ; i<cpl_table_get_nrow(trace_wave) ; i++) {
-            /* Find the other traces of the same order */
-            cur_order = cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL) ;
-            cur_trace_id = cpl_table_get(trace_wave, CR2RES_COL_TRACENB,i,NULL);
-            cur_wave_poly_in = cr2res_get_trace_wave_poly(trace_wave, 
-                    CR2RES_COL_WAVELENGTH, cur_order, cur_trace_id) ;
-
-            /* Search for the next trace in the current order */
-            if (cur_order != order || cur_trace_id == trace_id ||
-                    cur_wave_poly_in == NULL) {
-                if (cur_wave_poly_in != NULL)
-                    cpl_polynomial_delete(cur_wave_poly_in) ;
-                continue ;
-            }
-
-            /* The current trace is used for the fit */
-            idx++ ;
-
-            /* Get the position on the current trace with a given wl */
-            cur_trace_in=cr2res_get_trace_wave_poly(trace_wave,CR2RES_COL_ALL, 
-                    order, cur_trace_id) ;
-            cur_x = cur_y = 1.0 ;
-            if (cr2res_slit_curv_get_position(cur_trace_in, cur_wave_poly_in, 
-                    ref_wl, &cur_x, &cur_y) == -1) {
-                /* Cannot get the position for this wavelength - abort */
-                abort_fit = 1 ;
-            }
-
-            if (display == ref_x)
-                cpl_msg_debug(__func__, 
-                    "             Order/Trace: %d/%d - (x,y,wl)=(%g, %g, %g)", 
-                    cur_order, cur_trace_id, cur_x, cur_y, ref_wl) ;
-
-            cpl_polynomial_delete(cur_trace_in) ;
-            cpl_polynomial_delete(cur_wave_poly_in) ;
-            cpl_matrix_set(x_points, 0, idx, cur_y) ;
-            cpl_vector_set(y_points, idx, cur_x) ;
-        }
-
-        /* Compute the fit */
-        slit_curve = cpl_polynomial_new(1) ;
-
-        if (abort_fit) {
-            cpl_msg_debug(__func__, "Abort the fit for x=%"CPL_SIZE_FORMAT, 
-                    ref_x) ;
-            /* Use the vertical Slit Polynomial */
-            power = 0 ;
-            cpl_polynomial_set_coeff(slit_curve, &power, (double)ref_x) ;
-            cpl_error_reset() ;
-        } else if (cpl_polynomial_fit(slit_curve, x_points, NULL, y_points, 
-                    NULL, CPL_FALSE, NULL, &poly_degree) != CPL_ERROR_NONE) {
-            cpl_msg_warning(__func__, "Cannot fit the slit") ;
-            cpl_polynomial_delete(slit_curve) ;
-
-            /* Use the vertical Slit Polynomial */
-            slit_curve = cpl_polynomial_new(1) ;
-            power = 0 ;
-            cpl_polynomial_set_coeff(slit_curve, &power, (double)ref_x) ;
-        }
-
-        if (display == ref_x) {
-            cpl_msg_debug(__func__, "X points:") ;
-            if (cpl_msg_get_level() == CPL_MSG_DEBUG) 
-                cpl_matrix_dump(x_points, stdout) ;
-            cpl_msg_debug(__func__, "Y points:") ;
-            if (cpl_msg_get_level() == CPL_MSG_DEBUG) 
-                cpl_vector_dump(y_points, stdout);
-            cpl_msg_debug(__func__, "Slit curve:") ;
-            if (cpl_msg_get_level() == CPL_MSG_DEBUG) 
-                cpl_polynomial_dump(slit_curve, stdout) ;
-        }
-
-        /* Clean */
-        cpl_matrix_delete(x_points) ;
-        cpl_vector_delete(y_points) ;
-
-        /* Store result */
-        out_polys[ref_x-1] = slit_curve ;
+    // Determine the peaks and remove peaks at the edges of the order
+    if (cr2res_extract_sum_vert(img, trace_wave, order, trace,
+            height, &sfunc, &spec_bi, &model) != 0){
+        return -1;
     }
-    cpl_polynomial_delete(trace_in) ;
-    cpl_polynomial_delete(wave_poly_in) ;
-    return out_polys ;
-}
+    peaks = cr2res_etalon_get_maxpos(cpl_bivector_get_x(spec_bi));
+    cr2res_slit_curv_remove_peaks_at_edge(&peaks, window, ncols);
+    cpl_bivector_delete(spec_bi);
+    cpl_vector_delete(sfunc);
+    hdrl_image_delete(model);
 
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Fit the Polynomials coefficients
-  @param curvatures     An array of degree 2 polynomials (3 coeffs)
-  @param nb_polys       Number of passed polynomials
-  @param slit_polya     [out] The fitted polynomial for a coefficients
-  @param slit_polyb     [out] The fitted polynomial for b coefficients
-  @param slit_polyc     [out] The fitted polynomial for c coefficients
-  @return  0 if ok, -1 in error case
- */
-/*----------------------------------------------------------------------------*/
-int cr2res_slit_curv_fit_coefficients(
-        cpl_polynomial  **  curvatures,
-        int                 nb_polys,
-        cpl_polynomial  **  slit_polya,
-        cpl_polynomial  **  slit_polyb,
-        cpl_polynomial  **  slit_polyc)
-{
-    cpl_polynomial  *   coeffs_fit ;
-    cpl_size            poly_degree ;
-    cpl_matrix      *   x_points ;
-    cpl_vector      *   y_points_a ;
-    cpl_vector      *   y_points_b ;
-    cpl_vector      *   y_points_c ;
-    double              coeff ;
-    cpl_size            i, power ;
 
-    /* Check Entries */
-    if (curvatures ==  NULL || slit_polya == NULL || slit_polyb == NULL
-            || slit_polyc == NULL) return -1 ;
-    
-    /* Initialise */
-    poly_degree = 2 ;
-
-    /* Create Objects */
-    x_points = cpl_matrix_new(1, nb_polys) ;
-    y_points_a = cpl_vector_new(nb_polys) ;
-    y_points_b = cpl_vector_new(nb_polys) ;
-    y_points_c = cpl_vector_new(nb_polys) ;
-
-    /* Loop on all polynomials */
-    for (i=0 ; i<nb_polys ; i++) {
-        cpl_matrix_set(x_points, 0, i, (double)(i+1)) ;
-
-        /* Retrieve the A coeeficient */
-        power = 0 ;
-        coeff = cpl_polynomial_get_coeff(curvatures[i], &power) ;
-        cpl_vector_set(y_points_a, i, coeff) ;
-        /* Retrieve the B coeeficient */
-        power = 1 ;
-        coeff = cpl_polynomial_get_coeff(curvatures[i], &power) ;
-        cpl_vector_set(y_points_b, i, coeff) ;
-        /* Retrieve the C coeeficient */
-        power = 2 ;
-        coeff = cpl_polynomial_get_coeff(curvatures[i], &power) ;
-        cpl_vector_set(y_points_c, i, coeff) ;
+    // Rectify the image
+    if ((ycen = cr2res_trace_get_ycen(trace_wave, order,
+            trace, ncols)) == NULL){
+        cpl_vector_delete(peaks);
+        return -1 ;
+    }
+    if ((img_rect = cr2res_image_cut_rectify(img_in, ycen, height)) == NULL){
+        cpl_vector_delete(peaks);
+        cpl_vector_delete(ycen);
+        return -1;
+    }
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+        cpl_image_save(img_rect, "debug_image_rect.fits",
+            CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
     }
 
-    /* Create Objets */
-    *slit_polya = cpl_polynomial_new(1) ;
-    power = 0 ; cpl_polynomial_set_coeff(*slit_polya, &power, 0.0) ;
-    power = 1 ; cpl_polynomial_set_coeff(*slit_polya, &power, 1.0) ;
-    power = 2 ; cpl_polynomial_set_coeff(*slit_polya, &power, 0.0) ;
-    *slit_polyb = cpl_polynomial_duplicate(*slit_polya) ;
-    *slit_polyc = cpl_polynomial_duplicate(*slit_polya) ;
-    
-    /* Compute the fit for a coefficients */
-    cpl_polynomial_fit(*slit_polya, x_points, NULL, y_points_a, 
-                    NULL, CPL_FALSE, NULL, &poly_degree) ;
-    cpl_vector_delete(y_points_a) ;
+    // Determine the curvature of all peaks
+    if (cr2res_slit_curv_all_peaks(peaks, img_rect, ycen, window,
+            fit_second_order, &vec_b, &vec_c) != 0){
+        cpl_vector_delete(peaks);
+        cpl_vector_delete(ycen);
+        cpl_image_delete(img_rect);
+        return -1;
+    }
 
-    /* Compute the fit for b coefficients */
-    cpl_polynomial_fit(*slit_polyb, x_points, NULL, y_points_b, 
-                    NULL, CPL_FALSE, NULL, &poly_degree) ;
-    cpl_vector_delete(y_points_b) ;
-    
-    /* Compute the fit for c coefficients */
-    cpl_polynomial_fit(*slit_polyc, x_points, NULL, y_points_c, 
-                    NULL, CPL_FALSE, NULL, &poly_degree) ;
-    cpl_vector_delete(y_points_c) ;
-    cpl_matrix_delete(x_points) ;
-    return 0 ;
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+        cpl_vector_save(vec_b, "debug_vector_b.fits",
+            CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+        cpl_vector_save(vec_c, "debug_vector_c.fits",
+            CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    }
+    cpl_image_delete(img_rect);
+    cpl_vector_delete(ycen);
+
+    // Fit the curvature to the whole order
+    samppos = cpl_matrix_wrap(1, cpl_vector_get_size(peaks), 
+                    cpl_vector_get_data(peaks));
+
+    *slit_poly_a = cpl_polynomial_new(1);
+    *slit_poly_b = cpl_polynomial_new(1);
+    *slit_poly_c = cpl_polynomial_new(1);
+
+    power = 0;
+    cpl_polynomial_set_coeff(*slit_poly_a, &power, 1);
+    cpl_polynomial_fit(*slit_poly_b, samppos, NULL, vec_b, NULL,
+        CPL_TRUE, NULL, &degree);
+    cpl_polynomial_fit(*slit_poly_c, samppos, NULL, vec_c, NULL,
+        CPL_TRUE, NULL, &degree);
+
+    cpl_matrix_unwrap(samppos);
+
+    // Clean up memory
+    cpl_vector_delete(vec_b);
+    cpl_vector_delete(vec_c);
+    cpl_vector_delete(peaks);
+
+    return 0;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -458,6 +342,8 @@ hdrl_image * cr2res_slit_curv_gen_map(
     return out ;
 }
 
+/**@}*/
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Create the slit curvature polynomial for x position
@@ -468,7 +354,7 @@ hdrl_image * cr2res_slit_curv_gen_map(
   @return   the slit curvture polynomial or NULL in error case
  */
 /*----------------------------------------------------------------------------*/
-cpl_polynomial * cr2res_slit_curv_build_poly(
+static cpl_polynomial * cr2res_slit_curv_build_poly(
         cpl_polynomial  *   slit_poly_a,
         cpl_polynomial  *   slit_poly_b,
         cpl_polynomial  *   slit_poly_c,
@@ -487,8 +373,6 @@ cpl_polynomial * cr2res_slit_curv_build_poly(
             cpl_polynomial_eval_1d(slit_poly_c, x, NULL)) ;
     return out ;
 }
-
-/**@}*/
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -651,7 +535,6 @@ static int cr2res_slit_curv_remove_peaks_at_edge(
     return 0;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief Fit the curvature of a single peak
@@ -684,8 +567,7 @@ static int cr2res_slit_curv_single_peak(
     cpl_vector * a,
     int        * ia,
     double     * value_b,
-    double     * value_c
-)
+    double     * value_c)
 {
     cpl_size n, j, k;
     double posx, posy;
@@ -753,10 +635,8 @@ static int cr2res_slit_curv_single_peak(
   @param vec_b  [out] fitted first order coefficients of the curvature
   @param vec_c  [out] fitted second order coefficients of the curvature
   @return   0 if ok, -1 in error case
-
   Loops over the peaks, fitting the curvature of each using
   cr2res_slit_curv_single_peak.
-
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_slit_curv_all_peaks(
@@ -834,131 +714,6 @@ static int cr2res_slit_curv_all_peaks(
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
         cpl_image_delete(img_model);
     }
-
-    return 0;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief Get the slit curvature directly from the image
-  @param img   The input image
-  @param trace_wave  The trace wave, with the order tracing
-  @param order  The order to determine the curvature for
-  @param trace  The trace to determine the curvature for
-  @return   0 if ok, -1 in error case
-
-  To determine the curvature we perform several steps. First, find all peaks in
-  the spectrum. Next for each peak, fit a Gaussian with a shifted peak to the
-  image. The shift of the peak determines the curvature.
-  Finally fit the curvature to all 
-
- */
-/*----------------------------------------------------------------------------*/
-int cr2res_slit_curv_from_image(
-    const hdrl_image * img,
-    const cpl_table * trace_wave,
-    int order,
-    int trace,
-    int height,
-    int window,
-    cpl_size degree,
-    int fit_second_order,
-    cpl_polynomial  **   slit_poly_a,
-    cpl_polynomial  **   slit_poly_b,
-    cpl_polynomial  **   slit_poly_c)
-{
-    const cpl_image * img_in;
-
-    cpl_vector * sfunc;
-    cpl_vector * ycen;
-    cpl_bivector * spec_bi;
-    hdrl_image * model;
-    cpl_vector * peaks;
-    cpl_image * img_rect;
-    cpl_vector * vec_b;
-    cpl_vector * vec_c;
-
-    int ncols;
-    cpl_size power;
-
-    // For order fitting
-    cpl_matrix * samppos;
-
-    if (img == NULL || trace_wave == NULL || slit_poly_a == NULL ||
-        slit_poly_b == NULL || slit_poly_c == NULL) return -1;
-
-    img_in = hdrl_image_get_image_const(img);
-    ncols = cpl_image_get_size_x(img_in);
-
-    // Determine the peaks and remove peaks at the edges of the order
-    if (cr2res_extract_sum_vert(img, trace_wave, order, trace,
-            height, &sfunc, &spec_bi, &model) != 0){
-        return -1;
-    }
-    peaks = cr2res_etalon_get_maxpos(cpl_bivector_get_x(spec_bi));
-    cr2res_slit_curv_remove_peaks_at_edge(&peaks, window, ncols);
-    cpl_bivector_delete(spec_bi);
-    cpl_vector_delete(sfunc);
-    hdrl_image_delete(model);
-
-
-    // Rectify the image
-    if ((ycen = cr2res_trace_get_ycen(trace_wave, order,
-            trace, ncols)) == NULL){
-        cpl_vector_delete(peaks);
-        return -1 ;
-    }
-    if ((img_rect = cr2res_image_cut_rectify(img_in, ycen, height)) == NULL){
-        cpl_vector_delete(peaks);
-        cpl_vector_delete(ycen);
-        return -1;
-    }
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
-        cpl_image_save(img_rect, "debug_image_rect.fits",
-            CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-    }
-
-
-    // Determine the curvature of all peaks
-
-    if (cr2res_slit_curv_all_peaks(peaks, img_rect, ycen, window,
-            fit_second_order, &vec_b, &vec_c) != 0){
-        cpl_vector_delete(peaks);
-        cpl_vector_delete(ycen);
-        cpl_image_delete(img_rect);
-        return -1;
-    }
-
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
-        cpl_vector_save(vec_b, "debug_vector_b.fits",
-            CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-        cpl_vector_save(vec_c, "debug_vector_c.fits",
-            CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-    }
-    cpl_image_delete(img_rect);
-    cpl_vector_delete(ycen);
-
-    // Fit the curvature to the whole order
-    samppos = cpl_matrix_wrap(1, cpl_vector_get_size(peaks), 
-                    cpl_vector_get_data(peaks));
-
-    *slit_poly_a = cpl_polynomial_new(1);
-    *slit_poly_b = cpl_polynomial_new(1);
-    *slit_poly_c = cpl_polynomial_new(1);
-
-    power = 0;
-    cpl_polynomial_set_coeff(*slit_poly_a, &power, 1);
-    cpl_polynomial_fit(*slit_poly_b, samppos, NULL, vec_b, NULL,
-        CPL_TRUE, NULL, &degree);
-    cpl_polynomial_fit(*slit_poly_c, samppos, NULL, vec_c, NULL,
-        CPL_TRUE, NULL, &degree);
-
-    cpl_matrix_unwrap(samppos);
-
-    // Clean up memory
-    cpl_vector_delete(vec_b);
-    cpl_vector_delete(vec_c);
-    cpl_vector_delete(peaks);
 
     return 0;
 }

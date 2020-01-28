@@ -32,19 +32,18 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-cpl_polynomial ** cr2res_slit_curv_compute_order_trace(
-        cpl_table           *   trace_wave,
+int cr2res_slit_curv_compute_order_trace(
+        const hdrl_image    *   img,
+        const cpl_table     *   trace_wave,
         int                     order,
-        int                     trace_id,
-        int                     max_curv_degree,
-        int                     display) ;
-
-int cr2res_slit_curv_fit_coefficients(
-        cpl_polynomial  **  curvatures,
-        int                 nb_polys,
-        cpl_polynomial  **  slit_polya,
-        cpl_polynomial  **  slit_polyb,
-        cpl_polynomial  **  slit_polyc) ;
+        int                     trace,
+        int                     height,
+        int                     window,
+        cpl_size                degree,
+        int                     fit_second_order,
+        cpl_polynomial      **  slit_poly_a,
+        cpl_polynomial      **  slit_poly_b,
+        cpl_polynomial      **  slit_poly_c) ;
 
 hdrl_image * cr2res_slit_curv_gen_map(
         const cpl_table *   trace_wave,
@@ -52,25 +51,5 @@ hdrl_image * cr2res_slit_curv_gen_map(
         int                 trace_id,
         int                 spacing_pixels,
         int                 full_trace) ;
-
-cpl_polynomial * cr2res_slit_curv_build_poly(
-        cpl_polynomial  *   slit_poly_a,
-        cpl_polynomial  *   slit_poly_b,
-        cpl_polynomial  *   slit_poly_c,
-        cpl_size            x) ;
-
-
-int cr2res_slit_curv_from_image(
-        const hdrl_image * img,
-        const cpl_table * trace_wave,
-        int order,
-        int trace,
-        int height,
-        int window,
-        cpl_size degree,
-        int fit_second_order,
-        cpl_polynomial  **   slit_poly_a,
-        cpl_polynomial  **   slit_poly_b,
-        cpl_polynomial  **   slit_poly_c);
 
 #endif

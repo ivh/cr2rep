@@ -59,7 +59,7 @@ static void test_cr2res_fit_noise(void);
 static void test_cr2res_slit_pos(void);
 static void test_cr2res_slit_pos_img(void);
 static void test_cr2res_get_license(void);
-static void test_cr2res_slit_curv_from_image(void);
+static void test_cr2res_slit_curv_compute_order_trace(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -765,7 +765,7 @@ static cpl_table * load_etalon_table(){
     return trace_wave;
 }
 
-static void test_cr2res_slit_curv_from_image(){
+static void test_cr2res_slit_curv_compute_order_trace(){
 
     hdrl_image * img_hdrl;
     cpl_image * img_in = load_etalon_image();
@@ -786,7 +786,7 @@ static void test_cr2res_slit_curv_from_image(){
 
     img_hdrl = hdrl_image_create(img_in, NULL);
 
-    cpl_test_eq(0, cr2res_slit_curv_from_image(img_hdrl, trace_wave,
+    cpl_test_eq(0, cr2res_slit_curv_compute_order_trace(img_hdrl, trace_wave,
         order, trace, height, window, degree, fit_c,
         &poly_a, &poly_b, &poly_c));
 
@@ -846,7 +846,7 @@ int main(void)
     test_cr2res_fit_noise();
     test_cr2res_slit_pos();
     test_cr2res_slit_pos_img();
-    test_cr2res_slit_curv_from_image();
+    test_cr2res_slit_curv_compute_order_trace();
 
     return cpl_test_end(0);
 }

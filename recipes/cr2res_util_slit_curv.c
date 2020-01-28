@@ -84,28 +84,15 @@ Slit curvature computation                                              \n\
           Call cr2res_slit_curv_compute_order_trace() to get the        \n\
                 current trace curvatures                                \n\
           Update the slit curvature in the TRACE_WAVE table             \n\
-          Update the SLIT_CURVE table with the result                   \n\
         Generate a slit curve map                                       \n\
       Save the TRACE_WAVE                                               \n\
-      Save the SLIT_CURVE                                               \n\
       Save the SLIT_CURVE_MAP                                           \n\
-                                                                        \n\
-    cr2res_slit_curv_compute_order_trace()                              \n\
-      loop on the x positions (along the trace)                         \n\
-        Px іs computed for each x : X=Px(Y)                             \n\
-            where (X,Y) are the detector position, (1, 1) being         \n\
-            the lower left pixel.                                       \n\
                                                                         \n\
   Library functions uѕed                                                \n\
     cr2res_io_load_TRACE_WAVE()                                         \n\
     cr2res_slit_curv_compute_order_trace()                              \n\
-    cr2res_get_nb_traces_with_wavelength()                              \n\
-    cr2res_get_trace_wave_poly()                                        \n\
-    cr2res_slit_curv_get_position()                                     \n\
-    cr2res_slit_curv_fit_coefficients()                                 \n\
     cr2res_slit_curv_gen_map()                                          \n\
     cr2res_io_save_SLIT_CURV_MAP()                                      \n\
-    cr2res_io_save_SLIT_CURV()                                          \n\
     cr2res_io_save_TRACE_WAVE()                                         \n\
 ";
 
@@ -394,10 +381,11 @@ static int cr2res_util_slit_curv(
                 cpl_msg_indent_more() ;
         
                 /* Call the Slit Curvature Computation */
+                /* TODO : Should those become parameters ? */
                 int height = 100 ;
                 int window = 15 ;
                 int fit_c = 1 ;
-                if (cr2res_slit_curv_from_image(lamp_image[det_nr-1], 
+                if (cr2res_slit_curv_compute_order_trace(lamp_image[det_nr-1], 
                             trace_wave[det_nr-1], order, trace_id,
                             height, window, curv_degree, fit_c, 
                             &slit_polya, &slit_polyb, &slit_polyc)) {
