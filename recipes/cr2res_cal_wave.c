@@ -634,7 +634,15 @@ static int cr2res_cal_wave(
         ext_plist[det_nr-1] = NULL ;
 
         /* Compute only one detector */
-        if (reduce_det != 0 && det_nr != reduce_det) continue ;
+        if (reduce_det != 0 && det_nr != reduce_det) {
+            /* Propagate the non-processed TW extensions if needed */
+            if (propagate_flag) {
+                out_trace_wave[det_nr-1] = cr2res_io_load_TRACE_WAVE(
+                        cpl_frame_get_filename(trace_wave_frame),
+                        det_nr) ;
+            }
+            continue ;
+        }
 
         cpl_msg_info(__func__, "Process detector number %d", det_nr) ;
         cpl_msg_indent_more() ;
