@@ -750,7 +750,6 @@ static void test_cr2res_slit_pos_img()
 }
 
 static cpl_image * load_etalon_image(){
-    // char path[] = "/DATA/ESO/CRIRES+/tdata/CD13/UNCLASSIFIED/CRIRES_SPEC_WAVE241_0300.fits";
     char * path = cpl_sprintf("%s/cr2res_slit_curv_test.fits", 
             getenv("srcdir"));
     cpl_image * img = cpl_image_load(path, CPL_TYPE_INT, 0, 1);
@@ -772,18 +771,16 @@ static void test_cr2res_slit_curv_from_image(){
     cpl_image * img_in = load_etalon_image();
     cpl_table * trace_wave = load_etalon_table();
 
-    cpl_polynomial * poly_a = NULL;
-    cpl_polynomial * poly_b = NULL;
-    cpl_polynomial * poly_c = NULL;
-    cpl_array * slit_array = NULL;
+    cpl_polynomial * poly_a;
+    cpl_polynomial * poly_b;
+    cpl_polynomial * poly_c;
 
-    int order = 9;
+    int order = 1;
     int trace = 1;
     int height = 100; // The height of the order
     int window = 15;  // The spacing between peaks
     int degree = 2;   // That is the default format
     int fit_c = 1;    // Thats what we want most of the time
-    int j = 0;
 
     // cpl_table_save(trace_wave, NULL, NULL, "debug_tw.fits", CPL_IO_CREATE);
 
@@ -796,24 +793,6 @@ static void test_cr2res_slit_curv_from_image(){
     cpl_polynomial_dump(poly_a, stderr);
     cpl_polynomial_dump(poly_b, stderr);
     cpl_polynomial_dump(poly_c, stderr);
-
-    /* Fill the SLIT_CURVE_A/B/C for the current trace */
-    j = cr2res_get_trace_table_index(trace_wave, order, trace);
-
-    slit_array = cr2res_convert_poly_to_array(poly_a, 3) ;
-    cpl_table_set_array(trace_wave,
-            CR2RES_COL_SLIT_CURV_A, j, slit_array) ;
-    cpl_array_delete(slit_array) ;
-    slit_array = cr2res_convert_poly_to_array(poly_b, 3) ;
-    cpl_table_set_array(trace_wave,
-            CR2RES_COL_SLIT_CURV_B, j, slit_array) ;
-    cpl_array_delete(slit_array) ;
-    slit_array = cr2res_convert_poly_to_array(poly_c, 3) ;
-    cpl_table_set_array(trace_wave,
-            CR2RES_COL_SLIT_CURV_C, j, slit_array) ;
-    cpl_array_delete(slit_array) ;
-
-    cpl_table_save(trace_wave, NULL, NULL, "debug_tw.fits", CPL_IO_CREATE);
 
     cpl_image_delete(img_in);
     hdrl_image_delete(img_hdrl);
