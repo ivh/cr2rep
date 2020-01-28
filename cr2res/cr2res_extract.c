@@ -1455,6 +1455,8 @@ int cr2res_extract_slitdec_curved(
     cpl_image       *   model_rect;
     cpl_vector      *   ycen ;
     cpl_image       *   img_tmp;
+    cpl_image       *   img_tmp2;
+    cpl_mask        *   kernel;
     cpl_image       *   img_out;
     cpl_vector      *   spec_sw;
     cpl_vector      *   slitfu_sw;
@@ -1679,9 +1681,17 @@ int cr2res_extract_slitdec_curved(
         img_sw_data = cpl_image_get_data_double(img_sw);
         err_sw_data = cpl_image_get_data_double(err_sw);
         unc_sw_data = cpl_vector_get_data(unc_sw);
-        img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
-        spec_sw = cpl_vector_new_from_image_row(img_tmp,1);
+        // First guess for the spectrum
+        img_tmp = cpl_image_collapse_create(img_sw, 0);
+        img_tmp2 = cpl_image_new(swath, 1, CPL_TYPE_DOUBLE);
+        kernel = cpl_mask_new(5, 1);
+        cpl_mask_not(kernel);
+        cpl_image_filter_mask(img_tmp2, img_tmp, kernel,
+            CPL_FILTER_MEDIAN, CPL_BORDER_FILTER);
+        spec_sw = cpl_vector_new_from_image_row(img_tmp2, 1);
         cpl_image_delete(img_tmp);
+        cpl_image_delete(img_tmp2);
+        cpl_mask_delete(kernel);
         spec_sw_data = cpl_vector_get_data(spec_sw);
 
         for (j=sw_start;j<sw_end;j++){
