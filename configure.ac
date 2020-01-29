@@ -92,6 +92,7 @@ AC_CONFIG_FILES(Makefile
                 doxygen/Doxyfile
                 cr2res/Makefile
                 cr2res/tests/Makefile
+                tools/Makefile
                 recipes/Makefile
                 regtests/Makefile
                 regtests/tests/Makefile
