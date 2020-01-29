@@ -60,6 +60,7 @@ static int cr2res_cal_flat_compare(
         const cpl_frame   *   frame2) ;
 static int cr2res_cal_flat_reduce(
         const cpl_frameset  *   rawframes,
+        const cpl_frame     *   tw_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   bpm_frame,
@@ -99,10 +100,20 @@ static int cr2res_cal_flat(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_cal_flat_description[] = "\
 Flat                                                                    \n\
-  Compute the master flat and perform the traces detection              \n\
+  Compute the master flat and perform the traces detection.             \n\
+  If a TW file is provided, its traces and slit curvatures are used     \n\
+  for the extraction needed to create the master flat.                  \n\
+  If not provided, the measured traces are used, and the slit is        \n\
+  considered vertical.                                                  \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_FLAT_RAW " [1 to n]                               \n\
+    trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [0 to 1]                  \n\
+            or " CR2RES_CAL_FLAT_TW_MERGED_PROCATG "                    \n\
+            or " CR2RES_UTIL_TRACE_TW_PROCATG "                         \n\
+            or " CR2RES_UTIL_WAVE_TW_PROCATG "                          \n\
+            or " CR2RES_CAL_WAVE_TW_PROCATG "                           \n\
+            or " CR2RES_UTIL_SLIT_CURV_TW_PROCATG "                     \n\
     detlin.fits " CR2RES_CAL_DETLIN_COEFFS_PROCATG " [0 to 1]           \n\
     master_dark.fits " CR2RES_CAL_DARK_MASTER_PROCATG " [0 to 1]        \n\
     bpm.fits " CR2RES_CAL_DARK_BPM_PROCATG " [0 to 1]                   \n\
@@ -149,6 +160,8 @@ Flat                                                                    \n\
       Compute the traces with cr2res_trace(--trace_degree,              \n\
                  --trace_min_cluster, --trace_smooth, --trace_opening)  \n\
                 on avg                                                  \n\
+      For the following step, the computed TW is used if there is no    \n\
+      input TW provided, the provided one is uѕed otherwise.            \n\
       loop on the traces t:                                             \n\
         cr2res_extract_slitdec_curved(--extract_oversample,             \n\
                  --extract_swath_width, --extract_height,               \n\
@@ -433,6 +446,7 @@ static int cr2res_cal_flat(
                             reduce_trace, trace_smooth_x, trace_smooth_y ;
     double                  bpm_low, bpm_high, bpm_lines_ratio,
                             trace_threshold, extract_smooth ;
+    const cpl_frame     *   trace_wave_frame ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   bpm_frame ;
@@ -527,6 +541,7 @@ static int cr2res_cal_flat(
     }
 
     /* Get Calibration frames */
+    trace_wave_frame = cr2res_io_find_TRACE_WAVE(frameset) ;
     detlin_frame = cpl_frameset_find_const(frameset,
             CR2RES_CAL_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
@@ -601,14 +616,14 @@ static int cr2res_cal_flat(
                 cpl_msg_indent_more() ;
 
                 /* Call the reduction function */
-                if (cr2res_cal_flat_reduce(raw_one_setting_decker, detlin_frame,
-                            master_dark_frame, bpm_frame, calib_cosmics_corr,
-                            bpm_low, bpm_high, bpm_lines_ratio,
-                            trace_degree, trace_min_cluster, trace_smooth_x,
-                            trace_smooth_y, trace_threshold, trace_opening, 
-                            extract_oversample, extract_swath_width, 
-                            extract_height, extract_smooth, 0, det_nr, 
-                            reduce_order, reduce_trace,
+                if (cr2res_cal_flat_reduce(raw_one_setting_decker,
+                            trace_wave_frame, detlin_frame, master_dark_frame, 
+                            bpm_frame, calib_cosmics_corr, bpm_low, bpm_high, 
+                            bpm_lines_ratio, trace_degree, trace_min_cluster, 
+                            trace_smooth_x, trace_smooth_y, trace_threshold, 
+                            trace_opening, extract_oversample, 
+                            extract_swath_width, extract_height, extract_smooth,
+                            0, det_nr, reduce_order, reduce_trace,
                             &(master_flat[det_nr-1]),
                             &(trace_wave[i][det_nr-1]),
                             &(slit_func[det_nr-1]),
@@ -767,6 +782,7 @@ static int cr2res_cal_flat(
 /**
   @brief Compute the flat for 1 setting, 1 decker position, 1 detector
   @param rawframes          Input raw frames (same setting, same decker)
+  @param tw_frame           Optional TW frame or NULL
   @param detlin_frame       Associated detlin coefficients
   @param master_dark_frame  Associated master dark
   @param bpm_frame          Associated BPM
@@ -800,6 +816,7 @@ static int cr2res_cal_flat(
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_flat_reduce(
         const cpl_frameset  *   rawframes,
+        const cpl_frame     *   tw_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   bpm_frame,
@@ -838,6 +855,7 @@ static int cr2res_cal_flat_reduce(
     hdrl_image          *   master_flat_loc ;
     cpl_image           *   bpm_im ;
     cpl_mask            *   bpm_flat ;
+    cpl_table           *   computed_traces ;
     cpl_table           *   traces ;
     cpl_bivector        **  spectrum ;
     cpl_vector          **  slit_func_vec ;
@@ -909,7 +927,7 @@ static int cr2res_cal_flat_reduce(
     /* Compute traces */
     cpl_msg_info(__func__, "Compute the traces") ;
     cpl_msg_indent_more() ;
-    if ((traces = cr2res_trace(hdrl_image_get_image(collapsed),
+    if ((computed_traces = cr2res_trace(hdrl_image_get_image(collapsed),
                     trace_smooth_x, trace_smooth_y, trace_threshold, 
                     trace_opening, trace_degree, trace_min_cluster)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the traces") ;
@@ -920,7 +938,15 @@ static int cr2res_cal_flat_reduce(
     cpl_msg_indent_less() ;
 
     /* Add The remaining Columns to the trace table */
-    cr2res_trace_add_extra_columns(traces, first_file, reduce_det) ;
+    cr2res_trace_add_extra_columns(computed_traces, first_file, reduce_det) ;
+
+    /* Use the input traces for extraction if they are provided */
+    if (tw_frame) {
+        traces = cr2res_io_load_TRACE_WAVE(cpl_frame_get_filename(tw_frame), 
+                reduce_det) ;
+    } else {
+        traces = cpl_table_duplicate(computed_traces) ;
+    }
 
     /* Extract */
     nb_traces = cpl_table_get_nrow(traces) ;
@@ -1005,6 +1031,7 @@ static int cr2res_cal_flat_reduce(
     }
     cpl_free(spectrum) ;
     cpl_free(slit_func_vec) ;
+    cpl_table_delete(traces) ;
 
     /* Compute the Master flat */
     cpl_msg_info(__func__, "Compute the master flat") ;
@@ -1017,7 +1044,7 @@ static int cr2res_cal_flat_reduce(
         cpl_table_delete(extract_tab) ;
         hdrl_image_delete(model_master) ;
         hdrl_image_delete(collapsed) ;
-        cpl_table_delete(traces) ;
+        cpl_table_delete(computed_traces) ;
         cpl_msg_indent_less() ;
         return -1 ;
     }
@@ -1047,7 +1074,7 @@ static int cr2res_cal_flat_reduce(
         hdrl_image_delete(master_flat_loc) ;
         cpl_image_delete(bpm_im) ;
         cpl_mask_delete(bpm_flat) ;
-        cpl_table_delete(traces) ;
+        cpl_table_delete(computed_traces) ;
         cpl_msg_indent_less() ;
         return -1 ;
     }
@@ -1062,13 +1089,14 @@ static int cr2res_cal_flat_reduce(
     qc_trace_centery = cr2res_qc_flat_trace_center_y(NULL) ;
     qc_nbbad = cpl_mask_count(bpm_flat) ;
     cpl_mask_delete(bpm_flat) ;
-    cr2res_qc_flat_order_positions(traces,&qc_order_nb,&qc_order_pos,&nbvals);
+    cr2res_qc_flat_order_positions(computed_traces, &qc_order_nb, &qc_order_pos,
+            &nbvals);
 
     /* Load the extension header for saving */
     ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
     plist = cpl_propertylist_load(first_file, ext_nr) ;
     if (plist == NULL) {
-        cpl_table_delete(traces) ;
+        cpl_table_delete(computed_traces) ;
         cpl_table_delete(slit_func_tab) ;
         cpl_table_delete(extract_tab) ;
         hdrl_image_delete(model_master) ;
@@ -1081,10 +1109,10 @@ static int cr2res_cal_flat_reduce(
     /* Store the QC parameters in the plist */
     if (qc_order_nb != NULL && qc_order_pos != NULL) {
         for (i=0 ; i<nbvals ; i++) {
-			char * qc_name = cpl_sprintf("%s%02d",
-					CR2RES_HEADER_QC_FLAT_ORDERPOS, qc_order_nb[i]) ;
-			cpl_propertylist_append_double(plist, qc_name, qc_order_pos[i]);
-			cpl_free(qc_name) ;
+            char * qc_name = cpl_sprintf("%s%02d",
+                    CR2RES_HEADER_QC_FLAT_ORDERPOS, qc_order_nb[i]) ;
+            cpl_propertylist_append_double(plist, qc_name, qc_order_pos[i]);
+            cpl_free(qc_name) ;
         }
     }
     if (qc_order_nb != NULL) cpl_free(qc_order_nb) ;
@@ -1107,7 +1135,7 @@ static int cr2res_cal_flat_reduce(
             qc_nbbad) ;
 
     /* Return the results */
-    *trace_wave = traces ;
+    *trace_wave = computed_traces ;
     *slit_func = slit_func_tab ;
     *extract_1d = extract_tab ;
     *slit_model = model_master ;
