@@ -74,11 +74,11 @@ static int cr2res_cal_flat_reduce(
         int                     trace_smooth_y,
         double                  trace_threshold,
         int                     trace_opening,
+        cr2res_extr_method      extr_method,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
         double                  extract_smooth,
-        int                     extract_sum_only,
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
@@ -88,7 +88,7 @@ static int cr2res_cal_flat_reduce(
         cpl_table           **  extract_1d,
         hdrl_image          **  slit_model,
         cpl_image           **  bpm,
-        cpl_propertylist    **  plist) ;
+        cpl_propertylist    **  ext_plist) ;
 static int cr2res_cal_flat_create(cpl_plugin *);
 static int cr2res_cal_flat_exec(cpl_plugin *);
 static int cr2res_cal_flat_destroy(cpl_plugin *);
@@ -335,6 +335,14 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_method",
+            CPL_TYPE_STRING, "Extraction method (SUM / MEDIAN / TILTSUM / "
+            "OPT_VERT / OPT_CURV )",
+            "cr2res.cr2res_util_extract", "OPT_CURV");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_method");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
             "cr2res.cr2res_cal_flat", 2);
@@ -446,6 +454,8 @@ static int cr2res_cal_flat(
                             reduce_trace, trace_smooth_x, trace_smooth_y ;
     double                  bpm_low, bpm_high, bpm_lines_ratio,
                             trace_threshold, extract_smooth ;
+    cr2res_extr_method      extr_method;
+    const char          *   sval ;
     const cpl_frame     *   trace_wave_frame ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
@@ -511,6 +521,20 @@ static int cr2res_cal_flat(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.trace_opening");
     trace_opening = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_flat.extract_method");
+    sval = cpl_parameter_get_string(param);
+    if (!strcmp(sval, ""))              extr_method = CR2RES_EXTR_OPT_CURV;
+    else if (!strcmp(sval, "OPT_VERT")) extr_method = CR2RES_EXTR_OPT_VERT;
+    else if (!strcmp(sval, "OPT_CURV")) extr_method = CR2RES_EXTR_OPT_CURV;
+    else if (!strcmp(sval, "SUM"))      extr_method = CR2RES_EXTR_SUM;
+    else if (!strcmp(sval, "MEDIAN"))   extr_method = CR2RES_EXTR_MEDIAN;
+    else if (!strcmp(sval, "TILTSUM"))  extr_method = CR2RES_EXTR_TILTSUM;
+    else {
+        cpl_msg_error(__func__, "Invalid Extraction Method specified");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1;
+    }
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.extract_oversample");
     extract_oversample = cpl_parameter_get_int(param);
@@ -621,9 +645,9 @@ static int cr2res_cal_flat(
                             bpm_frame, calib_cosmics_corr, bpm_low, bpm_high, 
                             bpm_lines_ratio, trace_degree, trace_min_cluster, 
                             trace_smooth_x, trace_smooth_y, trace_threshold, 
-                            trace_opening, extract_oversample, 
+                            trace_opening, extr_method, extract_oversample, 
                             extract_swath_width, extract_height, extract_smooth,
-                            0, det_nr, reduce_order, reduce_trace,
+                            det_nr, reduce_order, reduce_trace,
                             &(master_flat[det_nr-1]),
                             &(trace_wave[i][det_nr-1]),
                             &(slit_func[det_nr-1]),
@@ -796,11 +820,11 @@ static int cr2res_cal_flat(
   @param trace_smooth_y     Trace computation related
   @param trace_threshold    Trace computation related
   @param trace_opening      Trace computation related
+  @param extr_method        The wished extraction method
   @param extract_oversample Extraction related
   @param extract_swath_width Extraction related
   @param extract_height     Extraction related
   @param extract_smooth     Extraction related
-  @param extract_sum_only   Extraction related
   @param reduce_det         The detector to compute
   @param reduce_order       The order to compute (-1 for all)
   @param reduce_trace       The trace to compute (-1 for all)
@@ -830,11 +854,11 @@ static int cr2res_cal_flat_reduce(
         int                     trace_smooth_y,
         double                  trace_threshold,
         int                     trace_opening,
+        cr2res_extr_method      extr_method,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
         double                  extract_smooth,
-        int                     extract_sum_only,
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
@@ -873,6 +897,11 @@ static int cr2res_cal_flat_reduce(
 
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
+    if (extr_method != CR2RES_EXTR_OPT_CURV && 
+            extr_method != CR2RES_EXTR_SUM) {
+        cpl_msg_error(__func__, "Failed to read the dits") ;
+        return -1 ;
+    }
 
     /* Get the First RAW file  */
     first_file = cpl_frame_get_filename(
@@ -978,11 +1007,10 @@ static int cr2res_cal_flat_reduce(
         cpl_msg_indent_more() ;
 
         /* Call the Extraction */
-        if (extract_sum_only) {
-            /* Call the SUM ONLY extraction */
-            if (cr2res_extract_sum_vert(collapsed,
-                        traces, order, trace_id, extract_height,
-                        &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
+        if (extr_method == CR2RES_EXTR_SUM) {
+            if (cr2res_extract_sum_vert(collapsed, traces, order, trace_id, 
+                        extract_height, &(slit_func_vec[i]), &(spectrum[i]), 
+                        &model_tmp) != 0) {
                 cpl_msg_error(__func__, "Cannot (sum-)extract the trace") ;
                 slit_func_vec[i] = NULL ;
                 spectrum[i] = NULL ;
@@ -991,14 +1019,49 @@ static int cr2res_cal_flat_reduce(
                 cpl_msg_indent_less() ;
                 continue ;
             }
-        } else {
-            /* Call the SLIT DECOMPOSITION */
-            if (cr2res_extract_slitdec_curved(
-                        collapsed,
-                        traces, order, trace_id, extract_height,
-                        extract_swath_width, extract_oversample,
-                        extract_smooth, &(slit_func_vec[i]), &(spectrum[i]),
+        } else if (extr_method == CR2RES_EXTR_MEDIAN) {
+            if (cr2res_extract_median(collapsed, traces, order, trace_id, 
+                        extract_height, &(slit_func_vec[i]), &(spectrum[i]), 
                         &model_tmp) != 0) {
+                cpl_msg_error(__func__, "Cannot (median-)extract the trace") ;
+                slit_func_vec[i] = NULL ;
+                spectrum[i] = NULL ;
+                model_tmp = NULL ;
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+        } else if (extr_method == CR2RES_EXTR_TILTSUM) {
+            if (cr2res_extract_sum_tilt(collapsed, traces, order, trace_id, 
+                        extract_height, &(slit_func_vec[i]), &(spectrum[i]), 
+                        &model_tmp) != 0) {
+                cpl_msg_error(__func__, "Cannot (tiltsum-)extract the trace") ;
+                slit_func_vec[i] = NULL ;
+                spectrum[i] = NULL ;
+                model_tmp = NULL ;
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+        } else if (extr_method == CR2RES_EXTR_OPT_VERT) {
+            if (cr2res_extract_slitdec_vert(collapsed, traces, order, trace_id,
+                        extract_height, extract_swath_width, extract_oversample,
+                        extract_smooth, &(slit_func_vec[i]), &(spectrum[i]), 
+                        &model_tmp) != 0) {
+                cpl_msg_error(__func__,
+                        "Cannot (slitdec-vert-) extract the trace") ;
+                slit_func_vec[i] = NULL ;
+                spectrum[i] = NULL ;
+                model_tmp = NULL ;
+                cpl_error_reset() ;
+                cpl_msg_indent_less() ;
+                continue ;
+            }
+        } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
+            if (cr2res_extract_slitdec_curved(collapsed, traces, order, 
+                        trace_id, extract_height, extract_swath_width, 
+                        extract_oversample, extract_smooth, 
+                        &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
                 cpl_msg_error(__func__, "Cannot (slitdec-) extract the trace") ;
                 slit_func_vec[i] = NULL ;
                 spectrum[i] = NULL ;

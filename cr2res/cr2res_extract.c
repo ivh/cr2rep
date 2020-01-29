@@ -216,7 +216,6 @@ int cr2res_extract_traces(
 
         /* Call the Extraction */
         if (extr_method == CR2RES_EXTR_SUM) {
-            /* Call the SUM ONLY extraction */
             if (cr2res_extract_sum_vert(img, traces, order,
                         trace_id, extr_height, &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
@@ -229,7 +228,6 @@ int cr2res_extract_traces(
                 continue ;
             }
         } else if (extr_method == CR2RES_EXTR_MEDIAN) {
-            /* Call the SUM ONLY extraction */
             if (cr2res_extract_median(img, traces, order,
                         trace_id, extr_height, &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
@@ -242,7 +240,6 @@ int cr2res_extract_traces(
                 continue ;
             }
         } else if (extr_method == CR2RES_EXTR_TILTSUM) {
-            /* Call the SUM ONLY extraction */
             if (cr2res_extract_sum_tilt(img, traces, order,
                         trace_id, extr_height, &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
@@ -255,7 +252,6 @@ int cr2res_extract_traces(
                 continue ;
             }
         } else if (extr_method == CR2RES_EXTR_OPT_VERT) {
-            /* Call the vertical SLIT DECOMPOSITION */
             if (cr2res_extract_slitdec_vert(img, traces,
                         order, trace_id, extr_height, swath_width,
                         oversample, smooth_slit, &(slit_func_vec[i]),
@@ -270,7 +266,6 @@ int cr2res_extract_traces(
                 continue ;
             }
         } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
-            /* Call the curved SLIT DECOMPOSITION */
             if (cr2res_extract_slitdec_curved(img, traces,
                         order, trace_id, extr_height, swath_width,
                         oversample, smooth_slit, &(slit_func_vec[i]),
