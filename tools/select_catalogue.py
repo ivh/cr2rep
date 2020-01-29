@@ -21,7 +21,7 @@ mask = lines['Wavelength'] < 0.0
 
 for goo in GOOD:
     if goo.startswith('#'): continue
-    start,end=[ float(x) for x in goo.split(',') ]
+    start,end=[ float(x) for x in goo.split() ]
     m = (lines['Wavelength'] < end) & (lines['Wavelength'] > start)
     mask = mask | m
 
