@@ -93,7 +93,7 @@ Flat normalization                                                      \n\
                                                                         \n\
   Outputs                                                               \n\
     cr2res_util_normflat_[setting]_[Decker]_bpm.fits "
-    CR2RES_UTIL_MASTER_FLAT_PROCATG "\n\
+    CR2RES_UTIL_NORM_BPM_PROCATG "\n\
     cr2res_util_normflat_[setting]_[Decker]_master.fits "
     CR2RES_UTIL_MASTER_FLAT_PROCATG "\n\
                                                                         \n\
