@@ -73,6 +73,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
         } else if (!strcmp(tag, CR2RES_COMMAND_LINE) ||
                 /* DO.CATG Tags for the RAW files */
                 !strcmp(tag, CR2RES_EMISSION_LINES_TXT_RAW) ||
+                !strcmp(tag, CR2RES_LINES_SELECTION_TXT_RAW) ||
                 !strcmp(tag, CR2RES_PHOTO_FLUX_TXT_RAW) ||
                 !strcmp(tag, CR2RES_DETLIN_RAW) ||
                 !strcmp(tag, CR2RES_DARK_RAW) ||

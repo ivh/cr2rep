@@ -62,23 +62,30 @@ static char cr2res_util_genlines_description[] = " \
 Generate Lines calibration tables                                       \n\
                                                                         \n\
   Inputs                                                                \n\
-    raw.txt " CR2RES_EMISSION_LINES_TXT_RAW" [1]                        \n\
-    The ASCII file must contain two columns:                            \n\
+    raw1.txt " CR2RES_EMISSION_LINES_TXT_RAW" [1 to n]                  \n\
+    raw2.txt " CR2RES_LINES_SELECTION_TXT_RAW" [0 to 1]                 \n\
+    The ASCII file raw1.txt must contain two columns:                   \n\
       1st: Wavelengths in increasing order (the unit is corrected by    \n\
                the factor option to obtain nanometers).                 \n\
       2nd: The atmospheric emission.                                    \n\
       The ASCII files are in the catalogs/ directory of the CR2RES      \n\
                distribution.                                            \n\
+    The ASCII file raw2.txt contains a list of wavelength ranges        \n\
+    (1 per line) of type: 1632.25,1632.70                               \n\
+      The ASCII files are in the catalogs/selection/ directory of the   \n\
+                CR2RES distribution.                                    \n\
                                                                         \n\
   Output                                                                \n\
     cr2res_util_genlines.fits "CR2RES_EMISSION_LINES_PROCATG"           \n\
                                                                         \n\
   Algorithm                                                             \n\
-    Parse the 2 column text file                                        \n\
-    Apply the --wl_factor correction                                    \n\
-    if (--display) plot it                                              \n\
-    Create the CPL table                                                \n\
-    Save the table                                                      \n\
+    Loop on the raw1.txt files                                          \n\
+        Parse the 2 column text file                                    \n\
+        Apply the --wl_factor correction                                \n\
+        if (--display) plot it                                          \n\
+        Only keep the lines that fall in the selection rangeѕ (if any)  \n\
+        Create the CPL table                                            \n\
+        Save the table                                                  \n\
                                                                         \n\
   Library functions uѕed                                                \n\
     cr2res_io_save_EMISSION_LINES()                                     \n\
@@ -226,20 +233,24 @@ static int cr2res_util_genlines(
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   cur_frame ;
     const char          *   cur_fname ;
+    const cpl_frame     *   selection_frame ;
     char                *   out_file;
     double                  wl_fac ;
     int                     display ;
     cpl_bivector        *   bivec ;
     cpl_bivector        *   bivec_sorted ;
+    cpl_bivector        *   bivec_selec ;
+    cpl_bivector        *   bivec_selected ;
     double              *   pbivec_x ;
     double              *   pbivec_y ;
-    cpl_bivector        *   bivec_fill ;
-    double              *   pbivec_fill_x ;
-    double              *   pbivec_fill_y ;
+    double              *   pbivec_selec_x ;
+    double              *   pbivec_selec_y ;
+    double              *   pbivec_selected_x ;
+    double              *   pbivec_selected_y ;
     int                     nvals ;
     double                  wavel ;
     cpl_table           *   tab ;
-    int                     i ;
+    int                     i, j, k ;
 
     /* Retrieve input parameters */
     par=cpl_parameterlist_find_const(parlist, "cr2res_util_genlines.display");
@@ -254,6 +265,8 @@ static int cr2res_util_genlines(
     }
 
     /* Get Calibration frames */
+    selection_frame = cpl_frameset_find_const(frameset, 
+            CR2RES_LINES_SELECTION_TXT_RAW) ;
 
     /* Get the rawframes */
     rawframes = cr2res_extract_frameset(frameset, 
@@ -278,7 +291,6 @@ static int cr2res_util_genlines(
             cpl_msg_indent_less() ;
             return -1 ;
         }
-        nvals = cpl_bivector_get_size(bivec) ;
 
         /* Use wl_factor */
         cpl_vector_multiply_scalar(cpl_bivector_get_x(bivec), wl_fac) ;
@@ -294,6 +306,59 @@ static int cr2res_util_genlines(
             bivec_sorted = NULL;
         }
 
+        /* Apply the ѕelection */
+        if (selection_frame) {
+            bivec_selec = cpl_bivector_read(cpl_frame_get_filename(
+                        selection_frame)) ;
+            if (bivec_selec != NULL) {
+                pbivec_x = cpl_bivector_get_x_data(bivec) ;
+                pbivec_y = cpl_bivector_get_y_data(bivec) ;
+                pbivec_selec_x = cpl_bivector_get_x_data(bivec_selec) ;
+                pbivec_selec_y = cpl_bivector_get_y_data(bivec_selec) ;
+                /* Count the selected lines */
+                nvals = 0 ;
+                for (j=0 ; j<cpl_bivector_get_size(bivec) ; j++) {
+                    /* Loop on the selected ranges */
+                    for (k=0 ; k<cpl_bivector_get_size(bivec_selec) ; k++) {
+                        /* Check if the line is in one of the ranges */
+                        if (pbivec_x[j] >= pbivec_selec_x[k] &&
+                                pbivec_x[j] <= pbivec_selec_y[k]) {
+                            nvals++ ;
+                            /* Next line */
+                            break ;
+                        }
+                    }
+                }
+
+                if (nvals > 0) {
+                    /* Apply selection */
+                    bivec_selected = cpl_bivector_new(nvals) ;
+                    pbivec_selected_x = cpl_bivector_get_x_data(bivec_selected);
+                    pbivec_selected_y = cpl_bivector_get_y_data(bivec_selected);
+                    nvals = 0 ;
+                    for (j=0 ; j<cpl_bivector_get_size(bivec) ; j++) {
+                        /* Loop on the selected ranges */
+                        for (k=0 ; k<cpl_bivector_get_size(bivec_selec) ; k++) {
+                            /* Check if the line is in one of the ranges */
+                            if (pbivec_x[j] >= pbivec_selec_x[k] &&
+                                    pbivec_x[j] <= pbivec_selec_y[k]) {
+                                pbivec_selected_x[nvals] = pbivec_x[j] ;
+                                pbivec_selected_y[nvals] = pbivec_y[j] ;
+                                nvals++ ;
+                                /* Next line */
+                                break ;
+                            }
+                        }
+                    }
+                } else {
+                    bivec_selected = NULL ;
+                }
+                cpl_bivector_delete(bivec_selec) ;
+                cpl_bivector_delete(bivec) ;
+                bivec = bivec_selected ;
+            }
+        } 
+
         /* Display if requested */
         if (display) {
             cpl_plot_bivector(
@@ -302,6 +367,7 @@ static int cr2res_util_genlines(
         }
 
         /* Allocate the data container */
+        nvals = cpl_bivector_get_size(bivec) ;
         tab = cpl_table_new(nvals) ;
         cpl_table_wrap_double(tab, cpl_bivector_get_x_data(bivec),
                 CR2RES_COL_WAVELENGTH) ;
