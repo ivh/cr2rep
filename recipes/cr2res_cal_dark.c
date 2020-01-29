@@ -429,7 +429,7 @@ static int cr2res_cal_dark(
                 fname=cpl_frame_get_filename(
                         cpl_frameset_get_position(raw_one, i)) ; 
                 cpl_msg_info(__func__, "Load Image from File %s / Detector %i", 
-                        fname, det_nr) ;
+                        cr2res_get_base_name(fname), det_nr) ;
 
                 /* Load the image */
                 if ((ima_data = cr2res_io_load_image(fname, det_nr)) == NULL) {
