@@ -318,8 +318,9 @@ static int cr2res_util_slit_curv(
         cur_fname_tw = cpl_frame_get_filename(cur_frame_tw) ;
         cur_frame_lamp = cpl_frameset_get_position(rawframes_lamp, i) ;
         cur_fname_lamp = cpl_frame_get_filename(cur_frame_lamp) ;
-        cpl_msg_info(__func__, "Reduce Frames %s / %s ", 
-                cur_fname_tw, cur_fname_lamp) ;
+        cpl_msg_info(__func__, "Reduce Frames %s (%s) ", 
+                cr2res_get_base_name(cur_fname_lamp),
+                cr2res_get_base_name(cur_fname_tw)) ;
         cpl_msg_indent_more() ;
 
         /* Loop over the detectors */
