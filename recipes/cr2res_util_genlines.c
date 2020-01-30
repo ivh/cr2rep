@@ -62,30 +62,32 @@ static char cr2res_util_genlines_description[] = " \
 Generate Lines calibration tables                                       \n\
                                                                         \n\
   Inputs                                                                \n\
-    raw1.txt " CR2RES_EMISSION_LINES_TXT_RAW" [1 to n]                  \n\
+    raw1.txt " CR2RES_EMISSION_LINES_TXT_RAW" [1]                       \n\
     raw2.txt " CR2RES_LINES_SELECTION_TXT_RAW" [0 to 1]                 \n\
     The ASCII file raw1.txt must contain two columns:                   \n\
       1st: Wavelengths in increasing order (the unit is corrected by    \n\
                the factor option to obtain nanometers).                 \n\
       2nd: The atmospheric emission.                                    \n\
-      The ASCII files are in the catalogs/ directory of the CR2RES      \n\
-               distribution.                                            \n\
-    The ASCII file raw2.txt contains a list of wavelength ranges        \n\
-    (1 per line) of type: 1632.25,1632.70                               \n\
-      The ASCII files are in the catalogs/selection/ directory of the   \n\
-                CR2RES distribution.                                    \n\
+      The file is in the catalogs/ directory of the CR2RES distribution.\n\
+    The optional ASCII files raw2.txt contain a list of wavelength      \n\
+      ranges (1 per line) of type: 1632.25,1632.70                      \n\
+      The files are in the catalogs/selection/ directory of the CR2RES  \n\
+          distribution. They are called selection_XXX.dat, where XXX    \n\
+          identifies the setting [J33, Y22, ...].                       \n\
                                                                         \n\
   Output                                                                \n\
     cr2res_util_genlines.fits "CR2RES_EMISSION_LINES_PROCATG"           \n\
+    cr2res_util_genlines_XXX.fits "CR2RES_EMISSION_LINES_PROCATG"       \n\
                                                                         \n\
   Algorithm                                                             \n\
-    Loop on the raw1.txt files                                          \n\
-        Parse the 2 column text file                                    \n\
-        Apply the --wl_factor correction                                \n\
-        if (--display) plot it                                          \n\
+    Parse and load the 2 columns raw1.txt file                          \n\
+    Apply the --wl_factor correction                                    \n\
+    if (--display) plot it                                              \n\
+    Create the CPL table                                                \n\
+    Save the table with all lines                                       \n\
+    Loop on the selection files                                         \n\
         Only keep the lines that fall in the selection rangeѕ (if any)  \n\
-        Create the CPL table                                            \n\
-        Save the table                                                  \n\
+        Save the table with the selected lines                          \n\
                                                                         \n\
   Library functions uѕed                                                \n\
     cr2res_io_save_EMISSION_LINES()                                     \n\
@@ -230,10 +232,12 @@ static int cr2res_util_genlines(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   par ;
-    cpl_frameset        *   rawframes ;
-    const cpl_frame     *   cur_frame ;
-    const char          *   cur_fname ;
-    const cpl_frame     *   selection_frame ;
+    cpl_frameset        *   lines_list_frames ;
+    cpl_frame           *   lines_list_frame ;
+    const char          *   lines_list_fname ;
+    cpl_frameset        *   selection_frames ;
+    cpl_frame           *   selection_frame ;
+    const char          *   selection_fname ;
     char                *   out_file;
     double                  wl_fac ;
     int                     display ;
@@ -250,6 +254,7 @@ static int cr2res_util_genlines(
     int                     nvals ;
     double                  wavel ;
     cpl_table           *   tab ;
+    char                *   setting ;
     int                     i, j, k ;
 
     /* Retrieve input parameters */
@@ -265,57 +270,120 @@ static int cr2res_util_genlines(
     }
 
     /* Get Calibration frames */
-    selection_frame = cpl_frameset_find_const(frameset, 
+    selection_frames = cr2res_extract_frameset(frameset,
             CR2RES_LINES_SELECTION_TXT_RAW) ;
-
+        
     /* Get the rawframes */
-    rawframes = cr2res_extract_frameset(frameset, 
+    lines_list_frames = cr2res_extract_frameset(frameset, 
             CR2RES_EMISSION_LINES_TXT_RAW) ;
-    if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
-        cpl_msg_error(__func__, "Cannot find any RAW file") ;
-        cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;
+    if (lines_list_frames==NULL || 
+            cpl_frameset_get_size(lines_list_frames) != 1) {
+        cpl_msg_error(__func__, "Please provide 1 and only 1 Lines list file") ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        if (selection_frames != NULL) cpl_frameset_delete(selection_frames) ;
+        if (lines_list_frames != NULL) cpl_frameset_delete(lines_list_frames) ;
+        return -1 ;
+    }
+    lines_list_frame = cpl_frameset_get_position(lines_list_frames, 0);
+    lines_list_fname = cpl_frame_get_filename(lines_list_frame) ;
+
+    cpl_msg_info(__func__, "Process Lines List %s", lines_list_fname) ;
+    cpl_msg_indent_more() ;
+
+    /* Load the file */
+    if ((bivec=cpl_bivector_read(lines_list_fname))==NULL){
+        cpl_msg_error(__func__, "Cannot load the lines in the bivector") ;
+        cpl_msg_indent_less() ;
+        if (selection_frames != NULL) cpl_frameset_delete(selection_frames) ;
+        cpl_frameset_delete(lines_list_frames) ;
         return -1 ;
     }
 
-    /* Loop on the RAW frames */
-    for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
+    /* Use wl_factor */
+    cpl_vector_multiply_scalar(cpl_bivector_get_x(bivec), wl_fac) ;
+
+    /* Sort if needed */
+    int sort = 1 ;
+    if (sort) {
+        bivec_sorted = cpl_bivector_duplicate(bivec) ;
+        cpl_bivector_sort(bivec_sorted, bivec, CPL_SORT_ASCENDING,
+                CPL_SORT_BY_X) ;
+        cpl_bivector_delete(bivec) ;
+        bivec = bivec_sorted ;
+        bivec_sorted = NULL;
+    }
+
+    /* Display if requested */
+    if (display) {
+        cpl_plot_bivector(
+            "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Emission';",
+            "t 'Catalog lines' w lines", "", bivec);
+    }
+
+    /* Allocate the data container */
+    nvals = cpl_bivector_get_size(bivec) ;
+    tab = cpl_table_new(nvals) ;
+    cpl_table_wrap_double(tab, cpl_bivector_get_x_data(bivec),
+            CR2RES_COL_WAVELENGTH) ;
+    cpl_table_wrap_double(tab, cpl_bivector_get_y_data(bivec),
+            CR2RES_COL_EMISSION) ;
+
+    /* Save the table */
+    cpl_msg_info(__func__, "Saving the table with %d rows", nvals) ;
+    out_file = cpl_sprintf("%s.fits",
+            cr2res_get_base_name(cr2res_get_root_name(lines_list_fname)));
+    if (cr2res_io_save_EMISSION_LINES(out_file, tab, parlist, frameset,
+                RECIPE_STRING, NULL) == -1) {
+        cpl_msg_error(__func__, "Cannot write the table") ;
+        cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
+        cpl_table_unwrap(tab, CR2RES_COL_EMISSION) ;
+        cpl_table_delete(tab) ;
+        cpl_free(out_file);
+        if (selection_frames != NULL) cpl_frameset_delete(selection_frames) ;
+        cpl_frameset_delete(lines_list_frames) ;
+        cpl_bivector_delete(bivec) ;
+        cpl_msg_indent_less() ;
+        return -1 ;
+    }
+    cpl_free(out_file);
+    cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
+    cpl_table_unwrap(tab, CR2RES_COL_EMISSION) ;
+    cpl_table_delete(tab) ;
+
+    /* Loop on the selection frames */
+    for (i=0 ; i<cpl_frameset_get_size(selection_frames) ; i++) {
         /* Get the Current Frame */
-        cur_frame = cpl_frameset_get_position(rawframes, i) ;
-        cur_fname = cpl_frame_get_filename(cur_frame) ;
-        cpl_msg_info(__func__, "Handle File %s", cur_fname) ;
-        cpl_msg_indent_more() ;
-
-        /* Load the file */
-        if ((bivec=cpl_bivector_read(cpl_frame_get_filename(cur_frame)))==NULL){
-            cpl_msg_error(__func__, "Cannot load the file in the bivector") ;
-            cpl_msg_indent_less() ;
-            return -1 ;
-        }
-
-        /* Use wl_factor */
-        cpl_vector_multiply_scalar(cpl_bivector_get_x(bivec), wl_fac) ;
-
-        /* Sort if needed */
-        int sort = 1 ;
-        if (sort) {
-            bivec_sorted = cpl_bivector_duplicate(bivec) ;
-            cpl_bivector_sort(bivec_sorted, bivec, CPL_SORT_ASCENDING,
-                    CPL_SORT_BY_X) ;
-            cpl_bivector_delete(bivec) ;
-            bivec = bivec_sorted ;
-            bivec_sorted = NULL;
-        }
+        selection_frame = cpl_frameset_get_position(selection_frames, i) ;
+        selection_fname = cpl_frame_get_filename(selection_frame) ;
+        bivec_selected = NULL ;
 
         /* Apply the ѕelection */
-        if (selection_frame) {
-            bivec_selec = cpl_bivector_read(cpl_frame_get_filename(
-                        selection_frame)) ;
-            if (bivec_selec != NULL) {
-                pbivec_x = cpl_bivector_get_x_data(bivec) ;
-                pbivec_y = cpl_bivector_get_y_data(bivec) ;
-                pbivec_selec_x = cpl_bivector_get_x_data(bivec_selec) ;
-                pbivec_selec_y = cpl_bivector_get_y_data(bivec_selec) ;
-                /* Count the selected lines */
+        bivec_selec = cpl_bivector_read(selection_fname) ;
+        if (bivec_selec != NULL) {
+            pbivec_x = cpl_bivector_get_x_data(bivec) ;
+            pbivec_y = cpl_bivector_get_y_data(bivec) ;
+            pbivec_selec_x = cpl_bivector_get_x_data(bivec_selec) ;
+            pbivec_selec_y = cpl_bivector_get_y_data(bivec_selec) ;
+            /* Count the selected lines */
+            nvals = 0 ;
+            for (j=0 ; j<cpl_bivector_get_size(bivec) ; j++) {
+                /* Loop on the selected ranges */
+                for (k=0 ; k<cpl_bivector_get_size(bivec_selec) ; k++) {
+                    /* Check if the line is in one of the ranges */
+                    if (pbivec_x[j] >= pbivec_selec_x[k] &&
+                            pbivec_x[j] <= pbivec_selec_y[k]) {
+                        nvals++ ;
+                        /* Next line */
+                        break ;
+                    }
+                }
+            }
+
+            if (nvals > 0) {
+                /* Apply selection */
+                bivec_selected = cpl_bivector_new(nvals) ;
+                pbivec_selected_x = cpl_bivector_get_x_data(bivec_selected);
+                pbivec_selected_y = cpl_bivector_get_y_data(bivec_selected);
                 nvals = 0 ;
                 for (j=0 ; j<cpl_bivector_get_size(bivec) ; j++) {
                     /* Loop on the selected ranges */
@@ -323,80 +391,68 @@ static int cr2res_util_genlines(
                         /* Check if the line is in one of the ranges */
                         if (pbivec_x[j] >= pbivec_selec_x[k] &&
                                 pbivec_x[j] <= pbivec_selec_y[k]) {
+                            pbivec_selected_x[nvals] = pbivec_x[j] ;
+                            pbivec_selected_y[nvals] = pbivec_y[j] ;
                             nvals++ ;
                             /* Next line */
                             break ;
                         }
                     }
                 }
-
-                if (nvals > 0) {
-                    /* Apply selection */
-                    bivec_selected = cpl_bivector_new(nvals) ;
-                    pbivec_selected_x = cpl_bivector_get_x_data(bivec_selected);
-                    pbivec_selected_y = cpl_bivector_get_y_data(bivec_selected);
-                    nvals = 0 ;
-                    for (j=0 ; j<cpl_bivector_get_size(bivec) ; j++) {
-                        /* Loop on the selected ranges */
-                        for (k=0 ; k<cpl_bivector_get_size(bivec_selec) ; k++) {
-                            /* Check if the line is in one of the ranges */
-                            if (pbivec_x[j] >= pbivec_selec_x[k] &&
-                                    pbivec_x[j] <= pbivec_selec_y[k]) {
-                                pbivec_selected_x[nvals] = pbivec_x[j] ;
-                                pbivec_selected_y[nvals] = pbivec_y[j] ;
-                                nvals++ ;
-                                /* Next line */
-                                break ;
-                            }
-                        }
-                    }
-                } else {
-                    bivec_selected = NULL ;
-                }
-                cpl_bivector_delete(bivec_selec) ;
-                cpl_bivector_delete(bivec) ;
-                bivec = bivec_selected ;
+            } else {
+                bivec_selected = NULL ;
             }
+            cpl_bivector_delete(bivec_selec) ;
         } 
 
-        /* Display if requested */
-        if (display) {
-            cpl_plot_bivector(
-                "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Emission';",
-                "t 'Catalog lines' w lines", "", bivec);
-        }
+        /* Save the selection */
+        if (bivec_selected != NULL) {
+            /* Allocate the data container */
+            nvals = cpl_bivector_get_size(bivec_selected) ;
+            tab = cpl_table_new(nvals) ;
+            cpl_table_wrap_double(tab, cpl_bivector_get_x_data(bivec_selected),
+                    CR2RES_COL_WAVELENGTH) ;
+            cpl_table_wrap_double(tab, cpl_bivector_get_y_data(bivec_selected),
+                    CR2RES_COL_EMISSION) ;
 
-        /* Allocate the data container */
-        nvals = cpl_bivector_get_size(bivec) ;
-        tab = cpl_table_new(nvals) ;
-        cpl_table_wrap_double(tab, cpl_bivector_get_x_data(bivec),
-                CR2RES_COL_WAVELENGTH) ;
-        cpl_table_wrap_double(tab, cpl_bivector_get_y_data(bivec),
-                CR2RES_COL_EMISSION) ;
+            /* Save the table */
+            cpl_msg_info(__func__, "Saving the table with %d rows", nvals) ;
 
-        /* Save the table */
-        cpl_msg_info(__func__, "Saving the table with %d rows", nvals) ;
-        out_file = cpl_sprintf("%s_catalog.fits",
-                cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
-        if (cr2res_io_save_EMISSION_LINES(out_file, tab, parlist, frameset,
-                    RECIPE_STRING) == -1) {
-            cpl_msg_error(__func__, "Cannot write the table") ;
-            cpl_bivector_delete(bivec) ;
+            /* Format the setting */
+            setting = cpl_strdup(
+                cr2res_get_base_name(cr2res_get_root_name(selection_fname))) ;
+            out_file = cpl_sprintf("%s_%s.fits",
+                cr2res_get_base_name(cr2res_get_root_name(lines_list_fname)),
+                setting);
+            cr2res_format_setting2(setting) ;
+            if (cr2res_io_save_EMISSION_LINES(out_file, tab, parlist, frameset,
+                        RECIPE_STRING, setting) == -1) {
+                cpl_msg_error(__func__, "Cannot write the table") ;
+                cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
+                cpl_table_unwrap(tab, CR2RES_COL_EMISSION) ;
+                cpl_table_delete(tab) ;
+                cpl_free(out_file);
+                if (selection_frames != NULL) 
+                    cpl_frameset_delete(selection_frames) ;
+                cpl_frameset_delete(lines_list_frames) ;
+                cpl_bivector_delete(bivec_selected) ;
+                cpl_bivector_delete(bivec) ;
+                cpl_free(setting) ;
+                cpl_msg_indent_less() ;
+                return -1 ;
+            }
+            cpl_free(setting) ;
+            cpl_free(out_file);
             cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
             cpl_table_unwrap(tab, CR2RES_COL_EMISSION) ;
             cpl_table_delete(tab) ;
-            cpl_free(out_file);
-            cpl_msg_indent_less() ;
-            return -1 ;
+            cpl_bivector_delete(bivec_selected) ;
         }
-        cpl_free(out_file);
-        cpl_bivector_delete(bivec) ;
-        cpl_table_unwrap(tab, CR2RES_COL_WAVELENGTH) ;
-        cpl_table_unwrap(tab, CR2RES_COL_EMISSION) ;
-        cpl_table_delete(tab) ;
-        cpl_msg_indent_less() ;
     }
-    cpl_frameset_delete(rawframes) ;
+    cpl_msg_indent_less() ;
+    if (selection_frames != NULL) cpl_frameset_delete(selection_frames) ;
+    cpl_frameset_delete(lines_list_frames) ;
+    cpl_bivector_delete(bivec) ;
     return 0 ;
 }
 

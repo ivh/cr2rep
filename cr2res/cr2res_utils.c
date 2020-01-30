@@ -102,6 +102,26 @@ int cr2res_format_setting(char * setting_id)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Format the setting
+  @param    Setting
+  @return   0 if ok, -1 in error case
+    replace _ by / in the setting string
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_format_setting2(char * setting_id)
+{
+    int     i, len ;
+
+    /* Check entries */
+    if (setting_id == NULL) return -1 ;
+
+    len = strlen(setting_id) ;
+    for (i=0 ; i<len ; i++) if (setting_id[i] == '_') setting_id[i] = '/' ;
+    return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief
   @param    
   @return

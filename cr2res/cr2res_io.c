@@ -1176,11 +1176,12 @@ int cr2res_io_save_PHOTO_FLUX(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Save EMISSION_LINES file
-  @param    filename    The file name
-  @param   	table		The table to save
-  @param    parlist     The recipe input parameters
-  @param    set         The recipe input frames
-  @param    recipe      The recipe name
+  @param    filename        The file name
+  @param   	table		    The table to save
+  @param    parlist         The recipe input parameters
+  @param    set             The recipe input frames
+  @param    recipe          The recipe name
+  @param    setting_string  NULL or Y22, H14,...
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -1189,7 +1190,8 @@ int cr2res_io_save_EMISSION_LINES(
         cpl_table               *   out_table,
         const cpl_parameterlist *   parlist,
         cpl_frameset            *   set,
-        const char              *   recipe)
+        const char              *   recipe,
+        const char              *   setting_string)
 {
     cpl_propertylist    *   plist ;
 
@@ -1199,6 +1201,11 @@ int cr2res_io_save_EMISSION_LINES(
             CR2RES_EMISSION_LINES_PROCATG) ;
     cpl_propertylist_append_string(plist, CPL_DFS_PRO_TYPE,
             CR2RES_PROTYPE_CATALOG) ;
+
+    if (setting_string != NULL) {
+        cpl_propertylist_append_string(plist, CR2RES_HEADER_WLEN_ID,
+                setting_string) ;
+    }
 
     if (cpl_dfs_save_table(set, NULL, parlist, set, NULL, out_table,
                 NULL, recipe, plist, NULL,

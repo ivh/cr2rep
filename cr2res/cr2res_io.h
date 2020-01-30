@@ -147,7 +147,8 @@ int cr2res_io_save_EMISSION_LINES(
         cpl_table               *   out_table,
         const cpl_parameterlist *   parlist,
         cpl_frameset            *   set,
-        const char              *   recipe) ;
+        const char              *   recipe,
+        const char              *   setting_string) ;
 
 int cr2res_io_save_MASTER_DARK(
         const char              *   filename,
