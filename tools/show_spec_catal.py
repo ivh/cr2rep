@@ -26,13 +26,13 @@ def onclick(event):
     #      ('double' if event.dblclick else 'single', event.button,
     #       event.x, event.y, event.xdata, event.ydata))
     if event.button==2:
-        print('[%.2f,'%event.xdata,end='')
+        print('[%.2f '%event.xdata,end='')
     elif event.button==3:
         print('%.2f]'%event.xdata)
 
 def onkey(event):
     if event.key=='w':
-        print('%.2f,'%event.xdata,end='')
+        print('%.2f '%event.xdata,end='')
     if event.key=='e':
         print('%.2f'%event.xdata)
     if event.key=='d':
