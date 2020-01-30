@@ -27,5 +27,10 @@ MAINTAINERCLEANFILES = Makefile.in
 
 endif
 
-dist_bin_SCRIPTS = abc.py def.py
+dist_bin_SCRIPTS = plotsolution.py \
+                   show_spec_catal.py \
+                   show_trace.py \
+                   select_catalogue.py \
+                   show_trace_curv.py
+
 
