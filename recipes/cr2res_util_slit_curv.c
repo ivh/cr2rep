@@ -385,7 +385,7 @@ static int cr2res_util_slit_curv(
                 /* TODO : Should those become parameters ? */
                 int height = 100 ;
                 int window = 15 ;
-                int fit_c = 1 ;
+                int fit_c = 0 ;
                 if (cr2res_slit_curv_compute_order_trace(lamp_image[det_nr-1], 
                             trace_wave[det_nr-1], order, trace_id,
                             height, window, curv_degree, fit_c, 
