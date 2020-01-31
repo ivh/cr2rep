@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-wkf_file=cr2re.xml
+wkf_file=cr2res.xml
 
 sed -i -e 's#\(<property name="ROOT_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1/home/yjung/P_cr2res/reflex/">#' $wkf_file
 
