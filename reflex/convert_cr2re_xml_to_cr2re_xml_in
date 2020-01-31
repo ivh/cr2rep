@@ -21,20 +21,9 @@ sed -i -e 's#\(<property name="END_PRODUCTS_DIR" class="ptolemy.data.expr.FilePa
 sed -i -e 's#\(<property name="OCA File" class="ptolemy.data.expr.FileParameter" value="\).*">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_wkf.oca">#' $wkf_file
 
 # Python scripts location
-sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_wave_cal.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_wave_cal.py">#' $wkf_file
-sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_std_star.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_std_star.py">#' $wkf_file
-sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_sci_red.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_sci_red.py">#' $wkf_file
-sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_combine.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_combine.py">#' $wkf_file
-sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_molecfit_model.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_molecfit_model.py">#' $wkf_file
-sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_molecfit_calctrans.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_molecfit_calctrans.py">#' $wkf_file
-sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_molecfit_correct.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_molecfit_correct.py">#' $wkf_file
-sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_extract_spec.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_extract_spec.py">#' $wkf_file
-sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_level_correct.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_level_correct.py">#' $wkf_file
-sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*select_reference.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/select_reference.py">#' $wkf_file
-sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*get_parameter_value.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/get_parameter_value.py">#' $wkf_file
 
 # Workflow title 
-sed -i -e "s%KMOS Workflow (v\..*\?)%KMOS Workflow (v\. @VERSION@)%g" $wkf_file
+sed -i -e "s%CRIRES Workflow (v\..*\?)%CRIRES Workflow (v\. @VERSION@)%g" $wkf_file
 
 # Leftover hardcoded paths
 #sed -i -e 's#\(===\).*">#\1===">#' $wkf_file
