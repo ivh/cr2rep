@@ -1,0 +1,22 @@
+
+
+
+esorex cr2res_util_genlines YJ.sof
+esorex cr2res_util_genlines HK.sof
+
+
+  more cr2res_util_genlines.sof
+  $C2SRCDIR/catalogs/lines_urne.txt EMISSION_LINES_TXT
+  $C2SRCDIR/catalogs/selections/H_1_4.dat LINES_SELECTION_TXT
+  $C2SRCDIR/catalogs/selections/H_2_4.dat LINES_SELECTION_TXT
+  $C2SRCDIR/catalogs/selections/H_3_4.dat LINES_SELECTION_TXT
+  $C2SRCDIR/catalogs/selections/H_4_4.dat LINES_SELECTION_TXT
+  $C2SRCDIR/catalogs/selections/J_1_3.dat LINES_SELECTION_TXT
+  $C2SRCDIR/catalogs/selections/J_2_3.dat LINES_SELECTION_TXT
+  $C2SRCDIR/catalogs/selections/J_3_3.dat LINES_SELECTION_TXT
+  $C2SRCDIR/catalogs/selections/K_1_4.dat LINES_SELECTION_TXT
+  $C2SRCDIR/catalogs/selections/K_2_4.dat LINES_SELECTION_TXT
+  $C2SRCDIR/catalogs/selections/K_3_4.dat LINES_SELECTION_TXT
+  $C2SRCDIR/catalogs/selections/K_4_4.dat LINES_SELECTION_TXT
+  $C2SRCDIR/catalogs/selections/Y_1_2.dat LINES_SELECTION_TXT
+  $C2SRCDIR/catalogs/selections/Y_2_2.dat LINES_SELECTION_TXT
