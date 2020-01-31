@@ -20,37 +20,21 @@ if DPR.CATG like "%CALIB%" and DPR.TYPE like "%DARK%" and DPR.TECH like "%IMAGE%
     CATG = "CALIB";
 }
 
-
-
-if DPR.CATG=="CALIB"   then 
+if PRO.CATG=="CAL_DARK_MASTER" and INSTRUME=="CRIRES" then
 {
-  RAW.TYPE = "CALIB";
-  REFLEX.CATG = "CALIB";
-}
-if DPR.CATG=="SCIENCE" then
-{
-  RAW.TYPE = "SCIENCE";
-  REFLEX.CATG = "SCIENCE";
-  REFLEX.TARGET = "T"; //It indicates that Reflex should start bootstraping the Data Organizer from here.
+    REFLEX.CATG = "CAL_DARK_MASTER";
 }
 
-//Selection rules
-select execute(ACTION_CALIB) from inputFiles where RAW.TYPE=="SCIENCE"
-  group by TPL.START as (TPL_A,tpl);
-select execute(ACTION_SCIENCE) from inputFiles where RAW.TYPE=="SCIENCE"
+// Selection rules
+select execute(DARK) from inputFiles where RAW.TYPE=="DARK"
   group by TPL.START as (TPL_A,tpl);
 
-//Action rules
-action ACTION_CALIB
+// Action rules
+action DARK
 {
-  recipe rrrecipe_calib;
-  //Definition of a virtual product
-  product MASTER_CALIB { PRO.CATG="MASTER_CALIB"; REFLEX.CATG="MASTER_CALIB"; PRO.EXT="tpl_0000.fits";}
+    recipe cr2res_cal_dark;
+
+    product CAL_DARK_MASTER_WKF { PRO.CATG="CAL_DARK_MASTER_WKF"; PRO.EXT="tpl_0000.fits";}
+    product CAL_DARK_BPM_WKF { PRO.CATG="CAL_DARK_BPM_WKF"; PRO.EXT="tpl_0001.fits";}
 }
-action ACTION_SCIENCE
-{
-  //Association of the virtual product
-  minRet = 1; maxRet = 1;
-  select file as MASTER_CALIB from calibFiles where REFLEX.CATG=="MASTER_CALIB";
-  recipe rrrecipe;
-}
+
