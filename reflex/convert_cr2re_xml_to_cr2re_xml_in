@@ -1,0 +1,49 @@
+#!/bin/sh
+set -e
+
+wkf_file=kmos.xml.in
+cp kmos.xml $wkf_file
+
+# Input directories
+sed -i -e 's#\(<property name="ROOT_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1ROOT_DATA_PATH_TO_REPLACE/">#' $wkf_file
+sed -i -e 's#\(<property name="RAW_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/reflex_input/kmos">#' $wkf_file
+sed -i -e 's#\(<property name="CALIB_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1CALIB_DATA_PATH_TO_REPLACE/kmos-@VERSION@/">#' $wkf_file
+
+# Working directories
+sed -i -e 's#\(<property name="BOOKKEEPING_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/reflex_book_keeping/kmos">#' $wkf_file
+sed -i -e 's#\(<property name="LOGS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/reflex_logs/kmos">#' $wkf_file
+sed -i -e 's#\(<property name="TMP_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/reflex_tmp_products/kmos">#' $wkf_file
+
+# Output directories
+sed -i -e 's#\(<property name="END_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/reflex_end_products">#' $wkf_file
+
+# OCA rule file location
+sed -i -e 's#\(<property name="OCA File" class="ptolemy.data.expr.FileParameter" value="\).*">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_wkf.oca">#' $wkf_file
+
+# Python scripts location
+sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_wave_cal.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_wave_cal.py">#' $wkf_file
+sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_std_star.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_std_star.py">#' $wkf_file
+sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_sci_red.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_sci_red.py">#' $wkf_file
+sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_combine.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_combine.py">#' $wkf_file
+sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_molecfit_model.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_molecfit_model.py">#' $wkf_file
+sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_molecfit_calctrans.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_molecfit_calctrans.py">#' $wkf_file
+sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_molecfit_correct.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_molecfit_correct.py">#' $wkf_file
+sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_extract_spec.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_extract_spec.py">#' $wkf_file
+sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*kmos_level_correct.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/kmos_level_correct.py">#' $wkf_file
+sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*select_reference.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/select_reference.py">#' $wkf_file
+sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*get_parameter_value.py">#\1@prefix@/share/esopipes/kmos-@VERSION@/reflex/get_parameter_value.py">#' $wkf_file
+
+# Workflow title 
+sed -i -e "s%KMOS Workflow (v\..*\?)%KMOS Workflow (v\. @VERSION@)%g" $wkf_file
+
+# Leftover hardcoded paths
+#sed -i -e 's#\(===\).*">#\1===">#' $wkf_file
+sed -i -e 's#\(<property name="Directory name" class="ptolemy.actor.parameters.PortParameter" value="\).*">#\1">#' $wkf_file
+
+# FOR THIS ONE, manually set value="" !! The following sed command does not work
+sed -i -e 's#\(<entity name="Write README" class="org.geon.FileWrite">\n<property name="fileName" class="ptolemy.actor.parameters.FilePortParameter" value="\).*">#\1">#' $wkf_file
+
+
+echo "Check the svn diff to see the differences with respect to SVN"
+echo "If you are satisfied, execute the following commands:"
+echo "svn ci $wkf_file"
