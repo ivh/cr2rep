@@ -93,8 +93,8 @@ Dark                                                                    \n\
         Set the BPM in the master dark                                  \n\
         Compute the QCs with statistics and                             \n\
                cr2res_dark_qc_ron(--ron_hsize, --ron_nsamples)          \n\
-      save master dark(g) (MASTER_DARK)                                 \n\
-      save bpm(g) (DARK_BPM)                                            \n\
+      save master dark(g)                                               \n\
+      save bpm(g)                                                       \n\
                                                                         \n\
   Library Functions used                                                \n\
     cr2res_detector_shotnoise_model()                                   \n\

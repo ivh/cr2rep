@@ -3,12 +3,25 @@ if (T) then
 {
    REFLEX.CATG="UNDEFINED";
 }
+
 /// This block copies PRO.CATG into REFLEX.CATG to cover the case in which the latter is not assigned explicitely below.
 if PRO.CATG is string then
 {
   REFLEX.CATG=PRO.CATG;
 }
-//Classification rules
+
+// Classification rules
+
+
+if DPR.CATG like "%CALIB%" and DPR.TYPE like "%DARK%" and DPR.TECH like "%IMAGE%" and INSTRUME=="CRIRES" then
+{
+    RAW.TYPE = "DARK";
+    REFLEX.CATG = "DARK";
+    CATG = "CALIB";
+}
+
+
+
 if DPR.CATG=="CALIB"   then 
 {
   RAW.TYPE = "CALIB";
