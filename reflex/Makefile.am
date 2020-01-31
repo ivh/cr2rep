@@ -8,7 +8,7 @@ WORKFLOWS = cr2res.xml
 #Put here the OCA rules used by the workflow
 OCAWKF =  cr2res_wkf.oca
 #Put Python scripts used by the workflows
-#PYTHONWKF =
+PYTHONWKF = interactive_window.py
 
 #This installs the workflow and the OCA rules in reflexaux directory
 wkfextra_DATA = $(WORKFLOWS) $(OCAWKF) $(PYTHONWKF)
