@@ -18,7 +18,7 @@ sed -i -e 's#\(<property name="TMP_PRODUCTS_DIR" class="ptolemy.data.expr.FilePa
 sed -i -e 's#\(<property name="END_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/reflex_end_products">#' $wkf_file
 
 # OCA rule file location
-sed -i -e 's#\(<property name="OCA File" class="ptolemy.data.expr.FileParameter" value="\).*">#\1@prefix@/share/esopipes/cr2res-@VERSION@/reflex/cr2res_wkf.oca">#' $wkf_file
+sed -i -e 's#\(<property name="OCA File" class="ptolemy.data.expr.FileParameter" value="\).*">#\1@prefix@/share/esopipes/cr2re-@VERSION@/reflex/cr2res_wkf.oca">#' $wkf_file
 
 # Python scripts location
 sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*interactive_window.py">#\1@prefix@/share/esopipes/cr2re-@VERSION@/reflex/interactive_window.py">#' $wkf_file

@@ -4521,7 +4521,7 @@
         </port>
     </entity>
     <entity name="DataOrganizer" class="org.eso.DataOrganizer">
-        <property name="OCA File" class="ptolemy.data.expr.FileParameter" value="@prefix@/share/esopipes/cr2res-@VERSION@/reflex/cr2res_wkf.oca">
+        <property name="OCA File" class="ptolemy.data.expr.FileParameter" value="@prefix@/share/esopipes/cr2re-@VERSION@/reflex/cr2res_wkf.oca">
         </property>
         <property name="Keywords to be displayed" class="ptolemy.data.expr.StringParameter" value="OBJECT,INS.PATH,INS.MODE">
         </property>
