@@ -4,7 +4,7 @@ AUTOMAKE_OPTIONS = foreign
 #Put here all the workflows. They must end with extension .in. They should
 #be like a normal workflow but using @prefix@ for paths 
 #to the OCA rules (grep for OCA in the xml file) or Python scripts
-WORKFLOWS = Cr2re.xml
+WORKFLOWS = cr2re.xml
 #Put here the OCA rules used by the workflow
 OCAWKF =  cr2re_wkf.oca
 #Put Python scripts used by the workflows
