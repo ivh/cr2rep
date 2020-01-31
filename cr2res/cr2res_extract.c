@@ -286,8 +286,10 @@ int cr2res_extract_traces(
             //hdrl_image_add_image(model_loc, model_loc_one) ;
             for (int x = 1; x <= hdrl_image_get_size_x(model_loc); x++){
                 for (int y = 1; y <= hdrl_image_get_size_y(model_loc); y++){
-                    if (hdrl_image_get_pixel(model_loc_one, x, y, &badpix).data != 0){
-                        hdrl_image_set_pixel(model_loc, x, y, hdrl_image_get_pixel(model_loc_one, x, y, &badpix));
+                    if (hdrl_image_get_pixel(model_loc_one, x, y, &badpix).data
+                         != 0){
+                        hdrl_image_set_pixel(model_loc, x, y,
+                            hdrl_image_get_pixel(model_loc_one, x, y, &badpix));
                     }
                 }
             }
@@ -1467,6 +1469,7 @@ int cr2res_extract_slitdec_curved(
     cpl_type            imtyp;
     cpl_polynomial      *slitcurve_A, *slitcurve_B, *slitcurve_C;
     cpl_polynomial  **  slitcurves_sw;
+    hdrl_image      *   model_out;
 
     double              pixval, errval, img_median, norm, model_unc, img_unc,
                         unc, delta_tmp, a, b, c, yc;
@@ -1567,8 +1570,9 @@ int cr2res_extract_slitdec_curved(
         yc = cpl_vector_get(ycen, i-1);
 
         // shift polynomial to local frame
-        a = a - i + yc * b + yc * yc * c; // a = 0
+        a = 0; // a = a - i + yc * b + yc * yc * c
         b += 2 * yc * c;
+
         // cpl_msg_debug(__func__, "a: %f", a);
         // cpl_msg_debug(__func__, "b: %f", b);
         // cpl_msg_debug(__func__, "c: %f", c);
@@ -1581,6 +1585,10 @@ int cr2res_extract_slitdec_curved(
         if (delta_tmp > delta_x) delta_x = (int)ceil(delta_tmp);
     }
     cpl_msg_debug(__func__, "Max delta_x from slit curv: %d pix.", delta_x);
+
+    if (delta_x >= swath /2){
+        //TODO: Cancel
+    }
 
     /* Allocate */
     mask_sw = cpl_malloc(height * swath*sizeof(int));
@@ -1602,7 +1610,8 @@ int cr2res_extract_slitdec_curved(
         cpl_vector_set(spc, j, 0.);
         cpl_vector_set(unc_decomposition, j, 0.);
     }
-    img_out = cpl_image_new(lenx, leny, CPL_TYPE_DOUBLE);
+    model_out = hdrl_image_new(lenx, leny);
+    img_out = hdrl_image_get_image(model_out);
     model_rect = cpl_image_new(lenx, height, CPL_TYPE_DOUBLE);
 
     // Work vectors
@@ -1639,12 +1648,7 @@ int cr2res_extract_slitdec_curved(
             for(y=1;y<=height;y++){
                 errval = cpl_image_get(err_rect, x, y, &badpix);
                 pixval = cpl_image_get(img_rect, x, y, &badpix);
-                if (cpl_error_get_code() != CPL_ERROR_NONE){
-                    cpl_msg_error(__func__, "%d %d %s",
-                            x, y, cpl_error_get_where());
-                    cpl_error_reset();
-                }
-                if (isnan(pixval)){
+                if (isnan(pixval) || badpix){
                     pixval = 0;
                     errval = 1;
                 }
@@ -1828,23 +1832,11 @@ int cr2res_extract_slitdec_curved(
         cpl_vector_delete(spec_sw);
     } // End loop over swaths
 
-    // insert model_rect into large frame
-    cr2res_image_insert_rect(model_rect, ycen, img_out);
     // divide by nswaths to make the slitfu into the average over all swaths.
     cpl_vector_divide_scalar(slitfu, nswaths);
 
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_image_save(model_rect, "debug_model_rect.fits", CPL_TYPE_DOUBLE,
-                NULL, CPL_IO_CREATE);
-        cpl_image_save(img_out, "debug_model_all.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-    }
-
-    // TODO: Update BPM in img_out
-
-
-    // TODO: Deallocate return arrays in case of error, return -1
+    // Deallocate loop memory
     cpl_image_delete(img_rect);
-    cpl_image_delete(model_rect);
     cpl_image_delete(err_rect);
     cpl_image_delete(img_sw);
     cpl_image_delete(err_sw);
@@ -1860,7 +1852,6 @@ int cr2res_extract_slitdec_curved(
     cpl_vector_delete(bins_end);
     cpl_vector_delete(slitfu_sw);
     cpl_vector_delete(weights_sw);
-    cpl_vector_delete(ycen);
 
     cpl_polynomial_delete(slitcurve_A);
     cpl_polynomial_delete(slitcurve_B);
@@ -1868,10 +1859,34 @@ int cr2res_extract_slitdec_curved(
     for (i=0; i<swath; i++) cpl_polynomial_delete(slitcurves_sw[i]);
     cpl_free(slitcurves_sw);
 
+    // insert model_rect into large frame
+    if (cr2res_image_insert_rect(model_rect, ycen, img_out) == -1) {
+        // Cancel
+        cpl_image_delete(model_rect);
+        hdrl_image_delete(model_out);
+        cpl_vector_delete(ycen);
+  
+        cpl_vector_delete(spc);
+        cpl_vector_delete(unc_decomposition);
+        cpl_vector_delete(slitfu);
+        return -1; 
+    }
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_image_save(model_rect, "debug_model_rect.fits", CPL_TYPE_DOUBLE,
+                NULL, CPL_IO_CREATE);
+        cpl_image_save(img_out, "debug_model_all.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    }
+
+    // TODO: Update BPM in img_out
+
+    // TODO: Deallocate return arrays in case of error, return -1
+    cpl_image_delete(model_rect);
+    cpl_vector_delete(ycen);
+
     *slit_func = slitfu;
     *spec = cpl_bivector_wrap_vectors(spc, unc_decomposition);
-    *model = hdrl_image_create(img_out, NULL);
-    cpl_image_delete(img_out);
+    *model = model_out;
     return 0;
 }
 
