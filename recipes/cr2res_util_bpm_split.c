@@ -62,7 +62,11 @@ BPM splitting                                                           \n\
   Each input BPM is splitted into several BPMs                          \n\
                                                                         \n\
   Inputs                                                                \n\
-    raw.fits " CR2RES_BPM_PROTYPE" [1 to n]                             \n\
+   	raw.fits " CR2RES_CAL_DARK_BPM_PROCATG " [1 to n]                   \n\
+          or " CR2RES_CAL_FLAT_BPM_PROCATG "                            \n\
+          or " CR2RES_CAL_DETLIN_BPM_PROCATG "                          \n\
+          or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
+          or " CR2RES_UTIL_NORM_BPM_PROCATG "                           \n\
                                                                         \n\
   Outputs                                                               \n\
     <input_name>_splitted_<bpm_code>.fits " 
@@ -245,7 +249,7 @@ static int cr2res_util_bpm_split(
     /* Get Calibration frames */
 
     /* Get the rawframes */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_BPM_PROTYPE) ;
+    rawframes = cr2res_io_find_BPM_all(frameset) ;
     if (rawframes==NULL || cpl_frameset_get_size(rawframes) <= 0) {
         cpl_msg_error(__func__, "Cannot find any RAW file") ;
         cpl_error_set(__func__, CPL_ERROR_DATA_NOT_FOUND) ;

@@ -120,6 +120,7 @@ Flat                                                                    \n\
           or " CR2RES_CAL_FLAT_BPM_PROCATG "                            \n\
           or " CR2RES_CAL_DETLIN_BPM_PROCATG "                          \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
+          or " CR2RES_UTIL_NORM_BPM_PROCATG "                           \n\
                                                                         \n\
   Outputs                                                               \n\
     cr2res_cal_flat_[setting]_[Decker]_bpm.fits " 

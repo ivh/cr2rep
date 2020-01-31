@@ -281,6 +281,32 @@ const cpl_frame * cr2res_io_find_BPM(const cpl_frameset * in)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get the CR2RES_BPM_PROTYPE frames from a frameset
+  @param    set     Input frame set
+  @return   the frameset or NULL in error case or if it is missing
+ */
+/*----------------------------------------------------------------------------*/
+cpl_frameset * cr2res_io_find_BPM_all(const cpl_frameset  * in)
+{
+    cpl_frameset    *   out ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    out=cr2res_extract_frameset(in, CR2RES_CAL_DARK_BPM_PROCATG) ;
+    if (out == NULL) 
+        out=cr2res_extract_frameset(in, CR2RES_CAL_FLAT_BPM_PROCATG) ;
+    if (out == NULL) 
+        out=cr2res_extract_frameset(in, CR2RES_CAL_DETLIN_BPM_PROCATG) ;
+    if (out == NULL) 
+        out=cr2res_extract_frameset(in, CR2RES_UTIL_BPM_SPLIT_PROCATG) ;
+    if (out == NULL) 
+        out=cr2res_extract_frameset(in, CR2RES_UTIL_NORM_BPM_PROCATG) ;
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get the DITS from a frame set
   @param    set     Input frame set
   @return   the DITS or NULL in error case
