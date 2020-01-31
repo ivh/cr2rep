@@ -21,6 +21,7 @@ sed -i -e 's#\(<property name="END_PRODUCTS_DIR" class="ptolemy.data.expr.FilePa
 sed -i -e 's#\(<property name="OCA File" class="ptolemy.data.expr.FileParameter" value="\).*">#\1@prefix@/share/esopipes/cr2res-@VERSION@/reflex/cr2res_wkf.oca">#' $wkf_file
 
 # Python scripts location
+sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*interactive_window.py">#\1@prefix@/share/esopipes/cr2re-@VERSION@/reflex/interactive_window.py">#' $wkf_file
 
 # Workflow title 
 sed -i -e "s%CRIRES+ Workflow (v\..*\?)%CRIRESٍ+ Workflow (v\. @VERSION@)%g" $wkf_file

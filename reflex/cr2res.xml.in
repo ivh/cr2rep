@@ -3359,7 +3359,7 @@
             </port>
         </entity>
         <entity name="PythonActor" class="org.eso.PythonActor">
-            <property name="Python script" class="ptolemy.data.expr.FileParameter" value="/home/yjung/install/pipelines/cr2res/share/esopipes/cr2re-0.6.2/reflex/interactive_window.py">
+            <property name="Python script" class="ptolemy.data.expr.FileParameter" value="@prefix@/share/esopipes/cr2re-@VERSION@/reflex/interactive_window.py">
             </property>
             <property name="Run in terminal" class="ptolemy.data.expr.Parameter" value="false">
             </property>
