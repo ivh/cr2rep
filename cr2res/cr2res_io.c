@@ -199,6 +199,34 @@ const cpl_frame * cr2res_io_find_TRACE_WAVE(const cpl_frameset * in)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get the TRACE_WAVE frames from a frameset
+  @param    set     Input frame set
+  @return   the frameset or NULL in error case or if it is missing
+ */
+/*----------------------------------------------------------------------------*/
+cpl_frameset * cr2res_io_find_TRACE_WAVE_all(const cpl_frameset  * in)
+{
+    cpl_frameset    *   out ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    out=cr2res_extract_frameset(in, CR2RES_CAL_FLAT_TW_PROCATG) ;
+    if (out == NULL) 
+        out=cr2res_extract_frameset(in, CR2RES_CAL_FLAT_TW_MERGED_PROCATG) ;
+    if (out == NULL) 
+        out=cr2res_extract_frameset(in, CR2RES_UTIL_TRACE_TW_PROCATG) ;
+    if (out == NULL) 
+        out=cr2res_extract_frameset(in, CR2RES_UTIL_WAVE_TW_PROCATG) ;
+    if (out == NULL) 
+        out=cr2res_extract_frameset(in, CR2RES_CAL_WAVE_TW_PROCATG) ;
+    if (out == NULL) 
+       out=cr2res_extract_frameset(in,CR2RES_UTIL_SLIT_CURV_TW_PROCATG);
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get the first BPM frame from a frameset
   @param    set     Input frame set
   @return   the frame reference or NULL in error case or if it is missing
