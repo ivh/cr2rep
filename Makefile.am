@@ -26,7 +26,7 @@ DISTCLEANFILES = *~
 
 COMPILE_FIRST = 
 
-TOPSUBDIRS = tools hdrl irplib cr2res recipes regtests 
+TOPSUBDIRS = tools hdrl irplib cr2res recipes regtests reflex
 
 COMPILE_LAST =
 
