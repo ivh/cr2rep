@@ -112,7 +112,7 @@ static int cr2res_io_save_one_table(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Get the first SLIT_MODEL frame from a frameset 
+  @brief    Get the first CR2RES_SLIT_MODEL_PROTYPE frame from a frameset 
   @param    set     Input frame set
   @param    setting The setting to match 
   @param    decker  The decker position to match
@@ -171,7 +171,7 @@ cpl_frame * cr2res_io_find_SLIT_MODEL(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Get the first TRACE_WAVE frame from a frameset
+  @brief    Get the first CR2RES_TW_PROTYPE frame from a frameset
   @param    set     Input frame set
   @return   the frame reference or NULL in error case or if it is missing
  */
@@ -193,13 +193,13 @@ const cpl_frame * cr2res_io_find_TRACE_WAVE(const cpl_frameset * in)
     if (out == NULL) 
         out=cpl_frameset_find_const(in, CR2RES_CAL_WAVE_TW_PROCATG) ;
     if (out == NULL) 
-       out=cpl_frameset_find_const(in,CR2RES_UTIL_SLIT_CURV_TW_PROCATG);
+        out=cpl_frameset_find_const(in, CR2RES_UTIL_SLIT_CURV_TW_PROCATG);
     return out ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Get the TRACE_WAVE frames from a frameset
+  @brief    Get the CR2RES_TW_PROTYPE frames from a frameset
   @param    set     Input frame set
   @return   the frameset or NULL in error case or if it is missing
  */
@@ -221,13 +221,41 @@ cpl_frameset * cr2res_io_find_TRACE_WAVE_all(const cpl_frameset  * in)
     if (out == NULL) 
         out=cr2res_extract_frameset(in, CR2RES_CAL_WAVE_TW_PROCATG) ;
     if (out == NULL) 
-       out=cr2res_extract_frameset(in,CR2RES_UTIL_SLIT_CURV_TW_PROCATG);
+        out=cr2res_extract_frameset(in, CR2RES_UTIL_SLIT_CURV_TW_PROCATG);
     return out ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Get the first BPM frame from a frameset
+  @brief    Get the CR2RES_EXTRACT_1D_PROTYPE frames from a frameset
+  @param    set     Input frame set
+  @return   the frameset or NULL in error case or if it is missing
+ */
+/*----------------------------------------------------------------------------*/
+cpl_frameset * cr2res_io_find_EXTRACT_1D_all(const cpl_frameset  * in)
+{
+    cpl_frameset    *   out ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    out=cr2res_extract_frameset(in, CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG) ;
+    if (out == NULL) 
+        out=cr2res_extract_frameset(in, CR2RES_UTIL_EXTRACT_1D_PROCATG) ;
+    if (out == NULL) 
+        out=cr2res_extract_frameset(in, CR2RES_UTIL_WAVE_EXTRACT_1D_PROCATG) ;
+    if (out == NULL) 
+        out=cr2res_extract_frameset(in, CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG) ;
+    if (out == NULL) 
+        out=cr2res_extract_frameset(in, CR2RES_OBS_NODDING_EXTRACTA_PROCATG) ;
+    if (out == NULL) 
+        out=cr2res_extract_frameset(in, CR2RES_OBS_NODDING_EXTRACTB_PROCATG);
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the first CR2RES_BPM_PROTYPE frame from a frameset
   @param    set     Input frame set
   @return   the frame reference or NULL in error case or if it is missing
  */

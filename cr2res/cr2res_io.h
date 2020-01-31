@@ -38,8 +38,8 @@ cpl_frame * cr2res_io_find_SLIT_MODEL(
         const char          *   setting_id,
         cr2res_decker           cr2res_decker) ;
 const cpl_frame * cr2res_io_find_TRACE_WAVE(const cpl_frameset * in) ;
-cpl_frameset * cr2res_io_find_TRACE_WAVE_all(const cpl_frameset  * in) ;
-
+cpl_frameset * cr2res_io_find_TRACE_WAVE_all(const cpl_frameset * in) ;
+cpl_frameset * cr2res_io_find_EXTRACT_1D_all(const cpl_frameset * in) ;
 const cpl_frame * cr2res_io_find_BPM(const cpl_frameset * in) ;
 
 cpl_vector * cr2res_io_read_dits(const cpl_frameset * in) ;
