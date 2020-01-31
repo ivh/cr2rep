@@ -81,7 +81,7 @@ Traces detection                                                        \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_FLAT_RAW " [1 to n]                               \n\
-          or " CR2RES_CALIBRATED_PROTYPE "                              \n\
+          or " CR2RES_UTIL_CALIB_PROCATG "                              \n\
                                                                         \n\
   Outputs                                                               \n\
     <input_name>_tw.fits " CR2RES_UTIL_TRACE_TW_PROCATG"                \n\
@@ -480,7 +480,7 @@ static int cr2res_util_trace(
   @param    set     Input frame set
   @return   the RAW frameset or NULL in error case or if it is missing
     Allowed RAW types : CR2RES_FLAT_RAW
-                        CR2RES_CALIBRATED_PROTYPE
+                        CR2RES_UTIL_CALIB_PROCATG
  */
 /*----------------------------------------------------------------------------*/
 static cpl_frameset * cr2res_util_trace_find_RAW(const cpl_frameset * in)
@@ -492,7 +492,7 @@ static cpl_frameset * cr2res_util_trace_find_RAW(const cpl_frameset * in)
 
     out = cr2res_extract_frameset(in, CR2RES_FLAT_RAW) ;
     if (out == NULL)
-        out = cr2res_extract_frameset(in, CR2RES_CALIBRATED_PROTYPE) ;
+        out = cr2res_extract_frameset(in, CR2RES_UTIL_CALIB_PROCATG) ;
     return out ;
 }
 
