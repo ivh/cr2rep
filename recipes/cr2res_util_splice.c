@@ -60,13 +60,26 @@ static int cr2res_util_splice(cpl_frameset *, const cpl_parameterlist *);
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_splice_description[] =
-"TODO : Descripe here the recipe in / out / params / basic algo\n"
-"blaze.fits "CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG  "\n"
-"trace.fits "CR2RES_TW_PROTYPE  "\n"
-"extracted.fits "CR2RES_UTIL_EXTRACT_1D_PROCATG  "\n"
-" The recipe produces the following products:\n"
-"\n";
+static char cr2res_util_splice_description[] = "\
+Splicin                                                                 \n\
+  Compute ...                                                           \n\
+                                                                        \n\
+  Inputs                                                                \n\
+    blaze.fits " CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG " [1]               \n\
+    trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [1]                       \n\
+            or " CR2RES_CAL_FLAT_TW_MERGED_PROCATG "                    \n\
+            or " CR2RES_UTIL_TRACE_TW_PROCATG "                         \n\
+            or " CR2RES_UTIL_WAVE_TW_PROCATG "                          \n\
+            or " CR2RES_CAL_WAVE_TW_PROCATG "                           \n\
+            or " CR2RES_UTIL_SLIT_CURV_TW_PROCATG "                     \n\
+    extracted.fits " CR2RES_UTIL_EXTRACT_1D_PROCATG " [1]               \n\
+                                                                        \n\
+  Outputs                                                               \n\
+                                                                        \n\
+  Algorithm                                                             \n\
+                                                                        \n\
+  Library functions uѕed:                                               \n\
+";
 
 /*-----------------------------------------------------------------------------
                                 Function code
@@ -234,8 +247,7 @@ static int cr2res_util_splice(
     }
 
     /* Get Inputs */
-    trace_fset = cr2res_extract_frameset(frameset,
-            CR2RES_TW_PROTYPE) ;
+    trace_fset = cr2res_io_find_TRACE_WAVE_all(frameset) ;
     extracted_fset = cr2res_extract_frameset(frameset,
             CR2RES_UTIL_EXTRACT_1D_PROCATG) ;
     blaze_fset = cr2res_extract_frameset(frameset, 
