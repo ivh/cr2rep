@@ -94,7 +94,7 @@ AC_CONFIG_FILES(Makefile
                 cr2res/tests/Makefile
                 tools/Makefile
                 reflex/Makefile
-                reflex/kmos.xml
+                reflex/cr2res.xml
                 recipes/Makefile
                 regtests/Makefile
                 regtests/tests/Makefile
