@@ -14,8 +14,8 @@ colors=['y','r','b']
 lstyle=['-', '--','--','-']
 lwidth=[1.0,3.0,1.0,3.0]
 ZOOM = 1
-YMAX = 8000
-YMIN = -5000
+YMAX = 5000
+YMIN = -3000
 CAT_FACTOR = 50
 SPEC_FACTOR=1
 
