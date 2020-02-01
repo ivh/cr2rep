@@ -60,8 +60,14 @@ static int cr2res_slit_curv_get_position(
         double          *   xpos,
         double          *   ypos) ;
 
-static int fmodel(const double x[], const double a[], double *result) CPL_ATTR_NONNULL;
-static int dmodel_da(const double x[], const double a[], double *result) CPL_ATTR_NONNULL;
+static int fmodel(
+    const double x[],
+    const double a[],
+    double *result) CPL_ATTR_NONNULL;
+static int dmodel_da(
+    const double x[],
+    const double a[],
+    double *result) CPL_ATTR_NONNULL;
 static int cr2res_slit_curv_remove_peaks_at_edge(
     cpl_vector ** peaks,
     int width,
@@ -74,6 +80,7 @@ static int cr2res_slit_curv_single_peak(
     cpl_vector * y,
     cpl_vector * a,
     int        * ia,
+    double     * value_a,
     double     * value_b,
     double     * value_c) ;
 static int cr2res_slit_curv_all_peaks(
@@ -82,6 +89,7 @@ static int cr2res_slit_curv_all_peaks(
     cpl_vector * ycen,
     int window,
     int fit_second_order,
+    cpl_vector ** vec_a,
     cpl_vector ** vec_b,
     cpl_vector ** vec_c) ;
 
@@ -129,6 +137,7 @@ int cr2res_slit_curv_compute_order_trace(
     hdrl_image          *   model;
     cpl_vector          *   peaks;
     cpl_image           *   img_rect;
+    cpl_vector          *   vec_a;
     cpl_vector          *   vec_b;
     cpl_vector          *   vec_c;
     int                     ncols;
@@ -138,6 +147,7 @@ int cr2res_slit_curv_compute_order_trace(
     cpl_image           *   img_other;
     hdrl_image          *   hdrl_other;
     double                  mad, median;
+    double                  yc;
 
     if (img == NULL || trace_wave == NULL || slit_poly_a == NULL ||
         slit_poly_b == NULL || slit_poly_c == NULL) return -1;
@@ -200,45 +210,55 @@ int cr2res_slit_curv_compute_order_trace(
 
     // Determine the curvature of all peaks
     if (cr2res_slit_curv_all_peaks(peaks, img_rect, ycen, window,
-            fit_second_order, &vec_b, &vec_c) != 0){
+            fit_second_order, &vec_a, &vec_b, &vec_c) != 0){
         cpl_vector_delete(peaks);
         cpl_vector_delete(ycen);
         cpl_image_delete(img_rect);
         return -1;
     }
+    cpl_image_delete(img_rect);
 
     // Discard outliers
     // It would be better to make the fit itself more robust,
     // however this is a lot easier and works as long as there is no
     // strong variation within the order
-    int npeaks = cpl_vector_get_size(vec_b);
+    int npeaks = cpl_vector_get_size(vec_a);
+    img_other = cpl_image_wrap_double(1, npeaks, cpl_vector_get_data(vec_a));
+    median = cpl_image_get_mad(img_other, &mad);
+    cpl_image_unwrap(img_other);
+    for (int i = 0; i < npeaks; i++)
+    {
+        if (fabs(cpl_vector_get(vec_a, i) - median) > mad * 100)
+            cpl_vector_set(vec_a, i, median);
+    }
     img_other = cpl_image_wrap_double(1, npeaks, cpl_vector_get_data(vec_b));
     median = cpl_image_get_mad(img_other, &mad);
     cpl_image_unwrap(img_other);
     for (int i = 0; i < npeaks; i++)
     {
         if (fabs(cpl_vector_get(vec_b, i) - median) > mad * 100)
-            cpl_vector_set(vec_b, i, 0);
+            cpl_vector_set(vec_b, i, median);
     }
     if (fit_second_order){
-        img_other = cpl_image_wrap_double(1, npeaks, cpl_vector_get_data(vec_c));
+        img_other = cpl_image_wrap_double(1, npeaks,
+            cpl_vector_get_data(vec_c));
         median = cpl_image_get_mad(img_other, &mad);
         cpl_image_unwrap(img_other);
         for (int i = 0; i < npeaks; i++)
         {
             if (fabs(cpl_vector_get(vec_c, i) - median) > mad * 100)
-                cpl_vector_set(vec_c, i, 0);
+                cpl_vector_set(vec_c, i, median);
         }
     }
-
+    
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+       cpl_vector_save(vec_a, "debug_vector_a.fits",
+            CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
         cpl_vector_save(vec_b, "debug_vector_b.fits",
             CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
         cpl_vector_save(vec_c, "debug_vector_c.fits",
             CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
     }
-    cpl_image_delete(img_rect);
-    cpl_vector_delete(ycen);
 
     // Fit the curvature to the whole order
     samppos = cpl_matrix_wrap(1, cpl_vector_get_size(peaks), 
@@ -248,19 +268,26 @@ int cr2res_slit_curv_compute_order_trace(
     *slit_poly_b = cpl_polynomial_new(1);
     *slit_poly_c = cpl_polynomial_new(1);
 
-    power = 1;
-    cpl_polynomial_set_coeff(*slit_poly_a, &power, 1);
+    cpl_polynomial_fit(*slit_poly_a, samppos, NULL, vec_a, NULL,
+        CPL_TRUE, NULL, &degree);
     cpl_polynomial_fit(*slit_poly_b, samppos, NULL, vec_b, NULL,
         CPL_TRUE, NULL, &degree);
     cpl_polynomial_fit(*slit_poly_c, samppos, NULL, vec_c, NULL,
         CPL_TRUE, NULL, &degree);
     cpl_matrix_unwrap(samppos);
 
+    // Add 1 to the linear coefficient of the a polynomial
+    // So we can subtract it later in the extraction
+    power = 1;
+    cpl_polynomial_set_coeff(*slit_poly_a, &power,
+        1 + cpl_polynomial_get_coeff(*slit_poly_a, &power));
+
     // Clean up memory
+    cpl_vector_delete(vec_a);
     cpl_vector_delete(vec_b);
     cpl_vector_delete(vec_c);
     cpl_vector_delete(peaks);
-
+    cpl_vector_delete(ycen);
 
     return 0;
 }
@@ -504,16 +531,19 @@ static int fmodel(const double x[], const double a[], double *result){
     double nrows = a[6];
     double * slitfunc = (double*)(size_t)a[7];
     double * ycen = (double*)(size_t)a[8];
+    double yc = ycen[(int)x[0]];
 
     double pos_x = x[0];
-    double pos_y = x[1] - nrows;
+    double pos_y = x[1];
 
     // Shift the center of the gaussian
-    double curvature = center + (tilt + shear * pos_y) * pos_y;
+    // The curvature should be 0, when pos_y = ycen (in the global frame)
+    // i.e. we fix the offset a = - tilt * yc - shear * yc * yc 
+    double curvature = tilt * (x[1] - yc) + shear * (x[1] * x[1] - yc * yc);
     // Calculate the Gaussian
-    double b1 = pos_x - curvature;
+    double b1 = pos_x - center - curvature;
     *result = bottom + height * exp(-(b1 * b1) / (2 * sigma * sigma));
-    *result *= slitfunc[(int)(x[1] - ycen[(int)pos_x] + nrows/2)];
+    *result *= slitfunc[(int)(x[1] - yc + nrows/2)];
     return 0;
 }
 
@@ -537,12 +567,14 @@ static int dmodel_da(const double x[], const double a[], double *result){
     double tilt = a[4];
     double shear = a[5];
     double nrows = a[6];
+    double * ycen = (double*)(size_t)a[8];
+    double yc = ycen[(int)x[0]];
 
     double pos_x = x[0];
-    double pos_y = x[1] - nrows;
+    double pos_y = x[1];
 
-    double curvature = center + (tilt + shear * pos_y) * pos_y;
-    double b1 = pos_x - curvature;
+    double curvature = tilt * (x[1] - yc) + shear * (x[1] * x[1] - yc * yc);
+    double b1 = pos_x - center - curvature;
     double b2 = sigma * sigma;
     double factor = exp(-(b1 * b1) / (2 * sigma * sigma));
 
@@ -550,8 +582,8 @@ static int dmodel_da(const double x[], const double a[], double *result){
     result[1] = 1.0;
     result[2] = height * factor * (b1 * b1 / b2 - 1) / sigma;
     result[3] = height * factor * b1 / b2;
-    result[4] = result[3] * pos_y;
-    result[5] = result[4] * pos_y;
+    result[4] = result[3] * (x[1] - yc);
+    result[5] = result[3] * (x[1] * x[1] - yc * yc);
     // The others dont matter?
     return 0;
 }
@@ -623,6 +655,7 @@ static int cr2res_slit_curv_single_peak(
     cpl_vector * y,
     cpl_vector * a,
     int        * ia,
+    double     * value_a,
     double     * value_b,
     double     * value_c)
 {
@@ -632,6 +665,7 @@ static int cr2res_slit_curv_single_peak(
     cpl_error_code error;
     cpl_image  * img_slitfunc;
     double minimum, maximum;
+    double yc;
 
     width = cpl_image_get_size_x(img_peak);
     height = cpl_image_get_size_y(img_peak);
@@ -688,11 +722,16 @@ static int cr2res_slit_curv_single_peak(
                         cpl_errorstate_dump_one_debug);
         cpl_error_reset();
         
-        *value_b = *value_c = 0.;
+        *value_a = *value_b = *value_c = 0.;
         return -1;
     } else {
         *value_b = cpl_vector_get(a, 4);
         *value_c = cpl_vector_get(a, 5);
+        // The offset a was fixed so that is 0 in the local frame
+        // i.e. so that the curvature at the central line is 0
+        // a = - tilt * ycen - shear * ycen * ycen
+        yc = cpl_vector_get(ycen, (int)peak);
+        *value_a = -(*value_b * yc + *value_c * yc * yc);
         return 0;
     }
 }
@@ -718,6 +757,7 @@ static int cr2res_slit_curv_all_peaks(
     cpl_vector * ycen,
     int window,
     int fit_second_order,
+    cpl_vector ** vec_a,
     cpl_vector ** vec_b,
     cpl_vector ** vec_c)
 {
@@ -725,7 +765,7 @@ static int cr2res_slit_curv_all_peaks(
     cpl_image * img_peak;
     int width, height, npeaks;
     double pos[2];
-    double peak, value_b, value_c, result;
+    double peak, value_a, value_b, value_c, result;
     cpl_size i, j, k;
 
     width = 2 * window + 1;
@@ -740,7 +780,7 @@ static int cr2res_slit_curv_all_peaks(
     int ia[] = {1, 1, 1, 1, 1, fit_second_order, 0, 0, 0};
 
     if (peaks == NULL || img_rect == NULL || ycen == NULL || 
-        vec_b == NULL || vec_c == NULL) return -1;
+        vec_a == NULL || vec_b == NULL || vec_c == NULL) return -1;
 
     N = width * height;
     D = 2;
@@ -753,6 +793,7 @@ static int cr2res_slit_curv_all_peaks(
     y = cpl_vector_new(N);
     a = cpl_vector_new(M);
 
+    *vec_a = cpl_vector_new(cpl_vector_get_size(peaks));
     *vec_b = cpl_vector_new(cpl_vector_get_size(peaks));
     *vec_c = cpl_vector_new(cpl_vector_get_size(peaks));
 
@@ -762,7 +803,8 @@ static int cr2res_slit_curv_all_peaks(
             peak + window, height);
 
         cr2res_slit_curv_single_peak(img_peak, ycen, peak, x, y, a, ia,
-            &value_b, &value_c);
+            &value_a, &value_b, &value_c);
+        cpl_vector_set(*vec_a, i, value_a);
         cpl_vector_set(*vec_b, i, value_b);
         cpl_vector_set(*vec_c, i, value_c);
 

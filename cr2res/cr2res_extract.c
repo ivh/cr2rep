@@ -1570,15 +1570,9 @@ int cr2res_extract_slitdec_curved(
         yc = cpl_vector_get(ycen, i-1);
 
         // shift polynomial to local frame
-        a = 0; // a = a - i + yc * b + yc * yc * c
+        // a should be 0, after this transformation
+        a = a - i + yc * b + yc * yc * c;
         b += 2 * yc * c;
-
-        // cpl_msg_debug(__func__, "a: %f", a);
-        // cpl_msg_debug(__func__, "b: %f", b);
-        // cpl_msg_debug(__func__, "c: %f", c);
-        // cpl_msg_debug(__func__, "h: %d", height);
-        // cpl_msg_debug(__func__, "d: %f", b * height * 0.5);
-
 
         delta_tmp = max( fabs(a + (c*height/2. + b)*height/2.),
                 fabs(a + (c*height/-2. + b)*height/-2.));
