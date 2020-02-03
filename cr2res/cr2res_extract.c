@@ -1569,9 +1569,10 @@ int cr2res_extract_slitdec_curved(
         c = cpl_polynomial_eval_1d(slitcurve_C, i, NULL);
         yc = cpl_vector_get(ycen, i-1);
 
-        // shift polynomial to local frame
-        // a should be 0, after this transformation
-        a = a - i + yc * b + yc * yc * c;
+        // Shift polynomial to local frame
+        // We fix a to 0, see comment later on, when we create the
+        // polynomials for the extraction
+        a = 0; 
         b += 2 * yc * c;
 
         delta_tmp = max( fabs(a + (c*height/2. + b)*height/2.),
@@ -1581,7 +1582,7 @@ int cr2res_extract_slitdec_curved(
     cpl_msg_debug(__func__, "Max delta_x from slit curv: %d pix.", delta_x);
 
     if (delta_x >= swath /2){
-        //TODO: Cancel
+        //TODO: Abort
     }
 
     /* Allocate */
@@ -1665,9 +1666,32 @@ int cr2res_extract_slitdec_curved(
             pow = 0;
             cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow,
                 cpl_polynomial_eval_1d(slitcurve_A, x, NULL) - x);
-            /* and shift the polynomial to the central line */
+
+            // Shift polynomial to local frame
+            // -------------------------------
+            // The slit curvature has been determined in the global reference
+            // frame, with the a coefficient set to 0 in the local frame.
+            // The following transformation will shift it into the local frame
+            // again and should result in a = 0.
+            //      a - x + yc * b + yc * yc * c
+            // However this only works, as long as ycen
+            // is the same ycen that was used for the slitcurvature. If e.g. we
+            // switch traces, then ycen will change and a will be unequal 0.
+            // in fact a will be the offset due to the curvature between the
+            // old ycen and the new. This will then cause an offset in the
+            // pixels used for the extraction, so that all traces will have the
+            // same spectrum, with no relative offsets.
+            // Which would be great, if we didn't have an offset in the
+            // wavelength calibration of the different traces.
+            // Therefore we force a to be 0 in the local frame regardless of
+            // ycen. For the extraction we only need the b and c coefficient
+            // anyways.
+            // Note that this means, we use the curvature a few pixels offset.
+            // Usually this is no problem, since it only varies slowly over the
+            // order.
             cpl_polynomial_shift_1d(slitcurves_sw[col-1], 0,
                                             cpl_vector_get(ycen, x-1));
+            cpl_polynomial_set(slitcurves_sw[col-1], &pow, 0);
         }
 
         for (j=0; j< height * swath; j++) model_sw[j] = 0;

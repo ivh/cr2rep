@@ -35,12 +35,12 @@
 int cr2res_slit_curv_compute_order_trace(
         const hdrl_image    *   img,
         const cpl_table     *   trace_wave,
-        int                     order,
-        int                     trace,
-        int                     height,
-        int                     window,
-        cpl_size                degree,
-        int                     fit_second_order,
+        const int               order,
+        const int               trace,
+        const int               height,
+        const int               window,
+        const cpl_size          degree,
+        const int               fit_second_order,
         cpl_polynomial      **  slit_poly_a,
         cpl_polynomial      **  slit_poly_b,
         cpl_polynomial      **  slit_poly_c) ;
