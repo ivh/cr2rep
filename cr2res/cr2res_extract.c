@@ -3178,7 +3178,7 @@ static int cr2res_extract_slit_func_curved(
         if (info) cpl_msg_info(__func__, "info(sP)=%d\n", info);
         for (x = 0; x < ncols; x++) sP[x] = p_bj[x];
 
-        if (isnan(sP[0])){
+        if (isnan(sP[0]) && (cpl_msg_get_level() == CPL_MSG_DEBUG) ){
             debug_output(ncols, nrows, osample, im, pix_unc, mask, ycen, ycen_offset, y_lower_lim, slitcurves);
         }
 
