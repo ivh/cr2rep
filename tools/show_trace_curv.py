@@ -61,7 +61,11 @@ def compare(fname_trace, fname_img=None, fname_spec=None):
             i2 = tdata[tdata["order"] == order]["All"]
             coeff = [np.interp(0.5, i1, i2[:, k]) for k in range(i2.shape[1])]
 
-            a, b, c = wave
+            if len(wave) == 2:
+                a,b = wave
+                c=0
+            elif len(wave) > 2:
+                a, b, c = wave
             xw = np.polyval(wave[::-1], np.arange(2048))
             x = [(np.sqrt(-4*a*c + b**2 + 4 * c * w) - b) / (2*c) for w in np.arange(np.floor(xw.min()), np.ceil(xw.max()))]
             x = np.clip(np.asarray(x), 0, 2048)
