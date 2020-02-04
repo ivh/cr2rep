@@ -35,7 +35,8 @@ def compare(fname_trace, fname_img=None):
 
         if fname_img:
             imgdata = img[i].data
-            vmin, vmax = np.percentile(imgdata, (5, 99))
+            vmin, vmax = np.percentile(imgdata, (5, 95))
+            vmax += (vmax-vmin)*0.4
             ax.imshow(imgdata, origin="lower", vmin = vmin, vmax=vmax,
                 cmap='viridis')
 
@@ -64,7 +65,7 @@ def compare(fname_trace, fname_img=None):
             coeff = [np.interp(0.5, i1, i2[:, k]) for k in range(i2.shape[1])]
 
 
-            for i in range(10, 2048, 100):
+            for i in range(30, 2048, 200):
                 ew = [int(middle[i] - lower[i]), int(upper[i] - middle[i])]
                 x = np.zeros(ew[0] + ew[1] + 1)
                 y = np.arange(-ew[0], ew[1] + 1).astype(float)
@@ -87,19 +88,19 @@ def compare(fname_trace, fname_img=None):
             if np.isnan(middle[1024]):
                 continue
             ax.text(
-                1024,
+                500,
                 middle[1024],
                 "order: %s\ntrace: %s" % (t["order"], t["TraceNb"]),
                 color=linecol,
                 horizontalalignment="center",
                 verticalalignment="center",
-                size=7,
+                size=9,
             )
 
     FIG.tight_layout(pad=0.02)
     #plt.show()
     figname = fname_trace.replace(".fits", ".png")
-    plt.savefig(figname, dpi=120)
+    plt.savefig(figname, dpi=180)
 
 
 if __name__ == "__main__":

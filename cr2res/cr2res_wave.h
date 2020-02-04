@@ -32,7 +32,7 @@
                                     Define
  -----------------------------------------------------------------------------*/
 
-#define CR2RES_WAVELENGTH_ERROR_DEFAULT     0.3
+#define CR2RES_WAVELENGTH_ERROR_DEFAULT     0.2
 #define CR2RES_WAVELENGTH_MIN_FIT_PIX       20
 
 typedef enum {
