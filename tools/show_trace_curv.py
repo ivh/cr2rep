@@ -19,13 +19,13 @@ def compare(fname_trace, fname_img=None):
     X = np.arange(2048)
     FIG = plt.figure(figsize=(15, 5))
 
-    for i in [1, 2, 3]:
-        ax = FIG.add_subplot(1, 3, i)
+    for det in [1, 2, 3]:
+        ax = FIG.add_subplot(1, 3, det)
         ax.set_xticks([])
         ax.set_yticks([])
 
         try:
-            tdata = trace[i].data
+            tdata = trace['CHIP%d.INT1'%det].data
         except:
             print("extension %s is missing, skipping." % i)
             continue
@@ -34,8 +34,9 @@ def compare(fname_trace, fname_img=None):
             continue
 
         if fname_img:
-            imgdata = img[i].data
-            vmin, vmax = np.percentile(imgdata, (5, 95))
+            imgdata = img['CHIP%d.INT1'%det].data
+            imgdata = np.ma.masked_where(np.isnan(imgdata), imgdata)
+            vmin, vmax = np.percentile(imgdata.compressed(), (5, 95))
             vmax += (vmax-vmin)*0.4
             ax.imshow(imgdata, origin="lower", vmin = vmin, vmax=vmax,
                 cmap='viridis')
@@ -96,6 +97,7 @@ def compare(fname_trace, fname_img=None):
                 verticalalignment="center",
                 size=9,
             )
+            ax.axis((1,2048,1,2048))
 
     FIG.tight_layout(pad=0.02)
     #plt.show()
