@@ -220,7 +220,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     RECIPE_STRING,
                     "Wavelength Calibration",
                     cr2res_cal_wave_description,
-                    "Ansgar Wehrhahn, Thomas Marquart, Yves Jung",
+                    "Yves Jung, Thomas Marquart, Ansgar Wehrhahn, Nikolai Piskunov",
                     PACKAGE_BUGREPORT,
                     cr2res_get_license(),
                     cr2res_cal_wave_create,
