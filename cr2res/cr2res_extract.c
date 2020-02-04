@@ -1691,7 +1691,7 @@ int cr2res_extract_slitdec_curved(
             // order.
             cpl_polynomial_shift_1d(slitcurves_sw[col-1], 0,
                                             cpl_vector_get(ycen, x-1));
-            cpl_polynomial_set(slitcurves_sw[col-1], &pow, 0);
+            cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow, 0);
         }
 
         for (j=0; j< height * swath; j++) model_sw[j] = 0;
