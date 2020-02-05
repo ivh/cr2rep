@@ -173,7 +173,8 @@ int cr2res_slit_curv_compute_order_trace(
     hdrl_other = hdrl_image_new(cpl_image_get_size_x(img_in),
         cpl_image_get_size_y(img_in));
     cr2res_slit_curv_smooth_image_median(hdrl_other, img_in, 3);
-
+    img_in = hdrl_image_get_image_const(hdrl_other);
+    
     // Determine the peaks and remove peaks at the edges of the order
     if (cr2res_extract_sum_vert(hdrl_other, trace_wave, order, trace,
             height, &sfunc, &spec_bi, &model) != 0){
@@ -184,7 +185,7 @@ int cr2res_slit_curv_compute_order_trace(
     cpl_bivector_delete(spec_bi);
     cpl_vector_delete(sfunc);
     hdrl_image_delete(model);
-    hdrl_image_delete(hdrl_other);
+    
 
     // Rectify the image
     if ((ycen = cr2res_trace_get_ycen(trace_wave, order,
@@ -212,6 +213,7 @@ int cr2res_slit_curv_compute_order_trace(
     }
     cpl_image_delete(img_rect);
     cpl_vector_delete(ycen);
+    hdrl_image_delete(hdrl_other);
 
     // Discard outliers
     // It would be better to make the fit itself more robust,
@@ -219,7 +221,6 @@ int cr2res_slit_curv_compute_order_trace(
     // strong variation within the order
     cr2res_slit_curv_remove_outliers(peaks, vec_a, vec_b,
         vec_c, fit_second_order);
-
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
        cpl_vector_save(vec_a, "debug_vector_a.fits",
@@ -792,6 +793,7 @@ static int cr2res_slit_curv_single_peak(
     cpl_error_code error;
     cpl_image * img_slitfunc;
     cpl_image * img_model;
+    cpl_image * img_spec;
     double minimum, maximum;
     double yc, result;
     double pos[2];
@@ -820,8 +822,15 @@ static int cr2res_slit_curv_single_peak(
     // normalized to the peak maximum
     img_slitfunc = cpl_image_collapse_median_create(img_peak, 1, 0, 0);
     maximum = cpl_image_get_max(img_slitfunc);
-    minimum = cpl_image_get_min(img_slitfunc);
+    // minimum = cpl_image_get_min(img_slitfunc);
     cpl_image_divide_scalar(img_slitfunc, maximum);
+
+    // Collapse image along x axis, to get spectrum
+    img_spec = cpl_image_collapse_median_create(img_peak, 0, 0, 0);
+    maximum = cpl_image_get(img_spec, cpl_image_get_size_x(img_spec) / 2, 1,
+        &badpix);
+    minimum = cpl_image_get(img_spec, 1, 1, &badpix);
+    cpl_image_delete(img_spec);
 
     // Set initial guesses
     // We pass the slitfunction and the ycen arrays as pointers disguised as
