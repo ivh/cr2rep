@@ -385,6 +385,7 @@ static int cr2res_util_wave(
     cpl_table           *   updated_extracted_table[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   qcs_plist ;
     int                     det_nr, order, i, j ;
 
     /* Needed for sscanf() */
@@ -580,7 +581,7 @@ static int cr2res_util_wave(
                         wl_degree, wl_start, wl_end, wl_err_start, wl_err_end, 
                         wl_shift, log_flag, propagate_flag, clean_spectrum, 
                         display, display_wmin, display_wmax,
-                        NULL,
+                        &qcs_plist,
                         &(lines_diagnostics[det_nr-1]),
                         &(updated_extracted_table[det_nr-1]),
                         &(out_trace_wave[det_nr-1]))) {
@@ -593,6 +594,12 @@ static int cr2res_util_wave(
             }
             cpl_table_delete(trace_wave) ;
             cpl_table_delete(extracted_table) ;
+
+            /* Store the QC parameters in the plist */
+            if (qcs_plist != NULL) {
+                cpl_propertylist_append(ext_plist[det_nr-1], qcs_plist) ;
+                cpl_propertylist_delete(qcs_plist) ;
+            }
 
             /* Generate the Wave Map */
             out_wave_map[det_nr-1] =
