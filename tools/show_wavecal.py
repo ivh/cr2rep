@@ -67,9 +67,8 @@ def main(specname,catname=None,cat2name=None,tracename=None):
                     wl = ev(p,X)
             spec *= SPEC_FACTOR
             spec -= np.percentile(spec,10)
-            ax.plot(wl,spec,label=str(order),color=colors[i],
+            ax.plot(wl,spec,label=str(order),color=colors[i], linestyle='-')
             xcor = h.get('ESO QC WAVE BESTXCORR-%02d-01'%order)
-                linestyle='-')
             ax.text(wl.mean(),3000,'(Order %d, Detector %d, X-corr %.2f %)'%(order,i+1,xcor or 0.0), fontsize=11,
                 horizontalalignment='center')
 
