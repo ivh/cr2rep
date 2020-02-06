@@ -395,12 +395,9 @@ static int cr2res_cal_dark(
 
     /* Identify if there are several DIT/NDIT */
     single_dit_ndit = -1 ;
-
-    /* Loop on the settings */
     for (l=0 ; l<(int)nlabels ; l++) {
         /* Get the frames for the current setting */
         raw_one = cpl_frameset_extract(rawframes, labels, (cpl_size)l) ;
-        nb_frames = cpl_frameset_get_size(raw_one) ;
 
         /* Get the current setting */
         plist = cpl_propertylist_load(cpl_frame_get_filename(
@@ -421,6 +418,24 @@ static int cr2res_cal_dark(
                 single_dit_ndit = 0 ;
             }
         }
+        cpl_free(setting_id);
+        cpl_frameset_delete(raw_one) ;
+    }
+
+    /* Loop on the settings */
+    for (l=0 ; l<(int)nlabels ; l++) {
+        /* Get the frames for the current setting */
+        raw_one = cpl_frameset_extract(rawframes, labels, (cpl_size)l) ;
+        nb_frames = cpl_frameset_get_size(raw_one) ;
+
+        /* Get the current setting */
+        plist = cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position(raw_one, 0)), 0) ;
+        dit = cr2res_pfits_get_dit(plist) ;
+        ndit = cr2res_pfits_get_ndit(plist) ;
+        setting_id = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
+        cr2res_format_setting(setting_id) ;
+        cpl_propertylist_delete(plist) ;
 
         cpl_msg_info(__func__, "Process SETTING %s / DIT %g / %d",
                 setting_id, dit, ndit) ;
