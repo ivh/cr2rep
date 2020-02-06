@@ -65,11 +65,12 @@ def main(specname,catname=None,cat2name=None,tracename=None):
                     ['Wavelength'][0]
                 if not np.isnan(p).any():
                     wl = ev(p,X)
+            #spec = np.ma.masked_where(np.isnan(spec),spec)
             spec *= SPEC_FACTOR
-            spec -= np.percentile(spec,10)
+            #spec -= np.median(spec) -300
             ax.plot(wl,spec,label=str(order),color=colors[i], linestyle='-')
             xcor = h.get('ESO QC WAVE BESTXCORR-%02d-01'%order)
-            ax.text(wl.mean(),3000,'(Order %d, Detector %d, X-corr %.2f %)'%(order,i+1,xcor or 0.0), fontsize=11,
+            ax.text(wl.mean(),3000,'(Order %d, Detector %d, X-corr %.2f %%)'%(order,i+1,xcor or 0.0), fontsize=11,
                 horizontalalignment='center')
 
 
