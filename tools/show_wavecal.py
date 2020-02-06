@@ -46,11 +46,11 @@ def main(specname,catname=None,cat2name=None,tracename=None):
             try:
                 tw=fits.open(tracename)
                 twd = tw[ext].data
-            
+
             except Exception as e:
                 print('TRACEWAVE has no extension: %s'%ext)
-        
-        h=spec_exts[ext].header    
+
+        h=spec_exts[ext].header
         for order in np.arange(9)+1:
             try:
                 wl = spec_exts[ext].data['%02d_01_WL'%order]
@@ -65,10 +65,12 @@ def main(specname,catname=None,cat2name=None,tracename=None):
                     ['Wavelength'][0]
                 if not np.isnan(p).any():
                     wl = ev(p,X)
+            spec *= SPEC_FACTOR
+            spec -= np.percentile(spec,10)
+            ax.plot(wl,spec,label=str(order),color=colors[i],
             xcor = h.get('ESO QC WAVE BESTXCORR-%02d-01'%order)
-            ax.plot(wl,spec*SPEC_FACTOR,label=str(order),color=colors[i],
                 linestyle='-')
-            ax.text(wl.mean(),3000,'(O:%d D:%d X:%.2f)'%(order,i+1,xcor or 0.0), fontsize=9,
+            ax.text(wl.mean(),3000,'(Order %d, Detector %d, X-corr %.2f %)'%(order,i+1,xcor or 0.0), fontsize=11,
                 horizontalalignment='center')
 
 

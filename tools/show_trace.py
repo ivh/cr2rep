@@ -37,7 +37,6 @@ def compare(fname_trace, fname_img=None, fname_spec=None):
         if fname_img:
             imgdata = img['CHIP%d.INT1'%i].data
             imgdata = np.ma.masked_where(np.isnan(imgdata),imgdata)
-            print('max: %f'%imgdata.max())
             ax.imshow(imgdata, origin='lower', cmap=Turbo,
                 vmin=np.percentile(imgdata.compressed(),5),
                 vmax=np.percentile(imgdata.compressed(),98))
