@@ -130,7 +130,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     RECIPE_STRING,
                     "Calibration utility",
                     cr2res_util_calib_description,
-                    "Yves Jung, Thomas Marquart, Ansgar Wehrhahn, Nikolai Piskunov",
+                    CR2RES_PIPELINE_AUTHORS,
                     PACKAGE_BUGREPORT,
                     cr2res_get_license(),
                     cr2res_util_calib_create,

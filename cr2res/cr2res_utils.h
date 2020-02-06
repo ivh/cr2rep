@@ -31,6 +31,9 @@
                                    Define
  -----------------------------------------------------------------------------*/
 
+#define CR2RES_PIPELINE_AUTHORS \
+    "Yves Jung, Thomas Marquart, Ansgar Wehrhahn, Nikolai Piskunov"
+
 #define CR2RES_NB_DETECTORS             3
 #define CR2RES_NB_DECKER_POSITIONS      3
 #define CR2RES_DETECTOR_SIZE            2048
