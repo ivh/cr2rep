@@ -118,6 +118,7 @@ static int cr2res_extract_slitdec_bandsol(double *, double *, int, int, double) 
 static int cr2res_extract_slitdec_adjust_swath(
         int             sw,
         int             nx,
+        int             dx,
         cpl_vector  *   bins_begin,
         cpl_vector  *   bins_end) ;
 
@@ -1161,7 +1162,7 @@ int cr2res_extract_slitdec_vert(
     bins_begin = cpl_vector_new(1);
     bins_end = cpl_vector_new(1);
     ny_os = oversample*(height+1) +1;
-    if ((swath = cr2res_extract_slitdec_adjust_swath(swath, lenx, bins_begin,
+    if ((swath = cr2res_extract_slitdec_adjust_swath(swath, lenx, 0, bins_begin,
                     bins_end)) == -1){
         cpl_msg_error(__func__, "Cannot calculate swath size");
         cpl_vector_delete(ycen);
@@ -1509,25 +1510,11 @@ int cr2res_extract_slitdec_curved(
         return -1 ;
     }
 
-    /* Number of rows after oversampling */
-    bins_begin = cpl_vector_new(1);
-    bins_end = cpl_vector_new(1);
-    ny_os = oversample*(height+1) +1;
-    if ((swath = cr2res_extract_slitdec_adjust_swath(swath, lenx,
-                    bins_begin, bins_end)) == -1){
-        cpl_msg_error(__func__, "Cannot calculate swath size");
-        cpl_vector_delete(ycen);
-        return -1;
-    }
-    nswaths = cpl_vector_get_size(bins_begin);
-
     // Get cut-out rectified order
     img_rect = cr2res_image_cut_rectify(img_in, ycen, height);
     if (img_rect == NULL){
         cpl_msg_error(__func__, "Cannot rectify order");
         cpl_vector_delete(ycen);
-        cpl_vector_delete(bins_begin);
-        cpl_vector_delete(bins_end);
         return -1;
     }
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
@@ -1549,8 +1536,6 @@ int cr2res_extract_slitdec_curved(
         cpl_msg_error(__func__, 
                 "No (or incomplete) slitcurve data found in trace table");
         cpl_vector_delete(ycen);
-        cpl_vector_delete(bins_begin);
-        cpl_vector_delete(bins_end);
         cpl_polynomial_delete(slitcurve_A);
         cpl_polynomial_delete(slitcurve_B);
         cpl_polynomial_delete(slitcurve_C);
@@ -1579,11 +1564,24 @@ int cr2res_extract_slitdec_curved(
                 fabs(a + (c*height/-2. + b)*height/-2.));
         if (delta_tmp > delta_x) delta_x = (int)ceil(delta_tmp);
     }
+    delta_x += 1;
     cpl_msg_debug(__func__, "Max delta_x from slit curv: %d pix.", delta_x);
 
-    if (delta_x >= swath /2){
+    if (delta_x >= swath / 4){
         //TODO: Abort
     }
+
+    /* Number of rows after oversampling */
+    bins_begin = cpl_vector_new(1);
+    bins_end = cpl_vector_new(1);
+    ny_os = oversample*(height+1) +1;
+    if ((swath = cr2res_extract_slitdec_adjust_swath(swath, lenx, delta_x,
+                    bins_begin, bins_end)) == -1){
+        cpl_msg_error(__func__, "Cannot calculate swath size");
+        cpl_vector_delete(ycen);
+        return -1;
+    }
+    nswaths = cpl_vector_get_size(bins_begin);
 
     /* Allocate */
     mask_sw = cpl_malloc(height * swath*sizeof(int));
@@ -1614,22 +1612,18 @@ int cr2res_extract_slitdec_curved(
     for (j=0; j < ny_os; j++) cpl_vector_set(slitfu_sw, j, 0);
     slitfu_sw_data = cpl_vector_get_data(slitfu_sw);
     weights_sw = cpl_vector_new(swath);
+    for (i = 0; i < swath; i++) cpl_vector_set(weights_sw, i, 0);
 
     /* Pre-calculate the weights for overlapping swaths*/
-    for (i=0; i < swath/2; i++) {
-        cpl_vector_set(weights_sw, i, i + 1);
-        cpl_vector_set(weights_sw, swath - i - 1, i+1);
+    for (i=delta_x; i < swath/2; i++) {
+        j = i - delta_x + 1;
+        cpl_vector_set(weights_sw, i, j);
+        cpl_vector_set(weights_sw, swath - i - 1, j);
     }
     // normalize such that max(w)=1
-    cpl_vector_divide_scalar(weights_sw,i+1);
+    cpl_vector_divide_scalar(weights_sw, swath/2 - delta_x + 1);
 
-    // remove delta_x outermost weights and move them to the center 
-    for (i=0; i < delta_x; i++){
-        cpl_vector_set(weights_sw, i, 0);
-        cpl_vector_set(weights_sw, swath - i - 1, 0);
-        cpl_vector_set(weights_sw, swath / 2 + i, 1);
-        cpl_vector_set(weights_sw, swath / 2 - i - 1, 1);
-    }
+    // assert cpl_vector_get_sum(weights_sw) == swath / 2 - delta_x
 
     for (i=0;i<nswaths;i++){
         sw_start = cpl_vector_get(bins_begin, i);
@@ -1713,13 +1707,13 @@ int cr2res_extract_slitdec_curved(
 
         for (j=sw_start;j<sw_end;j++){
             ycen_sw[j-sw_start] = ycen_rest[j];
+            ycen_offset_sw[j-sw_start] = (int) cpl_vector_get(ycen, j);
         }
-        y_lower_limit = (int) ycen_sw[0];
-        for (j=0; j < swath; j++) {
-            ycen_offset_sw[j] = (int) ycen_sw[j];
-            y_lower_limit = min(y_lower_limit, (int) ycen_sw[j]);
-        }
-        y_lower_limit = height / 2 + y_lower_limit;
+        // y_lower_limit = (int) ycen_offset_sw[0];
+        // for (j=0; j < swath; j++) {
+        //     y_lower_limit = min(y_lower_limit, ycen_offset_sw[j]);
+        // }
+        y_lower_limit = height / 2;
 
         if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
             img_tmp = cpl_image_wrap_int(swath, height, mask_sw);
@@ -1762,21 +1756,20 @@ int cr2res_extract_slitdec_curved(
         // (when creating the bins)
         // The duplicate values in the vector will not matter as they are
         // not used below
-        if (i != 0)
+        if (i == nswaths - 1){
             k = cpl_vector_get(bins_end, i-1) -
-                cpl_vector_get(bins_begin, i) - swath / 2;
-        else k = 0;
+                cpl_vector_get(bins_begin, i) - swath / 2 - delta_x;
 
-        if (k != 0) {
             for (j= 0; j < swath - k; j++){
                 cpl_vector_set(spec_sw, j, cpl_vector_get(spec_sw, j + k));
                 cpl_vector_set(unc_sw, j, cpl_vector_get(unc_sw, j + k));
-                for (y = 0; y < height; y++) model_sw[y * swath + j] = model_sw[y * swath + j + k];
+                for (y = 0; y < height; y++)
+                    model_sw[y * swath + j] = model_sw[y * swath + j + k];
             }
-            sw_start = cpl_vector_get(bins_begin, i-1) + swath / 2;
+            sw_start = cpl_vector_get(bins_begin, i-1) + swath / 2 - delta_x;
             cpl_vector_set(bins_begin, i, sw_start);
             // for the following k's
-            cpl_vector_set(bins_end, i, sw_start + swath);
+            cpl_vector_set(bins_end, i, lenx);
         }
 
         // first and last half swath are not weighted
@@ -1816,8 +1809,8 @@ int cr2res_extract_slitdec_curved(
             /* Multiply by weights and add to output array */
             cpl_vector_multiply(spec_sw, weights_sw);
             cpl_vector_multiply(unc_sw, weights_sw);
-            for (j = 0; j < swath; j++){
-                for (y = 0; y < height; y++) {
+            for (y = 0; y < height; y++) {
+                for (j = 0; j < swath; j++){
                     model_sw[y * swath + j] *= cpl_vector_get(weights_sw,j);
                 }
             }
@@ -1840,11 +1833,16 @@ int cr2res_extract_slitdec_curved(
                 cpl_vector_get(unc_sw, j - sw_start)
                 + cpl_vector_get(unc_decomposition, j));
 
-            for(y=0;y<height;y++){
+            for(y = 0; y < height; y++){
                 cpl_image_set(model_rect, j+1, y+1, 
                     cpl_image_get(model_rect, j+1, y+1, &badpix)
                     + model_sw[y * swath + j - sw_start]);
             }
+        }
+
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+            cpl_image_save(model_rect, "debug_model_after_merge.fits",
+                CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
         }
 
         cpl_vector_delete(spec_sw);
@@ -3203,7 +3201,8 @@ static int cr2res_extract_slit_func_curved(
         for (x = 0; x < ncols; x++) sP[x] = p_bj[x];
 
         if (isnan(sP[0]) && (cpl_msg_get_level() == CPL_MSG_DEBUG) ){
-            debug_output(ncols, nrows, osample, im, pix_unc, mask, ycen, ycen_offset, y_lower_lim, slitcurves);
+            debug_output(ncols, nrows, osample, im, pix_unc, mask, ycen,
+                ycen_offset, y_lower_lim, slitcurves);
         }
 
         /* Compute the model */
@@ -3371,6 +3370,7 @@ static int cr2res_extract_slitdec_bandsol(
   @brief   Adjust the swath width to match the length of detector
   @param sw     Swath width to start from
   @param nx     number of pixel columns to match
+  @param dx     delta_x, number of pixels offset due to curvature
   @return   The new swath width and swath edges. All bins end up with
             the same even swath size
     Note that the last swath shifted forward to have the same length as the
@@ -3380,6 +3380,7 @@ static int cr2res_extract_slitdec_bandsol(
 static int cr2res_extract_slitdec_adjust_swath(
         int             sw,
         int             nx,
+        int             dx,
         cpl_vector  *   bins_begin,
         cpl_vector  *   bins_end)
 {
@@ -3393,24 +3394,24 @@ static int cr2res_extract_slitdec_adjust_swath(
     double step = 0;
 
     // Calculate number of bins
-    nbin = 2 * (nx / sw);
-    if (nx % sw != 0) nbin++;
+    nbin = 2 * ((nx - 2 * dx) / sw);
+    if ((nx - 2 * dx) % sw != 0) nbin++;
     if (nbin < 1) nbin = 1;
 
     // Step / 2, to get half width swaths
     step = sw / 2;
-    int bin=0;
+    int bin = 0;
     cpl_vector_set_size(bins_begin, nbin);
     cpl_vector_set_size(bins_end, nbin);
 
     // boundaries of bins
-    for(i = 2; i < nbin + 2; i++)
+    for(i = 0; i < nbin; i++)
     {
-        bin = min(i * step, nx);
-        cpl_vector_set(bins_end, i-2, bin);
-        cpl_vector_set(bins_begin, i-2, bin - sw);
+        bin = min(i * step, nx - sw - 2 * dx);
+        cpl_vector_set(bins_begin, i, bin);
+        cpl_vector_set(bins_end, i, bin + sw + 2 * dx);
     }
-    return sw;
+    return sw + 2 * dx;
 }
 
 static int debug_output( 
