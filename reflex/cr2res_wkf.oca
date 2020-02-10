@@ -1,40 +1,218 @@
 /// This first block provides a dummy classification to all files, thus overcoming the feature of the DO to stop as soon as one file has no classification.
 if (T) then
 {
-   REFLEX.CATG="UNDEFINED";
-}
-
-/// This block copies PRO.CATG into REFLEX.CATG to cover the case in which the latter is not assigned explicitely below.
-if PRO.CATG is string then
-{
-  REFLEX.CATG=PRO.CATG;
+    REFLEX.CATG="UNDEFINED";
 }
 
 // Classification rules
-
-
 if DPR.CATG like "%CALIB%" and DPR.TYPE like "%DARK%" and DPR.TECH like "%IMAGE%" and INSTRUME=="CRIRES" then
 {
     RAW.TYPE = "DARK";
     REFLEX.CATG = "DARK";
     CATG = "CALIB";
 }
-
-if PRO.CATG=="CAL_DARK_MASTER" and INSTRUME=="CRIRES" then
+if DPR.CATG like "%CALIB%" and DPR.TYPE like "%FLAT%" and DPR.TECH like "%SPECTRUM%" and INSTRUME=="CRIRES" then
 {
-    REFLEX.CATG = "CAL_DARK_MASTER";
+    RAW.TYPE = "FLAT";
+    REFLEX.CATG = "FLAT";
+    CATG = "CALIB";
+}
+if DPR.CATG like "%CALIB%" and DPR.TYPE like "%WAVE%" and DPR.TYPE like "%LAMP%" and INS1.LAMP4.NAME like "%UNe%" and DPR.TECH like "%SPECTRUM%" and INSTRUME=="CRIRES" then
+{
+    RAW.TYPE = "WAVE";
+    REFLEX.CATG = "WAVE_UNe";
+    CATG = "CALIB";
+}
+if DPR.CATG like "%CALIB%" and DPR.TYPE like "%WAVE%" and DPR.TYPE like "%LAMP%" and INS1.LAMP8.NAME like "%Etalon%" and DPR.TECH like "%SPECTRUM%" and INSTRUME=="CRIRES" then
+{
+    RAW.TYPE = "WAVE";
+    REFLEX.CATG = "WAVE_Etalon";
+    CATG = "CALIB";
+}
+if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%DIRECT%" then
+{
+    RAW.TYPE = "OBS_NODDING";
+    REFLEX.CATG = "OBS_NODDING";
+    CATG = "SCIENCE";
+    REFLEX.TARGET = "T";
+}
+if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%ASTROMETRY%" then
+{
+  DO.CATG = "OBS_NODDING_ASTROMETRY";
+    RAW.TYPE = "OBS_NODDING_ASTROMETRY";
+    REFLEX.CATG = "OBS_NODDING";
+    CATG = "SCIENCE";
+    REFLEX.TARGET = "T";
+}
+
+// Needed for CAL_MASTER_DARK, CAL_DARK_BPM, CAL_MASTER_FLAT, CAL_FLAT_TW_MERGED, CAL_WAVE_TW, UTIL_SLIT_CURV_TW, EMISSION_LINES
+if PRO.CATG is string and INSTRUME=="CRIRES" then
+{
+    REFLEX.CATG=PRO.CATG;
 }
 
 // Selection rules
-select execute(DARK) from inputFiles where RAW.TYPE=="DARK"
-  group by TPL.START as (TPL_A,tpl);
+select execute(DARK_action) from inputFiles 
+    where REFLEX.CATG=="DARK"
+  	group by TPL.START as (TPL_A,tpl);
+
+select execute(FLAT_action) from inputFiles 
+    where REFLEX.CATG=="FLAT"
+  	group by TPL.START as (TPL_A,tpl);
+
+select execute(WAVE_LAMP_action) from inputFiles 
+    where REFLEX.CATG=="WAVE_UNe"
+  	group by TPL.START as (TPL_A,tpl);
+
+select execute(WAVE_ETALON_action) from inputFiles 
+    where REFLEX.CATG=="WAVE_Etalon"
+  	group by TPL.START as (TPL_A,tpl);
+
+select execute(SLIT_CURV_action) from inputFiles 
+    where REFLEX.CATG=="WAVE_Etalon"
+  	group by TPL.START as (TPL_A,tpl);
+
+select execute(OBS_NODDING_action) from inputFiles 
+    where REFLEX.CATG=="OBS_NODDING"
+  	group by TPL.START as (TPL_A,tpl);
+
 
 // Action rules
-action DARK
+action DARK_action
 {
     recipe cr2res_cal_dark;
 
     product CAL_DARK_MASTER_WKF { PRO.CATG="CAL_DARK_MASTER_WKF"; PRO.EXT="tpl_0000.fits";}
     product CAL_DARK_BPM_WKF { PRO.CATG="CAL_DARK_BPM_WKF"; PRO.EXT="tpl_0001.fits";}
+}
+action FLAT_action
+{
+	minRet = 0; maxRet = 1;
+    select file as CAL_DARK_MASTER_WKF from calibFiles where
+        PRO.CATG=="CAL_DARK_MASTER_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+	minRet = 0; maxRet = 1;
+    select file as CAL_DARK_BPM_WKF from calibFiles where
+        PRO.CATG=="CAL_DARK_BPM_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+    recipe cr2res_cal_flat;
+
+    product CAL_FLAT_MASTER_WKF { PRO.CATG="CAL_FLAT_MASTER_WKF"; PRO.EXT="tpl_0000.fits";}
+    product CAL_FLAT_TW_MERGED_WKF { PRO.CATG="CAL_FLAT_TW_MERGED_WKF"; PRO.EXT="tpl_0001.fits";}
+}
+action WAVE_LAMP_action
+{
+	minRet = 0; maxRet = 1;
+    select file as CAL_DARK_MASTER_WKF from calibFiles where
+        PRO.CATG=="CAL_DARK_MASTER_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+	minRet = 0; maxRet = 1;
+    select file as CAL_DARK_BPM_WKF from calibFiles where
+        PRO.CATG=="CAL_DARK_BPM_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+	minRet = 0; maxRet = 1;
+    select file as CAL_FLAT_MASTER_WKF from calibFiles where
+        PRO.CATG=="CAL_FLAT_MASTER_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+	minRet = 1; maxRet = 1;
+    select file as CAL_FLAT_TW_MERGED_WKF from calibFiles where
+        PRO.CATG=="CAL_FLAT_TW_MERGED_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+	minRet = 1; maxRet = 1;
+    select file as EMISSION_LINES from calibFiles where
+        PRO.CATG=="EMISSION_LINES"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+    recipe cr2res_cal_wave;
+
+    product CAL_WAVE_TW_WKF { PRO.CATG="CAL_WAVE_TW_WKF"; PRO.EXT="tpl_0000.fits";}
+}
+action WAVE_ETALON_action
+{
+	minRet = 0; maxRet = 1;
+    select file as CAL_DARK_MASTER_WKF from calibFiles where
+        PRO.CATG=="CAL_DARK_MASTER_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+	minRet = 0; maxRet = 1;
+    select file as CAL_DARK_BPM_WKF from calibFiles where
+        PRO.CATG=="CAL_DARK_BPM_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+	minRet = 0; maxRet = 1;
+    select file as CAL_FLAT_MASTER_WKF from calibFiles where
+        PRO.CATG=="CAL_FLAT_MASTER_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+	minRet = 1; maxRet = 1;
+    select file as CAL_WAVE_TW_WKF from calibFiles where
+        PRO.CATG=="CAL_WAVE_TW_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+    recipe cr2res_cal_wave;
+
+    product CAL_WAVE_TW_WKF { PRO.CATG="CAL_WAVE_TW_WKF"; PRO.EXT="tpl_0000.fits";}
+}
+action SLIT_CURV_action
+{
+	minRet = 1; maxRet = 1;
+    select file as CAL_WAVE_TW_WKF from calibFiles where
+        PRO.CATG=="CAL_WAVE_TW_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+    recipe cr2res_cal_wave;
+
+    product UTIL_SLIT_CURV_TW_WKF { PRO.CATG="UTIL_SLIT_CURV_TW_WKF"; PRO.EXT="tpl_0000.fits";}
+}
+action OBS_NODDING_action
+{
+	minRet = 0; maxRet = 1;
+    select file as CAL_DARK_MASTER_WKF from calibFiles where
+        PRO.CATG=="CAL_DARK_MASTER_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+	minRet = 0; maxRet = 1;
+    select file as CAL_DARK_BPM_WKF from calibFiles where
+        PRO.CATG=="CAL_DARK_BPM_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+	minRet = 0; maxRet = 1;
+    select file as CAL_FLAT_MASTER_WKF from calibFiles where
+        PRO.CATG=="CAL_FLAT_MASTER_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+	minRet = 1; maxRet = 1;
+    select file as UTIL_SLIT_CURV_TW_WKF from calibFiles where
+        PRO.CATG=="UTIL_SLIT_CURV_TW_WKF"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+    recipe cr2res_obs_nodding;
+
+    product OBS_NODDING_EXTRACTA_WKF { PRO.CATG="OBS_NODDING_EXTRACTA_WKF"; PRO.EXT="tpl_0000.fits";}
+    product OBS_NODDING_EXTRACTB_WKF { PRO.CATG="OBS_NODDING_EXTRACTB_WKF"; PRO.EXT="tpl_0001.fits";}
+    product OBS_NODDING_COMBINEDA_WKF { PRO.CATG="OBS_NODDING_COMBINEDA_WKF"; PRO.EXT="tpl_0002.fits";}
+    product OBS_NODDING_COMBINEDB_WKF { PRO.CATG="OBS_NODDING_COMBINEDB_WKF"; PRO.EXT="tpl_0003.fits";}
 }
 
