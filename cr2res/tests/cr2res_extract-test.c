@@ -872,14 +872,19 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    test_cr2res_extract_sum();
-    test_cr2res_extract_median();
-    test_cr2res_extract_sum_tilt();
-    test_cr2res_slitdec_vert_edge_cases();
+    /* TMP */
+    /* test_cr2res_extract_sum(); */
+    /* test_cr2res_extract_median(); */
+    /* test_cr2res_extract_sum_tilt(); */
+    /* test_cr2res_slitdec_vert_edge_cases(); */
+
     // test_cr2res_slitdec_vert_regression();
-    test_cr2res_slitdec_vert();
-    test_cr2res_slitdec_curved();
-    test_cr2res_slitdec_compare_vert_curved();
+
+    /* TMP */
+    /* test_cr2res_slitdec_vert(); */
+    /* test_cr2res_slitdec_curved(); */
+    /* test_cr2res_slitdec_compare_vert_curved(); */
+
     // test_cr2res_slitdec_errors();
 
     return cpl_test_end(0);
