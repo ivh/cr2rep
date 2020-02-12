@@ -275,14 +275,14 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.bpm_low",
             CPL_TYPE_DOUBLE, "Low threshold for BPM detection",
-            "cr2res.cr2res_cal_flat", 0.5);
+            "cr2res.cr2res_cal_flat", 0.8);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_low");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.bpm_high",
             CPL_TYPE_DOUBLE, "High threshold for BPM detection",
-            "cr2res.cr2res_cal_flat", 2.0);
+            "cr2res.cr2res_cal_flat", 1.2);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_high");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);

@@ -191,7 +191,7 @@ static int cr2res_cal_dark_create(cpl_plugin * plugin)
 
     /* --bpm_kappa */
     p = cpl_parameter_new_value("cr2res_cal_dark.bpm_kappa", CPL_TYPE_DOUBLE,
-           "Kappa Threshold for the BPM", "cr2res_cal_dark", 1.1);
+           "Kappa Threshold for the BPM", "cr2res_cal_dark", 0.5);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_kappa");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -532,6 +532,9 @@ static int cr2res_cal_dark(
                     bpm_low = med - bpm_kappa * sigma ;
                     bpm_high = med + bpm_kappa * sigma ;
 
+                    cpl_msg_debug(__func__, "Median %.1f, Sigma %.1f"
+                        "BPM_low %.1f, BPM_hi %.1f"
+                        , med, sigma, bpm_low, bpm_high);
                     /* Compute BPM */
                     if ((my_bpm = cr2res_bpm_compute(
                                 hdrl_image_get_image(master_darks[det_nr-1]),
