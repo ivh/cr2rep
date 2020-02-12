@@ -5,8 +5,6 @@ from astropy.io import fits
 import numpy as np
 import matplotlib.pyplot as plt
 
-PLOTALL=True
-ANIMATE=False
 STEPS=900
 
 EXTNAMES = ['CHIP%d.INT1'%i for i in [1,2,3]]
@@ -94,9 +92,6 @@ def main(specname,catname=None,cat2name=None,tracename=None):
             ax.text(wl.mean(),3000,'(O:%d D:%d X:%.2f)'%(order,i+1,xcor or 0.0), fontsize=9,
                 horizontalalignment='center')
 
-            if PLOTALL:
-                ax.axis((wl.min(),wl.max(),YMIN,YMAX))
-                plt.savefig('wavecal_%s_o%d_d%d'%(shortsett,order,i+1),dpi=120)
 
 
     #x1,x2,y1,y2=ax.axis()
@@ -114,14 +109,7 @@ def main(specname,catname=None,cat2name=None,tracename=None):
         x1,x2=4500,5000
     rang = x2-x1
 
-    if ANIMATE:
-        for i in range(STEPS):
-            delta = rang / STEPS *i
-            ax.axis((x1 + delta,x1+delta + (rang/ZOOM),-15,YMAX))
-            figname = fname1.replace('.fits','_%03d.png')
-            plt.savefig(figname%i,dpi=60)
-    else:
-        ax.axis((x1,x1+(rang/ZOOM),-YMAX,YMAX))
+    ax.axis((x1,x1+(rang/ZOOM),-YMAX,YMAX))
 
     #cid = FIG.canvas.mpl_connect('button_press_event', onclick)
     cid = FIG.canvas.mpl_connect('key_press_event', onkey)
