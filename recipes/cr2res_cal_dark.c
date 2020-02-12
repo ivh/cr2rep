@@ -191,7 +191,7 @@ static int cr2res_cal_dark_create(cpl_plugin * plugin)
 
     /* --bpm_kappa */
     p = cpl_parameter_new_value("cr2res_cal_dark.bpm_kappa", CPL_TYPE_DOUBLE,
-           "Kappa Threshold for the BPM", "cr2res_cal_dark", 1.8);
+           "Kappa Threshold for the BPM", "cr2res_cal_dark", 1.1);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_kappa");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
