@@ -1472,6 +1472,7 @@ int cr2res_extract_slitdec_curved(
     cpl_polynomial  **  slitcurves_sw;
     hdrl_image      *   model_out;
 
+    char            *   path;
     double              pixval, errval, img_median, norm, model_unc, img_unc,
                         unc, delta_tmp, a, b, c, yc;
     int                 i, j, k, nswaths, halfswath, row, col, x, y, ny_os,
@@ -1733,8 +1734,17 @@ int cr2res_extract_slitdec_curved(
         else cpl_vector_add(slitfu,slitfu_sw);
 
         if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-            cpl_vector_save(spec_sw, "debug_spc.fits", CPL_TYPE_DOUBLE, NULL,
+            path = cpl_sprintf("debug_spc_%i.fits", i);
+            cpl_vector_save(spec_sw, path , CPL_TYPE_DOUBLE, NULL,
                     CPL_IO_CREATE);
+            cpl_free(path);
+
+            path = cpl_sprintf("debug_mask_%i.fits", i);
+            img_tmp = cpl_image_wrap_int(swath, height, mask_sw);
+            cpl_image_save(img_tmp, path, CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+            cpl_free(path);
+            cpl_image_unwrap(img_tmp);
+
             tmp_vec = cpl_vector_wrap(swath, ycen_sw);
             cpl_vector_save(tmp_vec, "debug_ycen.fits", CPL_TYPE_DOUBLE, NULL,
                     CPL_IO_CREATE);
@@ -1747,8 +1757,10 @@ int cr2res_extract_slitdec_curved(
             cpl_image_save(img_tmp, "debug_model_sw.fits", CPL_TYPE_DOUBLE,
                     NULL, CPL_IO_CREATE);
             cpl_image_unwrap(img_tmp);
-            cpl_image_save(img_sw, "debug_img_sw.fits", CPL_TYPE_DOUBLE, NULL,
+            path = cpl_sprintf("debug_img_sw_%i.fits", i);
+            cpl_image_save(img_sw, path, CPL_TYPE_DOUBLE, NULL,
                     CPL_IO_CREATE);
+            cpl_free(path);
         }
 
         // The last bins are shifted, overwriting the first k values
@@ -1891,7 +1903,10 @@ int cr2res_extract_slitdec_curved(
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
         cpl_image_save(model_rect, "debug_model_rect.fits", CPL_TYPE_DOUBLE,
                 NULL, CPL_IO_CREATE);
-        cpl_image_save(img_out, "debug_model_all.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+        cpl_image_save(img_out, "debug_model_all.fits", CPL_TYPE_DOUBLE,
+                NULL, CPL_IO_CREATE);
+        cpl_vector_save(spc, "debug_spc_all.fits", CPL_TYPE_DOUBLE,
+                NULL, CPL_IO_CREATE);
     }
 
     // TODO: Update BPM in img_out
@@ -3134,7 +3149,8 @@ static int cr2res_extract_slit_func_curved(
         l_Aij[ny - 1 + ny * 2 * osample] += lambda;
 
         /* Solve the system of equations */
-        info = cr2res_extract_slitdec_bandsol(l_Aij, l_bj, ny, 4 * osample + 1, lambda);
+        info = cr2res_extract_slitdec_bandsol(l_Aij, l_bj, ny,
+            4 * osample + 1, lambda);
         if (info) cpl_msg_info(__func__, "info(sL)=%d\n", info);
 
         /* Normalize the slit function */
@@ -3158,14 +3174,15 @@ static int cr2res_extract_slit_func_curved(
                     if (ww > 0) {
                         xx = xi[xi_index(x,iy,n)].x;
                         yy = xi[xi_index(x,iy,n)].y;
-                        if (m_zeta[mzeta_index(xx,yy)] > 0 && xx >= 0 && xx < ncols &&
-                                yy >= 0 && yy < nrows) {
+                        if (m_zeta[mzeta_index(xx,yy)] > 0 && xx >= 0 && 
+                            xx < ncols && yy >= 0 && yy < nrows) {
                             for (m = 0; m < m_zeta[mzeta_index(xx,yy)]; m++) {
                                 xxx = zeta[zeta_index(xx,yy,m)].x;
                                 jy = zeta[zeta_index(xx,yy,m)].iy;
                                 www = zeta[zeta_index(xx,yy,m)].w;
-                                p_Aij[x + ncols * (xxx - x + 2 * delta_x)] += sL[jy] *
-                                    sL[iy] * www * ww * mask[yy * ncols + xx];
+                                p_Aij[x + ncols * (xxx - x + 2 * delta_x)] += 
+                                    sL[jy] * sL[iy] * www * ww * 
+                                    mask[yy * ncols + xx];
                             }
                             p_bj[x] += im[yy * ncols + xx] * mask[yy * ncols +
                                 xx] * sL[iy] * ww;
@@ -3187,12 +3204,17 @@ static int cr2res_extract_slit_func_curved(
             p_Aij[ncols * (2 * delta_x)] += lambda; /* Main diagonal  */
             p_Aij[ncols * (2 * delta_x + 1)] -= lambda; /* Upper diagonal */
             for (x = 1; x < ncols - 1; x++) {
-                p_Aij[x + ncols * (2 * delta_x - 1)] -= lambda;            /* Lower diagonal */
-                p_Aij[x + ncols * (2 * delta_x)] += lambda * 2.e0; /* Main diagonal  */
-                p_Aij[x + ncols * (2 * delta_x + 1)] -= lambda;        /* Upper diagonal */
+                /* Lower diagonal */
+                p_Aij[x + ncols * (2 * delta_x - 1)] -= lambda;
+                /* Main diagonal  */
+                p_Aij[x + ncols * (2 * delta_x)] += lambda * 2.e0;
+                /* Upper diagonal */
+                p_Aij[x + ncols * (2 * delta_x + 1)] -= lambda;
             }
-            p_Aij[ncols - 1 + ncols * (2 * delta_x - 1)] -= lambda;     /* Lower diagonal */
-            p_Aij[ncols - 1 + ncols * (2 * delta_x)] += lambda; /* Main diagonal  */
+            /* Lower diagonal */
+            p_Aij[ncols - 1 + ncols * (2 * delta_x - 1)] -= lambda;
+            /* Main diagonal  */
+            p_Aij[ncols - 1 + ncols * (2 * delta_x)] += lambda;
         }
 
         /* Solve the system of equations */
@@ -3333,7 +3355,7 @@ static int cr2res_extract_slitdec_bandsol(
     for(i=0; i<n-1; i++)
     {
         aa=a[i+n*(nd/2)];
-        // if(aa==0.e0) aa = lambda; //return -3;
+        if(aa==0.e0) aa = lambda; //return -3;
         r[i]/=aa;
         for(j=0; j<nd; j++) a[i+j*n]/=aa;
         for(j=1; j<min(nd/2+1,n-i); j++)
@@ -3346,7 +3368,7 @@ static int cr2res_extract_slitdec_bandsol(
 
     /* Backward sweep */
     aa = a[n-1+n*(nd/2)];
-    // if (aa == 0) aa = lambda; //return -4;
+    if (aa == 0) aa = lambda; //return -4;
     r[n-1]/=aa;
     for(i=n-1; i>0; i--)
     {
@@ -3354,13 +3376,13 @@ static int cr2res_extract_slitdec_bandsol(
             r[i-j]-=r[i]*a[i-j+n*(nd/2+j)];
         }
         aa = a[i-1+n*(nd/2)];
-        // if(aa==0.e0) aa = lambda; //return -5;
+        if(aa==0.e0) aa = lambda; //return -5;
         
         r[i-1]/=aa;
     }
 
     aa = a[n*(nd/2)];
-    // if(aa==0.e0) aa = lambda; //return -6;
+    if(aa==0.e0) aa = lambda; //return -6;
     r[0]/=aa;
     return 0;
 }
@@ -3435,33 +3457,40 @@ static int debug_output(
     cpl_propertylist_append_int(pl, "y_lower_lim", y_lower_lim);
 
     img = cpl_image_wrap_double(ncols, nrows, im);
-    cpl_image_save(img, "debug_image_at_error.fits", CPL_TYPE_DOUBLE, pl, CPL_IO_CREATE);
+    cpl_image_save(img, "debug_image_at_error.fits", CPL_TYPE_DOUBLE, pl,
+        CPL_IO_CREATE);
     cpl_image_unwrap(img);
 
     img = cpl_image_wrap_int(ncols, nrows, mask);
-    cpl_image_save(img, "debug_mask_after_error.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+    cpl_image_save(img, "debug_mask_after_error.fits", CPL_TYPE_INT, NULL,
+        CPL_IO_CREATE);
     cpl_image_unwrap(img);
 
     img = cpl_image_wrap_double(ncols, nrows, pix_unc);
-    cpl_image_save(img, "debug_unc_at_error.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    cpl_image_save(img, "debug_unc_at_error.fits", CPL_TYPE_DOUBLE, NULL,
+        CPL_IO_CREATE);
     cpl_image_unwrap(img);
 
     vec = cpl_vector_wrap(ncols, ycen);
-    cpl_vector_save(vec, "debug_ycen_after_error.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    cpl_vector_save(vec, "debug_ycen_after_error.fits", CPL_TYPE_DOUBLE, NULL,
+        CPL_IO_CREATE);
     cpl_vector_unwrap(vec);
 
     vec = cpl_vector_new(ncols);
     for (int i = 0; i < ncols; i++) cpl_vector_set(vec, i, ycen_offset[i]);
-    cpl_vector_save(vec, "debug_offset_after_error.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
+    cpl_vector_save(vec, "debug_offset_after_error.fits", CPL_TYPE_INT, NULL,
+        CPL_IO_CREATE);
     cpl_vector_delete(vec);
 
     img = cpl_image_new(ncols, 3, CPL_TYPE_DOUBLE);
     for (cpl_size i = 0; i < ncols; i++){
         for (cpl_size j = 0; j < 3 ; j++){
-            cpl_image_set(img, i+1, j+1, cpl_polynomial_get_coeff(slitcurves[i], &j));
+            cpl_image_set(img, i+1, j+1,
+                cpl_polynomial_get_coeff(slitcurves[i], &j));
         }
     }
-    cpl_image_save(img, "debug_slitcurves_at_error.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    cpl_image_save(img, "debug_slitcurves_at_error.fits", CPL_TYPE_DOUBLE,
+        NULL, CPL_IO_CREATE);
     cpl_image_delete(img);
 
     cpl_propertylist_delete(pl);
