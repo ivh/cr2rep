@@ -678,7 +678,7 @@ int main(void)
 
     test_cr2res_wave_1d();
     test_cr2res_wave_2d();
-    test_cr2res_wave_etalon();
+    // test_cr2res_wave_etalon();
     test_cr2res_wave_polys_1d_to_2d();
     test_cr2res_wave_poly_2d_to_1d();
 	test_cr2res_wave_estimate_compute();
