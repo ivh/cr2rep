@@ -36,7 +36,7 @@
                                 Define
  -----------------------------------------------------------------------------*/
 
-#define RECIPE_STRING "cr2res_util_bpm_split"
+#define RECIPE_STRING "cr2res_util_bpm_merge"
 
 /*-----------------------------------------------------------------------------
                              Plugin registration
@@ -48,43 +48,35 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
-static int cr2res_util_bpm_split_create(cpl_plugin *);
-static int cr2res_util_bpm_split_exec(cpl_plugin *);
-static int cr2res_util_bpm_split_destroy(cpl_plugin *);
-static int cr2res_util_bpm_split(cpl_frameset *, const cpl_parameterlist *);
+static int cr2res_util_bpm_merge_create(cpl_plugin *);
+static int cr2res_util_bpm_merge_exec(cpl_plugin *);
+static int cr2res_util_bpm_merge_destroy(cpl_plugin *);
+static int cr2res_util_bpm_merge(cpl_frameset *, const cpl_parameterlist *);
 
 /*-----------------------------------------------------------------------------
                             Static variables
  -----------------------------------------------------------------------------*/
 
-static char cr2res_util_bpm_split_description[] = "\
-BPM splitting                                                           \n\
+static char cr2res_util_bpm_merge_description[] = "\
+BPM merging                                                             \n\
   Each input BPM is splitted into several BPMs                          \n\
                                                                         \n\
   Inputs                                                                \n\
    	raw.fits " CR2RES_CAL_DARK_BPM_PROCATG " [1 to n]                   \n\
           or " CR2RES_CAL_FLAT_BPM_PROCATG "                            \n\
           or " CR2RES_CAL_DETLIN_BPM_PROCATG "                          \n\
-          or " CR2RES_UTIL_BPM_MERGE_PROCATG "                          \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
+          or " CR2RES_UTIL_BPM_MERGE_PROCATG "                          \n\
           or " CR2RES_UTIL_NORM_BPM_PROCATG "                           \n\
                                                                         \n\
   Outputs                                                               \n\
-    <input_name>_splitted_<bpm_code>.fits " 
-    CR2RES_UTIL_BPM_SPLIT_PROCATG "\n\
+    <recipe_name>.fits " 
+    CR2RES_UTIL_BPM_MERGE_PROCATG "\n\
                                                                         \n\
-  Algorithm                                                             \n\
-    loop on input raw frames f:                                         \n\
-      loop on detectors d:                                              \n\
-        loop on bpm types t:                                            \n\
-          call cr2res_bpm_from_mask()                                   \n\
-           -> bpm_single_type(t, d, f)                                  \n\
-      loop on bpm types t:                                              \n\
-        Save bpm_single_type(f, t) (UTIL_BPM_SPLIT)                     \n\
+  Algorithm         TODO                                                \n\
                                                                         \n\
   Library functions uѕed:                                               \n\
-    cr2res_io_load_BPM()                                                \n\
-    cr2res_bpm_from_mask()                                              \n\
+    cr2res_io_load_BPM()        TODO                                    \n\
     cr2res_io_save_BPM()                                                \n\
 ";
 
@@ -113,14 +105,14 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
                     CR2RES_BINARY_VERSION,
                     CPL_PLUGIN_TYPE_RECIPE,
                     RECIPE_STRING,
-                    "BPM splitting utility",
-                    cr2res_util_bpm_split_description,
+                    "BPM merging utility",
+                    cr2res_util_bpm_merge_description,
                     CR2RES_PIPELINE_AUTHORS,
                     PACKAGE_BUGREPORT,
                     cr2res_get_license(),
-                    cr2res_util_bpm_split_create,
-                    cr2res_util_bpm_split_exec,
-                    cr2res_util_bpm_split_destroy)) {    
+                    cr2res_util_bpm_merge_create,
+                    cr2res_util_bpm_merge_exec,
+                    cr2res_util_bpm_merge_destroy)) {    
         cpl_msg_error(cpl_func, "Plugin initialization failed");
         (void)cpl_error_set_where(cpl_func);                          
         return 1;                                               
@@ -144,7 +136,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list)
   Defining the command-line/configuration parameters for the recipe.
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_bpm_split_create(cpl_plugin * plugin)
+static int cr2res_util_bpm_merge_create(cpl_plugin * plugin)
 {
     cpl_recipe          *   recipe ;
     cpl_parameter       *   p ;
@@ -159,9 +151,9 @@ static int cr2res_util_bpm_split_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
-    p = cpl_parameter_new_value("cr2res.cr2res_util_bpm_split.detector",
+    p = cpl_parameter_new_value("cr2res.cr2res_util_bpm_merge.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
-            "cr2res.cr2res_util_bpm_split", 0);
+            "cr2res.cr2res_util_bpm_merge", 0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "detector");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -176,7 +168,7 @@ static int cr2res_util_bpm_split_create(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_bpm_split_exec(cpl_plugin * plugin)
+static int cr2res_util_bpm_merge_exec(cpl_plugin * plugin)
 {
     cpl_recipe  *recipe;
 
@@ -185,7 +177,7 @@ static int cr2res_util_bpm_split_exec(cpl_plugin * plugin)
         recipe = (cpl_recipe *)plugin;
     else return -1;
 
-    return cr2res_util_bpm_split(recipe->frames, recipe->parameters);
+    return cr2res_util_bpm_merge(recipe->frames, recipe->parameters);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -195,7 +187,7 @@ static int cr2res_util_bpm_split_exec(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_bpm_split_destroy(cpl_plugin * plugin)
+static int cr2res_util_bpm_merge_destroy(cpl_plugin * plugin)
 {
     cpl_recipe *recipe;
 
@@ -216,7 +208,7 @@ static int cr2res_util_bpm_split_destroy(cpl_plugin * plugin)
   @return   0 if everything is ok
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_util_bpm_split(
+static int cr2res_util_bpm_merge(
         cpl_frameset            *   frameset,
         const cpl_parameterlist *   parlist)
 {
@@ -225,10 +217,8 @@ static int cr2res_util_bpm_split(
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   cur_frame ;
     const char          *   cur_fname ;
-    cpl_frameset        *   cur_fset ;
-    cpl_image           *   ima ;
-    cpl_image   *   splitted_bpms[CR2RES_NB_BPM_TYPES][CR2RES_NB_DETECTORS] ;
-    cpl_mask            *   my_mask ;
+    cpl_image           *   tmp_ima ;
+    cpl_image           *   merged_bpms[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
     int                     i, j, det_nr, wished_ext_nb; 
@@ -237,7 +227,7 @@ static int cr2res_util_bpm_split(
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_bpm_split.detector");
+            "cr2res.cr2res_util_bpm_merge.detector");
     reduce_det = cpl_parameter_get_int(param);
 
     /* Identify the RAW and CALIB frames in the input frameset */
@@ -257,69 +247,59 @@ static int cr2res_util_bpm_split(
         return -1 ;
     }
 
-    /* Loop on the RAW frames */
-    for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
-        /* Get the Current Frame */
-        cur_frame = cpl_frameset_get_position(rawframes, i) ;
-        cur_fname = cpl_frame_get_filename(cur_frame) ;
-        cpl_msg_info(__func__, "Reduce Frame %s", cur_fname) ;
+    /* Loop on the detectors */
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        /* Initialise */
+        merged_bpms[det_nr-1] = NULL ;
+        ext_plist[det_nr-1] = NULL ;
+
+        /* Compute only one detector */
+        if (reduce_det != 0 && det_nr != reduce_det) continue ;
+    
+        cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
         cpl_msg_indent_more() ;
 
-        /* Loop on the detectors */
-        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-            /* Initialise */
-            for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++)
-                splitted_bpms[j][det_nr-1] = NULL ;
-            ext_plist[det_nr-1] = NULL ;
+        /* Loop on the rawframes */
+		for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
+			/* Get the Current Frame */
+			cur_frame = cpl_frameset_get_position(rawframes, i) ;
+			cur_fname = cpl_frame_get_filename(cur_frame) ;
 
-            /* Compute only one detector */
-            if (reduce_det != 0 && det_nr != reduce_det) continue ;
-        
-            cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
-            cpl_msg_indent_more() ;
-
-            /* Load the image to calibrate */
-            ima = cr2res_io_load_BPM(cur_fname, det_nr, 1);
-
-            /* Loop on the BPM types */
-            for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {
-                my_mask = cr2res_bpm_extract_mask(ima, bpm_types[j]) ;
-                splitted_bpms[j][det_nr-1] = 
-                    cr2res_bpm_from_mask(my_mask, bpm_types[j]) ;
-                cpl_mask_delete(my_mask) ;
+            if (i==0) {
+                /* Create the header */
+                wished_ext_nb = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
+                ext_plist[det_nr-1]=cpl_propertylist_load(cur_fname,
+                        wished_ext_nb);
             }
-            cpl_image_delete(ima); 
-            cpl_msg_indent_less() ;
 
-            /* Create the header */
-            wished_ext_nb = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
-            ext_plist[det_nr-1]=cpl_propertylist_load(cur_fname,wished_ext_nb);
-        }
+			/* Load the image */
+			tmp_ima = cr2res_io_load_BPM(cur_fname, det_nr, 1);
 
-        /* Ѕave Products */
-
-        /* SPLITTED_BPM */
-        for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {
-            out_file=cpl_sprintf("%s_splitted_%d.fits", 
-                    cr2res_get_root_name(cur_fname), bpm_types[j]) ;
-            cur_fset = cpl_frameset_new() ;
-            cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
-            cr2res_io_save_BPM(out_file, frameset, cur_fset, parlist,
-                    splitted_bpms[j], NULL, ext_plist, 
-                    CR2RES_UTIL_BPM_SPLIT_PROCATG, RECIPE_STRING) ;
-            cpl_frameset_delete(cur_fset) ;
-            cpl_free(out_file);
-        }
-        /* Free */
-        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-            for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {
-                if (splitted_bpms[j][det_nr-1] != NULL)
-                    cpl_image_delete(splitted_bpms[j][det_nr-1]) ;
+            /* Accumulate on the merged image */
+            if (merged_bpms[det_nr-1] == NULL) {
+                merged_bpms[det_nr-1] = cpl_image_duplicate(tmp_ima) ;
+            } else {
+                cpl_image_or(merged_bpms[det_nr-1], NULL, tmp_ima) ; 
             }
-            if (ext_plist[det_nr-1] != NULL) 
-                cpl_propertylist_delete(ext_plist[det_nr-1]) ;
+            cpl_image_delete(tmp_ima); 
         }
         cpl_msg_indent_less() ;
+    }
+
+    /* Ѕave Products */
+
+    /* MERGED_BPM */
+    out_file=cpl_sprintf("%s.fits", RECIPE_STRING) ;
+    cr2res_io_save_BPM(out_file, frameset, rawframes, parlist,
+            merged_bpms, NULL, ext_plist, 
+            CR2RES_UTIL_BPM_MERGE_PROCATG, RECIPE_STRING) ;
+    cpl_free(out_file);
+    /* Free */
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        if (merged_bpms[det_nr-1] != NULL)
+            cpl_image_delete(merged_bpms[det_nr-1]) ;
+        if (ext_plist[det_nr-1] != NULL) 
+            cpl_propertylist_delete(ext_plist[det_nr-1]) ;
     }
     cpl_frameset_delete(rawframes) ;
     return (int)cpl_error_get_code();

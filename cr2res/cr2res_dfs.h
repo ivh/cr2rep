@@ -119,6 +119,7 @@
 /* For  CR2RES_CAL_FLAT_BPM_PROCATG */
 /*      CR2RES_CAL_DETLIN_BPM_PROCATG */
 /*      CR2RES_CAL_DARK_BPM_PROCATG */
+/*      CR2RES_UTIL_BPM_MERGE_PROCATG */
 /*      CR2RES_UTIL_BPM_SPLIT_PROCATG */
 /*      CR2RES_UTIL_NORM_BPM_PROCATG */
 /* BPM Image with values CR2RES_BPM_DARK / CR2RES_BPM_FLAT... */
@@ -278,6 +279,9 @@
 
 /* Produced by cr2res_util_calib */
 #define CR2RES_UTIL_CALIB_PROCATG           "UTIL_CALIB"
+
+/* Produced by cr2res_util_bpm_merge */
+#define CR2RES_UTIL_BPM_MERGE_PROCATG       "UTIL_BPM_MERGE"
 
 /* Produced by cr2res_util_bpm_split */
 #define CR2RES_UTIL_BPM_SPLIT_PROCATG       "UTIL_BPM_SPLIT"

@@ -443,9 +443,6 @@ static int cr2res_cal_dark(
 
         /* Loop on the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-            cpl_msg_info(__func__, "Process Detector nb %i", det_nr) ;
-            cpl_msg_indent_more() ;
-
             /* Initialise */
             master_darks[det_nr-1] = NULL ;
             bpms[det_nr-1] = NULL ;
@@ -453,6 +450,9 @@ static int cr2res_cal_dark(
 
             /* Compute only one detector */
             if (reduce_det != 0 && det_nr != reduce_det) continue ;
+
+            cpl_msg_info(__func__, "Process Detector nb %i", det_nr) ;
+            cpl_msg_indent_more() ;
 
             /* Loop on the frames */
             dark_cube = hdrl_imagelist_new();

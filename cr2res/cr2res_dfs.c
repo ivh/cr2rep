@@ -138,6 +138,8 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_PHOTO_FLUX_PROCATG) ||
                 /* Produced by cr2res_util_calib */
                 !strcmp(tag, CR2RES_UTIL_CALIB_PROCATG) ||
+                /* Produced by cr2res_util_bpm_merge */
+                !strcmp(tag, CR2RES_UTIL_BPM_MERGE_PROCATG) ||
                 /* Produced by cr2res_util_bpm_split */
                 !strcmp(tag, CR2RES_UTIL_BPM_SPLIT_PROCATG) ||
                 /* Produced by cr2res_util_trace */

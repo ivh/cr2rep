@@ -99,6 +99,10 @@ char * cr2res_get_root_name(const char * filename) ;
 
 const char * cr2res_extract_filename(const cpl_frameset *, const char *) ;
 cpl_frameset * cr2res_extract_frameset(const cpl_frameset *, const char *) ;
+cpl_frameset * cr2res_extract_frameset_several_tags(
+        const cpl_frameset  *   in,
+        const char          **  tags,
+        int                     ntags) ;
 
 cpl_polynomial * cr2res_convert_array_to_poly(const cpl_array * arr) ;
 cpl_array * cr2res_convert_poly_to_array(

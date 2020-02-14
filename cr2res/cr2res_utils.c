@@ -822,6 +822,63 @@ cpl_frameset * cr2res_extract_frameset(
     }
     return out ;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+   @brief   Extract the frames whose tag is within a list from a frameset
+   @param   in      A non-empty frameset
+   @param   tags    The list of allowed tags of the requested frames
+   @param   ntags   The number of tags
+   @return  The newly created frameset or NULL on error
+
+   The returned frameset must be de allocated with cpl_frameset_delete()
+ */
+/*----------------------------------------------------------------------------*/
+cpl_frameset * cr2res_extract_frameset_several_tags(
+        const cpl_frameset  *   in,
+        const char          **  tags,
+        int                     ntags)
+{
+    cpl_frameset    *   out ;
+    const cpl_frame *   cur_frame ;
+    cpl_frame       *   loc_frame ;
+    int                 nbframes;
+    int                 match ;
+    int                 i, j ;
+
+    /* Test entries */
+    if (in == NULL) return NULL ;
+    if (tags == NULL) return NULL ;
+    if (ntags < 1) return NULL ;
+
+    /* Initialise */
+    nbframes = cpl_frameset_get_size(in) ;
+
+    /* Create the output frameset */
+    out = cpl_frameset_new() ;
+
+    /* Loop on the requested frames and store them in out */
+    for (i=0 ; i<nbframes ; i++) {
+        cur_frame = cpl_frameset_get_position_const(in, i) ;
+        match = 0 ;
+        for (j=0 ; j<ntags ; j++) {
+            if (!strcmp(cpl_frame_get_tag(cur_frame), tags[j])) 
+                match = 1 ;
+        }
+        if (match) {
+            loc_frame = cpl_frame_duplicate(cur_frame) ;
+            cpl_frameset_insert(out, loc_frame) ;
+        }
+    }
+
+    /* If no frame is valid, return NULL rather than an empty list */
+    if (cpl_frameset_get_size(out) == 0) {
+        cpl_frameset_delete(out) ;
+        return NULL ;
+    }
+    return out ;
+}
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the decker position string for display

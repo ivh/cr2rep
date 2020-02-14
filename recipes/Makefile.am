@@ -40,6 +40,7 @@ plugin_LTLIBRARIES = cr2res_cal_detlin.la \
                      cr2res_obs_nodding.la \
                      cr2res_obs_2d.la \
                      cr2res_obs_pol.la \
+                     cr2res_util_bpm_merge.la \
                      cr2res_util_bpm_split.la \
                      cr2res_util_calib.la \
                      cr2res_util_extract.la \
@@ -87,6 +88,11 @@ cr2res_obs_pol_la_SOURCES = cr2res_obs_pol.c
 cr2res_obs_pol_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
 cr2res_obs_pol_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
 cr2res_obs_pol_la_DEPENDENCIES = $(LIBCR2RES)
+
+cr2res_util_bpm_merge_la_SOURCES = cr2res_util_bpm_merge.c
+cr2res_util_bpm_merge_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)
+cr2res_util_bpm_merge_la_LDFLAGS = $(HDRL_LDFLAGS) -module -avoid-version -no-undefined
+cr2res_util_bpm_merge_la_DEPENDENCIES = $(LIBCR2RES)
 
 cr2res_util_bpm_split_la_SOURCES = cr2res_util_bpm_split.c
 cr2res_util_bpm_split_la_LIBADD = $(HDRL_LIBS) $(LIBCR2RES)

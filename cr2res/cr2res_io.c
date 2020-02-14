@@ -125,6 +125,8 @@ cpl_frame * cr2res_io_find_SLIT_MODEL(
         cr2res_decker           decker)
 {
     cpl_frameset        *   fset ;
+    char                **  tags ;
+    int                     ntags ;
     cpl_frame           *   out ;
     const cpl_frame     *   cur_frame ;
     const char          *   cur_fname ;
@@ -139,14 +141,19 @@ cpl_frame * cr2res_io_find_SLIT_MODEL(
     /* Initialise */
     out = NULL ;
 
-    /* Get the slit model frames */
-    fset=cr2res_extract_frameset(in, CR2RES_CAL_FLAT_SLIT_MODEL_PROCATG) ;
-    if (fset == NULL) 
-        fset=cr2res_extract_frameset(in, CR2RES_UTIL_SLIT_MODEL_PROCATG) ;
-    if (fset == NULL) 
-        fset=cr2res_extract_frameset(in,CR2RES_OBS_NODDING_SLITMODELA_PROCATG) ;
-    if (fset == NULL) 
-        fset=cr2res_extract_frameset(in,CR2RES_OBS_NODDING_SLITMODELB_PROCATG) ;
+    /* Create the tags list */
+    ntags = 4 ;
+    tags = cpl_malloc(ntags * sizeof(char *)) ;
+    tags[0] = cpl_sprintf(CR2RES_CAL_FLAT_SLIT_MODEL_PROCATG) ;
+    tags[1] = cpl_sprintf(CR2RES_UTIL_SLIT_MODEL_PROCATG) ;
+    tags[2] = cpl_sprintf( CR2RES_OBS_NODDING_SLITMODELA_PROCATG) ;
+    tags[3] = cpl_sprintf(CR2RES_OBS_NODDING_SLITMODELB_PROCATG) ;
+
+    /* Get the frameset */
+    fset = cr2res_extract_frameset_several_tags(in, (const char**)tags, ntags) ;
+
+    for (i=0 ; i<ntags ; i++) cpl_free(tags[i]) ;
+    cpl_free(tags) ;
     if (fset == NULL) return NULL ;
 
     /* Find out if there is a matching one */
@@ -207,21 +214,27 @@ const cpl_frame * cr2res_io_find_TRACE_WAVE(const cpl_frameset * in)
 cpl_frameset * cr2res_io_find_TRACE_WAVE_all(const cpl_frameset  * in)
 {
     cpl_frameset    *   out ;
+    char            **  tags ;
+    int                 i, ntags ;
 
     /* Check entries */
     if (in == NULL) return NULL ;
 
-    out=cr2res_extract_frameset(in, CR2RES_CAL_FLAT_TW_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_CAL_FLAT_TW_MERGED_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_UTIL_TRACE_TW_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_UTIL_WAVE_TW_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_CAL_WAVE_TW_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_UTIL_SLIT_CURV_TW_PROCATG);
+    /* Create the tags list */
+    ntags = 6 ;
+    tags = cpl_malloc(ntags * sizeof(char *)) ;
+    tags[0] = cpl_sprintf(CR2RES_CAL_FLAT_TW_PROCATG) ;
+    tags[1] = cpl_sprintf(CR2RES_CAL_FLAT_TW_MERGED_PROCATG) ;
+    tags[2] = cpl_sprintf(CR2RES_UTIL_TRACE_TW_PROCATG) ;
+    tags[3] = cpl_sprintf(CR2RES_UTIL_WAVE_TW_PROCATG) ;
+    tags[4] = cpl_sprintf(CR2RES_CAL_WAVE_TW_PROCATG) ;
+    tags[5] = cpl_sprintf(CR2RES_UTIL_SLIT_CURV_TW_PROCATG) ;
+
+    /* Get the frameset */
+    out = cr2res_extract_frameset_several_tags(in, (const char**)tags, ntags) ;
+
+    for (i=0 ; i<ntags ; i++) cpl_free(tags[i]) ;
+    cpl_free(tags) ;
     return out ;
 }
 
@@ -235,21 +248,27 @@ cpl_frameset * cr2res_io_find_TRACE_WAVE_all(const cpl_frameset  * in)
 cpl_frameset * cr2res_io_find_EXTRACT_1D_all(const cpl_frameset  * in)
 {
     cpl_frameset    *   out ;
+    char            **  tags ;
+    int                 i, ntags ;
 
     /* Check entries */
     if (in == NULL) return NULL ;
 
-    out=cr2res_extract_frameset(in, CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_UTIL_EXTRACT_1D_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_UTIL_WAVE_EXTRACT_1D_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_OBS_NODDING_EXTRACTA_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_OBS_NODDING_EXTRACTB_PROCATG);
+    /* Create the tags list */
+    ntags = 6 ;
+    tags = cpl_malloc(ntags * sizeof(char *)) ;
+    tags[0] = cpl_sprintf(CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG) ;
+    tags[1] = cpl_sprintf(CR2RES_UTIL_EXTRACT_1D_PROCATG) ;
+    tags[2] = cpl_sprintf(CR2RES_UTIL_WAVE_EXTRACT_1D_PROCATG) ;
+    tags[3] = cpl_sprintf(CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG) ;
+    tags[4] = cpl_sprintf(CR2RES_OBS_NODDING_EXTRACTA_PROCATG) ;
+    tags[5] = cpl_sprintf(CR2RES_OBS_NODDING_EXTRACTB_PROCATG) ;
+
+    /* Get the frameset */
+    out = cr2res_extract_frameset_several_tags(in, (const char**)tags, ntags) ;
+
+    for (i=0 ; i<ntags ; i++) cpl_free(tags[i]) ;
+    cpl_free(tags) ;
     return out ;
 }
 
@@ -273,6 +292,8 @@ const cpl_frame * cr2res_io_find_BPM(const cpl_frameset * in)
     if (out == NULL) 
         out = cpl_frameset_find_const(in, CR2RES_CAL_DETLIN_BPM_PROCATG) ;
     if (out == NULL) 
+        out = cpl_frameset_find_const(in, CR2RES_UTIL_BPM_MERGE_PROCATG) ;
+    if (out == NULL) 
         out = cpl_frameset_find_const(in, CR2RES_UTIL_BPM_SPLIT_PROCATG) ;
     if (out == NULL) 
         out = cpl_frameset_find_const(in, CR2RES_UTIL_NORM_BPM_PROCATG) ;
@@ -289,19 +310,28 @@ const cpl_frame * cr2res_io_find_BPM(const cpl_frameset * in)
 cpl_frameset * cr2res_io_find_BPM_all(const cpl_frameset  * in)
 {
     cpl_frameset    *   out ;
+    char            **  tags ;
+    int                 i, ntags ;
 
     /* Check entries */
     if (in == NULL) return NULL ;
 
-    out=cr2res_extract_frameset(in, CR2RES_CAL_DARK_BPM_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_CAL_FLAT_BPM_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_CAL_DETLIN_BPM_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_UTIL_BPM_SPLIT_PROCATG) ;
-    if (out == NULL) 
-        out=cr2res_extract_frameset(in, CR2RES_UTIL_NORM_BPM_PROCATG) ;
+    /* Create the tags list */
+    ntags = 6 ;
+    tags = cpl_malloc(ntags * sizeof(char *)) ;
+    tags[0] = cpl_sprintf(CR2RES_CAL_DARK_BPM_PROCATG) ;
+    tags[1] = cpl_sprintf(CR2RES_CAL_FLAT_BPM_PROCATG) ;
+    tags[2] = cpl_sprintf(CR2RES_CAL_DETLIN_BPM_PROCATG) ;
+    tags[3] = cpl_sprintf(CR2RES_UTIL_BPM_MERGE_PROCATG) ;
+    tags[4] = cpl_sprintf(CR2RES_UTIL_BPM_SPLIT_PROCATG) ;
+    tags[5] = cpl_sprintf(CR2RES_UTIL_NORM_BPM_PROCATG) ;
+
+    /* Get the frameset */
+    out = cr2res_extract_frameset_several_tags(in, (const char**)tags, ntags) ;
+
+    for (i=0 ; i<ntags ; i++) cpl_free(tags[i]) ;
+    cpl_free(tags) ;
+
     return out ;
 }
 
