@@ -116,7 +116,7 @@ Polarimetry Observation                                                 \n\
   several group of 4 frames available.                                  \n\
                                                                         \n\
   Inputs                                                                \n\
-    raw.fits " CR2RES_OBS_POL_RAW " [4 to 4n]                           \n\
+    raw.fits " CR2RES_OBS_POLARIMETRY_OTHER_RAW " [4 to 4n]             \n\
     trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [1]                       \n\
             or " CR2RES_CAL_FLAT_TW_MERGED_PROCATG "                    \n\
             or " CR2RES_UTIL_TRACE_TW_PROCATG "                         \n\
@@ -423,7 +423,8 @@ static int cr2res_obs_pol(
     bpm_frame = cr2res_io_find_BPM(frameset) ;
 
     /* Get the RAW Frames */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_OBS_POL_RAW) ;
+    rawframes = cr2res_extract_frameset(frameset, 
+            CR2RES_OBS_POLARIMETRY_OTHER_RAW) ;
     if (rawframes == NULL) {
         cpl_msg_error(__func__, "Could not find RAW frames") ;
         return -1 ;

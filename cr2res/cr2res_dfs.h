@@ -318,7 +318,6 @@
 #define CR2RES_UTIL_SPLICE_SPLICED_1D_PROCATG   "UTIL_SPLICE_SPLICED_1D"
 
 /* Define here the DO.CATG keywords */
-#define CR2RES_COMMAND_LINE                 "COMMAND_LINE"
 #define CR2RES_EMISSION_LINES_TXT_RAW       "EMISSION_LINES_TXT"
 #define CR2RES_LINES_SELECTION_TXT_RAW      "LINES_SELECTION_TXT"
 #define CR2RES_PHOTO_FLUX_TXT_RAW           "PHOTO_FLUX_TXT"
@@ -326,11 +325,17 @@
 #define CR2RES_DARK_RAW                     "DARK"
 #define CR2RES_FLAT_RAW                     "FLAT"
 #define CR2RES_WAVE_RAW                     "WAVE"
-#define CR2RES_CAL_NODDING_RAW              "CAL_NODDING"
-#define CR2RES_OBS_NODDING_RAW              "OBS_NODDING"
-#define CR2RES_OBS_NODDING_ASTROMETRY_RAW   "OBS_NODDING_ASTROMETRY"
-#define CR2RES_OBS_2D_RAW                   "OBS_2D"
-#define CR2RES_OBS_POL_RAW                  "OBS_POL"
+#define CR2RES_CAL_NODDING_OTHER_RAW        "CAL_NODDING_OTHER"
+#define CR2RES_CAL_NODDING_JITTER_RAW       "CAL_NODDING_JITTER"
+#define CR2RES_OBS_NODDING_OTHER_RAW        "OBS_NODDING_OTHER"
+#define CR2RES_OBS_NODDING_JITTER_RAW       "OBS_NODDING_JITTER"
+#define CR2RES_OBS_ASTROMETRY_OTHER_RAW     "OBS_ASTROMETRY_OTHER"
+#define CR2RES_OBS_ASTROMETRY_JITTER_RAW    "OBS_ASTROMETRY_JITTER"
+#define CR2RES_OBS_STARING_OTHER_RAW        "OBS_STARING_OTHER"
+#define CR2RES_OBS_STARING_JITTER_RAW       "OBS_STARING_JITTER"
+#define CR2RES_OBS_POLARIMETRY_OTHER_RAW  	"OBS_POLARIMETRY_OTHER"
+#define CR2RES_OBS_2D_OBJECT_RAW            "OBS_2D_OBJECT"
+#define CR2RES_OBS_2D_SKY_RAW              	"OBS_2D_SKY"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes

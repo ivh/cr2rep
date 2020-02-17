@@ -83,7 +83,8 @@ static char cr2res_obs_2d_description[] = "\
   are calibrated, and stored in the output table.                       \n\
                                                                         \n\
   Inputs                                                                \n\
-    raw.fits " CR2RES_OBS_2D_RAW"                                       \n\
+    raw.fits " CR2RES_OBS_2D_OBJECT_RAW" [1 to n]                       \n\
+         and " CR2RES_OBS_2D_SKY_RAW " [0 to n]                         \n\
     trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [1]                       \n\
             or " CR2RES_CAL_FLAT_TW_MERGED_PROCATG "                    \n\
             or " CR2RES_UTIL_TRACE_TW_PROCATG "                         \n\
@@ -325,7 +326,7 @@ static int cr2res_obs_2d(
     bpm_frame = cr2res_io_find_BPM(frameset) ;
 
     /* Get the Frames for the current decker position */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_OBS_2D_RAW) ;
+    rawframes = cr2res_extract_frameset(frameset, CR2RES_OBS_2D_OBJECT_RAW) ;
     if (rawframes == NULL) {
         cpl_msg_error(__func__, "Could not find RAW frames") ;
         return -1 ;

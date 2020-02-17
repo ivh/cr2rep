@@ -103,9 +103,12 @@ Nodding Observation                                                     \n\
   on each of the sub-groups                                             \n\
                                                                         \n\
   Inputs                                                                \n\
-    raw.fits " CR2RES_OBS_NODDING_RAW" [2 to 2n]                        \n\
-          or " CR2RES_CAL_NODDING_RAW" [2 to 2n]                        \n\
-          or " CR2RES_OBS_NODDING_ASTROMETRY_RAW" [2 to 2n]             \n\
+    raw.fits " CR2RES_CAL_NODDING_OTHER_RAW" [2 to 2n]                  \n\
+          or " CR2RES_CAL_NODDING_JITTER_RAW" [2 to 2n]                 \n\
+          or " CR2RES_OBS_NODDING_OTHER_RAW" [2 to 2n]                  \n\
+          or " CR2RES_OBS_NODDING_JITTER_RAW" [2 to 2n]                 \n\
+          or " CR2RES_OBS_ASTROMETRY_OTHER_RAW" [2 to 2n]               \n\
+          or " CR2RES_OBS_ASTROMETRY_JITTER_RAW" [2 to 2n]              \n\
     trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [1]                       \n\
             or " CR2RES_CAL_FLAT_TW_MERGED_PROCATG "                    \n\
             or " CR2RES_UTIL_TRACE_TW_PROCATG "                         \n\
@@ -1061,11 +1064,17 @@ static int cr2res_obs_nodding_check_inputs_validity(
 /**
   @brief    Get the RAW frames from a frameset
   @param    set     Input frame set
-  @param    type    [out] 0 - none, 1-OBS_NODDING, 2-CAL_NODDING, 3-ASTROMETRY
+  @param    type    [out]   0 - none,     
+                            1 - OBS_NODDING, 
+                            2 - CAL_NODDING, 
+                            3 - OBS_ASTROMETRY
   @return   the RAW frameset or NULL in error case or if it is missing
-    Allowed RAW types : CR2RES_OBS_NODDING_RAW
-                     	CR2RES_CAL_NODDING_RAW
-						CR2RES_OBS_NODDING_ASTROMETRY_RAW
+    Allowed RAW types : CR2RES_CAL_NODDING_OTHER_RAW
+                        CR2RES_CAL_NODDING_JITTER_RAW
+                        CR2RES_OBS_NODDING_OTHER_RAW
+                        CR2RES_OBS_NODDING_JITTER_RAW
+                        CR2RES_OBS_ASTROMETRY_OTHER_RAW
+                        CR2RES_OBS_ASTROMETRY_JITTER_RAW
  */
 /*----------------------------------------------------------------------------*/
 static cpl_frameset * cr2res_obs_nodding_find_RAW(
@@ -1077,20 +1086,33 @@ static cpl_frameset * cr2res_obs_nodding_find_RAW(
     /* Check entries */
     if (in == NULL) return NULL ;
 
-    out = cr2res_extract_frameset(in, CR2RES_OBS_NODDING_RAW) ;
-    if (type != NULL) *type = 1 ;
+    out = cr2res_extract_frameset(in, CR2RES_OBS_NODDING_OTHER_RAW) ;
     if (out == NULL) {
-        out = cr2res_extract_frameset(in, CR2RES_CAL_NODDING_RAW) ;
-        if (type != NULL) *type = 2 ;
+        out = cr2res_extract_frameset(in, CR2RES_OBS_NODDING_JITTER_RAW) ;
     }
-    if (out == NULL) {
-        out = cr2res_extract_frameset(in, CR2RES_OBS_NODDING_ASTROMETRY_RAW) ;
-        if (type != NULL) *type = 3 ;
+    if (out != NULL) {
+        if (type != NULL) *type = 1 ;
+    } else {
+        out = cr2res_extract_frameset(in, CR2RES_CAL_NODDING_OTHER_RAW) ;
+        if (out == NULL) {
+            out = cr2res_extract_frameset(in, CR2RES_CAL_NODDING_JITTER_RAW) ;
+        }
+        if (out != NULL) {
+            if (type != NULL) *type = 2 ;
+        } else {
+            out = cr2res_extract_frameset(in, CR2RES_OBS_ASTROMETRY_OTHER_RAW) ;
+            if (out == NULL) {
+                out = cr2res_extract_frameset(in, 
+                        CR2RES_OBS_ASTROMETRY_JITTER_RAW) ;
+            }
+            if (out != NULL) {
+                if (type != NULL) *type = 3 ;
+            }
+        }
     }
     if (out == NULL) {
         if (type != NULL) *type = 0 ;
     }
-
     return out ;
 }
 

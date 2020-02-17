@@ -70,20 +70,25 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
 
         if (tag == NULL) {
             cpl_msg_warning(cpl_func, "Frame %d has no tag", i);
-        } else if (!strcmp(tag, CR2RES_COMMAND_LINE) ||
                 /* DO.CATG Tags for the RAW files */
-                !strcmp(tag, CR2RES_EMISSION_LINES_TXT_RAW) ||
+        } else if (!strcmp(tag, CR2RES_EMISSION_LINES_TXT_RAW) ||
                 !strcmp(tag, CR2RES_LINES_SELECTION_TXT_RAW) ||
                 !strcmp(tag, CR2RES_PHOTO_FLUX_TXT_RAW) ||
                 !strcmp(tag, CR2RES_DETLIN_RAW) ||
                 !strcmp(tag, CR2RES_DARK_RAW) ||
                 !strcmp(tag, CR2RES_FLAT_RAW) ||
                 !strcmp(tag, CR2RES_WAVE_RAW) ||
-                !strcmp(tag, CR2RES_CAL_NODDING_RAW) ||
-                !strcmp(tag, CR2RES_OBS_NODDING_RAW) ||
-                !strcmp(tag, CR2RES_OBS_NODDING_ASTROMETRY_RAW) ||
-                !strcmp(tag, CR2RES_OBS_2D_RAW) ||
-                !strcmp(tag, CR2RES_OBS_POL_RAW) ||
+                !strcmp(tag, CR2RES_CAL_NODDING_OTHER_RAW) ||
+                !strcmp(tag, CR2RES_CAL_NODDING_JITTER_RAW) ||
+                !strcmp(tag, CR2RES_OBS_NODDING_OTHER_RAW) ||
+                !strcmp(tag, CR2RES_OBS_NODDING_JITTER_RAW) ||
+                !strcmp(tag, CR2RES_OBS_ASTROMETRY_OTHER_RAW) ||
+                !strcmp(tag, CR2RES_OBS_ASTROMETRY_JITTER_RAW) ||
+                !strcmp(tag, CR2RES_OBS_STARING_OTHER_RAW) ||
+                !strcmp(tag, CR2RES_OBS_STARING_JITTER_RAW) ||
+                !strcmp(tag, CR2RES_OBS_POLARIMETRY_OTHER_RAW) ||
+                !strcmp(tag, CR2RES_OBS_2D_OBJECT_RAW) ||
+                !strcmp(tag, CR2RES_OBS_2D_SKY_RAW) ||
                 /* PRO.TYPE tags that can be used as input RAWs */
                 /* For cr2res_util_bpm_split */
                 !strcmp(tag, CR2RES_BPM_PROTYPE) ||
