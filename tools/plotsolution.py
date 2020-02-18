@@ -19,14 +19,15 @@ for twn in sys.argv[1:]:
         maindisp = twf[0].header['ESO INS GRAT1 DISP']
         for det in [1,2,3]:
             tw = twf['CHIP%d.INT1'%det].data
+            if tw is None: continue
             h = twf['CHIP%d.INT1'%det].header
-            #tw.sort(order='Order')
+            ax=axs1[det-1]
             for order in np.arange(9)+1:
                 try:
                     guesstart = h.get('ESO INS WLEN BEGIN%d'%order)
                     guessend = h.get('ESO INS WLEN END%d'%order)
                     guessdisp = (guessend-guesstart)/2048.0
-                    axs1[det-1].plot(1024,guessdisp,'ro')
+                    ax.plot(1024,guessdisp,'ro')
                 except:
                     continue
                 
@@ -38,10 +39,17 @@ for twn in sys.argv[1:]:
                     continue
                 poly = np.poly1d(p)
                 deriv = poly.deriv()
-                axs1[det-1].plot(deriv(X))
-                axs1[det-1].text(X[100],deriv(X[100]), 'O:%d XC:%.2f'%(order,xc or -1))
-            axs1[det-1].plot(1024,maindisp,'kD')
-    outf = twn.replace('.fits','_disp.png')                
+                ax.plot(deriv(X))
+                ax.text(X[100],deriv(X[100]), 'O:%d XC:%.2f'%(order,xc or -1))
+            ax.plot(1024,maindisp,'kD')
+            ax.set_xlim((1,2048))
+            if det >1:
+                for tk in ax.get_yticklabels():
+                    tk.set_visible(False)
+ 
+
+    fig1.subplots_adjust(wspace=0)
+    outf = twn.replace('.fits','_disp.png')              
     fig1.savefig(outf)
     [ax.clear() for ax in axs1]
 
