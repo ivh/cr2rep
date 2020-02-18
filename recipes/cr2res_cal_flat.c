@@ -1045,10 +1045,10 @@ static int cr2res_cal_flat_reduce(
                 continue ;
             }
         } else if (extr_method == CR2RES_EXTR_OPT_VERT) {
-            if (cr2res_extract_slitdec_vert(collapsed, traces, order, trace_id,
-                        extract_height, extract_swath_width, extract_oversample,
-                        extract_smooth, &(slit_func_vec[i]), &(spectrum[i]), 
-                        &model_tmp) != 0) {
+            if (cr2res_extract_slitdec_vert(collapsed, traces, NULL, order, 
+                        trace_id, extract_height, extract_swath_width, 
+                        extract_oversample, extract_smooth, 
+                        &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
                 cpl_msg_error(__func__,
                         "Cannot (slitdec-vert-) extract the trace") ;
                 slit_func_vec[i] = NULL ;
@@ -1059,7 +1059,7 @@ static int cr2res_cal_flat_reduce(
                 continue ;
             }
         } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
-            if (cr2res_extract_slitdec_curved(collapsed, traces, order, 
+            if (cr2res_extract_slitdec_curved(collapsed, traces, NULL,order, 
                         trace_id, extract_height, extract_swath_width, 
                         extract_oversample, extract_smooth, 
                         &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {

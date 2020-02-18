@@ -46,6 +46,7 @@ typedef enum {
 int cr2res_extract_traces(
         const hdrl_image    *   img,
         const cpl_table     *   traces,
+        const cpl_table     *   slit_func_in,
         int                     reduce_order,
         int                     reduce_trace,
         cr2res_extr_method      extr_method,
@@ -56,7 +57,6 @@ int cr2res_extract_traces(
         cpl_table           **  extracted,
         cpl_table           **  slit_func,
         hdrl_image          **  model_master) ;
-
 
 int cr2res_extract_sum_vert(
         const hdrl_image    *   hdrl_in,
@@ -91,6 +91,7 @@ int cr2res_extract_sum_tilt(
 int cr2res_extract_slitdec_vert(
         const hdrl_image    *   img_hdrl,
         const cpl_table     *   trace_tab,
+        const cpl_vector    *   slit_func_vec_in,
         int                     order,
         int                     trace_id,
         int                     height,
@@ -104,6 +105,7 @@ int cr2res_extract_slitdec_vert(
 int cr2res_extract_slitdec_curved(
         const hdrl_image    *   img_hdrl,
         const cpl_table     *   trace_tab,
+        const cpl_vector    *   slit_func_vec_in,
         int                     order,
         int                     trace_id,
         int                     height,

@@ -533,7 +533,7 @@ static int cr2res_obs_staring_reduce(
 
     /* Execute the extraction */
     cpl_msg_info(__func__, "Spectra Extraction") ;
-    if (cr2res_extract_traces(collapsed, trace_wave, -1, -1,
+    if (cr2res_extract_traces(collapsed, trace_wave, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth,
                 &extracted, &slit_func, &model_master) == -1) {

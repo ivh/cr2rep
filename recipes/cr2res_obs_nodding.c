@@ -930,7 +930,7 @@ static int cr2res_obs_nodding_reduce(
 
     /* Execute the extraction */
     cpl_msg_info(__func__, "Spectra Extraction") ;
-    if (cr2res_extract_traces(collapsed_a, trace_wave_a, -1, -1,
+    if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth,
                 &extracted_a, &slit_func_a, &model_master_a) == -1) {
@@ -943,7 +943,7 @@ static int cr2res_obs_nodding_reduce(
     }
     /* TODO : Save trace_wave_a and b as products */
     cpl_table_delete(trace_wave_a) ;
-    if (cr2res_extract_traces(collapsed_b, trace_wave_b, -1, -1,
+    if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth,
                 &extracted_b, &slit_func_b, &model_master_b) == -1) {

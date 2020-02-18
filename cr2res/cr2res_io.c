@@ -206,6 +206,32 @@ const cpl_frame * cr2res_io_find_TRACE_WAVE(const cpl_frameset * in)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get the first CR2RES_SLIT_FUNC_PROTYPE frame from a frameset
+  @param    set     Input frame set
+  @return   the frame reference or NULL in error case or if it is missing
+ */
+/*----------------------------------------------------------------------------*/
+const cpl_frame * cr2res_io_find_SLIT_FUNC(const cpl_frameset * in)
+{
+    const cpl_frame *   out ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    out=cpl_frameset_find_const(in, CR2RES_CAL_FLAT_SLIT_FUNC_PROCATG) ;
+    if (out == NULL) 
+        out=cpl_frameset_find_const(in, CR2RES_UTIL_SLIT_FUNC_PROCATG) ;
+    if (out == NULL) 
+        out=cpl_frameset_find_const(in, CR2RES_OBS_NODDING_SLITFUNCA_PROCATG) ;
+    if (out == NULL) 
+        out=cpl_frameset_find_const(in, CR2RES_OBS_NODDING_SLITFUNCB_PROCATG) ;
+    if (out == NULL) 
+        out=cpl_frameset_find_const(in, CR2RES_OBS_STARING_SLITFUNC_PROCATG) ;
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get the CR2RES_TW_PROTYPE frames from a frameset
   @param    set     Input frame set
   @return   the frameset or NULL in error case or if it is missing
@@ -995,6 +1021,36 @@ cpl_table * cr2res_io_load_TRACE_WAVE(
 
     /* Return  */
     return trace_wave_tab ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Load a table from a SLIT_FUNC
+  @param    filename    The FITS file name
+  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
+  @return   A table or NULL in error case. The returned object
+              needs to be deallocated
+ */
+/*----------------------------------------------------------------------------*/
+cpl_table * cr2res_io_load_SLIT_FUNC(
+        const char  *   filename,
+        int             detector)
+{
+    cpl_table           *   slit_func_tab ;
+
+     /* Check entries */
+    if (filename == NULL) return NULL ;
+    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
+
+    /* Check PRO.TYPE */
+    if (cr2res_io_check_pro_type(filename, CR2RES_SLIT_FUNC_PROTYPE) != 1)
+        return NULL ;
+
+    /* Load the table */
+    slit_func_tab = cr2res_load_table(filename, detector, -1, -1) ;
+
+    /* Return  */
+    return slit_func_tab ;
 }
 
 /*----------------------------------------------------------------------------*/

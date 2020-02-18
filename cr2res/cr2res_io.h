@@ -42,6 +42,7 @@ cpl_frameset * cr2res_io_find_TRACE_WAVE_all(const cpl_frameset * in) ;
 cpl_frameset * cr2res_io_find_EXTRACT_1D_all(const cpl_frameset * in) ;
 const cpl_frame * cr2res_io_find_BPM(const cpl_frameset * in) ;
 cpl_frameset * cr2res_io_find_BPM_all(const cpl_frameset * in) ;
+const cpl_frame * cr2res_io_find_SLIT_FUNC(const cpl_frameset * in) ;
 
 cpl_vector * cr2res_io_read_dits(const cpl_frameset * in) ;
 
@@ -105,6 +106,10 @@ hdrl_image * cr2res_io_load_MASTER_FLAT(
 cpl_table * cr2res_io_load_TRACE_WAVE(
         const char  *   filename,
         int             detector);
+
+cpl_table * cr2res_io_load_SLIT_FUNC(
+        const char  *   filename,
+        int             detector) ;
 
 hdrl_image * cr2res_io_load_SLIT_MODEL(
         const char  *   filename,

@@ -824,7 +824,7 @@ static int cr2res_obs_pol_reduce_one(
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(
                         hdrl_imagelist_get_const(in_calib, frame_idx),
-                        trace_wave_loc, -1, -1, CR2RES_EXTR_OPT_CURV, 
+                        trace_wave_loc, NULL, -1, -1, CR2RES_EXTR_OPT_CURV, 
                         extract_height, extract_swath_width, extract_oversample,
                         extract_smooth, &(extract_1d[2*j]), &slit_func, 
                         &model_master) == -1) {
@@ -875,7 +875,7 @@ static int cr2res_obs_pol_reduce_one(
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(
                         hdrl_imagelist_get_const(in_calib, frame_idx),
-                        trace_wave_loc, -1, -1, CR2RES_EXTR_OPT_CURV, 
+                        trace_wave_loc, NULL, -1, -1, CR2RES_EXTR_OPT_CURV, 
                         extract_height, extract_swath_width, extract_oversample,
                         extract_smooth, &(extract_1d[2*j+1]), &slit_func, 
                         &model_master) == -1) {

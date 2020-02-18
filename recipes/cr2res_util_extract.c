@@ -324,6 +324,7 @@ static int cr2res_util_extract(
     cpl_frameset        *   cur_fset ;
     const cpl_frame     *   trace_frame ;
     const cpl_frame     *   bpm_frame ;
+    const cpl_frame     *   slit_func_frame ;
     const char          *   sval ;
     char                *   out_file;
     hdrl_image          *   model_master[CR2RES_NB_DETECTORS] ;
@@ -333,6 +334,7 @@ static int cr2res_util_extract(
     cpl_table           *   trace_table ;
     cpl_table           *   trace_table_new ;
     hdrl_image          *   science_hdrl;
+    cpl_table           *   slit_func ;
     cpl_image           *   bpm_img;
     cpl_mask            *   bpm_mask;
     int                     det_nr, ext_nr, order, i ;
@@ -408,6 +410,7 @@ static int cr2res_util_extract(
     /* Get Calibration frames */
     trace_frame = cr2res_io_find_TRACE_WAVE(frameset) ;
     bpm_frame = cr2res_io_find_BPM(frameset) ;
+    slit_func_frame = cr2res_io_find_SLIT_FUNC(frameset) ;
 
     /* Get the rawframes */
     rawframes = cr2res_util_extract_find_RAW(frameset) ;
@@ -522,19 +525,32 @@ static int cr2res_util_extract(
                 cpl_mask_delete(bpm_mask);
                 cpl_image_delete(bpm_img);
             }
+            
+            /* Load the SLIT_FUNC table */
+            if (slit_func_frame != NULL) {
+                slit_func = cr2res_io_load_SLIT_FUNC(
+                        cpl_frame_get_filename(slit_func_frame),
+                        det_nr) ;
+            } else {
+                slit_func = NULL ;
+            }
+            
             /* Compute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
-            if (cr2res_extract_traces(science_hdrl, trace_table, reduce_order,
-                    reduce_trace, extr_method, extr_height, swath_width,
-                    oversample, smooth_slit, &(extract_tab[det_nr-1]),
-                    &(slit_func_tab[det_nr-1]), &(model_master[det_nr-1]))==-1){
+            if (cr2res_extract_traces(science_hdrl, trace_table,
+                        slit_func, reduce_order, reduce_trace, extr_method, 
+                        extr_height, swath_width, oversample, smooth_slit, 
+                        &(extract_tab[det_nr-1]), &(slit_func_tab[det_nr-1]), 
+                        &(model_master[det_nr-1]))==-1) {
                 cpl_table_delete(trace_table) ;
                 hdrl_image_delete(science_hdrl) ;
+                if (slit_func != NULL) cpl_table_delete(slit_func) ;
                 cpl_msg_error(__func__, "Failed to extract - skip detector");
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
                 continue ;
             }
+            if (slit_func != NULL) cpl_table_delete(slit_func) ;
             hdrl_image_delete(science_hdrl) ;
             cpl_table_delete(trace_table) ;
             cpl_msg_indent_less() ;

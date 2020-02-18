@@ -132,6 +132,7 @@ static int debug_output(int         ncols,
         int     *   ycen_offset,
         int         y_lower_lim,
         cpl_polynomial  ** slitcurves);
+
 /*----------------------------------------------------------------------------*/
 /**
   @defgroup cr2res_extract  Extraction routines (Slit Decomposition,...)
@@ -145,6 +146,7 @@ static int debug_output(int         ncols,
   @brief    Extracts all the passed traces at once
   @param    img             Full detector image
   @param    traces          The traces table
+  @param    slit_func_in    The input slit_func or NULL
   @param    reduce_order    The order to extract (-1 for all)
   @param    reduce_trace    The Trace to extract (-1 for all)
   @param    extr_method     The wished extraction method
@@ -163,6 +165,7 @@ static int debug_output(int         ncols,
 int cr2res_extract_traces(
         const hdrl_image    *   img,
         const cpl_table     *   traces,
+        const cpl_table     *   slit_func_in,
         int                     reduce_order,
         int                     reduce_trace,
         cr2res_extr_method      extr_method,
@@ -175,6 +178,7 @@ int cr2res_extract_traces(
         hdrl_image          **  model_master)
 {
     cpl_bivector        **  spectrum ;
+    cpl_vector          *   slit_func_in_vec ;
     cpl_vector          **  slit_func_vec ;
     cpl_table           *   slit_func_loc ;
     cpl_table           *   extract_loc ;
@@ -215,12 +219,29 @@ int cr2res_extract_traces(
         cpl_msg_info(__func__, "Process Order %d/Trace %d",order,trace_id) ;
         cpl_msg_indent_more() ;
 
+        /* Get the input slit_func if available */
+        if (slit_func_in != NULL) {
+            /* TODO : Load the proper slit function vector */
+
+
+
+
+
+
+
+            slit_func_in_vec = cpl_vector_new(23) ;
+        } else {
+            slit_func_in_vec = NULL ;
+        }
+
         /* Call the Extraction */
         if (extr_method == CR2RES_EXTR_SUM) {
             if (cr2res_extract_sum_vert(img, traces, order,
                         trace_id, extr_height, &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
                 cpl_msg_error(__func__, "Cannot (sum-)extract the trace") ;
+                if (slit_func_in_vec != NULL) 
+                    cpl_vector_delete(slit_func_in_vec) ;
                 slit_func_vec[i] = NULL ;
                 spectrum[i] = NULL ;
                 model_loc_one = NULL ;
@@ -233,6 +254,8 @@ int cr2res_extract_traces(
                         trace_id, extr_height, &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
                 cpl_msg_error(__func__, "Cannot (median-)extract the trace") ;
+                if (slit_func_in_vec != NULL) 
+                    cpl_vector_delete(slit_func_in_vec) ;
                 slit_func_vec[i] = NULL ;
                 spectrum[i] = NULL ;
                 model_loc_one = NULL ;
@@ -245,6 +268,8 @@ int cr2res_extract_traces(
                         trace_id, extr_height, &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
                 cpl_msg_error(__func__, "Cannot (tiltsum-)extract the trace") ;
+                if (slit_func_in_vec != NULL) 
+                    cpl_vector_delete(slit_func_in_vec) ;
                 slit_func_vec[i] = NULL ;
                 spectrum[i] = NULL ;
                 model_loc_one = NULL ;
@@ -253,12 +278,14 @@ int cr2res_extract_traces(
                 continue ;
             }
         } else if (extr_method == CR2RES_EXTR_OPT_VERT) {
-            if (cr2res_extract_slitdec_vert(img, traces,
+            if (cr2res_extract_slitdec_vert(img, traces, slit_func_in_vec,
                         order, trace_id, extr_height, swath_width,
                         oversample, smooth_slit, &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
                 cpl_msg_error(__func__,
                         "Cannot (slitdec-vert-) extract the trace") ;
+                if (slit_func_in_vec != NULL) 
+                    cpl_vector_delete(slit_func_in_vec) ;
                 slit_func_vec[i] = NULL ;
                 spectrum[i] = NULL ;
                 model_loc_one = NULL ;
@@ -267,12 +294,14 @@ int cr2res_extract_traces(
                 continue ;
             }
         } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
-            if (cr2res_extract_slitdec_curved(img, traces,
+            if (cr2res_extract_slitdec_curved(img, traces, slit_func_in_vec,
                         order, trace_id, extr_height, swath_width,
                         oversample, smooth_slit, &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
                 cpl_msg_error(__func__,
                         "Cannot (slitdec-curved-) extract the trace") ;
+                if (slit_func_in_vec != NULL) 
+                    cpl_vector_delete(slit_func_in_vec) ;
                 slit_func_vec[i] = NULL ;
                 spectrum[i] = NULL ;
                 model_loc_one = NULL ;
@@ -281,6 +310,7 @@ int cr2res_extract_traces(
                 continue ;
             }
         }
+        if (slit_func_in_vec != NULL) cpl_vector_delete(slit_func_in_vec) ;
 
         /* Update the model global image */
         if (model_loc_one != NULL) {
@@ -1043,6 +1073,7 @@ int cr2res_extract_EXTRACT1D_get_spectrum(
   @brief   Main vertical slit decomposition wrapper with swath loop
   @param    img_in      full detector image
   @param    trace_tab   The traces table
+  @param    slit_func_vec_in    The input slit_func vector or NULL
   @param    order       The order to extract
   @param    trace_id    The Trace to extract
   @param    height      number of pix above and below mid-line or -1
@@ -1077,6 +1108,7 @@ int cr2res_extract_EXTRACT1D_get_spectrum(
 int cr2res_extract_slitdec_vert(
         const hdrl_image    *   img_hdrl,
         const cpl_table     *   trace_tab,
+        const cpl_vector    *   slit_func_vec_in,
         int                     order,
         int                     trace_id,
         int                     height,
@@ -1391,6 +1423,7 @@ int cr2res_extract_slitdec_vert(
   @brief    Extract optimally (slit-decomposition) with polynomial slit
   @param    img_in      full detector image
   @param    trace_tab   The traces table
+  @param    slit_func_vec_in    The input slit_func vector or NULL
   @param    order       The order to extract
   @param    trace_id    The Trace to extract
   @param    height      number of pix above and below mid-line or -1
@@ -1424,6 +1457,7 @@ int cr2res_extract_slitdec_vert(
 int cr2res_extract_slitdec_curved(
         const hdrl_image    *   img_hdrl,
         const cpl_table     *   trace_tab,
+        const cpl_vector    *   slit_func_vec_in,
         int                     order,
         int                     trace_id,
         int                     height,
