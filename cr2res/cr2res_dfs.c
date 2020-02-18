@@ -132,6 +132,10 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_OBS_NODDING_SLITFUNCB_PROCATG) ||
                 !strcmp(tag, CR2RES_OBS_NODDING_SLITMODELB_PROCATG) ||
                 !strcmp(tag, CR2RES_OBS_NODDING_THROUGHPUT_PROCATG) ||
+                /* Produced by cr2res_obs_staring */
+                !strcmp(tag, CR2RES_OBS_STARING_EXTRACT_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_STARING_SLITFUNC_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_STARING_SLITMODEL_PROCATG) ||
                 /* Produced by cr2res_obs_2d */
                 !strcmp(tag, CR2RES_OBS_2D_EXTRACT_PROCATG) ||
                 /* Produced by cr2res_obs_pol */
