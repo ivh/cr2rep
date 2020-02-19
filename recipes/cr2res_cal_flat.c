@@ -296,14 +296,14 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_degree",
             CPL_TYPE_INT, "polynomial degree for the fit to the orders",
-            "cr2res.cr2res_cal_flat", 5);
+            "cr2res.cr2res_cal_flat", 2);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_degree");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_min_cluster",
             CPL_TYPE_INT, "size in pixels of the smallest allowed cluster",
-            "cr2res.cr2res_cal_flat", 40000);
+            "cr2res.cr2res_cal_flat", 150000);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_min_cluster");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -324,7 +324,7 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_threshold",
             CPL_TYPE_DOUBLE, "Detection Threshold",
-            "cr2res.cr2res_cal_flat", 300.0);
+            "cr2res.cr2res_cal_flat", 1100.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_threshold");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -346,7 +346,7 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
-            "cr2res.cr2res_cal_flat", 2);
+            "cr2res.cr2res_cal_flat", 3);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_oversample");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);

@@ -177,7 +177,7 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
     /* Fill the parameters list */
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.degree",
             CPL_TYPE_INT, "polynomial degree for the fit to the orders",
-            "cr2res.cr2res_util_trace", 5);
+            "cr2res.cr2res_util_trace", 2);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "degree");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);

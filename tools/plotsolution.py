@@ -14,7 +14,7 @@ axs1 += [fig1.add_subplot(132, sharey=axs1[0]),
          fig1.add_subplot(133, sharey=axs1[0])]
 
 for twn in sys.argv[1:]:
-    print(twn)
+    #print(twn)
     with fits.open(twn) as twf:
         maindisp = twf[0].header['ESO INS GRAT1 DISP']
         for det in [1,2,3]:

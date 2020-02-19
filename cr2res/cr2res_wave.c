@@ -1010,7 +1010,8 @@ cpl_polynomial * cr2res_wave_xcorr(
     if ((sol=irplib_wlxcorr_best_poly(spec_clean, lines_list_filtered, 
                     degree_loc, sol_guess, wl_errors, nsamples, slit_width, 
                     fwhm, best_xcorr, NULL, &xcorrs)) == NULL) {
-        cpl_msg_error(__func__, "Cannot get the best polynomial") ;
+        cpl_msg_error(__func__, "Cannot get the best polynomial: %d",
+            cpl_error_get_code()) ;
         cpl_vector_delete(wl_errors) ;
         cpl_vector_delete(spec_clean) ;
         if (xcorrs != NULL) cpl_vector_delete(xcorrs) ;
