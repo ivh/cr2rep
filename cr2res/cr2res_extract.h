@@ -131,6 +131,12 @@ int cr2res_extract_EXTRACT1D_get_spectrum(
         cpl_bivector        **  spec,
         cpl_bivector        **  spec_err) ;
 
+int cr2res_extract_SLIT_FUNC_get_vector(
+        const cpl_table     *   tab,
+        int                     order,
+        int                     trace_nb,
+        cpl_vector          **  vec) ;
+
 int cr2res_extract2d_traces(
         const hdrl_image    *   img,
         const cpl_table     *   traces,

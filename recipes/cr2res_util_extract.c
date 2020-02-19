@@ -89,6 +89,11 @@ Spectrum Extraction                                                     \n\
             or " CR2RES_UTIL_WAVE_TW_PROCATG "                          \n\
             or " CR2RES_CAL_WAVE_TW_PROCATG "                           \n\
             or " CR2RES_UTIL_SLIT_CURV_TW_PROCATG "                     \n\
+    slitfunc.fits " CR2RES_CAL_FLAT_SLIT_FUNC_PROCATG " [0 to 1]        \n\
+               or " CR2RES_UTIL_SLIT_FUNC_PROCATG "                     \n\
+               or " CR2RES_OBS_NODDING_SLITFUNCA_PROCATG "              \n\
+               or " CR2RES_OBS_NODDING_SLITFUNCB_PROCATG "              \n\
+               or " CR2RES_OBS_STARING_SLITFUNC_PROCATG "               \n\
     bpm.fits " CR2RES_CAL_DARK_BPM_PROCATG " [0 to 1]                   \n\
           or " CR2RES_CAL_FLAT_BPM_PROCATG "                            \n\
           or " CR2RES_CAL_DETLIN_BPM_PROCATG "                          \n\
@@ -108,6 +113,7 @@ Spectrum Extraction                                                     \n\
                  (--slit_frac) if needed                                \n\
         Load the image to extract                                       \n\
         Load the BPM and set them in the image                          \n\
+        Load the input slit_func if available                           \n\
         Run the extraction cr2res_extract_traces(--method,--height,     \n\
                  --swath_width,--oversample,--smooth_slit)              \n\
           -> creates SLIT_MODEL(f,d), SLIT_FUNC(f,d), EXTRACT_1D(f,d)   \n\
@@ -334,7 +340,7 @@ static int cr2res_util_extract(
     cpl_table           *   trace_table ;
     cpl_table           *   trace_table_new ;
     hdrl_image          *   science_hdrl;
-    cpl_table           *   slit_func ;
+    cpl_table           *   slit_func_in ;
     cpl_image           *   bpm_img;
     cpl_mask            *   bpm_mask;
     int                     det_nr, ext_nr, order, i ;
@@ -528,29 +534,29 @@ static int cr2res_util_extract(
             
             /* Load the SLIT_FUNC table */
             if (slit_func_frame != NULL) {
-                slit_func = cr2res_io_load_SLIT_FUNC(
+                slit_func_in = cr2res_io_load_SLIT_FUNC(
                         cpl_frame_get_filename(slit_func_frame),
                         det_nr) ;
             } else {
-                slit_func = NULL ;
+                slit_func_in = NULL ;
             }
             
             /* Compute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(science_hdrl, trace_table,
-                        slit_func, reduce_order, reduce_trace, extr_method, 
+                        slit_func_in, reduce_order, reduce_trace, extr_method, 
                         extr_height, swath_width, oversample, smooth_slit, 
                         &(extract_tab[det_nr-1]), &(slit_func_tab[det_nr-1]), 
                         &(model_master[det_nr-1]))==-1) {
                 cpl_table_delete(trace_table) ;
                 hdrl_image_delete(science_hdrl) ;
-                if (slit_func != NULL) cpl_table_delete(slit_func) ;
+                if (slit_func_in != NULL) cpl_table_delete(slit_func_in) ;
                 cpl_msg_error(__func__, "Failed to extract - skip detector");
                 cpl_error_reset() ;
                 cpl_msg_indent_less() ;
                 continue ;
             }
-            if (slit_func != NULL) cpl_table_delete(slit_func) ;
+            if (slit_func_in != NULL) cpl_table_delete(slit_func_in) ;
             hdrl_image_delete(science_hdrl) ;
             cpl_table_delete(trace_table) ;
             cpl_msg_indent_less() ;

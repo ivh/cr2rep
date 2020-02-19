@@ -221,15 +221,9 @@ int cr2res_extract_traces(
 
         /* Get the input slit_func if available */
         if (slit_func_in != NULL) {
-            /* TODO : Load the proper slit function vector */
-
-
-
-
-
-
-
-            slit_func_in_vec = cpl_vector_new(23) ;
+            /* Load the proper slit function vector */
+            cr2res_extract_SLIT_FUNC_get_vector(slit_func_in, order,
+                    trace_id, &slit_func_in_vec) ;
         } else {
             slit_func_in_vec = NULL ;
         }
@@ -1065,6 +1059,50 @@ int cr2res_extract_EXTRACT1D_get_spectrum(
         pxspec_err[i] = pwave[i] ;
         pyspec_err[i] = pspec_err[i] ;
     }
+    return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get a vector from the SLIT_FUNC table
+  @param    tab         the SLIT_FUNC table
+  @param    order       the order
+  @param    trace_nb    the wished trace
+  @param    vec         [out] The SLIT_FUNC vector
+  @return   O if ok, -1 otherwise
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_extract_SLIT_FUNC_get_vector(
+        const cpl_table     *   tab,
+        int                     order,
+        int                     trace_nb,
+        cpl_vector          **  vec)
+{
+    char            *   vec_name ;
+    const double    *   ptab ;
+    double          *   pvec ;
+    int                 i, tab_size ;
+
+    /* Check entries */
+    if (tab == NULL || vec == NULL) return -1 ;
+
+    /* Get the Vector */
+    vec_name = cr2res_dfs_SLIT_FUNC_colname(order, trace_nb) ;
+    if ((ptab = cpl_table_get_data_double_const(tab, vec_name)) == NULL) {
+        cpl_msg_error(__func__, "Cannot find the slit_func") ;
+        cpl_free(vec_name) ;
+        cpl_error_reset() ;
+        *vec = NULL ;
+        return -1 ;
+    }
+    cpl_free(vec_name) ;
+
+    /* Create the output */
+    tab_size = cpl_table_get_nrow(tab) ;
+    *vec = cpl_vector_new(tab_size) ;
+    pvec = cpl_vector_get_data(*vec) ;
+    for (i=0 ; i<tab_size ; i++) pvec[i] = ptab[i] ;
+
     return 0 ;
 }
 
