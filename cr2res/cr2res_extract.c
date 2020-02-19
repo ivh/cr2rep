@@ -1833,10 +1833,14 @@ int cr2res_extract_slitdec_curved(
                     NULL, CPL_IO_CREATE);
             cpl_vector_save(slitfu_sw, "debug_slitfu.fits", CPL_TYPE_DOUBLE,
                     NULL, CPL_IO_CREATE);
+
+            path = cpl_sprintf("debug_model_%i.fits", i);
             img_tmp = cpl_image_wrap_double(swath, height, model_sw);
-            cpl_image_save(img_tmp, "debug_model_sw.fits", CPL_TYPE_DOUBLE,
+            cpl_image_save(img_tmp, path, CPL_TYPE_DOUBLE,
                     NULL, CPL_IO_CREATE);
             cpl_image_unwrap(img_tmp);
+            cpl_free(path);
+
             path = cpl_sprintf("debug_img_sw_%i.fits", i);
             cpl_image_save(img_sw, path, CPL_TYPE_DOUBLE, NULL,
                     CPL_IO_CREATE);
@@ -3139,6 +3143,7 @@ static int cr2res_extract_slit_func_curved(
 {
     int         x, xx, xxx, y, yy, iy, jy, n, m, ny, y_upper_lim, i, nx;
     double      sum, norm, dev, lambda, diag_tot, ww, www, sP_change, sP_max;
+    double      tmp;
     int         info, iter, isum;
 
     /* The size of the sL array. */
@@ -3302,7 +3307,7 @@ static int cr2res_extract_slit_func_curved(
         if (info) cpl_msg_info(__func__, "info(sP)=%d\n", info);
         for (x = 0; x < ncols; x++) sP[x] = p_bj[x];
 
-        if (isnan(sP[0]) && (cpl_msg_get_level() == CPL_MSG_DEBUG) ){
+        if ((isnan(sP[0]) || (sP[ncols/2] == 0)) && (cpl_msg_get_level() == CPL_MSG_DEBUG) ){
             debug_output(ncols, nrows, osample, im, pix_unc, mask, ycen,
                 ycen_offset, y_lower_lim, slitcurves);
         }
@@ -3322,20 +3327,34 @@ static int cr2res_extract_slit_func_curved(
             }
         }
         /* Compare model and data */
-        sum = 0.e0;
-        isum = 0;
+
+        // It is useful to use a more robust scale estimator, like MAD
+        // than the standard deviation
+        // Although those are less efficient, they will save iterations
+        // over the whole decomposition
+        // Rousseeuw–Croux estimator, or IQR are also options, but MAD is
+        // already part of CPL
+        // For example with MAD:
+        cpl_image * img_tmp = cpl_image_new(ncols, nrows, CPL_TYPE_DOUBLE);
         for (y = 0; y < nrows; y++) {
             for (x = delta_x; x < ncols - delta_x; x++) {
-                sum += mask[y * ncols + x] * (model[y * ncols + x] -
-                        im[y * ncols + x]) * (model[y * ncols + x] -
-                            im[y * ncols + x]);
-                isum += mask[y * ncols + x];
+                cpl_image_set(img_tmp, x+1, y+1, (model[y * ncols + x] -
+                        im[y * ncols + x]));
+                if (mask[y * ncols + x] == 0)
+                    cpl_image_reject(img_tmp, x+1, y+1);
             }
         }
-        dev = sqrt(sum / isum);
+        // Ignore the outer delta_x pixels on each side, as they are unreliable
+        cpl_image_get_mad_window(img_tmp,
+            1 + delta_x, 1, ncols-delta_x, nrows, &dev);
+        cpl_image_delete(img_tmp);
+        dev *= 1.4826; // scaling factor relative to standard deviation
+
         /* Adjust the mask marking outlyers */
         for (y = 0; y < nrows; y++) {
-            for (x = delta_x; x < ncols - delta_x; x++) {
+            for (x = 0; x < ncols; x++) {
+                // We order it like this, to account for NaN values
+                // They evaluate to False, and should be masked
                 if (fabs(model[y * ncols + x] - im[y * ncols + x]) < 6. * dev)
                     mask[y * ncols + x] = 1;
                 else

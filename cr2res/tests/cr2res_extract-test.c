@@ -863,8 +863,8 @@ static void test_cr2res_slitdec_errors(void){
 
     
 
-    cr2res_extract_slitdec_vert(img_hdrl, trace_table, NULL, order, trace, 
-            height, swath, oversample, smooth_slit, &slit_func, &spec, &model);
+    cr2res_extract_slitdec_vert(img_hdrl, trace_table, NULL, order, trace, height, swath,
+                oversample, smooth_slit, &slit_func, &spec, &model);
 
     error = cpl_bivector_get_y(spec);
 
