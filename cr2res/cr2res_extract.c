@@ -1198,6 +1198,10 @@ int cr2res_extract_slitdec_vert(
     /* Check Entries */
     if (img_hdrl == NULL || trace_tab == NULL) return -1 ;
 
+    if (slit_func_vec_in != NULL)
+        cpl_msg_info(__func__, 
+        "TODO : The SLIT FUNC is passed, but its usage is not yet implemented");
+
     /* Initialise */
     img_in = hdrl_image_get_image_const(img_hdrl);
     err_in = hdrl_image_get_error_const(img_hdrl);
@@ -1561,6 +1565,10 @@ int cr2res_extract_slitdec_curved(
     imtyp = cpl_image_get_type(img_in);
     lenx = cpl_image_get_size_x(img_in);
     leny = cpl_image_get_size_y(img_in);
+
+    if (slit_func_vec_in != NULL)
+        cpl_msg_info(__func__, 
+        "TODO : The SLIT FUNC is passed, but its usage is not yet implemented");
 
     /* Compute height if not given */
     if (height <= 0) {
