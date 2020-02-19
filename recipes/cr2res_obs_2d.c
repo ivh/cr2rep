@@ -332,6 +332,8 @@ static int cr2res_obs_2d(
         return -1 ;
     }
     cpl_msg_indent_more() ;
+    
+    cpl_msg_info(__func__, "TODO : Add support for SKY frames !") ;
 
     /* Loop on the RAW files */
     for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
