@@ -932,7 +932,7 @@ static void test_cr2res_slitdec_input_slitfunc(void)
     cpl_test_nonnull(spec);
     cpl_test_nonnull(slit_func);
     cpl_test_nonnull(model);
-    // cpl_test_vector_abs(slit_func_in, slit_func, DBL_EPSILON);
+    cpl_test_vector_abs(slit_func_in, slit_func, DBL_EPSILON);
 
     cpl_vector_delete(slit_func_in);
     cpl_vector_delete(slit_func);
