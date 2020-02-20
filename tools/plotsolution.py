@@ -40,7 +40,10 @@ for twn in sys.argv[1:]:
                 poly = np.poly1d(p)
                 deriv = poly.deriv()
                 ax.plot(deriv(X))
-                ax.text(X[100],deriv(X[100]), 'O:%d XC:%.2f'%(order,xc or -1))
+                if xc > 0.01:
+                    xcstr = 'XC:%.2f'%xc
+                else: xcstr = ''
+                ax.text(X[100],deriv(X[100]), 'O:%d'%order + xcstr)
             ax.plot(1024,maindisp,'kD')
             ax.set_xlim((1,2048))
             if det >1:

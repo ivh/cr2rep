@@ -62,6 +62,7 @@ def compare(fname_trace, fname_img=None, fname_spec=None):
                 'order: %s     trace: %s' % (t['order'], t['TraceNb']),
                 color=linecol, horizontalalignment='center',
                 verticalalignment='center', size=8)
+        ax.axis((1,2048,1,2048))
 
 
     FIG.tight_layout(pad=0.02)

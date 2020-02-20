@@ -97,7 +97,7 @@ def compare(fname_trace, fname_img=None):
                 verticalalignment="center",
                 size=9,
             )
-            ax.axis((1,2048,1,2048))
+        ax.axis((1,2048,1,2048))
 
     FIG.tight_layout(pad=0.02)
     #plt.show()
