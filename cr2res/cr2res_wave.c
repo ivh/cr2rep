@@ -1124,6 +1124,7 @@ cpl_polynomial * cr2res_wave_etalon(
 
     /* Set vector with correct wavelength values */
     // expected number of peaks (+2 just to be sure)
+    l0 = cpl_vector_get(li, 0);
     npeaks = (cpl_vector_get(li, nxi-1) - l0) / trueD + 2;
     li_true = cpl_vector_new(npeaks);
     for (i=0; i<npeaks; i++) {
