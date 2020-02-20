@@ -1253,7 +1253,8 @@ int cr2res_extract_slitdec_vert(
             slit_func_in = cpl_vector_get_data_const(slit_func_vec_in);
         } else {
             cpl_msg_warning(__func__, "Ignoring the given slit_func since it is"
-                " of the wrong size, expected %i but got %lli.", ny_os, size);
+                " of the wrong size, expected %i but got %lli points.",
+                ny_os, size);
         }
     }
 
@@ -1680,7 +1681,8 @@ int cr2res_extract_slitdec_curved(
             slit_func_in = cpl_vector_get_data_const(slit_func_vec_in);
         } else {
             cpl_msg_warning(__func__, "Ignoring the given slit_func since it is"
-                " of the wrong size, expected %i but got %lli.", ny_os, size);
+                " of the wrong size, expected %i but got %lli points.",
+                ny_os, size);
         }
     }
 
@@ -3223,6 +3225,18 @@ static int cr2res_extract_slit_func_curved(
     }
 
     /* Loop through sL , sP reconstruction until convergence is reached */
+    if (slit_func_in != NULL){
+        // Normalize the input just in case
+        norm = 0.e0;
+        for(iy = 0; iy < ny; iy++) {
+            sL[iy] = slit_func_in[iy];
+            norm += sL[iy];
+        }
+        norm /= osample;
+        for(iy=0; iy<ny; iy++) sL[iy]/=norm;
+    }
+
+    /* Loop through sL , sP reconstruction until convergence is reached */
     iter = 0;
     do {
         if (slit_func_in == NULL){
@@ -3396,6 +3410,7 @@ static int cr2res_extract_slit_func_curved(
         cpl_image_get_mad_window(img_tmp,
             1 + delta_x, 1, ncols-delta_x, nrows, &dev);
         dev *= 1.4826; // scaling factor relative to standard deviation
+        cpl_image_delete(img_tmp);
 
         /* Adjust the mask marking outlyers */
         for (y = 0; y < nrows; y++) {
