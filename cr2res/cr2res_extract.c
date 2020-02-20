@@ -76,7 +76,8 @@ static int cr2res_extract_slit_func_vert(
         double      lambda_sP,
         double      lambda_sL,
         double      sP_stop,
-        int         maxiter) ;
+        int         maxiter,
+        const double * slit_func_in) ;
 
 static int cr2res_extract_slit_func_curved(
         int         ncols,
@@ -98,7 +99,8 @@ static int cr2res_extract_slit_func_curved(
         double      lambda_sP,
         double      lambda_sL,
         double      sP_stop,
-        int         maxiter) ;
+        int         maxiter,
+        const double   *  slit_func_in) ;
 
 static int cr2res_extract_xi_zeta_tensors(
         int         ncols,
@@ -1168,6 +1170,7 @@ int cr2res_extract_slitdec_vert(
     double          *   model_sw;
     int             *   mask_sw;
     double          *   unc_sw_data;
+    const double    *   slit_func_in;
     const cpl_image *   img_in;
     const cpl_image *   err_in;
     cpl_image       *   err_sw;
@@ -1188,7 +1191,7 @@ int cr2res_extract_slitdec_vert(
     cpl_vector      *   bins_begin;
     cpl_vector      *   bins_end;
     cpl_vector      *   unc_decomposition;
-    cpl_size            lenx, leny;
+    cpl_size            lenx, leny, size;
     cpl_type            imtyp;
     double              pixval, errval, img_median, unc, model_unc, img_unc, 
                         norm;
@@ -1197,10 +1200,6 @@ int cr2res_extract_slitdec_vert(
 
     /* Check Entries */
     if (img_hdrl == NULL || trace_tab == NULL) return -1 ;
-
-    if (slit_func_vec_in != NULL)
-        cpl_msg_info(__func__, 
-        "TODO : The SLIT FUNC is passed, but its usage is not yet implemented");
 
     /* Initialise */
     img_in = hdrl_image_get_image_const(img_hdrl);
@@ -1246,6 +1245,18 @@ int cr2res_extract_slitdec_vert(
     }
     nswaths = cpl_vector_get_size(bins_begin);
 
+    /* Use existing slitfunction if given */
+    slit_func_in = NULL;
+    if (slit_func_vec_in != NULL) {
+        size = cpl_vector_get_size(slit_func_vec_in);
+        if (size == ny_os){
+            slit_func_in = cpl_vector_get_data_const(slit_func_vec_in);
+        } else {
+            cpl_msg_warning(__func__, "Ignoring the given slit_func since it is"
+                " of the wrong size, expected %i but got %lli.", ny_os, size);
+        }
+    }
+
     // Get cut-out rectified order
     img_rect = cr2res_image_cut_rectify(img_in, ycen, height);
     if (img_rect == NULL){
@@ -1274,8 +1285,6 @@ int cr2res_extract_slitdec_vert(
     img_sw = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
     err_sw = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
     unc_sw = cpl_vector_new(swath);
-
-
     weights_sw = cpl_vector_new(swath);
 
     /* Pre-calculate the weights for overlapping swaths*/
@@ -1335,7 +1344,8 @@ int cr2res_extract_slitdec_vert(
         /* Finally ready to call the slit-decomp */
         cr2res_extract_slit_func_vert(swath, height, oversample, img_sw_data, 
                 err_sw_data, mask_sw, ycen_sw, slitfu_sw_data, spec_sw_data,
-                model_sw, unc_sw_data, 0.0, smooth_slit, 1.0e-5, 20);
+                model_sw, unc_sw_data, 0.0, smooth_slit, 1.0e-5, 20,
+                slit_func_in);
 
         for(col=1; col<=swath; col++){   // col is x-index in cut-out
             x = sw_start + col;          // coords in large image
@@ -1519,6 +1529,7 @@ int cr2res_extract_slitdec_curved(
     double          *   slitfu_sw_data;
     double          *   model_sw;
     double          *   unc_sw_data;
+    const double    *   slit_func_in;
     int             *   mask_sw;
     const cpl_image *   img_in;
     const cpl_image *   err_in;
@@ -1542,7 +1553,7 @@ int cr2res_extract_slitdec_curved(
     cpl_vector      *   bins_begin;
     cpl_vector      *   bins_end;
     cpl_vector      *   unc_decomposition;
-    cpl_size            lenx, leny, pow;
+    cpl_size            lenx, leny, pow, size;
     cpl_type            imtyp;
     cpl_polynomial      *slitcurve_A, *slitcurve_B, *slitcurve_C;
     cpl_polynomial  **  slitcurves_sw;
@@ -1566,10 +1577,7 @@ int cr2res_extract_slitdec_curved(
     lenx = cpl_image_get_size_x(img_in);
     leny = cpl_image_get_size_y(img_in);
 
-    if (slit_func_vec_in != NULL)
-        cpl_msg_info(__func__, 
-        "TODO : The SLIT FUNC is passed, but its usage is not yet implemented");
-
+   
     /* Compute height if not given */
     if (height <= 0) {
         height = cr2res_trace_get_height(trace_tab, order, trace_id);
@@ -1663,6 +1671,18 @@ int cr2res_extract_slitdec_curved(
         return -1;
     }
     nswaths = cpl_vector_get_size(bins_begin);
+
+    /* Use existing slitfunction if given */
+    slit_func_in = NULL;
+    if (slit_func_vec_in != NULL) {
+        size = cpl_vector_get_size(slit_func_vec_in);
+        if (size == ny_os){
+            slit_func_in = cpl_vector_get_data_const(slit_func_vec_in);
+        } else {
+            cpl_msg_warning(__func__, "Ignoring the given slit_func since it is"
+                " of the wrong size, expected %i but got %lli.", ny_os, size);
+        }
+    }
 
     /* Allocate */
     mask_sw = cpl_malloc(height * swath*sizeof(int));
@@ -1807,7 +1827,7 @@ int cr2res_extract_slitdec_curved(
                 err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit,
                 slitcurves_sw, delta_x,
                 slitfu_sw_data, spec_sw_data, model_sw, unc_sw_data, 0.,
-                smooth_slit, 1e-7, 20);
+                smooth_slit, 1e-7, 20, slit_func_in);
 
         // add up slit-functions, divide by nswaths below to get average
         if (i==0) cpl_vector_copy(slitfu,slitfu_sw);
@@ -2428,7 +2448,8 @@ static int cr2res_extract_slit_func_vert(
         double      lambda_sP,
         double      lambda_sL,
         double      sP_stop,
-        int         maxiter)
+        int         maxiter,
+        const double * slit_func_in)
 {
     int x, y, iy, jy, iy1, iy2, ny, nd, i, j;
     double step, d1, d2, sum, norm, dev, lambda, diag_tot, sP_change, sP_max;
@@ -2480,61 +2501,74 @@ static int cr2res_extract_slit_func_vert(
         }
     }
 
+    if (slit_func_in != NULL){
+        // Normalize the input just in case
+        norm = 0.e0;
+        for(iy = 0; iy < ny; iy++) {
+            sL[iy] = slit_func_in[iy];
+            norm += sL[iy];
+        }
+        norm /= osample;
+        for(iy=0; iy<ny; iy++) sL[iy]/=norm;
+    }
+
     /* Loop through sL , sP reconstruction until convergence is reached */
     iter=0;
     do {
-        /* Compute slit function sL */
+        if (slit_func_in == NULL){
+            /* Compute slit function sL */
 
-        /* Fill in SLE arrays */
-        diag_tot=0.e0;
-        for(iy=0; iy<ny; iy++) {
-            bj[iy]=0.e0;
-            for(jy=max(iy-osample,0); jy<=min(iy+osample,ny-1); jy++) {
-                Aij[iy+ny*(jy-iy+osample)]=0.e0;
+            /* Fill in SLE arrays */
+            diag_tot=0.e0;
+            for(iy=0; iy<ny; iy++) {
+                bj[iy]=0.e0;
+                for(jy=max(iy-osample,0); jy<=min(iy+osample,ny-1); jy++) {
+                    Aij[iy+ny*(jy-iy+osample)]=0.e0;
+                    for(x=0; x<ncols; x++) {
+                        sum=0.e0;
+                        for(y=0; y<nrows; y++)
+                            sum+=omega[iy+(y*ny)+(x*ny*nrows)] *
+                                omega[jy+(y*ny)+(x*ny*nrows)]*mask[y*ncols+x];
+                        Aij[iy+ny*(jy-iy+osample)]+=sum*sP[x]*sP[x];
+                    }
+                }
                 for(x=0; x<ncols; x++) {
                     sum=0.e0;
                     for(y=0; y<nrows; y++)
-                        sum+=omega[iy+(y*ny)+(x*ny*nrows)] *
-                            omega[jy+(y*ny)+(x*ny*nrows)]*mask[y*ncols+x];
-                    Aij[iy+ny*(jy-iy+osample)]+=sum*sP[x]*sP[x];
+                        sum+=omega[iy+(y*ny)+(x*ny*nrows)]*
+                            mask[y*ncols+x]*im[y*ncols+x];
+                    bj[iy]+=sum*sP[x];
                 }
+                diag_tot+=Aij[iy+ny*osample];
             }
-            for(x=0; x<ncols; x++) {
-                sum=0.e0;
-                for(y=0; y<nrows; y++)
-                    sum+=omega[iy+(y*ny)+(x*ny*nrows)]*
-                        mask[y*ncols+x]*im[y*ncols+x];
-                bj[iy]+=sum*sP[x];
+
+            /* Scale regularization parameters */
+            lambda=lambda_sL*diag_tot/ny;
+
+            /* Add regularization parts for the slit function */
+            Aij[ny*osample]    +=lambda;           /* Main diagonal  */
+            Aij[ny*(osample+1)]-=lambda;           /* Upper diagonal */
+            for(iy=1; iy<ny-1; iy++) {
+                Aij[iy+ny*(osample-1)]-=lambda;      /* Lower diagonal */
+                Aij[iy+ny*osample    ]+=lambda*2.e0; /* Main diagonal  */
+                Aij[iy+ny*(osample+1)]-=lambda;      /* Upper diagonal */
             }
-            diag_tot+=Aij[iy+ny*osample];
+            Aij[ny-1+ny*(osample-1)]-=lambda;      /* Lower diagonal */
+            Aij[ny-1+ny*osample]    +=lambda;      /* Main diagonal  */
+
+            /* Solve the system of equations */
+            info=cr2res_extract_slitdec_bandsol(Aij, bj, ny, nd, lambda);
+            if(info) cpl_msg_warning(__func__, "Bandsol exited with %d", info);
+
+            /* Normalize the slit function */
+            norm=0.e0;
+            for(iy=0; iy<ny; iy++) {
+                sL[iy]=bj[iy];
+                norm+=sL[iy];
+            }
+            norm/=osample;
+            for(iy=0; iy<ny; iy++) sL[iy]/=norm;
         }
-
-        /* Scale regularization parameters */
-        lambda=lambda_sL*diag_tot/ny;
-
-        /* Add regularization parts for the slit function */
-        Aij[ny*osample]    +=lambda;           /* Main diagonal  */
-        Aij[ny*(osample+1)]-=lambda;           /* Upper diagonal */
-        for(iy=1; iy<ny-1; iy++) {
-            Aij[iy+ny*(osample-1)]-=lambda;      /* Lower diagonal */
-            Aij[iy+ny*osample    ]+=lambda*2.e0; /* Main diagonal  */
-            Aij[iy+ny*(osample+1)]-=lambda;      /* Upper diagonal */
-        }
-        Aij[ny-1+ny*(osample-1)]-=lambda;      /* Lower diagonal */
-        Aij[ny-1+ny*osample]    +=lambda;      /* Main diagonal  */
-
-        /* Solve the system of equations */
-        info=cr2res_extract_slitdec_bandsol(Aij, bj, ny, nd, lambda);
-        if(info) cpl_msg_warning(__func__, "Bandsol exited with %d", info);
-
-        /* Normalize the slit function */
-        norm=0.e0;
-        for(iy=0; iy<ny; iy++) {
-            sL[iy]=bj[iy];
-            norm+=sL[iy];
-        }
-        norm/=osample;
-        for(iy=0; iy<ny; iy++) sL[iy]/=norm;
 
         /* Compute spectrum sP */
         for(x=0; x<ncols; x++) {
@@ -3139,7 +3173,8 @@ static int cr2res_extract_slit_func_curved(
         double      lambda_sP,
         double      lambda_sL,
         double      sP_stop,
-        int         maxiter)
+        int         maxiter,
+        const double  *   slit_func_in)
 {
     int         x, xx, xxx, y, yy, iy, jy, n, m, ny, y_upper_lim, i, nx;
     double      sum, norm, dev, lambda, diag_tot, ww, www, sP_change, sP_max;
@@ -3175,77 +3210,91 @@ static int cr2res_extract_slit_func_curved(
     i = cr2res_extract_xi_zeta_tensors(ncols, nrows, ny, ycen, ycen_offset,
             y_lower_lim, osample, slitcurves, xi, zeta, m_zeta);
 
-    /* Loop through sL , sP reconstruction until convergence is reached */
-    iter = 0;
-    do {
-        /* Compute slit function sL */
-        /* Prepare the RHS and the matrix */
-        for (iy = 0; iy < ny; iy++) {
-            l_bj[iy] = 0.e0;
-            /* Clean RHS                */
-            for (jy = 0; jy <= 4 * osample; jy++)
-                l_Aij[iy + ny * jy] = 0.e0;
-        }
-        /* Fill in SLE arrays for slit function */
-        diag_tot = 0.e0;
-        for (iy = 0; iy < ny; iy++) {
-            for (x = 0; x < ncols; x++) {
-                for (n = 0; n < 4; n++) {
-                    ww = xi[xi_index(x,iy,n)].w;
-                    if (ww > 0) {
-                        xx = xi[xi_index(x,iy,n)].x;
-                        yy = xi[xi_index(x,iy,n)].y;
-                        if (m_zeta[mzeta_index(xx,yy)] > 0 && xx >= 0 && xx < ncols &&
-                                yy >= 0 && yy < nrows) {
-                            for (m = 0; m < m_zeta[mzeta_index(xx,yy)]; m++) {
-                                xxx = zeta[zeta_index(xx,yy,m)].x;
-                                jy = zeta[zeta_index(xx,yy,m)].iy;
-                                www = zeta[zeta_index(xx,yy,m)].w;
-                                l_Aij[iy + ny * (jy - iy + 2 * osample)] +=
-                                    sP[xxx] * sP[x] * www * ww * mask[yy *
-                                    ncols + xx];
-                            }
-                            l_bj[iy] += im[yy * ncols + xx] * mask[yy * ncols +
-                                xx] * sP[x] * ww;
-                        }
-                    }
-                }
-            }
-            diag_tot += l_Aij[iy + ny * 2 * osample];
-        }
-        /* Scale regularization parameters */
-        lambda = lambda_sL * diag_tot / ny;
-        /* Add regularization parts for the SLE matrix */
-        /* Main diagonal  */
-        l_Aij[ny * 2 * osample] += lambda;
-        /* Upper diagonal */
-        l_Aij[ny * (2 * osample + 1)] -= lambda;
-        for (iy = 1; iy < ny - 1; iy++) {
-            /* Lower diagonal */
-            l_Aij[iy + ny * (2 * osample - 1)] -= lambda;
-            /* Main diagonal  */
-            l_Aij[iy + ny * 2 * osample] += lambda * 2.e0;
-            /* Upper diagonal */
-            l_Aij[iy + ny * (2 * osample + 1)] -= lambda;
-        }
-        /* Lower diagonal */
-        l_Aij[ny - 1 + ny * (2 * osample - 1)] -= lambda;
-        /* Main diagonal  */
-        l_Aij[ny - 1 + ny * 2 * osample] += lambda;
-
-        /* Solve the system of equations */
-        info = cr2res_extract_slitdec_bandsol(l_Aij, l_bj, ny,
-            4 * osample + 1, lambda);
-        if (info) cpl_msg_info(__func__, "info(sL)=%d\n", info);
-
-        /* Normalize the slit function */
+    // If a slit func is given, use that instead of recalculating it
+    if (slit_func_in != NULL){
+        // Normalize the input just in case
         norm = 0.e0;
-        for (iy = 0; iy < ny; iy++) {
-            sL[iy] = l_bj[iy];
+        for(iy = 0; iy < ny; iy++) {
+            sL[iy] = slit_func_in[iy];
             norm += sL[iy];
         }
         norm /= osample;
-        for (iy = 0; iy < ny; iy++) sL[iy] /= norm;
+        for(iy=0; iy<ny; iy++) sL[iy]/=norm;
+    }
+
+    /* Loop through sL , sP reconstruction until convergence is reached */
+    iter = 0;
+    do {
+        if (slit_func_in == NULL){
+            /* Compute slit function sL */
+            /* Prepare the RHS and the matrix */
+            for (iy = 0; iy < ny; iy++) {
+                l_bj[iy] = 0.e0;
+                /* Clean RHS                */
+                for (jy = 0; jy <= 4 * osample; jy++)
+                    l_Aij[iy + ny * jy] = 0.e0;
+            }
+            /* Fill in SLE arrays for slit function */
+            diag_tot = 0.e0;
+            for (iy = 0; iy < ny; iy++) {
+                for (x = 0; x < ncols; x++) {
+                    for (n = 0; n < 4; n++) {
+                        ww = xi[xi_index(x,iy,n)].w;
+                        if (ww > 0) {
+                            xx = xi[xi_index(x,iy,n)].x;
+                            yy = xi[xi_index(x,iy,n)].y;
+                            if (m_zeta[mzeta_index(xx,yy)] > 0 && xx >= 0 && xx < ncols &&
+                                    yy >= 0 && yy < nrows) {
+                                for (m = 0; m < m_zeta[mzeta_index(xx,yy)]; m++) {
+                                    xxx = zeta[zeta_index(xx,yy,m)].x;
+                                    jy = zeta[zeta_index(xx,yy,m)].iy;
+                                    www = zeta[zeta_index(xx,yy,m)].w;
+                                    l_Aij[iy + ny * (jy - iy + 2 * osample)] +=
+                                        sP[xxx] * sP[x] * www * ww * mask[yy *
+                                        ncols + xx];
+                                }
+                                l_bj[iy] += im[yy * ncols + xx] * mask[yy * ncols +
+                                    xx] * sP[x] * ww;
+                            }
+                        }
+                    }
+                }
+                diag_tot += l_Aij[iy + ny * 2 * osample];
+            }
+            /* Scale regularization parameters */
+            lambda = lambda_sL * diag_tot / ny;
+            /* Add regularization parts for the SLE matrix */
+            /* Main diagonal  */
+            l_Aij[ny * 2 * osample] += lambda;
+            /* Upper diagonal */
+            l_Aij[ny * (2 * osample + 1)] -= lambda;
+            for (iy = 1; iy < ny - 1; iy++) {
+                /* Lower diagonal */
+                l_Aij[iy + ny * (2 * osample - 1)] -= lambda;
+                /* Main diagonal  */
+                l_Aij[iy + ny * 2 * osample] += lambda * 2.e0;
+                /* Upper diagonal */
+                l_Aij[iy + ny * (2 * osample + 1)] -= lambda;
+            }
+            /* Lower diagonal */
+            l_Aij[ny - 1 + ny * (2 * osample - 1)] -= lambda;
+            /* Main diagonal  */
+            l_Aij[ny - 1 + ny * 2 * osample] += lambda;
+
+            /* Solve the system of equations */
+            info = cr2res_extract_slitdec_bandsol(l_Aij, l_bj, ny,
+                4 * osample + 1, lambda);
+            if (info) cpl_msg_info(__func__, "info(sL)=%d\n", info);
+
+            /* Normalize the slit function */
+            norm = 0.e0;
+            for (iy = 0; iy < ny; iy++) {
+                sL[iy] = l_bj[iy];
+                norm += sL[iy];
+            }
+            norm /= osample;
+            for (iy = 0; iy < ny; iy++) sL[iy] /= norm;
+        }
 
         /*  Compute spectrum sP */
         for (x = 0; x < ncols; x++) {
@@ -3334,7 +3383,6 @@ static int cr2res_extract_slit_func_curved(
         // over the whole decomposition
         // Rousseeuw–Croux estimator, or IQR are also options, but MAD is
         // already part of CPL
-        // For example with MAD:
         cpl_image * img_tmp = cpl_image_new(ncols, nrows, CPL_TYPE_DOUBLE);
         for (y = 0; y < nrows; y++) {
             for (x = delta_x; x < ncols - delta_x; x++) {
@@ -3347,7 +3395,6 @@ static int cr2res_extract_slit_func_curved(
         // Ignore the outer delta_x pixels on each side, as they are unreliable
         cpl_image_get_mad_window(img_tmp,
             1 + delta_x, 1, ncols-delta_x, nrows, &dev);
-        cpl_image_delete(img_tmp);
         dev *= 1.4826; // scaling factor relative to standard deviation
 
         /* Adjust the mask marking outlyers */
