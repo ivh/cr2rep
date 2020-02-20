@@ -295,7 +295,7 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.ext_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
-            "cr2res.cr2res_cal_wave", 2);
+            "cr2res.cr2res_cal_wave", 3);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ext_oversample");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
