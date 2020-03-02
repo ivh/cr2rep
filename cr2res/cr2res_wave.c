@@ -202,6 +202,7 @@ int cr2res_wave_apply(
     cpl_array           *   wl_err_array ;
     int                     trace_id, order, i, j ;
     double                  best_xcorr ;
+    int                     degree_out ;
 
     /* Check Entries */
     if (wavecal_type != CR2RES_XCORR && wavecal_type != CR2RES_LINE1D && 
@@ -306,13 +307,26 @@ int cr2res_wave_apply(
         }
     }
 
+    /* If propagating, set the output-degree to input-degree, */
+    /* assuming all inputs have same degree.                  */
+    if (propagate_flag) {
+        for (i=0; i<nb_traces ; i++) { 
+            degree_out = cpl_array_get_size(cpl_table_get_array(
+                tw_in, CR2RES_COL_WAVELENGTH, i));
+            degree_out -= 1;
+            if (degree_out >0) break; // keep first not NULL
+        }
+    } else {
+        degree_out = degree;
+    }
+
     /* Output TRACE_WAVE copied from the input one */
     tw_out = cpl_table_duplicate(tw_in) ;
 
     /* Rename old Wavelength column and create new with right degree */
     cpl_table_name_column(tw_out, CR2RES_COL_WAVELENGTH, "TMP_WL");
     cpl_table_new_column_array(tw_out, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 
-            degree+1) ;
+            degree_out+1) ;
     cpl_table_name_column(tw_out, CR2RES_COL_WAVELENGTH_ERROR, "TMP_WL_ERR");
     cpl_msg_debug(__func__, "DEBUG ERR: %d", cpl_error_get_code()) ;
     cpl_msg_debug(__func__, "%s", cpl_error_get_where()) ;
@@ -331,8 +345,8 @@ int cr2res_wave_apply(
         for (i = 0; i < nb_traces; i++) {
             /* Propagate WAVELENGTH  */
             wl_array_tmp = cpl_table_get_array(tw_out, "TMP_WL", i);
-            wl_array = cpl_array_new(degree+1, CPL_TYPE_DOUBLE);
-            for (j=0; j <= degree; j++) {
+            wl_array = cpl_array_new(degree_out+1, CPL_TYPE_DOUBLE);
+            for (j=0; j <= degree_out; j++) {
                 if ( j+1 > cpl_array_get_size(wl_array_tmp)){
                     cpl_array_set(wl_array, j, 0.0);
                 } else {
@@ -395,7 +409,7 @@ int cr2res_wave_apply(
         /* Store the Solution in the table */
         for (i = 0; i < nb_traces; i++) {
             wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, orders[i]);
-            wl_array=cr2res_convert_poly_to_array(wave_sol_1d, degree+1);
+            wl_array=cr2res_convert_poly_to_array(wave_sol_1d, degree_out+1);
             cpl_polynomial_delete(wave_sol_1d);
             if (wl_array != NULL) {
                 cpl_table_set_array(tw_out, CR2RES_COL_WAVELENGTH, i, wl_array);
@@ -433,8 +447,8 @@ int cr2res_wave_apply(
             if ((wave_sol_1d = cr2res_wave_1d(spectra[i], spectra_err[i],
                             wavesol_init[i], wavesol_init_error[i], order,
                             trace_id, wavecal_type, catalog_fname,
-                            degree, clean_spectrum, log_flag, display, 
-                            display_wmin, display_wmax, &best_xcorr, 
+                            degree, clean_spectrum, log_flag, propagate_flag,
+                            display, display_wmin, display_wmax, &best_xcorr,
                             &wl_err_array, &lines_diagnostics_tmp)) == NULL) {
                 cpl_msg_warning(__func__, "Cannot calibrate in Wavelength") ;
                 cpl_error_reset() ;
@@ -463,7 +477,9 @@ int cr2res_wave_apply(
             }
 
             /* Store the Solution in the table */
-            wl_array = cr2res_convert_poly_to_array(wave_sol_1d, degree+1) ;
+            cpl_msg_debug(__func__, "Saving poly size %d, degree_out %d",
+                (int)cpl_polynomial_get_degree(wave_sol_1d), degree_out);
+            wl_array = cr2res_convert_poly_to_array(wave_sol_1d, degree_out+1) ;
             if (wl_array != NULL) {
                 cpl_table_set_array(tw_out, CR2RES_COL_WAVELENGTH, i, wl_array);
                 cpl_array_delete(wl_array) ;
@@ -540,6 +556,7 @@ cpl_polynomial * cr2res_wave_1d(
         int                     degree,
         int                     clean_spectrum,
         int                     log_flag,
+        int                     propagate_flag,
         int                     display,
         double                  display_wmin,
         double                  display_wmax,
@@ -604,7 +621,8 @@ cpl_polynomial * cr2res_wave_1d(
         double fwhm = 2.0 ;
         int cleaning_filter_size = 9 ;
         solution = cr2res_wave_xcorr(spectrum_local, wavesol_init, wl_error_nm,
-                ref_spectrum, degree, cleaning_filter_size, slit_width, fwhm,
+                ref_spectrum, degree, propagate_flag, cleaning_filter_size,
+                slit_width, fwhm,
                 display, best_xcorr, wavelength_error) ;
 
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
@@ -919,6 +937,7 @@ cpl_polynomial * cr2res_wave_xcorr(
         double              wl_error,
         cpl_bivector    *   lines_list,
         int                 degree,
+        int                 propagate_flag,
         int                 cleaning_filter_size,
         double              slit_width,
         double              fwhm,
@@ -1007,9 +1026,14 @@ cpl_polynomial * cr2res_wave_xcorr(
             degree_loc,wl_error_nm,wl_error_pix,nsamples,pow(nsamples,
                 degree_loc+1)) ;
     cpl_msg_indent_more() ;
-    if ((sol=irplib_wlxcorr_best_poly(spec_clean, lines_list_filtered, 
-                    degree_loc, sol_guess, wl_errors, nsamples, slit_width, 
-                    fwhm, best_xcorr, NULL, &xcorrs)) == NULL) {
+    if ((sol =  propagate_flag ?
+                irplib_wlxcorr_best_poly_prop(spec_clean, lines_list_filtered,
+                    degree_loc, sol_guess, wl_errors, nsamples, slit_width,
+                    fwhm, best_xcorr, NULL, &xcorrs)
+                : irplib_wlxcorr_best_poly(spec_clean, lines_list_filtered,
+                    degree_loc, sol_guess, wl_errors, nsamples, slit_width,
+                    fwhm, best_xcorr, NULL, &xcorrs)
+                ) == NULL) {
         cpl_msg_error(__func__, "Cannot get the best polynomial: %d",
             cpl_error_get_code()) ;
         cpl_vector_delete(wl_errors) ;
