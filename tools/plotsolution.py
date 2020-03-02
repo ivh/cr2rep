@@ -31,7 +31,7 @@ for twn in sys.argv[1:]:
                 except:
                     continue
                 
-                xc = h.get('ESO QC WAVE BESTXCORR-%02d-01'%order)
+                xc = h.get('ESO QC WAVE BESTXCORR-%02d-01'%order, 0.0)
                 mask = tw['Order']==order
                 try:
                     p = tw[mask]['Wavelength'][0][::-1]
