@@ -201,6 +201,7 @@ static void test_cr2res_wave_1d()
     int trace = 0;
     int log_flag = 0; // False
     int display = 0; // False
+    int propagate_flag = 0; // False
     const char * catalog_name = save_catalog(catalog);
     cr2res_wavecal_type wavecal_type = CR2RES_LINE1D;
     cpl_array * wave_error_init = cpl_array_new(2, CPL_TYPE_DOUBLE);
@@ -214,40 +215,45 @@ static void test_cr2res_wave_1d()
     // bad inputs
     wavelength = cr2res_wave_1d(NULL, spectrum_err, initial_guess, 
         wave_error_init, order, trace, wavecal_type, catalog_name,
-        degree, 0, log_flag, display, -1.0, -1.0, NULL, &wavelength_error, 
-        &diagnostics);
+        degree, 0, log_flag, propagate_flag, display, -1.0, -1.0, NULL,
+        &wavelength_error, &diagnostics);
     cpl_test_null(wavelength);
     
     wavelength = cr2res_wave_1d(spectrum, NULL, initial_guess,
         wave_error_init, order, trace, wavecal_type, catalog_name, degree, 0, 
-        log_flag, display, -1.0, -1.0, NULL, &wavelength_error, &diagnostics);
+        log_flag, propagate_flag, display, -1.0, -1.0, NULL, &wavelength_error,
+        &diagnostics);
     cpl_test_null(wavelength);
 
     wavelength = cr2res_wave_1d(spectrum, spectrum_err, NULL,
         wave_error_init, order, trace, wavecal_type, catalog_name, degree,
-        0, log_flag, display, -1.0, -1.0, NULL, &wavelength_error, 
-        &diagnostics);
+        0, log_flag, propagate_flag, display, -1.0, -1.0, NULL,
+        &wavelength_error, &diagnostics);
     cpl_test_null(wavelength);
 
     wavelength = cr2res_wave_1d(spectrum, spectrum_err, initial_guess,
         wave_error_init, order, trace, wavecal_type, NULL, degree, 0, 
-        log_flag, display, -1.0, -1.0, NULL, &wavelength_error, &diagnostics);
+        log_flag, propagate_flag, display, -1.0, -1.0, NULL, &wavelength_error,
+        &diagnostics);
     cpl_test_null(wavelength);
 
     wavelength = cr2res_wave_1d(spectrum, spectrum_err, initial_guess,
         wave_error_init, order, trace, wavecal_type, catalog_name,
-        degree, 0, log_flag, display, -1.0, -1.0, NULL, NULL, &diagnostics);
+        degree, 0, log_flag, propagate_flag, display, -1.0, -1.0, NULL, NULL,
+        &diagnostics);
     cpl_test_null(wavelength);
 
     wavelength = cr2res_wave_1d(spectrum, spectrum_err, initial_guess,
         wave_error_init, order, trace, wavecal_type, catalog_name,
-        degree, 0, log_flag, display, -1.0, -1.0,NULL, &wavelength_error, NULL);
+        degree, 0, log_flag, propagate_flag, display, -1.0, -1.0,NULL,
+        &wavelength_error, NULL);
     cpl_test_null(wavelength);
 
     // // to many polynomial degrees
     wavelength = cr2res_wave_1d(spectrum, spectrum_err, initial_guess,
         wave_error_init, order, trace, wavecal_type, catalog_name, 5, 0, 
-        log_flag, display, -1.0, -1.0, NULL, &wavelength_error, &diagnostics);
+        log_flag, propagate_flag, display, -1.0, -1.0, NULL, &wavelength_error,
+        &diagnostics);
 
     cpl_test_null(wavelength);
     cpl_test_null(wavelength_error);
@@ -257,7 +263,7 @@ static void test_cr2res_wave_1d()
     // regular run
     cpl_test(wavelength = cr2res_wave_1d(spectrum, spectrum_err, initial_guess,
                 wave_error_init, order, trace, wavecal_type, catalog_name, 
-                degree, 0, log_flag, display, -1.0, -1.0, NULL, 
+                degree, 0, log_flag, propagate_flag, display, -1.0, -1.0, NULL, 
                 &wavelength_error, &diagnostics));
 
     cpl_test_nonnull(wavelength);
