@@ -676,19 +676,32 @@ static int cr2res_cal_wave(
     cpl_propertylist_delete(plist) ;
 
     /* Ѕave Products */
-    out_file = cpl_sprintf("%s_%s_tw.fits", RECIPE_STRING, setting_id) ;
+    if (0) {
+        out_file = cpl_sprintf("%s_%s_tw.fits", RECIPE_STRING, setting_id) ;
+    } else {
+        out_file = cpl_sprintf("%s_tw.fits", RECIPE_STRING) ;
+    }
     cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist, 
             out_trace_wave, NULL, ext_plist, 
             CR2RES_CAL_WAVE_TW_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
-    out_file = cpl_sprintf("%s_%s_wave_map.fits", RECIPE_STRING, setting_id) ;
+    if (0) {
+        out_file = cpl_sprintf("%s_%s_wave_map.fits", RECIPE_STRING,setting_id);
+    } else {
+        out_file = cpl_sprintf("%s_wave_map.fits", RECIPE_STRING) ;
+    }
     cr2res_io_save_WAVE_MAP(out_file, frameset, rawframes, parlist, 
             out_wave_map, NULL, ext_plist, 
             CR2RES_CAL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
-    out_file = cpl_sprintf("%s_%s_extracted.fits", RECIPE_STRING, setting_id) ;
+    if (0) {
+        out_file = cpl_sprintf("%s_%s_extracted.fits", RECIPE_STRING, 
+                setting_id) ;
+    } else {
+        out_file = cpl_sprintf("%s_extracted.fits", RECIPE_STRING) ;
+    }
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
             out_extracted, NULL, ext_plist, 
             CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
@@ -696,8 +709,13 @@ static int cr2res_cal_wave(
 
 	if (wavecal_type == CR2RES_LINE2D || wavecal_type == CR2RES_LINE1D) {
 		/* Save the Lines Diagnostics */
-		out_file = cpl_sprintf("%s_%s_lines_diagnostics.fits", 
-                RECIPE_STRING, setting_id);
+        if (0) {
+            out_file = cpl_sprintf("%s_%s_lines_diagnostics.fits", 
+                    RECIPE_STRING, setting_id);
+        } else {
+            out_file = cpl_sprintf("%s_lines_diagnostics.fits", 
+                    RECIPE_STRING);
+        }
 		cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset, rawframes, parlist,
                 lines_diagnostics, NULL, ext_plist,
 				CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG, RECIPE_STRING) ;
