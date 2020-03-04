@@ -408,8 +408,13 @@ static int cr2res_util_normflat(
             /* Ѕave Products */
 
             /* MASTER_FLAT */
-            out_file = cpl_sprintf("%s_%s_%s_master_flat.fits", RECIPE_STRING,
-                    setting_id, decker_desc[i]) ;
+            if (nlabels == 1) {
+                out_file = cpl_sprintf("%s_%s_master_flat.fits", 
+                        RECIPE_STRING, decker_desc[i]) ;
+            } else {
+                out_file = cpl_sprintf("%s_%s_%s_master_flat.fits", 
+                        RECIPE_STRING, setting_id, decker_desc[i]) ;
+            }
             cr2res_io_save_MASTER_FLAT(out_file, frameset,
                     raw_one_setting_decker, parlist, master_flat, NULL,
                     ext_plist, CR2RES_UTIL_MASTER_FLAT_PROCATG,
@@ -417,8 +422,13 @@ static int cr2res_util_normflat(
             cpl_free(out_file);
 
             /* BPM */
-            out_file = cpl_sprintf("%s_%s_%s_master_bpm.fits", RECIPE_STRING,
-                    setting_id, decker_desc[i]) ;
+            if (nlabels == 1) {
+                out_file = cpl_sprintf("%s_%s_master_bpm.fits", 
+                        RECIPE_STRING, decker_desc[i]) ;
+            } else {
+                out_file = cpl_sprintf("%s_%s_%s_master_bpm.fits", 
+                        RECIPE_STRING, setting_id, decker_desc[i]) ;
+            }
             cr2res_io_save_BPM(out_file, frameset,
                     raw_one_setting_decker, parlist, bpm, NULL,ext_plist,
                     CR2RES_UTIL_NORM_BPM_PROCATG, RECIPE_STRING) ;
