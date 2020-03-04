@@ -667,8 +667,13 @@ static int cr2res_cal_flat(
             /* Ѕave Products */
 
             /* SLIT_MODEL */
-            out_file = cpl_sprintf("%s_%s_%s_slit_model.fits", RECIPE_STRING,
-                    setting_id, decker_desc[i]) ;
+            if (nlabels == 1) {
+                out_file = cpl_sprintf("%s_%s_slit_model.fits", 
+                        RECIPE_STRING, decker_desc[i]) ;
+            } else {
+                out_file = cpl_sprintf("%s_%s_%s_slit_model.fits", 
+                        RECIPE_STRING, setting_id, decker_desc[i]) ;
+            }
             cr2res_io_save_SLIT_MODEL(out_file, frameset,
                     raw_one_setting_decker, parlist, slit_model, NULL, 
                     ext_plist[i], CR2RES_CAL_FLAT_SLIT_MODEL_PROCATG,
@@ -676,8 +681,13 @@ static int cr2res_cal_flat(
             cpl_free(out_file);
 
             /* BLAZE */
-            out_file = cpl_sprintf("%s_%s_%s_blaze.fits", RECIPE_STRING,
-                    setting_id, decker_desc[i]) ;
+            if (nlabels == 1) {
+                out_file = cpl_sprintf("%s_%s_blaze.fits", 
+                        RECIPE_STRING, decker_desc[i]) ;
+            } else {
+                out_file = cpl_sprintf("%s_%s_%s_blaze.fits", 
+                        RECIPE_STRING, setting_id, decker_desc[i]) ;
+            }
             cr2res_io_save_EXTRACT_1D(out_file, frameset, 
                     raw_one_setting_decker, parlist, extract_1d, NULL, 
                     ext_plist[i], CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG,
@@ -685,8 +695,13 @@ static int cr2res_cal_flat(
             cpl_free(out_file);
 
             /* MASTER_FLAT */
-            out_file = cpl_sprintf("%s_%s_%s_master_flat.fits", RECIPE_STRING,
-                    setting_id, decker_desc[i]) ;
+            if (nlabels == 1) {
+                out_file = cpl_sprintf("%s_%s_master_flat.fits", 
+                        RECIPE_STRING, decker_desc[i]) ;
+            } else {
+                out_file = cpl_sprintf("%s_%s_%s_master_flat.fits", 
+                        RECIPE_STRING, setting_id, decker_desc[i]) ;
+            }
             cr2res_io_save_MASTER_FLAT(out_file, frameset,
                     raw_one_setting_decker, parlist, master_flat, NULL, 
                     ext_plist[i], CR2RES_CAL_FLAT_MASTER_PROCATG,
@@ -694,16 +709,26 @@ static int cr2res_cal_flat(
             cpl_free(out_file);
 
             /* TRACE_WAVE */
-            out_file = cpl_sprintf("%s_%s_%s_tw.fits", RECIPE_STRING,
-                    setting_id, decker_desc[i]) ;
+            if (nlabels == 1) {
+                out_file = cpl_sprintf("%s_%s_tw.fits", 
+                        RECIPE_STRING, decker_desc[i]) ;
+            } else {
+                out_file = cpl_sprintf("%s_%s_%s_tw.fits", 
+                        RECIPE_STRING, setting_id, decker_desc[i]) ;
+            }
             cr2res_io_save_TRACE_WAVE(out_file, frameset,
                     raw_one_setting_decker, parlist, trace_wave[i], NULL, 
                     ext_plist[i], CR2RES_CAL_FLAT_TW_PROCATG, RECIPE_STRING);
             cpl_free(out_file);
 
             /* SLIT_FUNC */
-            out_file = cpl_sprintf("%s_%s_%s_slit_func.fits", RECIPE_STRING,
-                    setting_id, decker_desc[i]) ;
+            if (nlabels == 1) {
+                out_file = cpl_sprintf("%s_%s_slit_func.fits", 
+                        RECIPE_STRING, decker_desc[i]) ;
+            } else {
+                out_file = cpl_sprintf("%s_%s_%s_slit_func.fits", 
+                        RECIPE_STRING, setting_id, decker_desc[i]) ;
+            }
             cr2res_io_save_SLIT_FUNC(out_file, frameset,
                     raw_one_setting_decker, parlist, slit_func, NULL, 
                     ext_plist[i], CR2RES_CAL_FLAT_SLIT_FUNC_PROCATG, 
@@ -711,8 +736,13 @@ static int cr2res_cal_flat(
             cpl_free(out_file);
 
             /* BPM */
-            out_file = cpl_sprintf("%s_%s_%s_bpm.fits", RECIPE_STRING,
-                    setting_id, decker_desc[i]) ;
+            if (nlabels == 1) {
+                out_file = cpl_sprintf("%s_%s_bpm.fits", 
+                        RECIPE_STRING, decker_desc[i]) ;
+            } else {
+                out_file = cpl_sprintf("%s_%s_%s_bpm.fits", 
+                        RECIPE_STRING, setting_id, decker_desc[i]) ;
+            }
             cr2res_io_save_BPM(out_file, frameset,
                     raw_one_setting_decker, parlist, bpm, NULL,ext_plist[i], 
                     CR2RES_CAL_FLAT_BPM_PROCATG, RECIPE_STRING) ;
@@ -775,8 +805,13 @@ static int cr2res_cal_flat(
 
 
         /* Save TRACE_WAVE_MERGED */
-        out_file = cpl_sprintf("%s_%s_tw_merged.fits", RECIPE_STRING, 
-                setting_id) ;
+        if (nlabels == 1) {
+            out_file = cpl_sprintf("%s_tw_merged.fits", 
+                    RECIPE_STRING) ;
+        } else {
+            out_file = cpl_sprintf("%s_%s_tw_merged.fits", RECIPE_STRING, 
+                    setting_id) ;
+        }
         cr2res_io_save_TRACE_WAVE(out_file, frameset, raw_one_setting, parlist,
                 trace_wave_merged, NULL, ext_plist[0],
                 CR2RES_CAL_FLAT_TW_MERGED_PROCATG, RECIPE_STRING) ;
