@@ -19,23 +19,14 @@ SPEC_FACTOR=1
 
 X = np.arange(2048)+1
 
-def onclick(event):
-    #print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
-    #      ('double' if event.dblclick else 'single', event.button,
-    #       event.x, event.y, event.xdata, event.ydata))
-    if event.button==2:
-        print('[%.2f '%event.xdata,end='')
-    elif event.button==3:
-        print('%.2f]'%event.xdata)
-
 def onkey(event):
     if event.key=='w':
-        print('%.2f '%event.xdata,end='')
+        print('%.2f '%event.xdata,end='',flush=True)
     if event.key=='e':
-        print('%.2f'%event.xdata)
+        print('%.2f'%event.xdata,flush=True)
     if event.key=='d':
-        print('undo last')
-    
+        print('undo last',flush=True)
+
 
 def ev(p,x):
     return np.polyval(p[::-1],x)
@@ -65,11 +56,11 @@ def main(specname,catname=None,cat2name=None,tracename=None):
             try:
                 tw=fits.open(tracename)
                 twd = tw[ext].data
-            
+
             except Exception as e:
                 print('TRACEWAVE has no extension: %s'%ext)
-        
-        h=spec_exts[ext].header    
+
+        h=spec_exts[ext].header
         for order in np.arange(9)+1:
             try:
                 wl = spec_exts[ext].data['%02d_01_WL'%order]
@@ -111,9 +102,8 @@ def main(specname,catname=None,cat2name=None,tracename=None):
 
     ax.axis((x1,x1+(rang/ZOOM),-YMAX,YMAX))
 
-    #cid = FIG.canvas.mpl_connect('button_press_event', onclick)
     cid = FIG.canvas.mpl_connect('key_press_event', onkey)
-    
+
     plt.show()
 
 
