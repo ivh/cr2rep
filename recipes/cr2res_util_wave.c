@@ -367,8 +367,8 @@ static int cr2res_util_wave(
     int                     reduce_det, reduce_order, reduce_trace,
                             wl_degree, display, log_flag, propagate_flag, 
                             clean_spectrum ;
-    double                  wl_start, wl_end, wl_err_start, wl_err_end, 
-                            wl_shift, display_wmin, display_wmax ;
+    double                  wl_start, wl_end, wl_err, wl_shift, display_wmin, 
+                            display_wmax ;
     cr2res_wavecal_type     wavecal_type ;
     const char          *   sval ;
     cpl_frameset        *   rawframes ;
@@ -393,7 +393,7 @@ static int cr2res_util_wave(
 
     /* Initialise */
     wavecal_type = CR2RES_UNSPECIFIED ;
-    wl_start = wl_end = wl_err_start = wl_err_end = -1.0 ;
+    wl_start = wl_end = wl_err = -1.0 ;
     wl_shift = 0.0 ;
     display_wmin = display_wmax = -1.0 ;
 
@@ -431,10 +431,7 @@ static int cr2res_util_wave(
     }
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.wl_err");
-    sval = cpl_parameter_get_string(param) ;
-    if (sscanf(sval, "%lg,%lg", &wl_err_start, &wl_err_end) != 2) {
-        return -1 ;
-    }
+    wl_err = cpl_parameter_get_double(param) ;
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.wl_degree");
     wl_degree = cpl_parameter_get_int(param);
@@ -578,9 +575,9 @@ static int cr2res_util_wave(
             cpl_msg_info(__func__, "Compute the Wavelength") ;
             if (cr2res_wave_apply(trace_wave, extracted_table,
                         lines_frame, reduce_order, reduce_trace, wavecal_type,
-                        wl_degree, wl_start, wl_end, wl_err_start, wl_err_end, 
-                        wl_shift, log_flag, propagate_flag, clean_spectrum, 
-                        display, display_wmin, display_wmax,
+                        wl_degree, wl_start, wl_end, wl_err, wl_shift, log_flag,
+                        propagate_flag, clean_spectrum, display, display_wmin, 
+                        display_wmax,
                         &qcs_plist,
                         &(lines_diagnostics[det_nr-1]),
                         &(updated_extracted_table[det_nr-1]),

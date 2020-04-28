@@ -138,8 +138,7 @@ static cpl_vector * cr2res_wave_etalon_measure_fringes(
   @param    degree          Required polynomial degree
   @param    wl_start        WL estimate of the first pixel
   @param    wl_end          WL estimate of the last pixel
-  @param    wl_err_start    WL error of wl_start
-  @param    wl_err_end      WL error of wl_end
+  @param    wl_err          WL error 
   @param    wl_shift        wavelength shift to apply
   @param    log_flag        Flag to apply a log() to the lines intensities
   @param    propagate_flag  Flag to copy the input WL to the output when they 
@@ -165,8 +164,7 @@ int cr2res_wave_apply(
         int                         degree,
         double                      wl_start,
         double                      wl_end,
-        double                      wl_err_start,
-        double                      wl_err_end,
+        double                      wl_err,
         double                      wl_shift,
         int                         log_flag,
         int                         propagate_flag,
@@ -275,10 +273,10 @@ int cr2res_wave_apply(
         }
 
         /* Get the wavelength error */
-        if (wl_err_start>0.0 && wl_err_end>0.0) {
+        if (wl_err>0.0) {
             wavesol_init_error[i] = cpl_array_new(2, CPL_TYPE_DOUBLE);
-            cpl_array_set_double(wavesol_init_error[i], 0, wl_err_start) ;
-            cpl_array_set_double(wavesol_init_error[i], 1, wl_err_end) ;
+            cpl_array_set_double(wavesol_init_error[i], 0, wl_err) ;
+            cpl_array_set_double(wavesol_init_error[i], 1, wl_err) ;
         } else {
             if ((wavesol_init_error[i]=cpl_array_duplicate(
                             cpl_table_get_array(tw_in,

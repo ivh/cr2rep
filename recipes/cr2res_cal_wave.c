@@ -78,8 +78,7 @@ static int cr2res_cal_wave_reduce(
         int                     wl_degree,
         double                  wl_start,
         double                  wl_end,
-        double                  wl_err_start,
-        double                  wl_err_end,
+        double                  wl_err,
         double                  wl_shift,
         int                     log_flag,
         int                     propagate_flag,
@@ -344,9 +343,8 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.wl_err",
-            CPL_TYPE_STRING,
-            "Estimated wavelength error [start_err, end_err] (in nm)",
-            "cr2res.cr2res_cal_wave", "-1.0, -1.0");
+            CPL_TYPE_DOUBLE, "Estimated wavelength error (in nm)",
+            "cr2res.cr2res_cal_wave", -1.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_err");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -453,8 +451,8 @@ static int cr2res_cal_wave(
                             ext_oversample, ext_swath_width, ext_height,
                             wl_degree, display, log_flag, propagate_flag, 
                             clean_spectrum ;
-    double                  ext_smooth_slit, wl_start, wl_end, wl_err_start, 
-                            wl_err_end, wl_shift, display_wmin, display_wmax ;
+    double                  ext_smooth_slit, wl_start, wl_end, wl_err, wl_shift,
+                            display_wmin, display_wmax ;
     cr2res_collapse         collapse ;
     cr2res_wavecal_type     wavecal_type ;
     const char          *   sval ;
@@ -479,7 +477,7 @@ static int cr2res_cal_wave(
     setlocale(LC_NUMERIC, "C");
 
     /* Initialise */
-    wl_start = wl_end = wl_err_start = wl_err_end = -1.0 ;
+    wl_start = wl_end = wl_err = -1.0 ;
     wl_shift = 0.0 ;
     collapse = CR2RES_COLLAPSE_UNSPECIFIED ;
     display_wmin = display_wmax = -1.0 ;
@@ -540,10 +538,7 @@ static int cr2res_cal_wave(
     }
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.wl_err");
-    sval = cpl_parameter_get_string(param) ;
-    if (sscanf(sval, "%lg,%lg", &wl_err_start, &wl_err_end) != 2) {
-        return -1 ;
-    }
+    wl_err = cpl_parameter_get_double(param) ;
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.wl_degree");
     wl_degree = cpl_parameter_get_int(param);
@@ -654,9 +649,9 @@ static int cr2res_cal_wave(
                     trace_wave_frame, lines_frame, det_nr, reduce_order,
                     reduce_trace, collapse, ext_height, ext_swath_width,
                     ext_oversample, ext_smooth_slit, wavecal_type, wl_degree, 
-                    wl_start, wl_end, wl_err_start, wl_err_end, wl_shift, 
-                    log_flag, propagate_flag, clean_spectrum, display, 
-                    display_wmin, display_wmax, 
+                    wl_start, wl_end, wl_err, wl_shift, log_flag, 
+                    propagate_flag, clean_spectrum, display, display_wmin, 
+                    display_wmax, 
                     &(out_trace_wave[det_nr-1]),
                     &(lines_diagnostics[det_nr-1]),
                     &(out_extracted[det_nr-1]),
@@ -762,8 +757,7 @@ static int cr2res_cal_wave(
   @param wavecal_type       CR2RES_XCORR/LINE1D/LINE2D/ETALON
   @param wl_start           WL estimate of the first pixel
   @param wl_end             WL estimate of the last pixel
-  @param wl_err_start       WL error of wl_start
-  @param wl_err_end         WL error of wl_end
+  @param wl_err             WL error 
   @param wl_shift           wavelength shift to apply
   @param log_flag           Flag to apply a log() to the lines intensities
   @param propagate_flag     Flag to copy the input WL to the output when they 
@@ -800,8 +794,7 @@ static int cr2res_cal_wave_reduce(
         int                     wl_degree,
         double                  wl_start,
         double                  wl_end,
-        double                  wl_err_start,
-        double                  wl_err_end,
+        double                  wl_err,
         double                  wl_shift,
         int                     log_flag,
         int                     propagate_flag,
@@ -929,8 +922,8 @@ static int cr2res_cal_wave_reduce(
     cpl_msg_info(__func__, "Compute the Wavelength") ;
     if (cr2res_wave_apply(tw_in, extracted, lines_frame, reduce_order, 
                 reduce_trace, wavecal_type, wl_degree, wl_start, wl_end, 
-                wl_err_start, wl_err_end, wl_shift, log_flag, propagate_flag, 
-                clean_spectrum, display, display_wmin, display_wmax,
+                wl_err, wl_shift, log_flag, propagate_flag, clean_spectrum, 
+                display, display_wmin, display_wmax,
                 &qcs_plist,
                 &lines_diagnostics_out,
                 &extracted_out,
