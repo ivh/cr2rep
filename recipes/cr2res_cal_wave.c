@@ -81,7 +81,8 @@ static int cr2res_cal_wave_reduce(
         double                  wl_err,
         double                  wl_shift,
         int                     log_flag,
-        int                     propagate_flag,
+        int                     fallback_input_wavecal_flag,
+        int                     keep_higher_degrees_flag,
         int                     clean_spectrum,
         int                     display,
         double                  display_wmin,
@@ -363,10 +364,17 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.propagate",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.fallback_input_wavecal",
             CPL_TYPE_BOOL, "Flag for using the input WL when no computation",
             "cr2res.cr2res_cal_wave", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "propagate");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "fallback");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.keep_higher_degrees",
+            CPL_TYPE_BOOL, "Flag for re-using higher degrees of first guess",
+            "cr2res.cr2res_cal_wave", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "keep");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -449,7 +457,9 @@ static int cr2res_cal_wave(
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
                             ext_oversample, ext_swath_width, ext_height,
-                            wl_degree, display, log_flag, propagate_flag, 
+                            wl_degree, display, log_flag,
+                            fallback_input_wavecal_flag,
+                            keep_higher_degrees_flag, 
                             clean_spectrum ;
     double                  ext_smooth_slit, wl_start, wl_end, wl_err, wl_shift,
                             display_wmin, display_wmax ;
@@ -546,8 +556,11 @@ static int cr2res_cal_wave(
             "cr2res.cr2res_cal_wave.log");
     log_flag = cpl_parameter_get_bool(param) ;
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_wave.propagate");
-    propagate_flag = cpl_parameter_get_bool(param) ;
+            "cr2res.cr2res_cal_wave.fallback_input_wavecal");
+    fallback_input_wavecal_flag = cpl_parameter_get_bool(param) ;
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_wave.keep_higher_degrees");
+    keep_higher_degrees_flag = cpl_parameter_get_bool(param) ;
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.clean_spectrum");
     clean_spectrum = cpl_parameter_get_bool(param) ;
@@ -631,11 +644,24 @@ static int cr2res_cal_wave(
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) {
-            /* Propagate the non-processed TW extensions if needed */
-            if (propagate_flag) {
-                out_trace_wave[det_nr-1] = cr2res_io_load_TRACE_WAVE(
-                        cpl_frame_get_filename(trace_wave_frame),
-                        det_nr) ;
+            /* This Detector will not be processed here */
+            /* The output trace wave contains the input one ... */
+            out_trace_wave[det_nr-1] = cr2res_io_load_TRACE_WAVE(
+                    cpl_frame_get_filename(trace_wave_frame),
+                    det_nr) ;
+            /*    ...  without the WL / WL_ERR */
+            /*    ... unless fallback_input_wavecal_flag is set */
+            
+            if (!fallback_input_wavecal_flag) {
+                /* Reset WL / WL_ERR */
+                cpl_table_erase_column(out_trace_wave[det_nr-1],
+                        CR2RES_COL_WAVELENGTH) ;
+                cpl_table_new_column_array(out_trace_wave[det_nr-1],
+                        CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 2) ;
+                cpl_table_erase_column(out_trace_wave[det_nr-1],
+                        CR2RES_COL_WAVELENGTH_ERROR) ;
+                cpl_table_new_column_array(out_trace_wave[det_nr-1],  
+                        CR2RES_COL_WAVELENGTH_ERROR, CPL_TYPE_DOUBLE, 2) ;
             }
             continue ;
         }
@@ -650,7 +676,9 @@ static int cr2res_cal_wave(
                     reduce_trace, collapse, ext_height, ext_swath_width,
                     ext_oversample, ext_smooth_slit, wavecal_type, wl_degree, 
                     wl_start, wl_end, wl_err, wl_shift, log_flag, 
-                    propagate_flag, clean_spectrum, display, display_wmin, 
+                    fallback_input_wavecal_flag,
+                    keep_higher_degrees_flag, clean_spectrum,
+                    display, display_wmin, 
                     display_wmax, 
                     &(out_trace_wave[det_nr-1]),
                     &(lines_diagnostics[det_nr-1]),
@@ -760,8 +788,10 @@ static int cr2res_cal_wave(
   @param wl_err             WL error 
   @param wl_shift           wavelength shift to apply
   @param log_flag           Flag to apply a log() to the lines intensities
-  @param propagate_flag     Flag to copy the input WL to the output when they 
-                            are not computed
+  @param fallback_input_wavecal_flag Flag to copy the input WL to the output 
+                            when they are not computed
+  @param keep_higher_degrees_flag  Flag to use higher polゆnomial degrees
+                            from the guess
   @param clean_spectrum     Remove the lines that are not in the catalog (1d)
   @param display            Flag to enable display functionalities
   @param display_wmin       Minimum Wavelength to  display
@@ -797,7 +827,8 @@ static int cr2res_cal_wave_reduce(
         double                  wl_err,
         double                  wl_shift,
         int                     log_flag,
-        int                     propagate_flag,
+        int                     fallback_input_wavecal_flag,
+        int                     keep_higher_degrees_flag,
         int                     clean_spectrum,
         int                     display,
         double                  display_wmin,
@@ -922,7 +953,8 @@ static int cr2res_cal_wave_reduce(
     cpl_msg_info(__func__, "Compute the Wavelength") ;
     if (cr2res_wave_apply(tw_in, extracted, lines_frame, reduce_order, 
                 reduce_trace, wavecal_type, wl_degree, wl_start, wl_end, 
-                wl_err, wl_shift, log_flag, propagate_flag, clean_spectrum, 
+                wl_err, wl_shift, log_flag, fallback_input_wavecal_flag, 
+                keep_higher_degrees_flag, clean_spectrum, 
                 display, display_wmin, display_wmax,
                 &qcs_plist,
                 &lines_diagnostics_out,

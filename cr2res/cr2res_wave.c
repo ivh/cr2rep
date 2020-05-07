@@ -141,8 +141,10 @@ static cpl_vector * cr2res_wave_etalon_measure_fringes(
   @param    wl_err          WL error 
   @param    wl_shift        wavelength shift to apply
   @param    log_flag        Flag to apply a log() to the lines intensities
-  @param    propagate_flag  Flag to copy the input WL to the output when they 
-                            are not computed
+  @param    fallback_input_wavecal_flag Flag to copy the input WL to the output 
+                            when they are not computed
+  @param    keep_higher_degrees_flag  Flag to use higher polゆnomial degrees
+                            from the guess
   @param    clean_spectrum  Remove the lines that are not in the catalog (1d)
   @param    display         Flag to enable display functionalities
   @param    display_wmin    Minimum Wavelength to display or -1.0
@@ -167,7 +169,8 @@ int cr2res_wave_apply(
         double                      wl_err,
         double                      wl_shift,
         int                         log_flag,
-        int                         propagate_flag,
+        int                         fallback_input_wavecal_flag,
+        int                         keep_higher_degrees_flag,
         int                         clean_spectrum,
         int                         display,
         double                      display_wmin,
@@ -200,7 +203,8 @@ int cr2res_wave_apply(
     cpl_array           *   wl_err_array ;
     int                     trace_id, order, i, j ;
     double                  best_xcorr ;
-    int                     degree_out ;
+    int                     out_wl_array_size, init_wl_array_size,
+                            degree_out ;
 
     /* Check Entries */
     if (wavecal_type != CR2RES_XCORR && wavecal_type != CR2RES_LINE1D && 
@@ -305,18 +309,29 @@ int cr2res_wave_apply(
         }
     }
 
-    /* If propagating, set the output-degree to input-degree, */
-    /* assuming all inputs have same degree.                  */
-    if (propagate_flag) {
-        for (i=0; i<nb_traces ; i++) { 
-            degree_out = cpl_array_get_size(cpl_table_get_array(
-                tw_in, CR2RES_COL_WAVELENGTH, i));
-            degree_out -= 1;
-            if (degree_out >0) break; // keep first not NULL
+    /* Determine the output WL array size */
+    init_wl_array_size = -1 ;
+    for (i=0; i<nb_traces ; i++) { 
+        if (wavesol_init[i] != NULL) {
+            init_wl_array_size = cpl_polynomial_get_degree(wavesol_init[i]) ;
+            init_wl_array_size++ ;
+            /* keep first not NULL */
+            if (init_wl_array_size > 0) break ; 
         }
-    } else {
-        degree_out = degree;
     }
+
+    /* Only if we use fallback or keep hiher degreeѕ is the ouput */
+    /* degree potentially higher than the requested one */
+    if (!fallback_input_wavecal_flag && !keep_higher_degrees_flag) 
+        out_wl_array_size = degree+1 ;
+    else 
+        if (degree+1 < init_wl_array_size)
+            out_wl_array_size = init_wl_array_size ;
+        else
+            out_wl_array_size = degree+1 ;
+    cpl_msg_debug(__func__, "Input/Output WL size (req. degree): %d/%d (%d)",
+            init_wl_array_size, out_wl_array_size, degree) ;
+    degree_out = out_wl_array_size - 1 ;
 
     /* Output TRACE_WAVE copied from the input one */
     tw_out = cpl_table_duplicate(tw_in) ;
@@ -326,20 +341,34 @@ int cr2res_wave_apply(
     cpl_table_new_column_array(tw_out, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 
             degree_out+1) ;
     cpl_table_name_column(tw_out, CR2RES_COL_WAVELENGTH_ERROR, "TMP_WL_ERR");
-    cpl_msg_debug(__func__, "DEBUG ERR: %d", cpl_error_get_code()) ;
-    cpl_msg_debug(__func__, "%s", cpl_error_get_where()) ;
     cpl_table_new_column_array(tw_out, CR2RES_COL_WAVELENGTH_ERROR, 
             CPL_TYPE_DOUBLE, 2) ;
 
-    if (cpl_error_get_code()){
+    if (cpl_error_get_code()) {
         cpl_msg_error(__func__, "Table error renaming old columns: %d", 
                         cpl_error_get_code());
-        // TODO: deallocate so that this fails cleanly
+        /* De-allocate */
+        for (i=0 ; i<nb_traces ; i++) {
+            if (spectra[i] != NULL) cpl_bivector_delete(spectra[i]) ;
+            if (spectra_err[i] != NULL) 
+                cpl_bivector_delete(spectra_err[i]) ;
+            if (wavesol_init[i]!=NULL) 
+                cpl_polynomial_delete(wavesol_init[i]) ;
+            if (wavesol_init_error[i]!=NULL)
+                cpl_array_delete(wavesol_init_error[i]) ;
+        }
+        cpl_free(spectra) ;
+        cpl_free(spectra_err) ;
+        cpl_free(wavesol_init) ;
+        cpl_free(wavesol_init_error) ;
+        cpl_free(orders) ;
+        cpl_free(traces_nb) ;
+        cpl_table_delete(tw_out) ;
         return -1;
     }
 
     /* Copy incoming solution into output If explicitely requested */
-    if (propagate_flag) {
+    if (fallback_input_wavecal_flag) {
         for (i = 0; i < nb_traces; i++) {
             /* Propagate WAVELENGTH  */
             wl_array_tmp = cpl_table_get_array(tw_out, "TMP_WL", i);
@@ -369,7 +398,23 @@ int cr2res_wave_apply(
     if (cpl_error_get_code()){
         cpl_msg_error(__func__, "Table error after (not) propagating: %d", 
                         cpl_error_get_code());
-        // TODO: deallocate so that this fails cleanly
+        /* De-allocate */
+        for (i=0 ; i<nb_traces ; i++) {
+            if (spectra[i] != NULL) cpl_bivector_delete(spectra[i]) ;
+            if (spectra_err[i] != NULL) 
+                cpl_bivector_delete(spectra_err[i]) ;
+            if (wavesol_init[i]!=NULL) 
+                cpl_polynomial_delete(wavesol_init[i]) ;
+            if (wavesol_init_error[i]!=NULL)
+                cpl_array_delete(wavesol_init_error[i]) ;
+        }
+        cpl_free(spectra) ;
+        cpl_free(spectra_err) ;
+        cpl_free(wavesol_init) ;
+        cpl_free(wavesol_init_error) ;
+        cpl_free(orders) ;
+        cpl_free(traces_nb) ;
+        cpl_table_delete(tw_out) ;
         return -1;
     }
 
@@ -445,7 +490,8 @@ int cr2res_wave_apply(
             if ((wave_sol_1d = cr2res_wave_1d(spectra[i], spectra_err[i],
                             wavesol_init[i], wavesol_init_error[i], order,
                             trace_id, wavecal_type, catalog_fname,
-                            degree, clean_spectrum, log_flag, propagate_flag,
+                            degree, clean_spectrum, log_flag,
+                            keep_higher_degrees_flag,
                             display, display_wmin, display_wmax, &best_xcorr,
                             &wl_err_array, &lines_diagnostics_tmp)) == NULL) {
                 cpl_msg_warning(__func__, "Cannot calibrate in Wavelength") ;
@@ -494,7 +540,6 @@ int cr2res_wave_apply(
     /* Recompute the extracted table wavelengths with the results */
     extracted_out_loc = cr2res_wave_recompute_wl(spectra_tab, tw_out) ;
 
-
     /* De-allocate */
     for (i=0 ; i<nb_traces ; i++) {
         if (spectra[i] != NULL) cpl_bivector_delete(spectra[i]) ;
@@ -532,6 +577,7 @@ int cr2res_wave_apply(
   @param    degree          The polynomial degree of the solution
   @param    clean_spectrum  Remove the lines that are not in the catalog
   @param    log_flag        Flag to get the log() of the catalog intens.
+  @param    keep_higher_degrees_flag
   @param    display         Flag to display results
   @param    display_wmin    Minimum Wavelength to display or -1.0
   @param    display_wmax    Maximum Wavelength to display or -1.0
@@ -554,7 +600,7 @@ cpl_polynomial * cr2res_wave_1d(
         int                     degree,
         int                     clean_spectrum,
         int                     log_flag,
-        int                     propagate_flag,
+        int                     keep_higher_degrees_flag,
         int                     display,
         double                  display_wmin,
         double                  display_wmax,
@@ -619,9 +665,9 @@ cpl_polynomial * cr2res_wave_1d(
         double fwhm = 2.0 ;
         int cleaning_filter_size = 9 ;
         solution = cr2res_wave_xcorr(spectrum_local, wavesol_init, wl_error_nm,
-                ref_spectrum, degree, propagate_flag, cleaning_filter_size,
-                slit_width, fwhm,
-                display, best_xcorr, wavelength_error) ;
+                ref_spectrum, degree, keep_higher_degrees_flag, 
+                cleaning_filter_size, slit_width, fwhm, display, best_xcorr, 
+                wavelength_error) ;
 
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
             cpl_error_reset();
@@ -917,6 +963,7 @@ cpl_polynomial * cr2res_wave_2d(
   @param wl_error       Max error in nm of the initial guess
   @param lines_list     Lines List (flux, wavelengths)
   @param degree         The polynomial degree
+  @param keep_higher_degrees_flag
   @param cleaning_filter_size
   @param slit_width
   @param fwhm
@@ -935,7 +982,7 @@ cpl_polynomial * cr2res_wave_xcorr(
         double              wl_error,
         cpl_bivector    *   lines_list,
         int                 degree,
-        int                 propagate_flag,
+        int                 keep_higher_degrees_flag,
         int                 cleaning_filter_size,
         double              slit_width,
         double              fwhm,
@@ -1024,7 +1071,7 @@ cpl_polynomial * cr2res_wave_xcorr(
             degree_loc,wl_error_nm,wl_error_pix,nsamples,pow(nsamples,
                 degree_loc+1)) ;
     cpl_msg_indent_more() ;
-    if ((sol =  propagate_flag ?
+    if ((sol = keep_higher_degrees_flag ?
                 irplib_wlxcorr_best_poly_prop(spec_clean, lines_list_filtered,
                     degree_loc, sol_guess, wl_errors, nsamples, slit_width,
                     fwhm, best_xcorr, NULL, &xcorrs)
