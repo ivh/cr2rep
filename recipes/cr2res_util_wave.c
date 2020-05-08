@@ -472,6 +472,11 @@ static int cr2res_util_wave(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
+    if (wl_degree == 0 && !keep_higher_degrees_flag) {
+        cpl_msg_error(__func__, "The degree 0 can only be used with --keep");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset) != CPL_ERROR_NONE) {
