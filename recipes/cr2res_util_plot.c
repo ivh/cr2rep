@@ -53,7 +53,9 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
 /*-----------------------------------------------------------------------------
                             Functions prototypes
  -----------------------------------------------------------------------------*/
-
+static int cr2res_util_plot_slit_func(cpl_table *, int, int, int) ;
+static int cr2res_util_plot_slit_func_one(cpl_table *, const char *,
+        int, const char *, const char *) ;
 static int cr2res_util_plot_spec_1d(cpl_table *, cpl_table *, int, int, int);
 static int cr2res_util_plot_spec_1d_one(cpl_table *, cpl_table *, 
         const char *, int, const char *, const char *, const char *) ;
@@ -369,7 +371,23 @@ static int cr2res_util_plot(
         }
         cpl_table_delete(tab1) ;
     }
+  
+    /* CR2RES_SLIT_FUNC_PROTYPE */
+    if (!strcmp(protype, CR2RES_SLIT_FUNC_PROTYPE)) {
 
+        /* Only support a single detector */
+        if (reduce_det < 1) {
+            cpl_msg_error(__func__, "Please specify a detector - abort") ;
+            cpl_propertylist_delete(plist) ;
+            return -1 ;
+        }
+
+        /* Load the table */
+        tab1 = cr2res_io_load_SLIT_FUNC(fname1, reduce_det) ;
+        cr2res_util_plot_slit_func(tab1, adjust, reduce_order,reduce_trace);
+        cpl_table_delete(tab1) ;
+    }
+ 
     /* Delete */
     cpl_propertylist_delete(plist) ;
 
@@ -378,6 +396,51 @@ static int cr2res_util_plot(
         return -1 ;
     else 
         return 0 ;
+}
+
+static int cr2res_util_plot_slit_func(
+        cpl_table   *       tab,
+        int                 adjust,
+        int                 order,
+        int                 trace) 
+{
+    char    *   col ;
+
+    /* Check entries */
+    if (cpl_table_get_nrow(tab) == 0) return -1 ;
+    if (order < 1 || trace < 1) {
+        cpl_msg_error(__func__, "Please specify the order/trace") ;
+        return -1 ;
+    }
+
+    /* Get column names */
+    col = cr2res_dfs_SLIT_FUNC_colname(order, trace) ;
+
+    /* SPECTRUM */
+    cr2res_util_plot_slit_func_one(tab, col, adjust,
+"set grid;set xlabel 'slit pos (pix)';set ylabel 'Intensity (ADU/sec)';",
+            "t 'Slit Function' w lines") ;
+
+    cpl_free(col);
+    return 0 ;
+}
+
+static int cr2res_util_plot_slit_func_one(
+        cpl_table   *       tab,
+        const char  *       col,
+        int                 adjust_level,
+        const char  *       options,
+        const char  *       title)
+{
+    double                  mean1, mean2 ;
+    int                     nrows ;
+    cpl_vector          **  vectors ;
+
+    /* Check inputs */
+    if (tab == NULL) return -1 ;
+    nrows = cpl_table_get_nrow(tab) ;
+    cpl_plot_column(options, title, "", tab, NULL, col) ;
+    return 0 ;
 }
 
 static int cr2res_util_plot_spec_1d(
@@ -418,7 +481,7 @@ static int cr2res_util_plot_spec_1d(
     cpl_free(wl_col);
     return 0 ;
 }
- 
+
 static int cr2res_util_plot_spec_1d_one(
         cpl_table   *       tab,
         cpl_table   *       tab_opt,
