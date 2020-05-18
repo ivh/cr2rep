@@ -3407,9 +3407,8 @@ static int cr2res_extract_slit_func_curved(
             }
         }
         // Ignore the outer delta_x pixels on each side, as they are unreliable
-        cpl_image_get_mad_window(img_tmp,
-            1 + delta_x, 1, ncols-delta_x, nrows, &dev);
-        dev *= 1.4826; // scaling factor relative to standard deviation
+        dev = cpl_image_get_stdev_window(img_tmp,
+            1 + delta_x, 1, ncols-delta_x, nrows);
         cpl_image_delete(img_tmp);
 
         /* Adjust the mask marking outlyers */
