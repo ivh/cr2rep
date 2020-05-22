@@ -1626,6 +1626,9 @@ int cr2res_extract_slitdec_curved(
         cpl_msg_error(__func__, 
                 "No (or incomplete) slitcurve data found in trace table");
         cpl_vector_delete(ycen);
+        cpl_free(ycen_rest) ;
+        cpl_image_delete(err_rect) ;
+        cpl_image_delete(img_rect) ;
         cpl_polynomial_delete(slitcurve_A);
         cpl_polynomial_delete(slitcurve_B);
         cpl_polynomial_delete(slitcurve_C);

@@ -699,7 +699,8 @@ static int cr2res_obs_nodding_reduce(
     double                  slit_length, extr_width_frac, slit_frac_a_bot, 
                             slit_frac_a_mid, slit_frac_a_top, slit_frac_b_bot, 
                             slit_frac_b_mid, slit_frac_b_top, nod_throw ;
-    double                  qc_signal_a, qc_signal_b, qc_transm, qc_fwhm_a, qc_fwhm_b ;
+    double                  qc_signal_a, qc_signal_b, qc_transm, qc_fwhm_a, 
+                            qc_fwhm_b ;
     int                     det_nr ;
 
     /* Check Inputs */
@@ -956,6 +957,7 @@ static int cr2res_obs_nodding_reduce(
         cpl_table_delete(trace_wave_b) ;
         return -1 ;
     }
+    /* TODO : Save trace_wave_a and b as products */
     cpl_table_delete(trace_wave_b) ;
 
     /* QC parameters */
