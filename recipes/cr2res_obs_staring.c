@@ -105,11 +105,47 @@ Staring Observation                                                     \n\
     master_dark.fits " CR2RES_CAL_DARK_MASTER_PROCATG " [0 to 1]        \n\
     master_flat.fits " CR2RES_CAL_FLAT_MASTER_PROCATG " [0 to 1]        \n\
                                                                         \n\
-  Outputs   TODO                                                        \n\
+  Outputs                                                               \n\
+	cr2res_obs_staring_slitfunc.fits "
+	CR2RES_OBS_STARING_SLITFUNC_PROCATG "\n\
+	cr2res_obs_staring_model.fits "
+	CR2RES_OBS_STARING_SLITMODEL_PROCATG "\n\
+	cr2res_obs_staring_extracted.fits "
+	CR2RES_OBS_STARING_EXTRACT_PROCATG "\n\
                                                                         \n\
-  Algorithm      TODO                                                   \n\
+  Algorithm                                                             \n\
+    loop on detectors d:                                                \n\
+      call cr2res_obs_staring_reduce()                                  \n\
+        -> extract(d)                                                   \n\
+        -> slitfunc(d)                                                  \n\
+        -> model(d)                                                     \n\
+    Save extract                                                        \n\
+    Save slitfunc                                                       \n\
+    Save model                                                          \n\
                                                                         \n\
-  Library functions uѕed   TODO                                         \n\
+    cr2res_obs_staring_reduce()                                         \n\
+      Load the input raw frames in an image list                        \n\
+      Apply the calibrations to the image list                          \n\
+      Collapse the image list                                           \n\
+      Load the input trace wave                                         \n\
+      Extract the spectra from the collapsed image                      \n\
+        -> extracted                                                    \n\
+        -> slit_func                                                    \n\
+        -> model_master                                                 \n\
+      Compute QC parameters                                             \n\
+                                                                        \n\
+  Library functions uѕed                                                \n\
+    cr2res_io_find_TRACE_WAVE()                                         \n\
+    cr2res_io_find_BPM()                                                \n\
+    cr2res_obs_staring_reduce()                                         \n\
+    cr2res_io_read_dits()                                               \n\
+    cr2res_io_load_image_list_from_set()                                \n\
+    cr2res_calib_imagelist()                                            \n\
+    cr2res_io_load_TRACE_WAVE()                                         \n\
+    cr2res_extract_traces()                                             \n\
+    cr2res_io_save_COMBINED()                                           \n\
+    cr2res_io_save_EXTRACT_1D()                                         \n\
+    cr2res_io_save_SLIT_FUNC()                                          \n\
 ";
 
 /*-----------------------------------------------------------------------------
@@ -218,6 +254,21 @@ static int cr2res_obs_staring_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.display_order",
+            CPL_TYPE_INT, "Apply the display for the specified order",
+            "cr2res.cr2res_obs_staring", 0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display_order");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.display_trace",
+            CPL_TYPE_INT, "Apply the display for the specified trace",
+            "cr2res.cr2res_obs_staring", 0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display_trace");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+
     return 0;
 }
 
@@ -281,7 +332,6 @@ static int cr2res_obs_staring(
     const cpl_frame     *   trace_wave_frame ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
-    const cpl_frame     *   photo_flux_frame ;
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
     cpl_table           *   extract[CR2RES_NB_DETECTORS] ;
@@ -333,8 +383,6 @@ static int cr2res_obs_staring(
             CR2RES_CAL_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
             CR2RES_CAL_DARK_MASTER_PROCATG) ; 
-    photo_flux_frame = cpl_frameset_find_const(frameset,
-            CR2RES_PHOTO_FLUX_PROCATG) ; 
     master_flat_frame = cpl_frameset_find_const(frameset,
             CR2RES_CAL_FLAT_MASTER_PROCATG) ; 
     bpm_frame = cr2res_io_find_BPM(frameset) ;
@@ -572,59 +620,10 @@ static int cr2res_obs_staring_check_inputs_validity(
         const cpl_frameset  *   rawframes)
 {
     cpl_propertylist        *   plist ;
-    cr2res_nodding_pos      *   nod_positions ;
     cpl_size                    nframes, i ;
-    double                      nodthrow, nodthrow_cur ;
-    int                         nb_a, nb_b ;
 
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
-
-    /* Need even number of frames */
-    nframes = cpl_frameset_get_size(rawframes) ;
-    if (nframes % 2) {
-        cpl_msg_error(__func__, "Require an even number of raw frames") ;
-        return 0 ;
-    }
-
-    /* Need same number of A and B positions */
-    nb_a = nb_b = 0 ;
-    nod_positions = cr2res_nodding_read_positions(rawframes) ;
-    if (nod_positions == NULL) return -1 ;
-    for (i=0 ; i<nframes ; i++) {
-        if (nod_positions[i] == CR2RES_NODDING_A) nb_a++ ;
-        if (nod_positions[i] == CR2RES_NODDING_B) nb_b++ ;
-    }
-    cpl_free(nod_positions) ;    
-
-    if (nb_a == 0 || nb_b == 0 || nb_a != nb_b) {
-        cpl_msg_error(__func__, "Require as many A and B positions") ;
-        return 0 ;
-    }
-
-    /* Need the same nod throw in all frames */
-    if ((plist = cpl_propertylist_load(cpl_frame_get_filename(
-                        cpl_frameset_get_position_const(rawframes, 0)),
-                    0)) == NULL) {
-        return -1;
-    } 
-    nodthrow = cr2res_pfits_get_nodthrow(plist);
-    cpl_propertylist_delete(plist) ;
-    for (i=1 ; i<nframes ; i++) {
-        if ((plist = cpl_propertylist_load(cpl_frame_get_filename(
-                            cpl_frameset_get_position_const(rawframes, i)),
-                        0)) == NULL) {
-            return -1;
-        } 
-        nodthrow_cur = cr2res_pfits_get_nodthrow(plist);
-        cpl_propertylist_delete(plist) ;
-
-        if (fabs(nodthrow_cur-nodthrow) > 1e-3) {
-            cpl_msg_error(__func__, 
-                    "Require constant NOD THROW in the raw frames") ;
-            return 0 ;
-        }
-    }
     return 1 ;
 }
  
