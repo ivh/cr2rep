@@ -191,7 +191,7 @@ static int cr2res_util_calib_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_calib.clean_bad",
             CPL_TYPE_BOOL, "Apply the cleaning to the bad pixels",
-            "cr2res.cr2res_util_calib", TRUE);
+            "cr2res.cr2res_util_calib", FALSE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "clean_bad");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
