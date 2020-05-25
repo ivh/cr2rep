@@ -3190,6 +3190,7 @@ static int cr2res_extract_slit_func_curved(
     /* Extra osample is because ycen can be between 0 and 1. */
     ny = osample * (nrows + 1) + 1;
     nx = 4 * delta_x + 1;
+    if(nx < 3) nx = 3;
 
     y_upper_lim = nrows - 1 - y_lower_lim;
     double *sP_old = cpl_malloc(ncols * sizeof(double));
