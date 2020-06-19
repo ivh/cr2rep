@@ -187,17 +187,16 @@ int cr2res_bpm_set_and_correct_image(
 
     /* Set the Bad pixels */
     cpl_image_reject_from_mask(in, bpm_im_bin);
+    cpl_mask_delete(bpm_im_bin) ;
 
     /* Apply the bad pixels cleaning */
     if (correct) {
         if (cpl_detector_interpolate_rejected(in) != CPL_ERROR_NONE) {
-            cpl_mask_delete(bpm_im_bin) ;
             cpl_error_reset();
             cpl_msg_error(__func__, "Cannot clean the BPM") ;
             return -1 ;
         }
     }
-    cpl_mask_delete(bpm_im_bin) ;
 
     return 0 ;
 }
