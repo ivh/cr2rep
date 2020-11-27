@@ -633,7 +633,16 @@ static int cr2res_cal_wave(
         cpl_free(method_str) ;
     }
     if (reduce_order > -1 && wavecal_type == CR2RES_LINE2D) {
+        cpl_frameset_delete(rawframes) ;
         cpl_msg_error(__func__, "Limiting to one order with LINE2D impossible");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
+    if ((wavecal_type == CR2RES_XCORR || wavecal_type == CR2RES_LINE1D ||
+                wavecal_type == CR2RES_LINE2D) && lines_frame == NULL) {
+        cpl_frameset_delete(rawframes) ;
+        cpl_msg_error(__func__,
+                "The catalog file is needed for XCORR/LINE1D/LINE2D");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
