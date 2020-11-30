@@ -36,6 +36,11 @@
                                    Defines
  -----------------------------------------------------------------------------*/
 
+int cr2res_pol_resample(cpl_vector ** intens,
+                        cpl_vector ** wl,
+                        cpl_vector ** errors,
+                        int           n);
+
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
@@ -101,6 +106,9 @@ cpl_bivector * cr2res_pol_demod_stokes(
     if (cpl_vector_get_size(wl[i]) != size) return NULL;
     if (cpl_vector_get_size(errors[i]) != size) return NULL;
   }
+
+  // Resample to common wavelength grid
+  cr2res_pol_resample(intens, wl, errors, n);
 
   result = cpl_bivector_new(size);
   outspec = cpl_bivector_get_x(result);
@@ -172,6 +180,88 @@ cpl_bivector * cr2res_pol_demod_stokes(
 
 /*----------------------------------------------------------------------------*/
 /**
+ * @brief Resample all spectra to the same wavelength grid
+ * @param intens vectors to be resampled
+ * @param wl wavelengths of those vectors
+ * @param errors uncertainties of the vectors
+ * @param n number of spectra
+ * @return 0 on success, != 0 on failure
+ 
+  Important : the first of the 8 input wavelength vectors (wl[0]) is the
+  reference one for which the output parameters shall be computed
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_pol_resample(cpl_vector ** intens,
+                        cpl_vector ** wl,
+                        cpl_vector ** errors,
+                        int           n)
+{
+  // TODO: Use some other grid as baseline?
+  double wmin, wmax;
+  int xmin, xmax;
+  cpl_vector * master_wl = cpl_vector_duplicate(wl[0]);
+  cpl_bivector * tmp;
+  cpl_bivector * target;
+
+  // Construct master_wl
+  // so that we only include points from within ALL wavelength ranges
+  wmin = -INFINITY;
+  wmax = INFINITY;
+  xmin = 0;
+  xmax = cpl_vector_get_size(wl[0]);
+  for (cpl_size i = 0; i < n; i++)
+  {
+    if (cpl_vector_get(wl[i], 0) > wmin){
+      wmin = cpl_vector_get(wl[i], 0);
+      xmin = i;
+    }
+    if (cpl_vector_get(wl[i], cpl_vector_get_size(wl[i])) < wmax){
+      wmax = cpl_vector_get(wl[i], cpl_vector_get_size(wl[i]));
+      xmax = i;
+    }
+  }
+
+  int m = cpl_vector_get_size(wl[0]);
+  for (cpl_size i = 0; i < m; i++)
+  {
+    if (cpl_vector_get(master_wl, i) < wmin){
+      cpl_vector_set(master_wl, i, wmin);
+    } else if (cpl_vector_get(master_wl, i) > wmax){
+      cpl_vector_set(master_wl, i, wmax);
+    }
+  }
+  
+  // Do we need to copy the arrays before interpolation or does it work in place?
+  for (cpl_size i = 0; i < n; i++)
+  {
+    tmp = cpl_bivector_wrap_vectors(wl[i], intens[i]);
+    target = cpl_bivector_wrap_vectors(master_wl, intens[i]);
+    cpl_bivector_interpolate_linear(target, tmp);
+    cpl_bivector_unwrap_vectors(tmp);
+    cpl_bivector_unwrap_vectors(target);
+
+    tmp = cpl_bivector_wrap_vectors(wl[i], errors[i]);
+    target = cpl_bivector_wrap_vectors(master_wl, errors[i]);
+    cpl_bivector_interpolate_linear(target, tmp);
+    cpl_bivector_unwrap_vectors(tmp);
+    cpl_bivector_unwrap_vectors(target);
+
+    for (cpl_size j = 0; j < xmin; j++)
+    {
+      cpl_vector_set(intens[i], j, NAN);
+      cpl_vector_set(errors[i], j, NAN);
+    }
+    for (cpl_size j = xmax; j < cpl_vector_get_size(intens[i]); j++)
+    {
+      cpl_vector_set(intens[i], j, NAN);
+      cpl_vector_set(errors[i], j, NAN);
+    }
+  }
+  
+  return 0;
+}
+
+/**
   @brief    Demodulate extracted spectra into Null spectrum
   @param    intens      Array of n extracted intenѕities
   @param    wl          Array of n extracted wavelengths
@@ -202,15 +292,15 @@ cpl_bivector * cr2res_pol_demod_null(
         cpl_vector  **  errors, 
         int             n)
 {
-    cpl_vector  **  swapintens;
-    cpl_vector  **  swapwl;
-    cpl_vector  **  swaperrors;
-    cpl_vector  *   tmpintens;
-    cpl_vector  *   tmpwl;
-    cpl_vector  *   tmperrors;
-    cpl_bivector  * out ;
-    cpl_size        size;
-    int             i;
+  cpl_vector  **  swapintens;
+  cpl_vector  **  swapwl;
+  cpl_vector  **  swaperrors;
+  cpl_vector  *   tmpintens;
+  cpl_vector  *   tmpwl;
+  cpl_vector  *   tmperrors;
+  cpl_bivector  * out ;
+  cpl_size        size;
+  int             i;
 
   /* Check entries */
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
