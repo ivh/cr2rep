@@ -1832,7 +1832,7 @@ int cr2res_extract_slitdec_curved(
                 err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit,
                 slitcurves_sw, delta_x,
                 slitfu_sw_data, spec_sw_data, model_sw, unc_sw_data, 0.,
-                smooth_slit, 1e-7, 20, slit_func_in);
+                smooth_slit, 1e-7, 200, slit_func_in);
 
         // add up slit-functions, divide by nswaths below to get average
         if (i==0) cpl_vector_copy(slitfu,slitfu_sw);
@@ -1856,8 +1856,10 @@ int cr2res_extract_slitdec_curved(
             cpl_vector_unwrap(tmp_vec);
             cpl_vector_save(weights_sw, "debug_weights.fits", CPL_TYPE_DOUBLE,
                     NULL, CPL_IO_CREATE);
-            cpl_vector_save(slitfu_sw, "debug_slitfu.fits", CPL_TYPE_DOUBLE,
+            path = cpl_sprintf("debug_slitfu_%i.fits", i);
+            cpl_vector_save(slitfu_sw, path, CPL_TYPE_DOUBLE,
                     NULL, CPL_IO_CREATE);
+            cpl_free(path);
 
             path = cpl_sprintf("debug_model_%i.fits", i);
             img_tmp = cpl_image_wrap_double(swath, height, model_sw);
@@ -3183,8 +3185,10 @@ static int cr2res_extract_slit_func_curved(
 {
     int         x, xx, xxx, y, yy, iy, jy, n, m, ny, y_upper_lim, i, nx;
     double      sum, norm, dev, lambda, diag_tot, ww, www, sP_change, sP_max;
-    double      tmp;
+    double      tmp, mad;
     int         info, iter, isum;
+
+    cpl_image * img_mad = cpl_image_new(ncols, nrows, CPL_TYPE_DOUBLE);
 
     /* The size of the sL array. */
     /* Extra osample is because ycen can be between 0 and 1. */
@@ -3217,6 +3221,18 @@ static int cr2res_extract_slit_func_curved(
             y_lower_lim, osample, slitcurves, xi, zeta, m_zeta);
 
     // If a slit func is given, use that instead of recalculating it
+    if (slit_func_in != NULL){
+        // Normalize the input just in case
+        norm = 0.e0;
+        for(iy = 0; iy < ny; iy++) {
+            sL[iy] = slit_func_in[iy];
+            norm += sL[iy];
+        }
+        norm /= osample;
+        for(iy=0; iy<ny; iy++) sL[iy]/=norm;
+    }
+
+    /* Loop through sL , sP reconstruction until convergence is reached */
     if (slit_func_in != NULL){
         // Normalize the input just in case
         norm = 0.e0;
@@ -3302,7 +3318,7 @@ static int cr2res_extract_slit_func_curved(
             /* Solve the system of equations */
             info = cr2res_extract_slitdec_bandsol(l_Aij, l_bj, ny,
                 4 * osample + 1, lambda);
-            if (info) cpl_msg_info(__func__, "info(sL)=%d\n", info);
+            if (info) cpl_msg_error(__func__, "info(sL)=%d\n", info);
 
             /* Normalize the slit function */
             norm = 0.e0;
@@ -3371,12 +3387,13 @@ static int cr2res_extract_slit_func_curved(
 
         /* Solve the system of equations */
         info = cr2res_extract_slitdec_bandsol(p_Aij, p_bj, ncols, nx, lambda);
-        if (info) cpl_msg_info(__func__, "info(sP)=%d\n", info);
+        if (info) cpl_msg_error(__func__, "info(sP)=%d\n", info);
         for (x = 0; x < ncols; x++) sP[x] = p_bj[x];
 
         if ((isnan(sP[0]) || (sP[ncols/2] == 0)) && (cpl_msg_get_level() == CPL_MSG_DEBUG) ){
             debug_output(ncols, nrows, osample, im, pix_unc, mask, ycen,
                 ycen_offset, y_lower_lim, slitcurves);
+            cpl_msg_error(__func__, "Swath failed");
         }
 
         /* Compute the model */
@@ -3394,33 +3411,44 @@ static int cr2res_extract_slit_func_curved(
             }
         }
         /* Compare model and data */
+        // We use a simple standard deviation here (which is NOT robust to
+        // outliers), since it is less strict than a more robust measurement
+        // (e.g. MAD) would be. Initial problems in the guess will be more
+        // easily be fixed this way. We would mask them away otherwise.
+        // On the other hand the std may get to large and might fail to remove
+        // outliers sufficiently in some circumstances.
+        // sum=0.e0;
+        // isum=0;
+        // for(y=0; y<nrows; y++) {
+        //     for(x=0;x<ncols; x++) {
+        //         sum+=mask[y*ncols+x]*(model[y*ncols+x]-im[y*ncols+x]) *
+        //                         (model[y*ncols+x]-im[y*ncols+x]);
+        //         isum+=mask[y*ncols+x];
+        //     }
+        // }
+        // dev=sqrt(sum/isum);
 
-        // It is useful to use a more robust scale estimator, like MAD
-        // than the standard deviation
-        // Although those are less efficient, they will save iterations
-        // over the whole decomposition
-        // Rousseeuw–Croux estimator, or IQR are also options, but MAD is
-        // already part of CPL
-        cpl_image * img_tmp = cpl_image_new(ncols, nrows, CPL_TYPE_DOUBLE);
         for (y = 0; y < nrows; y++) {
             for (x = delta_x; x < ncols - delta_x; x++) {
-                cpl_image_set(img_tmp, x+1, y+1, (model[y * ncols + x] -
+                cpl_image_set(img_mad, x+1, y+1, (model[y * ncols + x] -
                         im[y * ncols + x]));
                 if (mask[y * ncols + x] == 0)
-                    cpl_image_reject(img_tmp, x+1, y+1);
+                    cpl_image_reject(img_mad, x+1, y+1);
             }
         }
         // Ignore the outer delta_x pixels on each side, as they are unreliable
-        dev = cpl_image_get_stdev_window(img_tmp,
-            1 + delta_x, 1, ncols-delta_x, nrows);
-        cpl_image_delete(img_tmp);
+        // mad = cpl_image_get_stdev_window(img_mad,
+        //     1 + delta_x, 1, ncols-delta_x, nrows);
+        cpl_image_get_mad_window(img_mad,
+            1 + delta_x, 1, ncols-delta_x, nrows, &mad);
+        mad *= 1.4826; // scaling factor relative to standard deviation 
 
         /* Adjust the mask marking outlyers */
         for (y = 0; y < nrows; y++) {
             for (x = 0; x < ncols; x++) {
                 // We order it like this, to account for NaN values
                 // They evaluate to False, and should be masked
-                if (fabs(model[y * ncols + x] - im[y * ncols + x]) < 6. * dev)
+                if (fabs(model[y * ncols + x] - im[y * ncols + x]) < 40. * mad)
                     mask[y * ncols + x] = 1;
                 else
                     mask[y * ncols + x] = 0;
@@ -3437,7 +3465,10 @@ static int cr2res_extract_slit_func_curved(
                 sP_change = fabs(sP[x] - sP_old[x]);
         }
         /* Check for convergence */
-    } while (iter++ < maxiter && sP_change > sP_stop * sP_max);
+        cpl_msg_debug(__func__,  "Iter: %i, Mad: %f, Change: %f", 
+            iter, mad, sP_change);
+        iter++;
+    } while (iter == 1 || (iter < maxiter && sP_change > sP_stop * sP_max));
 
     /* Uncertainty estimate */
     for (x = 0; x < ncols; x++) {
@@ -3464,6 +3495,7 @@ static int cr2res_extract_slit_func_curved(
     for (x = 0; x < ncols; x++) {
         unc[x] = sqrt(unc[x] / p_bj[x] * nrows);
     }
+    cpl_image_delete(img_mad);
     cpl_free(sP_old);
     cpl_free(l_Aij);
     cpl_free(p_Aij);
