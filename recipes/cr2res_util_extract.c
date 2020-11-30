@@ -37,6 +37,7 @@
 #include "cr2res_io.h"
 #include "cr2res_trace.h"
 #include "cr2res_extract.h"
+#include "cr2res_bpm.h"
 
 /*-----------------------------------------------------------------------------
                                 Define
@@ -501,9 +502,9 @@ static int cr2res_util_extract(
             /* Load the BPM and assign to hdrl-mask*/
             if (bpm_frame != NULL) {
                 cpl_msg_info(__func__, "Load and assign the BPM") ;
-                if ((bpm_img = cr2res_io_load_BPM(
-                                cpl_frame_get_filename(bpm_frame), 
-                                det_nr, 1))==NULL) {
+                if (cr2res_bpm_set_and_correct_image(
+                    hdrl_image_get_image(science_hdrl), 
+                    cpl_frame_get_filename(bpm_frame), det_nr, 1)){
                     cpl_table_delete(trace_table) ;
                     hdrl_image_delete(science_hdrl) ;
                     cpl_msg_error(__func__, 
@@ -511,25 +512,7 @@ static int cr2res_util_extract(
                     cpl_error_reset() ;
                     cpl_msg_indent_less() ;
                     continue ;
-                } else {
-                    bpm_mask = cpl_mask_threshold_image_create(bpm_img, 0, 
-                            INT_MAX);
-                    cpl_mask_or(bpm_mask, hdrl_image_get_mask(science_hdrl));
-                    if (hdrl_image_reject_from_mask(science_hdrl, 
-                                bpm_mask) != CPL_ERROR_NONE) {
-                        cpl_msg_error(__func__, 
-                            "Failed to assign BPM to image - skip detector");
-                        cpl_table_delete(trace_table) ;
-                        hdrl_image_delete(science_hdrl) ;
-                        cpl_mask_delete(bpm_mask);
-                        cpl_image_delete(bpm_img);
-                        cpl_error_reset() ;
-                        cpl_msg_indent_less() ;
-                        continue ;
-                    }
                 }
-                cpl_mask_delete(bpm_mask);
-                cpl_image_delete(bpm_img);
             }
             
             /* Load the SLIT_FUNC table */
