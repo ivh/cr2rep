@@ -111,8 +111,8 @@ static cpl_bivector * cr2res_wave_etalon_assign_fringes(
         const cpl_vector      * li,
         const cpl_vector      * li_true) ;
 static double cr2res_wave_etalon_get_x0(
-        cpl_vector      * xi,
-        cpl_polynomial  * wavesol_init) ;
+        cpl_vector      * li,
+        double            trueD) ;
 static double cr2res_wave_etalon_get_D(
         cpl_vector      * li) ;
 static cpl_vector * cr2res_wave_etalon_measure_fringes(
@@ -1192,16 +1192,21 @@ cpl_polynomial * cr2res_wave_etalon(
     cpl_msg_debug(__func__,"trueD: %e", trueD);
 
     /* Set vector with correct wavelength values */
-    // expected number of peaks (+2 just to be sure)
-    l0 = cpl_vector_get(li, 0);
-    npeaks = (cpl_vector_get(li, nxi-1) - l0) / trueD + 2;
+    // expected number of peaks (+-2 peaks just to be sure)
+    l0 = cr2res_wave_etalon_get_x0(li, trueD);
+    npeaks = (cpl_vector_get(li, nxi-1) - l0) / trueD + 4;
+    l0 -= 2 * trueD;
     li_true = cpl_vector_new(npeaks);
     for (i=0; i<npeaks; i++) {
         cpl_vector_set(li_true, i,l0 + (trueD*i));
     }
 
     // For each peak find the closest expected wavelength value
+    // initial wavelength in x
+    // estimated wavelength in y
     is_should = cr2res_wave_etalon_assign_fringes(li, li_true);
+
+    cpl_bivector_dump(is_should, NULL);
 
     // polynomial fit to points, xi, li
     px = cpl_matrix_wrap(nxi, 1, cpl_vector_get_data(xi));
@@ -2542,31 +2547,30 @@ static cpl_bivector * cr2res_wave_etalon_assign_fringes(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief Find x0
-  @param
-  @return
+  @brief Find the first peaks wavelength, robust against bad peaks (kinda)
+  @param    li      vector of the wavelengths (frequencies) of the peaks
+  @param    trueD   the step size between peaks
+  @return   The wavelength (frequency) of the first peak, as estimated by
+            the peaks
  */
 /*----------------------------------------------------------------------------*/
 static double cr2res_wave_etalon_get_x0(
-        cpl_vector      * xi,
-        cpl_polynomial  * wavesol_init)
+        cpl_vector      * li,
+        double            trueD)
 {
-    double x0, D;
-    cpl_vector * li;
     cpl_vector * xs;
+    double x0;
     int i, n;
 
-    li = cr2res_polynomial_eval_vector(wavesol_init, xi);
-    D = cr2res_wave_etalon_get_D(li);
+    n = cpl_vector_get_size(li);
+    xs = cpl_vector_new(n);
 
-    n = cpl_vector_get_size(xi);
-    for (i=0; i<n; i++) {
-        cpl_vector_set(xs, i, cpl_vector_get(li,i)-(i*D) );
+    for (i = 0; i < n; i++) {
+        cpl_vector_set(xs, i, cpl_vector_get(li, i) - (i * trueD) );
     }
 
     x0 = cpl_vector_get_median(xs);
 
-    cpl_vector_delete(li);
     cpl_vector_delete(xs);
     return x0;
 }
