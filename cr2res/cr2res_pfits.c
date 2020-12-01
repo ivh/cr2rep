@@ -197,26 +197,27 @@ double cr2res_pfits_get_dit(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the Start wavelength for an order (current detector)
+  @brief    find out the Start wavelength for an order_idx (current detector)
   @param    plist       property list to read from
-  @param    order       Order INDEX
+  @param    order_idx   Order INDEX (-49 -> 50)
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
-double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order)
+double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order_idx)
 {
     char    *   key_name ;
-    int         order_loc ;
+    int         order_idxp ;
     double      val  ;
 
     /* Check entries */
     if (plist == NULL) return -1.0 ;
 
-    /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return -1.0 ;
+    /* Conversion order_idx -> order_idxp */
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf(CR2RES_HEADER_WLEN_BEGIN, order_loc) ;
+    key_name = cpl_sprintf(CR2RES_HEADER_WLEN_BEGIN, order_idxp) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -227,26 +228,27 @@ double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the End wavelength for an order (current detector)
+  @brief    find out the End wavelength for an order_idx (current detector)
   @param    plist       property list to read from
-  @param    order       Order INDEX
+  @param    order_idx   Order INDEX (-49 -> 50)
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
-double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order)
+double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order_idx)
 {
     char    *   key_name ;
-    int         order_loc ;
+    int         order_idxp ;
     double      val  ;
 
     /* Check entries */
     if (plist == NULL) return -1.0 ;
 
-    /* Conversion order <-> keyword Index */
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return -1.0 ;
+    /* Conversion order_idx -> order_idxp */
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return -1.0 ;
 
     /* Create key name */
-    key_name = cpl_sprintf(CR2RES_HEADER_WLEN_END, order_loc) ;
+    key_name = cpl_sprintf(CR2RES_HEADER_WLEN_END, order_idxp) ;
 
     /* Get the value */
     val = cpl_propertylist_get_double(plist, key_name) ;
@@ -322,28 +324,29 @@ int cr2res_pfits_get_ndit(const cpl_propertylist * plist)
   @return   the requested value
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_pfits_get_zp_ord(const cpl_propertylist * plist)
+int cr2res_pfits_get_order_zp(const cpl_propertylist * plist)
 {
+    return 28 ;
     return cpl_propertylist_get_int(plist, CR2RES_HEADER_GRAT1_ZPORD)  ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the order number closest to the passed y position
+  @brief    find out the order_idx closest to the passed y position
   @param    plist       property list to read from
   @param    yposition   Y position
-  @return   the requested value
+  @return   the order_idx (-49 -> 50)
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_pfits_get_order(
-            const cpl_propertylist * plist,
-            double yposition)
+int cr2res_pfits_get_order_idx(
+        const cpl_propertylist  *   plist,
+        double                      yposition)
 {
     char    *   key_name ;
-    int         i, order_idx;
-    int         best_number = -1;
-    int         min_order = -49 ;
-    int         max_order =  50 ;
+    int         i, order_idxp;
+    int         order_idx = -1000 ;
+    int         min_order_idx = -49 ;
+    int         max_order_idx =  50 ;
     double      ycen, curr_diff;
     double      best_diff = CR2RES_DETECTOR_SIZE;
 
@@ -355,9 +358,9 @@ int cr2res_pfits_get_order(
         return -1 ;
     }
 
-    for (i=min_order ; i <= max_order ; i++) {
-        order_idx = cr2res_io_convert_order_to_idx(i);
-        key_name = cpl_sprintf(CR2RES_HEADER_WLEN_CENY, order_idx) ;
+    for (i=min_order_idx ; i <= max_order_idx ; i++) {
+        order_idxp = cr2res_io_convert_order_idx_to_idxp(i);
+        key_name = cpl_sprintf(CR2RES_HEADER_WLEN_CENY, order_idxp) ;
         ycen = cpl_propertylist_get_double(plist, key_name);
         cpl_free(key_name) ;
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
@@ -367,18 +370,18 @@ int cr2res_pfits_get_order(
         curr_diff = fabs(yposition - ycen );
         if (curr_diff < best_diff){
                best_diff = curr_diff;
-               best_number = i;
+               order_idx = i;
         }
     }
 
     cpl_msg_debug(__func__, 
         "Order %d identified with %.1f pix difference from expectation",
-        best_number, best_diff);
+        order_idx, best_diff);
     if (best_diff > 80.0)
         cpl_msg_warning(__func__,
                 "Order %d identified with large difference of %.1f pix",
-                best_number, best_diff);
-    return best_number ;
+                order_idx, best_diff);
+    return order_idx ;
 }
 
 /*----------------------------------------------------------------------------*/

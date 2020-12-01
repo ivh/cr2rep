@@ -50,7 +50,7 @@ typedef enum {
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
-int cr2res_order_real(int idx_ord, int zp_ord) ;
+int cr2res_order_idx_to_real(int order_idx, int order_zp) ;
 
 double cr2res_ra_hms2deg(int hh, int mm, double ss) ;
 double cr2res_dec_hms2deg(int dd, int mm, double ss) ;

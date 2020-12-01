@@ -53,7 +53,7 @@ int cr2res_extract_data(
     cpl_table   *   trace_wave,
     cpl_table   *   blaze, 
     cpl_table   *   spectra, 
-    int             order, 
+    int             order_idx, 
     int             trace,
     cpl_vector **   wave,
     cpl_vector **   spec,
@@ -82,8 +82,8 @@ int cr2res_splice(
         cpl_bivector    **  spliced,
         cpl_bivector    **  spliced_err)
 {
-    int i, j, k, trace, nspectra, nb_orders, nb_traces, sucess;
-    int * orders, * traces;
+    int i, j, k, trace, nspectra, nb_order_idx_values, nb_traces, sucess;
+    int * order_idx_values, * traces;
     int count = 0;
     // trace determines which trace to get from the table
     // trace == -1, means all traces
@@ -110,14 +110,15 @@ int cr2res_splice(
         }
         else{
             // Count number of orders with the requested trace
-            orders = cr2res_trace_get_order_numbers(trace_wave[i], &nb_orders);
-            for (j = 0; j < nb_orders; j++){
-                if ((k = cr2res_get_trace_table_index(trace_wave[i], orders[j],
-                                                        trace)) != -1) {
+            order_idx_values = cr2res_trace_get_order_idx_values(trace_wave[i],
+                    &nb_order_idx_values);
+            for (j = 0; j < nb_order_idx_values; j++){
+                if ((k = cr2res_get_trace_table_index(trace_wave[i],
+                                order_idx_values[j], trace)) != -1) {
                     nspectra++;
                 }
             }
-            cpl_free(orders);
+            cpl_free(order_idx_values);
         }
     }
 
@@ -133,15 +134,16 @@ int cr2res_splice(
     // fill data vectors by reading table data
     count = 0;
     for (i = 0; i < ninputs; i++){
-        orders = cr2res_trace_get_order_numbers(trace_wave[i], &nb_orders);
-        for (j = 0; j < nb_orders; j++){
+        order_idx_values = cr2res_trace_get_order_idx_values(trace_wave[i],
+                    &nb_order_idx_values);
+        for (j = 0; j < nb_order_idx_values; j++){
             if (trace == -1){
-                traces = cr2res_get_trace_numbers(trace_wave[i], orders[j],
-                                                    &nb_traces);
+                traces = cr2res_get_trace_numbers(trace_wave[i],
+                        order_idx_values[j], &nb_traces);
                 for (k = 0; k < nb_traces; k++) {
                     sucess = cr2res_extract_data(trace_wave[i], blaze[i],
-                        extracted_1d[i], orders[j], traces[k], &wave[count],
-                        &spec[count], &uncs[count], &cont[count]);
+                        extracted_1d[i], order_idx_values[j], traces[k], 
+                        &wave[count], &spec[count], &uncs[count], &cont[count]);
                     if (sucess == 0){
                         count++;
                     }
@@ -152,15 +154,15 @@ int cr2res_splice(
             else
             {
                 // Skip orders without the requested trace
-                if (cr2res_extract_data(trace_wave[i], blaze[i], extracted_1d[i], 
-                    orders[j], trace, &wave[count], &spec[count], &uncs[count],
-                    &cont[count]) != -1)
-                {
+                if (cr2res_extract_data(trace_wave[i], blaze[i], 
+                            extracted_1d[i], order_idx_values[j], trace, 
+                            &wave[count], &spec[count], &uncs[count],
+                            &cont[count]) != -1) {
                     count++;
                 }
             }
         }
-        cpl_free(orders);
+        cpl_free(order_idx_values);
     }
 
     nspectra = count;
@@ -212,7 +214,7 @@ int cr2res_extract_data(
     cpl_table   *   trace_wave,
     cpl_table   *   blaze, 
     cpl_table   *   spectra, 
-    int             order, 
+    int             order_idx, 
     int             trace,
     cpl_vector **   wave,
     cpl_vector **   spec,
@@ -225,7 +227,7 @@ int cr2res_extract_data(
     double * tmp1;
     char * colname;
 
-    j  = cr2res_get_trace_table_index(trace_wave, order, trace);
+    j  = cr2res_get_trace_table_index(trace_wave, order_idx, trace);
     if (j == -1){
         // trace or order not found
         return -1;
@@ -234,7 +236,7 @@ int cr2res_extract_data(
     // Get wavelength
     wave1 = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, j);
     if (wave1 == NULL){
-        cpl_msg_warning(__func__, "Order %i, Trace %i", order, trace);
+        cpl_msg_warning(__func__, "Order %i, Trace %i", order_idx, trace);
         cpl_msg_warning(__func__, "Wavelength Array not set");
         return -1;
     }
@@ -245,12 +247,12 @@ int cr2res_extract_data(
     cpl_polynomial_delete(wave_poly);
 
     // Get Spectrum
-    colname = cr2res_dfs_SPEC_colname(order, trace);
+    colname = cr2res_dfs_SPEC_colname(order_idx, trace);
     tmp1 = cpl_table_get_data_double(spectra, colname);
     cpl_free(colname);
 
     if (tmp1 == NULL){
-        cpl_msg_warning(__func__, "Order %i, Trace %i", order, trace);
+        cpl_msg_warning(__func__, "Order %i, Trace %i", order_idx, trace);
         cpl_msg_warning(__func__, "Spectrum not set");
         cpl_vector_delete(*wave);
         return -1;
@@ -259,11 +261,11 @@ int cr2res_extract_data(
 
 
     // Get Uncertainties
-    colname = cr2res_dfs_SPEC_ERR_colname(order, trace);
+    colname = cr2res_dfs_SPEC_ERR_colname(order_idx, trace);
     tmp1 = cpl_table_get_data_double(spectra, colname);
     cpl_free(colname);
     if (tmp1 == NULL){
-        cpl_msg_warning(__func__, "Order %i, Trace %i", order, trace);
+        cpl_msg_warning(__func__, "Order %i, Trace %i", order_idx, trace);
         cpl_msg_warning(__func__, "Error not set");
         cpl_vector_delete(*wave);
         cpl_vector_unwrap(*spec);
@@ -272,11 +274,11 @@ int cr2res_extract_data(
     *uncs = cpl_vector_wrap(n, tmp1);
 
     // Get Continuum
-    colname = cr2res_dfs_SPEC_colname(order, trace);
+    colname = cr2res_dfs_SPEC_colname(order_idx, trace);
     tmp1 = cpl_table_get_data_double(blaze, colname);
     cpl_free(colname);
     if (tmp1 == NULL){
-        cpl_msg_warning(__func__, "Order %i, Trace %i", order, trace);
+        cpl_msg_warning(__func__, "Order %i, Trace %i", order_idx, trace);
         cpl_msg_warning(__func__, "Blaze not set");
         cpl_vector_delete(*wave);
         cpl_vector_unwrap(*spec);

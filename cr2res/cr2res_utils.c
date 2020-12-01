@@ -46,18 +46,16 @@
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Convert the order index into the real order number
-  @param    idx     Order index
-  @param    zp_ord  Order Zero Point
-  @return   real order number
+  @brief    Convert the order_idx into order_real
+  @param    order_idx   Order index
+  @param    order_zp    Order Zero Point
+  @return   order_real
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_order_real(int idx_ord, int zp_ord)
+int cr2res_order_idx_to_real(int order_idx, int order_zp)
 {
-    int order = cr2res_io_convert_idx_to_order(idx_ord) ;
-    return zp_ord + order - 1;
+    return order_zp + order_idx - 1;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -206,7 +204,7 @@ cpl_polynomial * cr2res_fit_noise(
 
     //Step 1: identify areas inbetween traces
 
-    cpl_size order;
+    cpl_size order_idx;
     cpl_size trace1 = 1;
     cpl_size trace2 = 2; // if decker, set to 2, otherwise 1
 
@@ -216,9 +214,10 @@ cpl_polynomial * cr2res_fit_noise(
     cpl_polynomial *poly_lower = NULL; //lower border of image
     cpl_polynomial *poly_upper = NULL;
 
-    int nb_orders;
-    int * orders = cr2res_trace_get_order_numbers(trace_wave, &nb_orders);
-    int * porders;
+    int nb_order_idx_values;
+    int * order_idx_values = cr2res_trace_get_order_idx_values(trace_wave,
+            &nb_order_idx_values);
+    int * porder_idx_values;
     int * ptraces;
 
     double y_lower, y_upper;
@@ -237,26 +236,27 @@ cpl_polynomial * cr2res_fit_noise(
     // find location of order and trace
     int nrows = cpl_table_get_nrow(trace_wave);
     int k;
-    porders = cpl_table_get_data_int(trace_wave, CR2RES_COL_ORDER);
+    porder_idx_values = cpl_table_get_data_int(trace_wave, CR2RES_COL_ORDER);
     ptraces = cpl_table_get_data_int(trace_wave, CR2RES_COL_TRACENB);
 
-    for(int m = 0; m <= nb_orders; m++) {
+    for(int m = 0; m <= nb_order_idx_values; m++) {
         // the last time is above the topmost border
-        if (m != nb_orders) order = orders[m];
+        if (m != nb_order_idx_values) order_idx = order_idx_values[m];
         else {
             // find maximum order
-            order = orders[0];
-            for(int t = 1; t < nb_orders; t++) {
-                if (orders[t] > order) order = orders[t];
+            order_idx = order_idx_values[0];
+            for(int t = 1; t < nb_order_idx_values; t++) {
+                if (order_idx_values[t] > order_idx) 
+                    order_idx = order_idx_values[t];
             }
-            order = order + 1;
+            order_idx ++ ;
         }
 
-        // lower = upper boundary of order-1, or 0 if order-1 = 0
-        // upper = lower boundary of order, or max_img of order = max
+        // lower = upper boundary of order_idx-1, or 0 if order_idx-1 = 0
+        // upper = lower boundary of order_idx, or max_img of order_idx = max
         for (k=0 ; k<nrows ; k++) {
             /* If order found */
-            if (porders[k] == order-1 && ptraces[k] == trace2) {
+            if (porder_idx_values[k] == order_idx-1 && ptraces[k] == trace2) {
                 /* Get the polynomial*/
                 lower = cpl_table_get_array(trace_wave, CR2RES_COL_UPPER, k);
                 poly_lower = cr2res_convert_array_to_poly(lower);
@@ -264,7 +264,7 @@ cpl_polynomial * cr2res_fit_noise(
             }
         }
         for (k=0 ; k<nrows ; k++) {
-            if (porders[k] == order && ptraces[k] == trace1) {
+            if (porder_idx_values[k] == order_idx && ptraces[k] == trace1) {
                 /* Get the polynomial*/
                 upper = cpl_table_get_array(trace_wave,CR2RES_COL_LOWER, k);
                 poly_upper = cr2res_convert_array_to_poly(upper);
@@ -332,7 +332,7 @@ cpl_polynomial * cr2res_fit_noise(
     cpl_error_code ec = cpl_polynomial_fit(fit, samppos, sampsym, fitvals, 
             fitsigm, dimdeg, mindeg, maxdeg);
 
-    cpl_free(orders);
+    cpl_free(order_idx_values);
     cpl_matrix_delete(samppos);
     cpl_vector_delete(fitvals);
     cpl_vector_delete(x);
@@ -373,13 +373,13 @@ int cr2res_slit_pos(
     cpl_polynomial  *  wave;
     cpl_polynomial  *  line[3];
     const cpl_array *  slit;
-    int             *  orders;
+    int             *  order_idx_values;
     int             *  traces;
     const cpl_size maxdeg = 2;
     int i, j, k, row;
-    int order, trace;
+    int order_idx, trace;
     double px, py, pw, ps;
-    int nb_orders, nb_traces;
+    int nb_order_idx_values, nb_traces;
     cpl_error_code errcode;
 
 
@@ -388,11 +388,12 @@ int cr2res_slit_pos(
     for (i = 0; i < CR2RES_DETECTOR_SIZE; i++) 
         cpl_vector_set(x, i, i+1);
 
-    orders = cr2res_trace_get_order_numbers(trace_wave, &nb_orders);
-    for (i = 0; i < nb_orders; i++) {
-        order = orders[i];
+    order_idx_values = cr2res_trace_get_order_idx_values(trace_wave, 
+            &nb_order_idx_values);
+    for (i = 0; i < nb_order_idx_values; i++) {
+        order_idx = order_idx_values[i];
         // For each trace of this order
-        traces = cr2res_get_trace_numbers(trace_wave, order, &nb_traces);
+        traces = cr2res_get_trace_numbers(trace_wave, order_idx, &nb_traces);
 
         row = -1;
         matrix_xy = cpl_matrix_new(2, CR2RES_DETECTOR_SIZE * nb_traces * 3);
@@ -402,12 +403,16 @@ int cr2res_slit_pos(
 
         for (j = 0; j < nb_traces; j++) {
             trace = traces[j];
-            k = cr2res_get_trace_table_index(trace_wave, order, trace);
-            line[0] = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_LOWER, order, trace);
-            line[1] = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_ALL, order, trace);
-            line[2] = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_UPPER, order, trace);
+            k = cr2res_get_trace_table_index(trace_wave, order_idx, trace);
+            line[0] = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_LOWER, 
+                    order_idx, trace);
+            line[1] = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_ALL, 
+                    order_idx, trace);
+            line[2] = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_UPPER, 
+                    order_idx, trace);
 
-            wave = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH, order, trace);
+            wave = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH,
+                    order_idx, trace);
             slit = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_FRACTION, k);
 
             // calculate polynomials for all traces
@@ -456,7 +461,7 @@ int cr2res_slit_pos(
 
     // delete cpl pointers
     cpl_vector_delete(x);
-    cpl_free(orders);
+    cpl_free(order_idx_values);
     return 0;
 }
 
@@ -482,25 +487,26 @@ int cr2res_slit_pos_image(
     if (*slitpos == NULL | *wavelength == NULL) return -1;
 
     double w, s;
-    int i, k, x, y, nb_orders;
+    int i, k, x, y, nb_order_idx_values;
     cpl_vector * vec_xy;
     cpl_vector * vec_wd;
     cpl_polynomial ** coef_slit;
     cpl_polynomial ** coef_wave;
-    int *orders;
+    int *order_idx_values;
 
-    orders = cr2res_trace_get_order_numbers(trace_wave, &nb_orders);
-    cpl_free(orders);
+    order_idx_values = cr2res_trace_get_order_idx_values(trace_wave, 
+            &nb_order_idx_values);
+    cpl_free(order_idx_values);
 
-    coef_wave = cpl_malloc(nb_orders * sizeof(cpl_polynomial*));
-    coef_slit = cpl_malloc(nb_orders * sizeof(cpl_polynomial*));
-    for (i=0; i < nb_orders; i++) {
+    coef_wave = cpl_malloc(nb_order_idx_values * sizeof(cpl_polynomial*));
+    coef_slit = cpl_malloc(nb_order_idx_values * sizeof(cpl_polynomial*));
+    for (i=0; i < nb_order_idx_values; i++) {
         coef_wave[i] = cpl_polynomial_new(2);
         coef_slit[i] = cpl_polynomial_new(2);
     }
 
     if (-1 == cr2res_slit_pos(trace_wave, &coef_slit, &coef_wave)){
-        for (i=0; i < nb_orders; i++){
+        for (i=0; i < nb_order_idx_values; i++){
             cpl_polynomial_delete(coef_wave[i]);
             cpl_polynomial_delete(coef_slit[i]);
         }
@@ -512,12 +518,9 @@ int cr2res_slit_pos_image(
     vec_xy = cpl_vector_new(2);
     vec_wd = cpl_vector_new(2);
 
-    for (k = 0; k < nb_orders; k++)
-    {
-        for (x=1; x <= CR2RES_DETECTOR_SIZE; x++)
-        {
-            for (y=1; y <= CR2RES_DETECTOR_SIZE; y++)
-            {
+    for (k = 0; k < nb_order_idx_values; k++) {
+        for (x=1; x <= CR2RES_DETECTOR_SIZE; x++) {
+            for (y=1; y <= CR2RES_DETECTOR_SIZE; y++) {
                 cpl_vector_set(vec_xy, 0, (double)x);
                 cpl_vector_set(vec_xy, 1, (double)y);
                 w = cpl_polynomial_eval(coef_wave[k], vec_xy);
@@ -526,8 +529,7 @@ int cr2res_slit_pos_image(
                 cpl_vector_set(vec_wd, 1, (double)y);
                 s = cpl_polynomial_eval(coef_slit[k], vec_wd);
 
-                if ((s > 0) && (s < 10))
-                {
+                if ((s > 0) && (s < 10)) {
                     cpl_image_set(*slitpos, x, y, s);
                     cpl_image_set(*wavelength, x, y, w);
                 }
@@ -535,7 +537,7 @@ int cr2res_slit_pos_image(
         }
     }
 
-    for (i=0; i < nb_orders; i++){
+    for (i=0; i < nb_order_idx_values; i++){
         cpl_polynomial_delete(coef_wave[i]);
         cpl_polynomial_delete(coef_slit[i]);
     }
@@ -624,7 +626,7 @@ cpl_image * cr2res_image_cut_rectify(
 int cr2res_image_insert_rect(
         const cpl_image     * rect_in,
         const cpl_vector    * ycen,
-        cpl_image           * img_out  )
+        cpl_image           * img_out)
 {
     cpl_image       * img_1d;
     cpl_size        lenx, leny, height;

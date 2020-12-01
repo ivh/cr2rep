@@ -50,53 +50,53 @@ cpl_image * cr2res_trace_gen_image(
         int             nx,
         int             ny) ;
 
-int * cr2res_trace_get_order_numbers(
-        const cpl_table   *   trace, 
-        int         *   nb_orders) ;
+int * cr2res_trace_get_order_idx_values(
+        const cpl_table *   trace,
+        int             *   nb_order_idx_values) ;
 
 cpl_table * cr2res_trace_merge(
-        const cpl_table     *   trace_wave1,
-        const cpl_table     *   trace_wave2) ;
+        const cpl_table *   trace_wave1,
+        const cpl_table *   trace_wave2) ;
 
 cpl_polynomial * cr2res_get_trace_wave_poly(
-        const cpl_table     *   trace_wave,
-        const char          *   poly_column,
-        int                     order,
-        int                     trace_nb) ;
+        const cpl_table *   trace_wave,
+        const char      *   poly_column,
+        int                 order_idx,
+        int                 trace_nb) ;
 
 cpl_vector * cr2res_trace_get_wl(
         const cpl_table *   trace_wave,
-        int                 order,
+        int                 order_idx,
         int                 trace_nb,
         int                 size) ;
 
 cpl_size cr2res_get_trace_table_index(
-        const cpl_table     *   trace_wave,
-        int                     order,
-        int                     trace_nb) ;
+        const cpl_table *   trace_wave,
+        int                 order_idx,
+        int                 trace_nb) ;
 
 cpl_size cr2res_get_nb_traces(
-        const cpl_table     *   trace_wave,
-        int                     order) ;
+        const cpl_table *   trace_wave,
+        int                 order_idx) ;
 
 int * cr2res_get_trace_numbers(
-        const cpl_table     *   trace_wave,
-        int                     order,
-        int *                   nb_traces) ;
+        const cpl_table *   trace_wave,
+        int                 order_idx,
+        int             *   nb_traces) ;
 
 cpl_size cr2res_get_nb_traces_with_wavelength(
-        const cpl_table     *   trace_wave,
-        int                     order) ;
+        const cpl_table *   trace_wave,
+        int                 order_idx) ;
 
 cpl_vector * cr2res_trace_get_ycen(
         const cpl_table *   trace,
-        cpl_size            order_nb,
-        cpl_size            trace_nb,
+        int                 order_idx,
+        int                 trace_nb,
         int                 size) ;
 
 int cr2res_trace_get_height(
         const cpl_table *   trace,
-        cpl_size            order_nb,
+        cpl_size            order_idx,
         cpl_size            trace_nb) ;
 
 cpl_vector * cr2res_trace_compute_middle(
@@ -137,14 +137,14 @@ cpl_array * cr2res_trace_slit_fraction_create(
 
 cpl_table * cr2res_trace_split(
         cpl_table   *   trace_wave,
-        int             order,
+        int             order_idx,
         int             nb_subtraces) ;
 
 static int cr2res_trace_get_subtrace(
         cpl_table   *   trace_wave, 
         double          slit_pos, 
         double          height, 
-        int             order,
+        int             order_idx,
         cpl_array   **  bottom, 
         cpl_array   **  center, 
         cpl_array   **  top,

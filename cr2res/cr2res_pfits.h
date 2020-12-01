@@ -100,16 +100,16 @@ double cr2res_pfits_get_ra(const cpl_propertylist *) ;
 double cr2res_pfits_get_dec(const cpl_propertylist *) ;
 double cr2res_pfits_get_nodthrow(const cpl_propertylist *) ;
 double cr2res_pfits_get_dit(const cpl_propertylist *) ;
-double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order) ;
-double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order) ;
+double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order_idx) ;
+double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order_idx) ;
 
 int cr2res_pfits_get_naxis1(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_naxis2(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_expno(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_nexp(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_ndit(const cpl_propertylist * plist) ;
-int cr2res_pfits_get_zp_ord(const cpl_propertylist * plist) ;
-int cr2res_pfits_get_order(const cpl_propertylist * plist, double yposition) ;
+int cr2res_pfits_get_order_zp(const cpl_propertylist * plist) ;
+int cr2res_pfits_get_order_idx(const cpl_propertylist * plist,double yposition);
 
 cr2res_decker cr2res_pfits_get_decker_position(const cpl_propertylist * plist) ;
 

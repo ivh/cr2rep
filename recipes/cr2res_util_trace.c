@@ -417,7 +417,7 @@ static int cr2res_util_trace(
                         "Split the full slit traces in %d traces", 
                         split_traces);
                 /* Split the full slit traces */
-                if ((traces_tmp = cr2res_trace_split(traces[det_nr-1], -1, 
+                if ((traces_tmp = cr2res_trace_split(traces[det_nr-1], -100, 
                                 split_traces)) == NULL) {
                     cpl_msg_warning(__func__, 
                             "Failed splitting the traces - skip detector") ;

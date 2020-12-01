@@ -292,7 +292,7 @@ cpl_mask * cr2res_trace_clean(
   @return   A newly allocated image or NULL in error case
   The returned INT image is of size nx x ny, is filled with -1. The
   polynomials of the different trace edges are used to fill the traces with
-  the value of the order.
+  the value of the order_idx.
  */
 /*----------------------------------------------------------------------------*/
 cpl_image * cr2res_trace_gen_image(
@@ -306,7 +306,7 @@ cpl_image * cr2res_trace_gen_image(
     const cpl_array *   coeffs_lower ;
     cpl_polynomial  *   poly_upper ;
     cpl_polynomial  *   poly_lower ;
-    int                 order, i ;
+    int                 order_idx, i ;
     cpl_size            j, k, y_pos_lower, y_pos_upper ;
 
     /* Check entries */
@@ -322,9 +322,9 @@ cpl_image * cr2res_trace_gen_image(
     for (i=0 ; i<cpl_table_get_nrow(trace) ; i++) {
         /* Get the Order - Use fix value when no order column */
         if (cpl_table_has_column(trace, CR2RES_COL_ORDER))
-            order = cpl_table_get(trace, CR2RES_COL_ORDER, i, NULL) ;
+            order_idx = cpl_table_get(trace, CR2RES_COL_ORDER, i, NULL) ;
         else
-            order = 100 ;
+            order_idx = 100 ;
 
         /* Get the Upper polynomial*/
         coeffs_upper = cpl_table_get_array(trace, CR2RES_COL_UPPER, i) ;
@@ -342,7 +342,7 @@ cpl_image * cr2res_trace_gen_image(
                     (double)j+1, NULL) ;
             for (k = y_pos_lower-1 ; k < y_pos_upper ; k++)
                 if (k < ny && k >=0)
-                    pout[j+k*nx] = order ;
+                    pout[j+k*nx] = order_idx ;
 
         }
         cpl_polynomial_delete(poly_upper) ;
@@ -353,72 +353,73 @@ cpl_image * cr2res_trace_gen_image(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Count and return the order numbers in a trace table
-  @param    trace       trace table
-  @param    nb_orders   [output] number of orders
+  @brief    Count and return the different order_idx values from a TW table
+  @param    trace               TW table
+  @param    nb_order_idx_values [output] number of diffrent order_idx values
   @return   newly allocated int array
 
   The int array will need to be freed by the caller. Its size iѕ
-  nb_orders. It contains the list of orders found in the trace table.
+  nb_orders. It contains the list of different order_idx values found in the 
+  TW table.
  */
 /*----------------------------------------------------------------------------*/
-int * cr2res_trace_get_order_numbers(
-        const cpl_table   *   trace,
-        int         *   nb_orders)
+int * cr2res_trace_get_order_idx_values(
+        const cpl_table *   trace,
+        int             *   nb_order_idx_values)
 {
-    const int     *   porders ;
-    int         nrows, count_orders, new_order ;
-    int     *   tmp_orders_list ;
-    int     *   out ;
-    int         i, j ;
+    const int   *   porder_idx_values ;
+    int             nrows, count_order_idx_values, new_order_idx ;
+    int         *   tmp_out ;
+    int         *   out ;
+    int             i, j ;
 
     /* Check entries */
-    if (trace == NULL || nb_orders == NULL) return NULL ;
+    if (trace == NULL || nb_order_idx_values == NULL) return NULL ;
 
     /* Initialise */
     nrows = cpl_table_get_nrow(trace) ;
-    porders = cpl_table_get_data_int_const(trace, CR2RES_COL_ORDER);
+    porder_idx_values = cpl_table_get_data_int_const(trace, CR2RES_COL_ORDER);
 
     /* Allocate orders list */
-    tmp_orders_list = cpl_malloc(nrows * sizeof(int)) ;
+    tmp_out = cpl_malloc(nrows * sizeof(int)) ;
 
     /* Count the different orders */
-    count_orders = 0 ;
+    count_order_idx_values = 0 ;
     for (i=0 ; i<nrows ; i++) {
         /* Is the current order a new one ? */
-        new_order = 1 ;
-        for (j=0 ; j<count_orders ; j++)
-            if (tmp_orders_list[j] == porders[i])
-                new_order = 0 ;
+        new_order_idx = 1 ;
+        for (j=0 ; j<count_order_idx_values ; j++)
+            if (tmp_out[j] == porder_idx_values[i])
+                new_order_idx = 0 ;
 
         /* Current order not yet stored */
-        if (new_order) {
-            tmp_orders_list[count_orders] = porders[i] ;
-            count_orders ++ ;
+        if (new_order_idx) {
+            tmp_out[count_order_idx_values] = porder_idx_values[i] ;
+            count_order_idx_values ++ ;
         }
     }
 
     /* Allocate and fill output array */
-    out = cpl_malloc(count_orders * sizeof(int)) ;
-    for (i=0 ; i<count_orders ; i++) out[i] = tmp_orders_list[i] ;
+    out = cpl_malloc(count_order_idx_values * sizeof(int)) ;
+    for (i=0 ; i<count_order_idx_values ; i++) out[i] = tmp_out[i] ;
 
     /* Free and return */
-    cpl_free(tmp_orders_list) ;
-    *nb_orders = count_orders ;
+    cpl_free(tmp_out) ;
+    *nb_order_idx_values = count_order_idx_values ;
     return out ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-   @brief   Get the number of traces for a specified order
+   @brief   Get the number of traces for a specified order_idx
    @param   tab         A TRACE_WAVE table
-   @param   order       the order number
+   @param   order_idx   the order_idx 
    @return  the number or traces in this order or -1 in error case
  */
 /*----------------------------------------------------------------------------*/
 cpl_size cr2res_get_nb_traces(
-        const cpl_table     *   trace_wave,
-        int                     order)
+        const cpl_table *   trace_wave,
+        int                 order_idx)
 {
     cpl_size        nrows, i, count ;
 
@@ -431,7 +432,7 @@ cpl_size cr2res_get_nb_traces(
 
     /* Loop on the table rows */
     for (i=0 ; i<nrows ; i++)
-        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL)==order){
+        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL)==order_idx) {
             count ++ ;
         }
     return count ;
@@ -439,20 +440,18 @@ cpl_size cr2res_get_nb_traces(
 
 /*----------------------------------------------------------------------------*/
 /**
-   @brief   Get the trace numbers for a specified order
-   @param   tab         A TRACE_WAVE table
-   @param   order       the order number
-   @param   nb_traces   [out] number of traces
-   @return  the trace numbers, or NULL in error cases
-
-  return value must be freed with cpl_free
-
+  @brief   Get the trace numbers for a specified order_idx
+  @param   tab         A TRACE_WAVE table
+  @param   order_idx   the order_idx 
+  @param   nb_traces   [out] number of traces
+  @return  the trace numbers, or NULL in error cases
+    return value must be freed with cpl_free
  */
 /*----------------------------------------------------------------------------*/
 int * cr2res_get_trace_numbers(
-        const cpl_table * trace_wave,
-        int               order,
-        int *             nb_traces)
+        const cpl_table *   trace_wave,
+        int                 order_idx,
+        int             *   nb_traces)
 {
     cpl_size nrows, i, k;
     int number_traces;
@@ -460,7 +459,7 @@ int * cr2res_get_trace_numbers(
     /* Check Entries */
     if (trace_wave == NULL) return NULL ;
 
-    number_traces = cr2res_get_nb_traces(trace_wave, order);
+    number_traces = cr2res_get_nb_traces(trace_wave, order_idx);
     if (number_traces == -1) return NULL ;
 
 
@@ -471,8 +470,7 @@ int * cr2res_get_trace_numbers(
 
     /* Loop on the table rows */
     for (i=0 ; i<nrows ; i++)
-        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL)==order)
-        {
+        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL)==order_idx) {
             traces[k] = cpl_table_get(trace_wave, CR2RES_COL_TRACENB, i, NULL);
             k++;
         }
@@ -482,22 +480,21 @@ int * cr2res_get_trace_numbers(
     if (k != number_traces){
         cpl_msg_warning(__func__, "Not all expected traces found");
     }
-
     return traces;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-   @brief   Get the number of traces for a specified order that have a WL
-   @param   tab         A TRACE_WAVE table
-   @param   order       the order number
-   @return  the number or traces in this order or -1 in error case
-   Only Count the traces that have a valid Wavelength solution
+  @brief   Get the number of traces for a specified order_idx that have a WL
+  @param   tab         A TRACE_WAVE table
+  @param   order_idx   the order_idx 
+  @return  the number or traces in this order or -1 in error case
+  Only Count the traces that have a valid Wavelength solution
  */
 /*----------------------------------------------------------------------------*/
 cpl_size cr2res_get_nb_traces_with_wavelength(
-        const cpl_table     *   trace_wave,
-        int                     order)
+        const cpl_table *   trace_wave,
+        int                 order_idx)
 {
     const cpl_array *   wave_array ;
     cpl_size            nrows, i, count ;
@@ -512,9 +509,8 @@ cpl_size cr2res_get_nb_traces_with_wavelength(
     /* Loop on the table rows */
     for (i=0 ; i<nrows ; i++) {
         wave_array = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, i) ;
-        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL) == order &&
-                wave_array != NULL)
-            count ++ ;
+        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL) == order_idx 
+                && wave_array != NULL) count ++ ;
     }
     return count ;
 }
@@ -528,12 +524,12 @@ cpl_size cr2res_get_nb_traces_with_wavelength(
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_merge(
-        const cpl_table     *   trace_wave1,
-        const cpl_table     *   trace_wave2)
+        const cpl_table *   trace_wave1,
+        const cpl_table *   trace_wave2)
 {
     cpl_table       *   merged;
-    int             *   orders ;
-    int                 norders, my_order, j, cur_trace_id ;
+    int             *   order_idx_values ;
+    int                 norder_idx_values, my_order_idx, j, cur_trace_id ;
     cpl_size            i, nrows ;
     
     /* Check Entries */
@@ -553,41 +549,43 @@ cpl_table * cr2res_trace_merge(
     /* Recompute the merged table size */
     nrows = cpl_table_get_nrow(merged) ;
 
-    /* Get the orders information */
-	orders = cr2res_trace_get_order_numbers(merged, &norders) ;
+    /* Get the order_idx_values information */
+	order_idx_values = cr2res_trace_get_order_idx_values(merged,
+        &norder_idx_values) ;
 
     /* Update the trace_id Information */
     /* Loop on the orders */
-    for (j=0 ; j<norders ; j++) {
+    for (j=0 ; j<norder_idx_values ; j++) {
         /* Initialise the trace ID */
         cur_trace_id = 1 ;
 
         /* Loop on the table */
         for (i=0 ; i<nrows ; i++) {
-            /* Each time the curent order is encountered, update the trace id */
-            if (cpl_table_get(merged, CR2RES_COL_ORDER, i, NULL)==orders[j]) {
+            /* Each time the current order is seen, update the trace id */
+            if (cpl_table_get(merged, CR2RES_COL_ORDER, i,
+                        NULL)==order_idx_values[j]) {
                 cpl_table_set(merged, CR2RES_COL_TRACENB, i, cur_trace_id);
                 cur_trace_id++ ;
             }
         }
     }
-    cpl_free(orders) ;
+    cpl_free(order_idx_values) ;
     return merged ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-   @brief   Get the index in a TRACE_WAVE table
-   @param   tab         A TRACE_WAVE table
-   @param   order       the order number
-   @param   trace_nb    the trace number
-   @return  the row index or -1 in error case
+  @brief   Get the index in a TRACE_WAVE table
+  @param   tab         A TRACE_WAVE table
+  @param   order_idx   the order_idx 
+  @param   trace_nb    the trace number
+  @return  the row index or -1 in error case
  */
 /*----------------------------------------------------------------------------*/
 cpl_size cr2res_get_trace_table_index(
-        const cpl_table     *   trace_wave,
-        int                     order,
-        int                     trace_nb)
+        const cpl_table *   trace_wave,
+        int                 order_idx,
+        int                 trace_nb)
 {
     cpl_size        nrows, i ;
 
@@ -599,7 +597,7 @@ cpl_size cr2res_get_trace_table_index(
 
     /* Loop on the table rows */
     for (i=0 ; i<nrows ; i++) {
-        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER,i,NULL)==order &&
+        if (cpl_table_get(trace_wave, CR2RES_COL_ORDER,i,NULL)==order_idx &&
                 cpl_table_get(trace_wave, CR2RES_COL_TRACENB,i,NULL)==trace_nb)
             return i ;
     }
@@ -608,19 +606,20 @@ cpl_size cr2res_get_trace_table_index(
 
 /*----------------------------------------------------------------------------*/
 /**
-   @brief   Get a polynomial from a TRACE_WAVE table
-   @param   tab     A TRACE_WAVE table
-   @param   poly_column CR2RES_COL_WAVELENGTH, CR2RES_COL_UPPER,
-                        CR2RES_COL_LOWER or CR2RES_COL_ALL
-   @return  The newly created polynomial or NULL in error case
+  @brief   Get a polynomial from a TRACE_WAVE table
+  @param   tab     A TRACE_WAVE table
+  @param   poly_column CR2RES_COL_WAVELENGTH, CR2RES_COL_UPPER,
+  @param   order_idx   the order_idx 
+  @param   trace_nb    the trace number
+  @return  The newly created polynomial or NULL in error case
    The returned object must be de allocated with cpl_polynomial_delete()
  */
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_get_trace_wave_poly(
-        const cpl_table     *   trace_wave,
-        const char          *   poly_column,
-        int                     order,
-        int                     trace_nb)
+        const cpl_table *   trace_wave,
+        const char      *   poly_column,
+        int                 order_idx,
+        int                 trace_nb)
 {
     const cpl_array     *   wave_arr ;
     cpl_polynomial      *   wave_poly ;
@@ -636,8 +635,8 @@ cpl_polynomial * cr2res_get_trace_wave_poly(
             strcmp(poly_column, CR2RES_COL_SLIT_CURV_B) &&
             strcmp(poly_column, CR2RES_COL_SLIT_CURV_C)) return NULL ;
 
-    /* Get Table index from order and trace */
-    index = cr2res_get_trace_table_index(trace_wave, order, trace_nb) ;
+    /* Get Table index from order_idx and trace_nb */
+    index = cr2res_get_trace_table_index(trace_wave, order_idx, trace_nb) ;
     if (index == -1) return NULL;
 
     /* Read the Table */
@@ -654,8 +653,8 @@ cpl_polynomial * cr2res_get_trace_wave_poly(
 /**
   @brief   Get the Wavelength vector from a TRACE_WAVE table
   @param   trace_wave  A TRACE_WAVE table
-  @param   order       Wished order
-  @param   trace_nb    Wished trace number
+  @param   order_idx   the order_idx 
+  @param   trace_nb    the trace number
   @param   size    Output vector size
   @return  The newly created vector or NULL in error case
   The returned object must be de allocated with cpl_vector_delete()
@@ -663,7 +662,7 @@ cpl_polynomial * cr2res_get_trace_wave_poly(
 /*----------------------------------------------------------------------------*/
 cpl_vector * cr2res_trace_get_wl(
         const cpl_table *   trace_wave,
-        int                 order,
+        int                 order_idx,
         int                 trace_nb,
         int                 size)
 {
@@ -675,7 +674,7 @@ cpl_vector * cr2res_trace_get_wl(
 
     /* Get the Wavelength polynomial */
     wl_poly = cr2res_get_trace_wave_poly(trace_wave, CR2RES_COL_WAVELENGTH, 
-            order, trace_nb) ;
+            order_idx, trace_nb) ;
     if (wl_poly == NULL) return NULL ;
 
     /* Allocate output */
@@ -692,19 +691,18 @@ cpl_vector * cr2res_trace_get_wl(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Retrieves the middle (All) polynomial from trace table and evaluates
-  @param    trace   TRACE table
-  @param    order_nb   Wished order
-  @param    trace_nb   Wished trace
-  @param    size    Output vector size
-  @return
-  The returned vector contains the poly evaluation reszult on vector from 1 to
-  size. It needs to be destryed by the caller.
+  @param    trace       TRACE table
+  @param    order_idx   the order_idx 
+  @param    trace_nb    the trace number
+  @param    size        Output vector size
+  @return   The returned vector contains the poly evaluation result on i
+            vector from 1 to size. It needs to be destryed by the caller.
  */
 /*----------------------------------------------------------------------------*/
 cpl_vector * cr2res_trace_get_ycen(
         const cpl_table *   trace,
-        cpl_size            order_nb,
-        cpl_size            trace_nb,
+        int                 order_idx,
+        int                 trace_nb,
         int                 size)
 {
     cpl_vector      *    out ;
@@ -714,7 +712,7 @@ cpl_vector * cr2res_trace_get_ycen(
 
     /* Get the Positions polynomial */
     pos_poly = cr2res_get_trace_wave_poly(trace, CR2RES_COL_ALL, 
-            order_nb, trace_nb) ;
+            order_idx, trace_nb) ;
     if (pos_poly == NULL) return NULL ;
 
     /* Allocate output */
@@ -731,15 +729,15 @@ cpl_vector * cr2res_trace_get_ycen(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Computes the average height (pix) of an order, from trace polys.
-  @param    trace   TRACE table
-  @param    order_nb   Wished order
-  @param    trace_nb   Wished trace
+  @param    trace       TRACE table
+  @param    order_idx   the order_idx 
+  @param    trace_nb    the trace number
   @return   height in pixels
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_trace_get_height(
         const cpl_table *   trace,
-        cpl_size            order_nb,
+        cpl_size            order_idx,
         cpl_size            trace_nb)
 {
     int                 height;
@@ -750,10 +748,10 @@ int cr2res_trace_get_height(
     if (trace == NULL) return -1 ;
 
     /* Get the trace edges */
-    poly_upper = cr2res_get_trace_wave_poly(trace, CR2RES_COL_UPPER, order_nb, 
-            trace_nb); 
-    poly_lower = cr2res_get_trace_wave_poly(trace, CR2RES_COL_LOWER, order_nb, 
-            trace_nb); 
+    poly_upper = cr2res_get_trace_wave_poly(trace, CR2RES_COL_UPPER,
+            order_idx, trace_nb); 
+    poly_lower = cr2res_get_trace_wave_poly(trace, CR2RES_COL_LOWER,
+            order_idx, trace_nb); 
     if (poly_upper == NULL || poly_lower == NULL) return -1;
 
     /* Compute the height */
@@ -907,7 +905,7 @@ int cr2res_trace_add_extra_columns(
 {
     cpl_propertylist    *   ext_plist ;
     cpl_propertylist    *   main_plist ;
-    int                 *   orders ;
+    int                 *   order_idx_values ;
     cpl_array           *   wl_array ;
     cpl_array           *   array_id ;
     cpl_array           *   array_zero ;
@@ -915,7 +913,8 @@ int cr2res_trace_add_extra_columns(
     cpl_array           *   slit_frac ;
     double                  y_pos ;
     cr2res_decker           decker_pos ;
-    int                     order, trace_nb, nb_orders, trace_id, i, j ;
+    int                     order_idx, trace_nb, nb_order_idx_values, 
+                            trace_id, i, j ;
 
     if (traces == NULL) return -1;
 
@@ -942,30 +941,32 @@ int cr2res_trace_add_extra_columns(
         /* Get the current trace Y position */
         y_pos = cr2res_trace_get_trace_ypos(traces, i) ;
 
-        /* Compute the trace order from the header */
-        order = cr2res_pfits_get_order(ext_plist, y_pos) ;
+        /* Compute the trace order_idx from the header */
+        order_idx = cr2res_pfits_get_order_idx(ext_plist, y_pos) ;
 
         /* Store the Order in the table */
-        cpl_table_set(traces, CR2RES_COL_ORDER, i, order);
+        cpl_table_set(traces, CR2RES_COL_ORDER, i, order_idx);
     }
     cpl_propertylist_delete(ext_plist) ;
 
     /* Add The TraceNb column */
     cpl_table_new_column(traces, CR2RES_COL_TRACENB, CPL_TYPE_INT);
 
-    orders = cr2res_trace_get_order_numbers(traces, &nb_orders) ;
-    for (i=0 ; i<nb_orders ; i++) {
+    order_idx_values = cr2res_trace_get_order_idx_values(traces, 
+            &nb_order_idx_values) ;
+    for (i=0 ; i<nb_order_idx_values ; i++) {
         /* Initialise */
         trace_nb = 1 ;
         /* Loop on the traces */
         for (j=0 ; j<cpl_table_get_nrow(traces) ; j++) {
-            if (cpl_table_get(traces, CR2RES_COL_ORDER, j, NULL) == orders[i]) {
+            if (cpl_table_get(traces, CR2RES_COL_ORDER, j, NULL) == 
+                    order_idx_values[i]) {
                 cpl_table_set(traces, CR2RES_COL_TRACENB, j, trace_nb);
                 trace_nb ++ ;
             }
         }
     }
-    cpl_free(orders) ;
+    cpl_free(order_idx_values) ;
 
     /* Add The Wavelength(_Error) column using the header */
     cpl_table_new_column_array(traces, CR2RES_COL_WAVELENGTH,
@@ -976,15 +977,15 @@ int cr2res_trace_add_extra_columns(
     /* Loop on the traces */
     for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
         /* Get the Order number */
-        order = cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) ;
+        order_idx = cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) ;
         trace_id = cpl_table_get(traces, CR2RES_COL_TRACENB, i, NULL) ;
 
         /* Get the Wavelength estimates from the header */
         if ((wl_array = cr2res_wave_get_estimate(infile, det_nr,
-                        order)) == NULL) {
+                        order_idx)) == NULL) {
             cpl_msg_warning(__func__,
-                    "No Wavelength estimate for Detector %d / order %d",
-                    det_nr, order) ;
+                    "No Wavelength estimate for Detector %d / order_idx %d",
+                    det_nr, order_idx) ;
             cpl_error_reset() ;
             cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH, i, NULL);
             cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH_ERROR, i, NULL);
@@ -1109,8 +1110,8 @@ cpl_table * cr2res_trace_new_slit_fraction(
     cpl_polynomial  *   poly_c ;
     cpl_polynomial  *   poly_tmp;
     cpl_size            i, j, k, m, nrows ;
-    int nb_orders, nb_traces;
-    int * orders, * trace_numbers;
+    int nb_order_idx_values, nb_traces;
+    int * order_idx_values, * trace_numbers;
     double a, b, c;
     double pix_lower, pix_upper;
     double sf_lower, sf_upper, sf_all, sf_new;
@@ -1131,20 +1132,23 @@ cpl_table * cr2res_trace_new_slit_fraction(
 
     /* Initialise */
     nrows = cpl_table_get_nrow(traces) ;
-    orders = cr2res_trace_get_order_numbers(traces, &nb_orders);
-    out = cpl_table_new(nb_orders);
+    order_idx_values = cr2res_trace_get_order_idx_values(traces, 
+            &nb_order_idx_values);
+    out = cpl_table_new(nb_order_idx_values);
     cpl_table_copy_structure(out, traces);
     cpl_table_select_all(out);
 
-    /* Loop on the orders */
-    for (i=0 ; i<nb_orders; i++) {
-        trace_numbers = cr2res_get_trace_numbers(traces, orders[i], &nb_traces);
+    /* Loop on the order_idx values */
+    for (i=0 ; i<nb_order_idx_values; i++) {
+        trace_numbers = cr2res_get_trace_numbers(traces, order_idx_values[i], 
+                &nb_traces);
         trace_old = cpl_malloc(nb_traces * 3 * sizeof(cpl_array*));
         for (j = 0; j < nb_traces * 3; j++) trace_old[j] = NULL;
         slit_frac_old_trace = cpl_array_new(nb_traces * 3, CPL_TYPE_DOUBLE);        
 
         for(j = m = 0; j < nb_traces; j++ + m++) {
-            k=cr2res_get_trace_table_index(traces, orders[i], trace_numbers[j]);
+            k=cr2res_get_trace_table_index(traces, order_idx_values[i], 
+                    trace_numbers[j]);
             /* Check if the input trace slit_fraction is available */
             slit_frac_old = cpl_table_get_array(traces,
                     CR2RES_COL_SLIT_FRACTION, k) ;
@@ -1172,7 +1176,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
 
         if (m <= 0){
             cpl_msg_error(__func__, 
-                    "No valid traces found for order %i", orders[i]) ;
+                    "No valid traces found for order %i", order_idx_values[i]) ;
             cpl_array_delete(slit_frac_old_trace);
             cpl_free(trace_numbers);
             cpl_free(trace_old);
@@ -1184,7 +1188,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
 
         /* Fill out fields */
         cpl_table_set_array(out, CR2RES_COL_SLIT_FRACTION, i,new_slit_fraction);
-        cpl_table_set_int(out, CR2RES_COL_ORDER, i, orders[i]);
+        cpl_table_set_int(out, CR2RES_COL_ORDER, i, order_idx_values[i]);
         cpl_table_set_int(out, CR2RES_COL_TRACENB, i, 1);
 
         /* Compute the new trace */
@@ -1192,7 +1196,8 @@ cpl_table * cr2res_trace_new_slit_fraction(
                     new_slit_fraction, &trace_all_new, &trace_upper_new, 
                     &trace_lower_new) == -1) {
             cpl_msg_error(__func__, 
-                    "Cannot compute the new trace for order %i", orders[i]) ;
+                    "Cannot compute the new trace for order %i",
+                    order_idx_values[i]) ;
             cpl_free(trace_old);
             cpl_free(trace_numbers);
             cpl_array_delete(slit_frac_old_trace);
@@ -1210,11 +1215,13 @@ cpl_table * cr2res_trace_new_slit_fraction(
 
         // Read data arrays from existing table
         // TODO this only works if trace_numbers 0 is a valid trace
-        k = cr2res_get_trace_table_index(traces, orders[i], trace_numbers[0]);
+        k = cr2res_get_trace_table_index(traces, order_idx_values[i], 
+                trace_numbers[0]);
         const_wave = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, k) ;
         if (any(const_wave, isnan)){
             cpl_msg_error(__func__, 
-                    "Wavelength polynomial is not set for order %i", orders[i]) ;
+                    "Wavelength polynomial is not set for order %i",
+                    order_idx_values[i]) ;
             cpl_free(trace_old);
             cpl_free(trace_numbers);
             continue;
@@ -1309,7 +1316,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
         cpl_free(trace_numbers);
         cpl_free(trace_old);
     }
-    cpl_free(orders);
+    cpl_free(order_idx_values);
 
     /* Clean the selected invalid slit_fractions entries */
     cpl_table_not_selected(out) ;
@@ -1532,9 +1539,9 @@ cpl_array * cr2res_trace_slit_fraction_create(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Splits full slit traces into several sub traces
-  @param    trace_wave       trace wave table
-  @param    order            order to split (-1 for all)
-  @param    nb_subtraces     number of subtraces to create
+  @param    trace_wave      trace wave table
+  @param    order_idx       order to split (-100 for all)
+  @param    nb_subtraces    number of subtraces to create
   @return   the new trace_wave table or NULL in error case
 
   All input traces that have a full slit_fraction are splitted.
@@ -1547,7 +1554,7 @@ cpl_array * cr2res_trace_slit_fraction_create(
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_split(
         cpl_table   *   trace_wave, 
-        int             order, 
+        int             order_idx, 
         int             nb_subtraces) 
 {
     cpl_table       *   sub_trace_wave ;
@@ -1557,16 +1564,19 @@ cpl_table * cr2res_trace_split(
     double              height = 1. / (nb_subtraces * 2.);
     double              pos;
     int                 res = -1;
-    int                 ord, nb_orders, nb_traces, size_new_tw, ndegree;
-    int             *   orders, *traces;
+    int                 ord, nb_order_idx_values, nb_traces, size_new_tw, 
+                        ndegree;
+    int             *   order_idx_values, 
+                    *   traces;
 
     if (trace_wave == NULL || nb_subtraces <= 0) return NULL ;
 
-    orders = cr2res_trace_get_order_numbers(trace_wave, &nb_orders);
+    order_idx_values = cr2res_trace_get_order_idx_values(trace_wave, 
+            &nb_order_idx_values);
 
     // Expand the trace table to fit the new data
-    if (order == -1)
-        size_new_tw = nb_subtraces * nb_orders;
+    if (order_idx == -100)
+        size_new_tw = nb_subtraces * nb_order_idx_values;
     else
         size_new_tw = nb_subtraces;
     sub_trace_wave = cpl_table_new(size_new_tw);
@@ -1574,15 +1584,16 @@ cpl_table * cr2res_trace_split(
     k=0;
 
     // Prepare data to fill the other columns of the table
-    for (j = 0; j < nb_orders; j++){
-        ord = order;
-        if (order == -1) ord = orders[j];
-        else if (order != orders[j]) continue;
+    for (j = 0; j < nb_order_idx_values; j++){
+        ord = order_idx;
+        if (order_idx == -100) ord = order_idx_values[j];
+        else if (order_idx != order_idx_values[j]) continue;
 
         traces = cr2res_get_trace_numbers(trace_wave, ord, &nb_traces);
         i = cr2res_get_trace_table_index(trace_wave, ord, traces[0]);
         cpl_free(traces);
-        wave_err = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH_ERROR, i);
+        wave_err = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH_ERROR,
+                i);
         slit_a = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_A, i);
         slit_b = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_B, i);
         slit_c = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_C, i);
@@ -1591,15 +1602,18 @@ cpl_table * cr2res_trace_split(
         for (i = 0; i < nb_subtraces; i++){
             // center of first subtrace is one height above bottom
             pos = height + 2 * height * i;
-            ndegree = cpl_table_get_column_dimension(trace_wave, CR2RES_COL_ALL, 0);
+            ndegree = cpl_table_get_column_dimension(trace_wave, CR2RES_COL_ALL,
+                    0);
             bottom = cpl_array_new(ndegree, CPL_TYPE_DOUBLE);
             top = cpl_array_new(ndegree, CPL_TYPE_DOUBLE);
             center = cpl_array_new(ndegree, CPL_TYPE_DOUBLE);
             fraction = cpl_array_new(3, CPL_TYPE_DOUBLE);
-            ndegree = cpl_table_get_column_dimension(trace_wave, CR2RES_COL_WAVELENGTH, 0);
+            ndegree = cpl_table_get_column_dimension(trace_wave, 
+                    CR2RES_COL_WAVELENGTH, 0);
             wave = cpl_array_new(ndegree, CPL_TYPE_DOUBLE);
 
-            res = cr2res_trace_get_subtrace(trace_wave, pos, height, ord, &bottom,
+            res = cr2res_trace_get_subtrace(trace_wave, pos, height, ord, 
+                    &bottom,
                     &center, &top, &fraction, &wave);
             if (res == -1) {
                 cpl_array_delete(bottom);
@@ -1611,7 +1625,8 @@ cpl_table * cr2res_trace_split(
             }
             // attach new trace information to the bottom of the table
             table_index = k++;
-            cpl_table_set_int(sub_trace_wave, CR2RES_COL_ORDER, table_index, ord);
+            cpl_table_set_int(sub_trace_wave, CR2RES_COL_ORDER, table_index, 
+                    ord);
             // Traces start counting at 1
             cpl_table_set_int(sub_trace_wave, CR2RES_COL_TRACENB, table_index, 
                     i + 1);
@@ -1651,7 +1666,7 @@ cpl_table * cr2res_trace_split(
         cpl_array_unwrap(tmp2);
         if (res == -1) break;
     }
-    cpl_free(orders);
+    cpl_free(order_idx_values);
 
     if (res == -1) {
         cpl_table_delete(sub_trace_wave);
@@ -1681,15 +1696,15 @@ static double cr2res_trace_compute_shift(
         const cpl_table *   traces2)
 {
     /* TODO */
-    int             order, trace_id ;
+    int             order_idx, trace_id ;
     cpl_size        i ;
 
     for (i=0 ; i<cpl_table_get_nrow(traces1) ; i++) {
         /* Only the Open slit */
 
         /* Get the order */
-        order = cpl_table_get(traces1, CR2RES_COL_ORDER, i, NULL) ;
-        if (order >= 0) {
+        order_idx = cpl_table_get(traces1, CR2RES_COL_ORDER, i, NULL) ;
+        if (order_idx >= 0) {
 
         }
     }
@@ -1734,15 +1749,15 @@ static cpl_array * cr2res_trace_get_slit_frac(
         cr2res_decker       decker_pos)
 {
     cpl_array       *   slit_frac ;
-    int                 order ;
+    int                 order_idx ;
     cpl_size            nb_traces, other_idx, i ;
     double              center_pos_curr, center_pos_other ;
 
     /* Get the current trace order */
-    order = cpl_table_get(traces, CR2RES_COL_ORDER, idx, NULL) ;
+    order_idx = cpl_table_get(traces, CR2RES_COL_ORDER, idx, NULL) ;
 
     /* Get the number of traces of this order */
-    nb_traces = cr2res_get_nb_traces(traces, order) ;
+    nb_traces = cr2res_get_nb_traces(traces, order_idx) ;
 
     /* The number of traces and the decker positions need to be consistent */
     if (nb_traces == 1 && decker_pos == CR2RES_DECKER_NONE) {
@@ -1756,7 +1771,7 @@ static cpl_array * cr2res_trace_get_slit_frac(
         /* Search the other trace */
         other_idx = -1 ;
         for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
-            if (cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL)==order &&
+            if (cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL)==order_idx &&
                     i != idx) other_idx = i ; 
         }
         if (other_idx < 0) return NULL ;
@@ -2409,7 +2424,7 @@ static int cr2res_trace_new_trace(
   @param    trace_wave     trace wave table
   @param    slit_pos       fractional slit position (0-1)
   @param    height         fractional height (0-1)
-  @param    order          order to split
+  @param    order_idx      order_idx to split
   @param    trace          trace to split
   @param    bottom         [out] subtrace bottom polynomial coefficients
   @param    center         [out] subtrace center polynomial coefficients
@@ -2427,14 +2442,13 @@ static int cr2res_trace_get_subtrace(
         cpl_table   *   trace_wave, 
         double          slit_pos, 
         double          height, 
-        int             order,
+        int             order_idx,
         cpl_array   **  bottom, 
         cpl_array   **  center, 
         cpl_array   **  top,
         cpl_array   **  fraction, 
         cpl_array   **  wave)
 {
-   
     // check input values
     if (slit_pos < 0 | slit_pos > 1) return -1;
     if (bottom != NULL & *bottom == NULL) return -1;
@@ -2446,7 +2460,7 @@ static int cr2res_trace_get_subtrace(
     // get trace numbers
     int nb_traces;
     int * traces;
-    traces = cr2res_get_trace_numbers(trace_wave, order, &nb_traces);
+    traces = cr2res_get_trace_numbers(trace_wave, order_idx, &nb_traces);
     if (traces == NULL) return -1;
     
     const cpl_array * bounds[3], *old_fraction, *old_wave;
@@ -2469,7 +2483,7 @@ static int cr2res_trace_get_subtrace(
 
     for (i = 0; i < ndegree; i++){
         for (k = 0; k < nb_traces; k++){
-            j = cr2res_get_trace_table_index(trace_wave, order, traces[k]);
+            j = cr2res_get_trace_table_index(trace_wave, order_idx, traces[k]);
 
             bounds[0] = cpl_table_get_array(trace_wave, CR2RES_COL_LOWER, j);
             bounds[1] = cpl_table_get_array(trace_wave, CR2RES_COL_ALL, j);
@@ -2518,7 +2532,7 @@ static int cr2res_trace_get_subtrace(
     // interpolate wavelength solution, if we have more than one trace
     if (wave != NULL){
         if (nb_traces == 1){
-            j = cr2res_get_trace_table_index(trace_wave, order, traces[0]);
+            j = cr2res_get_trace_table_index(trace_wave, order_idx, traces[0]);
             old_wave = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, j);
             cpl_array_copy_data_double(*wave, 
                     cpl_array_get_data_double_const(old_wave));
@@ -2530,7 +2544,8 @@ static int cr2res_trace_get_subtrace(
             poly = cpl_polynomial_new(1);
             for (i = 0; i < ndegree; i++){
                 for (k = 0; k < nb_traces; k++){
-                    j = cr2res_get_trace_table_index(trace_wave, order, traces[k]);
+                    j = cr2res_get_trace_table_index(trace_wave, order_idx, 
+                            traces[k]);
                     old_fraction = cpl_table_get_array(trace_wave, 
                             CR2RES_COL_SLIT_FRACTION, j);
                     old_wave = cpl_table_get_array(trace_wave, 

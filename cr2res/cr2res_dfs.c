@@ -185,293 +185,311 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the SLIT_CURV table column name for a given order
-  @param    order       The order number (1->) 
+  @param    order_idx       The order index (-49->50)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_SLIT_CURV_colname(int order, int trace)
+char * cr2res_dfs_SLIT_CURV_colname(int order_idx, int trace)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_loc, trace, 
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_idxp, trace, 
             CR2RES_COL_SLIT_CURV_SUFFIX);
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the POL_WAVELENGTH column name for a given order
-  @param    order       The order number (1->) 
+  @param    order_idx       The order index (-49->50)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_POL_WAVELENGTH_colname(int order)
+char * cr2res_dfs_POL_WAVELENGTH_colname(int order_idx)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_WL_SUFFIX) ;
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%s", order_idxp, CR2RES_COL_WL_SUFFIX) ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the POL_STOKES column name for a given order
-  @param    order       The order number (1->) 
+  @param    order_idx       The order index (-49->50)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_POL_STOKES_colname(int order)
+char * cr2res_dfs_POL_STOKES_colname(int order_idx)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_POL_STOKES_SUFFIX) ;
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%s", order_idxp, CR2RES_COL_POL_STOKES_SUFFIX) ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the POL_STOKES_ERROR column name for a given order
-  @param    order       The order number (1->) 
+  @param    order_idx       The order index (-49->50)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_POL_STOKES_ERROR_colname(int order)
+char * cr2res_dfs_POL_STOKES_ERROR_colname(int order_idx)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%s", order_loc, 
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%s", order_idxp, 
             CR2RES_COL_POL_STOKES_ERROR_SUFFIX) ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the POL_NULL column name for a given order
-  @param    order       The order number (1->) 
+  @param    order_idx       The order index (-49->50)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_POL_NULL_colname(int order)
+char * cr2res_dfs_POL_NULL_colname(int order_idx)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_POL_NULL_SUFFIX) ;
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%s", order_idxp, CR2RES_COL_POL_NULL_SUFFIX) ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the POL_NULL_ERROR column name for a given order
-  @param    order       The order number (1->) 
+  @param    order_idx       The order index (-49->50)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_POL_NULL_ERROR_colname(int order)
+char * cr2res_dfs_POL_NULL_ERROR_colname(int order_idx)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_POL_NULL_ERROR_SUFFIX) ;
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%s", order_idxp, CR2RES_COL_POL_NULL_ERROR_SUFFIX) ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the POL_INTENS column name for a given order
-  @param    order       The order number (1->) 
+  @param    order_idx       The order index (-49->50)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_POL_INTENS_colname(int order)
+char * cr2res_dfs_POL_INTENS_colname(int order_idx)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%s", order_loc, CR2RES_COL_POL_INTENS_SUFFIX) ;
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%s", order_idxp, CR2RES_COL_POL_INTENS_SUFFIX) ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the POL_INTENS_ERROR column name for a given order
-  @param    order       The order number (1->) 
+  @param    order_idx       The order index (-49->50)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_POL_INTENS_ERROR_colname(int order)
+char * cr2res_dfs_POL_INTENS_ERROR_colname(int order_idx)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%s", order_loc,
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0)
+        return NULL ;
+    return cpl_sprintf("%02d_%s", order_idxp,
             CR2RES_COL_POL_INTENS_ERROR_SUFFIX) ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the CONVERSION column name for a given order/trace
-  @param    order       The order number (1->) 
-  @param    trace       The trace number (1->)
+  @param    order_idx       The order index (-49->50)
+  @param    trace           The trace number (1->)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_CONVERSION_colname(int order, int trace)
+char * cr2res_dfs_CONVERSION_colname(int order_idx, int trace)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_idxp, trace,
             CR2RES_COL_CONVERSION_SUFFIX);
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the SENSITIVITY column name for a given order/trace
-  @param    order       The order number (1->) 
+  @param    order_idx       The order index (-49->50)
   @param    trace       The trace number (1->)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_SENSITIVITY_colname(int order, int trace)
+char * cr2res_dfs_SENSITIVITY_colname(int order_idx, int trace)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_idxp, trace,
             CR2RES_COL_SENSITIVITY_SUFFIX);
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the THROUGHPUT column name for a given order/trace
-  @param    order       The order number (1->) 
+  @param    order_idx       The order index (-49->50)
   @param    trace       The trace number (1->)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_THROUGHPUT_colname(int order, int trace)
+char * cr2res_dfs_THROUGHPUT_colname(int order_idx, int trace)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_idxp, trace,
             CR2RES_COL_THROUGHPUT_SUFFIX);
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the SPEC column name for a given order/trace
-  @param    order       The order number (1->) 
+  @param    order_idx       The order index (-49->50)
   @param    trace       The trace number (1->)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_SPEC_colname(int order, int trace)
+char * cr2res_dfs_SPEC_colname(int order_idx, int trace)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_idxp, trace,
             CR2RES_COL_SPEC_SUFFIX);
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the WAVELENGTH column name for a given order/trace
-  @param    order       The order number (1->) 
+  @param    order_idx       The order index (-49->50)
   @param    trace       The trace number (1->)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_WAVELENGTH_colname(int order, int trace)
+char * cr2res_dfs_WAVELENGTH_colname(int order_idx, int trace)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_idxp, trace,
             CR2RES_COL_WL_SUFFIX);
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the ERR column name for a given order/trace
-  @param    order       The order number (1->) 
+  @param    order_idx       The order index (-49->50)
   @param    trace       The trace number (1->)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_SPEC_ERR_colname(int order, int trace)
+char * cr2res_dfs_SPEC_ERR_colname(int order_idx, int trace)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_loc, trace,
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_idxp, trace,
             CR2RES_COL_ERROR_SUFFIX);
 }
  
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the SLIT_FUNC table column name for a given order/trace
-  @param    order       The order number (1->)
+  @param    order_idx       The order index (-49->50)
   @param    trace       The trace number (1->)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_SLIT_FUNC_colname(int order, int trace)
+char * cr2res_dfs_SLIT_FUNC_colname(int order_idx, int trace)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_loc,trace,
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_idxp,trace,
             CR2RES_COL_SLIT_FUNC_SUFFIX);
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the POSITIONX table column name for a given order/trace
-  @param    order       The order number (1->)
+  @param    order_idx       The order index (-49->50)
   @param    trace       The trace number (1->)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_POSITIONX_colname(int order, int trace)
+char * cr2res_dfs_POSITIONX_colname(int order_idx, int trace)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_loc,trace,
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_idxp,trace,
             CR2RES_COL_POSITIONX_SUFFIX);
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the POSITIONY table column name for a given order/trace
-  @param    order       The order number (1->)
+  @param    order_idx       The order index (-49->50)
   @param    trace       The trace number (1->)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_POSITIONY_colname(int order, int trace)
+char * cr2res_dfs_POSITIONY_colname(int order_idx, int trace)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_loc,trace,
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_idxp,trace,
             CR2RES_COL_POSITIONY_SUFFIX);
 }
 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the SLIT_FRACTION table column name for a given order/trace
-  @param    order       The order number (1->)
+  @param    order_idx       The order index (-49->50)
   @param    trace       The trace number (1->)
   @return   the column name or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
-char * cr2res_dfs_SLIT_FRACTION_colname(int order, int trace)
+char * cr2res_dfs_SLIT_FRACTION_colname(int order_idx, int trace)
 {
-    int         order_loc ;
-    if ((order_loc = cr2res_io_convert_order_to_idx(order)) < 0) return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_loc,trace,
+    int         order_idxp ;
+    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
+        return NULL ;
+    return cpl_sprintf("%02d_%02d_%s", order_idxp,trace,
             CR2RES_COL_SLIT_FRACTION_SUFFIX);
 }
 
@@ -479,24 +497,24 @@ char * cr2res_dfs_SLIT_FRACTION_colname(int order, int trace)
 /**
   @brief    Parse a column name ORDER_TRACE_TYPE format
   @param    colname     The column name to parse
-  @param    order       [out] The order number (1->) 
+  @param    order_idx   [out] The order index (-49->50)
   @param    trace       [out] The trace number (1->)
   @return   the column TYPE or NULL in error case
   The return string needs to be deallocated with cpl_free() 
  */
 /*----------------------------------------------------------------------------*/
 char * cr2res_dfs_SPEC_colname_parse(
-        const char  * colname, 
-        int         * order, 
-        int         * trace)
+        const char  *   colname, 
+        int         *   order_idx, 
+        int         *   trace)
 {
     char    col_type[1024] ;
-    if (colname == NULL || order == NULL || trace == NULL) return NULL ;
+    if (colname == NULL || order_idx == NULL || trace == NULL) return NULL ;
 
     /* Needed for sscanf() */
     setlocale(LC_NUMERIC, "C");
 
-    if (sscanf(colname, "%02d_%02d_%s", order, trace, col_type) != 3)
+    if (sscanf(colname, "%02d_%02d_%s", order_idx, trace, col_type) != 3)
         return NULL ;
     return cpl_strdup(col_type) ;
 }

@@ -53,8 +53,8 @@ cpl_frameset * cr2res_io_extract_decker_frameset(
         const char          *   tag,
         cr2res_decker           decker) ;
 
-int cr2res_io_convert_order_to_idx(int order) ;
-int cr2res_io_convert_idx_to_order(int order_idx) ;
+int cr2res_io_convert_order_idx_to_idxp(int) ;
+int cr2res_io_convert_order_idxp_to_idx(int) ;
 
 char * cr2res_io_create_extname(
         int             detector,

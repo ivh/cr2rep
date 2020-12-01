@@ -378,7 +378,7 @@ static int cr2res_obs_nodding(
     const cpl_parameter *   param ;
     int                     extract_oversample, extract_swath_width,
                             extract_height, reduce_det, ndit, nexp,
-                            disp_order, disp_trace ;
+                            disp_order_idx, disp_trace ;
     double                  extract_smooth, ra, dec, dit, gain ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_flat_frames ;
@@ -423,7 +423,7 @@ static int cr2res_obs_nodding(
     reduce_det = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.display_order");
-    disp_order = cpl_parameter_get_int(param);
+    disp_order_idx = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.display_trace");
     disp_trace = cpl_parameter_get_int(param);
@@ -524,7 +524,7 @@ static int cr2res_obs_nodding(
                 /* Compute the photometry */
                 if (cr2res_photom_engine(extracta[det_nr-1],
                             cpl_frame_get_filename(photo_flux_frame),
-                            ra, dec, gain, dit*ndit*nexp, disp_order,
+                            ra, dec, gain, dit*ndit*nexp, disp_order_idx,
                             disp_trace, &(throughput[det_nr-1]))) {
                     cpl_msg_warning(__func__, 
                             "Failed to reduce detector %d", det_nr);
@@ -702,9 +702,9 @@ static int cr2res_obs_nodding_reduce(
                             slit_frac_b_mid, slit_frac_b_top, nod_throw ;
     double                  qc_signal_a, qc_signal_b, qc_transm, qc_fwhm_a, 
                             qc_fwhm_b ;
-    int                 *   orders ;
-    int                     det_nr, nb_orders, order_num, order_real,
-                            order_zerop ;
+    int                 *   order_idx_values ;
+    int                     det_nr, nb_order_idx_values, order_real,
+                            order_zp, order_idx, order_idxp ;
 
     /* Check Inputs */
     if (combineda == NULL || combinedb == NULL || extracta == NULL ||
@@ -726,13 +726,13 @@ static int cr2res_obs_nodding_reduce(
         cpl_msg_error(__func__, "Cannot read the ORDER_ZP from the input TW") ;
         return -1 ;
     }
-    order_zerop = cr2res_pfits_get_zp_ord(plist) ;
+    order_zp = cr2res_pfits_get_order_zp(plist) ;
     cpl_propertylist_delete(plist) ;
     if (cpl_error_get_code()) {
         cpl_msg_error(__func__, "Missing ORDER_ZP in the header - Skip") ;
         cpl_error_reset() ;
         /* Negative Zerop to log the fact that it is missing */
-        order_zerop = -100 ;
+        order_zp = -100 ;
     } 
 
     /* Get the Nodding positions */
@@ -999,19 +999,21 @@ static int cr2res_obs_nodding_reduce(
             (qc_fwhm_a+qc_fwhm_b)/2.0) ;
 
     /* Real Orders in QCs */
-    if (order_zerop > 0) {
+    if (order_zp > 0) {
         /* Get the order numbers from the TW rows */
-        orders = cr2res_trace_get_order_numbers(trace_wave, &nb_orders);
+        order_idx_values = cr2res_trace_get_order_idx_values(trace_wave, 
+                &nb_order_idx_values);
 
         /* Compute the Real Order numbers and store them in QCs */
-        for (i=0 ; i<nb_orders ; i++) {
-            order_num = cr2res_io_convert_idx_to_order(orders[i]) ;
-            order_real = cr2res_order_real(order_num, order_zerop) ;
-            key_name = cpl_sprintf(CR2RES_HEADER_QC_REAL_ORDER, orders[i]) ;
+        for (i=0 ; i<nb_order_idx_values ; i++) {
+            order_idx = order_idx_values[i] ;
+            order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
+            order_real = cr2res_order_idx_to_real(order_idx, order_zp) ;
+            key_name = cpl_sprintf(CR2RES_HEADER_QC_REAL_ORDER, order_idxp) ;
             cpl_propertylist_append_int(plist, key_name, order_real) ;
             cpl_free(key_name) ;
         }
-        cpl_free(orders) ;
+        cpl_free(order_idx_values) ;
     }
     cpl_table_delete(trace_wave) ;
 

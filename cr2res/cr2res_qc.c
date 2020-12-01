@@ -356,7 +356,7 @@ double cr2res_qc_flat_trace_center_y(
     cpl_vector * vector;
     cpl_array * array;
     cpl_polynomial * poly;
-    int * orders, nb_orders, central_order, i;
+    int * order_idx_values, nb_order_idx_values, central_order_idx, i;
     int * traces, nb_traces;
     double      qc_trace_center_y ;
 
@@ -366,17 +366,18 @@ double cr2res_qc_flat_trace_center_y(
     /* Initialise */
     qc_trace_center_y = 0;
     // Step 1: find central order
-    orders = cr2res_trace_get_order_numbers((cpl_table*) trace, &nb_orders);
-    array = cpl_array_wrap_int(orders, nb_orders);
+    order_idx_values = cr2res_trace_get_order_idx_values((cpl_table*) trace, 
+            &nb_order_idx_values);
+    array = cpl_array_wrap_int(order_idx_values, nb_order_idx_values);
 
 /* TODO : Is the median really the CENTRAL order ?? */
-    central_order = cpl_array_get_median(array);
+    central_order_idx = cpl_array_get_median(array);
     cpl_array_unwrap(array);
 
     // Step 2: Sum all traces together
-    traces = cr2res_get_trace_numbers(trace, central_order, &nb_traces);
+    traces = cr2res_get_trace_numbers(trace, central_order_idx, &nb_traces);
     for(cpl_size i = 0; i < nb_traces; i++) {
-      vector = cr2res_trace_get_ycen(trace, central_order, traces[i], 
+      vector = cr2res_trace_get_ycen(trace, central_order_idx, traces[i], 
                 CR2RES_DETECTOR_SIZE);
       qc_trace_center_y += cpl_vector_get_mean(vector);
       cpl_vector_delete(vector);
@@ -385,7 +386,7 @@ double cr2res_qc_flat_trace_center_y(
     // Step 3: take the mean
     qc_trace_center_y /= nb_traces;
 
-    cpl_free(orders);
+    cpl_free(order_idx_values);
     cpl_free(traces);
     cpl_polynomial_delete(poly);
     cpl_array_delete(array);

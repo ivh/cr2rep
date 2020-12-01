@@ -484,37 +484,37 @@ cpl_frameset * cr2res_io_extract_decker_frameset(
 }
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Convert the order to the keyword index
-  @param    order   Order (-49 to 50)
-  @return   the order index or a negative value in error case
-            (00 to 99)
+  @brief    Convert the order_idx to the order_idxp
+  @param    order_idx   Order (-49 to 50)
+  @return   the order positive index (order_idxp) or a negative value in 
+            error case (0 to 99)
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_io_convert_order_to_idx(int order)
+int cr2res_io_convert_order_idx_to_idxp(int order_idx)
 {
     /* Check entries */
-    if (order < -49 || order > 50) return -1 ;
+    if (order_idx < -49 || order_idx > 50) return -1 ;
 
-    /* Conversion order <-> keyword Index */
-    if (order < 0)  return order + 100 ;
-    else            return order ;
+    /* Conversion order_idx -> order_idxp */
+    if (order_idx < 0)  return order_idx + 100 ;
+    else                return order_idx ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Convert the keyword index to the order
-  @param    order_idx   the order index (00 to 99)
-  @return   Order (-50 to 50)
+  @brief    Convert the order_idxp to the order_idx
+  @param    order_idxp      Order (0 to 99)
+  @return   the order index (-50 to 50)
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_io_convert_idx_to_order(int order_idx)
+int cr2res_io_convert_order_idxp_to_idx(int order_idxp)
 {
     /* Check entries */
-    if (order_idx < 0 || order_idx > 99) return -1 ;
+    if (order_idxp < 0 || order_idxp > 99) return -1 ;
 
     /* Conversion order <-> keyword Index */
-    if (order_idx > 50) return order_idx - 100 ;
-    else                return order_idx ;
+    if (order_idxp > 50) return order_idxp - 100 ;
+    else                return order_idxp ;
 }
 
 /*----------------------------------------------------------------------------*/
