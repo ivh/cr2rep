@@ -509,7 +509,10 @@ static int cr2res_obs_staring_reduce(
     hdrl_image          *   model_master ;
     cpl_table           *   slit_func ;
     cpl_table           *   extracted ;
-    int                     det_nr ;
+    int                 *   order_idx_values ;
+    char                *   key_name ;
+    int                     det_nr, order_zp, nb_order_idx_values,
+                            order_real, order_idx, order_idxp ;
 
     /* Check Inputs */
     if (extract == NULL || ext_plist == NULL || rawframes == NULL
@@ -523,6 +526,21 @@ static int cr2res_obs_staring_reduce(
 
     /* Initialise */
     nframes = cpl_frameset_get_size(rawframes) ;
+
+    /* Get the order zeropoint */
+    if ((plist = cpl_propertylist_load(cpl_frame_get_filename(trace_wave_frame),
+                    reduce_det)) == NULL) {
+        cpl_msg_error(__func__, "Cannot read the ORDER_ZP from the input TW") ;
+        return -1 ;
+    }
+    order_zp = cr2res_pfits_get_order_zp(plist) ;
+    cpl_propertylist_delete(plist) ;
+    if (cpl_error_get_code()) {
+        cpl_msg_error(__func__, "Missing ORDER_ZP in the header - Skip") ;
+        cpl_error_reset() ;
+        /* Negative Zerop to log the fact that it is missing */
+        order_zp = -100 ;
+    }
 
     /* Load the DITs if necessary */
     if (master_dark_frame != NULL)  dits = cr2res_io_read_dits(rawframes) ;
@@ -590,7 +608,6 @@ static int cr2res_obs_staring_reduce(
         cpl_table_delete(trace_wave) ;
         return -1 ;
     }
-    cpl_table_delete(trace_wave) ;
 	hdrl_image_delete(collapsed) ;
 
     /* QC parameters */
@@ -598,7 +615,27 @@ static int cr2res_obs_staring_reduce(
 
     /* Compute the QC parameters */
 
+
     /* Store the QC parameters in the plist */
+
+    /* Real Orders in QCs */
+    if (order_zp > 0) {
+        /* Get the order numbers from the TW rows */
+        order_idx_values = cr2res_trace_get_order_idx_values(trace_wave,
+                &nb_order_idx_values);
+
+        /* Compute the Real Order numbers and store them in QCs */
+        for (i=0 ; i<nb_order_idx_values ; i++) {
+            order_idx = order_idx_values[i] ;
+            order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
+            order_real = cr2res_order_idx_to_real(order_idx, order_zp) ;
+            key_name = cpl_sprintf(CR2RES_HEADER_QC_REAL_ORDER, order_idxp) ;
+            cpl_propertylist_append_int(plist, key_name, order_real) ;
+            cpl_free(key_name) ;
+        }
+        cpl_free(order_idx_values) ;
+    }
+	cpl_table_delete(trace_wave) ;
 
     /* Return */
     *extract = extracted ;
