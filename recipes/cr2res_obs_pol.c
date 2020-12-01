@@ -666,10 +666,15 @@ static int cr2res_obs_pol_reduce_one(
     cpl_bivector        **  demod_intens ;
     int                 *   orders ;
     cpl_table           *   pol_spec_merged ;
+    cpl_propertylist    *   plist ;
     cpl_propertylist    *   ext_plist_loc ;
     char                *   out_file;
     cpl_size                nframes, nspec_group, spec_size ;
     int                     ngroups, i, j, k, l, o, norders, frame_idx ;
+    char                *   key_name ;
+    int                 *   order_idx_values ;
+    int                     nb_order_idx_values, order_real, order_zp, 
+                            order_idx, order_idxp ;
 
     /* Initialise */
     *pol_spec = NULL ;
@@ -678,6 +683,21 @@ static int cr2res_obs_pol_reduce_one(
     /* Check Inputs */
     if (pol_spec == NULL || ext_plist == NULL || rawframes == NULL || 
             trace_wave_frame == NULL) return -1 ;
+
+    /* Get the order zeropoint */
+    if ((plist = cpl_propertylist_load(cpl_frame_get_filename(trace_wave_frame),
+                    reduce_det)) == NULL) {
+        cpl_msg_error(__func__, "Cannot read the ORDER_ZP from the input TW") ;
+        return -1 ;
+    }
+    order_zp = cr2res_pfits_get_order_zp(plist) ;
+    cpl_propertylist_delete(plist) ;
+    if (cpl_error_get_code()) {
+        cpl_msg_error(__func__, "Missing ORDER_ZP in the header - Skip") ;
+        cpl_error_reset() ;
+        /* Negative Zerop to log the fact that it is missing */
+        order_zp = -100 ;
+    }
 
     /* Check number of frames */
     nframes = cpl_frameset_get_size(rawframes) ;
@@ -1038,7 +1058,6 @@ static int cr2res_obs_pol_reduce_one(
         cpl_msg_indent_less() ;
     }
     cpl_free(decker_positions) ;
-    cpl_table_delete(trace_wave) ;
     hdrl_imagelist_delete(in_calib) ;
 
     /* Merge the groups together */
@@ -1069,6 +1088,25 @@ static int cr2res_obs_pol_reduce_one(
     cpl_msg_info(__func__, "Store the QC parameters") ;
     ext_plist_loc = cpl_propertylist_new() ;
     /* TODO */
+
+    /* Real Orders in QCs */
+    if (order_zp > 0) {
+        /* Get the order numbers from the TW rows */
+        order_idx_values = cr2res_trace_get_order_idx_values(trace_wave,
+                &nb_order_idx_values);
+
+        /* Compute the Real Order numbers and store them in QCs */
+        for (i=0 ; i<nb_order_idx_values ; i++) {
+            order_idx = order_idx_values[i] ;
+            order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
+            order_real = cr2res_order_idx_to_real(order_idx, order_zp) ;
+            key_name = cpl_sprintf(CR2RES_HEADER_QC_REAL_ORDER, order_idxp) ;
+            cpl_propertylist_append_int(ext_plist_loc, key_name, order_real) ;
+            cpl_free(key_name) ;
+        }
+        cpl_free(order_idx_values) ;
+    }
+    cpl_table_delete(trace_wave) ;
 
     /* Return */
     *pol_spec = pol_spec_merged ;
