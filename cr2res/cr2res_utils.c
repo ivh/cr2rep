@@ -30,6 +30,7 @@
 #include <cpl.h>
 
 #include "cr2res_utils.h"
+#include "cr2res_io.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
 #include "cr2res_extract.h"
@@ -42,6 +43,21 @@
 /*----------------------------------------------------------------------------*/
 
 /**@{*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Convert the order index into the real order number
+  @param    idx     Order index
+  @param    zp_ord  Order Zero Point
+  @return   real order number
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_order_real(int idx_ord, int zp_ord)
+{
+    int order = cr2res_io_convert_idx_to_order(idx_ord) ;
+    return zp_ord + order - 1;
+}
+
 
 /*----------------------------------------------------------------------------*/
 /**

@@ -316,6 +316,18 @@ int cr2res_pfits_get_ndit(const cpl_propertylist * plist)
 }
 
 /*----------------------------------------------------------------------------*/
+  /*
+  @brief    find out the ZP_ORD value
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_pfits_get_zp_ord(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_int(plist, CR2RES_HEADER_GRAT1_ZPORD)  ;
+}
+
+/*----------------------------------------------------------------------------*/
 /**
   @brief    find out the order number closest to the passed y position
   @param    plist       property list to read from

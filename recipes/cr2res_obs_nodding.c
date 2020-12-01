@@ -696,12 +696,15 @@ static int cr2res_obs_nodding_reduce(
     hdrl_image          *   model_master_b ;
     cpl_propertylist    *   plist ;
     cpl_size                nframes, i ;
+    char                *   key_name ;
     double                  slit_length, extr_width_frac, slit_frac_a_bot, 
                             slit_frac_a_mid, slit_frac_a_top, slit_frac_b_bot, 
                             slit_frac_b_mid, slit_frac_b_top, nod_throw ;
     double                  qc_signal_a, qc_signal_b, qc_transm, qc_fwhm_a, 
                             qc_fwhm_b ;
-    int                     det_nr ;
+    int                 *   orders ;
+    int                     det_nr, nb_orders, order_num, order_real,
+                            order_zerop ;
 
     /* Check Inputs */
     if (combineda == NULL || combinedb == NULL || extracta == NULL ||
@@ -716,6 +719,21 @@ static int cr2res_obs_nodding_reduce(
 
     /* Initialise */
     nframes = cpl_frameset_get_size(rawframes) ;
+
+    /* Get the order zeropoint */
+    if ((plist = cpl_propertylist_load(cpl_frame_get_filename(trace_wave_frame),
+                    reduce_det)) == NULL) {
+        cpl_msg_error(__func__, "Cannot read the ORDER_ZP from the input TW") ;
+        return -1 ;
+    }
+    order_zerop = cr2res_pfits_get_zp_ord(plist) ;
+    cpl_propertylist_delete(plist) ;
+    if (cpl_error_get_code()) {
+        cpl_msg_error(__func__, "Missing ORDER_ZP in the header - Skip") ;
+        cpl_error_reset() ;
+        /* Negative Zerop to log the fact that it is missing */
+        order_zerop = -100 ;
+    } 
 
     /* Get the Nodding positions */
     nod_positions = cr2res_nodding_read_positions(rawframes) ;
@@ -927,7 +945,6 @@ static int cr2res_obs_nodding_reduce(
         return -1 ;
     }
     cpl_array_delete(slit_frac_b) ;
-    cpl_table_delete(trace_wave) ;
 
     /* Execute the extraction */
     cpl_msg_info(__func__, "Spectra Extraction") ;
@@ -940,6 +957,7 @@ static int cr2res_obs_nodding_reduce(
         hdrl_image_delete(collapsed_b) ;
         cpl_table_delete(trace_wave_a) ;
         cpl_table_delete(trace_wave_b) ;
+        cpl_table_delete(trace_wave) ;
         return -1 ;
     }
     /* TODO : Save trace_wave_a and b as products */
@@ -955,6 +973,7 @@ static int cr2res_obs_nodding_reduce(
         hdrl_image_delete(collapsed_a) ;
         hdrl_image_delete(collapsed_b) ;
         cpl_table_delete(trace_wave_b) ;
+        cpl_table_delete(trace_wave) ;
         return -1 ;
     }
     /* TODO : Save trace_wave_a and b as products */
@@ -978,6 +997,23 @@ static int cr2res_obs_nodding_reduce(
             qc_transm) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SLITFWHM,
             (qc_fwhm_a+qc_fwhm_b)/2.0) ;
+
+    /* Real Orders in QCs */
+    if (order_zerop > 0) {
+        /* Get the order numbers from the TW rows */
+        orders = cr2res_trace_get_order_numbers(trace_wave, &nb_orders);
+
+        /* Compute the Real Order numbers and store them in QCs */
+        for (i=0 ; i<nb_orders ; i++) {
+            order_num = cr2res_io_convert_idx_to_order(orders[i]) ;
+            order_real = cr2res_order_real(order_num, order_zerop) ;
+            key_name = cpl_sprintf(CR2RES_HEADER_QC_REAL_ORDER, orders[i]) ;
+            cpl_propertylist_append_int(plist, key_name, order_real) ;
+            cpl_free(key_name) ;
+        }
+        cpl_free(orders) ;
+    }
+    cpl_table_delete(trace_wave) ;
 
     /* Return */
     *combineda = collapsed_a ;

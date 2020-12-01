@@ -47,6 +47,7 @@
 #define CR2RES_HEADER_WLEN_BEGIN        "ESO INS WLEN BEGIN%d"
 #define CR2RES_HEADER_WLEN_END          "ESO INS WLEN END%d"
 #define CR2RES_HEADER_WLEN_CENY         "ESO INS WLEN CENY%d"
+#define CR2RES_HEADER_GRAT1_ZPORD       "ESO INS GRAT1 ZP_ORD"
 #define CR2RES_HEADER_LAMP4_NAME        "ESO INS1 LAMP4 NAME"
 #define CR2RES_HEADER_LAMP8_NAME        "ESO INS1 LAMP8 NAME"
 #define CR2RES_HEADER_NDIT              "ESO DET NDIT"
@@ -80,6 +81,7 @@
 #define CR2RES_HEADER_QC_SIGNAL             "ESO QC SIGNAL"
 #define CR2RES_HEADER_QC_TRANSM             "ESO QC TRANSM"
 #define CR2RES_HEADER_QC_SLITFWHM           "ESO QC SLITFWHM"
+#define CR2RES_HEADER_QC_REAL_ORDER         "ESO QC REALORDER%d"
 
 /*-----------------------------------------------------------------------------
                                    Functions prototypes
@@ -106,7 +108,9 @@ int cr2res_pfits_get_naxis2(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_expno(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_nexp(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_ndit(const cpl_propertylist * plist) ;
+int cr2res_pfits_get_zp_ord(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_order(const cpl_propertylist * plist, double yposition) ;
+
 cr2res_decker cr2res_pfits_get_decker_position(const cpl_propertylist * plist) ;
 
 #endif
