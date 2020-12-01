@@ -326,7 +326,6 @@ int cr2res_pfits_get_ndit(const cpl_propertylist * plist)
 /*----------------------------------------------------------------------------*/
 int cr2res_pfits_get_order_zp(const cpl_propertylist * plist)
 {
-    return 28 ;
     return cpl_propertylist_get_int(plist, CR2RES_HEADER_GRAT1_ZPORD)  ;
 }
 
