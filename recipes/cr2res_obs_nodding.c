@@ -503,9 +503,9 @@ static int cr2res_obs_nodding(
             cpl_msg_indent_more() ;
 
             /* Define the gain */
-            if (det_nr==1) gain = CRIRES_GAIN_CHIP1 ;
-            if (det_nr==2) gain = CRIRES_GAIN_CHIP2 ;
-            if (det_nr==3) gain = CRIRES_GAIN_CHIP3 ;
+            if (det_nr==1) gain = CR2RES_GAIN_CHIP1 ;
+            if (det_nr==2) gain = CR2RES_GAIN_CHIP2 ;
+            if (det_nr==3) gain = CR2RES_GAIN_CHIP3 ;
 
 			/* Get the RA and DEC observed */
 			plist=cpl_propertylist_load(cpl_frame_get_filename(
