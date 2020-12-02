@@ -68,6 +68,7 @@ static int cr2res_obs_nodding_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        int                     nodding_invert,
         int                     calib_cosmics_corr,
         int                     extract_oversample,
         int                     extract_swath_width,
@@ -272,6 +273,13 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.nodding_invert",
+            CPL_TYPE_BOOL, "Flag to use when B is above A",
+            "cr2res.cr2res_obs_nodding", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "nodding_invert");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.extract_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
             "cr2res.cr2res_obs_nodding", 5);
@@ -378,7 +386,7 @@ static int cr2res_obs_nodding(
     const cpl_parameter *   param ;
     int                     extract_oversample, extract_swath_width,
                             extract_height, reduce_det, ndit, nexp,
-                            disp_order_idx, disp_trace ;
+                            disp_order_idx, disp_trace, nodding_invert ;
     double                  extract_smooth, ra, dec, dit, gain ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_flat_frames ;
@@ -406,6 +414,9 @@ static int cr2res_obs_nodding(
     gain = 0.0 ;
 
     /* RETRIEVE INPUT PARAMETERS */
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_nodding.nodding_invert");
+    nodding_invert = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.extract_oversample");
     extract_oversample = cpl_parameter_get_int(param);
@@ -484,8 +495,9 @@ static int cr2res_obs_nodding(
         /* Call the reduction function */
         if (cr2res_obs_nodding_reduce(rawframes, raw_flat_frames, 
                     trace_wave_frame, detlin_frame, master_dark_frame, 
-                    master_flat_frame, bpm_frame, 0, extract_oversample, 
-                    extract_swath_width, extract_height, extract_smooth, det_nr,
+                    master_flat_frame, bpm_frame, nodding_invert, 0, 
+                    extract_oversample, extract_swath_width, extract_height, 
+                    extract_smooth, det_nr,
                     &(combineda[det_nr-1]),
                     &(extracta[det_nr-1]),
                     &(slitfunca[det_nr-1]),
@@ -628,6 +640,7 @@ static int cr2res_obs_nodding(
   @param master_dark_frame      Associated master dark
   @param master_flat_frame      Associated master flat
   @param bpm_frame              Associated BPM
+  @param nodding_invert         Flag to use if B is above A
   @param calib_cosmics_corr     Flag to correct for cosmics
   @param extract_oversample     Extraction related
   @param extract_swath_width    Extraction related
@@ -654,6 +667,7 @@ static int cr2res_obs_nodding_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        int                     nodding_invert,
         int                     calib_cosmics_corr,
         int                     extract_oversample,
         int                     extract_swath_width,
@@ -867,7 +881,7 @@ static int cr2res_obs_nodding_reduce(
         - The slit center is exactly in the middle of A and B poѕitions
         - The nodthrow iѕ the distance in arcseconds between A and B
         - The slit size is 10 arcseconds
-        - The A position is above the B position
+        - The A position is above the B position (--nodding-invert=false)
     */
     slit_length = 10 ;
     if ((plist = cpl_propertylist_load(cpl_frame_get_filename(
@@ -883,20 +897,38 @@ static int cr2res_obs_nodding_reduce(
     cpl_propertylist_delete(plist) ;
     if (nod_throw < slit_length / 2.0) {
         extr_width_frac = nod_throw/slit_length ;  
-        slit_frac_a_bot = 0.5 ;
-        slit_frac_a_mid = slit_frac_a_bot + extr_width_frac/2.0 ;
-        slit_frac_a_top = slit_frac_a_bot + extr_width_frac ;
-        slit_frac_b_top = 0.5 ;
-        slit_frac_b_mid = slit_frac_b_top - extr_width_frac/2.0 ;
-        slit_frac_b_bot = slit_frac_b_top - extr_width_frac ;
+        if (nodding_invert == 0) {
+            slit_frac_a_bot = 0.5 ;
+            slit_frac_a_mid = slit_frac_a_bot + extr_width_frac/2.0 ;
+            slit_frac_a_top = slit_frac_a_bot + extr_width_frac ;
+            slit_frac_b_top = 0.5 ;
+            slit_frac_b_mid = slit_frac_b_top - extr_width_frac/2.0 ;
+            slit_frac_b_bot = slit_frac_b_top - extr_width_frac ;
+        } else {
+            slit_frac_a_top = 0.5 ;
+            slit_frac_a_mid = slit_frac_a_top - extr_width_frac/2.0 ;
+            slit_frac_a_bot = slit_frac_a_top - extr_width_frac ;
+            slit_frac_b_bot = 0.5 ;
+            slit_frac_b_mid = slit_frac_b_bot + extr_width_frac/2.0 ;
+            slit_frac_b_top = slit_frac_b_bot + extr_width_frac ;
+        }
     } else if (nod_throw <= slit_length) {
         extr_width_frac = (slit_length - nod_throw)/slit_length ;  
-        slit_frac_a_top = 1.0 ;
-        slit_frac_a_mid = slit_frac_a_top - extr_width_frac/2.0 ;
-        slit_frac_a_bot = slit_frac_a_top - extr_width_frac ;
-        slit_frac_b_bot = 0.0 ;
-        slit_frac_b_mid = slit_frac_b_bot + extr_width_frac/2.0 ;
-        slit_frac_b_top = slit_frac_b_bot + extr_width_frac ;
+        if (nodding_invert == 0) {
+            slit_frac_a_top = 1.0 ;
+            slit_frac_a_mid = slit_frac_a_top - extr_width_frac/2.0 ;
+            slit_frac_a_bot = slit_frac_a_top - extr_width_frac ;
+            slit_frac_b_bot = 0.0 ;
+            slit_frac_b_mid = slit_frac_b_bot + extr_width_frac/2.0 ;
+            slit_frac_b_top = slit_frac_b_bot + extr_width_frac ;
+        } else {
+            slit_frac_a_bot = 0.0 ;
+            slit_frac_a_mid = slit_frac_a_bot + extr_width_frac/2.0 ;
+            slit_frac_a_top = slit_frac_a_bot + extr_width_frac ;
+            slit_frac_b_top = 1.0 ;
+            slit_frac_b_mid = slit_frac_b_top - extr_width_frac/2.0 ;
+            slit_frac_b_bot = slit_frac_b_top - extr_width_frac ;
+        }
     } else {
         cpl_msg_error(__func__, "NODTHROW > slit length (%g>%g)- abort", 
                 nod_throw, slit_length) ;
