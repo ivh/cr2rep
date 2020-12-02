@@ -507,15 +507,15 @@ static int cr2res_obs_nodding(
             if (det_nr==2) gain = CR2RES_GAIN_CHIP2 ;
             if (det_nr==3) gain = CR2RES_GAIN_CHIP3 ;
 
-			/* Get the RA and DEC observed */
-			plist=cpl_propertylist_load(cpl_frame_get_filename(
+            /* Get the RA and DEC observed */
+            plist=cpl_propertylist_load(cpl_frame_get_filename(
                         cpl_frameset_get_position_const(rawframes, 0)), 0) ;
-			ra = cr2res_pfits_get_ra(plist) ;
-			dec = cr2res_pfits_get_dec(plist) ;
+            ra = cr2res_pfits_get_ra(plist) ;
+            dec = cr2res_pfits_get_dec(plist) ;
             dit = cr2res_pfits_get_dit(plist) ;
             ndit = cr2res_pfits_get_ndit(plist) ;
             nexp = cr2res_pfits_get_nexp(plist) ;
-			cpl_propertylist_delete(plist) ;
+            cpl_propertylist_delete(plist) ;
             if (cpl_error_get_code()) {
                 cpl_msg_indent_less() ;
                 cpl_error_reset() ;
@@ -703,6 +703,7 @@ static int cr2res_obs_nodding_reduce(
     double                  qc_signal_a, qc_signal_b, qc_transm, qc_fwhm_a, 
                             qc_fwhm_b ;
     int                 *   order_idx_values ;
+    double              *   qc_snrs ;
     int                     det_nr, nb_order_idx_values, order_real,
                             order_zp, order_idx, order_idxp ;
 
@@ -961,7 +962,6 @@ static int cr2res_obs_nodding_reduce(
         return -1 ;
     }
     /* TODO : Save trace_wave_a and b as products */
-    cpl_table_delete(trace_wave_a) ;
     if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth,
@@ -972,6 +972,7 @@ static int cr2res_obs_nodding_reduce(
         hdrl_image_delete(model_master_a) ;
         hdrl_image_delete(collapsed_a) ;
         hdrl_image_delete(collapsed_b) ;
+        cpl_table_delete(trace_wave_a) ;
         cpl_table_delete(trace_wave_b) ;
         cpl_table_delete(trace_wave) ;
         return -1 ;
@@ -982,14 +983,12 @@ static int cr2res_obs_nodding_reduce(
     /* QC parameters */
     plist = cpl_propertylist_new() ;
 
-    /* Compute the QC parameters */
+    /* QC - Signal and FWHM */
     qc_signal_a = cr2res_qc_obs_nodding_signal(extracted_a) ;
     qc_signal_b = cr2res_qc_obs_nodding_signal(extracted_b) ;
     qc_fwhm_a = cr2res_qc_obs_nodding_slit_psf(slit_func_a);
     qc_fwhm_b = cr2res_qc_obs_nodding_slit_psf(slit_func_b);
     qc_transm = cr2res_qc_obs_nodding_transmission(NULL) ;
-
-    /* Store the QC parameters in the plist */
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SIGNAL, 
             (qc_signal_a+qc_signal_b)/2.0) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SLITFWHM,
@@ -998,7 +997,21 @@ static int cr2res_obs_nodding_reduce(
         cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_TRANSM,
                 qc_transm) ;
 
-    /* Real Orders in QCs */
+    /* QC - SNR on nodding A posision */
+    qc_snrs = cr2res_qc_snr(trace_wave_a, extracted_a, &order_idx_values,
+            &nb_order_idx_values) ;
+    cpl_table_delete(trace_wave_a) ;
+    for (i=0 ; i<nb_order_idx_values ; i++) {
+        order_idx = order_idx_values[i] ;
+        order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
+        key_name = cpl_sprintf(CR2RES_HEADER_QC_SNR, order_idxp) ;
+        cpl_propertylist_append_double(plist, key_name, qc_snrs[i]) ;
+        cpl_free(key_name) ;
+    }
+    cpl_free(order_idx_values) ;
+    cpl_free(qc_snrs) ;
+
+    /* QC - Real Orders */
     if (order_zp > 0) {
         /* Get the order numbers from the TW rows */
         order_idx_values = cr2res_trace_get_order_idx_values(trace_wave, 
