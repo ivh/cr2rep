@@ -165,7 +165,8 @@ static cpl_table *create_test_table()
         cpl_array_set(array, 0, lower_1[i]);
         cpl_array_set(array, 1, lower_2[i]);
         cpl_table_set_array(traces, CR2RES_COL_LOWER, i, array);
-        cpl_table_set(traces, CR2RES_COL_ORDER, i, cr2res_io_convert_idx_to_order(i + 1));
+        cpl_table_set(traces, CR2RES_COL_ORDER, i,
+                cr2res_io_convert_order_idx_to_idxp(i + 1));
         cpl_table_set(traces, CR2RES_COL_TRACENB, i, 1);
     
         cpl_table_set_array(traces, CR2RES_COL_SLIT_FRACTION, i, slit_fraction);

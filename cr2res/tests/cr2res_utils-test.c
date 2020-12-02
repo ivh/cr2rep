@@ -665,7 +665,7 @@ static void test_cr2res_slit_pos()
     cpl_free(my_path) ;
 
     int nb_orders;
-    int *orders = cr2res_trace_get_order_numbers(tw_decker1, &nb_orders);
+    int *orders = cr2res_trace_get_order_idx_values(tw_decker1, &nb_orders);
 
 
     cpl_polynomial **coef_wave = cpl_malloc(nb_orders *

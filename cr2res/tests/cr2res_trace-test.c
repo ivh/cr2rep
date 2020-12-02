@@ -44,7 +44,7 @@
 static void test_cr2res_trace(void);
 static void test_cr2res_trace_clean(void);
 static void test_cr2res_trace_gen_image(void);
-static void test_cr2res_trace_get_order_numbers(void);
+static void test_cr2res_trace_get_order_idx_values(void);
 static void test_cr2res_trace_get_ycen(void);
 static void test_cr2res_trace_get_height(void);
 static void test_cr2res_trace_compute_middle(void);
@@ -181,7 +181,8 @@ static cpl_table *create_test_table()
         cpl_array_set(array, 0, lower_1[i]);
         cpl_array_set(array, 1, lower_2[i]);
         cpl_table_set_array(traces, CR2RES_COL_LOWER, i, array);
-        cpl_table_set(traces, CR2RES_COL_ORDER, i, cr2res_io_convert_idx_to_order(i + 1));
+        cpl_table_set(traces, CR2RES_COL_ORDER, i,
+                cr2res_io_convert_order_idx_to_idxp(i + 1));
         cpl_table_set(traces, CR2RES_COL_TRACENB, i, 1);
     
         cpl_table_set_array(traces, CR2RES_COL_SLIT_FRACTION, i, slit_fraction);
@@ -410,16 +411,16 @@ static void test_cr2res_trace_gen_image(void)
   @brief   Extracted order numbers are compared with known input table
  */
 /*----------------------------------------------------------------------------*/
-static void test_cr2res_trace_get_order_numbers(void)
+static void test_cr2res_trace_get_order_idx_values(void)
 {
     //define input
     cpl_table *trace = create_test_table();
     int nb_orders;
     int *res;
     /* test_cr2res_trace_compute_height() ; */
-    cpl_test_null(cr2res_trace_get_order_numbers(NULL, &nb_orders));
-    cpl_test_null(cr2res_trace_get_order_numbers(trace, NULL));
-    cpl_test(res = cr2res_trace_get_order_numbers(trace, &nb_orders));
+    cpl_test_null(cr2res_trace_get_order_idx_values(NULL, &nb_orders));
+    cpl_test_null(cr2res_trace_get_order_idx_values(trace, NULL));
+    cpl_test(res = cr2res_trace_get_order_idx_values(trace, &nb_orders));
     //test output
     cpl_test_eq(nb_orders, 9);
     for (int i = 0; i < 9; i++)
@@ -1201,7 +1202,7 @@ int main(void)
     test_cr2res_trace();
     test_cr2res_trace_clean();
     test_cr2res_trace_gen_image();
-    test_cr2res_trace_get_order_numbers();
+    test_cr2res_trace_get_order_idx_values();
     test_cr2res_trace_get_ycen();
     test_cr2res_trace_get_height();
     test_cr2res_trace_compute_middle();
