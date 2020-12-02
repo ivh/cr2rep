@@ -74,13 +74,19 @@ int cr2res_qc_flat_order_positions(
 
 
 
-/* OBS_1D */
+/* OBS */
 double cr2res_qc_obs_nodding_signal(
         const cpl_table     *   extracted) ;
 double cr2res_qc_obs_nodding_transmission(
         const cpl_table     *   extracted) ;
 double cr2res_qc_obs_nodding_slit_psf(
         const cpl_table     *   slitfu);
+
+double * cr2res_qc_snr(
+	const cpl_table *   tw,
+	const cpl_table *   extracted,
+	int             **  out_order_idx_values,
+	int             *   out_nb_order_idx_values) ;
 
 #endif
 

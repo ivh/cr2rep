@@ -33,6 +33,7 @@
 #include "cr2res_qc.h"
 #include "cr2res_trace.h"
 #include "cr2res_dfs.h"
+#include "cr2res_extract.h"
 #include "cr2res_calib.h"
 #include "cr2res_detlin.h"
 #include "cr2res_wave.h"
@@ -465,6 +466,62 @@ double cr2res_qc_obs_nodding_signal(
     cpl_vector_delete(vector2);
 
     return qc_signal ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the SNR of several spectra
+  @param    tw          The TW table
+  @param    extracted   The Extracted table
+  @param    out_order_idx_values    [out] The order values
+  @param    out_nb_order_idx_values [out] The number of order values
+  @return   An array of size out_nb_order_idx_values with the SNRs values
+ */
+/*----------------------------------------------------------------------------*/
+double * cr2res_qc_snr(
+        const cpl_table *   tw,
+        const cpl_table *   extracted,
+        int             **  out_order_idx_values,
+        int             *   out_nb_order_idx_values)
+{
+    int             *   order_idx_values ;
+    int                 nb_order_idx_values ;
+    cpl_bivector    *   my_spec,
+                    *   my_spec_err ;
+    cpl_vector      *   my_snr_spec ;
+    double          *   snrs ;
+    int                 i ;
+
+    /* Check Entries */
+    if (tw==NULL || extracted==NULL || out_order_idx_values==NULL ||
+            out_nb_order_idx_values==NULL) return NULL ;
+
+    /* Get the number of orders from TW table */
+    order_idx_values = cr2res_trace_get_order_idx_values(tw,
+            &nb_order_idx_values) ;
+
+    /* Allocate the output arrays */
+    snrs = cpl_malloc(nb_order_idx_values * sizeof(double)) ;
+
+    /* Loop on the orders */
+    for (i=0 ; i<nb_order_idx_values ; i++) {
+        /* Compute the SNR */
+        if (cr2res_extract_EXTRACT1D_get_spectrum(extracted,
+                order_idx_values[i], 1, &my_spec, &my_spec_err) == 0) {
+            my_snr_spec = cpl_vector_duplicate(cpl_bivector_get_y(my_spec)) ;
+            cpl_bivector_delete(my_spec) ;
+            cpl_vector_divide(my_snr_spec, cpl_bivector_get_y(my_spec_err)) ;
+            cpl_bivector_delete(my_spec_err) ;
+            snrs[i] = cpl_vector_get_median(my_snr_spec) ;
+            cpl_vector_delete(my_snr_spec) ; 
+        } else {
+            snrs[i] = -1.0 ;
+        }
+    }
+
+    *out_order_idx_values = order_idx_values ; 
+    *out_nb_order_idx_values = nb_order_idx_values ;
+    return snrs ;
 }
 
 /*----------------------------------------------------------------------------*/

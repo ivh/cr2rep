@@ -983,20 +983,20 @@ static int cr2res_obs_nodding_reduce(
     plist = cpl_propertylist_new() ;
 
     /* Compute the QC parameters */
-    /* TODO : pass the proper inputs */
     qc_signal_a = cr2res_qc_obs_nodding_signal(extracted_a) ;
     qc_signal_b = cr2res_qc_obs_nodding_signal(extracted_b) ;
-    qc_transm = cr2res_qc_obs_nodding_transmission(NULL) ;
     qc_fwhm_a = cr2res_qc_obs_nodding_slit_psf(slit_func_a);
     qc_fwhm_b = cr2res_qc_obs_nodding_slit_psf(slit_func_b);
+    qc_transm = cr2res_qc_obs_nodding_transmission(NULL) ;
 
     /* Store the QC parameters in the plist */
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SIGNAL, 
             (qc_signal_a+qc_signal_b)/2.0) ;
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_TRANSM,
-            qc_transm) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SLITFWHM,
             (qc_fwhm_a+qc_fwhm_b)/2.0) ;
+    if (qc_transm > 0.0) 
+        cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_TRANSM,
+                qc_transm) ;
 
     /* Real Orders in QCs */
     if (order_zp > 0) {

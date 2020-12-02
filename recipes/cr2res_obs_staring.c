@@ -510,7 +510,9 @@ static int cr2res_obs_staring_reduce(
     cpl_table           *   slit_func ;
     cpl_table           *   extracted ;
     int                 *   order_idx_values ;
+    double              *   qc_snrs ;
     char                *   key_name ;
+    double                  qc_signal, qc_fwhm ;
     int                     det_nr, order_zp, nb_order_idx_values,
                             order_real, order_idx, order_idxp ;
 
@@ -613,12 +615,26 @@ static int cr2res_obs_staring_reduce(
     /* QC parameters */
     plist = cpl_propertylist_new() ;
 
-    /* Compute the QC parameters */
+    /* QC - Signal and FWHM */
+    qc_signal = cr2res_qc_obs_nodding_signal(extracted) ;
+    qc_fwhm = cr2res_qc_obs_nodding_slit_psf(slit_func);
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SIGNAL, qc_signal) ;
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SLITFWHM, qc_fwhm) ;
 
+    /* QC - SNR */
+    qc_snrs = cr2res_qc_snr(trace_wave, extracted, &order_idx_values,
+            &nb_order_idx_values) ;
+    for (i=0 ; i<nb_order_idx_values ; i++) {
+        order_idx = order_idx_values[i] ;
+        order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
+        key_name = cpl_sprintf(CR2RES_HEADER_QC_SNR, order_idxp) ;
+        cpl_propertylist_append_double(plist, key_name, qc_snrs[i]) ;
+        cpl_free(key_name) ;
+    }
+    cpl_free(order_idx_values) ;
+    cpl_free(qc_snrs) ;
 
-    /* Store the QC parameters in the plist */
-
-    /* Real Orders in QCs */
+    /* QC - Real Orders */
     if (order_zp > 0) {
         /* Get the order numbers from the TW rows */
         order_idx_values = cr2res_trace_get_order_idx_values(trace_wave,

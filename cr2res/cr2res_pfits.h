@@ -82,6 +82,7 @@
 #define CR2RES_HEADER_QC_TRANSM             "ESO QC TRANSM"
 #define CR2RES_HEADER_QC_SLITFWHM           "ESO QC SLITFWHM"
 #define CR2RES_HEADER_QC_REAL_ORDER         "ESO QC REALORDER%d"
+#define CR2RES_HEADER_QC_SNR                "ESO QC SNR%d"
 
 /*-----------------------------------------------------------------------------
                                    Functions prototypes
