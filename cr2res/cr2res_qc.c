@@ -488,9 +488,10 @@ double * cr2res_qc_snr(
     int                 nb_order_idx_values ;
     cpl_bivector    *   my_spec,
                     *   my_spec_err ;
+    double          *   pmy_spec_err ;
     cpl_vector      *   my_snr_spec ;
     double          *   snrs ;
-    int                 i ;
+    int                 i, j ;
 
     /* Check Entries */
     if (tw==NULL || extracted==NULL || out_order_idx_values==NULL ||
@@ -510,6 +511,11 @@ double * cr2res_qc_snr(
                 order_idx_values[i], 1, &my_spec, &my_spec_err) == 0) {
             my_snr_spec = cpl_vector_duplicate(cpl_bivector_get_y(my_spec)) ;
             cpl_bivector_delete(my_spec) ;
+            /* Clean the error to avoid division by 0.0 */
+            pmy_spec_err = cpl_bivector_get_y_data(my_spec_err) ;
+            for (j=0 ; j<cpl_bivector_get_size(my_spec_err) ; j++) {
+                if (pmy_spec_err[j] == 0) pmy_spec_err[j] = 1.0 ;
+            }
             cpl_vector_divide(my_snr_spec, cpl_bivector_get_y(my_spec_err)) ;
             cpl_bivector_delete(my_spec_err) ;
             snrs[i] = cpl_vector_get_median(my_snr_spec) ;
