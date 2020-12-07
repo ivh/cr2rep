@@ -742,7 +742,7 @@ static int cr2res_cal_wave(
     }
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
             out_extracted, NULL, ext_plist, 
-            CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
+            CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG, RECIPE_STRING, 0) ;
     cpl_free(out_file);
 
 	if (wavecal_type == CR2RES_LINE2D || wavecal_type == CR2RES_LINE1D) {

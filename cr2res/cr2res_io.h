@@ -244,7 +244,8 @@ int cr2res_io_save_EXTRACT_1D(
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
         const char              *   procatg,
-        const char              *   recipe) ;
+        const char              *   recipe,
+        int                         create_idps) ;
 
 int cr2res_io_save_THROUGHPUT(
         const char              *   filename,

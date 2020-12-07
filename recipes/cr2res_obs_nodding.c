@@ -557,7 +557,8 @@ static int cr2res_obs_nodding(
 
     out_file = cpl_sprintf("%s_extractedA.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extracta,
-            NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTA_PROCATG,RECIPE_STRING);
+            NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTA_PROCATG,
+            RECIPE_STRING, 1);
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_slitfuncA.fits", RECIPE_STRING) ;
@@ -580,7 +581,8 @@ static int cr2res_obs_nodding(
 
     out_file = cpl_sprintf("%s_extractedB.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extractb,
-            NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTB_PROCATG,RECIPE_STRING);
+            NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTB_PROCATG,
+            RECIPE_STRING, 1);
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_slitfuncB.fits", RECIPE_STRING) ;

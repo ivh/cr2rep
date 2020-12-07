@@ -568,7 +568,7 @@ static int cr2res_util_extract(
                 cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
         cr2res_io_save_EXTRACT_1D(out_file, frameset, cur_fset, parlist, 
                 extract_tab, NULL, ext_plist, CR2RES_UTIL_EXTRACT_1D_PROCATG, 
-                RECIPE_STRING) ;
+                RECIPE_STRING, 0) ;
         cpl_free(out_file);
         cpl_frameset_delete(cur_fset) ;
 

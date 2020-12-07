@@ -1637,6 +1637,7 @@ int cr2res_io_save_LINES_DIAGNOSTICS(
   @param    ext_plist   The extensions property lists
   @param    procatg     The PRO CATG value
   @param    recipe      The recipe name
+  @pram     create_idps Flag to trigger the ІDPs generation
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -1649,10 +1650,26 @@ int cr2res_io_save_EXTRACT_1D(
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
         const char              *   procatg,
-        const char              *   recipe)
+        const char              *   recipe,
+        int                         create_idps)
 {
-    return cr2res_io_save_table(filename, allframes, inframes, parlist, tables,
+    int     err ;
+    err = cr2res_io_save_table(filename, allframes, inframes, parlist, tables,
             qc_list, ext_plist, recipe, procatg, CR2RES_EXTRACT_1D_PROTYPE) ;
+    if (create_idps) {
+        cpl_msg_info(__func__, "Create IDPs for %s -- TODO", filename) ;
+
+
+
+
+
+
+
+
+
+
+    }
+    return err ;
 }
 
 /*----------------------------------------------------------------------------*/

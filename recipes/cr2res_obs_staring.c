@@ -439,7 +439,8 @@ static int cr2res_obs_staring(
 
     out_file = cpl_sprintf("%s_extracted.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extract,
-            NULL, ext_plist, CR2RES_OBS_STARING_EXTRACT_PROCATG, RECIPE_STRING);
+            NULL, ext_plist, CR2RES_OBS_STARING_EXTRACT_PROCATG,
+            RECIPE_STRING, 0);
     cpl_free(out_file);
 
     /* Free */
