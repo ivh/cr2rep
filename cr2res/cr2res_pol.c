@@ -39,7 +39,9 @@
 int cr2res_pol_resample(cpl_vector ** intens,
                         cpl_vector ** wl,
                         cpl_vector ** errors,
-                        int           n);
+                        int           n,
+                        cpl_vector ** xmin,
+                        cpl_vector ** xmax);
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -85,9 +87,14 @@ cpl_bivector * cr2res_pol_demod_stokes(
   cpl_bivector * result;
   cpl_vector * outspec;
   cpl_vector * outerr;
-  cpl_vector * R;
-  cpl_vector * tmp;
+  // cpl_vector * R;
+  // cpl_vector * tmp;
   cpl_size size;
+  cpl_vector * xmin, * xmax;
+
+  cpl_vector ** intens_local;
+  cpl_vector ** errors_local;
+  cpl_vector ** wl_local;
 
   /* Check entries */
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
@@ -108,7 +115,18 @@ cpl_bivector * cr2res_pol_demod_stokes(
   }
 
   // Resample to common wavelength grid
-  cr2res_pol_resample(intens, wl, errors, n);
+  // This modifies intens and errors, so we should copy them first
+  intens_local = cpl_malloc(n * sizeof(cpl_vector*));
+  errors_local = cpl_malloc(n * sizeof(cpl_vector*));
+  wl_local = cpl_malloc(n * sizeof(cpl_vector*));
+  for (cpl_size i = 0; i < n; i++){
+    intens_local[i] = cpl_vector_duplicate(intens[i]);
+    errors_local[i] = cpl_vector_duplicate(errors[i]);
+    wl_local[i] = cpl_vector_duplicate(wl[i]);
+  }
+  xmin = cpl_vector_new(n);
+  xmax = cpl_vector_new(n);
+  cr2res_pol_resample(intens_local, wl_local, errors_local, n, &xmin, &xmax);
 
   result = cpl_bivector_new(size);
   outspec = cpl_bivector_get_x(result);
@@ -120,54 +138,63 @@ cpl_bivector * cr2res_pol_demod_stokes(
     cpl_vector_set(outspec, i, 0.);  
     cpl_vector_set(outerr, i, 0.);
   }
-
-  R = cpl_vector_duplicate(intens[0]); // 1u
-  cpl_vector_divide(R, intens[2]); // 2u
-
-  tmp = cpl_vector_duplicate(intens[3]); // 2d
-  cpl_vector_divide(tmp, intens[1]); // 1d
-  cpl_vector_multiply(R, tmp);
-  cpl_vector_delete(tmp);
-
-  tmp = cpl_vector_duplicate(intens[4]); // 3u
-  cpl_vector_divide(tmp, intens[6]); // 4u
-  cpl_vector_multiply(R, tmp);
-  cpl_vector_delete(tmp);
   
-  tmp = cpl_vector_duplicate(intens[7]); // 3d
-  cpl_vector_divide(tmp, intens[5]); // 4d
-  cpl_vector_multiply(R, tmp);
-  cpl_vector_delete(tmp);
+  double r, s, e, tmp;
+  for (cpl_size i = cpl_vector_get_max(xmin); 
+        i < cpl_vector_get_min(xmax) + 1; i++){
+    // Calculate R
+    r = cpl_vector_get(intens_local[0], i);  // 1u
+    r /= cpl_vector_get(intens_local[2], i); // 2u
+    r *= cpl_vector_get(intens_local[3], i); // 2d
+    r /= cpl_vector_get(intens_local[1], i); // 1d
+    r *= cpl_vector_get(intens_local[4], i); // 3u
+    r /= cpl_vector_get(intens_local[6], i); // 4u
+    r *= cpl_vector_get(intens_local[7], i); // 3d
+    r /= cpl_vector_get(intens_local[5], i); // 4d
+    r = pow(r, 0.25); // 0.25 = 2/n
 
-  cpl_vector_power(R, 0.25); // 0.25 = 2/n
-  cpl_vector_copy(outspec, R);
-  cpl_vector_subtract_scalar(outspec, 1.0);
-  tmp = cpl_vector_duplicate(R);
-  cpl_vector_add_scalar(tmp, 1.0);
-  cpl_vector_divide(outspec, tmp);
-  cpl_vector_delete(tmp);
+    // Calculate Spectrum
+    s = (r - 1) / (r + 1);
 
-  // Calculate Error
-  // sum((sigma / spec)**2)
-  for (cpl_size i = 0; i < n; i++) {
-      tmp = cpl_vector_duplicate(errors[i]);
-      cpl_vector_divide(tmp, intens[i]);
-      cpl_vector_multiply(tmp, tmp);
-      cpl_vector_add(outerr, tmp);
-      cpl_vector_delete(tmp);
+    // Calculate Error
+    // sum((err / spec)**2)
+    e = 0;
+    for (cpl_size j = 0; j < n; j++){
+      tmp = cpl_vector_get(errors_local[j], i) / 
+          cpl_vector_get(intens_local[j], i); 
+      e += tmp * tmp;
+    }
+
+    // 0.5 * R / (R+1)**2 * sqrt(err)
+    e = sqrt(e);
+    e *= 0.5 * r / ((r + 1) * (r + 1));
+
+    cpl_vector_set(outspec, i, s);
+    cpl_vector_set(outerr, i, e);
   }
-  
-  // 0.5 * R / (R+1)**2 * sqrt(err)
-  cpl_vector_sqrt(outerr);
-  tmp = cpl_vector_duplicate(R);
-  cpl_vector_add_scalar(tmp, 1);
-  cpl_vector_multiply(tmp, tmp);
-  cpl_vector_divide(R, tmp);
-  cpl_vector_multiply(outerr, R);
-  cpl_vector_multiply_scalar(outerr, 0.5);
 
-  cpl_vector_delete(R);
-  cpl_vector_delete(tmp);
+  // We need to remove pointless values outside the wavelength overlap
+  for (cpl_size j = 0; j < cpl_vector_get_max(xmin); j++)
+  {
+    cpl_vector_set(outspec, j, NAN);
+    cpl_vector_set(outerr, j, NAN);
+  }
+  for (cpl_size j = cpl_vector_get_min(xmax) + 1; j < size; j++)
+  {
+    cpl_vector_set(outspec, j, NAN);
+    cpl_vector_set(outerr, j, NAN);
+  }
+
+  for (cpl_size i = 0; i < n; i++){
+    cpl_vector_delete(intens_local[i]);
+    cpl_vector_delete(errors_local[i]);
+    cpl_vector_delete(wl_local[i]);
+  }
+  cpl_free(intens_local);
+  cpl_free(errors_local);
+  cpl_free(wl_local);
+  cpl_vector_delete(xmin);
+  cpl_vector_delete(xmax);
 
   if (cpl_error_get_code() != CPL_ERROR_NONE) {
     cpl_msg_error(__func__, "Error code: %i", cpl_error_get_code());
@@ -194,11 +221,12 @@ cpl_bivector * cr2res_pol_demod_stokes(
 int cr2res_pol_resample(cpl_vector ** intens,
                         cpl_vector ** wl,
                         cpl_vector ** errors,
-                        int           n)
+                        int           n,
+                        cpl_vector  ** xmin,
+                        cpl_vector  ** xmax)
 {
   // TODO: Use some other grid as baseline?
   double wmin, wmax;
-  int xmin, xmax;
   cpl_vector * master_wl = cpl_vector_duplicate(wl[0]);
   cpl_bivector * tmp;
   cpl_bivector * target;
@@ -207,20 +235,37 @@ int cr2res_pol_resample(cpl_vector ** intens,
   // so that we only include points from within ALL wavelength ranges
   wmin = -INFINITY;
   wmax = INFINITY;
-  xmin = 0;
-  xmax = cpl_vector_get_size(wl[0]);
   for (cpl_size i = 0; i < n; i++)
   {
     if (cpl_vector_get(wl[i], 0) > wmin){
       wmin = cpl_vector_get(wl[i], 0);
-      xmin = i;
     }
-    if (cpl_vector_get(wl[i], cpl_vector_get_size(wl[i])) < wmax){
-      wmax = cpl_vector_get(wl[i], cpl_vector_get_size(wl[i]));
-      xmax = i;
+    if (cpl_vector_get(wl[i], cpl_vector_get_size(wl[i]) - 1) < wmax){
+      wmax = cpl_vector_get(wl[i], cpl_vector_get_size(wl[i]) - 1);
     }
   }
 
+  for (cpl_size i = 0; i < n; i++){
+    cpl_vector_set(*xmin, i, 0);
+    cpl_vector_set(*xmax, i, cpl_vector_get_size(wl[i]) - 1);
+    
+    for (cpl_size j = 0; j < cpl_vector_get_size(wl[i]); j++){
+      if (cpl_vector_get(wl[i], j) >= wmin){
+        cpl_vector_set(*xmin, i, j);
+        break;
+      }
+    }
+
+    for (cpl_size j = cpl_vector_get_size(wl[i]) - 1; j >= 0; j--){
+      if (cpl_vector_get(wl[i], j) <= wmax){
+        cpl_vector_set(*xmax, i, j);
+        break;
+      }
+    }
+  }
+
+  // We need to limit master_wl to the valid range, since bivector interpolate
+  // does not extrapolate at all, but gives an error (?)
   int m = cpl_vector_get_size(wl[0]);
   for (cpl_size i = 0; i < m; i++)
   {
@@ -230,8 +275,9 @@ int cr2res_pol_resample(cpl_vector ** intens,
       cpl_vector_set(master_wl, i, wmax);
     }
   }
-  
-  // Do we need to copy the arrays before interpolation or does it work in place?
+
+  // Do we need to copy the arrays before interpolation
+  // or does it work in place?
   for (cpl_size i = 0; i < n; i++)
   {
     tmp = cpl_bivector_wrap_vectors(wl[i], intens[i]);
@@ -246,18 +292,25 @@ int cr2res_pol_resample(cpl_vector ** intens,
     cpl_bivector_unwrap_vectors(tmp);
     cpl_bivector_unwrap_vectors(target);
 
-    for (cpl_size j = 0; j < xmin; j++)
+    // We copy the wavelength here, even though it is currently noy used in 
+    // the rest of the code
+    cpl_vector_copy(wl[i], master_wl);
+
+    for (cpl_size j = 0; j < cpl_vector_get(*xmin, i); j++)
     {
-      cpl_vector_set(intens[i], j, NAN);
-      cpl_vector_set(errors[i], j, NAN);
+      cpl_vector_set(intens[i], j, 1);
+      cpl_vector_set(errors[i], j, 1);
     }
-    for (cpl_size j = xmax; j < cpl_vector_get_size(intens[i]); j++)
+    for (cpl_size j = cpl_vector_get(*xmax, i) + 1; 
+         j < cpl_vector_get_size(intens[i]); j++)
     {
-      cpl_vector_set(intens[i], j, NAN);
-      cpl_vector_set(errors[i], j, NAN);
+      cpl_vector_set(intens[i], j, 1);
+      cpl_vector_set(errors[i], j, 1);
     }
   }
   
+  cpl_vector_delete(master_wl);
+
   return 0;
 }
 

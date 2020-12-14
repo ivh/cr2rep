@@ -41,6 +41,8 @@
 
 
 static void test_cr2res_pol_demod_stokes(void);
+static void test_cr2res_pol_demod_stokes_different_wavelengths(void);
+static void test_cr2res_pol_demod_stokes_zeros(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -84,12 +86,22 @@ static void test_cr2res_pol_demod_stokes(){
         cpl_vector_set(cpl_bivector_get_x(spec), i, 1);
         cpl_vector_set(cpl_bivector_get_y(spec), i, 1);
     }
+
+    // Set the wavelength
+    // for this test they all have the same wavelength scale
+    double wmin = 2000;
+    double wmax = 3000;
+    double step = (wmax - wmin) / CR2RES_DETECTOR_SIZE;
+    for (int i = 0; i < n; i++){
+      wl[i] = cpl_vector_new(CR2RES_DETECTOR_SIZE);
+      for (int j = 0; j < CR2RES_DETECTOR_SIZE; j++){
+        cpl_vector_set(wl[i], j, wmin + j * step);
+      }
+    }
     
     // just use the same spectrum 8 times
     for (int i = 0; i < n; i++)
     { 
-        // the wavelength doesn't matter it just needs to be set
-        wl[i] = cpl_bivector_get_x(spec); 
         intens[i] = cpl_bivector_get_x(spec);
         errors[i] = cpl_bivector_get_y(spec);
     }
@@ -99,11 +111,16 @@ static void test_cr2res_pol_demod_stokes(){
     // Check that the results are as expected    
     for (cpl_size i = 0; i < CR2RES_DETECTOR_SIZE; i++)
     {
-        cpl_test_abs(value, cpl_vector_get(cpl_bivector_get_x(pol), i), DBL_EPSILON);
-        cpl_test_abs(error, cpl_vector_get(cpl_bivector_get_y(pol), i), DBL_EPSILON);
+        cpl_test_abs(value, cpl_vector_get(cpl_bivector_get_x(pol), i),
+                    DBL_EPSILON);
+        cpl_test_abs(error, cpl_vector_get(cpl_bivector_get_y(pol), i),
+                    DBL_EPSILON);
     }
 
     // Clean memory
+    for (int i = 0; i < n; i++){
+      cpl_vector_delete(wl[i]);
+    }
     cpl_bivector_delete(pol);
     cpl_bivector_delete(spec);
     cpl_free(intens);
@@ -111,6 +128,143 @@ static void test_cr2res_pol_demod_stokes(){
     cpl_free(errors);
 }
 
+
+static void test_cr2res_pol_demod_stokes_different_wavelengths(){
+    int n = 8; // as it has to be
+    cpl_vector ** wl = cpl_malloc(n * sizeof(cpl_vector*));
+    cpl_vector ** intens = cpl_malloc(n * sizeof(cpl_vector*));
+    cpl_vector ** errors = cpl_malloc(n * sizeof(cpl_vector*));
+    cpl_bivector * pol;
+    double value = 0;
+    double error = 1. / sqrt(8);
+
+    cpl_size i, j;
+
+    // spec = sigma = 1
+    // -> pol = 0
+    // -> sigma pol = 1 / sqrt(8)
+    cpl_bivector * spec = cpl_bivector_new(CR2RES_DETECTOR_SIZE);
+    for (cpl_size i = 0; i < CR2RES_DETECTOR_SIZE; i++)
+    {
+        cpl_vector_set(cpl_bivector_get_x(spec), i, 1);
+        cpl_vector_set(cpl_bivector_get_y(spec), i, 1);
+    }
+
+    // Set the wavelength
+    // each spectra has a slightly shifted scale
+    double wmin = 2000;
+    double wmax = 3000;
+    double step = (wmax - wmin) / CR2RES_DETECTOR_SIZE;
+    double diff_between_spectra = 20;
+    for (i = 0; i < n; i++){
+      wl[i] = cpl_vector_new(CR2RES_DETECTOR_SIZE);
+      for (j = 0; j < CR2RES_DETECTOR_SIZE; j++){
+        cpl_vector_set(wl[i], j, wmin + j * step + i * diff_between_spectra);
+      }
+    }
+    
+    // just use the same spectrum 8 times
+    // demod should not modify them (it makes copies)
+    for (int i = 0; i < n; i++)
+    { 
+        intens[i] = cpl_bivector_get_x(spec);
+        errors[i] = cpl_bivector_get_y(spec);
+    }
+
+    cpl_test_nonnull(pol = cr2res_pol_demod_stokes(intens, wl, errors, n));
+
+
+    // These values depend on the chosen wavelength grid
+    // make sure to adjust them appropiately when you change those values
+    cpl_size xmin = 287;
+    cpl_size xmax = 1760;
+    // Check that the results are as expected
+    // First we have some NANs
+    i = 0;
+    for (; i < xmin; i++){
+      cpl_test(isnan(cpl_vector_get(cpl_bivector_get_x(pol), i)));
+      cpl_test(isnan(cpl_vector_get(cpl_bivector_get_y(pol), i)));
+    }
+    // Then 0s as in the same wavelengths case
+    for (; i < xmax + 1; i++)
+    {
+        cpl_test_abs(value, cpl_vector_get(cpl_bivector_get_x(pol), i), 
+                    DBL_EPSILON);
+        cpl_test_abs(error, cpl_vector_get(cpl_bivector_get_y(pol), i), 
+                    DBL_EPSILON);
+    }
+    // Followed by more NANs
+    for (; i < CR2RES_DETECTOR_SIZE; i++){
+      cpl_test(isnan(cpl_vector_get(cpl_bivector_get_x(pol), i)));
+      cpl_test(isnan(cpl_vector_get(cpl_bivector_get_y(pol), i)));
+    }
+
+    // Clean memory
+    for (j = 0; j < n; j++){
+      cpl_vector_delete(wl[j]);
+    }
+    cpl_bivector_delete(pol);
+    cpl_bivector_delete(spec);
+    cpl_free(intens);
+    cpl_free(wl);
+    cpl_free(errors);
+}
+
+static void test_cr2res_pol_demod_stokes_zeros(){
+    int n = 8; // as it has to be
+    cpl_vector ** wl = cpl_malloc(n * sizeof(cpl_vector*));
+    cpl_vector ** intens = cpl_malloc(n * sizeof(cpl_vector*));
+    cpl_vector ** errors = cpl_malloc(n * sizeof(cpl_vector*));
+    cpl_bivector * pol;
+
+    // spec = sigma = 1
+    // -> pol = 0
+    // -> sigma pol = 1 / sqrt(8)
+    cpl_bivector * spec = cpl_bivector_new(CR2RES_DETECTOR_SIZE);
+    for (cpl_size i = 0; i < CR2RES_DETECTOR_SIZE; i++)
+    {
+        cpl_vector_set(cpl_bivector_get_x(spec), i, 0);
+        cpl_vector_set(cpl_bivector_get_y(spec), i, 0);
+    }
+
+    // Set the wavelength
+    // for this test they all have the same wavelength scale
+    double wmin = 2000;
+    double wmax = 3000;
+    double step = (wmax - wmin) / CR2RES_DETECTOR_SIZE;
+    for (int i = 0; i < n; i++){
+      wl[i] = cpl_vector_new(CR2RES_DETECTOR_SIZE);
+      for (int j = 0; j < CR2RES_DETECTOR_SIZE; j++){
+        cpl_vector_set(wl[i], j, wmin + j * step);
+      }
+    }
+    
+    // just use the same spectrum 8 times
+    for (int i = 0; i < n; i++)
+    { 
+        intens[i] = cpl_bivector_get_x(spec);
+        errors[i] = cpl_bivector_get_y(spec);
+    }
+
+    cpl_test_nonnull(pol = cr2res_pol_demod_stokes(intens, wl, errors, n));
+
+    // Check that the results are as expected    
+    for (cpl_size i = 0; i < CR2RES_DETECTOR_SIZE; i++)
+    {
+        cpl_test(isnan(cpl_vector_get(cpl_bivector_get_x(pol), i))); 
+        cpl_test(isnan(cpl_vector_get(cpl_bivector_get_y(pol), i)));
+    }
+
+    // Clean memory
+    for (int i = 0; i < n; i++){
+      cpl_vector_delete(wl[i]);
+    }
+    cpl_bivector_delete(pol);
+    cpl_bivector_delete(spec);
+    cpl_free(intens);
+    cpl_free(wl);
+    cpl_free(errors);
+}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -122,6 +276,8 @@ int main(void)
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
     test_cr2res_pol_demod_stokes();
+    test_cr2res_pol_demod_stokes_different_wavelengths();
+    test_cr2res_pol_demod_stokes_zeros();
 
     return cpl_test_end(0);
 }
