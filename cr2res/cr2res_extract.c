@@ -402,7 +402,7 @@ int cr2res_extract_sum_vert(
     cpl_vector      *   slitfu;
     cpl_vector      *   sigma;
     cpl_size            lenx, leny;
-    int                 i, j;
+    int                 i, j, y;
     int                 ymin, ymax;
     int                 empty_bottom = 0;
     cpl_type            imtyp;
@@ -466,7 +466,9 @@ int cr2res_extract_sum_vert(
     ycen_int = cr2res_vector_get_int(ycen);
     for (i=1;i<=lenx;i++){
         for (j=1;j<=height;j++){
-            cpl_image_set(img_tmp, i, ycen_int[i-1]-(height/2)+j,
+            y = ycen_int[i-1]-(height/2)+j;
+            if ((y <=0) || (y > leny)){ continue; }
+            cpl_image_set(img_tmp, i, y,
                 cpl_vector_get(spc,i-1)*cpl_vector_get(slitfu,j-1) );
         }
     }
@@ -484,7 +486,14 @@ int cr2res_extract_sum_vert(
     *model = hdrl_image_create(img_tmp, NULL);
     cpl_image_delete(img_tmp);
 
-    return 0;
+    if (cpl_error_get_code() != CPL_ERROR_NONE){
+        cpl_msg_error(__func__, "Error in the vertical sum extraction %s", 
+                        cpl_error_get_where());
+        cpl_error_reset();
+        return -1;
+    } else {
+        return 0;
+    }
 }
 
 /*----------------------------------------------------------------------------*/

@@ -598,7 +598,7 @@ cpl_image * cr2res_image_cut_rectify(
         }
 
         /* Cut out and insert */
-        img_1d = cpl_image_extract(img_in,i,ymin, i, ymax);
+        img_1d = cpl_image_extract(img_in, i, ymin, i, ymax);
         cpl_image_copy(img_out, img_1d, i, 1+empty_bottom);
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
             cpl_msg_error(__func__,
@@ -607,6 +607,7 @@ cpl_image * cr2res_image_cut_rectify(
             cpl_free(ycen_int);
             cpl_image_delete(img_out);
             if (img_1d != NULL) cpl_image_delete(img_1d);
+            cpl_error_reset();
             return NULL;
         }
         cpl_image_delete(img_1d);
