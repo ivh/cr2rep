@@ -3450,6 +3450,11 @@ static int cr2res_extract_slit_func_curved(
         //     1 + delta_x, 1, ncols-delta_x, nrows);
         cpl_image_get_mad_window(img_mad,
             1 + delta_x, 1, ncols-delta_x, nrows, &mad);
+        if (cpl_error_get_code() == CPL_ERROR_DATA_NOT_FOUND){
+            // this happens if all pixels are bad
+            mad = 1;
+            cpl_error_reset();
+        }
         mad *= 1.4826; // scaling factor relative to standard deviation 
 
         /* Adjust the mask marking outlyers */
