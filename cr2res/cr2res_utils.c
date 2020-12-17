@@ -567,7 +567,7 @@ cpl_image * cr2res_image_cut_rectify(
     cpl_type        imtyp;
     cpl_size        lenx, leny;
     int             * ycen_int;
-    int             i, ymin, ymax;
+    int             i, j, ymin, ymax;
     int             empty_bottom = 0;
 
     if (img_in == NULL || ycen == NULL || height < 1) return NULL;
@@ -584,6 +584,15 @@ cpl_image * cr2res_image_cut_rectify(
         /* treat edge cases, summing over shorter column where needed*/
         ymin = ycen_int[i-1]-(height/2);
         ymax = ycen_int[i-1]+(height/2) + height%2 ;
+        if ((ymax <= 1) || (ymin > leny)) {
+            // Trace is completely out of bounds, skip this column
+            // set it to 0 and mark as bad pixels
+            for (j = 1; j <= height; j++){
+                cpl_image_set(img_out, i, j, NAN);
+                cpl_image_reject(img_out, i, j);
+            }
+            continue;
+        }
         if (ymin < 1) {
             empty_bottom = 1 - ymin; // save for later insertion
             ymin = 1;
@@ -632,7 +641,7 @@ int cr2res_image_insert_rect(
     cpl_image       * img_1d;
     cpl_size        lenx, leny, height;
     int             * ycen_int;
-    int             i, ymin, ymax;
+    int             i, j, ymin, ymax;
     int             empty_bottom;
 
     if (rect_in == NULL || ycen == NULL || img_out == NULL) return -1;
@@ -652,6 +661,15 @@ int cr2res_image_insert_rect(
         /* treat edge cases, shorten column where needed*/
         ymin = ycen_int[i-1]-(height/2);
         ymax = ycen_int[i-1]+(height/2) + height%2 ;
+        if ((ymax <= 1) || (ymin > leny)) {
+            // Trace is completely out of bounds, skip this column
+            // set it to 0 and mark as bad pixels 257 1754
+            for (j = 1; j <= height; j++){
+                cpl_image_set(img_out, i, j, NAN);
+                cpl_image_reject(img_out, i, j);
+            }
+            continue;
+        }
         if (ymin < 1) {
             empty_bottom = 1 - ymin; // save for later insertion
             ymin = 1;
