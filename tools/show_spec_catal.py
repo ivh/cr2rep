@@ -8,13 +8,10 @@ import matplotlib.pyplot as plt
 STEPS=900
 
 EXTNAMES = ['CHIP%d.INT1'%i for i in [1,2,3]]
-colors=['y','r','b']
-lstyle=['-', '--','--','-']
-lwidth=[1.0,3.0,1.0,3.0]
 ZOOM = 1
 YMAX = 5000
 YMIN = -3000
-CAT_FACTOR = 50
+CAT_FACTOR = 5
 SPEC_FACTOR=1
 
 X = np.arange(2048)+1
@@ -44,11 +41,11 @@ def main(specname,catname=None,cat2name=None,tracename=None):
     if catname:
         cat_data = fits.open(catname)[1].data
         cat_wav, cat_ints = cat_data['Wavelength'], cat_data['Emission']
-        ax.vlines(cat_wav, np.zeros_like(cat_ints), -1*CAT_FACTOR*cat_ints, 'k',alpha=0.2)
+        ax.vlines(cat_wav, np.zeros_like(cat_ints), -1*CAT_FACTOR*cat_ints, 'tab:gray',alpha=0.5)
     if cat2name:
         cat_data = fits.open(cat2name)[1].data
         cat_wav, cat_ints = cat_data['Wavelength'], cat_data['Emission']
-        ax.vlines(cat_wav, np.zeros_like(cat_ints), -1*CAT_FACTOR*cat_ints, 'g')
+        ax.vlines(cat_wav, np.zeros_like(cat_ints), -1*CAT_FACTOR*cat_ints, 'tab:green')
 
     for i,ext in enumerate(EXTNAMES):
         twd =None
@@ -78,9 +75,10 @@ def main(specname,catname=None,cat2name=None,tracename=None):
                     wl = ev(p,X)
             xcor = h.get('ESO QC WAVE BESTXCORR-%02d-01'%order)
             #ax.hlines(np.percentile(spec,10),wl[0],wl[-1],'r')
-            ax.plot(wl,spec*SPEC_FACTOR,label=str(order),color=colors[i],
-                linestyle='-')
-            ax.text(wl.mean(),3000,'(O:%d D:%d X:%.2f)'%(order,i+1,xcor or 0.0), fontsize=9,
+            spec *= SPEC_FACTOR
+            spec = spec - np.median(spec) + 100
+            ax.plot(wl,spec,label=str(order),color='tab:blue',alpha=0.8)
+            ax.text(wl.mean(),1000,'(O:%d D:%d X:%.2f)'%(order,i+1,xcor or 0.0), fontsize=11,
                 horizontalalignment='center')
 
 
