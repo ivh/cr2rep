@@ -12,18 +12,71 @@ ZOOM = 1
 YMAX = 5000
 YMIN = -3000
 CAT_FACTOR = 5
+CAT_OFFSET = 200
 SPEC_FACTOR=1
+FIT_NPIX=8 # x2 , to left and right of click
 
 X = np.arange(2048)+1
+catalog=None
+PIX_is=[]
+WL_should=[]
+SPEC = []
+LABEL = ''
 
 def onkey(event):
+    global WL_should, PIX_is, SPEC, LABEL
     if event.key=='w':
         print('%.2f '%event.xdata,end='',flush=True)
     if event.key=='e':
         print('%.2f'%event.xdata,flush=True)
     if event.key=='d':
         print('undo last',flush=True)
+    if event.key=='x':
+        cat = find_nearest(catalog,event.xdata)
+        print('%.3f'%cat)
+        WL_should.append(cat)
+    if event.key=='F':
+        try:
+            p=np.polyfit(PIX_is,WL_should,deg=2)
+            plt.plot(np.polyval(p,X),SPEC,'y')
+            ext,order=LABEL.split()
+            order=int(order)
+            updatefits(p,ext,order)
+        except Exception as E:
+            print('fit failed: ', E)
+        PIX_is=[]
+        WL_should=[]
 
+def onpick(event):
+    line = event.artist
+    xdata, ydata = line.get_data()
+    peak = event.ind.mean()
+    #print('on pick line:', np.array([xdata[ind], ydata[ind]]).T)
+    #x=xdata[ind-FIT_NPIX-1:ind+FIT_NPIX]
+    #y=ydata[ind-FIT_NPIX-1:ind+FIT_NPIX]
+    #y-=y.min()
+    #peak = np.sum(x*y)/np.sum(y)
+    print(peak)
+    global PIX_is, SPEC, LABEL
+    LABEL = line.get_label()
+    SPEC = ydata
+    PIX_is.append(peak)
+
+def updatefits(p,ext=None,order=None,trace=1):
+    tw=fits.open(sys.argv[-1])
+    twd=tw[ext].data
+    for i,row in enumerate(twd):
+        print(i,row['Order'])
+        if row['Order'] == order:
+            break
+    print('Writing: ', ext,i, order, tw[ext].data[i]['Order'])
+    tw[ext].data[i]['Wavelength']=p[::-1]
+    tw.writeto(sys.argv[-1],overwrite=True)
+
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx]
 
 def ev(p,x):
     return np.polyval(p[::-1],x)
@@ -41,11 +94,13 @@ def main(specname,catname=None,cat2name=None,tracename=None):
     if catname:
         cat_data = fits.open(catname)[1].data
         cat_wav, cat_ints = cat_data['Wavelength'], cat_data['Emission']
-        ax.vlines(cat_wav, np.zeros_like(cat_ints), -1*CAT_FACTOR*cat_ints, 'tab:gray',alpha=0.5)
+        global catalog
+        catalog = cat_wav
+        ax.vlines(cat_wav, np.zeros_like(cat_ints)-CAT_OFFSET, -CAT_OFFSET-CAT_FACTOR*cat_ints, 'tab:gray',alpha=0.5)
     if cat2name:
         cat_data = fits.open(cat2name)[1].data
         cat_wav, cat_ints = cat_data['Wavelength'], cat_data['Emission']
-        ax.vlines(cat_wav, np.zeros_like(cat_ints), -1*CAT_FACTOR*cat_ints, 'tab:green')
+        ax.vlines(cat_wav, np.zeros_like(cat_ints)-CAT_OFFSET, -CAT_OFFSET-CAT_FACTOR*cat_ints, 'tab:green')
 
     for i,ext in enumerate(EXTNAMES):
         twd =None
@@ -73,11 +128,12 @@ def main(specname,catname=None,cat2name=None,tracename=None):
                     ['Wavelength'][0]
                 if not np.isnan(p).any():
                     wl = ev(p,X)
+                tw.close()
             xcor = h.get('ESO QC WAVE BESTXCORR-%02d-01'%order)
             #ax.hlines(np.percentile(spec,10),wl[0],wl[-1],'r')
             spec *= SPEC_FACTOR
             spec = spec - np.median(spec) + 100
-            ax.plot(wl,spec,label=str(order),color='tab:blue',alpha=0.8)
+            ax.plot(wl,spec,label=' '.join((ext,str(order))),color='tab:blue',alpha=0.8,pickradius=5,picker=True)
             ax.text(wl.mean(),1000,'(O:%d D:%d X:%.2f)'%(order,i+1,xcor or 0.0), fontsize=11,
                 horizontalalignment='center')
 
@@ -100,7 +156,8 @@ def main(specname,catname=None,cat2name=None,tracename=None):
 
     ax.axis((x1,x1+(rang/ZOOM),-YMAX,YMAX))
 
-    cid = FIG.canvas.mpl_connect('key_press_event', onkey)
+    cid1 = FIG.canvas.mpl_connect('key_press_event', onkey)
+    cid2 = FIG.canvas.mpl_connect('pick_event', onpick)
 
     plt.show()
 

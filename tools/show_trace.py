@@ -68,7 +68,7 @@ def compare(fname_trace, fname_img=None, fname_spec=None):
     FIG.tight_layout(pad=0.02)
 #    plt.show()
     figname = fname_trace.replace('.fits','.png')
-    plt.savefig(figname,dpi=120)
+    plt.savefig(figname,dpi=240)
 
 
 if __name__ == '__main__':

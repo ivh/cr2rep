@@ -7,13 +7,11 @@ import matplotlib.pyplot as plt
 
 
 EXTNAMES = ['CHIP%d.INT1'%i for i in [1,2,3]]
-colors=['y','r','b']
-lstyle=['-', '--','--','-']
-lwidth=[1.0,3.0,1.0,3.0]
 ZOOM = 1
 YMAX = 5000
 YMIN = -3000
-CAT_FACTOR = 50
+CAT_FACTOR = 5
+CAT_OFFSET = 200
 SPEC_FACTOR=1
 
 X = np.arange(2048)+1
@@ -34,11 +32,11 @@ def main(specname,catname=None,cat2name=None,tracename=None):
     if catname:
         cat_data = fits.open(catname)[1].data
         cat_wav, cat_ints = cat_data['Wavelength'], cat_data['Emission']
-        ax.vlines(cat_wav, np.zeros_like(cat_ints), -1*CAT_FACTOR*cat_ints, 'k',alpha=0.2)
+        ax.vlines(cat_wav, np.zeros_like(cat_ints)-CAT_OFFSET, -CAT_OFFSET-1*CAT_FACTOR*cat_ints, 'k',alpha=0.2)
     if cat2name:
         cat_data = fits.open(cat2name)[1].data
         cat_wav, cat_ints = cat_data['Wavelength'], cat_data['Emission']
-        ax.vlines(cat_wav, np.zeros_like(cat_ints), -1*CAT_FACTOR*cat_ints, 'g')
+        ax.vlines(cat_wav, np.zeros_like(cat_ints)-CAT_OFFSET, -CAT_OFFSET-1*CAT_FACTOR*cat_ints, 'g')
 
     for i,ext in enumerate(EXTNAMES):
         twd =None
@@ -67,15 +65,16 @@ def main(specname,catname=None,cat2name=None,tracename=None):
                     wl = ev(p,X)
             #spec = np.ma.masked_where(np.isnan(spec),spec)
             spec *= SPEC_FACTOR
-            #spec -= np.median(spec) -300
-            ax.plot(wl,spec,label=str(order),color=colors[i], linestyle='-')
+            spec = spec - np.median(spec) + 100
+            ax.plot(wl,spec,label=str(order),color='tab:blue',alpha=0.8, linestyle='-')
             xcor = h.get('ESO QC WAVE BESTXCORR-%02d-01'%order)
-            ax.text(wl.mean(),3000,'(Order %d, Detector %d, X-corr %.2f %%)'%(order,i+1,xcor or 0.0), fontsize=11,
+            ax.text(wl.mean(),1000,'(Order %d, Detector %d, X-corr %.2f %%)'%(order,i+1,xcor or 0.0), fontsize=11,
                 horizontalalignment='center')
 
 
             ax.axis((wl.min(),wl.max(),YMIN,YMAX))
-            plt.savefig('wavecal_%s_o%d_d%d'%(sett,order,i+1),dpi=120)
+            outname = specname.replace('.fits','_')
+            plt.savefig(outname+'wavecal_%s_o%d_d%d'%(sett,order,i+1),dpi=120)
 
 
 
