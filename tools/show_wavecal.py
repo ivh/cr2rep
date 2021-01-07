@@ -74,7 +74,7 @@ def main(specname,catname=None,cat2name=None,tracename=None):
 
             ax.axis((wl.min(),wl.max(),YMIN,YMAX))
             outname = specname.replace('.fits','_')
-            plt.savefig(outname+'wavecal_%s_o%d_d%d'%(sett,order,i+1),dpi=120)
+            plt.savefig(outname+'wavecal_o%d_d%d'%(order,i+1),dpi=120)
 
 
 
