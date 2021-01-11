@@ -446,6 +446,8 @@ int cr2res_wave_apply(
             cpl_free(wavesol_init_error) ;
             cpl_free(orders) ;
             cpl_free(traces_nb) ;
+            cpl_propertylist_delete(qcs_plist);
+            cpl_table_delete(tw_out) ;
             return -1 ;
         }
 
@@ -650,9 +652,9 @@ cpl_polynomial * cr2res_wave_1d(
             spectrum_local = cpl_bivector_duplicate(spectrum) ;
         } else {
             /* Replace the input spectrum by the clean one */
-            spectrum_local = cpl_bivector_wrap_vectors(
-                    cpl_vector_duplicate(cpl_bivector_get_x(spectrum)),
-                    clean_spec_vec) ;
+            spectrum_local = cpl_bivector_duplicate(spectrum);
+            cpl_vector_copy(cpl_bivector_get_y(spectrum_local), clean_spec_vec);
+            cpl_vector_delete(clean_spec_vec);
         }
     } else {
         spectrum_local = cpl_bivector_duplicate(spectrum) ;
@@ -895,18 +897,6 @@ cpl_polynomial * cr2res_wave_2d(
         cpl_vector_delete(fit_errors);
     }
     cpl_bivector_delete(catalog_spec) ;
-
-    if (px == NULL){
-        // No orders ran succesfully
-        cpl_msg_error(__func__, "No lines could be extracted in any order");
-        return NULL;
-    }
-
-    if (px == NULL){
-        // No orders ran succesfully
-        cpl_msg_error(__func__, "No lines could be extracted in any order");
-        return NULL;
-    }
 
     if (px == NULL){
         // No orders ran succesfully
@@ -2160,8 +2150,8 @@ static cpl_polynomial * cr2res_wave_line_fitting(
     cpl_matrix      *   px;
     cpl_vector      *   py;
     cpl_vector      *   sigma_py;
-    cpl_vector      *   heights;
-    cpl_vector      *   fit_errors;
+    cpl_vector      *   heights = NULL;
+    cpl_vector      *   fit_errors = NULL;
     cpl_size            nlines, j ;
     double              pix_pos, lambda_cat, lambda_meas, line_width,
                         line_intens, fit_error ;
@@ -2176,8 +2166,6 @@ static cpl_polynomial * cr2res_wave_line_fitting(
                 wave_error_init, lines_list, display, &px, &py, &sigma_py,
                 &heights, &fit_errors) != 0) {
         cpl_msg_error(__func__, "Cannot extract lines") ;
-        if (heights==NULL) cpl_vector_delete(heights);
-        if (fit_errors==NULL) cpl_vector_delete(fit_errors);
         return NULL ;
     }
 

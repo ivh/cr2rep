@@ -1928,7 +1928,7 @@ int cr2res_extract_slitdec_curved(
         // (when creating the bins)
         // The duplicate values in the vector will not matter as they are
         // not used below
-        if (i == nswaths - 1){
+        if ((i == nswaths - 1) && (i != 0)){
             k = cpl_vector_get(bins_end, i-1) -
                 cpl_vector_get(bins_begin, i) - swath / 2 - delta_x;
 
