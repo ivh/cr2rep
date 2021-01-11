@@ -259,9 +259,8 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.wl_err",
-            CPL_TYPE_STRING,
-            "Estimated wavelength error [start_err, end_err] (in nm)",
-            "cr2res.cr2res_util_wave", "-1.0, -1.0");
+            CPL_TYPE_DOUBLE, "Estimated wavelength error (in nm)",
+            "cr2res.cr2res_util_wave", -1.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_err");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
