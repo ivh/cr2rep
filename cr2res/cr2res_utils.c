@@ -183,7 +183,7 @@ double * cr2res_vector_get_rest(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Fit a 2D Polynomial to the interorder noise
+  @brief    Fit a 2D Polynomial to the interorder regions
   @param    img         Image, Image with the noise and traces to fit (e.g. a 
                         observation)
   @param    trace_wave  Trace Wave Table
@@ -192,7 +192,7 @@ double * cr2res_vector_get_rest(
   @return   the fitted polynomial if succesful, NULL on error
  */
 /*----------------------------------------------------------------------------*/
-cpl_polynomial * cr2res_fit_noise(
+cpl_polynomial * cr2res_fit_interorder(
         cpl_image   *   img, 
         cpl_table   *   trace_wave,
         cpl_size        order_x, 

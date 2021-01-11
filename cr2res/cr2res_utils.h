@@ -65,7 +65,7 @@ double * cr2res_vector_get_rest(
 int * cr2res_vector_get_int(
     const cpl_vector    * ycen);
 
-cpl_polynomial * cr2res_fit_noise(
+cpl_polynomial * cr2res_fit_interorder(
         cpl_image   *   img,
         cpl_table   *   trace_wave,
         cpl_size        order_x,

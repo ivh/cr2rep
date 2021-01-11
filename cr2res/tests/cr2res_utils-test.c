@@ -55,7 +55,7 @@ static void test_cr2res_extract_frameset(void);
 static void test_cr2res_convert_array_to_poly(void);
 static void test_cr2res_convert_poly_to_array(void);
 static void test_cr2res_detector_shotnoise_model(void);
-static void test_cr2res_fit_noise(void);
+static void test_cr2res_fit_interorder(void);
 static void test_cr2res_slit_pos(void);
 static void test_cr2res_slit_pos_img(void);
 static void test_cr2res_get_license(void);
@@ -602,7 +602,7 @@ static cpl_image *create_test_image()
   @brief Load sample image as input and compare with previous results
  */
 /*----------------------------------------------------------------------------*/
-static void test_cr2res_fit_noise(void)
+static void test_cr2res_fit_interorder(void)
 {
     // Define all variables
     cpl_image *img = create_test_image();
@@ -636,7 +636,7 @@ static void test_cr2res_fit_noise(void)
     cpl_polynomial_set_coeff(cmp, power, 0.519612);
 
     // Run function
-    cpl_test(res = cr2res_fit_noise(img, trace_wave, 1, 1));
+    cpl_test(res = cr2res_fit_interorder(img, trace_wave, 1, 1));
 
     // Compare output
     // thats as precise as it gets, from the polynomial dump
@@ -843,7 +843,7 @@ int main(void)
     test_cr2res_convert_poly_to_array();
     test_cr2res_detector_shotnoise_model();
     test_cr2res_get_license();
-    test_cr2res_fit_noise();
+    test_cr2res_fit_interorder();
     test_cr2res_slit_pos();
     test_cr2res_slit_pos_img();
     test_cr2res_slit_curv_compute_order_trace();
