@@ -1653,19 +1653,19 @@ int cr2res_io_save_EXTRACT_1D(
         const char              *   recipe,
         int                         create_idps)
 {
-    int     err ;
+    int     err, i ;
     err = cr2res_io_save_table(filename, allframes, inframes, parlist, tables,
             qc_list, ext_plist, recipe, procatg, CR2RES_EXTRACT_1D_PROTYPE) ;
     if (create_idps) {
         cpl_msg_info(__func__, "Create IDPs for %s -- TODO", filename) ;
 
+        for (i=0 ; i<CR2RES_NB_DETECTORS  ; i++) {
 
 
 
 
 
-
-
+        }
 
 
     }
