@@ -983,9 +983,9 @@ int main(void)
     // // test_cr2res_slitdec_vert_regression();
 
     // /* TMP */
-    test_cr2res_slitdec_vert();
-    test_cr2res_slitdec_curved();
-    test_cr2res_slitdec_compare_vert_curved();
+    /* test_cr2res_slitdec_vert(); */
+    /* test_cr2res_slitdec_curved(); */
+    /* test_cr2res_slitdec_compare_vert_curved(); */
 
     test_cr2res_slitdec_errors();
     test_cr2res_slitdec_input_slitfunc();
