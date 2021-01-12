@@ -688,6 +688,7 @@ int cr2res_image_insert_rect(
             cpl_msg_error(__func__, "Cannot re-insert column %d, %d %d %d, %s",
                             i, ymin, ymax, empty_bottom, cpl_error_get_where());
             cpl_free(ycen_int);
+            cpl_error_reset();
             if (img_1d != NULL) cpl_image_delete(img_1d);
             return -1;
         }

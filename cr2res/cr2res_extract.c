@@ -3698,8 +3698,10 @@ static int cr2res_extract_slitdec_adjust_swath(
         return -1;
     }
 
-    if (sw > nx) sw = nx-1;
-    if (sw % 2 == 1) sw += 1;
+    if (sw > nx - 2 * dx) {
+        sw = nx - 2 * dx;
+        if (sw % 2 == 1) sw -= 1;
+    } else if (sw % 2 == 1) sw += 1;
 
     // Calculate number of bins
     nbin = 2 * ((nx - 2 * dx) / sw);
