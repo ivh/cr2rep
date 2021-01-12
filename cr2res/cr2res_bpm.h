@@ -51,8 +51,7 @@ static cr2res_bpm_type bpm_types[CR2RES_NB_BPM_TYPES] = {
 
 cpl_mask * cr2res_bpm_compute(
         cpl_image   *   in,
-        double          low,
-        double          high,
+        double          kappa,
         double          lines_ratio,
         int             clean_flag) ;
 

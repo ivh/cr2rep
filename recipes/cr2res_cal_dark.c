@@ -295,8 +295,8 @@ static int cr2res_cal_dark(
 {
     const cpl_parameter *   par ;
     int                     reduce_det, ron_hsize, ron_nsamples, ndit ;
-    double                  gain, dit, bpm_kappa, bpm_lines_ratio, bpm_high, 
-                            bpm_low, med, sigma, mean, ron1, ron2, ron ;
+    double                  gain, dit, bpm_kappa, bpm_lines_ratio, mean, med,
+                            sigma, ron1, ron2, ron ;
     hdrl_parameter      *   collapse_params ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_one ;
@@ -522,31 +522,15 @@ static int cr2res_cal_dark(
        
             /* Compute BPM from the MASTER dark */
             if (master_darks[det_nr-1] != NULL) {
-                /* Compute Thresholds */
-                med = cpl_image_get_median_dev(
-                        hdrl_image_get_image(master_darks[det_nr-1]), &sigma) ;
-                if (cpl_error_get_code()) {
-                    cpl_error_reset() ;
-                    cpl_msg_warning(__func__, "Cannot compute statistics") ;
-                } else {
-                    bpm_low = med - bpm_kappa * sigma ;
-                    bpm_high = med + bpm_kappa * sigma ;
-
-                    cpl_msg_debug(__func__, "Median %.1f, Sigma %.1f"
-                        "BPM_low %.1f, BPM_hi %.1f"
-                        , med, sigma, bpm_low, bpm_high);
-                    /* Compute BPM */
-                    if ((my_bpm = cr2res_bpm_compute(
+                if ((my_bpm = cr2res_bpm_compute(
                                 hdrl_image_get_image(master_darks[det_nr-1]),
-                                bpm_low, bpm_high, bpm_lines_ratio, 
-                                0)) == NULL) {
-                        cpl_msg_warning(__func__, "Cannot create BPM") ;
-                    } else {
-                        /* Convert mask to BPM */
-                        bpms[det_nr-1] = cr2res_bpm_from_mask(my_bpm, 
-                                CR2RES_BPM_DARK);
-                        cpl_mask_delete(my_bpm) ;
-                    }
+                                bpm_kappa, bpm_lines_ratio, 0))==NULL) {
+                    cpl_msg_warning(__func__, "Cannot create BPM") ;
+                } else {
+                    /* Convert mask to BPM */
+                    bpms[det_nr-1] = cr2res_bpm_from_mask(my_bpm, 
+                            CR2RES_BPM_DARK);
+                    cpl_mask_delete(my_bpm) ;
                 }
             }
                         

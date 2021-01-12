@@ -47,8 +47,7 @@
 /**
   @brief    The BPM computation with min/max threshold
   @param    in              The input image
-  @param    low             The low threshold
-  @param    high            the high threshold
+  @param    kappa           The kappa value
   @param    clean_flag      Clean the image using the computed BPM 
   @param    lines_ratio     The maximum ratio of bad pixels per line
   @return   the BPM
@@ -56,23 +55,56 @@
 /*----------------------------------------------------------------------------*/
 cpl_mask * cr2res_bpm_compute(
         cpl_image   *   in,
-        double          low,
-        double          high,
+        double          kappa,
         double          lines_ratio,
         int             clean_flag)
 {
+    cpl_image   *   smoothed ;
+    cpl_mask    *   kernel ;
+    cpl_image   *   in_local ;
     cpl_mask    *   bpm ;
     cpl_binary  *   pmask_cur ;
+    double          low, high, med, sigma ;
     int             nx, ny, cur_bp_nb, i, j, k ;
 
     /* Test entries */
     if (in == NULL) return NULL ;
 
-    /* Threshold to get the BPMs */
-    if ((bpm = cpl_mask_threshold_image_create(in, low, high)) == NULL) {
-        cpl_msg_error(__func__, "Cannot create bad pixels map") ;
+    /* Subtract the smoothed image */
+    if (0) {
+        kernel = cpl_mask_new(5, 5);
+        cpl_mask_set(kernel, 1, 1, CPL_BINARY_1);
+        smoothed = cpl_image_duplicate(in) ;
+        cpl_image_filter_mask(smoothed, in, kernel, CPL_FILTER_MEDIAN,
+                CPL_BORDER_FILTER);
+        in_local = cpl_image_subtract_create(in, smoothed) ;
+        cpl_image_delete(smoothed) ;
+        cpl_mask_delete(kernel) ;
+    } else {
+        in_local = cpl_image_duplicate(in) ;
+    }
+
+	/* Compute Thresholds */
+	med = cpl_image_get_median_dev(in_local, &sigma) ;
+	if (cpl_error_get_code()) {
+		cpl_msg_error(__func__, "Cannot compute statistics") ;
+        cpl_image_delete(in_local) ;
         return NULL ;
     }
+    low = med - kappa * sigma ;
+    high = med + kappa * sigma ;
+
+    cpl_msg_debug(__func__, 
+            "Median %.1f, Sigma %.1f" "BPM_low %.1f, BPM_hi %.1f", 
+            med, sigma, low, high);
+
+    /* Threshold to get the BPMs */
+    if ((bpm = cpl_mask_threshold_image_create(in_local, low, high)) == NULL) {
+        cpl_msg_error(__func__, "Cannot create bad pixels map") ;
+        cpl_image_delete(in_local) ;
+        return NULL ;
+    }
+    cpl_image_delete(in_local) ;
     cpl_mask_not(bpm) ;
 
     /*
