@@ -333,6 +333,7 @@
 #define CR2RES_DARK_RAW                     "DARK"
 #define CR2RES_FLAT_RAW                     "FLAT"
 #define CR2RES_WAVE_RAW                     "WAVE"
+#define CR2RES_METROLOGY_RAW                "METROLOGY"
 #define CR2RES_CAL_NODDING_OTHER_RAW        "CAL_NODDING_OTHER"
 #define CR2RES_CAL_NODDING_JITTER_RAW       "CAL_NODDING_JITTER"
 #define CR2RES_OBS_NODDING_OTHER_RAW        "OBS_NODDING_OTHER"
