@@ -15,7 +15,7 @@ def compare(fname_trace, fname_img=None):
         linecol = "w"
     else:
         linecol = "k"
-    
+
     X = np.arange(2048)
     FIG = plt.figure(figsize=(15, 5))
 
@@ -35,8 +35,9 @@ def compare(fname_trace, fname_img=None):
 
         if fname_img:
             imgdata = img['CHIP%d.INT1'%det].data
-            imgdata = np.ma.masked_where(np.isnan(imgdata), imgdata)
-            vmin, vmax = np.percentile(imgdata.compressed(), (5, 95))
+            #imgdata = np.ma.masked_where(np.isnan(imgdata), imgdata)
+            imgdata = np.nan_to_num(imgdata)
+            vmin, vmax = np.percentile(imgdata, (5, 95))
             vmax += (vmax-vmin)*0.4
             ax.imshow(imgdata, origin="lower", vmin = vmin, vmax=vmax,
                 cmap='viridis')
