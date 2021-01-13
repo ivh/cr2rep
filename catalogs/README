@@ -2,23 +2,23 @@
 esorex cr2res_util_genlines YJ.sof
 more YJ.sof
 lines_u_sarmiento.txt EMISSION_LINES_TXT
-selections/J_1_3.dat LINES_SELECTION_TXT
-selections/J_2_3.dat LINES_SELECTION_TXT
-selections/J_3_3.dat LINES_SELECTION_TXT
-selections/Y_1_2.dat LINES_SELECTION_TXT
-selections/Y_2_2.dat LINES_SELECTION_TXT
+selections/J1226.dat LINES_SELECTION_TXT
+selections/J1228.dat LINES_SELECTION_TXT
+selections/J1232.dat LINES_SELECTION_TXT
+selections/Y1028.dat LINES_SELECTION_TXT
+selections/Y1029.dat LINES_SELECTION_TXT
 
 esorex cr2res_util_genlines HK.sof
 more HK.sof
 lines_u_redman.txt EMISSION_LINES_TXT
-selections/H_1_4.dat LINES_SELECTION_TXT
-selections/H_2_4.dat LINES_SELECTION_TXT
-selections/H_3_4.dat LINES_SELECTION_TXT
-selections/H_4_4.dat LINES_SELECTION_TXT
-selections/K_1_4.dat LINES_SELECTION_TXT
-selections/K_2_4.dat LINES_SELECTION_TXT
-selections/K_3_4.dat LINES_SELECTION_TXT
-selections/K_4_4.dat LINES_SELECTION_TXT
+selections/H1559.dat LINES_SELECTION_TXT
+selections/H1567.dat LINES_SELECTION_TXT
+selections/H1575.dat LINES_SELECTION_TXT
+selections/H1582.dat LINES_SELECTION_TXT
+selections/K2148.dat LINES_SELECTION_TXT
+selections/K2166.dat LINES_SELECTION_TXT
+selections/K2192.dat LINES_SELECTION_TXT
+selections/K2217.dat LINES_SELECTION_TXT
 
 esorex cr2res_util_genstd std.sof
 more std.sof
