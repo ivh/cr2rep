@@ -72,8 +72,8 @@ Generate Lines calibration tables                                       \n\
     The optional ASCII files raw2.txt contain a list of wavelength      \n\
       ranges (1 per line) of type: 1632.25,1632.70                      \n\
       The files are in the catalogs/selection/ directory of the CR2RES  \n\
-          distribution. They are called selection_XXX.dat, where XXX    \n\
-          identifies the setting [J33, Y22, ...].                       \n\
+          distribution. They are called XXX.dat, where XXX              \n\
+          identifies the setting [L3244, L3340, ...].                   \n\
                                                                         \n\
   Output                                                                \n\
     cr2res_util_genlines.fits "CR2RES_EMISSION_LINES_PROCATG"           \n\
