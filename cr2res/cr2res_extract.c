@@ -1610,7 +1610,6 @@ int cr2res_extract_slitdec_curved(
     imtyp = cpl_image_get_type(img_in);
     lenx = cpl_image_get_size_x(img_in);
     leny = cpl_image_get_size_y(img_in);
-
    
     /* Compute height if not given */
     if (height <= 0) {
@@ -1646,9 +1645,6 @@ int cr2res_extract_slitdec_curved(
     }
     err_rect = cr2res_image_cut_rectify(err_in, ycen, height);
     ycen_rest = cr2res_vector_get_rest(ycen);
-
-    // Find and apply bad pixels
-    // cr2res_bpm_find_bad_pixels(img_rect, 40, 3);
 
     /* Retrieve the polynomials that describe the slit tilt and curvature*/
     slitcurve_A = cr2res_get_trace_wave_poly(trace_tab, CR2RES_COL_SLIT_CURV_A,
