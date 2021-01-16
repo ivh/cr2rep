@@ -32,6 +32,7 @@
 #include "cr2res_trace.h"
 #include "cr2res_extract.h"
 #include "cr2res_wave.h"
+#include "cr2res_bpm.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
@@ -123,8 +124,6 @@ static int cr2res_extract_xi_zeta_tensors(
         xi_ref   *  xi,
         zeta_ref *  zeta,
         int      *  m_zeta) ;
-
-static int cr2res_extract_slitdec_bandsol(double *, double *, int, int, double) ;
 
 static int cr2res_extract_slitdec_adjust_swath(
         cpl_vector  *   ycen,
@@ -302,6 +301,11 @@ int cr2res_extract_traces(
                 continue ;
             }
         } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
+            int ny_os = oversample * (extr_height + 1) + 1;
+            slit_func_in_vec = cpl_vector_new(ny_os); //TODO REMOVE THIS!!!
+            cpl_vector_fill(slit_func_in_vec, 1);
+             
+
             if (cr2res_extract_slitdec_curved(img, traces, slit_func_in_vec,
                         order, trace_id, extr_height, swath_width,
                         oversample, smooth_slit, &(slit_func_vec[i]),
@@ -1477,12 +1481,22 @@ int cr2res_extract_slitdec_vert(
     // divide by nswaths to make the slitfu into the average over all swaths.
     cpl_vector_divide_scalar(slitfu, nswaths);
 
-    // TODO: Deallocate return arrays in case of error, return -1
     cpl_image_delete(img_rect);
     cpl_image_delete(model_rect);
     cpl_image_delete(err_rect);
     cpl_vector_delete(ycen);
     cpl_free(ycen_rest);
+
+    if (cpl_error_get_code() != CPL_ERROR_NONE){
+        cpl_msg_error(__func__, 
+            "Something went wrong in the extraction. Error Code: %i, loc: %s", 
+            cpl_error_get_code(), cpl_error_get_where());
+        cpl_vector_delete(slitfu);
+        cpl_vector_delete(spc);
+        cpl_vector_delete(unc_decomposition);
+        cpl_image_delete(img_out);
+        return -1;
+    }
 
     *slit_func = slitfu;
     *spec = cpl_bivector_wrap_vectors(spc, unc_decomposition);
@@ -1562,8 +1576,6 @@ int cr2res_extract_slitdec_curved(
     cpl_image       *   model_rect;
     cpl_vector      *   ycen ;
     cpl_image       *   img_tmp;
-    cpl_image       *   img_tmp2;
-    cpl_mask        *   kernel;
     cpl_image       *   img_out;
     cpl_vector      *   spec_sw;
     cpl_vector      *   slitfu_sw;
@@ -1635,6 +1647,9 @@ int cr2res_extract_slitdec_curved(
     err_rect = cr2res_image_cut_rectify(err_in, ycen, height);
     ycen_rest = cr2res_vector_get_rest(ycen);
 
+    // Find and apply bad pixels
+    // cr2res_bpm_find_bad_pixels(img_rect, 40, 3);
+
     /* Retrieve the polynomials that describe the slit tilt and curvature*/
     slitcurve_A = cr2res_get_trace_wave_poly(trace_tab, CR2RES_COL_SLIT_CURV_A,
                     order, trace_id);
@@ -1682,7 +1697,16 @@ int cr2res_extract_slitdec_curved(
     cpl_msg_debug(__func__, "Max delta_x from slit curv: %d pix.", delta_x);
 
     if (delta_x >= swath / 4){
-        //TODO: Abort
+        cpl_msg_error(__func__, 
+            "Curvature is larger than the swath, try again with a larger swath size");
+        cpl_vector_delete(ycen);
+        cpl_free(ycen_rest) ;
+        cpl_image_delete(err_rect) ;
+        cpl_image_delete(img_rect) ;
+        cpl_polynomial_delete(slitcurve_A);
+        cpl_polynomial_delete(slitcurve_B);
+        cpl_polynomial_delete(slitcurve_C);
+        return -1;
     }
 
     /* Number of rows after oversampling */
@@ -1693,6 +1717,12 @@ int cr2res_extract_slitdec_curved(
                     lenx, delta_x, bins_begin, bins_end)) == -1){
         cpl_msg_error(__func__, "Cannot calculate swath size");
         cpl_vector_delete(ycen);
+        cpl_free(ycen_rest) ;
+        cpl_image_delete(err_rect) ;
+        cpl_image_delete(img_rect) ;
+        cpl_polynomial_delete(slitcurve_A);
+        cpl_polynomial_delete(slitcurve_B);
+        cpl_polynomial_delete(slitcurve_C);
         return -1;
     }
     nswaths = cpl_vector_get_size(bins_begin);
@@ -1709,6 +1739,8 @@ int cr2res_extract_slitdec_curved(
                 ny_os, size);
         }
     }
+
+    
 
     /* Allocate */
     mask_sw = cpl_malloc(height * swath*sizeof(int));
@@ -1847,16 +1879,9 @@ int cr2res_extract_slitdec_curved(
         err_sw_data = cpl_image_get_data_double(err_sw);
         unc_sw_data = cpl_vector_get_data(unc_sw);
         // First guess for the spectrum
-        img_tmp = cpl_image_collapse_create(img_sw, 0);
-        img_tmp2 = cpl_image_new(swath, 1, CPL_TYPE_DOUBLE);
-        kernel = cpl_mask_new(5, 1);
-        cpl_mask_not(kernel);
-        cpl_image_filter_mask(img_tmp2, img_tmp, kernel,
-            CPL_FILTER_MEDIAN, CPL_BORDER_FILTER);
-        spec_sw = cpl_vector_new_from_image_row(img_tmp2, 1);
+        img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
+        spec_sw = cpl_vector_new_from_image_row(img_tmp, 1);
         cpl_image_delete(img_tmp);
-        cpl_image_delete(img_tmp2);
-        cpl_mask_delete(kernel);
         spec_sw_data = cpl_vector_get_data(spec_sw);
 
         for (j=sw_start;j<sw_end;j++){
@@ -2009,6 +2034,7 @@ int cr2res_extract_slitdec_curved(
                 cpl_image_set(model_rect, j+1, y+1, 
                     cpl_image_get(model_rect, j+1, y+1, &badpix)
                     + model_sw[y * swath + j - sw_start]);
+                if (badpix) cpl_image_reject(model_rect, j+1, y+1);
             }
         }
 
@@ -2061,6 +2087,7 @@ int cr2res_extract_slitdec_curved(
     // insert model_rect into large frame
     if (cr2res_image_insert_rect(model_rect, ycen, img_out) == -1) {
         // Cancel
+        cpl_msg_error(__func__, "failed to reinsert model swath into model image");
         cpl_image_delete(model_rect);
         hdrl_image_delete(model_out);
         cpl_vector_delete(ycen);
@@ -2080,11 +2107,20 @@ int cr2res_extract_slitdec_curved(
                 NULL, CPL_IO_CREATE);
     }
 
-    // TODO: Update BPM in img_out
-
-    // TODO: Deallocate return arrays in case of error, return -1
     cpl_image_delete(model_rect);
     cpl_vector_delete(ycen);
+
+    if (cpl_error_get_code() != CPL_ERROR_NONE){
+        cpl_msg_error(__func__, 
+            "Something went wrong in the extraction. Error Code: %i, loc: %s", 
+            cpl_error_get_code(), cpl_error_get_where());
+        cpl_error_reset();
+        cpl_vector_delete(slitfu);
+        cpl_vector_delete(spc);
+        cpl_vector_delete(unc_decomposition);
+        hdrl_image_delete(model_out);
+        return -1;
+    }
 
     *slit_func = slitfu;
     *spec = cpl_bivector_wrap_vectors(spc, unc_decomposition);
@@ -3263,7 +3299,7 @@ static int cr2res_extract_slit_func_curved(
 {
     int         x, xx, xxx, y, yy, iy, jy, n, m, ny, y_upper_lim, i, nx;
     double      sum, norm, dev, lambda, diag_tot, ww, www, sP_change, sP_max;
-    double      tmp, mad;
+    double      tmp, mad, median;
     int         info, iter, isum;
 
 
@@ -3279,30 +3315,6 @@ static int cr2res_extract_slit_func_curved(
             y_lower_lim, osample, slitcurves, xi, zeta, m_zeta);
 
     // If a slit func is given, use that instead of recalculating it
-    if (slit_func_in != NULL){
-        // Normalize the input just in case
-        norm = 0.e0;
-        for(iy = 0; iy < ny; iy++) {
-            sL[iy] = slit_func_in[iy];
-            norm += sL[iy];
-        }
-        norm /= osample;
-        for(iy=0; iy<ny; iy++) sL[iy]/=norm;
-    }
-
-    /* Loop through sL , sP reconstruction until convergence is reached */
-    if (slit_func_in != NULL){
-        // Normalize the input just in case
-        norm = 0.e0;
-        for(iy = 0; iy < ny; iy++) {
-            sL[iy] = slit_func_in[iy];
-            norm += sL[iy];
-        }
-        norm /= osample;
-        for(iy=0; iy<ny; iy++) sL[iy]/=norm;
-    }
-
-    /* Loop through sL , sP reconstruction until convergence is reached */
     if (slit_func_in != NULL){
         // Normalize the input just in case
         norm = 0.e0;
@@ -3500,7 +3512,7 @@ static int cr2res_extract_slit_func_curved(
         // Ignore the outer delta_x pixels on each side, as they are unreliable
         // mad = cpl_image_get_stdev_window(img_mad,
         //     1 + delta_x, 1, ncols-delta_x, nrows);
-        cpl_image_get_mad_window(img_mad,
+        median = cpl_image_get_mad_window(img_mad,
             1 + delta_x, 1, ncols-delta_x, nrows, &mad);
         if (cpl_error_get_code() == CPL_ERROR_DATA_NOT_FOUND){
             // this happens if all pixels are bad
@@ -3514,7 +3526,8 @@ static int cr2res_extract_slit_func_curved(
             for (x = 0; x < ncols; x++) {
                 // We order it like this, to account for NaN values
                 // They evaluate to False, and should be masked
-                if (fabs(model[y * ncols + x] - im[y * ncols + x]) < 40. * mad)
+                if (fabs(model[y * ncols + x] - im[y * ncols + x] - median) 
+                            < 40. * mad)
                     mask[y * ncols + x] = 1;
                 else
                     mask[y * ncols + x] = 0;
@@ -3591,7 +3604,7 @@ static int cr2res_extract_slit_func_curved(
                     \ X X X 0 0 /
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_extract_slitdec_bandsol(
+int cr2res_extract_slitdec_bandsol(
         double  *   a,
         double  *   r,
         int         n,

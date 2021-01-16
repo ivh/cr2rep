@@ -164,4 +164,6 @@ cpl_table * cr2res_extract_EXTRACT2D_create(
         cpl_vector      **  slit_fraction,
         const cpl_table *   trace_table) ;
 
+int cr2res_extract_slitdec_bandsol(double *, double *, int, int, double) ;
+
 #endif
