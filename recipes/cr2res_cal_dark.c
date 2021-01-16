@@ -321,9 +321,10 @@ static int cr2res_cal_dark(
     cpl_mask            *   bpm ;
     char                *   filename ;
     int                     nb_frames, i, l, det_nr, nb_bad ;
-    int                     single_dit_ndit ;
+    int                     single_dit_ndit_setting ;
     int                     original_ndit ;
     double                  original_dit ;
+    char                *   original_setting ;
 
     /* RETRIEVE INPUT PARAMETERS */
     /* --detector */
@@ -393,8 +394,9 @@ static int cr2res_cal_dark(
         return -1 ;
     }
 
-    /* Identify if there are several DIT/NDIT */
-    single_dit_ndit = -1 ;
+    /* Identify if there are several DIT/NDIT/setting */
+    single_dit_ndit_setting = -1 ;
+    original_setting = NULL ;
     for (l=0 ; l<(int)nlabels ; l++) {
         /* Get the frames for the current setting */
         raw_one = cpl_frameset_extract(rawframes, labels, (cpl_size)l) ;
@@ -408,19 +410,22 @@ static int cr2res_cal_dark(
         cr2res_format_setting(setting_id) ;
         cpl_propertylist_delete(plist) ;
 
-        /* Update single_dit_ndit information */
-        if (single_dit_ndit < 0) {
-            single_dit_ndit = 1; 
+        /* Update single_dit_ndit_setting information */
+        if (single_dit_ndit_setting < 0) {
+            single_dit_ndit_setting = 1; 
             original_dit = dit ;
             original_ndit = ndit ;
+            original_setting = cpl_strdup(setting_id) ;
         } else {
-            if (fabs(original_dit-dit)>1e-3 || original_ndit != ndit) {
-                single_dit_ndit = 0 ;
+            if (fabs(original_dit-dit)>1e-3 || original_ndit != ndit ||
+                    strcmp(original_setting, setting_id)) {
+                single_dit_ndit_setting = 0 ;
             }
         }
         cpl_free(setting_id);
         cpl_frameset_delete(raw_one) ;
     }
+    cpl_free(original_setting);
 
     /* Loop on the settings */
     for (l=0 ; l<(int)nlabels ; l++) {
@@ -602,9 +607,8 @@ static int cr2res_cal_dark(
 
         /* Save the results */
         /* MASTER DARK */
-        if (single_dit_ndit) {
-            filename = cpl_sprintf("%s_%s_master.fits", 
-                    RECIPE_STRING, setting_id); 
+        if (single_dit_ndit_setting) {
+            filename = cpl_sprintf("%s_master.fits", RECIPE_STRING); 
         } else {
             filename = cpl_sprintf("%s_%s_%gx%d_master.fits", 
                     RECIPE_STRING, setting_id, dit, ndit); 
@@ -635,9 +639,8 @@ static int cr2res_cal_dark(
         cpl_free(filename) ;
 
         /* BPM */
-        if (single_dit_ndit) {
-            filename = cpl_sprintf("%s_%s_bpm.fits", 
-                    RECIPE_STRING, setting_id); 
+        if (single_dit_ndit_setting) {
+            filename = cpl_sprintf("%s_bpm.fits", RECIPE_STRING); 
         } else {
             filename = cpl_sprintf("%s_%s_%gx%d_bpm.fits", 
                     RECIPE_STRING, setting_id, dit, ndit); 
