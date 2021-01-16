@@ -46,6 +46,7 @@
 // The maximum difference to the neighbouring pixels to be considered a bad pix
 // For the fitting of the gaussian line centers
 #define MAX_DEVIATION_FOR_BAD_PIXEL 300
+#define SPEED_OF_LIGHT 299792.458
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -426,7 +427,7 @@ int cr2res_wave_apply(
         /* 2D Calibration */
         if ((wave_sol_2d=cr2res_wave_2d(spectra, spectra_err, wavesol_init,
                         wavesol_init_error, orders, traces_nb, nb_traces,
-                        catalog_fname, degree, degree, display,
+                        catalog_fname, 2, degree, -1, 1, display,
                         &wl_err_array,
                         &lines_diagnostics_loc)) == NULL) {
             cpl_msg_error(__func__, "Failed to compute 2d Wavelength solution");
@@ -466,6 +467,7 @@ int cr2res_wave_apply(
             }
         }
         cpl_array_delete(wl_err_array) ;
+        cpl_polynomial_delete(wave_sol_2d);
     } else {
         /* 1D Calibration */
         /* Loop over the traces spectra */
@@ -762,6 +764,8 @@ cpl_polynomial * cr2res_wave_2d(
         const char          *   catalog,
         cpl_size                degree_x,
         cpl_size                degree_y,
+        double                  threshold,
+        int                     n_iterations,
         int                     display,
         cpl_array           **  wavelength_error,
         cpl_table           **  lines_diagnostics)
@@ -783,8 +787,10 @@ cpl_polynomial * cr2res_wave_2d(
     cpl_vector      *   sigma_py ;
     cpl_vector      *   heights;
     cpl_vector      *   fit_errors;
+    cpl_vector      *   loc;
+    cpl_polynomial  **  wavesol;
     double              pix_pos, lambda_cat, lambda_meas, line_width,
-                        line_intens, fit_error ;
+                        line_intens, fit_error, value;
     int                 n ;
 
     /* Check Inputs */
@@ -805,143 +811,214 @@ cpl_polynomial * cr2res_wave_2d(
             return NULL ;
     }
     n = cpl_bivector_get_size(catalog_spec);
-
     result = cpl_polynomial_new(2);
-
-    /* Loop on the input spectra */
+    wavesol = cpl_malloc(ninputs * sizeof(cpl_vector *));
     for (i = 0; i < ninputs; i++){
-        // extract line data in 1 spectrum
-        if (cr2res_wave_extract_lines(spectra[i], spectra_err[i],
-            wavesol_init[i], wavesol_init_err[i], catalog_spec, display,
-            &tmp_x, &tmp_y, &tmp_sigma, &heights, &fit_errors) == -1) {
-            cpl_msg_warning(__func__, "Could not extract lines");
-            continue;
-        }
+        wavesol[i] = cpl_polynomial_duplicate(wavesol_init[i]);
+    }
 
-        /* Create / Fill / Merge the lines diagnosics table  */
-        if (lines_diagnostics != NULL && tmp_x != NULL) {
-            nlines = cpl_matrix_get_nrow(tmp_x) ;
-            cpl_msg_debug(__func__, "Number of lines: %"CPL_SIZE_FORMAT,nlines);
-            /* Create */
-            lines_diagnostics_loc =
-                cr2res_dfs_create_lines_diagnostics_table(nlines) ;
-            /* Fill */
-            for (j=0 ; j<nlines ; j++) {
-                pix_pos = cpl_matrix_get(tmp_x, j, 0) ;
-                lambda_cat = cpl_vector_get(tmp_y, j) ;
-                lambda_meas = cpl_polynomial_eval_1d(wavesol_init[i], pix_pos,
-                        NULL) ;
-                line_width = cpl_vector_get(tmp_sigma, j) ;
-                line_intens = cpl_vector_get(heights, j) ;
-                fit_error = cpl_vector_get(fit_errors, j) ;
+    for (k = 0; k < n_iterations; k++){
 
-                cpl_table_set_int(lines_diagnostics_loc,
-                        CR2RES_COL_ORDER, j, orders[i]) ;
-                cpl_table_set_int(lines_diagnostics_loc,
-                        CR2RES_COL_TRACENB, j, traces_nb[i]) ;
-                cpl_table_set_double(lines_diagnostics_loc,
-                        CR2RES_COL_MEASURED_LAMBDA, j, lambda_meas) ;
-                cpl_table_set_double(lines_diagnostics_loc,
-                        CR2RES_COL_CATALOG_LAMBDA, j, lambda_cat);
-                cpl_table_set_double(lines_diagnostics_loc,
-                        CR2RES_COL_DELTA_LAMBDA, j, lambda_cat-lambda_meas);
-                cpl_table_set_double(lines_diagnostics_loc,
-                        CR2RES_COL_MEASURED_PIXEL, j, pix_pos);
-                cpl_table_set_double(lines_diagnostics_loc,
-                        CR2RES_COL_LINE_WIDTH, j, line_width) ;
-                cpl_table_set_double(lines_diagnostics_loc,
-                        CR2RES_COL_FIT_QUALITY, j, fit_error) ;
-                cpl_table_set_double(lines_diagnostics_loc,
-                        CR2RES_COL_INTENSITY, j, line_intens) ;
+        /* Loop on the input spectra */
+        for (i = 0; i < ninputs; i++){
+            // extract line data in 1 spectrum
+            if (cr2res_wave_extract_lines(spectra[i], spectra_err[i],
+                wavesol[i], wavesol_init_err[i], catalog_spec, display,
+                &tmp_x, &tmp_y, &tmp_sigma, &heights, &fit_errors) == -1) {
+                cpl_msg_warning(__func__, "Could not extract lines");
+                continue;
             }
 
-            /* Merge */
-            if (*lines_diagnostics == NULL) {
-                *lines_diagnostics = lines_diagnostics_loc ;
-                lines_diagnostics_loc = NULL ;
-            } else if (lines_diagnostics_loc != NULL) {
-                /* Merge with previous */
-                cpl_table_insert(*lines_diagnostics, lines_diagnostics_loc,
-                        cpl_table_get_nrow(*lines_diagnostics)) ;
-                cpl_table_delete(lines_diagnostics_loc) ;
-            }
-        }
+            /* Create / Fill / Merge the lines diagnosics table  */
+            if (lines_diagnostics != NULL && tmp_x != NULL) {
+                nlines = cpl_matrix_get_nrow(tmp_x) ;
+                cpl_msg_debug(__func__, "Number of lines: %"CPL_SIZE_FORMAT,nlines);
+                /* Create */
+                lines_diagnostics_loc =
+                    cr2res_dfs_create_lines_diagnostics_table(nlines) ;
+                /* Fill */
+                for (j=0 ; j<nlines ; j++) {
+                    pix_pos = cpl_matrix_get(tmp_x, j, 0) ;
+                    lambda_cat = cpl_vector_get(tmp_y, j) ;
+                    lambda_meas = cpl_polynomial_eval_1d(wavesol_init[i], pix_pos,
+                            NULL) ;
+                    line_width = cpl_vector_get(tmp_sigma, j) ;
+                    line_intens = cpl_vector_get(heights, j) ;
+                    fit_error = cpl_vector_get(fit_errors, j) ;
 
-        // append new data onto existing vectors/matrices
-        if (tmp_y != NULL) new = cpl_vector_get_size(tmp_y);
-        else new = 0;
+                    cpl_table_set_int(lines_diagnostics_loc,
+                            CR2RES_COL_ORDER, j, orders[i]) ;
+                    cpl_table_set_int(lines_diagnostics_loc,
+                            CR2RES_COL_TRACENB, j, traces_nb[i]) ;
+                    cpl_table_set_double(lines_diagnostics_loc,
+                            CR2RES_COL_MEASURED_LAMBDA, j, lambda_meas) ;
+                    cpl_table_set_double(lines_diagnostics_loc,
+                            CR2RES_COL_CATALOG_LAMBDA, j, lambda_cat);
+                    cpl_table_set_double(lines_diagnostics_loc,
+                            CR2RES_COL_DELTA_LAMBDA, j, lambda_cat-lambda_meas);
+                    cpl_table_set_double(lines_diagnostics_loc,
+                            CR2RES_COL_MEASURED_PIXEL, j, pix_pos);
+                    cpl_table_set_double(lines_diagnostics_loc,
+                            CR2RES_COL_LINE_WIDTH, j, line_width) ;
+                    cpl_table_set_double(lines_diagnostics_loc,
+                            CR2RES_COL_FIT_QUALITY, j, fit_error) ;
+                    cpl_table_set_double(lines_diagnostics_loc,
+                            CR2RES_COL_INTENSITY, j, line_intens) ;
+                }
+
+                /* Merge */
+                if (*lines_diagnostics == NULL) {
+                    *lines_diagnostics = lines_diagnostics_loc ;
+                    lines_diagnostics_loc = NULL ;
+                } else if (lines_diagnostics_loc != NULL) {
+                    /* Merge with previous */
+                    cpl_table_insert(*lines_diagnostics, lines_diagnostics_loc,
+                            cpl_table_get_nrow(*lines_diagnostics)) ;
+                    cpl_table_delete(lines_diagnostics_loc) ;
+                }
+            }
+
+            // append new data onto existing vectors/matrices
+            if (tmp_y != NULL) new = cpl_vector_get_size(tmp_y);
+            else new = 0;
+
+            if (px == NULL){
+                // First order to run
+                px = cpl_matrix_new(2, new);
+                py = cpl_vector_new(new);
+                sigma_py = cpl_vector_new(new);
+                old = 0;
+            } else {
+                old = cpl_vector_get_size(py);
+                cpl_vector_set_size(py, old + new);
+                cpl_vector_set_size(sigma_py, old + new);
+                cpl_matrix_set_size(px, 2, old + new);
+            }
+
+            for (j = 0; j < new; j++){
+                cpl_vector_set(py, old + j, cpl_vector_get(tmp_y, j));
+                cpl_vector_set(sigma_py, old + j, cpl_vector_get(tmp_sigma, j));
+                cpl_matrix_set(px, 0, old + j, cpl_matrix_get(tmp_x, j, 0));
+                cpl_matrix_set(px, 1, old + j, orders[i]);
+            }
+            cpl_matrix_delete(tmp_x);
+            cpl_vector_delete(tmp_y);
+            cpl_vector_delete(tmp_sigma);
+            cpl_vector_delete(heights);
+            cpl_vector_delete(fit_errors);
+        }
+        
 
         if (px == NULL){
-            // First order to run
-            px = cpl_matrix_new(2, new);
-            py = cpl_vector_new(new);
-            sigma_py = cpl_vector_new(new);
-            old = 0;
-        } else {
-            old = cpl_vector_get_size(py);
-            cpl_vector_set_size(py, old + new);
-            cpl_vector_set_size(sigma_py, old + new);
-            cpl_matrix_set_size(px, 2, old + new);
+            // No orders ran succesfully
+            cpl_msg_error(__func__, "No lines could be extracted in any order");
+            cpl_bivector_delete(catalog_spec) ;
+            cpl_polynomial_delete(result);
+            return NULL;
         }
 
-        for (j = 0; j < new; j++){
-            cpl_vector_set(py, old + j, cpl_vector_get(tmp_y, j));
-            cpl_vector_set(sigma_py, old + j, cpl_vector_get(tmp_sigma, j));
-            cpl_matrix_set(px, 0, old + j, cpl_matrix_get(tmp_x, j, 0));
-            cpl_matrix_set(px, 1, old + j, orders[i]);
+        n = cpl_vector_get_size(py);
+        for (i = 0; i < n - 1; i++){
+            degree_2d[0] = degree_x ;
+            degree_2d[1] = degree_y ;
+            error = cpl_polynomial_fit(result, px, NULL, py, NULL, TRUE, NULL,
+                    degree_2d);
+            // in case something went wrong during fitting
+            if (error != CPL_ERROR_NONE){
+                cpl_msg_error(__func__, "Polynomial fit failed. Error: %s", 
+                    cpl_error_get_message());
+                cpl_polynomial_delete(result);
+                cpl_matrix_delete(px);
+                cpl_vector_delete(py);
+                cpl_vector_delete(sigma_py);
+                cpl_bivector_delete(catalog_spec) ;
+                cpl_error_reset();
+                return NULL;
+            } 
+
+            // reject outliers and do it all over again!
+            // Determine Residuals of each point
+            loc = cpl_vector_new(2);
+            pos = cpl_vector_new(cpl_vector_get_size(py));
+
+            for (j = 0; j < cpl_vector_get_size(py); j++)
+            {
+                cpl_vector_set(loc, 0, cpl_matrix_get(px, 0, j));
+                cpl_vector_set(loc, 1, cpl_matrix_get(px, 1, j));
+                value = cpl_polynomial_eval(result, loc);
+                cpl_vector_set(pos, j, value);
+            }
+            cpl_vector_delete(loc);
+
+            // Convert wavelength to km/s
+            cpl_vector_subtract(pos, py);
+            cr2res_vector_abs(pos);
+            cpl_vector_divide(pos, py);
+            cpl_vector_multiply_scalar(pos, SPEED_OF_LIGHT);
+
+            // Reject largest value if above the threshold
+            // threshold is negative skip ahead
+            if (threshold < 0) {
+                cpl_vector_delete(pos);
+                break;
+            }
+            if (cpl_vector_get_max(pos) > threshold){
+                j = cpl_vector_get_maxpos(pos);
+                cpl_matrix_erase_rows(px, j, 1);
+                cr2res_vector_erase_element(py, j);
+                cr2res_vector_erase_element(sigma_py, j);
+                cpl_vector_delete(pos);
+            } else {
+                cpl_vector_delete(pos);
+                break;
+            }
         }
-        cpl_matrix_delete(tmp_x);
-        cpl_vector_delete(tmp_y);
-        cpl_vector_delete(tmp_sigma);
-        cpl_vector_delete(heights);
-        cpl_vector_delete(fit_errors);
+
+        if (k != n_iterations - 1){
+            cpl_matrix_delete(px);
+            cpl_vector_delete(py);
+            cpl_vector_delete(sigma_py);
+            px = NULL;
+        }
+
+        for (i = 0; i < ninputs; i++){
+            cpl_polynomial_delete(wavesol[i]);
+            wavesol[i] = cr2res_wave_poly_2d_to_1d(result, orders[i]);
+        }
     }
+
+    n = cpl_vector_get_size(py);
+    // Calculate absolute difference between polynomial and
+    // catalog value for each line
+    // use px and py, so that only good lines are used
+    diff = cpl_vector_new(n);
+    pos = cpl_vector_new(2);
+    for (i = 0; i < n; i++){
+        cpl_vector_set(pos, 0, cpl_matrix_get(px, 0, i));
+        cpl_vector_set(pos, 1, cpl_matrix_get(px, 1, i));
+        cpl_vector_set(diff, i, abs(
+            cpl_polynomial_eval(result, pos)
+            - cpl_vector_get(py, i)));
+    }
+
+    // Set wavelength_error to mean and max difference
+    if (*wavelength_error == NULL)
+        *wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+    cpl_array_set_double(*wavelength_error, 0,
+            cpl_vector_get_mean(diff));
+    cpl_array_set_double(*wavelength_error, 1,
+            cpl_vector_get_max(diff));
+    cpl_vector_delete(diff);
+    cpl_vector_delete(pos);
     cpl_bivector_delete(catalog_spec) ;
-
-    if (px == NULL){
-        // No orders ran succesfully
-        cpl_msg_error(__func__, "No lines could be extracted in any order");
-        return NULL;
+    for (i = 0; i < ninputs; i++){
+        cpl_polynomial_delete(wavesol[i]);
     }
-
-    degree_2d[0] = degree_x ;
-    degree_2d[1] = degree_y ;
-    error = cpl_polynomial_fit(result, px, NULL, py, NULL, TRUE, NULL,
-            degree_2d);
-
-    if (error == CPL_ERROR_NONE){
-        // Calculate absolute difference between polynomial and
-        // catalog value for each line
-        // use px and py, so that only good lines are used
-        diff = cpl_vector_new(cpl_vector_get_size(py));
-        pos = cpl_vector_new(2);
-        for (i = 0; i < cpl_vector_get_size(py); i++){
-            cpl_vector_set(pos, 0, cpl_matrix_get(px, 0, i));
-            cpl_vector_set(pos, 1, cpl_matrix_get(px, 1, i));
-            cpl_vector_set(diff, i, abs(
-                cpl_polynomial_eval(result, pos)
-                - cpl_vector_get(py, i)));
-        }
-        // Set wavelength_error to mean and max difference
-        if (*wavelength_error == NULL)
-            *wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
-        cpl_array_set_double(*wavelength_error, 0,
-                cpl_vector_get_mean(diff));
-        cpl_array_set_double(*wavelength_error, 1,
-                cpl_vector_get_max(diff));
-        cpl_vector_delete(diff);
-        cpl_vector_delete(pos);
-    }
+    cpl_free(wavesol);
     cpl_matrix_delete(px);
     cpl_vector_delete(py);
     cpl_vector_delete(sigma_py);
 
-    // in case something went wrong during fitting
-    if (error != CPL_ERROR_NONE){
-        cpl_polynomial_delete(result);
-        cpl_error_reset();
-        return NULL;
-    }
     return result;
 }
 
@@ -1879,7 +1956,7 @@ static int cr2res_wave_extract_lines(
     cpl_vector * y = cpl_vector_new(window_size);
     cpl_vector * sigma_y = cpl_vector_new(window_size);
     cpl_vector * a = cpl_vector_new(4);
-    int ia[] = {1, 1, 1, 1};
+    int ia[4] = {1, 1, 1, 1};
     double x0, sigma, area, offset;
 
     spec = cpl_bivector_get_y_const(spectrum);
@@ -1979,7 +2056,8 @@ static int cr2res_wave_extract_lines(
         cpl_vector_set(a, 2, cpl_vector_get_max(y) - cpl_vector_get_min(y));
         cpl_vector_set(a, 3, cpl_vector_get_min(y));
 
-        error = cpl_fit_lvmq(x, sigma_x, y, sigma_y, a, ia, &cr2res_gauss, &cr2res_gauss_derivative,
+        error = cpl_fit_lvmq(x, sigma_x, y, sigma_y, a, ia, 
+                        &cr2res_gauss, &cr2res_gauss_derivative,
                         CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT,
                         CPL_FIT_LVMQ_MAXITER, NULL, &red_chisq, NULL);
 
@@ -2004,11 +2082,12 @@ static int cr2res_wave_extract_lines(
             // | red_chisq > 100
             | fabs(pixel_new - pixel_pos) > window_size
             | cpl_vector_get(a, 2) < 0
-            | cpl_vector_get(a, 2) < cpl_vector_get(a, 3) * 5.
-
+            // TODO: the floor is not the same as the noise
+            // maybe one could use the std around the floor as a noise estimate?
+            // | cpl_vector_get(a, 2) < cpl_vector_get(a, 3)
             // TODO: Tweak these values and make into proper parameters?
-            | cpl_vector_get(a, 1) < 2 // lower line width limit
-            | cpl_vector_get(a, 1) > 6 // upper
+            // | cpl_vector_get(a, 1) < 1 // lower line width limit
+            // | cpl_vector_get(a, 1) > 6 // upper
         ){
             cpl_vector_set(flag_vec, i, 0);
             cpl_error_reset();

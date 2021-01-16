@@ -102,6 +102,8 @@ cpl_polynomial * cr2res_wave_2d(
         const char          *   catalog,
         cpl_size                degree_x,
         cpl_size                degree_y,
+        double                  threshold,
+        int                     n_iterations,
         int                     display,
         cpl_array           **  wavelength_error,
         cpl_table           **  lines_diagnostics) ;
