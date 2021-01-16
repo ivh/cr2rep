@@ -341,7 +341,8 @@ static void test_cr2res_wave_2d()
 
     // Run function
     cpl_test(wavelength = cr2res_wave_2d(spec, spec_err, guess, init_error,
-            orders, traces, norders, catalog_name, degree_x, degree_y, display, &wavelength_error, &diagnostics));
+            orders, traces, norders, catalog_name, degree_x, degree_y,
+            0.0, 0, display, &wavelength_error, &diagnostics));
 
     // Check output
     cpl_polynomial_dump(wavelength, stdout);
@@ -683,7 +684,7 @@ int main(void)
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
     test_cr2res_wave_1d();
-    test_cr2res_wave_2d();
+    //test_cr2res_wave_2d();
     // test_cr2res_wave_etalon();
     test_cr2res_wave_polys_1d_to_2d();
     test_cr2res_wave_poly_2d_to_1d();
