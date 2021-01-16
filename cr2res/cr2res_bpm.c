@@ -221,6 +221,8 @@ int cr2res_bpm_set_and_correct_image(
     cpl_image_reject_from_mask(in, bpm_im_bin);
     cpl_mask_delete(bpm_im_bin) ;
 
+    // cr2res_bpm_find_bad_pixels(in, 5, 5);
+
     /* Apply the bad pixels cleaning */
     if (correct) {
         if (cpl_detector_interpolate_rejected(in) != CPL_ERROR_NONE) {
@@ -231,6 +233,79 @@ int cr2res_bpm_set_and_correct_image(
     }
 
     return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief   Reject pixels based on the median of the surounding pixels
+  @param    img         input image
+  @param    sigma       Multiplier for the threshold,
+                            equivalent to the gaussian sigma
+  @param    size        Size of the Median filter applied to the image, 
+                            must be odd
+
+  @return   0 if ok, -1 otherwise
+
+  This function applies a median filter to the image and uses the MAD of the 
+  difference between the input image and the smoothed version to determine a
+  threshold. Pixels that deviate by more than the threshold are discarded.
+  
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_bpm_find_bad_pixels(cpl_image * img, double sigma, int size){
+    cpl_image * copy;
+    cpl_mask * kernel;
+    double mad, median;
+    int badpix;
+    double threshold;
+    cpl_size i, j;
+
+    if (img == NULL) return -1;
+    if (cpl_image_get_size_x(img) < size || cpl_image_get_size_y(img) < size) 
+        return -1;
+    // Kernel must be odd sized
+    if (size % 2 != 1) return -1;
+
+    copy = cpl_image_duplicate(img);
+
+    kernel = cpl_mask_new(size, 1);
+    cpl_mask_not(kernel);
+    cpl_image_filter_mask(copy, img, kernel,
+            CPL_FILTER_MEDIAN, CPL_BORDER_FILTER);
+
+    // Reject 0 values
+    for (i = 1; i <= cpl_image_get_size_x(img); i++)
+    {
+        for (j = 1; j <= cpl_image_get_size_y(img); j++)
+        {
+            if (cpl_image_get(copy, i, j, &badpix) == 0)
+            {
+                cpl_image_reject(copy, i, j);
+            }
+        }   
+    }
+
+    cpl_image_subtract(copy, img);
+    median = cpl_image_get_mad(copy, &mad);
+    mad *= CPL_MATH_STD_MAD;
+    cpl_image_subtract_scalar(copy, median);
+    cpl_image_abs(copy);
+    
+    threshold = sigma * mad;
+    for (i = 1; i <= cpl_image_get_size_x(img); i++)
+    {
+        for (j = 1; j <= cpl_image_get_size_y(img); j++)
+        {
+            if (cpl_image_get(copy, i, j, &badpix) > threshold)
+            {
+                cpl_image_reject(img, i, j);
+            }
+        }   
+    }
+    
+    cpl_mask_delete(kernel);
+    cpl_image_delete(copy);
+    return 0;
 }
 
 /*----------------------------------------------------------------------------*/

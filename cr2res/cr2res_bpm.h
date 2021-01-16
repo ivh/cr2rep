@@ -78,4 +78,7 @@ int cr2res_bpm_add_mask(
         cpl_mask    *   bpm,
         int             bpm_code) ;
 
+int cr2res_bpm_find_bad_pixels(cpl_image * img, double sigma, int size);
+
+
 #endif
