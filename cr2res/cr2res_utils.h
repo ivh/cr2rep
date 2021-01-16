@@ -124,6 +124,19 @@ int cr2res_plot_wavecal_result(
         double                      wmin,
         double                      wmax) ;
 
+int cr2res_vector_erase_element(
+        cpl_vector * vector, 
+        cpl_size pos);
+
+int cr2res_vector_abs(
+        cpl_vector * vector);
+
+cpl_image * cr2res_util_optimal_filter_2d(
+        const cpl_image * img,
+        const cpl_image * weight,
+        double lam_x, 
+        double lam_y);
+
 const char * cr2res_get_license(void) ;
 
 #endif

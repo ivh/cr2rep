@@ -34,3 +34,6 @@ GPATH
 debug_*.fits
 TEST_*.fits
 __pycache__
+cr2res/tmp_matrix_px.txt
+cr2res/plot_2dfit.py
+cr2res/tmp_vector_py.txt

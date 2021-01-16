@@ -60,6 +60,7 @@ static void test_cr2res_slit_pos(void);
 static void test_cr2res_slit_pos_img(void);
 static void test_cr2res_get_license(void);
 static void test_cr2res_slit_curv_compute_order_trace(void);
+static void test_cr2res_optimal_filter_2d(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -801,8 +802,39 @@ static void test_cr2res_slit_curv_compute_order_trace(){
     cpl_polynomial_delete(poly_a);
     cpl_polynomial_delete(poly_b);
     cpl_polynomial_delete(poly_c);
+}
 
+static void test_cr2res_optimal_filter_2d(void)
+{
+    cpl_image * img;
+    cpl_image * weight;
+    cpl_image * model;
+    double lam_x = 1, lam_y = 1;
 
+    int nx = 100;
+    int ny = 50;
+
+    img = cpl_image_new(nx, ny, CPL_TYPE_DOUBLE);
+    weight = cpl_image_new(nx, ny, CPL_TYPE_DOUBLE);
+
+    for (cpl_size i = 1; i <= nx; i++)
+    {
+        for (cpl_size j = 1; j <= ny; j++)
+        {
+            cpl_image_set(img, i, j, 10);
+            cpl_image_set(weight, i, j, 1);
+        }
+    }
+    
+    cpl_test_nonnull(
+        model = cr2res_util_optimal_filter_2d(img, weight, lam_x, lam_y));
+
+    cpl_image_save(model, "TEST_optimal_filter.fits", 
+                    CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+
+    cpl_image_delete(img);
+    cpl_image_delete(weight);
+    cpl_image_delete(model);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -847,6 +879,7 @@ int main(void)
     test_cr2res_slit_pos();
     test_cr2res_slit_pos_img();
     test_cr2res_slit_curv_compute_order_trace();
+    test_cr2res_optimal_filter_2d();
 
     return cpl_test_end(0);
 }

@@ -41,7 +41,7 @@
  * @defgroup cr2res_utils     Miscellaneous Utilities
  */
 /*----------------------------------------------------------------------------*/
-
+#define max(a,b) (((a)>(b))?(a):(b))
 /**@{*/
 
 /*----------------------------------------------------------------------------*/
@@ -1018,6 +1018,38 @@ cpl_array * cr2res_convert_poly_to_array(
     return out ;
 }
 
+// Remove an element from a vector, the data is modified and resized
+int cr2res_vector_erase_element(cpl_vector * vector, cpl_size pos)
+{
+    cpl_size i, n;
+
+    if (vector == NULL) return -1;
+
+    n = cpl_vector_get_size(vector);
+    if (pos >= n | pos < 0) return -1;
+
+    // we shift all elements past pos one step to the left
+    for (i = pos; i < n - 1; i++){
+        cpl_vector_set(vector, i, cpl_vector_get(vector, i + 1));
+    }
+    // and then remove the last element in the vector
+    cpl_vector_set_size(vector, n-1);
+    return 0;
+}
+
+// applies the absolute to each element
+int cr2res_vector_abs(cpl_vector * vector){
+    cpl_size i;
+
+    if (vector == NULL) return 0;
+
+    for (i = 0; i < cpl_vector_get_size(vector); i++){
+        cpl_vector_set(vector, i, 
+            fabs(cpl_vector_get(vector, i)));
+    }
+    return 0;
+}
+
 /* This function is copied from HDRLDEMO -> should not be changed */
 /* It could be added in HDRL */
 /*----------------------------------------------------------------------------*/
@@ -1181,6 +1213,122 @@ int cr2res_plot_wavecal_result(
     cpl_free(bivectors) ;
     return 0 ;
 }
+
+#define aij_index(x, y) ((y) * n) + (x)
+#define w_index(x, y) ((y) * nx) + (x)
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Apply the optimal filter in the 2D case
+  @param    img             Input image to filter
+  @param    weight          Weights for each point, should be between 0 and 1
+  @param    lam_x           Regularization factor in x direction
+  @param    lam_y           Regularization factor in y direction
+  @return   filtered image if ok, NULL otherwise
+
+  The optimal filter applies a restricition on the 1st derivatives in the x and
+  y directions.
+ */
+/*----------------------------------------------------------------------------*/
+cpl_image * cr2res_util_optimal_filter_2d(
+    const cpl_image * img,
+    const cpl_image * weight,
+    double lam_x, 
+    double lam_y)
+{
+    cpl_size nx, ny, i, j, k;
+    int n, ndiag, badpix;
+    double * aij;
+    const double * weight_data;
+    cpl_image * rhs_image;
+    cpl_image * model;
+    double * rhs;
+
+    nx = cpl_image_get_size_x(img);
+    ny = cpl_image_get_size_y(img);
+    n = nx * ny;
+    ndiag = 2 * nx + 1;
+
+    lam_x = fabs(lam_x);
+    lam_y = fabs(lam_y);
+
+    weight_data = cpl_image_get_data_double_const(weight);
+    // aij=dblarr(n, ndiag)
+    aij = cpl_malloc(n * ndiag * sizeof(double));
+    // aij[0, nx] = weight[0, 0] + lam_x + lam_y
+    aij[aij_index(0, nx)] = weight_data[w_index(0, 0)] + lam_x + lam_y;
+    // aij[1:nx-1, nx] = weight[1:nx-1, 0] +2 * lam_x + lam_y
+    for (i = 1; i < nx; i++)
+    {
+        aij[aij_index(i, nx)] = weight_data[w_index(i, 0)] + 2 * lam_x + lam_y;
+    }
+    // aij[nx:n-nx-1,nx]=reform(weight[*,1:ny-2],nx*(ny-2L))+2.d0*(lam_x+lam_y)
+    k = nx;
+    for (i = 0; i < nx; i++)
+    {
+        for (j = 1; j < ny-2; j++){
+            aij[aij_index(k, nx)] = weight_data[w_index(i, j)] 
+                                        + 2 * lam_x + 2 * lam_y;
+            k++;
+        }
+    }
+    // aij[n-nx:n-2,nx]= weight[0:nx-2,ny-1] + 2 * lam_x + lam_y
+    j = 0;
+    for (i = n - nx; i < n - 1; i++)
+    {
+        aij[aij_index(i, nx)] = weight_data[w_index(j, ny-1)] 
+                                    + 2 * lam_x + lam_y;
+        j++;
+    }
+    // aij[n-1,nx] = weight[nx-1,ny-1]+lam_x+lam_y
+    aij[aij_index(n-1, nx)] = weight_data[w_index(nx-1, ny-1)] + lam_x + lam_y;
+    for (i = 1; i < n; i++)
+    {
+        // aij[1:n-1, nx-1]=-lam_x
+        aij[aij_index(i, nx-1)] = -1 * lam_x;
+        // aij[0:n-2, nx+1]=-lam_x
+        aij[aij_index(i-1, nx+1)] = -1 * lam_x;
+    }
+
+    for (i = 0; i < ny-1; i++)
+    {
+        // ind = lindgen(ny-1) * nx + nx + nx * n
+        j = i * nx + nx + nx * n;
+        // aij[ind-1] = aij[ind-1] - lam_x
+        aij[j-1] = aij[j - 1] - lam_x;
+        // aij[ind  ] = aij[ind] - lam_x
+        aij[j] = aij[j] - lam_x;
+    }
+    for (i = 0; i < ny - 1; i++){
+        // ind = lindgen(ny-1) * nx + nx
+        j = i * nx + nx;
+        // aij[ind-1,nx+1] = 0
+        aij[aij_index(j - 1, nx + 1)] = 0;
+        // aij[ind, nx-1] = 0
+        aij[aij_index(j, nx - 1)] = 0;
+    }
+    // aij[nx:n-1, 0] = -lam_y
+    for (i = nx; i < n; i++)
+    {
+        aij[aij_index(i, 0)] = -lam_y;
+    }
+    // aij[0:n-nx-1, ndiag-1] = -lam_y
+    for (i = 0; i < n - nx; i++)
+    {
+        aij[aij_index(i, ndiag - 1)] = -lam_y;
+    }
+
+    rhs_image = cpl_image_multiply_create(img, weight);
+    rhs = cpl_image_get_data_double(rhs_image);
+
+    cr2res_extract_slitdec_bandsol(aij, rhs, n, ndiag, max(lam_x, lam_y));
+    cpl_free(aij);
+
+    return rhs_image;
+}
+
+#undef aij_index
+#undef w_index
 
 /*----------------------------------------------------------------------------*/
 /**
