@@ -806,12 +806,12 @@ static void test_cr2res_trace_signal_detect(void)
     cpl_mask *res;
 
     //run test
-    cpl_test_null(cr2res_trace_signal_detect(NULL, trace_sep, smoothfactor, thresh));
-    cpl_test_null(cr2res_trace_signal_detect(image, -10, smoothfactor, thresh));
-    cpl_test_null(cr2res_trace_signal_detect(image, trace_sep, -1, thresh));
+    cpl_test_null(cr2res_trace_signal_detect(NULL, trace_sep, smoothfactor, thresh, 0, 0));
+    cpl_test_null(cr2res_trace_signal_detect(image, -10, smoothfactor, thresh, 0, 0));
+    cpl_test_null(cr2res_trace_signal_detect(image, trace_sep, -1, thresh, 0, 0));
     //cpl_test_null(cr2res_trace_signal_detect(image, trace_sep, smoothfactor, 50000));
 
-    cpl_test(res = cr2res_trace_signal_detect(image, trace_sep, smoothfactor, thresh));
+    cpl_test(res = cr2res_trace_signal_detect(image, trace_sep, smoothfactor, thresh, 0, 0));
     //test output
     sub = cpl_mask_extract(res, 32, 105, 41, 114);
 

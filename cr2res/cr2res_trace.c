@@ -79,8 +79,8 @@ static cpl_mask * cr2res_trace_signal_detect(
         int                 smooth_x,
         int                 smooth_y,
         double              thresh,
-	int                 OPT_FILTER,
-	int                 LOG) ;
+	    int                 opt_filter,
+	    int                 log) ;
 static cpl_table * cr2res_trace_fit_traces(
         cpl_table   *   clustertable,
         int             degree) ;
@@ -155,7 +155,7 @@ cpl_table * cr2res_trace(
     /* Apply detection */
     cpl_msg_info(__func__, "Detect the signal") ;
     if ((mask = cr2res_trace_signal_detect(ima, smooth_x, smooth_y,
-                    threshold)) == NULL) {
+                    threshold, 0, 0)) == NULL) {
         cpl_msg_error(__func__, "Detection failed") ;
         return NULL ;
     }
@@ -1803,8 +1803,8 @@ static cpl_array * cr2res_trace_get_slit_frac(
   @param smooth_x       Low pass filter kernel size in x
   @param smooth_y       Low pass filter kernel size in y
   @param thresh         The threshold used for detection
-  @param OPT_FILTER     Flag indicating the use of optimal filter for y smoothing
-  @param LOG            Flag for using signal detection in logs instead of linear scale
+  @param opt_filter     Flag indicating the use of optimal filter for y smoothing
+  @param log            Flag for using signal detection in logs instead of linear scale
   @return   A newly allocated mask or NULL in error case.
 
   The returned mask identifies the pixels belonging to a trace
@@ -1817,8 +1817,8 @@ static cpl_mask * cr2res_trace_signal_detect(
         int                 smooth_x,
         int                 smooth_y,
         double              thresh,
-	int                 OPT_FILTER,
-	int                 LOG)
+	    int                 opt_filter,
+	    int                 log)
 {
     cpl_image       *   smx_image ;
     cpl_image       *   smxlog_image;
@@ -1859,7 +1859,7 @@ static cpl_mask * cr2res_trace_signal_detect(
     
     smxy_image = cpl_image_duplicate(smx_image);
    
-    if (LOG) {  // Filter log image instead of the original
+    if (log) {  // Filter log image instead of the original
       image_min = cpl_image_get_min(smx_image)-1.0;
       cpl_image_add_scalar(smx_image, -image_min);
       smxlog_image = cpl_image_logarithm_create(smx_image, CPL_MATH_E);
