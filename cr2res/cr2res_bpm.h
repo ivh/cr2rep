@@ -55,6 +55,11 @@ cpl_mask * cr2res_bpm_compute(
         double          lines_ratio,
         int             clean_flag) ;
 
+cpl_mask * cr2res_bpm_compute_running_filter(
+        cpl_image   *   img,
+        double          sigma,
+        int             size) ;
+
 int cr2res_bpm_count(
         cpl_image       *   bpm,
         cr2res_bpm_type     type) ;
