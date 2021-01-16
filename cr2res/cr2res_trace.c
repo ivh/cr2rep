@@ -78,7 +78,9 @@ static cpl_mask * cr2res_trace_signal_detect(
         const cpl_image *   image,
         int                 smooth_x,
         int                 smooth_y,
-        double              thresh) ;
+        double              thresh,
+	int                 OPT_FILTER,
+	int                 LOG) ;
 static cpl_table * cr2res_trace_fit_traces(
         cpl_table   *   clustertable,
         int             degree) ;
@@ -1801,6 +1803,8 @@ static cpl_array * cr2res_trace_get_slit_frac(
   @param smooth_x       Low pass filter kernel size in x
   @param smooth_y       Low pass filter kernel size in y
   @param thresh         The threshold used for detection
+  @param OPT_FILTER     Flag indicating the use of optimal filter for y smoothing
+  @param LOG            Flag for using signal detection in logs instead of linear scale
   @return   A newly allocated mask or NULL in error case.
 
   The returned mask identifies the pixels belonging to a trace
@@ -1812,13 +1816,17 @@ static cpl_mask * cr2res_trace_signal_detect(
         const cpl_image *   image,
         int                 smooth_x,
         int                 smooth_y,
-        double              thresh)
+        double              thresh,
+	int                 OPT_FILTER,
+	int                 LOG)
 {
     cpl_image       *   smx_image ;
+    cpl_image       *   smxlog_image;
     cpl_image       *   smxy_image ;
     int                 kernel_x, kernel_y ;
     cpl_mask        *   kernel ;
     cpl_mask        *   mask ;
+    double              image_min ;
 
     /* Check Entries */
     if (image == NULL) return NULL;
@@ -1850,17 +1858,40 @@ static cpl_mask * cr2res_trace_signal_detect(
     cpl_mask_not(kernel);
     
     smxy_image = cpl_image_duplicate(smx_image);
-    if (cpl_image_filter_mask(smxy_image, smx_image, kernel, CPL_FILTER_AVERAGE_FAST,
-                CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
-        cpl_msg_error(__func__, "Cannot filter the image") ;
-        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
-        cpl_mask_delete(kernel);
-        cpl_image_delete(smx_image) ;
-        cpl_image_delete(smxy_image) ;
-        return NULL ;
-    }
-    cpl_mask_delete(kernel);
+   
+    if (LOG) {  // Filter log image instead of the original
+      image_min = cpl_image_get_min(smx_image)-1.0;
+      cpl_image_add_scalar(smx_image, -image_min);
+      smxlog_image = cpl_image_logarithm_create(smx_image, CPL_MATH_E);
+
+      if (cpl_image_filter_mask(smxy_image, smxlog_image, kernel, CPL_FILTER_AVERAGE_FAST,
+                  CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
+          cpl_msg_error(__func__, "Cannot filter the image") ;
+          cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+          cpl_mask_delete(kernel);
+          cpl_image_delete(smx_image) ;
+          cpl_image_delete(smxlog_image) ;
+          cpl_image_delete(smxy_image) ;
+          return NULL ;
+      }
+      cpl_mask_delete(kernel);
     
+    // Potentitating the filtered image before comparing to the original
+      cpl_image_exponential(smxy_image, CPL_MATH_E);
+    }
+    else {  // The original linear scale image filtering
+      if (cpl_image_filter_mask(smxy_image, smx_image, kernel, CPL_FILTER_AVERAGE_FAST,
+                  CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
+          cpl_msg_error(__func__, "Cannot filter the image") ;
+          cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+          cpl_mask_delete(kernel);
+          cpl_image_delete(smx_image) ;
+          cpl_image_delete(smxy_image) ;
+          return NULL ;
+      }
+      cpl_mask_delete(kernel);
+    }
+
     /* Subtract x-smoothed image from xy-smoothed */
     cpl_image_subtract(smxy_image, smx_image);
 
