@@ -29,6 +29,7 @@
 #include <string.h>
 
 #include <cpl.h>
+#include <hdrl.h>
 
 #include "cr2res_utils.h"
 #include "cr2res_calib.h"
@@ -204,7 +205,7 @@ static int cr2res_util_calib_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_calib.collapse",
-            CPL_TYPE_STRING, "Collapse the input images (NONE, MEAN or MEDIAN)",
+            CPL_TYPE_STRING, "Collapse the input (NONE, SUM, MEAN or MEDIAN)",
             "cr2res.cr2res_util_calib", "NONE");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "collapse");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
@@ -283,6 +284,7 @@ static int cr2res_util_calib(
     hdrl_image          *   calibrated_one[CR2RES_NB_DETECTORS] ;
     hdrl_imagelist      *   calibrated[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
+    hdrl_value              mul_factor ;
     char                *   out_file;
     int                     i, det_nr ; 
 
@@ -307,6 +309,7 @@ static int cr2res_util_calib(
             "cr2res.cr2res_util_calib.collapse");
     sval = cpl_parameter_get_string(param);
     if (!strcmp(sval, "NONE"))          collapse = CR2RES_COLLAPSE_NONE ;
+    else if (!strcmp(sval, "SUM"))      collapse = CR2RES_COLLAPSE_SUM ;
     else if (!strcmp(sval, "MEAN"))     collapse = CR2RES_COLLAPSE_MEAN ;
     else if (!strcmp(sval, "MEDIAN"))   collapse = CR2RES_COLLAPSE_MEDIAN ;
     if (collapse == CR2RES_COLLAPSE_UNSPECIFIED) {
@@ -396,6 +399,15 @@ static int cr2res_util_calib(
             cpl_msg_indent_more() ;
             hdrl_imagelist_collapse_mean(calibrated[det_nr-1],
                     &(collapsed_ima[det_nr-1]), &contrib) ;
+        } else if (collapse == CR2RES_COLLAPSE_SUM) {
+            cpl_msg_info(__func__, "Collapse (Sum) the calibrated images") ;
+            cpl_msg_indent_more() ;
+            hdrl_imagelist_collapse_mean(calibrated[det_nr-1],
+                    &(collapsed_ima[det_nr-1]), &contrib) ;
+            /* From mean to sum : multiply by the number of images */
+            mul_factor.data = hdrl_imagelist_get_size(calibrated[det_nr-1]) ;
+            mul_factor.error = hdrl_imagelist_get_size(calibrated[det_nr-1]) ;
+            hdrl_image_mul_scalar(collapsed_ima[det_nr-1], mul_factor) ;
         } else if (collapse == CR2RES_COLLAPSE_MEDIAN) {
             cpl_msg_info(__func__, "Collapse (Median) the calibrated images") ;
             cpl_msg_indent_more() ;
