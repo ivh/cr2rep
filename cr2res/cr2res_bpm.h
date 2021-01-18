@@ -31,6 +31,12 @@
                                     Define
  -----------------------------------------------------------------------------*/
 
+typedef enum {
+    CR2RES_BPM_GLOBAL_STATS,
+    CR2RES_BPM_LOCAL_STATS,
+    CR2RES_BPM_RUNNING_FILTER
+} cr2res_bpm_method ;
+
 typedef enum _cr2res_bpm_type_ {
     CR2RES_BPM_DARK  	    = 1 << 0,
     CR2RES_BPM_FLAT         = 1 << 1,
@@ -50,15 +56,11 @@ static cr2res_bpm_type bpm_types[CR2RES_NB_BPM_TYPES] = {
  -----------------------------------------------------------------------------*/
 
 cpl_mask * cr2res_bpm_compute(
-        cpl_image   *   in,
-        double          kappa,
-        double          lines_ratio,
-        int             clean_flag) ;
-
-cpl_mask * cr2res_bpm_compute_running_filter(
-        cpl_image   *   img,
-        double          sigma,
-        int             size) ;
+        cpl_image           *   in,
+        cr2res_bpm_method       method,
+        double                  kappa,
+        double                  lines_ratio,
+        int                     clean_flag) ;
 
 int cr2res_bpm_count(
         cpl_image       *   bpm,

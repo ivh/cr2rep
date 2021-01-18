@@ -189,9 +189,17 @@ static int cr2res_cal_dark_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    /* --bpm_method */
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_dark.bpm_method",
+            CPL_TYPE_STRING, "Method (GLOBAL, LOCAL or RUNNING)",
+            "cr2res.cr2res_cal_dark", "GLOBAL");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_method");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     /* --bpm_kappa */
     p = cpl_parameter_new_value("cr2res_cal_dark.bpm_kappa", CPL_TYPE_DOUBLE,
-           "Kappa Threshold for the BPM", "cr2res_cal_dark", 0.5);
+           "Kappa Threshold for the BPM", "cr2res_cal_dark", -1.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_kappa");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -297,6 +305,8 @@ static int cr2res_cal_dark(
     int                     reduce_det, ron_hsize, ron_nsamples, ndit ;
     double                  gain, dit, bpm_kappa, bpm_lines_ratio, mean, med,
                             sigma, ron1, ron2, ron ;
+    cr2res_bpm_method       bpm_method ;
+    const char          *   sval ;
     hdrl_parameter      *   collapse_params ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_one ;
@@ -332,6 +342,19 @@ static int cr2res_cal_dark(
             "cr2res.cr2res_cal_dark.detector");
     reduce_det = cpl_parameter_get_int(par);
 
+    /* --bpm_method */
+    par = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_dark.bpm_method");
+    sval = cpl_parameter_get_string(par);
+    if (!strcmp(sval, "GLOBAL"))        bpm_method = CR2RES_BPM_GLOBAL_STATS ;
+    else if (!strcmp(sval, "LOCAL"))    bpm_method = CR2RES_BPM_LOCAL_STATS ;
+    else if (!strcmp(sval, "RUNNING"))  bpm_method = CR2RES_BPM_RUNNING_FILTER ;
+    else {
+        cpl_msg_error(__func__, "Unsupported bpm method") ;
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
+
     /* --ron_hsize */
     par = cpl_parameterlist_find_const(parlist, "cr2res_cal_dark.ron_hsize");
     ron_hsize = cpl_parameter_get_int(par);
@@ -343,6 +366,12 @@ static int cr2res_cal_dark(
     /* --bpm_kappa */
     par = cpl_parameterlist_find_const(parlist, "cr2res_cal_dark.bpm_kappa");
     bpm_kappa = cpl_parameter_get_double(par);
+	/* Set default depending on the method */
+    if (bpm_kappa < 0.0) {
+        if (bpm_method == CR2RES_BPM_GLOBAL_STATS) bpm_kappa = 0.5 ;
+        if (bpm_method == CR2RES_BPM_LOCAL_STATS) bpm_kappa = 7.0 ;
+        if (bpm_method == CR2RES_BPM_RUNNING_FILTER) bpm_kappa = 5.0 ;
+    }
 
     /* --bpm_lines_ratio */
     par = cpl_parameterlist_find_const(parlist,
@@ -529,7 +558,8 @@ static int cr2res_cal_dark(
             if (master_darks[det_nr-1] != NULL) {
                 if ((my_bpm = cr2res_bpm_compute(
                                 hdrl_image_get_image(master_darks[det_nr-1]),
-                                bpm_kappa, bpm_lines_ratio, 0))==NULL) {
+                                bpm_method, bpm_kappa, bpm_lines_ratio, 
+                                0))==NULL) {
                     cpl_msg_warning(__func__, "Cannot create BPM") ;
                 } else {
                     /* Convert mask to BPM */
