@@ -191,8 +191,8 @@ static int cr2res_cal_dark_create(cpl_plugin * plugin)
 
     /* --bpm_method */
     p = cpl_parameter_new_value("cr2res.cr2res_cal_dark.bpm_method",
-            CPL_TYPE_STRING, "Method (GLOBAL, LOCAL or RUNNING)",
-            "cr2res.cr2res_cal_dark", "GLOBAL");
+            CPL_TYPE_STRING, "Method (DEFAULT, GLOBAL, LOCAL or RUNNING)",
+            "cr2res.cr2res_cal_dark", "DEFAULT");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_method");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -305,7 +305,7 @@ static int cr2res_cal_dark(
     int                     reduce_det, ron_hsize, ron_nsamples, ndit ;
     double                  gain, dit, bpm_kappa, bpm_lines_ratio, mean, med,
                             sigma, ron1, ron2, ron ;
-    cr2res_bpm_method       bpm_method ;
+    cr2res_bpm_method       bpm_method, my_bpm_method ;
     const char          *   sval ;
     hdrl_parameter      *   collapse_params ;
     cpl_frameset        *   rawframes ;
@@ -314,6 +314,8 @@ static int cr2res_cal_dark(
     cpl_size                nlabels ;
     cpl_propertylist    *   plist ;
     char                *   setting_id ;
+    double                  bpm_kappa_global_default, bpm_kappa_local_default,
+                            bpm_kappa_running_default, my_bpm_kappa ;
     
     hdrl_image          *   master_darks[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpms[CR2RES_NB_DETECTORS] ;
@@ -336,6 +338,11 @@ static int cr2res_cal_dark(
     double                  original_dit ;
     char                *   original_setting ;
 
+    /* Initialise */
+    bpm_kappa_global_default = 0.5 ;
+    bpm_kappa_local_default = 7.0 ;
+    bpm_kappa_running_default = 5.0 ;
+
     /* RETRIEVE INPUT PARAMETERS */
     /* --detector */
     par = cpl_parameterlist_find_const(parlist,
@@ -349,6 +356,7 @@ static int cr2res_cal_dark(
     if (!strcmp(sval, "GLOBAL"))        bpm_method = CR2RES_BPM_GLOBAL_STATS ;
     else if (!strcmp(sval, "LOCAL"))    bpm_method = CR2RES_BPM_LOCAL_STATS ;
     else if (!strcmp(sval, "RUNNING"))  bpm_method = CR2RES_BPM_RUNNING_FILTER ;
+    else if (!strcmp(sval, "DEFAULT"))  bpm_method = CR2RES_BPM_UNSPECIFIED ;
     else {
         cpl_msg_error(__func__, "Unsupported bpm method") ;
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -368,9 +376,12 @@ static int cr2res_cal_dark(
     bpm_kappa = cpl_parameter_get_double(par);
 	/* Set default depending on the method */
     if (bpm_kappa < 0.0) {
-        if (bpm_method == CR2RES_BPM_GLOBAL_STATS) bpm_kappa = 0.5 ;
-        if (bpm_method == CR2RES_BPM_LOCAL_STATS) bpm_kappa = 7.0 ;
-        if (bpm_method == CR2RES_BPM_RUNNING_FILTER) bpm_kappa = 5.0 ;
+        if (bpm_method == CR2RES_BPM_GLOBAL_STATS) 
+            bpm_kappa = bpm_kappa_global_default ;
+        if (bpm_method == CR2RES_BPM_LOCAL_STATS) 
+            bpm_kappa = bpm_kappa_local_default ;
+        if (bpm_method == CR2RES_BPM_RUNNING_FILTER) 
+            bpm_kappa = bpm_kappa_running_default ;
     }
 
     /* --bpm_lines_ratio */
@@ -386,14 +397,6 @@ static int cr2res_cal_dark(
     collapse_params = hdrl_collapse_parameter_parse_parlist(parlist,
             "cr2res_cal_dark.collapse") ;
    
-    /* Verify Parameters */
-    if (bpm_kappa < 0.1) {
-        hdrl_parameter_destroy(collapse_params) ;
-        cpl_msg_error(__func__, "Kappa must be higher than 0.1") ;
-        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
-        return -1 ;
-    }
-
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
         hdrl_parameter_destroy(collapse_params) ;
@@ -556,9 +559,25 @@ static int cr2res_cal_dark(
        
             /* Compute BPM from the MASTER dark */
             if (master_darks[det_nr-1] != NULL) {
+
+                /* Handle default method */
+                if (bpm_method == CR2RES_BPM_UNSPECIFIED) {
+                    if (cr2res_is_short_wavelength(setting_id)) {
+                        my_bpm_method = CR2RES_BPM_GLOBAL_STATS ;
+                        if (bpm_kappa < 0.0) 
+                            my_bpm_kappa = bpm_kappa_global_default ;
+                    } else {
+                        my_bpm_method = CR2RES_BPM_LOCAL_STATS ;
+                        if (bpm_kappa < 0.0) 
+                            my_bpm_kappa = bpm_kappa_local_default ;
+                    }
+                } else {
+                    my_bpm_method = bpm_method ;
+                    my_bpm_kappa = bpm_kappa ;
+                }
                 if ((my_bpm = cr2res_bpm_compute(
                                 hdrl_image_get_image(master_darks[det_nr-1]),
-                                bpm_method, bpm_kappa, bpm_lines_ratio, 
+                                my_bpm_method, my_bpm_kappa, bpm_lines_ratio, 
                                 0))==NULL) {
                     cpl_msg_warning(__func__, "Cannot create BPM") ;
                 } else {

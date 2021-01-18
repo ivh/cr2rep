@@ -116,6 +116,26 @@ int cr2res_format_setting(char * setting_id)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Identify Short Wavelength
+  @param    Setting
+  @return   1 if SW, 0 if LW, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_is_short_wavelength(char * setting_id)
+{
+    int     i, len ;
+
+    /* Check entries */
+    if (setting_id == NULL) return -1 ;
+
+    if (setting_id[0] == 'H' || setting_id[0] == 'J' || 
+            setting_id[0] == 'K' || setting_id[0] == 'Y')
+        return 1;
+    return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Format the setting
   @param    Setting
   @return   0 if ok, -1 in error case

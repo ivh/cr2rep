@@ -32,6 +32,7 @@
  -----------------------------------------------------------------------------*/
 
 typedef enum {
+    CR2RES_BPM_UNSPECIFIED,
     CR2RES_BPM_GLOBAL_STATS,
     CR2RES_BPM_LOCAL_STATS,
     CR2RES_BPM_RUNNING_FILTER
