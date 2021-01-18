@@ -1874,6 +1874,7 @@ static cpl_mask * cr2res_trace_signal_detect(
           cpl_image_delete(smxy_image) ;
           return NULL ;
       }
+      cpl_image_delete(smxlog_image) ;
       cpl_mask_delete(kernel);
     
     // Potentitating the filtered image before comparing to the original
