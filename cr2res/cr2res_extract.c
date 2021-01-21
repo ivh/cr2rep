@@ -301,11 +301,6 @@ int cr2res_extract_traces(
                 continue ;
             }
         } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
-            int ny_os = oversample * (extr_height + 1) + 1;
-            slit_func_in_vec = cpl_vector_new(ny_os); //TODO REMOVE THIS!!!
-            cpl_vector_fill(slit_func_in_vec, 1);
-             
-
             if (cr2res_extract_slitdec_curved(img, traces, slit_func_in_vec,
                         order, trace_id, extr_height, swath_width,
                         oversample, smooth_slit, &(slit_func_vec[i]),
