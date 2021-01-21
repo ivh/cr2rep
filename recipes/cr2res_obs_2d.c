@@ -445,7 +445,7 @@ static int cr2res_obs_2d_reduce(
 
     /* Get the order zeropoint */
     if ((plist = cpl_propertylist_load(cpl_frame_get_filename(trace_wave_frame),
-                    reduce_det)) == NULL) {
+                    0)) == NULL) {
         cpl_msg_error(__func__, "Cannot read the ORDER_ZP from the input TW") ;
         return -1 ;
     }
