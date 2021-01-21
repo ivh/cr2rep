@@ -91,7 +91,8 @@ Detector Linearity                                                      \n\
   Measure the pixels non-linearity                                      \n\
                                                                         \n\
   Inputs                                                                \n\
-    raw.fits " CR2RES_DETLIN_RAW " [3 to n]                             \n\
+    raw.fits " CR2RES_DETLIN_DARK_RAW " [3 to n]                        \n\
+    or raw.fits " CR2RES_DETLIN_LAMP_RAW " [3 to n]                     \n\
                                                                         \n\
   Outputs                                                               \n\
     cr2res_cal_detlin_coeffs.fits " CR2RES_CAL_DETLIN_COEFFS_PROCATG "  \n\
@@ -348,9 +349,13 @@ static int cr2res_cal_detlin(
                             trace_smooth_x, trace_smooth_y, plot_x, plot_y ;
     double                  bpm_kappa, trace_threshold ;
     cpl_frameset        *   rawframes ;
+    char                **  tags ;
+    int                     ntags ;
     cpl_size            *   labels ;
     cpl_size                nlabels ;
     cpl_frameset        *   raw_one ;
+    cpl_frameset        *   raw_one_dark ;
+    cpl_frameset        *   raw_one_lamp ;
     char                *   setting_id ;
     hdrl_imagelist      *   coeffs_merged[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpm_merged[CR2RES_NB_DETECTORS] ;
@@ -412,11 +417,19 @@ static int cr2res_cal_detlin(
     /* Get Calibration frames */
 
     /* Retrieve raw frames */
-    if ((rawframes = cr2res_extract_frameset(frameset, 
-                    CR2RES_DETLIN_RAW)) == NULL) {
+	/* Create the tags list */
+	ntags = 2 ;
+	tags = cpl_malloc(ntags * sizeof(char *)) ;
+	tags[0] = cpl_sprintf(CR2RES_DETLIN_LAMP_RAW) ;
+	tags[1] = cpl_sprintf(CR2RES_DETLIN_DARK_RAW) ;
+    if ((rawframes = cr2res_extract_frameset_several_tags(frameset, 
+                    (const char**)tags, ntags)) == NULL) {
         cpl_msg_error(__func__, "No raw frame in input") ;
+        cpl_free(tags) ;
         return -1 ;
     }
+    for (i=0 ; i<ntags ; i++) cpl_free(tags[i]) ;
+    cpl_free(tags) ;
 
     /* Labelise the raw frames with the different settings*/
     if ((labels = cpl_frameset_labelise(rawframes, cr2res_cal_detlin_compare,
@@ -449,6 +462,10 @@ static int cr2res_cal_detlin(
         cpl_msg_info(__func__, "Process SETTING %s", setting_id) ;
         cpl_msg_indent_more() ;
 
+        /* Extract LAMP and DARK */
+        raw_one_dark = cr2res_extract_frameset(raw_one, CR2RES_DETLIN_DARK_RAW);
+        raw_one_lamp = cr2res_extract_frameset(raw_one, CR2RES_DETLIN_LAMP_RAW);
+
         /* Loop on the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
@@ -463,7 +480,7 @@ static int cr2res_cal_detlin(
     
             /* Call the reduction function */
             cpl_msg_indent_more() ;
-            if (cr2res_cal_detlin_reduce(raw_one, bpm_kappa,
+            if (cr2res_cal_detlin_reduce(raw_one_lamp, bpm_kappa,
                         trace_degree, trace_min_cluster, trace_smooth_x,
                         trace_smooth_y, trace_threshold, trace_opening, 
                         trace_collapse, det_nr, plot_x, plot_y,
@@ -521,6 +538,8 @@ static int cr2res_cal_detlin(
 
         /* Free */
         cpl_frameset_delete(raw_one) ;
+        cpl_frameset_delete(raw_one_dark) ;
+        cpl_frameset_delete(raw_one_lamp) ;
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             if (coeffs[det_nr-1] != NULL) 
                 hdrl_imagelist_delete(coeffs[det_nr-1]) ;
