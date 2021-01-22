@@ -33,6 +33,7 @@
 #include "irplib_wlxcorr.h"
 
 #include "cr2res_io.h"
+#include "cr2res_utils.h"
 #include "cr2res_dfs.h"
 #include "cr2res_pfits.h"
 
@@ -1320,6 +1321,7 @@ int cr2res_io_save_PHOTO_FLUX(
         const char              *   recipe)
 {
     cpl_propertylist    *   plist ;
+    double                  mjd_obs ;
 
     plist = cpl_propertylist_new();
     cpl_propertylist_append_string(plist, CR2RES_HEADER_INSTRUMENT, "CRIRES") ;
@@ -1327,6 +1329,8 @@ int cr2res_io_save_PHOTO_FLUX(
             CR2RES_PHOTO_FLUX_PROCATG) ;
     cpl_propertylist_append_string(plist, CPL_DFS_PRO_TYPE,
             CR2RES_PHOTO_FLUX_PROTYPE) ;
+    mjd_obs = cr2res_mjd_obs_now() ;
+	cpl_propertylist_append_double(plist, CR2RES_HEADER_MJD_OBS, mjd_obs) ;
 
     if (cpl_dfs_save_table(set, NULL, parlist, set, NULL, out_table,
                 NULL, recipe, plist, NULL,
@@ -1362,13 +1366,17 @@ int cr2res_io_save_EMISSION_LINES(
         const char              *   setting_string)
 {
     cpl_propertylist    *   plist ;
-
+    double                  mjd_obs ;
+    
     plist = cpl_propertylist_new();
     cpl_propertylist_append_string(plist, CR2RES_HEADER_INSTRUMENT, "CRIRES") ;
     cpl_propertylist_append_string(plist, CPL_DFS_PRO_CATG,
             CR2RES_EMISSION_LINES_PROCATG) ;
     cpl_propertylist_append_string(plist, CPL_DFS_PRO_TYPE,
             CR2RES_PROTYPE_CATALOG) ;
+
+    mjd_obs = cr2res_mjd_obs_now() ;
+	cpl_propertylist_append_double(plist, CR2RES_HEADER_MJD_OBS, mjd_obs) ;
 
     if (setting_string != NULL) {
         cpl_propertylist_append_string(plist, CR2RES_HEADER_WLEN_ID,

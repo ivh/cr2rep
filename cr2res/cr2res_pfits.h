@@ -34,6 +34,7 @@
 
 /* RAW files header Keywords Names */
 #define CR2RES_HEADER_INSTRUMENT        "INSTRUME"
+#define CR2RES_HEADER_MJD_OBS           "MJD-OBS"
 #define CR2RES_HEADER_EXTNAME           "EXTNAME"
 #define CR2RES_HEADER_NAXIS1            "NAXIS1"
 #define CR2RES_HEADER_NAXIS2            "NAXIS2"

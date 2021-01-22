@@ -27,7 +27,11 @@
 
 #include <string.h>
 #include <math.h>
+#include <time.h>
+
 #include <cpl.h>
+
+#include "irplib_wcs.h"
 
 #include "cr2res_utils.h"
 #include "cr2res_io.h"
@@ -43,6 +47,39 @@
 /*----------------------------------------------------------------------------*/
 #define max(a,b) (((a)>(b))?(a):(b))
 /**@{*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the current MJD-OBS
+  @return   The MJD-OBS
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_mjd_obs_now(void)
+{
+    double          mjd_obs ;
+    int             hours, minutes, seconds, day, month, year;
+    time_t          now;
+
+    /* Get the time for MJD-OBS */
+    time(&now);
+    struct tm *local = localtime(&now);
+    hours = local->tm_hour;          // get hours since midnight (0-23)
+    minutes = local->tm_min;         // get minutes passed after the hour (0-59)
+    seconds = local->tm_sec;         // get seconds passed after minute (0-59)
+    day = local->tm_mday;            // get day of month (1 to 31)
+    month = local->tm_mon + 1;       // get month of year (0 to 11)
+    year = local->tm_year + 1900;    // get year since 1900
+    /* printf("%d %d %d %d %d %d\n", hours, minutes, seconds, day,
+     * month, year) ; */
+    irplib_wcs_mjd_from_iso8601(&mjd_obs, year, month, day, hours,
+            minutes, seconds) ;
+
+    return mjd_obs ;
+}
+
+
+
+
 
 /*----------------------------------------------------------------------------*/
 /**
