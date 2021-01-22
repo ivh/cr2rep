@@ -597,11 +597,13 @@ static int cr2res_obs_nodding(
             RECIPE_STRING) ;
     cpl_free(out_file);
 
-    out_file = cpl_sprintf("%s_throughput.fits", RECIPE_STRING) ;
-    cr2res_io_save_THROUGHPUT(out_file, frameset, rawframes, parlist,
-            throughput, NULL, ext_plist, CR2RES_OBS_NODDING_THROUGHPUT_PROCATG,
-            RECIPE_STRING) ;
-    cpl_free(out_file);
+    if (type == 2) {
+        out_file = cpl_sprintf("%s_throughput.fits", RECIPE_STRING) ;
+        cr2res_io_save_THROUGHPUT(out_file, frameset, rawframes, parlist,
+                throughput, NULL, ext_plist, 
+                CR2RES_OBS_NODDING_THROUGHPUT_PROCATG, RECIPE_STRING) ;
+        cpl_free(out_file);
+    }
 
     /* Free */
     cpl_frameset_delete(rawframes) ;
@@ -981,7 +983,7 @@ static int cr2res_obs_nodding_reduce(
         return -1 ;
     }
     cpl_array_delete(slit_frac_b) ;
-
+    
     /* Execute the extraction */
     cpl_msg_info(__func__, "Spectra Extraction") ;
     if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, -1, -1,
