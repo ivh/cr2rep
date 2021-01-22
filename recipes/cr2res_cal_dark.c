@@ -607,8 +607,9 @@ static int cr2res_cal_dark(
             }
 
             /* QCs */
-            ext_plist[det_nr-1] = cpl_propertylist_new() ;
-            
+            ext_plist[det_nr-1] = cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position(raw_one, 0)), det_nr) ;
+
             /* QCs from RAW */
             if (hdrl_imagelist_get_size(dark_cube) >= 3) {
                 ron1 = cr2res_dark_qc_ron(
