@@ -505,11 +505,13 @@ static int cr2res_obs_2d_reduce(
     }
     hdrl_image_delete(in_calib) ;
 
-    /* QC parameters */
-    plist = cpl_propertylist_new() ;
+    /* Extension header for products */
+    plist = cpl_propertylist_load(
+            cpl_frame_get_filename(rawframe),
+            cr2res_io_get_ext_idx(cpl_frame_get_filename(rawframe), 
+                reduce_det, 1)) ;
 
     /* Compute the QC parameters */
-    /* TODO */
 
     /* Real Orders in QCs */
     if (order_zp > 0) {

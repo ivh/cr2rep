@@ -668,6 +668,7 @@ static int cr2res_obs_pol_reduce_one(
     cpl_table           *   pol_spec_merged ;
     cpl_propertylist    *   plist ;
     cpl_propertylist    *   ext_plist_loc ;
+    const char          *   first_fname ;
     char                *   out_file;
     cpl_size                nframes, nspec_group, spec_size ;
     int                     ngroups, i, j, k, l, o, norders, frame_idx ;
@@ -679,6 +680,8 @@ static int cr2res_obs_pol_reduce_one(
     /* Initialise */
     *pol_spec = NULL ;
     *ext_plist = NULL ;
+    first_fname = cpl_frame_get_filename(
+            cpl_frameset_get_position_const(rawframes, 0)) ;
 
     /* Check Inputs */
     if (pol_spec == NULL || ext_plist == NULL || rawframes == NULL || 
@@ -1084,10 +1087,9 @@ static int cr2res_obs_pol_reduce_one(
         return -1 ;
     }
 
-    /* QCs */
-    cpl_msg_info(__func__, "Store the QC parameters") ;
-    ext_plist_loc = cpl_propertylist_new() ;
-    /* TODO */
+    /* Store the extenѕion header for product saving */
+    ext_plist_loc = cpl_propertylist_load(first_fname,
+            cr2res_io_get_ext_idx(first_fname, reduce_det, 1)) ;
 
     /* Real Orders in QCs */
     if (order_zp > 0) {

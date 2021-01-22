@@ -316,7 +316,7 @@ static int cr2res_cal_dark(
     char                *   setting_id ;
     double                  bpm_kappa_global_default, bpm_kappa_local_default,
                             bpm_kappa_running_default, my_bpm_kappa ;
-    
+        
     hdrl_image          *   master_darks[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpms[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
@@ -331,6 +331,7 @@ static int cr2res_cal_dark(
     hdrl_image          *   master;
     cpl_image           *   contrib_map;
     cpl_mask            *   bpm ;
+    const char          *   first_fname ;
     char                *   filename ;
     int                     nb_frames, i, l, det_nr, nb_bad ;
     int                     single_dit_ndit_setting ;
@@ -464,10 +465,11 @@ static int cr2res_cal_dark(
         /* Get the frames for the current setting */
         raw_one = cpl_frameset_extract(rawframes, labels, (cpl_size)l) ;
         nb_frames = cpl_frameset_get_size(raw_one) ;
+        first_fname = 
+            cpl_frame_get_filename(cpl_frameset_get_position(raw_one, 0)) ;
 
         /* Get the current setting */
-        plist = cpl_propertylist_load(cpl_frame_get_filename(
-                    cpl_frameset_get_position(raw_one, 0)), 0) ;
+        plist = cpl_propertylist_load(first_fname, 0) ;
         dit = cr2res_pfits_get_dit(plist) ;
         ndit = cr2res_pfits_get_ndit(plist) ;
         setting_id = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
@@ -483,7 +485,10 @@ static int cr2res_cal_dark(
             /* Initialise */
             master_darks[det_nr-1] = NULL ;
             bpms[det_nr-1] = NULL ;
-            ext_plist[det_nr-1] = NULL ;
+
+            /* Store the extenѕion header for product saving */
+            ext_plist[det_nr-1] = cpl_propertylist_load(first_fname,
+                    cr2res_io_get_ext_idx(first_fname, det_nr, 1)) ;
 
             /* Compute only one detector */
             if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -607,8 +612,6 @@ static int cr2res_cal_dark(
             }
 
             /* QCs */
-            ext_plist[det_nr-1] = cpl_propertylist_load(cpl_frame_get_filename(
-                    cpl_frameset_get_position(raw_one, 0)), det_nr) ;
 
             /* QCs from RAW */
             if (hdrl_imagelist_get_size(dark_cube) >= 3) {

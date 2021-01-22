@@ -545,7 +545,6 @@ static int cr2res_util_wave(
             lines_diagnostics[det_nr-1] = NULL ;
             updated_extracted_table[det_nr-1] = NULL ;
             out_wave_map[det_nr-1] = NULL ;
-            ext_plist[det_nr-1] = NULL ;
 
             /* Store the extenѕion header for product saving */
             ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname,

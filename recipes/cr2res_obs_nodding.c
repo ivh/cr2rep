@@ -713,6 +713,7 @@ static int cr2res_obs_nodding_reduce(
     cpl_propertylist    *   plist ;
     cpl_size                nframes, i ;
     char                *   key_name ;
+    const char          *   first_fname ;
     double                  slit_length, extr_width_frac, slit_frac_a_bot, 
                             slit_frac_a_mid, slit_frac_a_top, slit_frac_b_bot, 
                             slit_frac_b_mid, slit_frac_b_top, nod_throw ;
@@ -720,7 +721,7 @@ static int cr2res_obs_nodding_reduce(
                             qc_fwhm_b ;
     int                 *   order_idx_values ;
     double              *   qc_snrs ;
-    int                     det_nr, nb_order_idx_values, order_real,
+    int                     nb_order_idx_values, order_real,
                             order_zp, order_idx, order_idxp ;
 
     /* Check Inputs */
@@ -736,6 +737,8 @@ static int cr2res_obs_nodding_reduce(
 
     /* Initialise */
     nframes = cpl_frameset_get_size(rawframes) ;
+    first_fname = cpl_frame_get_filename(
+            cpl_frameset_get_position_const(rawframes, 0)) ;
 
     /* Get the order zeropoint */
     if ((plist = cpl_propertylist_load(cpl_frame_get_filename(trace_wave_frame),
@@ -886,9 +889,7 @@ static int cr2res_obs_nodding_reduce(
         - The A position is above the B position (--nodding-invert=false)
     */
     slit_length = 10 ;
-    if ((plist = cpl_propertylist_load(cpl_frame_get_filename(
-                        cpl_frameset_get_position_const(rawframes, 0)),
-                    0)) == NULL) {
+    if ((plist = cpl_propertylist_load(first_fname, 0)) == NULL) {
         cpl_msg_error(__func__, "Cannot read the NODTHROW in the input files") ;
         hdrl_image_delete(collapsed_a) ;
         hdrl_image_delete(collapsed_b) ;
@@ -1014,9 +1015,10 @@ static int cr2res_obs_nodding_reduce(
     /* TODO : Save trace_wave_a and b as products */
     cpl_table_delete(trace_wave_b) ;
 
-    /* QC parameters */
-    plist = cpl_propertylist_new() ;
-
+    /* Store the extenѕion header for product saving */
+    plist = cpl_propertylist_load(first_fname,
+            cr2res_io_get_ext_idx(first_fname, reduce_det, 1)) ;
+                    
     /* QC - Signal and FWHM */
     qc_signal_a = cr2res_qc_obs_nodding_signal(extracted_a) ;
     qc_signal_b = cr2res_qc_obs_nodding_signal(extracted_b) ;

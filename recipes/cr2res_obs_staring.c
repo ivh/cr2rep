@@ -513,6 +513,7 @@ static int cr2res_obs_staring_reduce(
     int                 *   order_idx_values ;
     double              *   qc_snrs ;
     char                *   key_name ;
+    const char          *   first_fname ;
     double                  qc_signal, qc_fwhm ;
     int                     det_nr, order_zp, nb_order_idx_values,
                             order_real, order_idx, order_idxp ;
@@ -529,6 +530,8 @@ static int cr2res_obs_staring_reduce(
 
     /* Initialise */
     nframes = cpl_frameset_get_size(rawframes) ;
+    first_fname = cpl_frame_get_filename(
+            cpl_frameset_get_position_const(rawframes, 0)) ;
 
     /* Get the order zeropoint */
     if ((plist = cpl_propertylist_load(cpl_frame_get_filename(trace_wave_frame),
@@ -613,8 +616,9 @@ static int cr2res_obs_staring_reduce(
     }
 	hdrl_image_delete(collapsed) ;
 
-    /* QC parameters */
-    plist = cpl_propertylist_new() ;
+    /* Store the extenѕion header for product saving */
+    plist = cpl_propertylist_load(first_fname,
+            cr2res_io_get_ext_idx(first_fname, reduce_det, 1)) ;
 
     /* QC - Signal and FWHM */
     qc_signal = cr2res_qc_obs_nodding_signal(extracted) ;

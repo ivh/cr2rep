@@ -360,7 +360,6 @@ static int cr2res_util_trace(
 
             /* Initialise */
             traces[det_nr-1] = NULL ;
-            ext_plist[det_nr-1] = NULL ;
 
             /* Store the extenѕion header for product saving */
             ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname,

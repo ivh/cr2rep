@@ -333,7 +333,6 @@ static int cr2res_util_slit_curv(
 
             /* Initialise */
             slit_curv_map[det_nr-1] = NULL ;
-            ext_plist[det_nr-1] = NULL ;
             trace_wave[det_nr-1] = NULL ;
             lamp_image[det_nr-1] = NULL ;
 

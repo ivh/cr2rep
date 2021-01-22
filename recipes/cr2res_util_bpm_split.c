@@ -270,7 +270,8 @@ static int cr2res_util_bpm_split(
             /* Initialise */
             for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++)
                 splitted_bpms[j][det_nr-1] = NULL ;
-            ext_plist[det_nr-1] = NULL ;
+            wished_ext_nb = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
+            ext_plist[det_nr-1]=cpl_propertylist_load(cur_fname,wished_ext_nb);
 
             /* Compute only one detector */
             if (reduce_det != 0 && det_nr != reduce_det) continue ;
@@ -290,10 +291,6 @@ static int cr2res_util_bpm_split(
             }
             cpl_image_delete(ima); 
             cpl_msg_indent_less() ;
-
-            /* Create the header */
-            wished_ext_nb = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
-            ext_plist[det_nr-1]=cpl_propertylist_load(cur_fname,wished_ext_nb);
         }
 
         /* Ѕave Products */
