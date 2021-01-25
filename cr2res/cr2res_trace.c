@@ -762,6 +762,11 @@ int cr2res_trace_get_height(
 
     cpl_polynomial_delete(poly_upper);
     cpl_polynomial_delete(poly_lower);
+
+    if (height > 300){
+        cpl_msg_warning(__func__, "Computed height unreasonably large");
+        return -1;
+    }
     return height;
 }
 
