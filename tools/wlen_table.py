@@ -20,9 +20,8 @@ for twn in sys.argv[1:]:
                 try:
                     p = tw[mask]['Wavelength'][0][::-1]
                 except:
-                    print('f')
                     continue
                 poly = np.poly1d(p)
                 #deriv = poly.deriv()
-                print(order, det, '%.1f%%'%xc, '%.3f'%poly(1), '%.3f'%poly(2048))
+                print(order, det, '%.1f%%'%(xc*100), '%.3f'%poly(1), '%.3f'%poly(2048))
                 
