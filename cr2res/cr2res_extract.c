@@ -444,7 +444,7 @@ int cr2res_extract_sum_vert(
         return -1 ;
     }
     cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
-            cpl_vector_get(ycen, CR2RES_DETECTOR_SIZE/2)) ;
+            cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2)) ;
 
     img_tmp = cr2res_image_cut_rectify(img_in, ycen, height);
     if (img_tmp == NULL) {
@@ -585,7 +585,7 @@ int cr2res_extract_median(
         return -1 ;
     }
     cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
-            cpl_vector_get(ycen, CR2RES_DETECTOR_SIZE/2)) ;
+            cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2)) ;
 
     img_tmp = cr2res_image_cut_rectify(img_in, ycen, height);
     if (img_tmp == NULL) {
@@ -725,7 +725,7 @@ int cr2res_extract_sum_tilt(
         return -1 ;
     }
     cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
-            cpl_vector_get(ycen, CR2RES_DETECTOR_SIZE/2)) ;
+            cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2)) ;
 
     img_tmp = cr2res_image_cut_rectify(img_in, ycen, height);
     if (img_tmp == NULL) {
@@ -1255,7 +1255,7 @@ int cr2res_extract_slitdec_vert(
         return -1 ;
     }
     cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
-            cpl_vector_get(ycen, CR2RES_DETECTOR_SIZE/2)) ;
+            cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2)) ;
 
     if (oversample <= 0) oversample = 1;
 
@@ -1635,7 +1635,7 @@ int cr2res_extract_slitdec_curved(
         return -1 ;
     }
     cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
-            cpl_vector_get(ycen, CR2RES_DETECTOR_SIZE/2)) ;
+            cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2)) ;
 
     // Get cut-out rectified order
     img_rect = cr2res_image_cut_rectify(img_in, ycen, height);
@@ -3700,7 +3700,7 @@ static int cr2res_extract_slitdec_adjust_swath(
         ymin = ycen_int[i] - (height/2);
         ymax = ycen_int[i] + (height/2) + height%2 ;
         if (!((ymax <= 1) || (ymin > leny))){
-            end = i;
+            end = i + 1;
             break;
         }
         end = 0;

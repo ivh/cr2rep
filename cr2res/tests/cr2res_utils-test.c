@@ -772,9 +772,9 @@ static void test_cr2res_slit_curv_compute_order_trace(){
     cpl_image * img_in = load_etalon_image();
     cpl_table * trace_wave = load_etalon_table();
 
-    cpl_polynomial * poly_a;
-    cpl_polynomial * poly_b;
-    cpl_polynomial * poly_c;
+    cpl_polynomial * poly_a = NULL;
+    cpl_polynomial * poly_b = NULL;
+    cpl_polynomial * poly_c = NULL;
 
     int order = 1;
     int trace = 1;
@@ -782,18 +782,22 @@ static void test_cr2res_slit_curv_compute_order_trace(){
     int window = 15;  // The spacing between peaks
     int degree = 2;   // That is the default format
     int fit_c = 1;    // Thats what we want most of the time
+    int result;
 
     // cpl_table_save(trace_wave, NULL, NULL, "debug_tw.fits", CPL_IO_CREATE);
 
     img_hdrl = hdrl_image_create(img_in, NULL);
-
-    cpl_test_eq(0, cr2res_slit_curv_compute_order_trace(img_hdrl, trace_wave,
+    
+    result = cr2res_slit_curv_compute_order_trace(img_hdrl, trace_wave,
         order, trace, height, window, degree, fit_c,
-        &poly_a, &poly_b, &poly_c));
+        &poly_a, &poly_b, &poly_c);
+    cpl_test_eq(0, result);
 
-    cpl_polynomial_dump(poly_a, stderr);
-    cpl_polynomial_dump(poly_b, stderr);
-    cpl_polynomial_dump(poly_c, stderr);
+    if (result == 0){
+        cpl_polynomial_dump(poly_a, stderr);
+        cpl_polynomial_dump(poly_b, stderr);
+        cpl_polynomial_dump(poly_c, stderr);
+    }
 
     cpl_image_delete(img_in);
     hdrl_image_delete(img_hdrl);

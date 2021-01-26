@@ -851,6 +851,7 @@ static void test_cr2res_slitdec_errors(void){
     int trace = 1;
     int swath = 200;
     int oversample = 1;
+    int result;
     double smooth_slit = 10;
     double spec_in[width];
 
@@ -866,15 +867,17 @@ static void test_cr2res_slitdec_errors(void){
 
     
 
-    cr2res_extract_slitdec_vert(img_hdrl, trace_table, NULL, order, trace, height, swath,
+    result = cr2res_extract_slitdec_vert(img_hdrl, trace_table, NULL, order, trace, height, swath,
                 oversample, smooth_slit, &slit_func, &spec, &model);
 
-    error = cpl_bivector_get_y(spec);
-
-    // Free memory
-    cpl_vector_delete(slit_func);
-    cpl_bivector_delete(spec);
-    hdrl_image_delete(model);
+    cpl_test_eq(0, result);
+    if (result == 0){
+        error = cpl_bivector_get_y(spec);
+        // Free memory
+        cpl_vector_delete(slit_func);
+        cpl_bivector_delete(spec);
+        hdrl_image_delete(model);
+    }
 
     cpl_table_delete(trace_table);
     cpl_image_delete(img_in);
@@ -983,12 +986,12 @@ int main(void)
     // // test_cr2res_slitdec_vert_regression();
 
     // /* TMP */
-    /* test_cr2res_slitdec_vert(); */
-    /* test_cr2res_slitdec_curved(); */
+    test_cr2res_slitdec_vert();
+    test_cr2res_slitdec_curved();
     /* test_cr2res_slitdec_compare_vert_curved(); */
 
     test_cr2res_slitdec_errors();
-    test_cr2res_slitdec_input_slitfunc();
-
+    // test_cr2res_slitdec_input_slitfunc();
+    
     return cpl_test_end(0);
 }

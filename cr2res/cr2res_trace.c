@@ -1823,7 +1823,8 @@ static cpl_mask * cr2res_trace_signal_detect(
     cpl_image       *smxy_image;
     cpl_image       *tmp_image;
     cpl_mask        *smxy_mask;
-    double          *smxy_data, *img_column, *wgt_column;
+    int             *smxy_data;
+    double          *img_column, *wgt_column;
     cpl_binary      *smxy_mskdata;
     int              kernel_x, kernel_y;
     cpl_size         icol, ncols, irow, nrows;
@@ -1881,7 +1882,7 @@ static cpl_mask * cr2res_trace_signal_detect(
         options[1]=1;
         smxy_mask = cpl_image_get_bpm(smxy_image);
         smxy_mskdata = cpl_mask_get_data(smxy_mask);
-        smxy_data = cpl_image_get_data_double(smxy_image);
+        smxy_data = cpl_image_get_data_int(smxy_image);
         img_column = (double *)cpl_malloc(nrows*sizeof(double));
         wgt_column = (double *)cpl_malloc(nrows*sizeof(double));
 
