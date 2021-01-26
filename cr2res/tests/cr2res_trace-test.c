@@ -85,7 +85,7 @@ static void test_cr2res_get_trace_wave_poly(void);
 static cpl_table *create_test_table()
 {
     cpl_table *traces;
-    cpl_array *array, *slit_fraction, *wave, *wave_err, *slit_a, *slit_b, 
+    cpl_array *array, *slit_fraction, *wave, *wave_err, *slit_a, *slit_b,
               *slit_c;
     int poly_order, norders;
     cpl_propertylist *hdr = cpl_propertylist_new();
@@ -98,18 +98,18 @@ static cpl_table *create_test_table()
 
     /* NULL Input */
     traces = cpl_table_new(norders);
-    cpl_table_new_column_array(traces, CR2RES_COL_ALL, CPL_TYPE_DOUBLE, 
+    cpl_table_new_column_array(traces, CR2RES_COL_ALL, CPL_TYPE_DOUBLE,
             poly_order);
-    cpl_table_new_column_array(traces, CR2RES_COL_UPPER, CPL_TYPE_DOUBLE, 
+    cpl_table_new_column_array(traces, CR2RES_COL_UPPER, CPL_TYPE_DOUBLE,
             poly_order);
-    cpl_table_new_column_array(traces, CR2RES_COL_LOWER, CPL_TYPE_DOUBLE, 
+    cpl_table_new_column_array(traces, CR2RES_COL_LOWER, CPL_TYPE_DOUBLE,
             poly_order);
     cpl_table_new_column(traces, CR2RES_COL_ORDER, CPL_TYPE_INT);
     cpl_table_new_column(traces, CR2RES_COL_TRACENB, CPL_TYPE_INT);
 
-    cpl_table_new_column_array(traces, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 
+    cpl_table_new_column_array(traces, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE,
             2);
-    cpl_table_new_column_array(traces, CR2RES_COL_WAVELENGTH_ERROR, 
+    cpl_table_new_column_array(traces, CR2RES_COL_WAVELENGTH_ERROR,
             CPL_TYPE_DOUBLE, 2);
     cpl_table_new_column_array(traces, CR2RES_COL_SLIT_CURV_A, CPL_TYPE_DOUBLE,
             3);
@@ -117,7 +117,7 @@ static cpl_table *create_test_table()
             3);
     cpl_table_new_column_array(traces, CR2RES_COL_SLIT_CURV_C, CPL_TYPE_DOUBLE,
             3);
-    cpl_table_new_column_array(traces, CR2RES_COL_SLIT_FRACTION, 
+    cpl_table_new_column_array(traces, CR2RES_COL_SLIT_FRACTION,
             CPL_TYPE_DOUBLE, 3);
 
     /*
@@ -184,7 +184,7 @@ static cpl_table *create_test_table()
         cpl_table_set(traces, CR2RES_COL_ORDER, i,
                 cr2res_io_convert_order_idx_to_idxp(i + 1));
         cpl_table_set(traces, CR2RES_COL_TRACENB, i, 1);
-    
+
         cpl_table_set_array(traces, CR2RES_COL_SLIT_FRACTION, i, slit_fraction);
         cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH, i, wave);
         cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH_ERROR, i, wave_err);
@@ -196,7 +196,7 @@ static cpl_table *create_test_table()
     extname = cr2res_io_create_extname(1, 1);
     cpl_propertylist_append_string(hdr, CR2RES_HEADER_EXTNAME, extname);
 
-    double ceny[] = {1994.0945859223, 1723.67027599362, 1436.61298619847, 
+    double ceny[] = {1994.0945859223, 1723.67027599362, 1436.61298619847,
                      1168.0222016174, 915.8934665223831, 678.542785839296,
                      454.468576982434, 242.388497032926, 63.5899165277783};
     double begin[] = {1756.78720770673, 1703.55123171562, 1653.44678372399,
@@ -213,7 +213,7 @@ static cpl_table *create_test_table()
         cpl_propertylist_append_double(hdr, WLEN_END(i), end[i]);
     }
 
-    
+
     cpl_propertylist_append_int(main_header, CR2RES_HEADER_DECKER_POS, CR2RES_DECKER_2_4);
 
     cpl_table_save(traces, main_header, hdr, "TEST_table.fits", CPL_IO_CREATE);
@@ -307,7 +307,7 @@ static void test_cr2res_trace(void)
     cpl_test_null(cr2res_trace(trace_ima, 1.0, 1.0, threshold, 1, 2, -10));
 
     cpl_test(out = cr2res_trace(trace_ima, 1.0, 1.0, threshold, 1, 2, 10));
-    
+
     all = cpl_table_get_array(out, CR2RES_COL_ALL, 0);
 
     cpl_table_save(out, NULL, NULL, "TEST_table2.fits", CPL_IO_CREATE);
@@ -711,29 +711,29 @@ static void test_cr2res_trace_new_slit_fraction(void)
     cpl_test_eq(cpl_table_get_nrow(res), norder);
     for(cpl_size i = 0; i < norder; i++)
     {
-        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_FRACTION, i), 
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_FRACTION, i),
                 cpl_table_get_array(trace_table, CR2RES_COL_SLIT_FRACTION, i), FLT_EPSILON);
-    
-        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_UPPER, i), 
+
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_UPPER, i),
                 cpl_table_get_array(trace_table, CR2RES_COL_UPPER, i), FLT_EPSILON);
 
-        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_ALL, i), 
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_ALL, i),
             cpl_table_get_array(trace_table, CR2RES_COL_ALL, i), FLT_EPSILON);
 
-        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_LOWER, i), 
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_LOWER, i),
                 cpl_table_get_array(trace_table, CR2RES_COL_LOWER, i), FLT_EPSILON);
 
-        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_WAVELENGTH, i), 
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_WAVELENGTH, i),
                 cpl_table_get_array(trace_table, CR2RES_COL_WAVELENGTH, i), FLT_EPSILON);
 
-        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_CURV_A, i), 
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_CURV_A, i),
                 cpl_table_get_array(trace_table, CR2RES_COL_SLIT_CURV_A, i), FLT_EPSILON);
 
-        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_CURV_B, i), 
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_CURV_B, i),
                 cpl_table_get_array(trace_table, CR2RES_COL_SLIT_CURV_B, i), FLT_EPSILON);
-        
 
-        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_CURV_C, i), 
+
+        cpl_test_array_abs(cpl_table_get_array(res, CR2RES_COL_SLIT_CURV_C, i),
                 cpl_table_get_array(trace_table, CR2RES_COL_SLIT_CURV_C, i), FLT_EPSILON);
     }
     cpl_array_delete(new_slit_fraction);
@@ -806,12 +806,12 @@ static void test_cr2res_trace_signal_detect(void)
     cpl_mask *res;
 
     //run test
-    cpl_test_null(cr2res_trace_signal_detect(NULL, trace_sep, smoothfactor, thresh, 0, 0));
-    cpl_test_null(cr2res_trace_signal_detect(image, -10, smoothfactor, thresh, 0, 0));
-    cpl_test_null(cr2res_trace_signal_detect(image, trace_sep, -1, thresh, 0, 0));
+    cpl_test_null(cr2res_trace_signal_detect(NULL, trace_sep, smoothfactor, thresh));
+    cpl_test_null(cr2res_trace_signal_detect(image, -10, smoothfactor, thresh));
+    cpl_test_null(cr2res_trace_signal_detect(image, trace_sep, -1, thresh));
     //cpl_test_null(cr2res_trace_signal_detect(image, trace_sep, smoothfactor, 50000));
 
-    cpl_test(res = cr2res_trace_signal_detect(image, trace_sep, smoothfactor, thresh, 0, 0));
+    cpl_test(res = cr2res_trace_signal_detect(image, trace_sep, smoothfactor, thresh));
     //test output
     sub = cpl_mask_extract(res, 32, 105, 41, 114);
 
@@ -1119,7 +1119,7 @@ static void test_cr2res_get_trace_table_index(void)
     cpl_table_wrap_int(trace_wave, data, CR2RES_COL_ORDER); //what table do we need ?
     cpl_table_wrap_int(trace_wave, data2, CR2RES_COL_TRACENB);
 
-    int order = 5; 
+    int order = 5;
     int trace_nb = 1;
     cpl_size res;
 
