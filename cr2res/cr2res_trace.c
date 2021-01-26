@@ -78,9 +78,7 @@ static cpl_mask * cr2res_trace_signal_detect(
         const cpl_image *   image,
         int                 smooth_x,
         int                 smooth_y,
-        double              thresh,
-	    int                 opt_filter,
-	    int                 log) ;
+        double              thresh) ;
 static cpl_table * cr2res_trace_fit_traces(
         cpl_table   *   clustertable,
         int             degree) ;
@@ -155,7 +153,7 @@ cpl_table * cr2res_trace(
     /* Apply detection */
     cpl_msg_info(__func__, "Detect the signal") ;
     if ((mask = cr2res_trace_signal_detect(ima, smooth_x, smooth_y,
-                    threshold, 0, 0)) == NULL) {
+                    threshold)) == NULL) {
         cpl_msg_error(__func__, "Detection failed") ;
         return NULL ;
     }
@@ -1808,8 +1806,6 @@ static cpl_array * cr2res_trace_get_slit_frac(
   @param smooth_x       Low pass filter kernel size in x
   @param smooth_y       Low pass filter kernel size in y
   @param thresh         The threshold used for detection
-  @param OPT_FILTER     Flag indicating the use of optimal filter for y smoothing
-  @param LOG            Flag for using signal detection in logs instead of linear scale
   @return   A newly allocated mask or NULL in error case.
 
   The returned mask identifies the pixels belonging to a trace
@@ -1821,12 +1817,9 @@ static cpl_mask * cr2res_trace_signal_detect(
         const cpl_image *   image,
         int                 smooth_x,
         int                 smooth_y,
-        double              thresh,
-        int                 OPT_FILTER,
-        int                 LOG)
+        double              thresh)
 {
     cpl_image       *smx_image;
-    cpl_image       *smxlog_image;
     cpl_image       *smxy_image;
     cpl_mask        *smxy_mask;
     double          *smxy_data, *img_column, *wgt_column;
@@ -1835,27 +1828,16 @@ static cpl_mask * cr2res_trace_signal_detect(
     cpl_size         icol, ncols, irow, nrows;
     cpl_mask        *kernel;
     cpl_mask        *mask;
-    double           image_min;
+    int              log, opt_filter;
     int              options[3];
 
     /* Check Entries */
     if (image == NULL) return NULL;
     if (smooth_x < 0 || smooth_y < 0) return NULL;
-    
-//    LOG=1;
-//    OPT_FILTER=0;
-//    thresh=10.;
-//    printf("LOG=%d, OPT_FILTER=%d, smooth_y=%d, threshold=%g\n", LOG, OPT_FILTER, smooth_y, thresh);
 
-    if (OPT_FILTER) {
-      /* Number of columns */
-      ncols = cpl_image_get_size_x(image);
-      nrows = cpl_image_get_size_y(image);
-    
-      /* Set options */
-      options[0]=options[2]=0;
-      options[1]=1;
-    }
+    /* Flags. TODO: decide whether to expose these to caller and/or user */    
+    log=1;
+    opt_filter=0;
 
     /* Prepare kernel */
     kernel_x = smooth_x;
@@ -1878,101 +1860,62 @@ static cpl_mask * cr2res_trace_signal_detect(
     }
     cpl_mask_delete(kernel);
 
-    // Now smooth Y
-    smxy_image = cpl_image_duplicate(smx_image);
-   
-    if (LOG) {  // Filter log image instead of the original
-      image_min = cpl_image_get_min(smx_image)-1.0;
-      cpl_image_add_scalar(smx_image, -image_min);
-      smxy_image = cpl_image_logarithm_create(smx_image, CPL_MATH_E);
-      if (OPT_FILTER) {  /* Vertical filtering is done using optimal filter */
-        smxy_mask = cpl_image_get_bpm(smx_image);
-        smxy_mskdata = cpl_mask_get_data(smxy_mask);
-        smxy_data = cpl_image_get_data_double(smxy_image);
-        img_column = (double *)cpl_malloc(nrows*sizeof(double));
-        wgt_column = (double *)cpl_malloc(nrows*sizeof(double));
 
-        for (icol=0; icol<ncols; icol++) {
-          for (irow=0; irow<nrows; irow++) {
-	    img_column[irow] = smxy_data[icol+irow*ncols];
-            wgt_column[irow] = !smxy_mskdata[icol+irow*ncols];
-          }
-          if (cr2res_util_optimal_filter_1d(img_column, (double)smooth_y,
-                                            img_column, nrows, options,
-                                            NULL, wgt_column, 0.) != CPL_ERROR_NONE) {
-            cpl_msg_error(__func__, "Cannot filter the image");
-            cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT);
-            cpl_mask_delete(kernel);
-            cpl_image_delete(smx_image);
-            cpl_image_delete(smxy_image);
-            cpl_free(img_column);
-            cpl_free(wgt_column);
-            return NULL;
-          }
-          for (irow=0; irow<nrows; irow++)
-            smxy_data[icol+irow*ncols] = img_column[irow];
-        }
-        cpl_free(img_column);
-        cpl_free(wgt_column);
-      }
-      else {     // Boxcar average instead of optimal filter
-        smxlog_image = cpl_image_duplicate(smxy_image);
-        kernel = cpl_mask_new(1, kernel_y);
-        cpl_mask_not(kernel);
-        if (cpl_image_filter_mask(smxy_image, smxlog_image, kernel, CPL_FILTER_AVERAGE_FAST,
-                    CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
-            cpl_msg_error(__func__, "Cannot filter the image");
-            cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT);
-            cpl_mask_delete(kernel);
-            cpl_image_delete(smx_image);
-            cpl_image_delete(smxy_image);
-            cpl_image_delete(smxlog_image);
-            return NULL;
-        }
-        cpl_image_delete(smxlog_image);
-        cpl_mask_delete(kernel);
-      }
-    
-    // Potentitating the filtered image before comparing to the original
-      if (cpl_image_exponential(smxy_image, CPL_MATH_E) != CPL_ERROR_NONE)
-        cpl_msg_error(__func__, "Cannot exponentiate the smxy_image");
-    }
-    else {  // The original linear scale image filtering
-      if (OPT_FILTER) {  /* Vertical filtering is done using optimal filter */
-        smxy_mask = cpl_image_get_bpm(smx_image);
-        smxy_mskdata = cpl_mask_get_data(smxy_mask);
+    if (log) {  // Filter log image instead of the original
+        /* Shift image to counts >1  */
+        double img_min = cpl_image_get_min(smx_image)-1.0;
+        cpl_msg_debug(__func__, "img_min: %.2f", img_min);
+        cpl_image_subtract_scalar(smx_image, img_min);
+        cpl_msg_debug(__func__, "foo: %.2f", cpl_image_get_min(smx_image));
+        if ( smxy_image = cpl_image_logarithm_create(smx_image, CPL_MATH_E) 
+                    != CPL_ERROR_NONE)
+                    cpl_msg_error(__func__, "Cannot take log of smxy_image");
+                    return NULL;
+    } else {
         smxy_image = cpl_image_duplicate(smx_image);
+    }
+    
+    if (opt_filter) {  /* Vertical filtering is done using optimal filter */
+        // TODO: Move filter preparation into own function and call this instead
+        /* Number of columns */
+        ncols = cpl_image_get_size_x(image);
+        nrows = cpl_image_get_size_y(image);
+        /* Set options */
+        options[0]=options[2]=0;
+        options[1]=1;
+        smxy_mask = cpl_image_get_bpm(smxy_image);
+        smxy_mskdata = cpl_mask_get_data(smxy_mask);
         smxy_data = cpl_image_get_data_double(smxy_image);
         img_column = (double *)cpl_malloc(nrows*sizeof(double));
         wgt_column = (double *)cpl_malloc(nrows*sizeof(double));
 
         for (icol=0; icol<ncols; icol++) {
-          for (irow=0; irow<nrows; irow++) {
-	    img_column[irow] = smxy_data[icol+irow*ncols];
-            wgt_column[irow] = !smxy_mskdata[icol+irow*ncols];
-          }
-          if (cr2res_util_optimal_filter_1d(img_column, (double)smooth_y,
-                                            img_column, nrows, options,
-                                            NULL, wgt_column, 0.) != CPL_ERROR_NONE) {
-            cpl_msg_error(__func__, "Cannot filter the image");
-            cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT);
-            cpl_mask_delete(kernel);
-            cpl_image_delete(smx_image);
-            cpl_image_delete(smxy_image);
-            cpl_free(img_column);
-            cpl_free(wgt_column);
-            return NULL;
-          }
-          for (irow=0; irow<nrows; irow++)
-            smxy_data[icol+irow*ncols] = img_column[irow];
+            for (irow=0; irow<nrows; irow++) {
+                img_column[irow] = smxy_data[icol+irow*ncols];
+                wgt_column[irow] = !smxy_mskdata[icol+irow*ncols];
+            }
+            if (cr2res_util_optimal_filter_1d(img_column, (double)smooth_y,
+                                    img_column, nrows, options,
+                                    NULL, wgt_column, 0.) != CPL_ERROR_NONE) {
+                cpl_msg_error(__func__, "Cannot filter the image");
+                cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT);
+                cpl_image_delete(smx_image);
+                cpl_image_delete(smxy_image);
+                cpl_free(img_column);
+                cpl_free(wgt_column);
+                return NULL;
+            }
+            for (irow=0; irow<nrows; irow++)
+                smxy_data[icol+irow*ncols] = img_column[irow];
         }
         cpl_free(img_column);
         cpl_free(wgt_column);
-      }
-      else {     // Boxcar average instead of optimal filter
+    }
+    else {     // Boxcar average instead of optimal filter
         kernel = cpl_mask_new(1, kernel_y);
         cpl_mask_not(kernel);
-        if (cpl_image_filter_mask(smxy_image, smx_image, kernel, CPL_FILTER_AVERAGE_FAST,
+        if (cpl_image_filter_mask(smxy_image, smx_image, kernel,
+                    CPL_FILTER_AVERAGE_FAST,
                     CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Cannot filter the image");
             cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT);
@@ -1982,12 +1925,17 @@ static cpl_mask * cr2res_trace_signal_detect(
             return NULL;
         }
         cpl_mask_delete(kernel);
-      }
-    }
+            
+        }
+
+    if (log) {
+    // Potentitating the filtered image before comparing to the original
+        if (cpl_image_exponential(smxy_image, CPL_MATH_E) != CPL_ERROR_NONE)
+            cpl_msg_error(__func__, "Cannot exponentiate the smxy_image");
+    }  
+
 
     /* Subtract x-smoothed image from xy-smoothed */
-//cpl_image_save(smx_image,  "debug_orig_image.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-//cpl_image_save(smxy_image, "debug_smooth_image.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
     cpl_image_subtract(smx_image, smxy_image);
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
@@ -1999,8 +1947,6 @@ static cpl_mask * cr2res_trace_signal_detect(
 
     /* Wanted pixels are where input image exceeds sm_image by thresh */
     mask = cpl_mask_threshold_image_create(smx_image, thresh, DBL_MAX);
-//smxy_mskdata = cpl_mask_get_data(mask);
-//cpl_mask_save(mask, "debug_mask_image.fits", NULL, CPL_IO_CREATE);
     cpl_image_delete(smx_image);
     cpl_image_delete(smxy_image);
 
