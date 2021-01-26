@@ -1821,6 +1821,7 @@ static cpl_mask * cr2res_trace_signal_detect(
 {
     cpl_image       *smx_image;
     cpl_image       *smxy_image;
+    cpl_image       *tmp_image;
     cpl_mask        *smxy_mask;
     double          *smxy_data, *img_column, *wgt_column;
     cpl_binary      *smxy_mskdata;
@@ -1837,7 +1838,7 @@ static cpl_mask * cr2res_trace_signal_detect(
 
     /* Flags. TODO: decide whether to expose these to caller and/or user */    
     log=1;
-    opt_filter=0;
+    opt_filter=1;
 
     /* Prepare kernel */
     kernel_x = smooth_x;
@@ -1862,15 +1863,10 @@ static cpl_mask * cr2res_trace_signal_detect(
 
 
     if (log) {  // Filter log image instead of the original
-        /* Shift image to counts >1  */
+        /* Shift image to counts >1 so that log works */
         double img_min = cpl_image_get_min(smx_image)-1.0;
-        cpl_msg_debug(__func__, "img_min: %.2f", img_min);
         cpl_image_subtract_scalar(smx_image, img_min);
-        cpl_msg_debug(__func__, "foo: %.2f", cpl_image_get_min(smx_image));
-        if ( smxy_image = cpl_image_logarithm_create(smx_image, CPL_MATH_E) 
-                    != CPL_ERROR_NONE)
-                    cpl_msg_error(__func__, "Cannot take log of smxy_image");
-                    return NULL;
+        smxy_image = cpl_image_logarithm_create(smx_image, CPL_MATH_E);
     } else {
         smxy_image = cpl_image_duplicate(smx_image);
     }
@@ -1914,32 +1910,34 @@ static cpl_mask * cr2res_trace_signal_detect(
     else {     // Boxcar average instead of optimal filter
         kernel = cpl_mask_new(1, kernel_y);
         cpl_mask_not(kernel);
-        if (cpl_image_filter_mask(smxy_image, smx_image, kernel,
+        tmp_image = cpl_image_duplicate(smxy_image);
+        if (cpl_image_filter_mask(smxy_image, tmp_image, kernel,
                     CPL_FILTER_AVERAGE_FAST,
                     CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Cannot filter the image");
             cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT);
             cpl_mask_delete(kernel);
             cpl_image_delete(smx_image);
-            cpl_image_delete(smxy_image);
+            cpl_image_delete(tmp_image);
             return NULL;
         }
         cpl_mask_delete(kernel);
-            
+        cpl_image_delete(tmp_image);
         }
-
+    
     if (log) {
     // Potentitating the filtered image before comparing to the original
         if (cpl_image_exponential(smxy_image, CPL_MATH_E) != CPL_ERROR_NONE)
             cpl_msg_error(__func__, "Cannot exponentiate the smxy_image");
-    }  
-
+    }
 
     /* Subtract x-smoothed image from xy-smoothed */
     cpl_image_subtract(smx_image, smxy_image);
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_image_save(smxy_image, "debug_smimage.fits", CPL_TYPE_DOUBLE, NULL,
+        cpl_image_save(smxy_image, "debug_smxyimage.fits", CPL_TYPE_DOUBLE, NULL,
+                CPL_IO_CREATE);
+        cpl_image_save(smx_image, "debug_smximage.fits", CPL_TYPE_DOUBLE, NULL,
                 CPL_IO_CREATE);
         cpl_msg_debug(__func__, "Smooth X: %d, Y: %d, Threshold: %.1f",
                 smooth_x, smooth_y, thresh);
