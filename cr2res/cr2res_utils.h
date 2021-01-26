@@ -134,6 +134,16 @@ int cr2res_vector_erase_element(
 int cr2res_vector_abs(
         cpl_vector * vector);
 
+int cr2res_util_optimal_filter_1d(
+        double     * Yarg,
+        double       Lam1,
+        double     * Result,
+        int          n,
+        int          Options[],
+        double     * Xarg,
+        double     * Weights,
+        double       Lam2);
+
 cpl_image * cr2res_util_optimal_filter_2d(
         const cpl_image * img,
         const cpl_image * weight,

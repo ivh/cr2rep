@@ -1271,6 +1271,269 @@ int cr2res_plot_wavecal_result(
     return 0 ;
 }
 
+/*
+   opt_filter_1d performs optimal filtering of a 1D double array. The mandatory parameters
+   are the data array Yarg, the output array Result, the filtering parameter Lam1 and the
+   array of Options.
+   Options is a 3-element integer array indicating the presence of optional parameters Xarg
+   (x argument of the data array), Weights (weights of the data points) and Lam2 (filtering
+   parameter for the 2nd derivatives). Xarg, if present, must be sorted in ascending or descending
+   order. Absent parameters can by replaced with NULL at the calling.   
+*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Apply the optimal filter to a 1D vector
+  @param    Yarg            Input vector of type double
+  @param    Lam1            Regularization parameter for the 1st derivatives
+  @param    Result          Result of the filtering (same size and type as Yarg)
+  @param    n               Size of all vectors
+  @param    Options         Flags for optional parameters (see below)
+  @param    Xarg            X coordinates of Yarg for non-equispaced arrays
+  @param    Weights         Weights assigned to data points (same size as Yarg)
+  @param    Lam2            Regularization parameter for 2nd derivatives
+  @return   CPL_ERROR_NONE  if OK, error code otherwise
+
+  The optimal filter is a smoothing algorithm minimizing the absolut values of the
+  1st and (optionally) 2nd derivatives.
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_util_optimal_filter_1d(
+    double     * Yarg,
+    double       Lam1,
+    double     * Result,
+    int          n,
+    int          Options[],
+    double     * Xarg,
+    double     * Weights,
+    double       Lam2)
+{
+   int i, nzero, flag_x, flag_w, flag_lam2;
+   double *dx, *ddx2, *aij, *bj;
+   double dddd;
+
+   flag_x   =(Options[0])?1:0;  // Flags for optional parameters
+   flag_w   =(Options[1])?1:0;
+   flag_lam2=(Options[2])?1:0;
+
+   if(flag_x)                          // Xarg is present
+   {
+     dx=(double *)cpl_malloc((n-1)*sizeof(double));
+     nzero=0;
+     for(i=0; i<n-1; i++)
+     {
+       dx[i]=Xarg[i+1]-Xarg[i];
+       if(dx[i]>0.)      nzero++;       // Check that Xarg is sorted one way
+       else if(dx[i]<0.) nzero--;       // or the other
+     }
+
+     if(abs(nzero)!=n-1)                // Xarg is present but not sorted
+     {
+        cpl_free(dx);
+        return 8;
+     }
+
+     if(flag_lam2)
+     {
+        ddx2=(double *)cpl_malloc((n-2)*sizeof(double));
+        for(i=0; i<n-2; i++)
+        {
+          ddx2[i]=(Xarg[i+2]-Xarg[i])*0.5;
+          ddx2[i]*=ddx2[i];
+        }
+
+        aij=(double *)cpl_malloc(n*5*sizeof(double));
+        bj =(double *)cpl_malloc(n*  sizeof(double));
+//
+// 2nd lower subdiagonal
+        aij[0]=aij[1]=0.;
+        for(i=0; i<n-2; i++) aij[i+2]=Lam2/(dx[i]*dx[i+1]*ddx2[i]);
+//
+// Lower subdiagonal
+        aij[n]=0.;
+        for(i=0; i<n-1; i++) aij[n+i+1] =-Lam1/(dx[i]*dx[i]);
+        for(i=0; i<n-2; i++)
+        {
+          aij[n+i+1]-= Lam2/(dx[i  ]*dx[i  ]*ddx2[i])
+                      +Lam2/(dx[i  ]*dx[i+1]*ddx2[i]);
+          aij[n+i+2]-= Lam2/(dx[i+1]*dx[i+1]*ddx2[i])
+                      +Lam2/(dx[i  ]*dx[i+1]*ddx2[i]);
+        }
+
+//
+// Main diagonal
+        if(flag_w) for(i=0; i<n; i++) aij[2*n+i]=Weights[i];
+        else       for(i=0; i<n; i++) aij[2*n+i]=1.;
+
+        for(i=0; i<n-1; i++) aij[2*n+i  ]+=Lam1/(dx[i]*dx[i]);
+
+        for(i=0; i<n-1; i++) aij[2*n+i+1]+=Lam1/(dx[i]*dx[i]);
+
+        for(i=0; i<n-2; i++)
+        {
+          aij[2*n+i  ]+=Lam2/(dx[i  ]*dx[i  ]*ddx2[i]);
+          dddd=1./dx[i]+1./dx[i+1]; dddd*=dddd;
+          aij[2*n+i+1]+=Lam2*dddd/ddx2[i];
+          aij[2*n+i+2]+=Lam2/(dx[i+1]*dx[i+1]*ddx2[i]);
+        }
+
+//
+// Upper subdiagonal
+        for(i=0; i<n-1; i++) aij[3*n+i]=-Lam1/(dx[i]*dx[i]);
+        aij[4*n-1]=0.;
+
+        for(i=0; i<n-2; i++)
+        {
+         aij[3*n+i  ]-= Lam2/(dx[i  ]*dx[i  ]*ddx2[i])
+                       +Lam2/(dx[i  ]*dx[i+1]*ddx2[i]);
+         aij[3*n+i+1]-= Lam2/(dx[i+1]*dx[i+1]*ddx2[i])
+                       +Lam2/(dx[i  ]*dx[i+1]*ddx2[i]);
+        }
+
+//
+// 2nd upper subdiagonal
+        for(i=0; i<n-2; i++) aij[4*n+i]=Lam2/(dx[i+1]*dx[i]*ddx2[i]);
+        aij[5*n-2]=aij[5*n-1]=0.;
+
+//
+// RHS
+        if(flag_w) for(i=0; i<n; i++) bj[i]=Yarg[i]*Weights[i];
+        else       for(i=0; i<n; i++) bj[i]=Yarg[i];
+
+        i=cr2res_extract_slitdec_bandsol(aij, bj, n, 5, Lam1); // Solve the band diagonal SLE
+        for(i=0; i<n; i++) Result[i]=bj[i]; // Copy results
+
+        cpl_free(bj);
+        cpl_free(aij);
+        cpl_free(ddx2);
+        cpl_free(dx);
+        return CPL_ERROR_NONE;
+     }
+     else                // No 2nd derivative filtering
+     {
+        aij=(double *)cpl_malloc(n*3*sizeof(double));
+        bj =(double *)cpl_malloc(n*  sizeof(double));
+//
+// Lower subdiagonal
+        aij[0]=0.;
+        for(i=0; i<n-1; i++) aij[i+1]=-Lam1/(dx[i]*dx[i]);
+
+//
+// Main diagonal
+        if(flag_w) for(i=0; i<n; i++) aij[n+i]=Weights[i];
+        else       for(i=0; i<n; i++) aij[n+i]=1.;
+
+        for(i=0; i<n-1; i++) aij[n+i  ]+=Lam1/(dx[i]*dx[i]);
+        for(i=0; i<n-1; i++) aij[n+i+1]+=Lam1/(dx[i]*dx[i]);
+
+//
+// Upper subdiagonal
+        for(i=0; i<n-1; i++) aij[2*n+i]=-Lam1/(dx[i]*dx[i]);
+        aij[3*n-1]=0.;
+
+//
+// RHS
+        if(flag_w) for(i=0; i<n; i++) bj[i]=Yarg[i]*Weights[i];
+        else       for(i=0; i<n; i++) bj[i]=Yarg[i];
+
+        i=cr2res_extract_slitdec_bandsol(aij, bj, n, 3, Lam1); // Solve the band diagonal SLE
+        for(i=0; i<n; i++) Result[i]=bj[i]; // Copy results
+
+        cpl_free(bj);
+        cpl_free(aij);
+        cpl_free(dx);
+        return CPL_ERROR_NONE;
+     }
+   }
+   else          // No Xarg is set
+   {
+     if(flag_lam2)
+     {
+        aij=(double *)cpl_malloc(n*5*sizeof(double));
+        bj =(double *)cpl_malloc(n*  sizeof(double));
+//
+// 2nd lower subdiagonal
+        aij[0]=aij[1]=0.;
+        for(i=0; i<n-2; i++) aij[i+2]=Lam2;
+
+//
+// Lower subdiagonal
+        aij[n]=0.;
+        for(i=0; i<n-1; i++) aij[n+i+1]=-Lam1;
+        for(i=0; i<n-2; i++) aij[n+i+1]-=2*Lam2;
+        for(i=0; i<n-2; i++) aij[n+i+2]-=2*Lam2;
+
+//
+// Main diagonal
+        if(flag_w) for(i=0; i<n; i++) aij[2*n+i]=Weights[i];
+        else       for(i=0; i<n; i++) aij[2*n+i]=1.;
+        for(i=0; i<n-1; i++) aij[2*n+i  ]+=Lam1;
+        for(i=0; i<n-1; i++) aij[2*n+i+1]+=Lam1;
+        for(i=0; i<n-2; i++) aij[2*n+i  ]+=Lam2;
+        for(i=0; i<n-2; i++) aij[2*n+i+1]+=Lam2*4;
+        for(i=0; i<n-2; i++) aij[2*n+i+2]+=Lam2;
+
+//
+// Upper subdiagonal
+        for(i=0; i<n-1; i++) aij[3*n+i]=-Lam1;
+        aij[4*n-1]=0.;
+        for(i=0; i<n-2; i++) aij[3*n+i  ]-=Lam2*2;
+        for(i=0; i<n-2; i++) aij[3*n+i+1]-=Lam2*2;
+
+//
+// 2nd lower subdiagonal
+        for(i=0; i<n-2; i++) aij[4*n+i]=Lam2;
+        aij[5*n-2]=aij[5*n-1]=0.;
+
+//
+// RHS
+        if(flag_w) for(i=0; i<n; i++) bj[i]=Yarg[i]*Weights[i];
+        else       for(i=0; i<n; i++) bj[i]=Yarg[i];
+
+        i=cr2res_extract_slitdec_bandsol(aij, bj, n, 5, Lam1); // Solve the band diagonal SLE
+        for(i=0; i<n; i++) Result[i]=bj[i]; // Copy results
+
+        cpl_free(bj);
+        cpl_free(aij);
+        return CPL_ERROR_NONE;
+     }
+     else                // No 2nd derivative filtering
+     {
+        aij=(double *)cpl_malloc(n*3*sizeof(double));
+        bj =(double *)cpl_malloc(n*  sizeof(double));
+//
+// Lower subdiagonal
+        aij[0]=0.;
+        for(i=0; i<n-1; i++) aij[i+1]=-Lam1;
+
+//
+// Main diagonal
+        if(flag_w) for(i=0; i<n; i++) aij[n+i]=Weights[i];
+        else       for(i=0; i<n; i++) aij[n+i]=1.;
+
+        for(i=0; i<n-1; i++) aij[n+i  ]+=Lam1;
+        for(i=0; i<n-1; i++) aij[n+i+1]+=Lam1;
+
+//
+// Upper subdiagonal
+        for(i=0; i<n-1; i++) aij[2*n+i]=-Lam1;
+        aij[3*n-1]=0.;
+
+//
+// RHS
+        if(flag_w) for(i=0; i<n; i++) bj[i]=Yarg[i]*Weights[i];
+        else       for(i=0; i<n; i++) bj[i]=Yarg[i];
+
+        i=cr2res_extract_slitdec_bandsol(aij, bj, n, 3, Lam1); // Solve the band diagonal SLE
+        for(i=0; i<n; i++) Result[i]=bj[i]; // Copy filtered vector to Result
+
+        cpl_free(bj);
+        cpl_free(aij);
+        return CPL_ERROR_NONE;
+     }
+   }
+}
+
 #define aij_index(x, y) ((y) * n) + (x)
 #define w_index(x, y) ((y) * nx) + (x)
 
