@@ -282,13 +282,13 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.extract_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
-            "cr2res.cr2res_obs_nodding", 5);
+            "cr2res.cr2res_obs_nodding", 2);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_oversample");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.extract_swath_width",
-            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_obs_nodding", 90);
+            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_obs_nodding", 600);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_swath_width");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
