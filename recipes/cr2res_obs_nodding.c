@@ -776,6 +776,7 @@ static int cr2res_obs_nodding_reduce(
         cpl_vector_dump(dits, stdout) ;
 
     /* Load image list */
+    cpl_msg_info(__func__, "Load the image list") ;
     if ((in = cr2res_io_load_image_list_from_set(rawframes, 
                     reduce_det)) == NULL) {
         cpl_msg_error(__func__, "Cannot load images") ;
@@ -792,10 +793,13 @@ static int cr2res_obs_nodding_reduce(
     }
 
     /* Calibrate the images */
+    cpl_msg_info(__func__, "Apply the Calibrations") ;
+    cpl_msg_indent_more() ;
     if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0, 0, 
                     master_flat_frame, master_dark_frame, bpm_frame, 
                     detlin_frame, dits)) == NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
+        cpl_msg_indent_less() ;
         cpl_free(nod_positions) ;    
         if (dits != NULL) cpl_vector_delete(dits) ;
         hdrl_imagelist_delete(in) ;
@@ -803,17 +807,22 @@ static int cr2res_obs_nodding_reduce(
     }
     hdrl_imagelist_delete(in) ;
     if (dits != NULL) cpl_vector_delete(dits) ;
+    cpl_msg_indent_less() ;
 
     /* Split the image lists */
+    cpl_msg_info(__func__, "Split the images in A and B lists") ;
+    cpl_msg_indent_more() ;
     if (cr2res_combine_nodding_split(in_calib, nod_positions, &in_a, 
             &in_b)) {
         cpl_msg_error(__func__, "Failed to split the nodding positions") ;
+        cpl_msg_indent_less() ;
         cpl_free(nod_positions) ;    
         hdrl_imagelist_delete(in_calib) ;
         return -1 ;
     }
     cpl_free(nod_positions) ;    
     hdrl_imagelist_delete(in_calib) ;
+    cpl_msg_indent_less() ;
 
     /* Check the sizes of A/B image lists */
     if (hdrl_imagelist_get_size(in_a) != hdrl_imagelist_get_size(in_b)
@@ -825,16 +834,16 @@ static int cr2res_obs_nodding_reduce(
     }
 
     /* Compute diff_a = in_a - in_b and diff_b = in_b - in_a */
+    cpl_msg_info(__func__, "Compute difference image lists A-B and B-A") ;
     diff_a = hdrl_imagelist_duplicate(in_a) ;
     hdrl_imagelist_sub_imagelist(diff_a, in_b) ;
     diff_b = hdrl_imagelist_duplicate(in_b) ;
     hdrl_imagelist_sub_imagelist(diff_b, in_a) ;
-
     hdrl_imagelist_delete(in_a) ;
     hdrl_imagelist_delete(in_b) ;
     
     /* Collapse A-B and B-A */
-    cpl_msg_info(__func__, "Collapse A-B and B-A") ;
+    cpl_msg_info(__func__, "Collapse image lists A-B and B-A") ;
     cpl_msg_indent_more() ;
     if (hdrl_imagelist_collapse_mean(diff_a, &collapsed_a, &contrib_a) !=
             CPL_ERROR_NONE) {
@@ -883,6 +892,8 @@ static int cr2res_obs_nodding_reduce(
     }
 
     /* Compute the slit fractions for A and B positions extraction */   
+    cpl_msg_info(__func__, "Compute the slit fractions for A and B positions");
+    cpl_msg_indent_more() ;
     /*
     The assumption is made here that :  
         - The slit center is exactly in the middle of A and B poѕitions
@@ -893,6 +904,7 @@ static int cr2res_obs_nodding_reduce(
     slit_length = 10 ;
     if ((plist = cpl_propertylist_load(first_fname, 0)) == NULL) {
         cpl_msg_error(__func__, "Cannot read the NODTHROW in the input files") ;
+        cpl_msg_indent_less() ;
         hdrl_image_delete(collapsed_a) ;
         hdrl_image_delete(collapsed_b) ;
         cpl_table_delete(trace_wave) ;
@@ -937,11 +949,13 @@ static int cr2res_obs_nodding_reduce(
     } else {
         cpl_msg_error(__func__, "NODTHROW > slit length (%g>%g)- abort", 
                 nod_throw, slit_length) ;
+        cpl_msg_indent_less() ;
         hdrl_image_delete(collapsed_a) ;
         hdrl_image_delete(collapsed_b) ;
         cpl_table_delete(trace_wave) ;
         return -1 ;
     }
+    cpl_msg_info(__func__, "Nod Throw : %g arcsecs", nod_throw) ;
     cpl_msg_info(__func__, "Nodding A extraction: Slit fraction %g - %g",
             slit_frac_a_bot, slit_frac_a_top) ;
     cpl_msg_info(__func__, "Nodding B extraction: Slit fraction %g - %g",
@@ -956,8 +970,10 @@ static int cr2res_obs_nodding_reduce(
     cpl_array_set(slit_frac_b, 0, slit_frac_b_bot) ;
     cpl_array_set(slit_frac_b, 1, slit_frac_b_mid) ;
     cpl_array_set(slit_frac_b, 2, slit_frac_b_top) ;
+    cpl_msg_indent_less() ;
 
     /* Recompute the traces for the new slit fractions */
+    cpl_msg_info(__func__, "Recompute the traces for the A slit fraction") ;
     if ((trace_wave_a = cr2res_trace_new_slit_fraction(trace_wave,
             slit_frac_a)) == NULL) {
         cpl_msg_error(__func__, 
@@ -969,8 +985,9 @@ static int cr2res_obs_nodding_reduce(
         cpl_array_delete(slit_frac_b) ;
         return -1 ;
     }
-
     cpl_array_delete(slit_frac_a) ;
+
+    cpl_msg_info(__func__, "Recompute the traces for the B slit fraction") ;
     if ((trace_wave_b = cr2res_trace_new_slit_fraction(trace_wave,
             slit_frac_b)) == NULL) {
         cpl_msg_error(__func__, 
@@ -985,12 +1002,14 @@ static int cr2res_obs_nodding_reduce(
     cpl_array_delete(slit_frac_b) ;
     
     /* Execute the extraction */
-    cpl_msg_info(__func__, "Spectra Extraction") ;
+    cpl_msg_info(__func__, "A position Spectra Extraction") ;
+    cpl_msg_indent_more() ;
     if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth,
                 &extracted_a, &slit_func_a, &model_master_a) == -1) {
         cpl_msg_error(__func__, "Failed to extract A");
+        cpl_msg_indent_less() ;
         hdrl_image_delete(collapsed_a) ;
         hdrl_image_delete(collapsed_b) ;
         cpl_table_delete(trace_wave_a) ;
@@ -998,12 +1017,16 @@ static int cr2res_obs_nodding_reduce(
         cpl_table_delete(trace_wave) ;
         return -1 ;
     }
-    /* TODO : Save trace_wave_a and b as products */
+    cpl_msg_indent_less() ;
+
+    cpl_msg_info(__func__, "B position Spectra Extraction") ;
+    cpl_msg_indent_more() ;
     if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth,
                 &extracted_b, &slit_func_b, &model_master_b) == -1) {
         cpl_msg_error(__func__, "Failed to extract B");
+        cpl_msg_indent_less() ;
         cpl_table_delete(extracted_a) ;
         cpl_table_delete(slit_func_a) ;
         hdrl_image_delete(model_master_a) ;
@@ -1014,7 +1037,10 @@ static int cr2res_obs_nodding_reduce(
         cpl_table_delete(trace_wave) ;
         return -1 ;
     }
+    cpl_msg_indent_less() ;
+
     /* TODO : Save trace_wave_a and b as products */
+
     cpl_table_delete(trace_wave_b) ;
 
     /* Store the extenѕion header for product saving */
@@ -1022,6 +1048,7 @@ static int cr2res_obs_nodding_reduce(
             cr2res_io_get_ext_idx(first_fname, reduce_det, 1)) ;
                     
     /* QC - Signal and FWHM */
+    cpl_msg_info(__func__, "QC parameters computation") ;
     qc_signal_a = cr2res_qc_obs_nodding_signal(extracted_a) ;
     qc_signal_b = cr2res_qc_obs_nodding_signal(extracted_b) ;
     qc_fwhm_a = cr2res_qc_obs_nodding_slit_psf(slit_func_a);

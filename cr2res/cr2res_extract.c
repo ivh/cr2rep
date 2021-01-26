@@ -443,6 +443,8 @@ int cr2res_extract_sum_vert(
         cpl_msg_error(__func__, "Cannot get ycen");
         return -1 ;
     }
+    cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
+            cpl_vector_get(ycen, CR2RES_DETECTOR_SIZE/2)) ;
 
     img_tmp = cr2res_image_cut_rectify(img_in, ycen, height);
     if (img_tmp == NULL) {
@@ -582,6 +584,8 @@ int cr2res_extract_median(
         cpl_msg_error(__func__, "Cannot get ycen");
         return -1 ;
     }
+    cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
+            cpl_vector_get(ycen, CR2RES_DETECTOR_SIZE/2)) ;
 
     img_tmp = cr2res_image_cut_rectify(img_in, ycen, height);
     if (img_tmp == NULL) {
@@ -720,6 +724,8 @@ int cr2res_extract_sum_tilt(
         cpl_msg_error(__func__, "Cannot get ycen");
         return -1 ;
     }
+    cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
+            cpl_vector_get(ycen, CR2RES_DETECTOR_SIZE/2)) ;
 
     img_tmp = cr2res_image_cut_rectify(img_in, ycen, height);
     if (img_tmp == NULL) {
@@ -1248,6 +1254,8 @@ int cr2res_extract_slitdec_vert(
         cpl_msg_error(__func__, "Cannot get ycen");
         return -1 ;
     }
+    cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
+            cpl_vector_get(ycen, CR2RES_DETECTOR_SIZE/2)) ;
 
     if (oversample <= 0) oversample = 1;
 
@@ -1626,6 +1634,8 @@ int cr2res_extract_slitdec_curved(
         cpl_msg_error(__func__, "Cannot get ycen");
         return -1 ;
     }
+    cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
+            cpl_vector_get(ycen, CR2RES_DETECTOR_SIZE/2)) ;
 
     // Get cut-out rectified order
     img_rect = cr2res_image_cut_rectify(img_in, ycen, height);
