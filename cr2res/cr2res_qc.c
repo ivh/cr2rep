@@ -632,6 +632,11 @@ double cr2res_qc_obs_nodding_slit_psf(
     }
 
     qc_fwhm = cpl_array_get_median(fwhm);
+    if (cpl_error_get_code()) {
+        cpl_msg_warning(__func__, "Cannot compute median for QC FWHM") ;
+        qc_fwhm = -1.0;
+        cpl_error_reset() ;
+    }
     
     /* Free Memory */
     cpl_array_delete(col_names);
