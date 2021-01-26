@@ -35,8 +35,9 @@
 
 /*** CATALOG Table ***/
 #define CR2RES_COL_EMISSION         "Emission"      /* No Unit */
-/*** CATALOG and TRACE_WAVE Table ***/
+/*** CATALOG, CR2RES_OBS_NODDING_IDP_PROCATG and TRACE_WAVE Table ***/
 #define CR2RES_COL_WAVELENGTH       "Wavelength"    /* In Nanometers */
+/*** CATALOG and TRACE_WAVE Table ***/
 #define CR2RES_COL_WAVELENGTH_ERROR "Wavelength_Error"  /* In Nanometers */
 /*** TRACE_WAVE Table ***/
 #define CR2RES_COL_UPPER            "Upper"         /* pixel position */
@@ -48,6 +49,13 @@
 #define CR2RES_COL_SLIT_CURV_B      "SlitPolyB"     /* 3 Coefficients Poly */
 #define CR2RES_COL_SLIT_CURV_C      "SlitPolyC"     /* 3 Coefficients Poly */
 #define CR2RES_COL_SLIT_FRACTION    "SlitFraction"  /* Position on the Slit */
+
+/*** CR2RES_OBS_NODDING_IDP_PROCATG  ***/
+#define CR2RES_COL_SPECTRUM         "Spectrum Intensity" /* Intensity */
+#define CR2RES_COL_ERROR            "Error"         /* Error */
+#define CR2RES_COL_QUALITY          "Quality"       /* Quality */
+#define CR2RES_COL_ORDER            "Order"         /* Order Number */
+#define CR2RES_COL_DETECTOR         "Detector"      /* Detector */
 
 /*** LINES_DIAGNOSTICS Table ***/
 #define CR2RES_COL_MEASURED_LAMBDA  "Measured WL"   /* In Nanometers */
@@ -139,6 +147,15 @@
 /*                    cr2res_dfs_WAVELENGTH_colname() */
 /*                    cr2res_dfs_SPEC_ERR_colname() */
 #define CR2RES_EXTRACT_1D_PROTYPE           "EXTRACT_1D"
+
+/* For  CR2RES_OBS_NODDING_IDP_PROCATG */
+/* Table with columns CR2RES_COL_WAVELENGTH */
+/*                    CR2RES_COL_SPECTRUM */
+/*                    CR2RES_COL_ERROR */
+/*                    CR2RES_COL_QUALITY */
+/*                    CR2RES_COL_ORDER */
+/*                    CR2RES_COL_DETECTOR */
+#define CR2RES_EXTRACT_1D_IDP_PROTYPE       "EXTRACT_1D_IDP"
 
 /* For  CR2RES_OBS_NODDING_THROUGHPUT_PROCATG */
 /* Table with columns cr2res_dfs_WAVELENGTH_colname() */
@@ -266,6 +283,7 @@
 #define CR2RES_OBS_NODDING_SLITFUNCB_PROCATG    "OBS_NODDING_SLITFUNCB"
 #define CR2RES_OBS_NODDING_SLITMODELB_PROCATG   "OBS_NODDING_SLITMODELB"
 #define CR2RES_OBS_NODDING_THROUGHPUT_PROCATG   "OBS_NODDING_THROUGHPUT"
+#define CR2RES_OBS_NODDING_IDP_PROCATG          "OBS_NODDING_IDP"
 
 /* Produced by cr2res_obs_staring */
 #define CR2RES_OBS_STARING_EXTRACT_PROCATG     	"OBS_STARING_EXTRACT"

@@ -61,6 +61,21 @@ cpl_table * cr2res_idp_create_table(
     /* Check Inputs */
     if (tables == NULL) return NULL ;
 
+
+
+/*
+#define CR2RES_COL_SPECTRUM
+#define CR2RES_COL_ERROR     
+#define CR2RES_COL_QUALITY  
+#define CR2RES_COL_ORDER    
+#define CR2RES_COL_DETECTOR 
+*/
+
+
+
+
+
+
 	return cpl_table_duplicate(tables[0]) ;
 }
 

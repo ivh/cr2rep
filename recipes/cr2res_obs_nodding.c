@@ -315,6 +315,13 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.create_idp",
+            CPL_TYPE_BOOL, "Flag to produce  IDP files",
+            "cr2res.cr2res_obs_nodding", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "idp");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.display_order",
             CPL_TYPE_INT, "Apply the display for the specified order",
             "cr2res.cr2res_obs_nodding", 0);
@@ -386,7 +393,8 @@ static int cr2res_obs_nodding(
     const cpl_parameter *   param ;
     int                     extract_oversample, extract_swath_width,
                             extract_height, reduce_det, ndit, nexp,
-                            disp_order_idx, disp_trace, nodding_invert ;
+                            disp_order_idx, disp_trace, nodding_invert,
+                            create_idp ;
     double                  extract_smooth, ra, dec, dit, gain ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_flat_frames ;
@@ -432,6 +440,9 @@ static int cr2res_obs_nodding(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.detector");
     reduce_det = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_nodding.create_idp");
+    create_idp = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.display_order");
     disp_order_idx = cpl_parameter_get_int(param);
@@ -558,7 +569,7 @@ static int cr2res_obs_nodding(
     out_file = cpl_sprintf("%s_extractedA.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extracta,
             NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTA_PROCATG,
-            RECIPE_STRING, 0);
+            RECIPE_STRING, create_idp);
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_slitfuncA.fits", RECIPE_STRING) ;
@@ -582,7 +593,7 @@ static int cr2res_obs_nodding(
     out_file = cpl_sprintf("%s_extractedB.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extractb,
             NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTB_PROCATG,
-            RECIPE_STRING, 0);
+            RECIPE_STRING, create_idp);
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_slitfuncB.fits", RECIPE_STRING) ;

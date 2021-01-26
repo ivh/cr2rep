@@ -1677,13 +1677,16 @@ int cr2res_io_save_EXTRACT_1D(
 
         if (qc_list != NULL) pro_list = cpl_propertylist_duplicate(qc_list) ;
         else pro_list = cpl_propertylist_new() ;
+        cpl_propertylist_append_string(pro_list, CPL_DFS_PRO_CATG,
+                CR2RES_OBS_NODDING_IDP_PROCATG) ;
+        cpl_propertylist_append_string(pro_list, CPL_DFS_PRO_TYPE,
+                CR2RES_EXTRACT_1D_IDP_PROTYPE) ;
 
         /* Create the first extension header */
         if (ext_plist[0]==NULL) {
             ext_head = cpl_propertylist_new() ;
         } else {
             ext_head = cpl_propertylist_duplicate(ext_plist[0]);
-            cpl_propertylist_erase(ext_head, "EXTNAME");
         }
 
         idp_filename = cpl_sprintf("idp_%s", filename) ;
