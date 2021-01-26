@@ -39,6 +39,7 @@ noinst_HEADERS =    cr2res_bpm.h \
                     cr2res_extract.h \
                     cr2res_etalon.h \
                     cr2res_flat.h \
+                    cr2res_idp.h \
                     cr2res_io.h \
                     cr2res_nodding.h \
                     cr2res_pfits.h \
@@ -63,6 +64,7 @@ libcr2res_la_SOURCES =  cr2res_bpm.c \
                         cr2res_extract.c \
                         cr2res_etalon.c \
                         cr2res_flat.c \
+                        cr2res_idp.c \
                         cr2res_io.c \
                         cr2res_nodding.c \
                         cr2res_pfits.c \

@@ -519,6 +519,7 @@ double * cr2res_qc_snr(
             cpl_vector_divide(my_snr_spec, cpl_bivector_get_y(my_spec_err)) ;
             cpl_bivector_delete(my_spec_err) ;
             snrs[i] = cpl_vector_get_median(my_snr_spec) ;
+            if (isnan(snrs[i])) snrs[i] = -1.0 ;
             cpl_vector_delete(my_snr_spec) ; 
         } else {
             snrs[i] = -1.0 ;

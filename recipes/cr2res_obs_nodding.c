@@ -558,7 +558,7 @@ static int cr2res_obs_nodding(
     out_file = cpl_sprintf("%s_extractedA.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extracta,
             NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTA_PROCATG,
-            RECIPE_STRING, 1);
+            RECIPE_STRING, 0);
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_slitfuncA.fits", RECIPE_STRING) ;
@@ -582,7 +582,7 @@ static int cr2res_obs_nodding(
     out_file = cpl_sprintf("%s_extractedB.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extractb,
             NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTB_PROCATG,
-            RECIPE_STRING, 1);
+            RECIPE_STRING, 0);
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_slitfuncB.fits", RECIPE_STRING) ;
@@ -758,16 +758,16 @@ static int cr2res_obs_nodding_reduce(
     } 
 
     /* Get the Nodding positions */
+    cpl_msg_info(__func__, "Get the Nodding positions") ;
+    cpl_msg_indent_more() ;
     nod_positions = cr2res_nodding_read_positions(rawframes) ;
-
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        for (i=0 ; i<nframes ; i++) {
-            cpl_msg_debug(__func__, "Frame %s - Nodding %c", 
-                    cpl_frame_get_filename(
-                        cpl_frameset_get_position_const(rawframes, i)), 
-                cr2res_nodding_position_char(nod_positions[i])) ;
-        }
+    for (i=0 ; i<nframes ; i++) {
+        cpl_msg_info(__func__, "Frame %s - Nodding %c", 
+                cpl_frame_get_filename(
+                    cpl_frameset_get_position_const(rawframes, i)), 
+            cr2res_nodding_position_char(nod_positions[i])) ;
     }
+    cpl_msg_indent_less() ;
 
     /* Load the DITs if necessary */
     if (master_dark_frame != NULL)  dits = cr2res_io_read_dits(rawframes) ;
