@@ -215,7 +215,7 @@ int cr2res_detlin_compute(
     for(cpl_size i = 0; i < cpl_vector_get_size(dits); i++)
     {
         expected_counts = y0 + m * (cpl_vector_get(dits, i) - x0);
-        cpl_vector_set(y, i, expected_counts / cpl_vector_get(values, i));
+        cpl_vector_set(y, i, expected_counts);
     }
 
     /* Fit  */
