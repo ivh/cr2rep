@@ -1823,7 +1823,7 @@ static cpl_mask * cr2res_trace_signal_detect(
     cpl_image       *smxy_image;
     cpl_image       *tmp_image;
     cpl_mask        *smxy_mask;
-    int             *smxy_data;
+    double          *smxy_data;
     double          *img_column, *wgt_column;
     cpl_binary      *smxy_mskdata;
     int              kernel_x, kernel_y;
@@ -1835,11 +1835,15 @@ static cpl_mask * cr2res_trace_signal_detect(
 
     /* Check Entries */
     if (image == NULL) return NULL;
+    if (cpl_image_get_type(image) != CPL_TYPE_DOUBLE) {
+        cpl_msg_error(__func__,"Expecting double image.");
+        return NULL;
+    }
     if (smooth_x < 0 || smooth_y < 0) return NULL;
 
     /* Flags. TODO: decide whether to expose these to caller and/or user */    
     log=1;
-    opt_filter=1;
+    opt_filter=0;
 
     /* Prepare kernel */
     kernel_x = smooth_x;
@@ -1882,7 +1886,7 @@ static cpl_mask * cr2res_trace_signal_detect(
         options[1]=1;
         smxy_mask = cpl_image_get_bpm(smxy_image);
         smxy_mskdata = cpl_mask_get_data(smxy_mask);
-        smxy_data = cpl_image_get_data_int(smxy_image);
+        smxy_data = cpl_image_get_data_double(smxy_image);
         img_column = (double *)cpl_malloc(nrows*sizeof(double));
         wgt_column = (double *)cpl_malloc(nrows*sizeof(double));
 
@@ -1940,8 +1944,6 @@ static cpl_mask * cr2res_trace_signal_detect(
                 CPL_IO_CREATE);
         cpl_image_save(smx_image, "debug_smximage.fits", CPL_TYPE_DOUBLE, NULL,
                 CPL_IO_CREATE);
-        cpl_msg_debug(__func__, "Smooth X: %d, Y: %d, Threshold: %.1f",
-                smooth_x, smooth_y, thresh);
     }
 
     /* Wanted pixels are where input image exceeds sm_image by thresh */

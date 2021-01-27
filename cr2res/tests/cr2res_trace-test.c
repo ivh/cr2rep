@@ -295,7 +295,9 @@ static cpl_table *create_cluster_table(void)
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_trace(void)
 {
-    cpl_image *trace_ima = create_test_image();
+    cpl_image *int_ima = create_test_image();
+    cpl_image *trace_ima = cpl_image_cast(int_ima, CPL_TYPE_DOUBLE);
+    cpl_image_delete(int_ima);
     cpl_table *out;
     const cpl_array *all;
 
@@ -784,7 +786,9 @@ static void test_cr2res_trace_new_slit_fraction(void)
 static void test_cr2res_trace_signal_detect(void)
 {
     //define input
-    cpl_image *image = create_test_image();
+    cpl_image *int_image = create_test_image();
+    cpl_image *image = cpl_image_cast(int_image, CPL_TYPE_DOUBLE);
+    cpl_image_delete(int_image);
     int trace_sep = 150;
     double smoothfactor = 1;
     double thresh = 0.5;
