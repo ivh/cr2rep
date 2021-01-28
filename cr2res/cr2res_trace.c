@@ -975,7 +975,7 @@ int cr2res_trace_add_extra_columns(
 
     /* Add The Wavelength(_Error) column using the header */
     cpl_table_new_column_array(traces, CR2RES_COL_WAVELENGTH,
-            CPL_TYPE_DOUBLE, 2) ;
+            CPL_TYPE_DOUBLE, 3) ;
     cpl_table_new_column_array(traces, CR2RES_COL_WAVELENGTH_ERROR, 
             CPL_TYPE_DOUBLE, 2) ;
 

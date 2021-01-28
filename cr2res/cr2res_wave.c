@@ -1330,13 +1330,17 @@ cpl_polynomial * cr2res_wave_estimate_compute(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Compute the wavelength polynomial from boundaries
+  @brief    Compute the 
   @param    wmin    First pixel wavelength
   @param    wmax    Last pixel wavelength
-  @return   the array with two polynomial coeffs, or NULL in error case
+  @return   the array with three polynomial coeffs, or NULL in error case
 
+  The first 2 coefficients are those from the polゆnomial poly such that:
   wmin = poly(1)
   wmax = poly((CR2RES_DETECTOR_SIZE)
+
+  The third coefficient is the median of the slope differences of all
+  orders of the detector
 
   The returned array must be deallocated with cpl_array_delete()
  */
@@ -1346,10 +1350,13 @@ cpl_array * cr2res_wave_get_estimate(
         int             detector,
         int             order)
 {
-    double                  wmin, wmax, a, b ;
+    double                  wmin, wmax, wstrt, wend, a, b, c ;
     cpl_array           *   wl ;
     cpl_propertylist    *   plist ;
     int                     wished_ext_nb ;
+    cpl_vector          *   slopes_vec ;
+    cpl_vector          *   slopes_diff_vec ;
+    int                     min_order_idx, max_order_idx, idx, count, i ;
 
     /* Check Entries */
     if (filename == NULL) return NULL ;
@@ -1359,6 +1366,58 @@ cpl_array * cr2res_wave_get_estimate(
     /* Load the propertylist */
     wished_ext_nb = cr2res_io_get_ext_idx(filename, detector, 1) ;
     plist = cpl_propertylist_load(filename, wished_ext_nb) ;
+
+    /* Get all slopes from all orders and compute the differences */
+    min_order_idx=-5 ;
+    max_order_idx=25 ;
+    count = 0 ;
+    for (idx = min_order_idx ; idx <= max_order_idx ; idx++) {
+        wstrt = cr2res_pfits_get_wstrt(plist, idx) ;
+        wend = cr2res_pfits_get_wend(plist, idx) ;
+        if (wstrt<=0.0 || wend<=0.0) {
+            /* Missing value - reset the error */
+            if (cpl_error_get_code()) cpl_error_reset() ;
+        } else count++ ;
+    }
+    if (count == 0) {
+        cpl_msg_warning(__func__, "Couldn't find any value") ;
+        cpl_propertylist_delete(plist) ;
+        return NULL ;
+    }
+    /* Allocate the Differences vector */
+    slopes_vec = cpl_vector_new(count) ;
+    count = 0 ;
+    for (idx = min_order_idx ; idx <= max_order_idx ; idx++) {
+        wstrt = cr2res_pfits_get_wstrt(plist, idx) ;
+        wend = cr2res_pfits_get_wend(plist, idx) ;
+        if (wstrt<=0.0 || wend<=0.0) {
+            /* Missing value - reset the error */
+            if (cpl_error_get_code()) cpl_error_reset() ;
+        } else {
+            cpl_vector_set(slopes_vec, count,
+                    (wend-wstrt)/(CR2RES_DETECTOR_SIZE-1)) ;
+            count++ ;
+        }
+    }
+
+    if (count == 1) {
+        c = 0.0 ;
+    } else {
+        slopes_diff_vec = cpl_vector_new(count-1) ;
+        for (i=0 ; i<count-1 ; i++) {
+            cpl_vector_set(slopes_diff_vec, i, 
+                    cpl_vector_get(slopes_vec, i+1) -
+                    cpl_vector_get(slopes_vec, i)) ;
+        }
+             
+        if (count == 2) {
+            c = cpl_vector_get_mean(slopes_diff_vec) ;
+        } else {
+            c = cpl_vector_get_median(slopes_diff_vec) ;
+        }
+        cpl_vector_delete(slopes_diff_vec) ;
+    }
+    cpl_vector_delete(slopes_vec) ;
 
     /* Get the values for this order */
     wmin = cr2res_pfits_get_wstrt(plist, order) ;
@@ -1377,9 +1436,10 @@ cpl_array * cr2res_wave_get_estimate(
     a = wmin - b ;
 
     /* Create the array */
-    wl = cpl_array_new(2, CPL_TYPE_DOUBLE) ;
+    wl = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
     cpl_array_set(wl, 0, a) ;
     cpl_array_set(wl, 1, b) ;
+    cpl_array_set(wl, 2, c) ;
     return wl ;
 }
 
