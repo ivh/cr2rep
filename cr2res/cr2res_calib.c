@@ -160,6 +160,28 @@ hdrl_image * cr2res_calib_image(
         }
     }
 
+    /* Apply the non linearity correction */
+    if (detlin != NULL) {
+        /* Load the detlin coeffs */
+        cpl_msg_info(__func__, "Load the Non-Linearity coefficients") ;
+        if ((calib_list = cr2res_io_load_DETLIN_COEFFS(
+                        cpl_frame_get_filename(detlin), chip)) == NULL) {
+            cpl_msg_error(__func__, "Cannot load the detlin") ;
+            hdrl_image_delete(out);
+            return NULL ;
+        }
+
+        /* Detlin correction */
+        cpl_msg_info(__func__, "Correct for the Non-Linearity") ;
+        if (cr2res_detlin_correct(out, calib_list)) {
+            hdrl_imagelist_delete(calib_list) ;
+            hdrl_image_delete(out);
+            cpl_msg_error(__func__, "Cannot correct for the Non-Linearity") ;
+            return NULL ;
+        }
+        hdrl_imagelist_delete(calib_list) ;
+    }
+
     /* Apply the dark */
     if (dark != NULL) {
         cpl_msg_info(__func__, "Correct for the dark") ;
@@ -189,28 +211,6 @@ hdrl_image * cr2res_calib_image(
             return NULL ;
         }
         hdrl_image_delete(calib) ;
-    }
-
-    /* Apply the non linearity correction */
-    if (detlin != NULL) {
-        /* Load the detlin coeffs */
-        cpl_msg_info(__func__, "Load the Non-Linearity coefficients") ;
-        if ((calib_list = cr2res_io_load_DETLIN_COEFFS(
-                        cpl_frame_get_filename(detlin), chip)) == NULL) {
-            cpl_msg_error(__func__, "Cannot load the detlin") ;
-            hdrl_image_delete(out);
-            return NULL ;
-        }
-
-        /* Detlin correction */
-        cpl_msg_info(__func__, "Correct for the Non-Linearity") ;
-        if (cr2res_detlin_correct(out, calib_list)) {
-            hdrl_imagelist_delete(calib_list) ;
-            hdrl_image_delete(out);
-            cpl_msg_error(__func__, "Cannot correct for the Non-Linearity") ;
-            return NULL ;
-        }
-        hdrl_imagelist_delete(calib_list) ;
     }
 
     /* Apply the flatfield */
