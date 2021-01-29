@@ -49,16 +49,6 @@ int cr2res_qc_detlin_min_max_level(
         double              *   max_level) ;
 
 /* FLAT */
-double cr2res_qc_flat_lamp_ints(
-        const cpl_image     *   ima) ;
-double cr2res_qc_flat_mean_level(
-        const cpl_image     *   ima) ;
-double cr2res_qc_flat_med_snr(
-        const cpl_image     *   ima) ;
-int cr2res_qc_flat_mean_med_flux(
-        const cpl_image     *   ima,
-        double              *   mean_flux,
-        double              *   med_flux) ;
 double cr2res_qc_flat_trace_center_y(
         const cpl_table     *   trace) ;
 int cr2res_qc_flat_nb_overexposed(

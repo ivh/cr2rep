@@ -61,10 +61,18 @@ cpl_table * cr2res_idp_create_table(
     /* Check Inputs */
     if (tables == NULL) return NULL ;
 
+    /* Count the Rows */
+
+
+
+
+
+
 
 
 /*
 #define CR2RES_COL_SPECTRUM
+#define CR2RES_COL_WAVELENGTH
 #define CR2RES_COL_ERROR     
 #define CR2RES_COL_QUALITY  
 #define CR2RES_COL_ORDER    

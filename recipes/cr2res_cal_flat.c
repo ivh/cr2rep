@@ -1180,10 +1180,6 @@ static int cr2res_cal_flat_reduce(
 
     /* Compute the QC parameters */
     /* TODO : pass the proper inputs */
-    qc_lamp_ints = cr2res_qc_flat_lamp_ints(NULL) ;
-    qc_mean_level = cr2res_qc_flat_mean_level(NULL) ;
-    cr2res_qc_flat_mean_med_flux(NULL, &qc_mean_flux, &qc_med_flux) ;
-    qc_med_snr = cr2res_qc_flat_med_snr(NULL) ;
     qc_overexposed = cr2res_qc_flat_nb_overexposed(NULL) ;
     qc_trace_centery = cr2res_qc_flat_trace_center_y(NULL) ;
     qc_nbbad = cpl_mask_count(bpm_flat) ;
@@ -1216,16 +1212,6 @@ static int cr2res_cal_flat_reduce(
     }
     if (qc_order_nb != NULL) cpl_free(qc_order_nb) ;
     if (qc_order_pos != NULL) cpl_free(qc_order_pos) ;
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_LAMP_INTS, 
-            qc_lamp_ints) ;
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_MEAN_LEVEL, 
-            qc_mean_level) ;
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_MEAN_FLUX, 
-            qc_mean_flux) ;
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_MEDIAN_FLUX, 
-            qc_med_flux) ;
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_MED_SNR, 
-            qc_med_snr) ;
     cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_FLAT_OVEREXPOSED, 
             qc_overexposed) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_TRACE_CENTERY,
