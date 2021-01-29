@@ -296,7 +296,6 @@ double cr2res_qc_flat_trace_center_y(
     cpl_free(order_idx_values);
     cpl_free(traces);
     cpl_polynomial_delete(poly);
-    cpl_array_delete(array);
 
     return qc_trace_center_y ;
 }

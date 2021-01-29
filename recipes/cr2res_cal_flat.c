@@ -1179,9 +1179,9 @@ static int cr2res_cal_flat_reduce(
     }
 
     /* Compute the QC parameters */
-    /* TODO : pass the proper inputs */
-    qc_overexposed = cr2res_qc_flat_nb_overexposed(NULL) ;
-    qc_trace_centery = cr2res_qc_flat_trace_center_y(NULL) ;
+    qc_overexposed =
+        cr2res_qc_flat_nb_overexposed(hdrl_image_get_image(master_flat_loc)) ;
+    qc_trace_centery = cr2res_qc_flat_trace_center_y(computed_traces) ;
     qc_nbbad = cpl_mask_count(bpm_flat) ;
     cpl_mask_delete(bpm_flat) ;
     cr2res_qc_flat_order_positions(computed_traces, &qc_order_nb, &qc_order_pos,
