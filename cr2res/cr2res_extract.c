@@ -167,6 +167,9 @@ static int debug_output(int         ncols,
   @param    swath_width     width per swath
   @param    oversample      factor for oversampling
   @param    smooth_slit     
+  @param    display         Flag to allow display
+  @param    disp_order_idx  The order index to display
+  @param    disp_trace      The trace number to display
   @param    extracted       [out] the extracted spectra 
   @param    slit_func       [out] the slit functions
   @param    model_master    [out] the model
@@ -186,6 +189,9 @@ int cr2res_extract_traces(
         int                     swath_width,
         int                     oversample,
         double                  smooth_slit,
+        int                     display,
+        int                     disp_order_idx,
+        int                     disp_trace,
         cpl_table           **  extracted,
         cpl_table           **  slit_func,
         hdrl_image          **  model_master)
@@ -231,7 +237,7 @@ int cr2res_extract_traces(
 
         cpl_msg_info(__func__, "Process Order %d/Trace %d",order,trace_id) ;
         cpl_msg_indent_more() ;
-
+        
         /* Get the input slit_func if available */
         if (slit_func_in != NULL) {
             /* Load the proper slit function vector */
@@ -334,6 +340,14 @@ int cr2res_extract_traces(
 
             hdrl_image_delete(model_loc_one) ;
         }
+
+        /* Plot the Spectrum */
+        if (display && disp_order_idx==order && disp_trace==trace_id) {
+            cpl_plot_vector(
+            "set grid;set xlabel 'pixels';set ylabel 'Flux (ADU)';",
+            "t 'Extracted Specrum' w lines", "",
+            cpl_bivector_get_x_const(spectrum[i])) ;
+        }
         cpl_msg_indent_less() ;
     }
 
@@ -416,6 +430,7 @@ int cr2res_extract_sum_vert(
     int                 i, j, y;
     int                 ymin, ymax;
     int                 empty_bottom = 0;
+    double              trace_cen, trace_height ;
     cpl_type            imtyp;
 
     /* Check Entries */
@@ -443,8 +458,10 @@ int cr2res_extract_sum_vert(
         cpl_msg_error(__func__, "Cannot get ycen");
         return -1 ;
     }
-    cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
-            cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2)) ;
+    trace_cen = cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2) ;
+    trace_height = (double)cr2res_trace_get_height(trace_tab, order, trace_id) ;
+    cpl_msg_info(__func__, "Y position of the trace: %g -> %g", 
+            trace_cen-(trace_height/2), trace_cen+(trace_height/2)) ;
 
     img_tmp = cr2res_image_cut_rectify(img_in, ycen, height);
     if (img_tmp == NULL) {
@@ -557,6 +574,7 @@ int cr2res_extract_median(
     int                 i, j;
     int                 ymin, ymax;
     int                 empty_bottom = 0;
+    double              trace_cen, trace_height ;
     cpl_type            imtyp;
 
     /* Check Entries */
@@ -584,8 +602,10 @@ int cr2res_extract_median(
         cpl_msg_error(__func__, "Cannot get ycen");
         return -1 ;
     }
-    cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
-            cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2)) ;
+    trace_cen = cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2) ;
+    trace_height = (double)cr2res_trace_get_height(trace_tab, order, trace_id) ;
+    cpl_msg_info(__func__, "Y position of the trace: %g -> %g", 
+            trace_cen-(trace_height/2), trace_cen+(trace_height/2)) ;
 
     img_tmp = cr2res_image_cut_rectify(img_in, ycen, height);
     if (img_tmp == NULL) {
@@ -692,6 +712,7 @@ int cr2res_extract_sum_tilt(
     int                 i, j;
     int                 ymin, ymax;
     int                 empty_bottom = 0;
+    double              trace_cen, trace_height ;
     cpl_type            imtyp;
 
     int yc, yt, badpix;
@@ -724,8 +745,10 @@ int cr2res_extract_sum_tilt(
         cpl_msg_error(__func__, "Cannot get ycen");
         return -1 ;
     }
-    cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
-            cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2)) ;
+    trace_cen = cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2) ;
+    trace_height = (double)cr2res_trace_get_height(trace_tab, order, trace_id) ;
+    cpl_msg_info(__func__, "Y position of the trace: %g -> %g", 
+            trace_cen-(trace_height/2), trace_cen+(trace_height/2)) ;
 
     img_tmp = cr2res_image_cut_rectify(img_in, ycen, height);
     if (img_tmp == NULL) {
@@ -1221,6 +1244,7 @@ int cr2res_extract_slitdec_vert(
     cpl_type            imtyp;
     double              pixval, errval, img_median, unc, model_unc, img_unc, 
                         norm;
+    double              trace_cen, trace_height ;
     int                 i, j, k, nswaths, row, col, x, y, ny_os,
                         sw_start, sw_end, badpix;
 
@@ -1254,8 +1278,10 @@ int cr2res_extract_slitdec_vert(
         cpl_msg_error(__func__, "Cannot get ycen");
         return -1 ;
     }
-    cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
-            cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2)) ;
+    trace_cen = cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2) ;
+    trace_height = (double)cr2res_trace_get_height(trace_tab, order, trace_id) ;
+    cpl_msg_info(__func__, "Y position of the trace: %g -> %g", 
+            trace_cen-(trace_height/2), trace_cen+(trace_height/2)) ;
 
     if (oversample <= 0) oversample = 1;
 
@@ -1599,6 +1625,7 @@ int cr2res_extract_slitdec_curved(
     char            *   path;
     double              pixval, errval, img_median, norm, model_unc, img_unc,
                         unc, delta_tmp, a, b, c, yc;
+    double              trace_cen, trace_height ;
     int                 i, j, k, nswaths, halfswath, row, col, x, y, ny_os,
                         sw_start, sw_end, badpix, y_lower_limit, y_upper_limit,
                         delta_x;
@@ -1634,8 +1661,10 @@ int cr2res_extract_slitdec_curved(
         cpl_msg_error(__func__, "Cannot get ycen");
         return -1 ;
     }
-    cpl_msg_info(__func__, "Y position of the trace at the center: %g", 
-            cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2)) ;
+    trace_cen = cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2) ;
+    trace_height = (double)cr2res_trace_get_height(trace_tab, order, trace_id) ;
+    cpl_msg_info(__func__, "Y position of the trace: %g -> %g", 
+            trace_cen-(trace_height/2), trace_cen+(trace_height/2)) ;
 
     // Get cut-out rectified order
     img_rect = cr2res_image_cut_rectify(img_in, ycen, height);

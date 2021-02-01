@@ -54,6 +54,9 @@ int cr2res_extract_traces(
         int                     swath_width,
         int                     oversample,
         double                  smooth_slit,
+        int                     display,
+        int                     disp_order_idx,
+        int                     disp_trace,
         cpl_table           **  extracted,
         cpl_table           **  slit_func,
         hdrl_image          **  model_master) ;

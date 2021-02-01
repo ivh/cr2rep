@@ -75,6 +75,9 @@ static int cr2res_obs_nodding_reduce(
         int                     extract_height,
         double                  extract_smooth,
         int                     reduce_det,
+        int                     disp_det,
+        int                     disp_order_idx,
+        int                     disp_trace,
         hdrl_image          **  combineda,
         cpl_table           **  extracta,
         cpl_table           **  slitfunca,
@@ -274,7 +277,7 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
 
     /* Fill the parameters list */
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.nodding_invert",
-            CPL_TYPE_BOOL, "Flag to use when B is above A",
+            CPL_TYPE_BOOL, "Flag to use when A is above B",
             "cr2res.cr2res_obs_nodding", FALSE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "nodding_invert");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
@@ -322,9 +325,16 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.display_detector",
+            CPL_TYPE_INT, "Apply the display for the specified detector",
+            "cr2res.cr2res_obs_nodding", 0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display_detector");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.display_order",
             CPL_TYPE_INT, "Apply the display for the specified order",
-            "cr2res.cr2res_obs_nodding", 0);
+            "cr2res.cr2res_obs_nodding", 1000);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display_order");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -393,8 +403,8 @@ static int cr2res_obs_nodding(
     const cpl_parameter *   param ;
     int                     extract_oversample, extract_swath_width,
                             extract_height, reduce_det, ndit, nexp,
-                            disp_order_idx, disp_trace, nodding_invert,
-                            create_idp ;
+                            disp_order_idx, disp_trace, disp_det, 
+                            nodding_invert, create_idp ;
     double                  extract_smooth, ra, dec, dit, gain ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_flat_frames ;
@@ -443,6 +453,9 @@ static int cr2res_obs_nodding(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.create_idp");
     create_idp = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_nodding.display_detector");
+    disp_det = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.display_order");
     disp_order_idx = cpl_parameter_get_int(param);
@@ -508,7 +521,8 @@ static int cr2res_obs_nodding(
                     trace_wave_frame, detlin_frame, master_dark_frame, 
                     master_flat_frame, bpm_frame, nodding_invert, 0, 
                     extract_oversample, extract_swath_width, extract_height, 
-                    extract_smooth, det_nr,
+                    extract_smooth, det_nr, disp_det, disp_order_idx, 
+                    disp_trace,
                     &(combineda[det_nr-1]),
                     &(extracta[det_nr-1]),
                     &(slitfunca[det_nr-1]),
@@ -655,13 +669,16 @@ static int cr2res_obs_nodding(
   @param master_dark_frame      Associated master dark
   @param master_flat_frame      Associated master flat
   @param bpm_frame              Associated BPM
-  @param nodding_invert         Flag to use if B is above A
+  @param nodding_invert         Flag to use if A is above B
   @param calib_cosmics_corr     Flag to correct for cosmics
   @param extract_oversample     Extraction related
   @param extract_swath_width    Extraction related
   @param extract_height         Extraction related
   @param extract_smooth         Extraction related
   @param reduce_det             The detector to compute
+  @param disp_det               The detector to display
+  @param disp_order_idx         The order index to display
+  @param disp_trace             The trace number to display
   @param combineda              [out] Combined image (A)
   @param extracta               [out] extracted spectrum (A)
   @param slitfunca              [out] slit function (A)
@@ -689,6 +706,9 @@ static int cr2res_obs_nodding_reduce(
         int                     extract_height,
         double                  extract_smooth,
         int                     reduce_det,
+        int                     disp_det,
+        int                     disp_order_idx,
+        int                     disp_trace,
         hdrl_image          **  combineda,
         cpl_table           **  extracta,
         cpl_table           **  slitfunca,
@@ -910,7 +930,7 @@ static int cr2res_obs_nodding_reduce(
         - The slit center is exactly in the middle of A and B poѕitions
         - The nodthrow iѕ the distance in arcseconds between A and B
         - The slit size is 10 arcseconds
-        - The A position is above the B position (--nodding-invert=false)
+        - The B position is above the A position (--nodding-invert=false)
     */
     slit_length = 10 ;
     if ((plist = cpl_propertylist_load(first_fname, 0)) == NULL) {
@@ -925,7 +945,7 @@ static int cr2res_obs_nodding_reduce(
     cpl_propertylist_delete(plist) ;
     if (nod_throw < slit_length / 2.0) {
         extr_width_frac = nod_throw/slit_length ;  
-        if (nodding_invert == 0) {
+        if (nodding_invert == 1) {
             slit_frac_a_bot = 0.5 ;
             slit_frac_a_mid = slit_frac_a_bot + extr_width_frac/2.0 ;
             slit_frac_a_top = slit_frac_a_bot + extr_width_frac ;
@@ -942,7 +962,7 @@ static int cr2res_obs_nodding_reduce(
         }
     } else if (nod_throw <= slit_length) {
         extr_width_frac = (slit_length - nod_throw)/slit_length ;  
-        if (nodding_invert == 0) {
+        if (nodding_invert == 1) {
             slit_frac_a_top = 1.0 ;
             slit_frac_a_mid = slit_frac_a_top - extr_width_frac/2.0 ;
             slit_frac_a_bot = slit_frac_a_top - extr_width_frac ;
@@ -1017,7 +1037,8 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_indent_more() ;
     if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
-                extract_oversample, extract_smooth,
+                extract_oversample, extract_smooth, disp_det==reduce_det,
+                disp_order_idx, disp_trace,
                 &extracted_a, &slit_func_a, &model_master_a) == -1) {
         cpl_msg_error(__func__, "Failed to extract A");
         cpl_msg_indent_less() ;
@@ -1035,6 +1056,7 @@ static int cr2res_obs_nodding_reduce(
     if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth,
+                disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_b, &slit_func_b, &model_master_b) == -1) {
         cpl_msg_error(__func__, "Failed to extract B");
         cpl_msg_indent_less() ;
