@@ -84,6 +84,7 @@ static double cr2res_photom_great_circle_dist(
   @param    dec         DEC
   @param    gain        The gain
   @param    exptime     The exposure time
+  @param    display         Flag to allow display
   @param    display_order   Order to display
   @param    display_trace   Trace to display 
   @param    throughput  [out]   the throughput table
@@ -97,6 +98,7 @@ int cr2res_photom_engine(
         double                  dec,
         double                  gain,
         double                  exptime,
+        int                     display,
         int                     display_order,
         int                     display_trace,
         cpl_table           **  throughput)
@@ -229,7 +231,7 @@ int cr2res_photom_engine(
             cpl_bivector_delete(spec_err_biv) ;
             
             /* Plot on request */
-            if (display_trace==trace_nb && display_order==order) {
+            if (display && display_trace==trace_nb && display_order==order) {
                 cpl_plot_column(
 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Conversion (ADU/sec/Jy)';",
                     "t 'Conversion factor' w lines", "",

@@ -41,13 +41,14 @@
    							        Prototypes
  -----------------------------------------------------------------------------*/
 
-int cr2res_photom_engine(   
+int cr2res_photom_engine(
         const cpl_table     *   extr,
         const char          *   std_star_file,
         double                  ra,
         double                  dec,
         double                  gain,
         double                  exptime,
+        int                     display,
         int                     display_order,
         int                     display_trace,
         cpl_table           **  throughput) ;

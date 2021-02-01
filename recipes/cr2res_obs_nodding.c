@@ -561,7 +561,8 @@ static int cr2res_obs_nodding(
                 /* Compute the photometry */
                 if (cr2res_photom_engine(extracta[det_nr-1],
                             cpl_frame_get_filename(photo_flux_frame),
-                            ra, dec, gain, dit*ndit*nexp, disp_order_idx,
+                            ra, dec, gain, dit*ndit*nexp,
+                            disp_det==det_nr, disp_order_idx,
                             disp_trace, &(throughput[det_nr-1]))) {
                     cpl_msg_warning(__func__, 
                             "Failed to reduce detector %d", det_nr);
