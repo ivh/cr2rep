@@ -152,6 +152,7 @@ int cr2res_photom_engine(
 			if (cr2res_extract_EXTRACT1D_get_spectrum(extr, order, trace_nb,
 						&spec_biv, &spec_err_biv)) {
                 cpl_msg_error(__func__, "Cannot get the extracted spectrum") ;
+                if (col_type != NULL) cpl_free(col_type) ;
                 continue ;
             }
             cpl_msg_info(__func__, 
@@ -161,19 +162,24 @@ int cr2res_photom_engine(
             /* Conversion */
             if ((conversion_vec = cr2res_photom_conversion(spec_biv, 
                             std_star_biv))==NULL) {
-                cpl_msg_error(__func__, "Cannot compute the conversion factor");
+                cpl_msg_warning(__func__, 
+                        "Cannot compute the conversion factor");
+                cpl_error_reset() ;
                 cpl_bivector_delete(spec_biv) ;
                 cpl_bivector_delete(spec_err_biv) ;
+                if (col_type != NULL) cpl_free(col_type) ;
                 continue ;
             }
 
             /* Throughput */
             if ((throughput_vec = cr2res_photom_throughput(conversion_vec,
                             cpl_bivector_get_x_const(spec_biv), gain))==NULL) {
-                cpl_msg_error(__func__, "Cannot compute the throughput");
+                cpl_msg_warning(__func__, "Cannot compute the throughput");
+                cpl_error_reset() ;
                 cpl_bivector_delete(spec_biv) ;
                 cpl_bivector_delete(spec_err_biv) ;
                 cpl_vector_delete(conversion_vec) ;
+                if (col_type != NULL) cpl_free(col_type) ;
                 continue ;
             }
 
@@ -181,11 +187,13 @@ int cr2res_photom_engine(
             if ((sensitivity_vec = cr2res_photom_sensitivity(conversion_vec, 
                             cpl_bivector_get_y_const(spec_err_biv), 
                             exptime))==NULL) {
-                cpl_msg_error(__func__, "Cannot compute the sensitivity");
+                cpl_msg_warning(__func__, "Cannot compute the sensitivity");
+                cpl_error_reset() ;
                 cpl_bivector_delete(spec_biv) ;
                 cpl_bivector_delete(spec_err_biv) ;
                 cpl_vector_delete(conversion_vec) ;
                 cpl_vector_delete(throughput_vec) ;
+                if (col_type != NULL) cpl_free(col_type) ;
                 continue ;
             }
 
