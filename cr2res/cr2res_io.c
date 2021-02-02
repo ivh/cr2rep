@@ -283,7 +283,7 @@ cpl_frameset * cr2res_io_find_EXTRACT_1D_all(const cpl_frameset  * in)
     if (in == NULL) return NULL ;
 
     /* Create the tags list */
-    ntags = 6 ;
+    ntags = 8 ;
     tags = cpl_malloc(ntags * sizeof(char *)) ;
     tags[0] = cpl_sprintf(CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG) ;
     tags[1] = cpl_sprintf(CR2RES_UTIL_EXTRACT_1D_PROCATG) ;
@@ -291,6 +291,8 @@ cpl_frameset * cr2res_io_find_EXTRACT_1D_all(const cpl_frameset  * in)
     tags[3] = cpl_sprintf(CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG) ;
     tags[4] = cpl_sprintf(CR2RES_OBS_NODDING_EXTRACTA_PROCATG) ;
     tags[5] = cpl_sprintf(CR2RES_OBS_NODDING_EXTRACTB_PROCATG) ;
+    tags[6] = cpl_sprintf(CR2RES_OBS_NODDING_EXTRACTC_PROCATG) ;
+    tags[7] = cpl_sprintf(CR2RES_OBS_STARING_EXTRACT_PROCATG) ;
 
     /* Get the frameset */
     out = cr2res_extract_frameset_several_tags(in, (const char**)tags, ntags) ;

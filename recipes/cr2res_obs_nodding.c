@@ -86,8 +86,12 @@ static int cr2res_obs_nodding_reduce(
         cpl_table           **  extractb,
         cpl_table           **  slitfuncb,
         hdrl_image          **  modelb,
+        cpl_table           **  extractc,
         cpl_propertylist    **  ext_plist) ;
-
+static cpl_table * cr2res_obs_nodding_combine(
+        const cpl_table     *  extracta,
+        const cpl_table     *  extractb) ;
+ 
 static int cr2res_obs_nodding_create(cpl_plugin *);
 static int cr2res_obs_nodding_exec(cpl_plugin *);
 static int cr2res_obs_nodding_destroy(cpl_plugin *);
@@ -152,11 +156,11 @@ Nodding Observation                                                     \n\
     loop on detectors d:                                                \n\
       call cr2res_obs_nodding_reduce()                                  \n\
         -> combined[a|b](d)                                             \n\
-        -> extract[a|b](d)                                              \n\
+        -> extract[a|b|c](d)                                            \n\
         -> slitfunc[a|b](d)                                             \n\
         -> model[a|b](d)                                                \n\
     Save combineda and combinedb                                        \n\
-    Save extracta and extractb                                          \n\
+    Save extracta, extractb, extractc                                   \n\
     Save slitfunca and slitfuncb                                        \n\
     Save modela and modelb                                              \n\
     Save throughput                                                     \n\
@@ -422,6 +426,7 @@ static int cr2res_obs_nodding(
     cpl_table           *   extractb[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slitfuncb[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   modelb[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   extractc[CR2RES_NB_DETECTORS] ;
     cpl_table           *   throughput[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   plist ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
@@ -507,6 +512,7 @@ static int cr2res_obs_nodding(
         extractb[det_nr-1] = NULL ;
         slitfuncb[det_nr-1] = NULL ;
         modelb[det_nr-1] = NULL ;
+        extractc[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
         throughput[det_nr-1] = NULL ;
 
@@ -531,6 +537,7 @@ static int cr2res_obs_nodding(
                     &(extractb[det_nr-1]),
                     &(slitfuncb[det_nr-1]),
                     &(modelb[det_nr-1]),
+                    &(extractc[det_nr-1]),
                     &(ext_plist[det_nr-1])) == -1) {
             cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
             cpl_error_reset() ;
@@ -623,6 +630,12 @@ static int cr2res_obs_nodding(
             RECIPE_STRING) ;
     cpl_free(out_file);
 
+    out_file = cpl_sprintf("%s_extracted_combined.fits", RECIPE_STRING) ;
+    cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extractc,
+            NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTC_PROCATG,
+            RECIPE_STRING, create_idp);
+    cpl_free(out_file);
+
     if (type == 2) {
         out_file = cpl_sprintf("%s_throughput.fits", RECIPE_STRING) ;
         cr2res_io_save_THROUGHPUT(out_file, frameset, rawframes, parlist,
@@ -651,6 +664,8 @@ static int cr2res_obs_nodding(
             cpl_table_delete(slitfuncb[det_nr-1]) ;
         if (modelb[det_nr-1] != NULL)
             hdrl_image_delete(modelb[det_nr-1]) ;
+        if (extractc[det_nr-1] != NULL) 
+            cpl_table_delete(extractc[det_nr-1]) ;
         if (throughput[det_nr-1] != NULL) 
             cpl_table_delete(throughput[det_nr-1]) ;
         if (ext_plist[det_nr-1] != NULL) 
@@ -687,6 +702,7 @@ static int cr2res_obs_nodding(
   @param combinedb              [out] Combined image (B)
   @param extractb               [out] extracted spectrum (B)
   @param slitfuncb              [out] slit function (B)
+  @param extractc               [out] extracted A and B combined spectrum
   @param modelb                 [out] slit model (B)
   @param ext_plist              [out] the header for saving the products
   @return  0 if ok, -1 otherwise
@@ -718,6 +734,7 @@ static int cr2res_obs_nodding_reduce(
         cpl_table           **  extractb,
         cpl_table           **  slitfuncb,
         hdrl_image          **  modelb,
+        cpl_table           **  extractc,
         cpl_propertylist    **  ext_plist)
 {
     hdrl_imagelist      *   in ;
@@ -740,6 +757,7 @@ static int cr2res_obs_nodding_reduce(
     cpl_array           *   slit_frac_b ;
     cpl_table           *   extracted_a ;
     cpl_table           *   extracted_b ;
+    cpl_table           *   extracted_combined ;
     cpl_table           *   slit_func_a ;
     cpl_table           *   slit_func_b ;
     hdrl_image          *   model_master_a ;
@@ -760,8 +778,8 @@ static int cr2res_obs_nodding_reduce(
 
     /* Check Inputs */
     if (combineda == NULL || combinedb == NULL || extracta == NULL ||
-            extractb == NULL || ext_plist == NULL || rawframes == NULL
-            || trace_wave_frame == NULL) return -1 ;
+            extractb == NULL || extractc == NULL || ext_plist == NULL || 
+            rawframes == NULL || trace_wave_frame == NULL) return -1 ;
 
     /* Check raw frames consistency */
     if (cr2res_obs_nodding_check_inputs_validity(rawframes) != 1) {
@@ -1077,6 +1095,9 @@ static int cr2res_obs_nodding_reduce(
 
     cpl_table_delete(trace_wave_b) ;
 
+    /* Combine both a and b extracted spectra together */
+    extracted_combined = cr2res_obs_nodding_combine(extracted_a, extracted_a) ;
+
     /* Store the extenѕion header for product saving */
     plist = cpl_propertylist_load(first_fname,
             cr2res_io_get_ext_idx(first_fname, reduce_det, 1)) ;
@@ -1140,9 +1161,32 @@ static int cr2res_obs_nodding_reduce(
     *slitfuncb = slit_func_b ;
     *modelb = model_master_b ;
 
+    *extractc = extracted_combined ;
     *ext_plist = plist ;
 
     return 0 ;
+}
+ 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Combine A and B extracted spectra
+  @param    extracta        A position extracted spectrum
+  @param    extractb        B position extracted spectrum
+  @return   extract_combined table
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_table * cr2res_obs_nodding_combine(
+        const cpl_table     *  extracta,
+        const cpl_table     *  extractb)
+{
+    cpl_table           *   extract_combined ;
+
+    /* Check Inputs */
+    if (extracta == NULL || extractb == NULL)
+        return NULL ;
+       
+   
+    return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/

@@ -45,9 +45,6 @@
  -----------------------------------------------------------------------------*/
 
 static void test_cr2res_dark_qc_ron(void);
-static void test_cr2res_qc_flat_lamp_ints(void);
-static void test_cr2res_qc_flat_mean_level(void);
-static void test_cr2res_qc_flat_mean_med_flux(void);
 static void test_cr2res_qc_obs_nodding_slit_psf(void);
 
 /*----------------------------------------------------------------------------*/
@@ -266,75 +263,6 @@ static void test_cr2res_dark_qc_ron(void)
     cpl_image_delete(ima2);
 }
 
-static void test_cr2res_qc_flat_lamp_ints()
-{
-    cpl_image * ima;
-    double res;
-
-    ima = cpl_image_new(10, 10, CPL_TYPE_DOUBLE);
-    for(cpl_size x = 1; x <= 10; x++)
-    {
-        for(cpl_size y = 1; y <= 10; y++)
-        {
-            cpl_image_set(ima, x, y, 1);
-        }
-    }
-
-    cpl_test_eq(-1, cr2res_qc_flat_lamp_ints(NULL));
-
-    cpl_test(res = cr2res_qc_flat_lamp_ints(ima));
-    cpl_test_abs(res, 10*10, DBL_EPSILON);
-
-    cpl_image_delete(ima);
-}
-
-static void test_cr2res_qc_flat_mean_level()
-{
-    cpl_image * ima;
-    double res;
-
-    ima = cpl_image_new(10, 10, CPL_TYPE_DOUBLE);
-    for(cpl_size x = 1; x <= 10; x++)
-    {
-        for(cpl_size y = 1; y <= 10; y++)
-        {
-            cpl_image_set(ima, x, y, 1);
-        }
-    }
-
-    cpl_test_eq(-1, cr2res_qc_flat_mean_level(NULL));
-
-    cpl_test(res = cr2res_qc_flat_mean_level(ima));
-    cpl_test_abs(res, 1, DBL_EPSILON);
-
-    cpl_image_delete(ima);
-}
-
-static void test_cr2res_qc_flat_mean_med_flux()
-{
-    cpl_image * ima;
-    double mean, median;
-    double res;
-
-    ima = cpl_image_new(10, 10, CPL_TYPE_DOUBLE);
-    for(cpl_size x = 1; x <= 10; x++)
-    {
-        for(cpl_size y = 1; y <= 10; y++)
-        {
-            cpl_image_set(ima, x, y, 1);
-        }
-    }
-
-    cpl_test_eq(-1, cr2res_qc_flat_mean_med_flux(NULL, &mean, &median));
-
-    cpl_test_eq(0, cr2res_qc_flat_mean_med_flux(ima, &mean, &median));
-    cpl_test_abs(mean, 1, DBL_EPSILON);
-    cpl_test_abs(median, 1, DBL_EPSILON);
-
-
-    cpl_image_delete(ima);
-}
-
 static void test_cr2res_qc_obs_nodding_slit_psf()
 {
     int nrow = 100;
@@ -378,9 +306,6 @@ int main(void)
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
     test_cr2res_dark_qc_ron();
-    test_cr2res_qc_flat_lamp_ints();
-    test_cr2res_qc_flat_mean_level();
-    test_cr2res_qc_flat_mean_med_flux();
     test_cr2res_qc_obs_nodding_slit_psf();
 
     return cpl_test_end(0);

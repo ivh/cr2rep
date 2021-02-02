@@ -82,6 +82,8 @@ Wavelength Calibration                                                  \n\
           or " CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG "                     \n\
           or " CR2RES_OBS_NODDING_EXTRACTA_PROCATG "                    \n\
           or " CR2RES_OBS_NODDING_EXTRACTB_PROCATG "                    \n\
+          or " CR2RES_OBS_NODDING_EXTRACTC_PROCATG "                    \n\
+          or " CR2RES_OBS_STARING_EXTRACT_PROCATG "                     \n\
     trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [1]                       \n\
             or " CR2RES_CAL_FLAT_TW_MERGED_PROCATG "                    \n\
             or " CR2RES_UTIL_TRACE_TW_PROCATG "                         \n\
