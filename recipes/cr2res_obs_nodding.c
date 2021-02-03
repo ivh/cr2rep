@@ -25,6 +25,7 @@
                                 Includes
  -----------------------------------------------------------------------------*/
 
+#include <string.h>
 #include <cpl.h>
 
 #include "cr2res_utils.h"
@@ -1096,7 +1097,7 @@ static int cr2res_obs_nodding_reduce(
     cpl_table_delete(trace_wave_b) ;
 
     /* Combine both a and b extracted spectra together */
-    extracted_combined = cr2res_obs_nodding_combine(extracted_a, extracted_a) ;
+    extracted_combined = cr2res_obs_nodding_combine(extracted_a, extracted_b) ;
 
     /* Store the extenѕion header for product saving */
     plist = cpl_propertylist_load(first_fname,
@@ -1179,14 +1180,108 @@ static cpl_table * cr2res_obs_nodding_combine(
         const cpl_table     *  extracta,
         const cpl_table     *  extractb)
 {
-    cpl_table           *   extract_combined ;
+    cpl_table                   *   extractc ;
+    cpl_array                   *   col_names ;
+    const char                  *   col_name ;
+    char                        *   col_type ;
+    char                        *   wave_col ;
+    hdrl_spectrum1D_wave_scale      scale ;
+    hdrl_spectrum1D             *   a_spec ;
+    hdrl_spectrum1D             *   b_spec ;
+    hdrl_spectrum1D             *   c_spec ;
+    hdrl_spectrum1D_wavelength      spec_wav ;
+    hdrl_parameter              *   params ;
+    double                      *   p_flux ;
+    cpl_size                        ncols, i, j, sz ;
+    int                             trace_nb, order ;
 
     /* Check Inputs */
-    if (extracta == NULL || extractb == NULL)
-        return NULL ;
-       
-   
-    return NULL ;
+    if (extracta == NULL || extractb == NULL) return NULL ;
+
+    /* Initialise */
+    scale = hdrl_spectrum1D_wave_scale_linear;
+    extractc = cpl_table_duplicate(extracta) ;
+
+    /* Get the column names */
+    col_names = cpl_table_get_column_names(extractc);
+    ncols = cpl_table_get_ncol(extractc) ;
+
+    /* Loop on the columns */
+    for (i=0 ; i<ncols ; i++) {
+        col_name = cpl_array_get_string(col_names, i);
+        col_type = cr2res_dfs_SPEC_colname_parse(col_name, &order,
+                &trace_nb) ;
+        if (col_type != NULL && !strcmp(col_type, CR2RES_COL_SPEC_SUFFIX)) {
+            /* This is a SPEC column, let's interpolate */
+
+            /* Get the wavelength column name */
+            wave_col = cr2res_dfs_WAVELENGTH_colname(order,trace_nb) ;
+
+            /* Get the A spectrum */
+            a_spec = hdrl_spectrum1D_convert_from_table(extracta,
+                    col_name, wave_col, NULL, NULL, scale);
+
+            /* Get the B spectrum */
+            b_spec = hdrl_spectrum1D_convert_from_table(extractb,
+                    col_name, wave_col, NULL, NULL, scale);
+
+            /* Check */
+            if (a_spec == NULL || b_spec == NULL) {
+                cpl_msg_error(__func__, "Cannot create HDRL spectra - abort") ;
+                cpl_free(wave_col) ;
+                if (col_type != NULL) cpl_free(col_type) ;
+                cpl_array_delete(col_names) ;
+                cpl_table_delete(extractc) ;
+                return NULL ;
+            }
+
+            /* Resample B on A wavelengths */
+            spec_wav = hdrl_spectrum1D_get_wavelength(a_spec);
+            params = hdrl_spectrum1D_resample_interpolate_parameter_create(
+                    hdrl_spectrum1D_interp_akima);
+            c_spec = hdrl_spectrum1D_resample(b_spec, &spec_wav, params);
+            hdrl_parameter_delete(params);    
+            hdrl_spectrum1D_delete(&b_spec);
+
+             /* Check */
+            if (c_spec == NULL) {
+                cpl_msg_error(__func__,"Cannot resample HDRL spectra - abort") ;
+                cpl_free(wave_col) ;
+                if (col_type != NULL) cpl_free(col_type) ;
+                cpl_array_delete(col_names) ;
+                hdrl_spectrum1D_delete(&a_spec);
+                cpl_table_delete(extractc) ;
+                return NULL ;
+            }
+
+            /* Compute the average */
+            hdrl_spectrum1D_add_spectrum(c_spec, a_spec) ;
+            hdrl_spectrum1D_delete(&a_spec);
+            hdrl_spectrum1D_div_scalar(c_spec, (hdrl_value){2.0, 0.0});
+
+            /* Update the table with the result */
+            p_flux = cpl_table_get_data_double(extractc, col_name) ;
+            sz = cpl_table_get_nrow(extractc) ;
+            if (sz != hdrl_spectrum1D_get_size(c_spec)) {
+                cpl_msg_error(__func__, "Wrong size - abort") ;
+                hdrl_spectrum1D_delete(&c_spec);
+                cpl_free(wave_col) ;
+                if (col_type != NULL) cpl_free(col_type) ;
+                cpl_array_delete(col_names) ;
+                cpl_table_delete(extractc) ;
+                return NULL ;
+            }
+            for (j = 0; j < sz; j++) {
+                p_flux[j]=hdrl_spectrum1D_get_flux_value(c_spec, j, NULL).data;
+            }
+            hdrl_spectrum1D_delete(&c_spec);
+            cpl_free(wave_col) ;
+        }
+        if (col_type != NULL) cpl_free(col_type) ;
+    }
+    cpl_array_delete(col_names) ;
+
+    return extractc ;
 }
 
 /*----------------------------------------------------------------------------*/

@@ -291,6 +291,7 @@ static int cr2res_util_plot(
     /* Retrieve raw frames */
     fname1 = cpl_frame_get_filename(cpl_frameset_get_position(frameset, 0)) ;
     fname2 = cpl_frame_get_filename(cpl_frameset_get_position(frameset, 1)) ;
+    if (fname2 == NULL) cpl_error_reset() ;
 
     /* Read the PRO.TYPE of the first frame */
     plist = cpl_propertylist_load(fname1, 0) ;
@@ -392,10 +393,11 @@ static int cr2res_util_plot(
     cpl_propertylist_delete(plist) ;
 
     /* Return */
-    if (cpl_error_get_code()) 
+    if (cpl_error_get_code()) {
         return -1 ;
-    else 
+    } else {
         return 0 ;
+    }
 }
 
 static int cr2res_util_plot_slit_func(
