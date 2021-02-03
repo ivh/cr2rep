@@ -622,9 +622,10 @@ static int cr2res_obs_staring_reduce(
 
     /* QC - Signal and FWHM */
     qc_signal = cr2res_qc_obs_nodding_signal(extracted) ;
-    qc_fwhm = cr2res_qc_obs_nodding_slit_psf(slit_func);
+    /* TODO : Do as in nodding */
+    qc_fwhm = cr2res_qc_obs_nodding_slit_psf(slit_func, 5);
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SIGNAL, qc_signal) ;
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SLITFWHM, qc_fwhm) ;
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SLITFWHM_MED, qc_fwhm) ;
 
     /* QC - SNR */
     qc_snrs = cr2res_qc_snr(trace_wave, extracted, &order_idx_values,

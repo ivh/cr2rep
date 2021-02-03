@@ -770,8 +770,10 @@ static int cr2res_obs_nodding_reduce(
     double                  slit_length, extr_width_frac, slit_frac_a_bot, 
                             slit_frac_a_mid, slit_frac_a_top, slit_frac_b_bot, 
                             slit_frac_b_mid, slit_frac_b_top, nod_throw ;
-    double                  qc_signal_a, qc_signal_b, qc_transm, qc_fwhm_a, 
+    double                  qc_signal_a, qc_signal_b, qc_fwhm_a, 
                             qc_fwhm_b ;
+    cpl_array           *   fwhm_a_array ;
+    cpl_array           *   fwhm_b_array ;
     int                 *   order_idx_values ;
     double              *   qc_snrs ;
     int                     nb_order_idx_values, order_real,
@@ -1107,16 +1109,8 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_info(__func__, "QC parameters computation") ;
     qc_signal_a = cr2res_qc_obs_nodding_signal(extracted_a) ;
     qc_signal_b = cr2res_qc_obs_nodding_signal(extracted_b) ;
-    qc_fwhm_a = cr2res_qc_obs_nodding_slit_psf(slit_func_a);
-    qc_fwhm_b = cr2res_qc_obs_nodding_slit_psf(slit_func_b);
-    qc_transm = cr2res_qc_obs_nodding_transmission(NULL) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SIGNAL, 
             (qc_signal_a+qc_signal_b)/2.0) ;
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SLITFWHM,
-            (qc_fwhm_a+qc_fwhm_b)/2.0) ;
-    if (qc_transm > 0.0) 
-        cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_TRANSM,
-                qc_transm) ;
 
     /* QC - SNR on nodding A posision */
     qc_snrs = cr2res_qc_snr(trace_wave_a, extracted_a, &order_idx_values,
@@ -1132,24 +1126,48 @@ static int cr2res_obs_nodding_reduce(
     cpl_free(order_idx_values) ;
     cpl_free(qc_snrs) ;
 
-    /* QC - Real Orders */
-    if (order_zp > 0) {
-        /* Get the order numbers from the TW rows */
-        order_idx_values = cr2res_trace_get_order_idx_values(trace_wave, 
-                &nb_order_idx_values);
+    /* Get the order numbers from the TW rows */
+    order_idx_values = cr2res_trace_get_order_idx_values(trace_wave, 
+            &nb_order_idx_values);
 
+    /* QC - SLIT FWHM */
+    fwhm_a_array = cpl_array_new(nb_order_idx_values, CPL_TYPE_DOUBLE);
+    fwhm_b_array = cpl_array_new(nb_order_idx_values, CPL_TYPE_DOUBLE);
+    for (i=0 ; i<nb_order_idx_values ; i++) {
+        order_idx = order_idx_values[i] ;
+        order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
+        qc_fwhm_a = cr2res_qc_obs_nodding_slit_psf(slit_func_a, order_idxp);
+        qc_fwhm_b = cr2res_qc_obs_nodding_slit_psf(slit_func_a, order_idxp);
+
+        key_name = cpl_sprintf(CR2RES_HEADER_QC_SLITFWHM_ORDER, order_idxp) ;
+        cpl_propertylist_append_double(plist, key_name,
+                (qc_fwhm_a+qc_fwhm_b)/2.0) ;
+        cpl_free(key_name) ;
+        cpl_array_set(fwhm_a_array, i, qc_fwhm_a) ;
+        cpl_array_set(fwhm_b_array, i, qc_fwhm_b) ;
+    }
+    qc_fwhm_a = cpl_array_get_median(fwhm_a_array);
+    qc_fwhm_b = cpl_array_get_median(fwhm_b_array);
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SLITFWHM_MED,
+            (qc_fwhm_a+qc_fwhm_b)/2.0) ;
+    cpl_array_delete(fwhm_a_array) ;
+    cpl_array_delete(fwhm_b_array) ;
+
+    /* QC - Real Orders  */
+    if (order_zp > 0) {
         /* Compute the Real Order numbers and store them in QCs */
         for (i=0 ; i<nb_order_idx_values ; i++) {
             order_idx = order_idx_values[i] ;
             order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
+
             order_real = cr2res_order_idx_to_real(order_idx, order_zp) ;
             key_name = cpl_sprintf(CR2RES_HEADER_QC_REAL_ORDER, order_idxp) ;
             cpl_propertylist_append_int(plist, key_name, order_real) ;
             cpl_free(key_name) ;
         }
-        cpl_free(order_idx_values) ;
     }
     cpl_table_delete(trace_wave) ;
+    cpl_free(order_idx_values) ;
 
     /* Return */
     *combineda = collapsed_a ;
