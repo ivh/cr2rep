@@ -289,8 +289,9 @@ static void test_cr2res_qc_obs_nodding_slit_psf()
         cpl_table_set_double(slitfu, col2, i, value);
     }
 
-    cpl_test_abs(-1, cr2res_qc_obs_nodding_slit_psf(NULL), DBL_EPSILON);
-    cpl_test(fwhm = cr2res_qc_obs_nodding_slit_psf(slitfu));
+
+    cpl_test_abs(-1, cr2res_qc_obs_nodding_slit_psf(NULL,1), DBL_EPSILON);
+    cpl_test(fwhm = cr2res_qc_obs_nodding_slit_psf(slitfu, 1));
     cpl_test_abs(fwhm, 2.355 * sigma, FLT_EPSILON);
 
     cpl_table_delete(slitfu);
