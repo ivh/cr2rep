@@ -455,8 +455,7 @@ static int cr2res_util_extract(
             /* Store the extenѕion header for product saving */
             ext_nr = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
             if (ext_nr < 0) continue ;
-            ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname, 
-                    cr2res_io_get_ext_idx(cur_fname, ext_nr, 1)) ;
+            ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname, ext_nr) ;
 
             /* Compute only one detector */
             if (reduce_det != 0 && det_nr != reduce_det) continue ;
