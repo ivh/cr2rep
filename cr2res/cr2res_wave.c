@@ -1330,12 +1330,13 @@ cpl_polynomial * cr2res_wave_estimate_compute(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Compute the 
-  @param    wmin    First pixel wavelength
-  @param    wmax    Last pixel wavelength
+  @brief    Compute the wavelength estimate
+  @param    filename    Filename for header WMIN/WMAX
+  @param    detector    the detector number
+  @param    order       the oder number
   @return   the array with three polynomial coeffs, or NULL in error case
 
-  The first 2 coefficients are those from the polゆnomial poly such that:
+  The first 2 coefficients are those from the polynomial poly such that:
   wmin = poly(1)
   wmax = poly((CR2RES_DETECTOR_SIZE)
 
@@ -1385,7 +1386,7 @@ cpl_array * cr2res_wave_get_estimate(
         cpl_error_reset() ;
         c = 0.0 ;
     } else {
-        c = (b3-b1)/2.0 ;
+        c = (b3-b1)/(2.0*(CR2RES_DETECTOR_SIZE-1)) ;
     }
 
     /* Load the propertylist */
