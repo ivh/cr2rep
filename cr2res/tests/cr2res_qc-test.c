@@ -284,14 +284,14 @@ static void test_cr2res_qc_obs_nodding_slit_psf()
     for (cpl_size i = 0; i < nrow; i++)
     {
         // area / sqrt(2 pi sigma^2) * exp( -(x - x0)^2/(2 sigma^2)) + offset
-        value = A / sqrt(CPL_MATH_2_PI * sigma * sigma) * exp( -(i - x0) * (i - x0) / (2. * sigma * sigma)) + offset;
+        value = A / sqrt(CPL_MATH_2_PI * sigma * sigma) * exp( -(i - x0) * 
+                (i - x0) / (2. * sigma * sigma)) + offset;
         cpl_table_set_double(slitfu, col1, i, value);
         cpl_table_set_double(slitfu, col2, i, value);
     }
 
-
     cpl_test_abs(-1, cr2res_qc_obs_nodding_slit_psf(NULL,1), DBL_EPSILON);
-    cpl_test(fwhm = cr2res_qc_obs_nodding_slit_psf(slitfu, 1));
+    cpl_test(fwhm = cr2res_qc_obs_nodding_slit_psf(slitfu,2));
     cpl_test_abs(fwhm, 2.355 * sigma, FLT_EPSILON);
 
     cpl_table_delete(slitfu);

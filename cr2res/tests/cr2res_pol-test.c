@@ -46,7 +46,7 @@ static void test_cr2res_pol_demod_stokes_zeros(void);
 
 /*----------------------------------------------------------------------------*/
 /**
- * @defgroup cr2res_wave-test    Unit test of cr2res_pol
+ * @defgroup cr2res_pol-test    Unit test of cr2res_pol
  *
  */
 /*----------------------------------------------------------------------------*/
