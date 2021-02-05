@@ -407,7 +407,7 @@ static int cr2res_obs_nodding(
 {
     const cpl_parameter *   param ;
     int                     extract_oversample, extract_swath_width,
-                            extract_height, reduce_det, ndit, nexp,
+                            extract_height, reduce_det, 
                             disp_order_idx, disp_trace, disp_det, 
                             nodding_invert, create_idp ;
     double                  extract_smooth, ra, dec, dit, gain ;
@@ -558,8 +558,6 @@ static int cr2res_obs_nodding(
             ra = cr2res_pfits_get_ra(plist) ;
             dec = cr2res_pfits_get_dec(plist) ;
             dit = cr2res_pfits_get_dit(plist) ;
-            ndit = cr2res_pfits_get_ndit(plist) ;
-            nexp = cr2res_pfits_get_nexp(plist) ;
             cpl_propertylist_delete(plist) ;
             if (cpl_error_get_code()) {
                 cpl_msg_indent_less() ;
@@ -569,7 +567,7 @@ static int cr2res_obs_nodding(
                 /* Compute the photometry */
                 if (cr2res_photom_engine(extracta[det_nr-1],
                             cpl_frame_get_filename(photo_flux_frame),
-                            ra, dec, gain, dit*ndit*nexp,
+                            ra, dec, gain, dit,
                             disp_det==det_nr, disp_order_idx,
                             disp_trace, &(throughput[det_nr-1]))) {
                     cpl_msg_warning(__func__, 

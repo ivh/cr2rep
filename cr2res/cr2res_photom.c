@@ -41,7 +41,8 @@
 
 static cpl_vector * cr2res_photom_conversion(
         const cpl_bivector  *   star,
-        const cpl_bivector  *   photflux) ;
+        const cpl_bivector  *   photflux,
+        double                  exptime) ;
 
 static cpl_vector * cr2res_photom_throughput(
         const cpl_vector    *   conversion,
@@ -163,7 +164,7 @@ int cr2res_photom_engine(
 
             /* Conversion */
             if ((conversion_vec = cr2res_photom_conversion(spec_biv, 
-                            std_star_biv))==NULL) {
+                            std_star_biv, exptime))==NULL) {
                 cpl_msg_warning(__func__, 
                         "Cannot compute the conversion factor");
                 cpl_error_reset() ;
@@ -333,8 +334,9 @@ cpl_bivector * cr2res_photom_conv_get_star(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Compute the conversion signal
-  @param    star        the star spectrum
+  @param    star        the star spectrum (ADU)
   @param    photflux    the star photospheric flux (from a catalog)
+  @param    exptime     For the conversion to ADU/sec
   @return   the conversion signal or NULL in error case
 
   The returned conversion signal is a vector with the size of the star
@@ -350,7 +352,8 @@ cpl_bivector * cr2res_photom_conv_get_star(
 /*----------------------------------------------------------------------------*/
 static cpl_vector * cr2res_photom_conversion(
         const cpl_bivector  *   star,
-        const cpl_bivector  *   photflux)
+        const cpl_bivector  *   photflux,
+        double                  exptime)
 {
     cpl_vector      *   conversion ;
     cpl_bivector    *   model ;
@@ -360,6 +363,7 @@ static cpl_vector * cr2res_photom_conversion(
     /* Check entries */
     if (star == NULL) return NULL ;
     if (photflux == NULL) return NULL ;
+    if (fabs(exptime) < 1e-3) return NULL ;
     
     /* Resample the model */
     model = cpl_bivector_duplicate(star) ;
@@ -377,6 +381,8 @@ static cpl_vector * cr2res_photom_conversion(
 
     /* Create the conversion */
     conversion = cpl_vector_duplicate(cpl_bivector_get_y_const(star)) ;
+    cpl_vector_divide_scalar(conversion, exptime) ;
+
     if (cpl_vector_divide(conversion, 
                 cpl_bivector_get_y(model)) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot divide the star by the model") ;
