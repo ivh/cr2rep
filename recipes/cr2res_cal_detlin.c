@@ -1045,5 +1045,11 @@ static int cr2res_cal_detlin_update(
             }
         }
     }
+
+    /* hdrl_image_set_pixel() sets an error if the val.error is < 0 */
+    if (cpl_error_get_code()) {
+        cpl_msg_warning(__func__, "Some error values were negative - reset") ;
+        cpl_error_reset() ;
+    }
     return 0 ;
 }
