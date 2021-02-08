@@ -1103,6 +1103,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
     cpl_array       *   trace_lower_new ;
     cpl_array       *   wave ;
     const cpl_array *   const_wave ;
+    const cpl_array *   const_wave_err;
     cpl_array       *   wave_err ;
     cpl_array       *   slit_curv_a ;
     cpl_array       *   slit_curv_b ;
@@ -1122,6 +1123,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
     double sf_lower, sf_upper, sf_all, sf_new;
     double pix_shift;
     int isError = FALSE;
+    int hasWavelength = TRUE;
 
     /* Check entries */
     if (traces == NULL || new_slit_fraction == NULL) return NULL ;
@@ -1220,20 +1222,20 @@ cpl_table * cr2res_trace_new_slit_fraction(
 
         // Read data arrays from existing table
         // TODO this only works if trace_numbers 0 is a valid trace
+        hasWavelength = TRUE;
         k = cr2res_get_trace_table_index(traces, order_idx_values[i], 
                 trace_numbers[0]);
         const_wave = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, k) ;
+        const_wave_err = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH_ERROR, k) ; 
         if (any(const_wave, isnan)){
-            cpl_msg_error(__func__, 
+            cpl_msg_warning(__func__, 
                     "Wavelength polynomial is not set for order %i",
                     order_idx_values[i]) ;
-            cpl_free(trace_old);
-            cpl_free(trace_numbers);
-            continue;
+            hasWavelength = FALSE;
+            // cpl_free(trace_old);
+            // cpl_free(trace_numbers);
+            // continue;
         }
-
-        wave_err = cpl_array_duplicate(
-                cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH_ERROR, k)) ; 
 
         const_slit_curv_a = cpl_table_get_array(traces, CR2RES_COL_SLIT_CURV_A,
                 k) ; 
@@ -1281,12 +1283,6 @@ cpl_table * cr2res_trace_new_slit_fraction(
         pix_shift = (a - CR2RES_DETECTOR_SIZE/2. - 1) + 
             b * pix_shift + c * pix_shift * pix_shift;
 
-        poly_tmp = cr2res_convert_array_to_poly(const_wave);
-        cpl_polynomial_shift_1d(poly_tmp, 0, pix_shift);
-        wave = cr2res_convert_poly_to_array(poly_tmp, 
-                cpl_array_get_size(const_wave));
-        cpl_polynomial_delete(poly_tmp);
-
         /* Compute new Curvature */
         cpl_polynomial_shift_1d(poly_a, 0, pix_shift);
         cpl_polynomial_shift_1d(poly_b, 0, pix_shift);
@@ -1305,10 +1301,23 @@ cpl_table * cr2res_trace_new_slit_fraction(
 
 
         /* Set new Wavelength  */
+        if (hasWavelength == TRUE){
+            poly_tmp = cr2res_convert_array_to_poly(const_wave);
+            cpl_polynomial_shift_1d(poly_tmp, 0, pix_shift);
+            wave = cr2res_convert_poly_to_array(poly_tmp, 
+                    cpl_array_get_size(const_wave));
+            cpl_polynomial_delete(poly_tmp);
+        } else {
+            wave = cpl_array_duplicate(const_wave);
+        }
+        // Copy the data into a new memory
+        wave_err = cpl_array_duplicate(const_wave_err);
+
         cpl_table_set_array(out, CR2RES_COL_WAVELENGTH, i, wave);
         cpl_table_set_array(out, CR2RES_COL_WAVELENGTH_ERROR, i, wave_err);
         cpl_array_delete(wave) ;
         cpl_array_delete(wave_err) ;
+    
 
         /* Set the new slit curvature */
         cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_A, i, slit_curv_a);
