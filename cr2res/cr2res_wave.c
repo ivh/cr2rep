@@ -1386,7 +1386,7 @@ cpl_array * cr2res_wave_get_estimate(
         cpl_error_reset() ;
         c = 0.0 ;
     } else {
-        c = (b3-b1)/(2.0*(CR2RES_DETECTOR_SIZE-1)) ;
+        c = (b3-b1)/(4.0*(CR2RES_DETECTOR_SIZE-1)) ;
     }
 
     /* Load the propertylist */
@@ -1407,6 +1407,7 @@ cpl_array * cr2res_wave_get_estimate(
 
     /* Compute polynomial coefficients */
     b = (wmax - wmin) / (CR2RES_DETECTOR_SIZE-1) ;
+    b -= c * CR2RES_DETECTOR_SIZE;
     a = wmin - b ;
 
     /* Create the array */
