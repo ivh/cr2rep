@@ -1301,6 +1301,7 @@ static cpl_table * cr2res_obs_nodding_combine(
             }
    
             /* Check if the Wavelenghs are increasing */
+            int increasing_values = 1 ;
             for (j=1 ; j<sz_a ; j++) {
                 hdrl_data_t vala1 =
                     hdrl_spectrum1D_get_wavelength_value(a_spec, j-1, NULL) ;
@@ -1311,17 +1312,23 @@ static cpl_table * cr2res_obs_nodding_combine(
                 hdrl_data_t valb2 =
                     hdrl_spectrum1D_get_wavelength_value(b_spec, j, NULL) ;
                 if (vala1 >= vala2 || valb1 >=valb2) {
-                    cpl_msg_error(__func__, 
-                            "Column %s - Values should increase - abort", 
-                            wave_col) ;
-                    hdrl_spectrum1D_delete(&a_spec);
-                    hdrl_spectrum1D_delete(&b_spec);
-                    cpl_free(wave_col) ;
-                    if (col_type != NULL) cpl_free(col_type) ;
-                    cpl_array_delete(col_names) ;
-                    cpl_table_delete(extractc) ;
-                    return NULL ;
+                    increasing_values = 0 ;
+                    break ;
                 }
+            }
+            if (increasing_values == 0) {
+                cpl_msg_warning(__func__, 
+                        "Column %s - Values should increase - abort", 
+                        wave_col) ;
+                hdrl_spectrum1D_delete(&a_spec);
+                hdrl_spectrum1D_delete(&b_spec);
+                cpl_free(wave_col) ;
+                if (col_type != NULL) cpl_free(col_type) ;
+                /* Set the column to 0 */
+                p_flux = cpl_table_get_data_double(extractc, col_name) ;
+                sz = cpl_table_get_nrow(extractc) ;
+                for (j = 0; j < sz; j++) p_flux[j]= 0.0;
+                continue ;
             }
 
             /* Resample B on A wavelengths */
