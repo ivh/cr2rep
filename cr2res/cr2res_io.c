@@ -203,6 +203,10 @@ const cpl_frame * cr2res_io_find_TRACE_WAVE(const cpl_frameset * in)
         out=cpl_frameset_find_const(in, CR2RES_CAL_WAVE_TW_PROCATG) ;
     if (out == NULL) 
         out=cpl_frameset_find_const(in, CR2RES_UTIL_SLIT_CURV_TW_PROCATG);
+    if (out == NULL) 
+        out=cpl_frameset_find_const(in, CR2RES_OBS_NODDING_TWA_PROCATG);
+    if (out == NULL) 
+        out=cpl_frameset_find_const(in, CR2RES_OBS_NODDING_TWB_PROCATG);
     return out ;
 }
 

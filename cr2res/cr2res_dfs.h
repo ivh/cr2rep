@@ -213,6 +213,8 @@
 /*      CR2RES_UTIL_WAVE_TW_PROCATG */
 /*      CR2RES_CAL_WAVE_TW_PROCATG */
 /*      CR2RES_UTIL_SLIT_CURV_TW_PROCATG */
+/*      CR2RES_OBS_NODDING_TWA_PROCATG */
+/*      CR2RES_OBS_NODDING_TWB_PROCATG */
 /* Table with Traces polynomials, orders, trace_nb wavelengths */
 /*                  1 trace per Row */
 #define CR2RES_TW_PROTYPE                   "TW"
@@ -286,6 +288,8 @@
 #define CR2RES_OBS_NODDING_EXTRACTC_PROCATG     "OBS_NODDING_EXTRACT_COMB"
 #define CR2RES_OBS_NODDING_THROUGHPUT_PROCATG   "OBS_NODDING_THROUGHPUT"
 #define CR2RES_OBS_NODDING_IDP_PROCATG          "OBS_NODDING_IDP"
+#define CR2RES_OBS_NODDING_TWA_PROCATG          "OBS_NODDING_TWA"
+#define CR2RES_OBS_NODDING_TWB_PROCATG          "OBS_NODDING_TWB"
 
 /* Produced by cr2res_obs_staring */
 #define CR2RES_OBS_STARING_EXTRACT_PROCATG     	"OBS_STARING_EXTRACT"

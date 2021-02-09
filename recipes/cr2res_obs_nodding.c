@@ -83,10 +83,12 @@ static int cr2res_obs_nodding_reduce(
         cpl_table           **  extracta,
         cpl_table           **  slitfunca,
         hdrl_image          **  modela,
+        cpl_table           **  twa,
         hdrl_image          **  combinedb,
         cpl_table           **  extractb,
         cpl_table           **  slitfuncb,
         hdrl_image          **  modelb,
+        cpl_table           **  twb,
         cpl_table           **  extractc,
         cpl_propertylist    **  ext_plist) ;
 static cpl_table * cr2res_obs_nodding_combine(
@@ -160,6 +162,7 @@ Nodding Observation                                                     \n\
         -> extract[a|b|c](d)                                            \n\
         -> slitfunc[a|b](d)                                             \n\
         -> model[a|b](d)                                                \n\
+        -> tw[a|b](d)                                                   \n\
     Save combineda and combinedb                                        \n\
     Save extracta, extractb, extractc                                   \n\
     Save slitfunca and slitfuncb                                        \n\
@@ -182,6 +185,7 @@ Nodding Observation                                                     \n\
         -> extracted[a|b]                                               \n\
         -> slit_func[a|b]                                               \n\
         -> model_master[a|b]                                            \n\
+        -> trace_wave[a|b]                                              \n\
       Compute QC parameters                                             \n\
       If STD star, compute the throughput                               \n\
         -> throughput                                                   \n\
@@ -423,10 +427,12 @@ static int cr2res_obs_nodding(
     cpl_table           *   extracta[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slitfunca[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   modela[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   twa[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   combinedb[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extractb[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slitfuncb[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   modelb[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   twb[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extractc[CR2RES_NB_DETECTORS] ;
     cpl_table           *   throughput[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   plist ;
@@ -509,10 +515,12 @@ static int cr2res_obs_nodding(
         extracta[det_nr-1] = NULL ;
         slitfunca[det_nr-1] = NULL ;
         modela[det_nr-1] = NULL ;
+        twa[det_nr-1] = NULL ;
         combinedb[det_nr-1] = NULL ;
         extractb[det_nr-1] = NULL ;
         slitfuncb[det_nr-1] = NULL ;
         modelb[det_nr-1] = NULL ;
+        twb[det_nr-1] = NULL ;
         extractc[det_nr-1] = NULL ;
         ext_plist[det_nr-1] = NULL ;
         throughput[det_nr-1] = NULL ;
@@ -534,10 +542,12 @@ static int cr2res_obs_nodding(
                     &(extracta[det_nr-1]),
                     &(slitfunca[det_nr-1]),
                     &(modela[det_nr-1]),
+                    &(twa[det_nr-1]),
                     &(combinedb[det_nr-1]),
                     &(extractb[det_nr-1]),
                     &(slitfuncb[det_nr-1]),
                     &(modelb[det_nr-1]),
+                    &(twb[det_nr-1]),
                     &(extractc[det_nr-1]),
                     &(ext_plist[det_nr-1])) == -1) {
             cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
@@ -605,6 +615,12 @@ static int cr2res_obs_nodding(
             RECIPE_STRING) ;
     cpl_free(out_file);
 
+    out_file = cpl_sprintf("%s_trace_wave_A.fits", RECIPE_STRING) ;
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist,
+            twa, NULL, ext_plist, CR2RES_OBS_NODDING_TWA_PROCATG,
+            RECIPE_STRING) ;
+    cpl_free(out_file);
+
     out_file = cpl_sprintf("%s_combinedB.fits", RECIPE_STRING) ;
     cr2res_io_save_COMBINED(out_file, frameset, rawframes, parlist,
             combinedb, NULL, ext_plist, CR2RES_OBS_NODDING_COMBINEDB_PROCATG, 
@@ -626,6 +642,12 @@ static int cr2res_obs_nodding(
     out_file = cpl_sprintf("%s_modelB.fits", RECIPE_STRING) ;
     cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist,
             modelb, NULL, ext_plist, CR2RES_OBS_NODDING_SLITMODELB_PROCATG,
+            RECIPE_STRING) ;
+    cpl_free(out_file);
+    
+    out_file = cpl_sprintf("%s_trace_wave_B.fits", RECIPE_STRING) ;
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist,
+            twb, NULL, ext_plist, CR2RES_OBS_NODDING_TWB_PROCATG,
             RECIPE_STRING) ;
     cpl_free(out_file);
 
@@ -655,6 +677,8 @@ static int cr2res_obs_nodding(
             cpl_table_delete(slitfunca[det_nr-1]) ;
         if (modela[det_nr-1] != NULL)
             hdrl_image_delete(modela[det_nr-1]) ;
+        if (twa[det_nr-1] != NULL) 
+            cpl_table_delete(twa[det_nr-1]) ;
         if (combinedb[det_nr-1] != NULL)
             hdrl_image_delete(combinedb[det_nr-1]) ;
         if (extractb[det_nr-1] != NULL) 
@@ -663,6 +687,8 @@ static int cr2res_obs_nodding(
             cpl_table_delete(slitfuncb[det_nr-1]) ;
         if (modelb[det_nr-1] != NULL)
             hdrl_image_delete(modelb[det_nr-1]) ;
+        if (twb[det_nr-1] != NULL) 
+            cpl_table_delete(twb[det_nr-1]) ;
         if (extractc[det_nr-1] != NULL) 
             cpl_table_delete(extractc[det_nr-1]) ;
         if (throughput[det_nr-1] != NULL) 
@@ -698,11 +724,13 @@ static int cr2res_obs_nodding(
   @param extracta               [out] extracted spectrum (A)
   @param slitfunca              [out] slit function (A)
   @param modela                 [out] slit model (A)
+  @param twa                    [out] trace wave (A)
   @param combinedb              [out] Combined image (B)
   @param extractb               [out] extracted spectrum (B)
   @param slitfuncb              [out] slit function (B)
   @param extractc               [out] extracted A and B combined spectrum
   @param modelb                 [out] slit model (B)
+  @param twb                    [out] trace wave (B)
   @param ext_plist              [out] the header for saving the products
   @return  0 if ok, -1 otherwise
  */
@@ -729,10 +757,12 @@ static int cr2res_obs_nodding_reduce(
         cpl_table           **  extracta,
         cpl_table           **  slitfunca,
         hdrl_image          **  modela,
+        cpl_table           **  twa,
         hdrl_image          **  combinedb,
         cpl_table           **  extractb,
         cpl_table           **  slitfuncb,
         hdrl_image          **  modelb,
+        cpl_table           **  twb,
         cpl_table           **  extractc,
         cpl_propertylist    **  ext_plist)
 {
@@ -778,9 +808,13 @@ static int cr2res_obs_nodding_reduce(
                             order_zp, order_idx, order_idxp ;
 
     /* Check Inputs */
-    if (combineda == NULL || combinedb == NULL || extracta == NULL ||
-            extractb == NULL || extractc == NULL || ext_plist == NULL || 
-            rawframes == NULL || trace_wave_frame == NULL) return -1 ;
+    if (combineda == NULL || combinedb == NULL || 
+            twa == NULL || twb == NULL || 
+            slitfunca == NULL || slitfuncb == NULL || 
+            modela == NULL || modelb == NULL || 
+            extracta == NULL || extractb == NULL || extractc == NULL || 
+            ext_plist == NULL || rawframes == NULL || trace_wave_frame == NULL)
+        return -1 ;
 
     /* Check raw frames consistency */
     if (cr2res_obs_nodding_check_inputs_validity(rawframes) != 1) {
@@ -1092,12 +1126,11 @@ static int cr2res_obs_nodding_reduce(
     }
     cpl_msg_indent_less() ;
 
-    /* TODO : Save trace_wave_a and b as products */
-
-    cpl_table_delete(trace_wave_b) ;
-
     /* Combine both a and b extracted spectra together */
+    cpl_msg_info(__func__, "A and B spectra combination") ;
+    cpl_msg_indent_more() ;
     extracted_combined = cr2res_obs_nodding_combine(extracted_a, extracted_b) ;
+    cpl_msg_indent_less() ;
 
     /* Store the extenѕion header for product saving */
     plist = cpl_propertylist_load(first_fname,
@@ -1113,7 +1146,6 @@ static int cr2res_obs_nodding_reduce(
     /* QC - SNR on nodding A posision */
     qc_snrs = cr2res_qc_snr(trace_wave_a, extracted_a, &order_idx_values,
             &nb_order_idx_values) ;
-    cpl_table_delete(trace_wave_a) ;
     for (i=0 ; i<nb_order_idx_values ; i++) {
         order_idx = order_idx_values[i] ;
         order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
@@ -1172,11 +1204,13 @@ static int cr2res_obs_nodding_reduce(
     *extracta = extracted_a ;
     *slitfunca = slit_func_a ;
     *modela = model_master_a ;
+    *twa = trace_wave_a ;
 
     *combinedb = collapsed_b ;
     *extractb = extracted_b ;
     *slitfuncb = slit_func_b ;
     *modelb = model_master_b ;
+    *twb = trace_wave_b ;
 
     *extractc = extracted_combined ;
     *ext_plist = plist ;
@@ -1206,9 +1240,10 @@ static cpl_table * cr2res_obs_nodding_combine(
     hdrl_spectrum1D             *   b_spec ;
     hdrl_spectrum1D             *   c_spec ;
     hdrl_spectrum1D_wavelength      spec_wav ;
+    hdrl_data_t                     val1, val2 ;
     hdrl_parameter              *   params ;
     double                      *   p_flux ;
-    cpl_size                        ncols, i, j, sz ;
+    cpl_size                        ncols, i, j, sz, sz_a, sz_b ;
     int                             trace_nb, order ;
 
     /* Check Inputs */
@@ -1249,6 +1284,44 @@ static cpl_table * cr2res_obs_nodding_combine(
                 cpl_array_delete(col_names) ;
                 cpl_table_delete(extractc) ;
                 return NULL ;
+            }
+            sz_a = hdrl_spectrum1D_get_size(a_spec) ;
+            sz_b = hdrl_spectrum1D_get_size(b_spec) ;
+            /* Check */
+            if (sz_a != sz_b) {
+                cpl_msg_error(__func__, 
+                        "a and b spectra have diff.  sizes - abort") ;
+                hdrl_spectrum1D_delete(&a_spec);
+                hdrl_spectrum1D_delete(&b_spec);
+                cpl_free(wave_col) ;
+                if (col_type != NULL) cpl_free(col_type) ;
+                cpl_array_delete(col_names) ;
+                cpl_table_delete(extractc) ;
+                return NULL ;
+            }
+   
+            /* Check if the Wavelenghs are increasing */
+            for (j=1 ; j<sz_a ; j++) {
+                hdrl_data_t vala1 =
+                    hdrl_spectrum1D_get_wavelength_value(a_spec, j-1, NULL) ;
+                hdrl_data_t vala2 =
+                    hdrl_spectrum1D_get_wavelength_value(a_spec, j, NULL) ;
+                hdrl_data_t valb1 =
+                    hdrl_spectrum1D_get_wavelength_value(b_spec, j-1, NULL) ;
+                hdrl_data_t valb2 =
+                    hdrl_spectrum1D_get_wavelength_value(b_spec, j, NULL) ;
+                if (vala1 >= vala2 || valb1 >=valb2) {
+                    cpl_msg_error(__func__, 
+                            "Column %s - Values should increase - abort", 
+                            wave_col) ;
+                    hdrl_spectrum1D_delete(&a_spec);
+                    hdrl_spectrum1D_delete(&b_spec);
+                    cpl_free(wave_col) ;
+                    if (col_type != NULL) cpl_free(col_type) ;
+                    cpl_array_delete(col_names) ;
+                    cpl_table_delete(extractc) ;
+                    return NULL ;
+                }
             }
 
             /* Resample B on A wavelengths */
