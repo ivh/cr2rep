@@ -962,8 +962,10 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
             /* Compute Wavelength column */
             wave_vec = cr2res_trace_get_wl(trace_table, order, trace_id,
                     CR2RES_DETECTOR_SIZE);
-            if (wave_vec == NULL) 
+            if (wave_vec == NULL) {
                 wave_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE) ;
+                cpl_vector_fill(wave_vec, 0.0) ;
+            }
             pwl = cpl_vector_get_data(wave_vec) ;
 
             /* Fill WAVELENGTH column */
