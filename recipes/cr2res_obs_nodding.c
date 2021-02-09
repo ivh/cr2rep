@@ -1244,7 +1244,7 @@ static cpl_table * cr2res_obs_nodding_combine(
     hdrl_parameter              *   params ;
     double                      *   p_flux ;
     cpl_size                        ncols, i, j, sz, sz_a, sz_b ;
-    int                             trace_nb, order ;
+    int                             trace_nb, order, increasing_values ;
 
     /* Check Inputs */
     if (extracta == NULL || extractb == NULL) return NULL ;
@@ -1301,7 +1301,7 @@ static cpl_table * cr2res_obs_nodding_combine(
             }
    
             /* Check if the Wavelenghs are increasing */
-            int increasing_values = 1 ;
+            increasing_values = 1 ;
             for (j=1 ; j<sz_a ; j++) {
                 hdrl_data_t vala1 =
                     hdrl_spectrum1D_get_wavelength_value(a_spec, j-1, NULL) ;
