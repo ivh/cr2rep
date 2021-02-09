@@ -64,6 +64,7 @@ static int cr2res_cal_flat_reduce(
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   bpm_frame,
+        int                     filter_traces,
         int                     calib_cosmics_corr,
         double                  bpm_low,
         double                  bpm_high,
@@ -336,6 +337,13 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_filter",
+            CPL_TYPE_BOOL, "Only keep the predefined order traces",
+            "cr2res.cr2res_cal_flat", TRUE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_filter");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_method",
             CPL_TYPE_STRING, "Extraction method (SUM / MEDIAN / TILTSUM / "
             "OPT_VERT / OPT_CURV )",
@@ -449,7 +457,7 @@ static int cr2res_cal_flat(
 {
     const cpl_parameter *   param ;
     int                     calib_cosmics_corr, trace_degree, trace_min_cluster,
-                            trace_opening,
+                            trace_opening, trace_filter,
                             extract_oversample, extract_swath_width,
                             extract_height, reduce_det, reduce_order,
                             reduce_trace, trace_smooth_x, trace_smooth_y ;
@@ -522,6 +530,9 @@ static int cr2res_cal_flat(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.trace_opening");
     trace_opening = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_flat.trace_filter");
+    trace_filter = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.extract_method");
     sval = cpl_parameter_get_string(param);
@@ -643,11 +654,12 @@ static int cr2res_cal_flat(
                 /* Call the reduction function */
                 if (cr2res_cal_flat_reduce(raw_one_setting_decker,
                             trace_wave_frame, detlin_frame, master_dark_frame, 
-                            bpm_frame, calib_cosmics_corr, bpm_low, bpm_high, 
-                            bpm_lines_ratio, trace_degree, trace_min_cluster, 
-                            trace_smooth_x, trace_smooth_y, trace_threshold, 
-                            trace_opening, extr_method, extract_oversample, 
-                            extract_swath_width, extract_height, extract_smooth,
+                            bpm_frame, trace_filter, calib_cosmics_corr, 
+                            bpm_low, bpm_high, bpm_lines_ratio, trace_degree, 
+                            trace_min_cluster, trace_smooth_x, trace_smooth_y, 
+                            trace_threshold, trace_opening, extr_method, 
+                            extract_oversample, extract_swath_width, 
+                            extract_height, extract_smooth,
                             det_nr, reduce_order, reduce_trace,
                             &(master_flat[det_nr-1]),
                             &(trace_wave[i][det_nr-1]),
@@ -846,6 +858,7 @@ static int cr2res_cal_flat(
   @param detlin_frame       Associated detlin coefficients
   @param master_dark_frame  Associated master dark
   @param bpm_frame          Associated BPM
+  @param filter_traces      Flag to Filter out traces
   @param calib_cosmics_corr Flag to correct for cosmics
   @param bpm_low            Threshold for BPM detection
   @param bpm_high           Threshold for BPM detection
@@ -880,6 +893,7 @@ static int cr2res_cal_flat_reduce(
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   bpm_frame,
+        int                     filter_traces,
         int                     calib_cosmics_corr,
         double                  bpm_low,
         double                  bpm_high,
@@ -916,6 +930,7 @@ static int cr2res_cal_flat_reduce(
     cpl_image           *   bpm_im ;
     cpl_mask            *   bpm_flat ;
     cpl_table           *   computed_traces ;
+    cpl_table           *   filtered_traces ;
     cpl_table           *   traces ;
     cpl_bivector        **  spectrum ;
     cpl_vector          **  slit_func_vec ;
@@ -924,12 +939,13 @@ static int cr2res_cal_flat_reduce(
     cpl_table           *   extract_tab ;
     hdrl_image          *   model_tmp ;
     cpl_vector          *   dits ;
+    char                *   setting_id ;
     int                 *   qc_order_nb ;
     double              *   qc_order_pos ;
     double                  qc_lamp_ints, qc_mean_level, qc_mean_flux,
                             qc_med_flux, qc_med_snr, qc_trace_centery ;
     int                     i, j, badpix, ext_nr, nb_traces, order, trace_id,
-                            qc_overexposed, qc_nbbad, nbvals ;
+                            qc_overexposed, qc_nbbad, nbvals, zp_order ;
 
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
@@ -1004,6 +1020,24 @@ static int cr2res_cal_flat_reduce(
 
     /* Add The remaining Columns to the trace table */
     cr2res_trace_add_extra_columns(computed_traces, first_file, reduce_det) ;
+
+    /* Filter out traces */
+    if (filter_traces) {
+        cpl_msg_info(__func__, "Filter out the traces") ;
+        cpl_msg_indent_more() ;
+
+        /* Get the setting and the zp_order */
+        plist = cpl_propertylist_load(first_file, 0) ;
+        setting_id = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
+        zp_order = cr2res_pfits_get_order_zp(plist) ;
+        cpl_propertylist_delete(plist) ;
+        filtered_traces = cr2res_trace_filter(computed_traces,
+                setting_id, zp_order) ;
+        cpl_free(setting_id) ;
+        cpl_table_delete(computed_traces) ;
+        computed_traces = filtered_traces ;
+        cpl_msg_indent_less() ;
+    } 
 
     /* Use the input traces for extraction if they are provided */
     if (tw_frame) {

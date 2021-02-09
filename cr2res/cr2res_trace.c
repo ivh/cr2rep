@@ -93,7 +93,19 @@ static int cr2res_trace_extract_edges(
         cpl_table   *   pixels_table,
         cpl_table   **  edge_lower_table,
         cpl_table   **  edge_upper_table) ;
-
+static int cr2res_trace_get_subtrace(
+        cpl_table   *   trace_wave,
+        double          slit_pos,
+        double          height,
+        int             order_idx,
+        cpl_array   **  bottom,
+        cpl_array   **  center,
+        cpl_array   **  top,
+        cpl_array   **  fraction,
+        cpl_array   **  wave) ;
+static int cr2res_trace_filter_keep(
+        const char  *   setting,
+        int             real_order) ;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -1058,7 +1070,6 @@ int cr2res_trace_add_extra_columns(
     return 0 ;
 }
 
-/* TODO : NOT WORKING - needs review / Fix */
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Recompute the traces at a newly specified slit fraction
@@ -1689,6 +1700,41 @@ cpl_table * cr2res_trace_split(
     return sub_trace_wave ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Only keep the predefined orders of the setting
+  @param    tw      trace wave table
+  @param    setting     The setting ID
+  @param    zp_order    The order ZP    
+  @return   the filtered table
+ */
+/*----------------------------------------------------------------------------*/
+cpl_table * cr2res_trace_filter(
+        const cpl_table *   tw, 
+        const char      *   setting,
+        int                 zp_order) 
+{
+    cpl_table       *   selected_tw ;
+    cpl_table       *   filtered_tw ;
+    int                 order_idx, order_real ;
+    cpl_size            nrows, i ;
+
+    selected_tw = cpl_table_duplicate(tw) ;
+    nrows = cpl_table_get_nrow(selected_tw) ;
+    for (i=0 ; i<nrows ; i++) {
+        order_idx = cpl_table_get(selected_tw, CR2RES_COL_ORDER, i, NULL) ;
+        order_real = cr2res_order_idx_to_real(order_idx, zp_order) ;
+        if (cr2res_trace_filter_keep(setting, order_real)) {
+            cpl_table_select_row(selected_tw, i) ;
+        } else {
+            cpl_table_unselect_row(selected_tw, i) ;
+        }
+    }
+    filtered_tw = cpl_table_extract_selected(selected_tw) ;
+    cpl_table_delete(selected_tw) ;
+    return filtered_tw ;
+}
+
 /**@}*/
 
 /*----------------------------------------------------------------------------*/
@@ -1722,6 +1768,7 @@ static double cr2res_trace_compute_shift(
 
         }
     }
+    cpl_msg_warning(__func__, "NOT YET IMPLEMENTED") ;
     return 0.0 ;
 }
 
@@ -2661,3 +2708,53 @@ static int cr2res_trace_get_subtrace(
     return 0;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Function that defines the supported orders per setting
+  @param    setting     The setting ID
+  @param    real_order  The real order
+  @return   true or false
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_trace_filter_keep(
+        const char  *   setting,
+        int             real_order) 
+{
+    if (setting == NULL) return -1 ;
+
+    return 1 ;
+
+    if (!strcmp(setting, "H1559")) {
+        if (real_order > 13 && real_order < 16) return 1 ;
+    } else if (!strcmp(setting, "H1567")) {
+    } else if (!strcmp(setting, "H1575")) {
+    } else if (!strcmp(setting, "H1582")) {
+    } else if (!strcmp(setting, "J1226")) {
+    } else if (!strcmp(setting, "J1228")) {
+    } else if (!strcmp(setting, "J1232")) {
+    } else if (!strcmp(setting, "K2148")) {
+    } else if (!strcmp(setting, "K2166")) {
+    } else if (!strcmp(setting, "K2192")) {
+    } else if (!strcmp(setting, "K2217")) {
+    } else if (!strcmp(setting, "L3244")) {
+    } else if (!strcmp(setting, "L3262")) {
+    } else if (!strcmp(setting, "L3302")) {
+    } else if (!strcmp(setting, "L3340")) {
+    } else if (!strcmp(setting, "L3377")) {
+    } else if (!strcmp(setting, "L3412")) {
+    } else if (!strcmp(setting, "L3426")) {
+    } else if (!strcmp(setting, "M4187")) {
+    } else if (!strcmp(setting, "M4211")) {
+    } else if (!strcmp(setting, "M4266")) {
+    } else if (!strcmp(setting, "M4318")) {
+    } else if (!strcmp(setting, "M4368")) {
+    } else if (!strcmp(setting, "M4416")) {
+    } else if (!strcmp(setting, "M4461")) {
+    } else if (!strcmp(setting, "M4504")) {
+    } else if (!strcmp(setting, "M4519")) {
+    } else if (!strcmp(setting, "Y1028")) {
+    } else if (!strcmp(setting, "Y1029")) {
+    }
+
+    return 0 ;
+}

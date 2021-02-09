@@ -296,7 +296,10 @@ static int cr2res_util_trace(
     char                *   out_file;
     hdrl_image          *   flat_ima ;
     cpl_image           *   debug_ima ;
-    int                     det_nr ;
+    int                     det_nr, zp_order ;
+    cpl_propertylist    *   plist ;
+    cpl_table           *   filtered_traces ;
+    char                *   setting_id ;
     cpl_table           *   traces_tmp ;
     cpl_table           *   traces[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
@@ -409,6 +412,25 @@ static int cr2res_util_trace(
                 cpl_msg_indent_less() ;
                 continue ;
             }
+
+			/* Filter out traces */
+            int filter_traces = 1 ;
+			if (filter_traces) {
+				cpl_msg_info(__func__, "Filter out the traces") ;
+				cpl_msg_indent_more() ;
+
+				/* Get the setting and the zp_order */
+				plist = cpl_propertylist_load(cur_fname, 0) ;
+				setting_id = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
+				zp_order = cr2res_pfits_get_order_zp(plist) ;
+				cpl_propertylist_delete(plist) ;
+				filtered_traces = cr2res_trace_filter(traces[det_nr-1],
+						setting_id, zp_order) ;
+				cpl_free(setting_id) ;
+				cpl_table_delete(traces[det_nr-1]) ;
+				traces[det_nr-1] = filtered_traces ;
+				cpl_msg_indent_less() ;
+			}
 
             /* Split the traces when required */
             if (split_traces) {

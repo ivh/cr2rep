@@ -77,10 +77,6 @@ double cr2res_mjd_obs_now(void)
     return mjd_obs ;
 }
 
-
-
-
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Convert the order_idx into order_real
