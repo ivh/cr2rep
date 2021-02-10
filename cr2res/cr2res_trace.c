@@ -2725,8 +2725,8 @@ static int cr2res_trace_filter_keep(
 
     cpl_msg_debug(__func__, "Real order : %d setting : %s",real_order,setting) ;
     
-    /* TODO */
-    cpl_msg_info(__func__, "Filtering not yet implemented - Keep everything") ;
+    /* Misunderstanding - at the end, they do not want to filter any more ! */
+    cpl_msg_debug(__func__, "Filtering not implemented - Keep everything") ;
     return 1 ;
 
     if (!strcmp(setting, "H1559")) 		{ first = 10 ; last = 20 ; }
