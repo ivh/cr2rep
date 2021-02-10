@@ -1037,6 +1037,13 @@ static int cr2res_cal_flat_reduce(
         cpl_table_delete(computed_traces) ;
         computed_traces = filtered_traces ;
         cpl_msg_indent_less() ;
+        if (cpl_table_get_nrow(computed_traces) == 0) {
+            cpl_msg_error(__func__, "All traces are filtered out") ;
+            hdrl_image_delete(collapsed) ;
+            cpl_table_delete(computed_traces) ;
+            cpl_msg_indent_less() ;
+            return -1 ;
+        }
     } 
 
     /* Use the input traces for extraction if they are provided */

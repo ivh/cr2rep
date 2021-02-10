@@ -2720,41 +2720,45 @@ static int cr2res_trace_filter_keep(
         const char  *   setting,
         int             real_order) 
 {
+    int     first, last ;
     if (setting == NULL) return -1 ;
 
+    cpl_msg_debug(__func__, "Real order : %d setting : %s",real_order,setting) ;
+    
+    /* TODO */
+    cpl_msg_info(__func__, "Filtering not yet implemented - Keep everything") ;
     return 1 ;
 
-    if (!strcmp(setting, "H1559")) {
-        if (real_order > 13 && real_order < 16) return 1 ;
-    } else if (!strcmp(setting, "H1567")) {
-    } else if (!strcmp(setting, "H1575")) {
-    } else if (!strcmp(setting, "H1582")) {
-    } else if (!strcmp(setting, "J1226")) {
-    } else if (!strcmp(setting, "J1228")) {
-    } else if (!strcmp(setting, "J1232")) {
-    } else if (!strcmp(setting, "K2148")) {
-    } else if (!strcmp(setting, "K2166")) {
-    } else if (!strcmp(setting, "K2192")) {
-    } else if (!strcmp(setting, "K2217")) {
-    } else if (!strcmp(setting, "L3244")) {
-    } else if (!strcmp(setting, "L3262")) {
-    } else if (!strcmp(setting, "L3302")) {
-    } else if (!strcmp(setting, "L3340")) {
-    } else if (!strcmp(setting, "L3377")) {
-    } else if (!strcmp(setting, "L3412")) {
-    } else if (!strcmp(setting, "L3426")) {
-    } else if (!strcmp(setting, "M4187")) {
-    } else if (!strcmp(setting, "M4211")) {
-    } else if (!strcmp(setting, "M4266")) {
-    } else if (!strcmp(setting, "M4318")) {
-    } else if (!strcmp(setting, "M4368")) {
-    } else if (!strcmp(setting, "M4416")) {
-    } else if (!strcmp(setting, "M4461")) {
-    } else if (!strcmp(setting, "M4504")) {
-    } else if (!strcmp(setting, "M4519")) {
-    } else if (!strcmp(setting, "Y1028")) {
-    } else if (!strcmp(setting, "Y1029")) {
-    }
-
+    if (!strcmp(setting, "H1559")) 		{ first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "H1567")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "H1575")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "H1582")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "J1226")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "J1228")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "J1232")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "K2148")) { first = 10 ; last = 20 ; } 
+    else if (!strcmp(setting, "K2166")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "K2192")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "K2217")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "L3244")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "L3262")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "L3302")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "L3340")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "L3377")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "L3412")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "L3426")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "M4187")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "M4211")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "M4266")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "M4318")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "M4368")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "M4416")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "M4461")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "M4504")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "M4519")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "Y1028")) { first = 10 ; last = 20 ; }
+    else if (!strcmp(setting, "Y1029")) { first = 10 ; last = 20 ; }
+    else return 1 ;
+    if (real_order >= first && real_order <= last) return 1 ;
     return 0 ;
 }

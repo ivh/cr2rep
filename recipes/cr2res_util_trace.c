@@ -210,6 +210,13 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_trace.trace_filter",
+            CPL_TYPE_BOOL, "Only keep the predefined order traces",
+            "cr2res.cr2res_util_trace", TRUE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_filter");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p) ;
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.opening",
             CPL_TYPE_BOOL, "Use a morphological opening to rejoin clusters",
             "cr2res.cr2res_util_trace", TRUE);
@@ -287,7 +294,7 @@ static int cr2res_util_trace(
 {
     const cpl_parameter *   param;
     int                     min_cluster, degree, opening, reduce_det,
-                            split_traces, smooth_x, smooth_y ;
+                            split_traces, smooth_x, smooth_y, trace_filter ;
     double                  threshold ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   cur_frame ;
@@ -324,6 +331,9 @@ static int cr2res_util_trace(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.opening");
     opening = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_trace.trace_filter");
+    trace_filter = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.split_traces");
     split_traces = cpl_parameter_get_int(param);
@@ -414,8 +424,7 @@ static int cr2res_util_trace(
             }
 
 			/* Filter out traces */
-            int filter_traces = 1 ;
-			if (filter_traces) {
+			if (trace_filter) {
 				cpl_msg_info(__func__, "Filter out the traces") ;
 				cpl_msg_indent_more() ;
 
@@ -430,6 +439,14 @@ static int cr2res_util_trace(
 				cpl_table_delete(traces[det_nr-1]) ;
 				traces[det_nr-1] = filtered_traces ;
 				cpl_msg_indent_less() ;
+                if (cpl_table_get_nrow(traces[det_nr-1]) == 0) {
+                    cpl_msg_error(__func__, "All traces are filtered out") ;
+                    hdrl_image_delete(flat_ima) ;
+                    cpl_table_delete(traces[det_nr-1]) ;
+                    traces[det_nr-1] = NULL ;
+                    cpl_msg_indent_less() ;
+                    continue ;
+                }
 			}
 
             /* Split the traces when required */
