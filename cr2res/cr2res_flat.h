@@ -39,6 +39,6 @@ hdrl_image * cr2res_master_flat(
         double                  low,
         double                  high,
         double                  bad_per_line_limit,
-        cpl_mask            **  bpm) ;
+        cpl_image           **  bpm) ;
 
 #endif

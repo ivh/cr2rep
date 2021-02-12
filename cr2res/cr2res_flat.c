@@ -26,13 +26,15 @@
  -----------------------------------------------------------------------------*/
 #include <math.h>
 #include <cpl.h>
+
+#include "cr2res_bpm.h"
 #include "cr2res_flat.h"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static cpl_mask * cr2res_bpm_from_master_flat(
+static cpl_image * cr2res_bpm_from_master_flat(
         const hdrl_image    *   master_flat,
         double                  low,
         double                  high,
@@ -49,9 +51,13 @@ static cpl_mask * cr2res_bpm_from_master_flat(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Compute the Master Flat
-  @param    imlist      input image list 
-  @param  
-  @return The newly allocated calibrated image
+  @param    collapsed
+  @param    model_master
+  @param    low
+  @param    high
+  @param    bad_per_line_limit
+  @param    bpm                 [output] the computed BPM image
+  @return The newly allocated master flat hdrl image
  */
 /*----------------------------------------------------------------------------*/
 hdrl_image * cr2res_master_flat(
@@ -60,10 +66,10 @@ hdrl_image * cr2res_master_flat(
         double                  low,
         double                  high,
         double                  bad_per_line_limit,
-        cpl_mask            **  bpm)
+        cpl_image           **  bpm)
 {
     hdrl_image      *   master_flat ;
-    cpl_mask        *   bpm_loc ;
+    cpl_image       *   bpm_loc ;
     
     /* Check Entries */
     if (collapsed == NULL) return NULL ;
@@ -85,7 +91,7 @@ hdrl_image * cr2res_master_flat(
     }
 
     if (bpm != NULL)    *bpm = bpm_loc ;
-    else                cpl_mask_delete(bpm_loc) ;
+    else                cpl_image_delete(bpm_loc) ;
     return master_flat ;
 } 
 
@@ -95,10 +101,10 @@ hdrl_image * cr2res_master_flat(
 /**
   @brief    Computes the BPM from the master flat
   @param    master_flat The master flat image
-  @return The newly allocated BPM
+  @return   The newly allocated BPM image
  */
 /*----------------------------------------------------------------------------*/
-static cpl_mask * cr2res_bpm_from_master_flat(
+static cpl_image * cr2res_bpm_from_master_flat(
         const hdrl_image    *   master_flat,
         double                  low,
         double                  high,
@@ -106,8 +112,11 @@ static cpl_mask * cr2res_bpm_from_master_flat(
 {
     const cpl_image *   ima ;
     const double    *   pima ;
-    cpl_mask        *   mask ;
-    cpl_binary      *   pmask ;
+    cpl_mask        *   mask_flat ;
+    cpl_mask        *   mask_inter_order ;
+    cpl_binary      *   pmask_flat ;
+    cpl_binary      *   pmask_inter_order ;
+    cpl_image       *   bpm ;
     int                 nx, ny, cur_bp_nb ;
     int                 i, j ;
 
@@ -119,16 +128,19 @@ static cpl_mask * cr2res_bpm_from_master_flat(
     pima = cpl_image_get_data_double_const(ima) ;
     nx = cpl_image_get_size_x(ima) ;
     ny = cpl_image_get_size_y(ima) ;
-    mask = cpl_mask_new(nx, ny) ; 
-    pmask = cpl_mask_get_data(mask) ;
+    mask_flat = cpl_mask_new(nx, ny) ; 
+    pmask_flat = cpl_mask_get_data(mask_flat) ;
+    mask_inter_order = cpl_mask_new(nx, ny) ; 
+    pmask_inter_order = cpl_mask_get_data(mask_inter_order) ;
         
     /* Threshold to get the BPMs */
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
             if (isinf(pima[i+j*nx])) continue ;
-            if (isnan(pima[i+j*nx])) continue ;
-            if (pima[i+j*nx] < low || pima[i+j*nx] > high) {
-                pmask[i+j*nx] = CPL_BINARY_1 ;
+            if (isnan(pima[i+j*nx])) {
+                pmask_inter_order[i+j*nx] = CPL_BINARY_1 ;
+            } else if (pima[i+j*nx] < low || pima[i+j*nx] > high) {
+                pmask_flat[i+j*nx] = CPL_BINARY_1 ;
             }
         }
     }
@@ -140,13 +152,21 @@ static cpl_mask * cr2res_bpm_from_master_flat(
         anly good pixels.
     */
     for (j=0 ; j<ny ; j++) {
-        cur_bp_nb = cpl_mask_count_window(mask, 1, j+1, nx, j+1) ;
+        cur_bp_nb = cpl_mask_count_window(mask_flat, 1, j+1, nx, j+1) ;
         /* Check if the line has too many bad pixels */
         if (cur_bp_nb > bad_per_line_limit * nx) {
             /* Reset the bad pixels on the current line */
-            for (i=0 ; i<nx ; i++) pmask[i+j*nx] = CPL_BINARY_0 ;
+            for (i=0 ; i<nx ; i++) pmask_flat[i+j*nx] = CPL_BINARY_0 ;
         }
     }
-    return mask ;
+
+    /* Create BPM */
+    bpm = cpl_image_new(nx, ny, CPL_TYPE_INT) ;
+    cr2res_bpm_add_mask(bpm, mask_flat, CR2RES_BPM_FLAT) ;
+    cr2res_bpm_add_mask(bpm, mask_inter_order, CR2RES_BPM_OUTOFORDER) ;
+
+    cpl_mask_delete(mask_flat) ;
+    cpl_mask_delete(mask_inter_order) ;
+    return bpm ;
 }
 

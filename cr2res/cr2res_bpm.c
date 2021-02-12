@@ -130,181 +130,6 @@ cpl_mask * cr2res_bpm_compute(
 
     return bpm ;
 }
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Find BPM based on global statistics
-  @param    img    input image of type CPL_TYPE_DOUBLE
-  @param    kappa  Multiplier for threshold
-  @return   A newly allocated BPM mask
- */
-/*----------------------------------------------------------------------------*/
-static cpl_mask * cr2res_bpm_compute_global_stats(
-        cpl_image   *   img, 
-        double          kappa)
-{
-    cpl_mask    *   out ;
-    double          low, high, med, sigma ;
-
-    /* Compute Thresholds */
-    med = cpl_image_get_median_dev(img, &sigma) ;
-    if (cpl_error_get_code()) {
-        cpl_msg_error(__func__, "Cannot compute statistics") ;
-        return NULL ;
-    }
-    low = med - kappa * sigma ;
-    high = med + kappa * sigma ;
-
-    cpl_msg_debug(__func__, 
-            "Median %.1f, Sigma %.1f" "BPM_low %.1f, BPM_hi %.1f", 
-            med, sigma, low, high);
-
-    /* Threshold to get the BPMs */
-    if ((out = cpl_mask_threshold_image_create(img, low, high)) == NULL) {
-        cpl_msg_error(__func__, "Cannot create bad pixels map") ;
-        return NULL ;
-    }
-    cpl_mask_not(out) ;
-
-    return out ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Find BPM based on the median of the surounding pixels
-  @param    img    input image of type CPL_TYPE_DOUBLE
-  @param    kappa  Multiplier for threshold
-  @param    size   Half-size of the statistics box
-  @return   A newly allocated BPM mask
- */
-/*----------------------------------------------------------------------------*/
-static cpl_mask * cr2res_bpm_compute_local_stats(
-        cpl_image   *   img, 
-        double          kappa, 
-        int             size)
-{
-    cpl_mask        *   out ;
-    cpl_binary      *   pout ;
-    double              threshold, med, sigma ;
-    int                 badpix;
-    cpl_size            i, j, nx, ny, llx, lly, urx, ury ;
-
-    /* Check Entries */
-    if (img == NULL) return NULL ;
-    nx = cpl_image_get_size_x(img) ;
-    ny = cpl_image_get_size_y(img) ;
-    if (sigma < 0.0) return NULL ;
-
-    /* Create Output mask */
-    out = cpl_mask_new(nx, ny) ;
-    pout = cpl_mask_get_data(out) ;
-
-    /* Loop on the pixels */
-    for (i = 0; i < nx ; i++) {
-        for (j = 0; j < ny ; j++) {
-            llx = i+1-size ;
-            lly = j+1-size ;
-            urx = i+1+size ;
-            ury = j+1+size ;
-            if (llx < 1) llx = 1 ;
-            if (lly < 1) lly = 1 ;
-            if (urx > nx) urx = nx ;
-            if (ury > ny) ury = ny ;
-
-            /* Local statistics */
-            med = cpl_image_get_median_dev_window(img, llx, lly, urx,
-                    ury, &sigma); 
-
-            /* Compute Threshold */
-            threshold = med + kappa*sigma ;
-
-            /* Set Bad Pixel */
-            if (fabs(cpl_image_get(img, i+1, j+1, &badpix)) > threshold) 
-                pout[i + j*nx] = CPL_BINARY_1 ;
-        }   
-    }
-    return out;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Find BPM based on the median of the surounding pixels
-  @author   Ansgar
-  @param    img    input image
-  @param    kappa  Multiplier for threshold, equivalent to the gaussian sigma
-  @param    size   Size of the Median filter applied to the image, must be odd
-  @return   A newly allocated BPM mask
-
-  Ansgar function
-  This function applies a median filter to the image and uses the MAD of the 
-  difference between the input image and the smoothed version to determine a
-  threshold. Pixels that deviate by more than the threshold are discarded.
- */
-/*----------------------------------------------------------------------------*/
-static cpl_mask * cr2res_bpm_compute_running_filter(
-        cpl_image   *   img, 
-        double          kappa, 
-        int             size)
-{
-    cpl_mask    *   out ;
-    cpl_binary  *   pout ;
-    cpl_image   *   copy ;
-    cpl_mask    *   kernel ;
-    double          mad, median;
-    int             badpix;
-    double          threshold;
-    cpl_size        i, j, nx, ny ;
-
-    /* Check Entries */
-    if (img == NULL) return NULL ;
-    nx = cpl_image_get_size_x(img) ;
-    ny = cpl_image_get_size_y(img) ;
-    if (nx < size || ny < size) return NULL ;
-    if (size % 2 != 1) return NULL ;
-
-    /* Local copy */
-    copy = cpl_image_duplicate(img);
-
-    /* Filtering Kernel */
-    kernel = cpl_mask_new(size, 1);
-    cpl_mask_not(kernel);
-
-    /* Apply Filter */
-    cpl_image_filter_mask(copy, img, kernel, CPL_FILTER_MEDIAN, 
-            CPL_BORDER_FILTER);
-    cpl_mask_delete(kernel);
-
-    /* Reject 0 values */
-    for (i = 1; i <= nx ; i++) {
-        for (j = 1; j <= ny ; j++) {
-            if (cpl_image_get(copy, i, j, &badpix) == 0) 
-                cpl_image_reject(copy, i, j);
-        }   
-    }
-
-    /* Subtract smoothed image */
-    cpl_image_subtract(copy, img);
-
-    /* Apply running thresholding */
-    median = cpl_image_get_mad(copy, &mad);
-    mad *= CPL_MATH_STD_MAD;
-    cpl_image_subtract_scalar(copy, median);
-    cpl_image_abs(copy);
-    
-    threshold = kappa * mad;
-    out = cpl_mask_new(nx, ny) ;
-    pout = cpl_mask_get_data(out) ;
-
-    for (i = 0; i < nx ; i++) {
-        for (j = 0; j < ny ; j++) {
-            if (cpl_image_get(copy, i+1, j+1, &badpix) > threshold) 
-                pout[i + j*nx] = CPL_BINARY_1 ;
-        }   
-    }
-    cpl_image_delete(copy);
-    return out;
-}
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Count BPM of a given type
@@ -484,5 +309,179 @@ int cr2res_bpm_add_mask(
 }
 
 /**@}*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Find BPM based on global statistics
+  @param    img    input image of type CPL_TYPE_DOUBLE
+  @param    kappa  Multiplier for threshold
+  @return   A newly allocated BPM mask
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_mask * cr2res_bpm_compute_global_stats(
+        cpl_image   *   img, 
+        double          kappa)
+{
+    cpl_mask    *   out ;
+    double          low, high, med, sigma ;
+
+    /* Compute Thresholds */
+    med = cpl_image_get_median_dev(img, &sigma) ;
+    if (cpl_error_get_code()) {
+        cpl_msg_error(__func__, "Cannot compute statistics") ;
+        return NULL ;
+    }
+    low = med - kappa * sigma ;
+    high = med + kappa * sigma ;
+
+    cpl_msg_debug(__func__, 
+            "Median %.1f, Sigma %.1f" "BPM_low %.1f, BPM_hi %.1f", 
+            med, sigma, low, high);
+
+    /* Threshold to get the BPMs */
+    if ((out = cpl_mask_threshold_image_create(img, low, high)) == NULL) {
+        cpl_msg_error(__func__, "Cannot create bad pixels map") ;
+        return NULL ;
+    }
+    cpl_mask_not(out) ;
+
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Find BPM based on the median of the surounding pixels
+  @param    img    input image of type CPL_TYPE_DOUBLE
+  @param    kappa  Multiplier for threshold
+  @param    size   Half-size of the statistics box
+  @return   A newly allocated BPM mask
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_mask * cr2res_bpm_compute_local_stats(
+        cpl_image   *   img, 
+        double          kappa, 
+        int             size)
+{
+    cpl_mask        *   out ;
+    cpl_binary      *   pout ;
+    double              threshold, med, sigma ;
+    int                 badpix;
+    cpl_size            i, j, nx, ny, llx, lly, urx, ury ;
+
+    /* Check Entries */
+    if (img == NULL) return NULL ;
+    nx = cpl_image_get_size_x(img) ;
+    ny = cpl_image_get_size_y(img) ;
+    if (sigma < 0.0) return NULL ;
+
+    /* Create Output mask */
+    out = cpl_mask_new(nx, ny) ;
+    pout = cpl_mask_get_data(out) ;
+
+    /* Loop on the pixels */
+    for (i = 0; i < nx ; i++) {
+        for (j = 0; j < ny ; j++) {
+            llx = i+1-size ;
+            lly = j+1-size ;
+            urx = i+1+size ;
+            ury = j+1+size ;
+            if (llx < 1) llx = 1 ;
+            if (lly < 1) lly = 1 ;
+            if (urx > nx) urx = nx ;
+            if (ury > ny) ury = ny ;
+
+            /* Local statistics */
+            med = cpl_image_get_median_dev_window(img, llx, lly, urx,
+                    ury, &sigma); 
+
+            /* Compute Threshold */
+            threshold = med + kappa*sigma ;
+
+            /* Set Bad Pixel */
+            if (fabs(cpl_image_get(img, i+1, j+1, &badpix)) > threshold) 
+                pout[i + j*nx] = CPL_BINARY_1 ;
+        }   
+    }
+    return out;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Find BPM based on the median of the surounding pixels
+  @author   Ansgar
+  @param    img    input image
+  @param    kappa  Multiplier for threshold, equivalent to the gaussian sigma
+  @param    size   Size of the Median filter applied to the image, must be odd
+  @return   A newly allocated BPM mask
+
+  Ansgar function
+  This function applies a median filter to the image and uses the MAD of the 
+  difference between the input image and the smoothed version to determine a
+  threshold. Pixels that deviate by more than the threshold are discarded.
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_mask * cr2res_bpm_compute_running_filter(
+        cpl_image   *   img, 
+        double          kappa, 
+        int             size)
+{
+    cpl_mask    *   out ;
+    cpl_binary  *   pout ;
+    cpl_image   *   copy ;
+    cpl_mask    *   kernel ;
+    double          mad, median;
+    int             badpix;
+    double          threshold;
+    cpl_size        i, j, nx, ny ;
+
+    /* Check Entries */
+    if (img == NULL) return NULL ;
+    nx = cpl_image_get_size_x(img) ;
+    ny = cpl_image_get_size_y(img) ;
+    if (nx < size || ny < size) return NULL ;
+    if (size % 2 != 1) return NULL ;
+
+    /* Local copy */
+    copy = cpl_image_duplicate(img);
+
+    /* Filtering Kernel */
+    kernel = cpl_mask_new(size, 1);
+    cpl_mask_not(kernel);
+
+    /* Apply Filter */
+    cpl_image_filter_mask(copy, img, kernel, CPL_FILTER_MEDIAN, 
+            CPL_BORDER_FILTER);
+    cpl_mask_delete(kernel);
+
+    /* Reject 0 values */
+    for (i = 1; i <= nx ; i++) {
+        for (j = 1; j <= ny ; j++) {
+            if (cpl_image_get(copy, i, j, &badpix) == 0) 
+                cpl_image_reject(copy, i, j);
+        }   
+    }
+
+    /* Subtract smoothed image */
+    cpl_image_subtract(copy, img);
+
+    /* Apply running thresholding */
+    median = cpl_image_get_mad(copy, &mad);
+    mad *= CPL_MATH_STD_MAD;
+    cpl_image_subtract_scalar(copy, median);
+    cpl_image_abs(copy);
+    
+    threshold = kappa * mad;
+    out = cpl_mask_new(nx, ny) ;
+    pout = cpl_mask_get_data(out) ;
+
+    for (i = 0; i < nx ; i++) {
+        for (j = 0; j < ny ; j++) {
+            if (cpl_image_get(copy, i+1, j+1, &badpix) > threshold) 
+                pout[i + j*nx] = CPL_BINARY_1 ;
+        }   
+    }
+    cpl_image_delete(copy);
+    return out;
+}
 
 

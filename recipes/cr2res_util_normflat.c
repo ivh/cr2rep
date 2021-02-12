@@ -484,8 +484,7 @@ static int cr2res_util_normflat_reduce(
     hdrl_image          *   collapsed ;
     hdrl_image          *   slit_model ;
     cpl_image           *   contrib ;
-    cpl_image           *   bpm_im ;
-    cpl_mask            *   bpm_flat ;
+    cpl_image           *   bpm_flat ;
     cpl_propertylist    *   plist ;
     hdrl_image          *   master_flat_loc ;
     int                     i, ext_nr ;
@@ -551,22 +550,9 @@ static int cr2res_util_normflat_reduce(
     hdrl_image_delete(slit_model) ;
     hdrl_image_delete(collapsed) ;
 
-    /* Create the BPM image */
-    bpm_im = cpl_image_new(cpl_mask_get_size_x(bpm_flat),
-            cpl_mask_get_size_y(bpm_flat), CPL_TYPE_INT) ;
-    if (cr2res_bpm_add_mask(bpm_im, bpm_flat, CR2RES_BPM_FLAT)) {
-        cpl_msg_error(__func__, "Failed to add the mask to the BPM") ;
-        cpl_propertylist_delete(plist);
-        hdrl_image_delete(master_flat_loc) ;
-        cpl_mask_delete(bpm_flat) ;
-        cpl_image_delete(bpm_im) ;
-        return -1 ;
-    }
-    cpl_mask_delete(bpm_flat) ;
-
     /* Return the results */
     *master_flat = master_flat_loc ;
-    *bpm = bpm_im ;
+    *bpm = bpm_flat ;
     *ext_plist = plist ;
     return 0 ;
 }

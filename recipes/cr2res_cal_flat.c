@@ -933,7 +933,7 @@ static int cr2res_cal_flat_reduce(
     cpl_propertylist    *   plist ;
     hdrl_image          *   master_flat_loc ;
     cpl_image           *   bpm_im ;
-    cpl_mask            *   bpm_flat ;
+    cpl_image           *   bpm_flat ;
     cpl_table           *   computed_traces ;
     cpl_table           *   filtered_traces ;
     cpl_table           *   traces ;
@@ -1206,30 +1206,28 @@ static int cr2res_cal_flat_reduce(
         }
     }
     if (bpm_im == NULL) {
-        bpm_im = cpl_image_new(cpl_mask_get_size_x(bpm_flat),
-                cpl_mask_get_size_y(bpm_flat), CPL_TYPE_INT) ;
+        bpm_im = cpl_image_duplicate(bpm_flat) ;
+    } else {
+        if (cpl_image_or(bpm_im, NULL, bpm_flat)) {
+            cpl_msg_error(__func__, "Failed to add the mask to the BPM") ;
+            cpl_table_delete(slit_func_tab) ;
+            cpl_table_delete(extract_tab) ;
+            hdrl_image_delete(model_master) ;
+            hdrl_image_delete(master_flat_loc) ;
+            cpl_image_delete(bpm_im) ;
+            cpl_image_delete(bpm_flat) ;
+            cpl_table_delete(computed_traces) ;
+            cpl_msg_indent_less() ;
+            return -1 ;
+        }
     }
-
-    /* Add the flat BPM to the BPM image */
-    if (cr2res_bpm_add_mask(bpm_im, bpm_flat, CR2RES_BPM_FLAT)) {
-        cpl_msg_error(__func__, "Failed to add the mask to the BPM") ;
-        cpl_table_delete(slit_func_tab) ;
-        cpl_table_delete(extract_tab) ;
-        hdrl_image_delete(model_master) ;
-        hdrl_image_delete(master_flat_loc) ;
-        cpl_image_delete(bpm_im) ;
-        cpl_mask_delete(bpm_flat) ;
-        cpl_table_delete(computed_traces) ;
-        cpl_msg_indent_less() ;
-        return -1 ;
-    }
+    cpl_image_delete(bpm_flat) ;
 
     /* Compute the QC parameters */
     qc_overexposed =
         cr2res_qc_flat_nb_overexposed(hdrl_image_get_image(master_flat_loc)) ;
     qc_trace_centery = cr2res_qc_flat_trace_center_y(computed_traces) ;
-    qc_nbbad = cpl_mask_count(bpm_flat) ;
-    cpl_mask_delete(bpm_flat) ;
+    qc_nbbad = cr2res_bpm_count(bpm_im, CR2RES_BPM_FLAT) ;
     cr2res_qc_flat_order_positions(computed_traces, &qc_order_nb, &qc_order_pos,
             &nbvals);
 
