@@ -926,14 +926,17 @@ static int cr2res_cal_flat_reduce(
         cpl_propertylist    **  ext_plist)
 {
     const char          *   first_file ;
+    hdrl_image          *   first_image ;
     hdrl_imagelist      *   imlist ;
     hdrl_imagelist      *   imlist_calibrated ;
     hdrl_image          *   collapsed ;
     cpl_image           *   contrib ;
     cpl_propertylist    *   plist ;
     hdrl_image          *   master_flat_loc ;
+    cpl_image           *   my_master_flat ;
     cpl_image           *   bpm_im ;
     cpl_image           *   bpm_flat ;
+    cpl_mask            *   bpm_mask ;
     cpl_table           *   computed_traces ;
     cpl_table           *   filtered_traces ;
     cpl_table           *   traces ;
@@ -947,10 +950,10 @@ static int cr2res_cal_flat_reduce(
     char                *   setting_id ;
     int                 *   qc_order_nb ;
     double              *   qc_order_pos ;
-    double                  qc_lamp_ints, qc_mean_level, qc_mean_flux,
-                            qc_med_flux, qc_med_snr, qc_trace_centery ;
+    double                  qc_mean, qc_median, qc_flux, qc_rms, qc_s2med, 
+                            qc_trace_centery, dit ;
     int                     i, j, badpix, ext_nr, nb_traces, order, trace_id,
-                            qc_overexposed, qc_nbbad, nbvals, zp_order ;
+                            qc_overexposed, qc_nbbad, nbvals, zp_order, ngood ;
 
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
@@ -1224,8 +1227,35 @@ static int cr2res_cal_flat_reduce(
     cpl_image_delete(bpm_flat) ;
 
     /* Compute the QC parameters */
+
+    /* Load the first RAW image */
+    first_image = cr2res_io_load_image(first_file, reduce_det) ;
+
+    /* Set the BPM */
+    bpm_mask = cr2res_bpm_extract_mask(bpm_im, CR2RES_BPM_ALL) ;
+
+    cpl_image_reject_from_mask(hdrl_image_get_image(first_image), bpm_mask) ;
+    qc_mean = cpl_image_get_mean(hdrl_image_get_image(first_image)) ;
+    qc_median = cpl_image_get_median(hdrl_image_get_image(first_image)) ;
+    plist = cpl_propertylist_load(first_file, 0) ;
+    dit  = cr2res_pfits_get_dit(plist) ;
+    cpl_propertylist_delete(plist) ;
+    qc_flux = qc_mean / dit ;
+
+    my_master_flat = cpl_image_duplicate(hdrl_image_get_image(master_flat_loc));
+    cpl_image_reject_from_mask(my_master_flat, bpm_mask) ;
+    ngood = CR2RES_DETECTOR_SIZE* CR2RES_DETECTOR_SIZE - 
+        cpl_mask_count(bpm_mask) ;
+    cpl_mask_delete(bpm_mask);
+    qc_rms = sqrt(cpl_image_get_sqflux(my_master_flat) / ngood) ;
+    cpl_image_delete(my_master_flat) ;
+
+    /* qc_s2med = 1.0 ; */
+
     qc_overexposed =
-        cr2res_qc_flat_nb_overexposed(hdrl_image_get_image(master_flat_loc)) ;
+        cr2res_qc_flat_nb_overexposed(hdrl_image_get_image(first_image)) ;
+
+    hdrl_image_delete(first_image) ;
     qc_trace_centery = cr2res_qc_flat_trace_center_y(computed_traces) ;
     qc_nbbad = cr2res_bpm_count(bpm_im, CR2RES_BPM_FLAT) ;
     cr2res_qc_flat_order_positions(computed_traces, &qc_order_nb, &qc_order_pos,
@@ -1256,6 +1286,19 @@ static int cr2res_cal_flat_reduce(
     }
     if (qc_order_nb != NULL) cpl_free(qc_order_nb) ;
     if (qc_order_pos != NULL) cpl_free(qc_order_pos) ;
+
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_MEAN, 
+            qc_mean) ;
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_MEDIAN, 
+            qc_median);
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_FLUX, 
+            qc_flux) ;
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_RMS, 
+            qc_rms) ;
+    /*
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_S2MED, 
+            qc_s2med) ;
+            */
     cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_FLAT_OVEREXPOSED, 
             qc_overexposed) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_TRACE_CENTERY,

@@ -44,6 +44,10 @@ typedef enum _cr2res_bpm_type_ {
     CR2RES_BPM_DETLIN       = 1 << 2,
     CR2RES_BPM_OUTOFORDER   = 1 << 3
 } cr2res_bpm_type ;
+#define CR2RES_BPM_ALL      CR2RES_BPM_DARK |           \
+                            CR2RES_BPM_FLAT |           \
+                            CR2RES_BPM_DETLIN |         \
+                            CR2RES_BPM_OUTOFORDER 
 
 #define CR2RES_NB_BPM_TYPES     4
 static cr2res_bpm_type bpm_types[CR2RES_NB_BPM_TYPES] = {
