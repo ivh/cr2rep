@@ -337,12 +337,14 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    /*
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_filter",
             CPL_TYPE_BOOL, "Only keep the predefined order traces",
             "cr2res.cr2res_cal_flat", TRUE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_filter");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
+    */
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_method",
             CPL_TYPE_STRING, "Extraction method (SUM / MEDIAN / TILTSUM / "
@@ -530,9 +532,12 @@ static int cr2res_cal_flat(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.trace_opening");
     trace_opening = cpl_parameter_get_bool(param);
+    /*
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.trace_filter");
     trace_filter = cpl_parameter_get_bool(param);
+    */
+    trace_filter = 0 ;
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.extract_method");
     sval = cpl_parameter_get_string(param);

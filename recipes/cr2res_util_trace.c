@@ -210,12 +210,14 @@ static int cr2res_util_trace_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    /*
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.trace_filter",
             CPL_TYPE_BOOL, "Only keep the predefined order traces",
             "cr2res.cr2res_util_trace", TRUE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_filter");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p) ;
+    */
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_trace.opening",
             CPL_TYPE_BOOL, "Use a morphological opening to rejoin clusters",
@@ -331,9 +333,12 @@ static int cr2res_util_trace(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.opening");
     opening = cpl_parameter_get_bool(param);
+    /*
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.trace_filter");
     trace_filter = cpl_parameter_get_bool(param);
+    */
+    trace_filter = 0 ; 
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_trace.split_traces");
     split_traces = cpl_parameter_get_int(param);
