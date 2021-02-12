@@ -57,34 +57,23 @@
   foo
  */
 /*----------------------------------------------------------------------------*/
-static void test_cr2res_detlin_compute(){
- /*int cr2res_detlin_compute(
-        const cpl_vector    *   dits,
-        const cpl_vector    *   values,
-        cpl_size                max_degree,
-        cpl_polynomial      **  fitted,
-        cpl_vector          **  error) */
+static void test_cr2res_detlin_compute()
+{
+    int n = 100;
+    double aduPsec = 1000.1;
+    cpl_size max_degree=3;
+    cpl_vector    *   dits  = cpl_vector_new(n);
+    cpl_vector    *   values = cpl_vector_new(n);
+    cpl_polynomial      *  fitted;
+    cpl_vector          *  error;
 
-  int n = 100;
-  double aduPsec = 1000.1;
-  cpl_size max_degree=3;
-  cpl_vector    *   dits  = cpl_vector_new(n);
-  cpl_vector    *   values = cpl_vector_new(n);
-  cpl_polynomial      *  fitted;
-  cpl_vector          *  error;
+    cr2res_detlin_compute(dits, values, max_degree, &fitted, &error);
 
-
-
-
-  cr2res_detlin_compute(dits, values, max_degree, &fitted, &error);
-
-  //cpl_vector_dump(fitted);
-
-  cpl_vector_delete(dits);
-  cpl_vector_delete(values);
-  if (fitted != NULL) cpl_vector_delete(error);
-  if (error != NULL) cpl_polynomial_delete(fitted);
-  return ;
+    cpl_vector_delete(dits);
+    cpl_vector_delete(values);
+    if (error != NULL) cpl_vector_delete(error);
+    if (fitted != NULL) cpl_polynomial_delete(fitted);
+    return ;
 }
 
 /*----------------------------------------------------------------------------*/
