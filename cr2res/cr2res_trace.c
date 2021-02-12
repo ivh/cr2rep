@@ -1129,8 +1129,8 @@ cpl_table * cr2res_trace_new_slit_fraction(
     cpl_polynomial  *   poly_b ;
     cpl_polynomial  *   poly_c ;
     cpl_polynomial  *   poly_wave;
-    cpl_polynomial  *   poly_tmp;
     cpl_matrix      *   samppos;
+    cpl_vector      *   a_vec;
     cpl_vector      *   b_vec;
     cpl_vector      *   c_vec;
     cpl_vector      *   wave_vec;
@@ -1287,6 +1287,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
         }
 
         samppos = cpl_matrix_new(1, CR2RES_DETECTOR_SIZE);
+        a_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
         b_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
         c_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
 
@@ -1311,6 +1312,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
                 b * pix_shift + c * pix_shift * pix_shift;
 
             cpl_matrix_set(samppos, 0, n, n + 1 - pix_shift);
+            cpl_vector_set(a_vec, n, a);
             cpl_vector_set(b_vec, n, b);
             cpl_vector_set(c_vec, n, c);
         }
@@ -1321,6 +1323,10 @@ cpl_table * cr2res_trace_new_slit_fraction(
                     cpl_polynomial_eval_1d(poly_wave, n + 1, NULL));
             }
         }
+
+        degree = cpl_polynomial_get_degree(poly_a);
+        cpl_polynomial_fit(poly_a, samppos, NULL, a_vec, NULL, 
+                CPL_FALSE, NULL, &degree);
 
         degree = cpl_polynomial_get_degree(poly_b);
         cpl_polynomial_fit(poly_b, samppos, NULL, b_vec, NULL, 
@@ -1342,6 +1348,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
             cpl_free(trace_numbers);
             cpl_free(trace_old);
             cpl_matrix_delete(samppos);
+            cpl_vector_delete(a_vec);
             cpl_vector_delete(b_vec);
             cpl_vector_delete(c_vec);
             if (hasWavelength) cpl_vector_delete(wave_vec);
@@ -1365,6 +1372,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
         }
 
         cpl_matrix_delete(samppos);
+        cpl_vector_delete(a_vec);
         cpl_vector_delete(b_vec);
         cpl_vector_delete(c_vec);
         if (hasWavelength) cpl_vector_delete(wave_vec);
