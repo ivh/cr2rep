@@ -71,7 +71,7 @@ static void test_cr2res_detlin_compute(){
   cpl_size pow;
   double aduPsec = 666.6;
   double adu;
-  cpl_size max_degree=5;
+  cpl_size max_degree=2;
   cpl_vector    *   dits  = cpl_vector_new(n);
   cpl_vector    *   adus = cpl_vector_new(n);
   cpl_polynomial      *  poly_fitted;
@@ -102,7 +102,7 @@ for (i=0; i<n; i++){
     /* Check if we are close to true aduPsec*/
   cpl_vector_divide_scalar(adus_corr,aduPsec);
   cpl_vector_dump(adus_corr,stdout);
-  cpl_test_vector_abs(adus_corr,dits,1);
+  cpl_test_vector_abs(adus_corr,dits,aduPsec*0.01);
 
   cpl_vector_delete(dits);
   cpl_vector_delete(adus);
