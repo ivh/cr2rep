@@ -151,8 +151,8 @@ int cr2res_detlin_correct(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Fits the response of a given pixel to the illumination increase
-  @param    dits        Vector with the DIT values
-  @param    values      Vector with illumination values
+  @param    dits        Vector with the DIT values, assumed sorted increasing!
+  @param    adus      Vector with corresponding illumination values (ADU)
   @param    max_degree  Maximum degree for the fit 
   @param    fitted      [out] The fitted polynomial
   @param    error       [out] the errors vector
@@ -160,7 +160,8 @@ int cr2res_detlin_correct(
 
   The input dits and values vectors must have the same size
   The *fitted polynomial coefficients are the values stored in the
-  DETLIN_COEFFS product for a given pixel.
+  DETLIN_COEFFS product for a given pixel. When evaluated at a certain ADU,
+  this polynomial yeilds the correction factor to be multiplied with.
   The *error vector size must match the *fitted polynomial number of
   coefficients. Its values are stored in the error extension of the 
   DETLIN_COEFFS product.
@@ -168,7 +169,7 @@ int cr2res_detlin_correct(
 /*----------------------------------------------------------------------------*/
 int cr2res_detlin_compute(
         const cpl_vector    *   dits,
-        const cpl_vector    *   values,
+        const cpl_vector    *   adus,
         cpl_size                max_degree,
         cpl_polynomial      **  fitted,
         cpl_vector          **  error)
@@ -177,64 +178,64 @@ int cr2res_detlin_compute(
     cpl_boolean             sampsym ;
     cpl_polynomial      *   fitted_local ;
     cpl_vector          *   error_local ;
-    cpl_vector          *   y;
-    cpl_bivector        *   first_dits, *tmp;
-    double                  x0, x1, y0, y1, m, cur_coeff;
-    double                  expected_counts;
-    cpl_size                i ;
+    cpl_vector          *   adusPsec ;
+    cpl_vector          *   y_tofit, *tmp;
+    double                  y,  cur_coeff, aduPsec;
+    cpl_size                i=0 ;
 
     /* Test entries */
-    if (fitted == NULL || dits == NULL || values == NULL) return -1 ;
-    if (cpl_vector_get_size(dits) != cpl_vector_get_size(values))
+    if (fitted == NULL || dits == NULL || adus == NULL) return -1 ;
+    if (cpl_vector_get_size(dits) != cpl_vector_get_size(adus))
         return -1 ;
 
     /* Initialise */
     sampsym = CPL_TRUE ;
 
-    // Find linear coefficient from the first two dits
-    first_dits = cpl_bivector_new(cpl_vector_get_size(dits));
-    tmp = cpl_bivector_wrap_vectors((cpl_vector*)dits, (cpl_vector*)values);
-    cpl_bivector_sort(first_dits, tmp, CPL_SORT_ASCENDING, CPL_SORT_BY_X);
-    cpl_bivector_unwrap_vectors(tmp);
-
-    // x: dits, y: values
-    x0 = cpl_bivector_get_x_data(first_dits)[0];
-    x1 = cpl_bivector_get_x_data(first_dits)[1];
-    y0 = cpl_bivector_get_y_data(first_dits)[0];
-    y1 = cpl_bivector_get_y_data(first_dits)[1];
-    m = (y1-y0)/(x1-x0);
-
-    cpl_bivector_delete(first_dits);
-
-    /* Store the DITS */
-    samppos = cpl_matrix_wrap(1,
-                cpl_vector_get_size(values),
-                cpl_vector_get_data((cpl_vector*)values)) ;
-
-    y = cpl_vector_new(cpl_vector_get_size(dits));
-    for(cpl_size i = 0; i < cpl_vector_get_size(dits); i++)
-    {
-        expected_counts = y0 + m * (cpl_vector_get(dits, i) - x0);
-        cpl_vector_set(y, i, expected_counts);
+    /* Determine true ADU/s by assuming it is linear up to threshold */
+    while (cpl_vector_get(adus,i) < CR2RES_DETLIN_THRESHOLD ){
+        i++;
     }
+    cpl_msg_debug(__func__, "Found %d values below threshold", (int)i);
+    adusPsec = cpl_vector_duplicate(adus);
+    cpl_vector_divide(adusPsec, dits);
+    tmp = cpl_vector_extract(adusPsec,0,i,1);
+    aduPsec = cpl_vector_get_median(tmp);
+    cpl_vector_delete(tmp);
+    cpl_msg_debug(__func__, "ADU/s is %02f", aduPsec);
+
+    samppos = cpl_matrix_wrap(1,
+                cpl_vector_get_size(adus),
+                cpl_vector_get_data((cpl_vector*)adus)) ;
+
+    y_tofit = cpl_vector_new(cpl_vector_get_size(dits));
+    for(i = 0; i < cpl_vector_get_size(dits); i++)
+    {
+        // We fit the ratio of true ADU/s over the measured ones.
+        y = aduPsec / cpl_vector_get(adusPsec,i);
+        cpl_vector_set(y_tofit, i, y);
+    }
+    cpl_vector_delete(adusPsec);
 
     /* Fit  */
-    fitted_local = cpl_polynomial_new(1);
-    if (cpl_polynomial_fit(fitted_local, samppos, &sampsym, y, NULL,
-            CPL_FALSE, NULL, &max_degree) != CPL_ERROR_NONE) {
+    //fitted_local = cpl_polynomial_new(1);
+    fitted_local = cpl_polynomial_fit_1d_create(adus, y_tofit, max_degree, NULL);
+    if ( 
+        fitted_local == NULL) {
+        //cpl_polynomial_fit(fitted_local, samppos, &sampsym, y_tofit, NULL,
+        //    CPL_FALSE, NULL, &max_degree) != CPL_ERROR_NONE) {
+        
         /* Failed Fit - Fill the coefficientѕ */
         cpl_matrix_unwrap(samppos) ;
-        cpl_vector_delete(y);
-        cpl_polynomial_delete(fitted_local) ;
+        cpl_vector_delete(y_tofit);
+        //cpl_polynomial_delete(fitted_local) ;
         cpl_error_reset() ;
         return -1 ;
     }
 
     /* Compute the error */
     error_local = cpl_vector_new(max_degree+1) ;
-
     cpl_size nc = max_degree + 1;
-    cpl_size ndata = cpl_vector_get_size(y);
+    cpl_size ndata = cpl_vector_get_size(y_tofit);
     if (nc >= ndata){
         // No uncertainty as fit should be perfectly aligned with data points
         for (cpl_size i = 0; i < max_degree + 1; i++)
@@ -252,12 +253,12 @@ int cr2res_detlin_compute(
 
         // this actually returns the hankel matrix, not vandermode
         // also directly copied from the cpl source code (cpl_polynomial.c)
-        cr2res_matrix_fill_normal_vandermonde(hankel, mx, values, CPL_FALSE, 
-            0, y);
+        cr2res_matrix_fill_normal_vandermonde(hankel, mx, adus, CPL_FALSE, 
+            0, y_tofit);
         cpl_matrix * inverse = cpl_matrix_invert_create(hankel);
         cpl_vector * resids = cpl_vector_new(ndata);
 
-        cpl_vector_fill_polynomial_fit_residual(resids, y, NULL, fitted_local,
+        cpl_vector_fill_polynomial_fit_residual(resids, y_tofit, NULL, fitted_local,
             samppos, NULL);
         cpl_matrix_multiply_scalar(inverse, 
             cpl_vector_get_sum(resids) / (double)(ndata - nc));
@@ -270,7 +271,7 @@ int cr2res_detlin_compute(
         cpl_matrix_delete(inverse);
         cpl_vector_delete(resids);
     }
-    cpl_vector_delete(y);
+    cpl_vector_delete(y_tofit);
     cpl_matrix_unwrap(samppos) ;    
 
     /* Check Result - Polynomial coefficients are NaN sometimes */

@@ -39,15 +39,15 @@ AM_CPPFLAGS = $(all_includes)
 AM_LDFLAGS = $(CPL_LDFLAGS) $(HDRL_LDFLAGS)
 LDADD = $(LIBCR2RES) $(LIBCPLDFS) $(LIBCPLUI) $(LIBCPLDRS) $(LIBCPLCORE) $(HDRL_LIBS)
 
-check_PROGRAMS = cr2res_trace-test \
+check_PROGRAMS = cr2res_detlin-test\
+                 cr2res_trace-test \
                  cr2res_utils-test \
                  cr2res_qc-test \
-                 cr2res_extract-test \
                  cr2res_splice-test \
                  cr2res_wave-test \
                  cr2res_calib-test \
                  cr2res_pol-test \
-                 cr2res_detlin-test
+                 cr2res_extract-test
 
 
 cr2res_trace_test_SOURCES = cr2res_trace-test.c
