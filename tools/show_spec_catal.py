@@ -4,6 +4,9 @@ import sys
 from astropy.io import fits
 import numpy as np
 import matplotlib.pyplot as plt
+import astropy.units as u
+from specutils import Spectrum1D
+from specutils.fitting import fit_generic_continuum
 
 STEPS=900
 
@@ -13,7 +16,6 @@ YMAX = 5000
 YMIN = -3000
 CAT_FACTOR = 5
 CAT_OFFSET = 200
-SPEC_FACTOR=1
 FIT_NPIX=8 # x2 , to left and right of click
 
 X = np.arange(2048)+1
@@ -131,9 +133,10 @@ def main(specname,catname=None,cat2name=None,tracename=None):
                 tw.close()
             xcor = h.get('ESO QC WAVE BESTXCORR-%02d-01'%order)
             #ax.hlines(np.percentile(spec,10),wl[0],wl[-1],'r')
-            spec *= SPEC_FACTOR
-            spec = spec - np.median(spec) + 100
-            ax.plot(wl,spec,label=' '.join((ext,str(order))),color='tab:blue',alpha=0.8,pickradius=5,picker=True)
+            spec = Spectrum1D(flux=spec*u.Jy, spectral_axis=wl*u.nm)
+            cfit = fit_generic_continuum(spec)
+            spec -= cfit(wl*u.nm)
+            ax.plot(spec.spectral_axis,spec.flux,label=' '.join((ext,str(order))),color='tab:blue',alpha=0.8,pickradius=5,picker=True)
             ax.text(wl.mean(),1000,'(O:%d D:%d X:%.2f)'%(order,i+1,xcor or 0.0), fontsize=11,
                 horizontalalignment='center')
 
