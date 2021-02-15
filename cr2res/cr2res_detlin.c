@@ -181,6 +181,7 @@ int cr2res_detlin_compute(
     cpl_vector          *   y_tofit, *tmp;
     double                  y,  cur_coeff, aduPsec;
     cpl_size                i=0 ;
+    int                     counter=0;
 
     /* Test entries */
     if (fitted == NULL || dits == NULL || adus == NULL) return -1 ;
@@ -189,13 +190,15 @@ int cr2res_detlin_compute(
 
 
     /* Determine true ADU/s by assuming it is linear up to threshold */
-    while (cpl_vector_get(adus,i) < CR2RES_DETLIN_THRESHOLD ){
-        i++;
+    if (cpl_vector_get_min(adus) > CR2RES_DETLIN_THRESHOLD) return -1;
+    if (cpl_vector_get_max(adus) < CR2RES_DETLIN_THRESHOLD) return -1;
+    for (i = 0; i < cpl_vector_get_size(adus); i++) {
+        if (cpl_vector_get(adus,i) < CR2RES_DETLIN_THRESHOLD ) counter++;
     }
-    cpl_msg_debug(__func__, "Found %d values below threshold", (int)i);
+    cpl_msg_debug(__func__, "Found %d values below threshold", counter);
     adusPsec = cpl_vector_duplicate(adus);
     cpl_vector_divide(adusPsec, dits);
-    tmp = cpl_vector_extract(adusPsec,0,i,1);
+    tmp = cpl_vector_extract(adusPsec,0,counter,1);
     aduPsec = cpl_vector_get_median(tmp);
     cpl_vector_delete(tmp);
     cpl_msg_debug(__func__, "ADU/s is %02f", aduPsec);
