@@ -1125,6 +1125,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
     cpl_polynomial  *   poly_lower;
     cpl_polynomial  *   poly_all;
     cpl_polynomial  *   poly_upper;
+    cpl_polynomial  *   poly_tmp;
     cpl_polynomial  *   poly_a ;
     cpl_polynomial  *   poly_b ;
     cpl_polynomial  *   poly_c ;
@@ -1138,7 +1139,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
     int nb_order_idx_values, nb_traces;
     int * order_idx_values, * trace_numbers;
     double a, b, c;
-    double pix_lower, pix_upper;
+    double pix_lower, pix_upper, pix_all;
     double sf_lower, sf_upper, sf_all, sf_new;
     double pix_shift;
     int isError = FALSE;
@@ -1269,6 +1270,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
         trace_all_old = trace_old[1];
         trace_upper_old = trace_old[2];
 
+        poly_all = cr2res_convert_array_to_poly(trace_all_old);
         poly_lower = cr2res_convert_array_to_poly(trace_lower_old);
         poly_upper = cr2res_convert_array_to_poly(trace_upper_old);
 
@@ -1276,6 +1278,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
         sf_all = cpl_array_get_double(slit_frac_old, 1, NULL);
         sf_upper = cpl_array_get_double(slit_frac_old, 2, NULL);
         sf_new = cpl_array_get_double(new_slit_fraction, 1, NULL);
+        cpl_msg_debug(__func__, "New Slitfunction %f", sf_new);
 
         // then use the slit curvature to translate that into a horizontal shift
         poly_a = cr2res_convert_array_to_poly(const_slit_curv_a);
@@ -1290,6 +1293,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
         a_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
         b_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
         c_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
+        poly_tmp = cpl_polynomial_new(1);
 
         if (hasWavelength){
             wave_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
@@ -1299,22 +1303,47 @@ cpl_table * cr2res_trace_new_slit_fraction(
         {
             pix_lower = cpl_polynomial_eval_1d(poly_lower, n + 1, NULL);
             pix_upper = cpl_polynomial_eval_1d(poly_upper, n + 1, NULL);
+            pix_all = cpl_polynomial_eval_1d(poly_all, n + 1, NULL);
 
-            a = cpl_polynomial_eval_1d(poly_a, n + 1, NULL);
+            a = n; //cpl_polynomial_eval_1d(poly_a, n + 1, NULL);
             b = cpl_polynomial_eval_1d(poly_b, n + 1, NULL);
             c = cpl_polynomial_eval_1d(poly_c, n + 1, NULL);
 
-             // vertical pixel shift
-            pix_shift = (pix_upper - pix_lower) / 
-                (sf_upper - sf_lower) * (sf_all - sf_new);
-            // horizontal pixel shift
-            pix_shift = (a - n) + 
-                b * pix_shift + c * pix_shift * pix_shift;
-
-            cpl_matrix_set(samppos, 0, n, n + 1 - pix_shift);
+            // Set the vectors with the global values
             cpl_vector_set(a_vec, n, a);
             cpl_vector_set(b_vec, n, b);
             cpl_vector_set(c_vec, n, c);
+
+            
+            degree = 0;
+            cpl_polynomial_set_coeff(poly_tmp, &degree, a - n - 1);
+            degree = 1;
+            cpl_polynomial_set_coeff(poly_tmp, &degree, b);
+            degree = 2;
+            cpl_polynomial_set_coeff(poly_tmp, &degree, c);
+
+            cpl_polynomial_shift_1d(poly_tmp, 0, pix_all);
+
+            // Shift polynomial to local frame
+            a = 0;
+            degree = 1;
+            b = cpl_polynomial_get_coeff(poly_tmp, &degree);
+            degree = 2;
+            c = cpl_polynomial_get_coeff(poly_tmp, &degree);
+            
+
+            // vertical pixel shift
+            pix_shift = (pix_upper - pix_lower) / 
+                (sf_upper - sf_lower) * (sf_all - sf_new);
+            // cpl_msg_debug(__func__, "Pixel Shift y %f", pix_shift);
+            // horizontal pixel shift
+            pix_shift = a + (c * pix_shift + b) * pix_shift;
+            // pix_shift = a + b * pix_shift + c * pix_shift * pix_shift;
+            // cpl_msg_debug(__func__, "Pixel Shift x %f", pix_shift);
+            // cpl_msg_debug(__func__, "-------");
+
+            // Set the location with the shifted position
+            cpl_matrix_set(samppos, 0, n, n + 1 - pix_shift);
         }
         if (hasWavelength){
             for (n = 0; n < CR2RES_DETECTOR_SIZE; n++)
@@ -1323,6 +1352,11 @@ cpl_table * cr2res_trace_new_slit_fraction(
                     cpl_polynomial_eval_1d(poly_wave, n + 1, NULL));
             }
         }
+
+        cpl_polynomial_delete(poly_lower);
+        cpl_polynomial_delete(poly_all);
+        cpl_polynomial_delete(poly_upper);
+        cpl_polynomial_delete(poly_tmp);
 
         degree = cpl_polynomial_get_degree(poly_a);
         cpl_polynomial_fit(poly_a, samppos, NULL, a_vec, NULL, 
