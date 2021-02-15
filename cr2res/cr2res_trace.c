@@ -1125,7 +1125,6 @@ cpl_table * cr2res_trace_new_slit_fraction(
     cpl_polynomial  *   poly_lower;
     cpl_polynomial  *   poly_all;
     cpl_polynomial  *   poly_upper;
-    cpl_polynomial  *   poly_tmp;
     cpl_polynomial  *   poly_a ;
     cpl_polynomial  *   poly_b ;
     cpl_polynomial  *   poly_c ;
@@ -1141,7 +1140,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
     double a, b, c;
     double pix_lower, pix_upper, pix_all;
     double sf_lower, sf_upper, sf_all, sf_new;
-    double pix_shift;
+    double pix_shift_x, pix_shift_y;
     int isError = FALSE;
     int hasWavelength = TRUE;
 
@@ -1293,7 +1292,6 @@ cpl_table * cr2res_trace_new_slit_fraction(
         a_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
         b_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
         c_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
-        poly_tmp = cpl_polynomial_new(1);
 
         if (hasWavelength){
             wave_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
@@ -1305,45 +1303,35 @@ cpl_table * cr2res_trace_new_slit_fraction(
             pix_upper = cpl_polynomial_eval_1d(poly_upper, n + 1, NULL);
             pix_all = cpl_polynomial_eval_1d(poly_all, n + 1, NULL);
 
-            a = n; //cpl_polynomial_eval_1d(poly_a, n + 1, NULL);
+            a = cpl_polynomial_eval_1d(poly_a, n + 1, NULL);
             b = cpl_polynomial_eval_1d(poly_b, n + 1, NULL);
             c = cpl_polynomial_eval_1d(poly_c, n + 1, NULL);
 
-            // Set the vectors with the global values
-            cpl_vector_set(a_vec, n, a);
-            cpl_vector_set(b_vec, n, b);
-            cpl_vector_set(c_vec, n, c);
-
-            
-            degree = 0;
-            cpl_polynomial_set_coeff(poly_tmp, &degree, a - n - 1);
-            degree = 1;
-            cpl_polynomial_set_coeff(poly_tmp, &degree, b);
-            degree = 2;
-            cpl_polynomial_set_coeff(poly_tmp, &degree, c);
-
-            cpl_polynomial_shift_1d(poly_tmp, 0, pix_all);
-
-            // Shift polynomial to local frame
+            // Shift to the local coordinate system
+            // c is 0 usually, since we don't fit it always
             a = 0;
-            degree = 1;
-            b = cpl_polynomial_get_coeff(poly_tmp, &degree);
-            degree = 2;
-            c = cpl_polynomial_get_coeff(poly_tmp, &degree);
-            
+            b += 2 * c * pix_all;
 
             // vertical pixel shift
-            pix_shift = (pix_upper - pix_lower) / 
+            pix_shift_y = (pix_upper - pix_lower) / 
                 (sf_upper - sf_lower) * (sf_all - sf_new);
             // cpl_msg_debug(__func__, "Pixel Shift y %f", pix_shift);
             // horizontal pixel shift
-            pix_shift = a + (c * pix_shift + b) * pix_shift;
+            pix_shift_x = a + (c * pix_shift_y + b) * pix_shift_y;
             // pix_shift = a + b * pix_shift + c * pix_shift * pix_shift;
             // cpl_msg_debug(__func__, "Pixel Shift x %f", pix_shift);
             // cpl_msg_debug(__func__, "-------");
 
+            // shift back to global position (relative from new local position)
+            a = n + 1;
+            b -= 2 * c * (pix_shift_y + pix_all);
+
             // Set the location with the shifted position
-            cpl_matrix_set(samppos, 0, n, n + 1 - pix_shift);
+            cpl_matrix_set(samppos, 0, n, n + 1 - pix_shift_x);
+            // Set the vectors with the global values
+            cpl_vector_set(a_vec, n, a);
+            cpl_vector_set(b_vec, n, b);
+            cpl_vector_set(c_vec, n, c);
         }
         if (hasWavelength){
             for (n = 0; n < CR2RES_DETECTOR_SIZE; n++)
@@ -1356,7 +1344,6 @@ cpl_table * cr2res_trace_new_slit_fraction(
         cpl_polynomial_delete(poly_lower);
         cpl_polynomial_delete(poly_all);
         cpl_polynomial_delete(poly_upper);
-        cpl_polynomial_delete(poly_tmp);
 
         degree = cpl_polynomial_get_degree(poly_a);
         cpl_polynomial_fit(poly_a, samppos, NULL, a_vec, NULL, 
