@@ -819,7 +819,8 @@ static int cr2res_cal_detlin_reduce(
 
                         /* Store error */
                         if (fitted_errors != NULL) {
-                            pcur_errors[idx] = cpl_vector_get(fitted_errors, l);
+                            pcur_errors[idx] =
+                                fabs(cpl_vector_get(fitted_errors, l));
                         } else {
                             pcur_errors[idx] = 0.0 ;
                         }
@@ -1030,26 +1031,18 @@ static int cr2res_cal_detlin_update(
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
             idx = i+j*nx ;
-            if (pglobal_bpm[idx] == CR2RES_BPM_OUTOFORDER &&
-                    pnew_bpm[idx] != CR2RES_BPM_OUTOFORDER) {
+            if (pglobal_bpm[idx] != 0 && pnew_bpm[idx] == 0) {
                 /* Put the new value */
                 pglobal_bpm[idx] = pnew_bpm[idx] ;
                 for (k=0 ; k<ni ; k++) {
                     global_coeffs_ima = hdrl_imagelist_get(global_coeffs, k) ;
                     new_coeffs_ima = hdrl_imagelist_get(new_coeffs, k) ;
-
                     hdrl_image_set_pixel(global_coeffs_ima, i+1, j+1,
                             hdrl_image_get_pixel(new_coeffs_ima, i+1,
                                 j+1, NULL)) ;
                 }
             }
         }
-    }
-
-    /* hdrl_image_set_pixel() sets an error if the val.error is < 0 */
-    if (cpl_error_get_code()) {
-        cpl_msg_warning(__func__, "Some error values were negative - reset") ;
-        cpl_error_reset() ;
     }
     return 0 ;
 }
