@@ -493,6 +493,11 @@ double cr2res_qc_obs_nodding_slit_psf(
     }
     err = cpl_vector_fit_gaussian(x, NULL, y, NULL, fit_pars, &x0, &sigma,
             &area, &offset, NULL, NULL, NULL);
+    if (cpl_error_get_code()) {
+        cpl_msg_warning(__func__, "Failed Fit for the slit PSF") ;
+        cpl_error_reset() ;
+        sigma = 0.0 ;
+    }
     qc_fwhm = 2.355 * sigma; // 2.355 = 2 * sqrt(2 * ln(2))
  
     /* Free Memory */
