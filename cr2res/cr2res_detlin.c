@@ -230,6 +230,16 @@ int cr2res_detlin_compute(
         return -1 ;
     }
 
+    /* Sanity check */
+    aduPsec=cpl_polynomial_eval_1d(fitted_local,20000.0,NULL);
+    if (aduPsec<1.0 || aduPsec>1.5){
+        cpl_matrix_unwrap(samppos) ;
+        cpl_vector_delete(y_tofit);
+        cpl_polynomial_delete(fitted_local) ;
+        cpl_error_reset() ;
+        return -1 ; 
+    }
+
     /* Compute the error */
     error_local = cpl_vector_new(max_degree+1) ;
     cpl_size nc = max_degree + 1;
