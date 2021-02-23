@@ -232,7 +232,7 @@ int cr2res_detlin_compute(
 
     /* Sanity check */
     aduPsec=cpl_polynomial_eval_1d(fitted_local,20000.0,NULL);
-    if (aduPsec<1.0 || aduPsec>1.5){
+    if (aduPsec<1.0 || aduPsec>1.2){
         cpl_matrix_unwrap(samppos) ;
         cpl_vector_delete(y_tofit);
         cpl_polynomial_delete(fitted_local) ;
