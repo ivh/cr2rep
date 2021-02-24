@@ -1613,6 +1613,8 @@ int cr2res_extract_slitdec_curved(
     cpl_vector      *   unc_sw;
     cpl_vector      *   spc;
     cpl_vector      *   slitfu;
+    cpl_vector      *   spec_tmp;
+    cpl_vector      *   slitfu_tmp;
     cpl_vector      *   weights_sw;
     cpl_vector      *   tmp_vec;
     cpl_vector      *   bins_begin;
@@ -1909,10 +1911,13 @@ int cr2res_extract_slitdec_curved(
         for (j=0; j< height * swath; j++) model_sw[j] = 0;
         img_sw_data = cpl_image_get_data_double(img_sw);
         err_sw_data = cpl_image_get_data_double(err_sw);
-        unc_sw_data = cpl_vector_get_data(unc_sw);
+        unc_sw_data = cpl_vector_get_data(unc_sw);      
         // First guess for the spectrum
-        img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
-        spec_sw = cpl_vector_new_from_image_row(img_tmp, 1);
+        // img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
+        img_tmp = cpl_image_collapse_create(img_sw, 0);
+        spec_tmp = cpl_vector_new_from_image_row(img_tmp, 1);
+        spec_sw = cpl_vector_filter_median_create(spec_tmp, 1);
+        cpl_vector_delete(spec_tmp);
         cpl_image_delete(img_tmp);
         spec_sw_data = cpl_vector_get_data(spec_sw);
 
@@ -1931,6 +1936,9 @@ int cr2res_extract_slitdec_curved(
             cpl_image_save(img_tmp, "debug_mask_before_sw.fits", CPL_TYPE_INT, 
                     NULL, CPL_IO_CREATE);
             cpl_image_unwrap(img_tmp);
+
+            cpl_vector_save(spec_sw, "debug_spc_initial_guess.fits",
+                    CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
         }
         /* Finally ready to call the slit-decomp */
         cr2res_extract_slit_func_curved(swath, height, oversample, img_sw_data,
