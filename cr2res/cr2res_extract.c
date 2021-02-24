@@ -3339,7 +3339,7 @@ static int cr2res_extract_slit_func_curved(
 {
     int         x, xx, xxx, y, yy, iy, jy, n, m, ny, y_upper_lim, i, nx;
     double      sum, norm, dev, lambda, diag_tot, ww, www, sP_change, sP_max;
-    double      tmp, mad, median;
+    double      tmp, mad, median, cost, cost_old;
     int         info, iter, isum;
 
 
@@ -3368,7 +3368,9 @@ static int cr2res_extract_slit_func_curved(
 
     /* Loop through sL , sP reconstruction until convergence is reached */
     iter = 0;
+    cost = 0;
     do {
+        cost_old = cost;
         if (slit_func_in == NULL){
             /* Compute slit function sL */
             /* Prepare the RHS and the matrix */
@@ -3541,6 +3543,23 @@ static int cr2res_extract_slit_func_curved(
         // }
         // dev=sqrt(sum/isum);
 
+        cost = 0;
+        isum = 0;
+        for (y = 0; y < nrows; y++)
+        {
+            for (x = delta_x; x < ncols - delta_x; x++)
+            {
+                if (mask[y * ncols + x])
+                {
+                    tmp = model[y * ncols + x] - im[y * ncols + x];
+                    tmp /= max(pix_unc[y * ncols + x], 1);
+                    cost += tmp * tmp;
+                    isum++;
+                }
+            }
+        }
+        cost /= (isum - (ncols + ny));
+
         for (y = 0; y < nrows; y++) {
             for (x = delta_x; x < ncols - delta_x; x++) {
                 cpl_image_set(img_mad, x+1, y+1, (model[y * ncols + x] -
@@ -3557,6 +3576,7 @@ static int cr2res_extract_slit_func_curved(
         if (cpl_error_get_code() == CPL_ERROR_DATA_NOT_FOUND){
             // this happens if all pixels are bad
             mad = 1;
+            median = 0;
             cpl_error_reset();
         }
         mad *= 1.4826; // scaling factor relative to standard deviation 
@@ -3575,19 +3595,32 @@ static int cr2res_extract_slit_func_curved(
         }
 
         /* Compute the change in the spectrum */
-        sP_change = 0.e0;
-        sP_max = 1.e0;
-        for (x = 0; x < ncols; x++) {
-            if (sP[x] > sP_max)
-                sP_max = sP[x];
-            if (fabs(sP[x] - sP_old[x]) > sP_change)
-                sP_change = fabs(sP[x] - sP_old[x]);
-        }
+        // sP_change = 0.e0;
+        // sP_max = 1.e0;
+        // for (x = 0; x < ncols; x++) {
+        //     if (sP[x] > sP_max)
+        //         sP_max = sP[x];
+        //     if (fabs(sP[x] - sP_old[x]) > sP_change)
+        //         sP_change = fabs(sP[x] - sP_old[x]);
+        // }
+
         /* Check for convergence */
-        // cpl_msg_debug(__func__,  "Iter: %i, Mad: %f, Change: %f", 
-        //     iter, mad, sP_change);
+        cpl_msg_debug(__func__,  "Iter: %i, Mad: %f, Cost: %f", 
+            iter, mad, cost);
+
         iter++;
-    } while (iter == 1 || (iter < maxiter && sP_change > sP_stop * sP_max));
+        // If the old spectrum was better use that instead
+        if (iter > 1 && cost > cost_old){
+            for (x = 0; x < ncols; x++) {
+                sP[x] = sP_old[x];
+            }
+            break;
+        }
+
+    } while (iter == 1 || (iter < maxiter 
+                        && cost < cost_old 
+                        && fabs(cost - cost_old) > sP_stop)
+                        );//sP_change > sP_stop * sP_max));
 
     /* Uncertainty estimate */
     for (x = 0; x < ncols; x++) {
