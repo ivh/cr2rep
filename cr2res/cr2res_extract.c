@@ -812,10 +812,10 @@ int cr2res_extract_sum_tilt(
             c = cpl_polynomial_eval_1d(slitcurve_C, j, NULL);              
 
             // shift polynomial to local frame
-            a = a - j + yc * b + yc * yc * c;
+            // a = a - j + yc * b + yc * yc * c;
             b += 2 * yc * c;
         
-            value = j - a - yt * b - yt * yt * c;
+            value = - yt * b - yt * yt * c;
             value = max(min(value, lenx-1), 0);
             cpl_vector_set(cpl_bivector_get_x(xt), j, value);
             value = cpl_image_get(img_tmp, j + 1, i + 1, &badpix);
