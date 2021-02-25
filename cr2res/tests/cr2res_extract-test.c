@@ -459,9 +459,9 @@ static void test_cr2res_extract_sum_tilt(void)
         cpl_test_abs(ratio, 0, 0.1);
     }
 
-    cpl_test_abs(cpl_vector_get_sum(slit_func), 1, DBL_EPSILON);
+    cpl_test_abs(cpl_vector_get_sum(slit_func), 1, 2 * DBL_EPSILON);
 
-
+    cpl_image_save(img_in, "TEST_image.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
     cpl_vector_save(cpl_bivector_get_x(spec), "TEST_spec.fits", CPL_TYPE_DOUBLE, NULL,
         CPL_IO_CREATE);
     cpl_vector_save(cpl_bivector_get_y(spec), "TEST_err.fits", CPL_TYPE_DOUBLE, NULL,
