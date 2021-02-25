@@ -820,14 +820,19 @@ int cr2res_extract_sum_tilt(
             value = max(min(value, lenx-1), 0);
             cpl_vector_set(cpl_bivector_get_x(xt), j, value);
             value = cpl_image_get(img_tmp, j + 1, i + 1, &badpix);
+            if (badpix) value = NAN;
             cpl_vector_set(cpl_bivector_get_y(xt), j, value);
         }
 
         cpl_bivector_interpolate_linear(xi, xt);
 
         for (j = 0; j < lenx; j++){
-            cpl_image_set(img_tmp, j+1, i+1, 
-                            cpl_vector_get(cpl_bivector_get_y(xi), j));
+            value = cpl_vector_get(cpl_bivector_get_y(xi), j);
+            cpl_image_set(img_tmp, j+1, i+1, value);
+            if (isnan(value)){
+                cpl_image_set(img_tmp, j+1, i+1, 0);
+                cpl_image_reject(img_tmp, j+1, i+1);
+            }
         }
     }
 
@@ -839,6 +844,43 @@ int cr2res_extract_sum_tilt(
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
         cpl_image_save(img_tmp, "debug_img_shifted.fits", imtyp,
+                NULL, CPL_IO_CREATE);
+    }
+
+    // Fill bad pixels with linear approximation
+    // xi is the input coordinates
+    // xt is the target coordinates
+    xi = cpl_bivector_new(height);
+    xt = cpl_bivector_new(height);
+    
+    for (j = 0; j < lenx; j++){
+        // We need to set the first and last point in case they are bad pixels and need to be interpolated
+        cpl_vector_set(cpl_bivector_get_x(xi), 0, 0);
+        cpl_vector_set(cpl_bivector_get_y(xi), 0, 0);
+        cpl_vector_set(cpl_bivector_get_x(xi), height-1, height-1);
+        cpl_vector_set(cpl_bivector_get_y(xi), height-1, 0);
+        for (i = 0; i < height; i++){
+            cpl_vector_set(cpl_bivector_get_x(xt), i, i);
+            cpl_vector_set(cpl_bivector_get_y(xt), i, 0);
+
+            value =  cpl_image_get(img_tmp, j+1, i+1, &badpix);
+            if (!badpix){
+                cpl_vector_set(cpl_bivector_get_x(xi), i, i);
+                cpl_vector_set(cpl_bivector_get_y(xi), i, value);
+            }
+        }
+        cpl_bivector_interpolate_linear(xt, xi);
+        for (i = 0; i < height; i++){
+            value = cpl_vector_get(cpl_bivector_get_y(xt), i);
+            cpl_image_set(img_tmp, j+1, i+1, value);
+        }
+    }
+
+    cpl_bivector_delete(xi);
+    cpl_bivector_delete(xt);
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_image_save(img_tmp, "debug_img_shifted_corrected.fits", imtyp,
                 NULL, CPL_IO_CREATE);
     }
 
