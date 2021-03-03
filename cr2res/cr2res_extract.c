@@ -1907,17 +1907,33 @@ int cr2res_extract_slitdec_curved(
             /* prepare signal, error and mask */
             for(y=1;y<=height;y++){
                 errval = cpl_image_get(err_rect, x, y, &badpix);
-                pixval = cpl_image_get(img_rect, x, y, &badpix);
-                if (isnan(pixval) || badpix){
-                    pixval = 0;
+                if (isnan(errval) | badpix){
+                    // default to errval of 1 instead of 0
+                    // this avoids division by 0
                     errval = 1;
                 }
+                pixval = cpl_image_get(img_rect, x, y, &badpix);
+                if (isnan(pixval) | badpix){
+                    // We set bad pixels to neg. infinity, to make sure they are
+                    // rejected in the extraction
+                    // The algorithm does not like NANs!
+                    badpix = 1;
+                    pixval = -DBL_MAX;
+                    errval = 1;
+                } 
                 cpl_image_set(img_sw, col, y, pixval);
                 cpl_image_set(err_sw, col, y, errval);
+                if (badpix){
+                    // Reject the pixel here, so it is not used for the initial
+                    // guess of the spectrum
+                    cpl_image_reject(img_sw, col, y);
+                }
+                
                 // raw index for mask, start with 0!
                 j = (y-1)*swath + (col-1) ;
-                if (badpix == 0) mask_sw[j] = 1;
-                else mask_sw[j] = 0;
+                // The mask value is inverted for the extraction
+                // 1 for good pixel and 0 for bad pixel
+                mask_sw[j] = !badpix;
             }
 
             /* set slit curvature polynomials */
@@ -1976,10 +1992,6 @@ int cr2res_extract_slitdec_curved(
             ycen_sw[j-sw_start] = ycen_rest[j];
             ycen_offset_sw[j-sw_start] = (int) cpl_vector_get(ycen, j);
         }
-        // y_lower_limit = (int) ycen_offset_sw[0];
-        // for (j=0; j < swath; j++) {
-        //     y_lower_limit = min(y_lower_limit, ycen_offset_sw[j]);
-        // }
         y_lower_limit = height / 2;
 
         if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
@@ -2016,9 +2028,12 @@ int cr2res_extract_slitdec_curved(
             cpl_image_unwrap(img_tmp);
 
             tmp_vec = cpl_vector_wrap(swath, ycen_sw);
-            cpl_vector_save(tmp_vec, "debug_ycen.fits", CPL_TYPE_DOUBLE, NULL,
+            path = cpl_sprintf("debug_ycen_%i.fits", i);
+            cpl_vector_save(tmp_vec, path, CPL_TYPE_DOUBLE, NULL,
                     CPL_IO_CREATE);
             cpl_vector_unwrap(tmp_vec);
+            cpl_free(path);
+
             cpl_vector_save(weights_sw, "debug_weights.fits", CPL_TYPE_DOUBLE,
                     NULL, CPL_IO_CREATE);
             path = cpl_sprintf("debug_slitfu_%i.fits", i);
@@ -2035,6 +2050,11 @@ int cr2res_extract_slitdec_curved(
 
             path = cpl_sprintf("debug_img_sw_%i.fits", i);
             cpl_image_save(img_sw, path, CPL_TYPE_DOUBLE, NULL,
+                    CPL_IO_CREATE);
+            cpl_free(path);
+
+            path = cpl_sprintf("debug_img_mad_%i.fits", i);
+            cpl_image_save(img_mad, path,  CPL_TYPE_DOUBLE, NULL,
                     CPL_IO_CREATE);
             cpl_free(path);
         }
@@ -3387,9 +3407,9 @@ static int cr2res_extract_slit_func_curved(
         zeta_ref  *  zeta,
         int       *  m_zeta)
 {
-    int         x, xx, xxx, y, yy, iy, jy, n, m, ny, y_upper_lim, i, nx;
+    int         x, xx, xxx, y, yy, iy, jy, n, m, ny, i, nx;
     double      sum, norm, dev, lambda, diag_tot, ww, www, sP_change, sP_max;
-    double      tmp, mad, median, cost, cost_old;
+    double      tmp, mad, median, cost, cost_old, std;
     int         info, iter, isum;
 
 
@@ -3399,8 +3419,6 @@ static int cr2res_extract_slit_func_curved(
     nx = 4 * delta_x + 1;
     if(nx < 3) nx = 3;
 
-    y_upper_lim = nrows - 1 - y_lower_lim;
-    
     i = cr2res_extract_xi_zeta_tensors(ncols, nrows, ny, ycen, ycen_offset,
             y_lower_lim, osample, slitcurves, xi, zeta, m_zeta);
 
@@ -3555,7 +3573,8 @@ static int cr2res_extract_slit_func_curved(
         if (info) cpl_msg_error(__func__, "info(sP)=%d\n", info);
         for (x = 0; x < ncols; x++) sP[x] = p_bj[x];
 
-        if ((isnan(sP[0]) || (sP[ncols/2] == 0)) && (cpl_msg_get_level() == CPL_MSG_DEBUG) ){
+        if ((isnan(sP[0]) || (sP[ncols/2] == 0)) 
+                && (cpl_msg_get_level() == CPL_MSG_DEBUG) ){
             debug_output(ncols, nrows, osample, im, pix_unc, mask, ycen,
                 ycen_offset, y_lower_lim, slitcurves);
             cpl_msg_error(__func__, "Swath failed");
@@ -3582,16 +3601,6 @@ static int cr2res_extract_slit_func_curved(
         // easily be fixed this way. We would mask them away otherwise.
         // On the other hand the std may get to large and might fail to remove
         // outliers sufficiently in some circumstances.
-        // sum=0.e0;
-        // isum=0;
-        // for(y=0; y<nrows; y++) {
-        //     for(x=0;x<ncols; x++) {
-        //         sum+=mask[y*ncols+x]*(model[y*ncols+x]-im[y*ncols+x]) *
-        //                         (model[y*ncols+x]-im[y*ncols+x]);
-        //         isum+=mask[y*ncols+x];
-        //     }
-        // }
-        // dev=sqrt(sum/isum);
 
         cost = 0;
         isum = 0;
@@ -3619,8 +3628,6 @@ static int cr2res_extract_slit_func_curved(
             }
         }
         // Ignore the outer delta_x pixels on each side, as they are unreliable
-        // mad = cpl_image_get_stdev_window(img_mad,
-        //     1 + delta_x, 1, ncols-delta_x, nrows);
         median = cpl_image_get_mad_window(img_mad,
             1 + delta_x, 1, ncols-delta_x, nrows, &mad);
         if (cpl_error_get_code() == CPL_ERROR_DATA_NOT_FOUND){
@@ -3629,15 +3636,18 @@ static int cr2res_extract_slit_func_curved(
             median = 0;
             cpl_error_reset();
         }
-        mad *= 1.4826; // scaling factor relative to standard deviation 
+        mad *= 1.4826; // scaling factor relative to standard deviation
+
+        // For debug comparison
+        std = cpl_image_get_stdev_window(img_mad, 1 + delta_x, 1, 
+                ncols - delta_x, nrows);
 
         /* Adjust the mask marking outlyers */
         for (y = 0; y < nrows; y++) {
             for (x = 0; x < ncols; x++) {
                 // We order it like this, to account for NaN values
                 // They evaluate to False, and should be masked
-                if (fabs(model[y * ncols + x] - im[y * ncols + x] - median) 
-                            < 40. * mad)
+                if (fabs(model[y * ncols + x] - im[y * ncols + x]) < 40. * mad)
                     mask[y * ncols + x] = 1;
                 else
                     mask[y * ncols + x] = 0;
@@ -3645,30 +3655,23 @@ static int cr2res_extract_slit_func_curved(
         }
 
         /* Compute the change in the spectrum */
-        // sP_change = 0.e0;
-        // sP_max = 1.e0;
-        // for (x = 0; x < ncols; x++) {
-        //     if (sP[x] > sP_max)
-        //         sP_max = sP[x];
-        //     if (fabs(sP[x] - sP_old[x]) > sP_change)
-        //         sP_change = fabs(sP[x] - sP_old[x]);
-        // }
-
-        /* Check for convergence */
-        cpl_msg_debug(__func__,  "Iter: %i, Mad: %f, Cost: %f", 
-            iter, mad, cost);
-
-        iter++;
-        // If the old spectrum was better use that instead
-        if (iter > 1 && cost > cost_old){
-            for (x = 0; x < ncols; x++) {
-                sP[x] = sP_old[x];
-            }
-            break;
+        sP_change = 0.e0;
+        sP_max = 1.e0;
+        for (x = 0; x < ncols; x++) {
+            if (sP[x] > sP_max)
+                sP_max = sP[x];
+            if (fabs(sP[x] - sP_old[x]) > sP_change)
+                sP_change = fabs(sP[x] - sP_old[x]);
         }
 
+        /* Check for convergence */
+        // TODO: Remove some of the debug output?
+        cpl_msg_debug(__func__,  
+            "Iter: %i, Mad: %f, Std: %f, Cost: %f, sP_change: %f", 
+            iter, mad, std, cost, sP_change);
+
+        iter++;
     } while (iter == 1 || (iter < maxiter 
-                        && cost < cost_old 
                         && fabs(cost - cost_old) > sP_stop)
                         );//sP_change > sP_stop * sP_max));
 
