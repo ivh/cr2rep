@@ -239,7 +239,7 @@ int cr2res_detlin_compute(
         cpl_error_reset() ;
         return -1 ; 
     }
-
+    cpl_msg_debug(__func__, "Fit good. Proceeding to error");
     /* Compute the error */
     error_local = cpl_vector_new(max_degree+1) ;
     cpl_size nc = max_degree + 1;

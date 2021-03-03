@@ -643,6 +643,7 @@ static int cr2res_cal_detlin_reduce(
     cpl_polynomial      *   fitted_poly ;
     cpl_vector          *   fitted_errors ;
     cpl_vector          *   fitvals ;
+    cpl_vector          *   aduPsec ;
     cpl_mask            *   bpm_mask ;
     int                     i, j, k, idx, ext_nr_data, order, trace_id, nx, ny;
     cpl_size                max_degree, l ;
@@ -790,21 +791,25 @@ static int cr2res_cal_detlin_reduce(
 
                     /* Plot the values and the fit */
                     if (plotx==i+1 && ploty==j+1) {
+                        aduPsec = cpl_vector_duplicate(fitvals);
+                        cpl_vector_divide(aduPsec, dits);
                         cpl_bivector * toplot_measure =
-                            cpl_bivector_wrap_vectors(dits, fitvals) ;
+                            cpl_bivector_wrap_vectors(fitvals,aduPsec) ;
+                        
                         cpl_vector * poly_eval = cr2res_polynomial_eval_vector(
-                                fitted_poly, dits) ;
+                                fitted_poly, fitvals) ;
                         cpl_bivector * toplot_fitted =
-                            cpl_bivector_wrap_vectors(dits, poly_eval) ;
+                            cpl_bivector_wrap_vectors(fitvals, poly_eval) ;
                         cpl_plot_bivector(
-                        "set grid;set xlabel 'dits (s)';set ylabel 'int';",
-                        "t 'Measured Detlin' w lines", "", toplot_measure);
+                        "set grid;set xlabel 'ADU';set ylabel 'ADU/s';",
+                        "t 'Measured ADU/s' w lines", "", toplot_measure);
                         cpl_plot_bivector(
-                        "set grid;set xlabel 'dits (s)';set ylabel 'int';",
-                        "t 'Fitted Detlin' w lines", "", toplot_fitted);
+                        "set grid;set xlabel 'ADU';set ylabel 'Corr. fact';",
+                        "t 'Fit' w lines", "", toplot_fitted);
                         cpl_bivector_unwrap_vectors(toplot_fitted) ;
                         cpl_vector_delete(poly_eval) ;
                         cpl_bivector_unwrap_vectors(toplot_measure) ;
+                        cpl_vector_delete(aduPsec);
                     }
 
                     /* Store the Coefficients in the output image list */
@@ -845,6 +850,8 @@ static int cr2res_cal_detlin_reduce(
             }
         }
     }
+    cpl_msg_info(__func__, "%d pix success, %d failed",qc_nbsuccess,
+                                                            qc_nbfailed);
     cpl_msg_indent_less() ;
     cpl_image_delete(trace_image) ;
     hdrl_imagelist_delete(imlist) ;
@@ -871,6 +878,10 @@ static int cr2res_cal_detlin_reduce(
     median = cpl_image_get_median_dev(cur_coeffs, &sigma) ;
     low_thresh = median - bpm_kappa * sigma ;
     high_thresh = median + bpm_kappa * sigma ;
+    cpl_msg_info(__func__, "Low & high threshold for linear coeff: %.2f %.2f",
+           low_thresh, high_thresh );
+    cpl_msg_info(__func__, "Median, sigma: %.2f %.2f",
+           median, sigma );
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
             idx = i + j*nx ;
