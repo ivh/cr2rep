@@ -233,7 +233,7 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.smooth_spec",
             CPL_TYPE_DOUBLE,
             "Smoothing spectrum at extraction",
-            "cr2res.cr2res_util_extract", 0.1);
+            "cr2res.cr2res_util_extract", 0.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_spec");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);

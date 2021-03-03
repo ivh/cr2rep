@@ -74,7 +74,8 @@ static int cr2res_obs_nodding_reduce(
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
-        double                  extract_smooth,
+        double                  extract_smooth_slit,
+        double                  extract_smooth_spec,
         int                     reduce_det,
         int                     disp_det,
         int                     disp_order_idx,
@@ -312,11 +313,19 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.extract_smooth",
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.extract_smooth_slit",
             CPL_TYPE_DOUBLE,
             "Smoothing along the slit",
-            "cr2res.cr2res_obs_nodding", 0.01);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth");
+            "cr2res.cr2res_obs_nodding", 0.001);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_slit");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.extract_smooth_spec",
+            CPL_TYPE_DOUBLE,
+            "Smoothing along spectrum",
+            "cr2res.cr2res_obs_nodding", 8e-8);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_spec");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -414,7 +423,8 @@ static int cr2res_obs_nodding(
                             extract_height, reduce_det, 
                             disp_order_idx, disp_trace, disp_det, 
                             nodding_invert, create_idp ;
-    double                  extract_smooth, ra, dec, dit, gain ;
+    double                  extract_smooth_slit, extract_smooth_spec;
+    double                  ra, dec, dit, gain ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_flat_frames ;
     const cpl_frame     *   trace_wave_frame ;
@@ -457,8 +467,11 @@ static int cr2res_obs_nodding(
             "cr2res.cr2res_obs_nodding.extract_height");
     extract_height = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_obs_nodding.extract_smooth");
-    extract_smooth = cpl_parameter_get_double(param);
+            "cr2res.cr2res_obs_nodding.extract_smooth_slit");
+    extract_smooth_slit = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_nodding.extract_smooth_spec");
+    extract_smooth_spec = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -536,7 +549,8 @@ static int cr2res_obs_nodding(
                     trace_wave_frame, detlin_frame, master_dark_frame, 
                     master_flat_frame, bpm_frame, nodding_invert, 0, 
                     extract_oversample, extract_swath_width, extract_height, 
-                    extract_smooth, det_nr, disp_det, disp_order_idx, 
+                    extract_smooth_slit, extract_smooth_spec, 
+                    det_nr, disp_det, disp_order_idx, 
                     disp_trace,
                     &(combineda[det_nr-1]),
                     &(extracta[det_nr-1]),
@@ -715,7 +729,8 @@ static int cr2res_obs_nodding(
   @param extract_oversample     Extraction related
   @param extract_swath_width    Extraction related
   @param extract_height         Extraction related
-  @param extract_smooth         Extraction related
+  @param extract_smooth_slit    Extraction: smoothing along slit
+  @param extract_smooth_spec    Extraction: smoothing along spectrum
   @param reduce_det             The detector to compute
   @param disp_det               The detector to display
   @param disp_order_idx         The order index to display
@@ -748,7 +763,8 @@ static int cr2res_obs_nodding_reduce(
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
-        double                  extract_smooth,
+        double                  extract_smooth_slit,
+        double                  extract_smooth_spec,
         int                     reduce_det,
         int                     disp_det,
         int                     disp_order_idx,
@@ -1091,7 +1107,7 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_indent_more() ;
     if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
-                extract_oversample, extract_smooth, 0.0,
+                extract_oversample, extract_smooth_slit, extract_smooth_spec,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_a, &slit_func_a, &model_master_a) == -1) {
         cpl_msg_error(__func__, "Failed to extract A");
@@ -1109,7 +1125,7 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_indent_more() ;
     if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
-                extract_oversample, extract_smooth, 0.0,
+                extract_oversample, extract_smooth_slit, extract_smooth_spec,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_b, &slit_func_b, &model_master_b) == -1) {
         cpl_msg_error(__func__, "Failed to extract B");
