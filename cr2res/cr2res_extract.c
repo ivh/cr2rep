@@ -2048,7 +2048,7 @@ int cr2res_extract_slitdec_curved(
             k = cpl_vector_get(bins_end, i-1) -
                 cpl_vector_get(bins_begin, i) - swath / 2 - delta_x;
 
-            for (j= 0; j < swath - k; j++){
+            for (j = 0; j < swath - k; j++){
                 cpl_vector_set(spec_sw, j, cpl_vector_get(spec_sw, j + k));
                 cpl_vector_set(unc_sw, j, cpl_vector_get(unc_sw, j + k));
                 for (y = 0; y < height; y++)
@@ -3841,7 +3841,7 @@ static int cr2res_extract_slitdec_adjust_swath(
 
     // Calculate number of bins
     nbin = 2 * ((nx - 2 * dx) / sw);
-    if ((nx - 2 * dx) % sw != 0) nbin++;
+    if ((nx - 2 * dx) % sw > sw / 2) nbin++;
     if (nbin < 1) nbin = 1;
 
     // Step / 2, to get half width swaths
