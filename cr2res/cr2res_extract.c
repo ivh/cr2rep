@@ -2008,7 +2008,7 @@ int cr2res_extract_slitdec_curved(
                 err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit,
                 slitcurves_sw, delta_x,
                 slitfu_sw_data, spec_sw_data, model_sw, unc_sw_data, smooth_spec,
-                smooth_slit, 1e-5, 200, slit_func_in, sP_old, l_Aij, p_Aij,
+                smooth_slit, 1e-5, 10, slit_func_in, sP_old, l_Aij, p_Aij,
                 l_bj, p_bj, img_mad, xi, zeta, m_zeta);
 
         // add up slit-functions, divide by nswaths below to get average
