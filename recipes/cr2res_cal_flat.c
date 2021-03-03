@@ -79,7 +79,7 @@ static int cr2res_cal_flat_reduce(
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
-        double                  extract_smooth,
+        double                  extract_smooth_slit,
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
@@ -167,7 +167,7 @@ Flat                                                                    \n\
       loop on the traces t:                                             \n\
         cr2res_extract_slitdec_curved(--extract_oversample,             \n\
                  --extract_swath_width, --extract_height,               \n\
-                 --extract_smooth)                                      \n\
+                 --extract_smooth_slit)                                      \n\
           -> slit_func(t), extract_1d(t), slit_model(t)                 \n\
       Compute the master flat with cr2res_master_flat(avg, slit_model,  \n\
                  --bpm_low, --bpm_high, --bpm_lines_ratio)              \n\
@@ -374,11 +374,11 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_smooth",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_smooth_slit",
             CPL_TYPE_DOUBLE,
             "Smoothing along the slit",
             "cr2res.cr2res_cal_flat", 0.01);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_slit");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -464,7 +464,7 @@ static int cr2res_cal_flat(
                             extract_height, reduce_det, reduce_order,
                             reduce_trace, trace_smooth_x, trace_smooth_y ;
     double                  bpm_low, bpm_high, bpm_lines_ratio,
-                            trace_threshold, extract_smooth ;
+                            trace_threshold, extract_smooth_slit ;
     cr2res_extr_method      extr_method;
     const char          *   sval ;
     const cpl_frame     *   trace_wave_frame ;
@@ -562,8 +562,8 @@ static int cr2res_cal_flat(
             "cr2res.cr2res_cal_flat.extract_height");
     extract_height = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_flat.extract_smooth");
-    extract_smooth = cpl_parameter_get_double(param);
+            "cr2res.cr2res_cal_flat.extract_smooth_slit");
+    extract_smooth_slit = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -664,7 +664,7 @@ static int cr2res_cal_flat(
                             trace_min_cluster, trace_smooth_x, trace_smooth_y, 
                             trace_threshold, trace_opening, extr_method, 
                             extract_oversample, extract_swath_width, 
-                            extract_height, extract_smooth,
+                            extract_height, extract_smooth_slit,
                             det_nr, reduce_order, reduce_trace,
                             &(master_flat[det_nr-1]),
                             &(trace_wave[i][det_nr-1]),
@@ -878,7 +878,7 @@ static int cr2res_cal_flat(
   @param extract_oversample Extraction related
   @param extract_swath_width Extraction related
   @param extract_height     Extraction related
-  @param extract_smooth     Extraction related
+  @param extract_smooth_slit     Extraction related
   @param reduce_det         The detector to compute
   @param reduce_order       The order to compute (-1 for all)
   @param reduce_trace       The trace to compute (-1 for all)
@@ -913,7 +913,7 @@ static int cr2res_cal_flat_reduce(
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
-        double                  extract_smooth,
+        double                  extract_smooth_slit,
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
@@ -1131,7 +1131,7 @@ static int cr2res_cal_flat_reduce(
         } else if (extr_method == CR2RES_EXTR_OPT_VERT) {
             if (cr2res_extract_slitdec_vert(collapsed, traces, NULL, order, 
                         trace_id, extract_height, extract_swath_width, 
-                        extract_oversample, extract_smooth, 
+                        extract_oversample, extract_smooth_slit, 0.0,
                         &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
                 cpl_msg_error(__func__,
                         "Cannot (slitdec-vert-) extract the trace") ;
@@ -1145,7 +1145,7 @@ static int cr2res_cal_flat_reduce(
         } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
             if (cr2res_extract_slitdec_curved(collapsed, traces, NULL,order, 
                         trace_id, extract_height, extract_swath_width, 
-                        extract_oversample, extract_smooth, 
+                        extract_oversample, extract_smooth_slit, 0.0,
                         &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
                 cpl_msg_error(__func__, "Cannot (slitdec-) extract the trace") ;
                 slit_func_vec[i] = NULL ;

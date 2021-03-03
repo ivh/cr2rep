@@ -1091,8 +1091,8 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_indent_more() ;
     if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
-                extract_oversample, extract_smooth, disp_det==reduce_det,
-                disp_order_idx, disp_trace,
+                extract_oversample, extract_smooth, 0.0,
+                disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_a, &slit_func_a, &model_master_a) == -1) {
         cpl_msg_error(__func__, "Failed to extract A");
         cpl_msg_indent_less() ;
@@ -1109,7 +1109,7 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_indent_more() ;
     if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
-                extract_oversample, extract_smooth,
+                extract_oversample, extract_smooth, 0.0,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_b, &slit_func_b, &model_master_b) == -1) {
         cpl_msg_error(__func__, "Failed to extract B");

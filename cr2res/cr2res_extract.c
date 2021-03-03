@@ -166,7 +166,8 @@ static int debug_output(int         ncols,
   @param    extr_height     number of pix above and below mid-line or -1
   @param    swath_width     width per swath
   @param    oversample      factor for oversampling
-  @param    smooth_slit     
+  @param    smooth_slit     smoothing along slit
+  @param    smooth_spec     smoothing along spectrum
   @param    display         Flag to allow display
   @param    disp_order_idx  The order index to display
   @param    disp_trace      The trace number to display
@@ -189,6 +190,7 @@ int cr2res_extract_traces(
         int                     swath_width,
         int                     oversample,
         double                  smooth_slit,
+        double                  smooth_spec,
         int                     display,
         int                     disp_order_idx,
         int                     disp_trace,
@@ -293,7 +295,8 @@ int cr2res_extract_traces(
         } else if (extr_method == CR2RES_EXTR_OPT_VERT) {
             if (cr2res_extract_slitdec_vert(img, traces, slit_func_in_vec,
                         order, trace_id, extr_height, swath_width,
-                        oversample, smooth_slit, &(slit_func_vec[i]),
+                        oversample, smooth_slit, smooth_spec, 
+                        &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
                 cpl_msg_error(__func__,
                         "Cannot (slitdec-vert-) extract the trace") ;
@@ -309,7 +312,8 @@ int cr2res_extract_traces(
         } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
             if (cr2res_extract_slitdec_curved(img, traces, slit_func_in_vec,
                         order, trace_id, extr_height, swath_width,
-                        oversample, smooth_slit, &(slit_func_vec[i]),
+                        oversample, smooth_slit, smooth_spec,
+                        &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
                 cpl_msg_error(__func__,
                         "Cannot (slitdec-curved-) extract the trace") ;
@@ -1213,7 +1217,8 @@ int cr2res_extract_SLIT_FUNC_get_vector(
   @param    height      number of pix above and below mid-line or -1
   @param    swath       width per swath
   @param    oversample  factor for oversampling
-  @param    smooth_slit
+  @param    smooth_slit smoothing along slit
+  @param    smooth_spec smoothing along spectrum
   @param    slit_func   the returned slit function
   @param    spec        the returned spectrum
   @param    model       the returned model
@@ -1249,6 +1254,7 @@ int cr2res_extract_slitdec_vert(
         int                     swath,
         int                     oversample,
         double                  smooth_slit,
+        double                  smooth_spec,
         cpl_vector          **  slit_func,
         cpl_bivector        **  spec,
         hdrl_image          **  model)
@@ -1444,7 +1450,7 @@ int cr2res_extract_slitdec_vert(
         /* Finally ready to call the slit-decomp */
         cr2res_extract_slit_func_vert(swath, height, oversample, img_sw_data, 
                 err_sw_data, mask_sw, ycen_sw, slitfu_sw_data, spec_sw_data,
-                model_sw, unc_sw_data, 0.0, smooth_slit, 1.0e-5, 20,
+                model_sw, unc_sw_data, smooth_spec, smooth_slit, 1.0e-5, 20,
                 slit_func_in);
 
         for(col=1; col<=swath; col++){   // col is x-index in cut-out
@@ -1591,7 +1597,8 @@ int cr2res_extract_slitdec_vert(
   @param    height      number of pix above and below mid-line or -1
   @param    swath       width per swath
   @param    oversample  factor for oversampling
-  @param    smooth_slit
+  @param    smooth_slit smoothing along slit
+  @param    smooth_spec smoothing along spectrum
   @param    slit_func   the returned slit function
   @param    spec        the returned spectrum
   @param    model       the returned model
@@ -1626,6 +1633,7 @@ int cr2res_extract_slitdec_curved(
         int                     swath,
         int                     oversample,
         double                  smooth_slit,
+        double                  smooth_spec,
         cpl_vector          **  slit_func,
         cpl_bivector        **  spec,
         hdrl_image          **  model)
@@ -1987,8 +1995,8 @@ int cr2res_extract_slitdec_curved(
         cr2res_extract_slit_func_curved(swath, height, oversample, img_sw_data,
                 err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit,
                 slitcurves_sw, delta_x,
-                slitfu_sw_data, spec_sw_data, model_sw, unc_sw_data, 0.,
-                smooth_slit, 4e-0, 200, slit_func_in, sP_old, l_Aij, p_Aij,
+                slitfu_sw_data, spec_sw_data, model_sw, unc_sw_data, smooth_spec,
+                smooth_slit, 1e-5, 200, slit_func_in, sP_old, l_Aij, p_Aij,
                 l_bj, p_bj, img_mad, xi, zeta, m_zeta);
 
         // add up slit-functions, divide by nswaths below to get average
@@ -2223,7 +2231,6 @@ int cr2res_extract_slitdec_curved(
   @param    traces          The traces table
   @param    reduce_order    The order to extract (-1 for all)
   @param    reduce_trace    The Trace to extract (-1 for all)
-  @param    smooth_slit     
   @param    extracted       [out] the extracted spectra 
   @return   0 if ok, -1 otherwise
 

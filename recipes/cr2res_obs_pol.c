@@ -849,7 +849,7 @@ static int cr2res_obs_pol_reduce_one(
                         hdrl_imagelist_get_const(in_calib, frame_idx),
                         trace_wave_loc, NULL, -1, -1, CR2RES_EXTR_OPT_CURV, 
                         extract_height, extract_swath_width, extract_oversample,
-                        extract_smooth, 0, 0, 0, 
+                        extract_smooth, 0.0, 0, 0, 0, 
                         &(extract_1d[2*j]), &slit_func, &model_master) == -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j] = NULL ;
@@ -900,7 +900,7 @@ static int cr2res_obs_pol_reduce_one(
                         hdrl_imagelist_get_const(in_calib, frame_idx),
                         trace_wave_loc, NULL, -1, -1, CR2RES_EXTR_OPT_CURV, 
                         extract_height, extract_swath_width, extract_oversample,
-                        extract_smooth, 0, 0, 0, 
+                        extract_smooth, 0.0, 0, 0, 0, 
                         &(extract_1d[2*j+1]), &slit_func, &model_master)== -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j+1] = NULL ;

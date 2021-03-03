@@ -953,7 +953,8 @@ static int cr2res_cal_wave_reduce(
     cpl_msg_info(__func__, "Spectra Extraction") ;
     if (cr2res_extract_traces(collapsed, tw_in, NULL, reduce_order, 
                 reduce_trace, CR2RES_EXTR_OPT_CURV, ext_height, ext_swath_width,
-                ext_oversample, ext_smooth_slit, 0, 0, 0,
+                ext_oversample, ext_smooth_slit, 0.0, 
+                0, 0, 0, // display flags
                 &extracted, &slit_func, &model_master) == -1) {
         cpl_msg_error(__func__, "Failed to extract");
         hdrl_image_delete(collapsed) ;

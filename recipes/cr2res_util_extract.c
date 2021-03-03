@@ -116,7 +116,7 @@ Spectrum Extraction                                                     \n\
         Load the BPM and set them in the image                          \n\
         Load the input slit_func if available                           \n\
         Run the extraction cr2res_extract_traces(--method,--height,     \n\
-                 --swath_width,--oversample,--smooth_slit)              \n\
+                 --swath_width,--oversample,--smooth_slit,--smooth_spec)\n\
           -> creates SLIT_MODEL(f,d), SLIT_FUNC(f,d), EXTRACT_1D(f,d)   \n\
       Save SLIT_MODEL(f), SLIT_FUNC(f), EXTRACT_1D(f)                   \n\
                                                                         \n\
@@ -230,6 +230,14 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.smooth_spec",
+            CPL_TYPE_DOUBLE,
+            "Smoothing spectrum at extraction",
+            "cr2res.cr2res_util_extract", 0.1);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_spec");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.method",
             CPL_TYPE_STRING, "Extraction method (SUM / MEDIAN / TILTSUM / "
             "OPT_VERT / OPT_CURV )",
@@ -323,7 +331,7 @@ static int cr2res_util_extract(
     const cpl_parameter *   param;
     int                     oversample, swath_width, extr_height,
                             reduce_det, reduce_order, reduce_trace ;
-    double                  smooth_slit, slit_low, slit_up ;
+    double                  smooth_slit, smooth_spec, slit_low, slit_up ;
     cpl_array           *   slit_frac ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   cur_frame ;
@@ -360,6 +368,9 @@ static int cr2res_util_extract(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_extract.smooth_slit");
     smooth_slit = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_extract.smooth_spec");
+    smooth_spec = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_extract.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -529,7 +540,7 @@ static int cr2res_util_extract(
             if (cr2res_extract_traces(science_hdrl, trace_table,
                         slit_func_in, reduce_order, reduce_trace, extr_method, 
                         extr_height, swath_width, oversample,
-                        smooth_slit, 0, 0, 0, 
+                        smooth_slit, smooth_spec, 0, 0, 0, 
                         &(extract_tab[det_nr-1]), &(slit_func_tab[det_nr-1]), 
                         &(model_master[det_nr-1]))==-1) {
                 cpl_table_delete(trace_table) ;

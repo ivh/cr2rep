@@ -54,6 +54,7 @@ int cr2res_extract_traces(
         int                     swath_width,
         int                     oversample,
         double                  smooth_slit,
+        double                  smooth_spec,
         int                     display,
         int                     disp_order_idx,
         int                     disp_trace,
@@ -101,6 +102,7 @@ int cr2res_extract_slitdec_vert(
         int                     swath,
         int                     oversample,
         double                  smooth_slit,
+        double                  smooth_spec,
         cpl_vector          **  slit_func,
         cpl_bivector        **  spec,
         hdrl_image          **  model) ;
@@ -115,6 +117,7 @@ int cr2res_extract_slitdec_curved(
         int                     swath,
         int                     oversample,
         double                  smooth_slit,
+        double                  smooth_spec,
         cpl_vector          **  slit_func,
         cpl_bivector        **  spec,
         hdrl_image          **  model) ;

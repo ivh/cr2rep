@@ -607,7 +607,7 @@ static int cr2res_obs_staring_reduce(
     cpl_msg_info(__func__, "Spectra Extraction") ;
     if (cr2res_extract_traces(collapsed, trace_wave, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
-                extract_oversample, extract_smooth, 0, 0, 0,
+                extract_oversample, extract_smooth, 0.0, 0, 0, 0,
                 &extracted, &slit_func, &model_master) == -1) {
         cpl_msg_error(__func__, "Failed to extract");
         hdrl_image_delete(collapsed) ;
