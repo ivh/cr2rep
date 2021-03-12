@@ -461,6 +461,17 @@ double cr2res_qc_obs_nodding_slit_psf(
     /* Check Entries */
     if (slitfu == NULL) return -1 ;
 
+    /* Get the table column name */
+    colname = cr2res_dfs_SLIT_FUNC_colname(order_idxp, 1);
+    data = cpl_table_get_data_double_const(slitfu, colname);
+    cpl_free(colname);
+    if (data == NULL) {
+        cpl_msg_warning(__func__, "No slitfunc data: code %d",
+                    cpl_error_get_code());
+        cpl_error_reset();
+        return -1;
+    }
+
     /* Initialise */
     qc_fwhm = -1.0 ;
     fit_pars = CPL_FIT_CENTROID + CPL_FIT_STDEV + CPL_FIT_AREA;
@@ -475,11 +486,6 @@ double cr2res_qc_obs_nodding_slit_psf(
         cpl_vector_set(x, i, i);
         cpl_vector_set(y, i, 0);
     }
-
-    /* Get the table column name */
-    colname = cr2res_dfs_SLIT_FUNC_colname(order_idxp, 1);
-    data = cpl_table_get_data_double_const(slitfu, colname);
-    cpl_free(colname);
 
     /* remove "strange" values, i.e. nan and unreasonably large values */
     /* otherwise the fit will not work */
