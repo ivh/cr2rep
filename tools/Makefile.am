@@ -27,6 +27,7 @@ MAINTAINERCLEANFILES = Makefile.in
 
 endif
 
-dist_bin_SCRIPTS = plotsolution.py show_spec_catal.py show_trace.py select_catalogue.py show_trace_curv.py turbo_colormap.py
+dist_bin_SCRIPTS = cr2res_measure_lines.py cr2res_select_catalogue.py cr2res_show_trace_curv.py cr2res_show_wavecal.py cr2res_wlen_table.py \
+                   cr2res_plotsolution.py cr2res_show_spec_catal.py cr2res_show_trace.py cr2res_turbo_colormap.py
 
 
