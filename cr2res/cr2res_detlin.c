@@ -210,25 +210,25 @@ int cr2res_detlin_compute(
         if (cpl_vector_get(adus,i) < CR2RES_DETLIN_THRESHOLD ) count_linear++;
         if (cpl_vector_get(adus,i) > CR2RES_DETLIN_MAXFIT ) count_satur++;
     }
-    cpl_msg_debug(__func__, "Found %d values in linear regime, %d saturated",
-                count_linear, count_satur);
 
     adus_loc = cpl_vector_extract(adus, 0, 
                 cpl_vector_get_size(adus)-count_satur-1, 1);
     dits_loc = cpl_vector_extract(dits, 0, 
                 cpl_vector_get_size(dits)-count_satur-1, 1);
 
-    cpl_msg_debug(__func__, "len1 %lld , len2 %lld ",
-                cpl_vector_get_size(adus), cpl_vector_get_size(adus_loc));
-
-
+    
     adusPsec = cpl_vector_duplicate(adus_loc);
     cpl_vector_divide(adusPsec, dits_loc);
     tmp = cpl_vector_extract(adusPsec,0,count_linear,1);
     aduPsec = cpl_vector_get_median(tmp);
     cpl_vector_delete(tmp);
+    /* cpl_msg_debug(__func__, "Found %d values in linear regime, %d saturated",
+                count_linear, count_satur);
+    cpl_msg_debug(__func__, "len1 %lld , len2 %lld ",
+                cpl_vector_get_size(adus), cpl_vector_get_size(adus_loc));
     cpl_msg_debug(__func__, "ADU/s is %02f", aduPsec);
-
+    */
+   
     samppos = cpl_matrix_wrap(1,
                 cpl_vector_get_size(adus_loc),
                 cpl_vector_get_data((cpl_vector*)adus_loc)) ;
@@ -267,7 +267,7 @@ int cr2res_detlin_compute(
         cpl_error_reset() ;
         return -1 ; 
     }
-    cpl_msg_debug(__func__, "Fit good. Proceeding to error");
+
     /* Compute the error */
     error_local = cpl_vector_new(max_degree+1) ;
     cpl_size nc = max_degree + 1;

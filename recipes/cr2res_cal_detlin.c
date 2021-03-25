@@ -861,9 +861,6 @@ static int cr2res_cal_detlin_reduce(
     /* Get Mask */
     bpm_mask = cpl_mask_threshold_image_create(bpm_loc,-0.5,0.5) ;
     cpl_mask_not(bpm_mask) ;
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_mask_save(bpm_mask,"debug_mask.fits",NULL,CPL_IO_CREATE);
-    }
 
     /* Set the Bad pixels in coeffs / errors */
     for (l=0 ; l<=max_degree ; l++) {
@@ -877,10 +874,14 @@ static int cr2res_cal_detlin_reduce(
     /* Use the second coefficient stats for the BPM detection */
     cpl_msg_info(__func__, "BPM detection") ;
     cur_coeffs = cpl_imagelist_get(coeffs_loc, 1) ;
+
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_image_save(cur_coeffs,"debug_coef1.fits",CPL_TYPE_DOUBLE,NULL,CPL_IO_CREATE);
+        cpl_mask_save(cpl_image_get_bpm(cur_coeffs),"debug_mask.fits",
+            NULL,CPL_IO_CREATE);
+        cpl_image_save(cur_coeffs,"debug_coef1.fits",
+            CPL_TYPE_DOUBLE,NULL,CPL_IO_CREATE);
     }
-    
+
     median = cpl_image_get_median_dev(cur_coeffs, &sigma) ;
     low_thresh = median - bpm_kappa * sigma ;
     high_thresh = median + bpm_kappa * sigma ;
