@@ -77,12 +77,16 @@ int cr2res_detlin_correct(
     const cpl_image     *   errb ;
     const cpl_image     *   imc ;
     const cpl_image     *   errc ;
+    const cpl_image     *   imd ;
+    const cpl_image     *   errd ;
     const double        *   pima ;
     const double        *   perra ;
     const double        *   pimb ;
     const double        *   perrb ;
     const double        *   pimc ;
     const double        *   perrc ;
+    const double        *   pimd ;
+    const double        *   perrd ;
     cpl_image           *   cur_ima ;
     double              *   pdata ;
     double              *   perr ;
@@ -105,17 +109,21 @@ int cr2res_detlin_correct(
     errb = hdrl_image_get_error_const(hdrl_imagelist_get_const(detlin, 1)) ;
     imc = hdrl_image_get_image_const(hdrl_imagelist_get_const(detlin, 2)) ;
     errc = hdrl_image_get_error_const(hdrl_imagelist_get_const(detlin, 2)) ;
-    
-    if (!ima || !imb || !imc) {
+    imd = hdrl_image_get_image_const(hdrl_imagelist_get_const(detlin, 3)) ;
+    errd = hdrl_image_get_error_const(hdrl_imagelist_get_const(detlin, 3)) ;
+
+    if (!ima || !imb || !imc || !imd) {
         cpl_msg_error(cpl_func, "Cannot access the detlin images") ;
         return -1 ;
     }
     pima = cpl_image_get_data_double_const(ima) ;
     pimb = cpl_image_get_data_double_const(imb) ;
     pimc = cpl_image_get_data_double_const(imc) ;
+    pimd = cpl_image_get_data_double_const(imd) ;
     perra = cpl_image_get_data_double_const(erra);
     perrb = cpl_image_get_data_double_const(errb);
     perrc = cpl_image_get_data_double_const(errc);
+    perrd = cpl_image_get_data_double_const(errd);
 
     /* Test sizes */
     cur_ima = hdrl_image_get_image(in) ;
@@ -124,24 +132,29 @@ int cr2res_detlin_correct(
     if ((cpl_image_get_size_x(ima) != nx) ||
             (cpl_image_get_size_x(imb) != nx) ||
             (cpl_image_get_size_x(imc) != nx) ||
+            (cpl_image_get_size_x(imd) != nx) ||
             (cpl_image_get_size_y(ima) != ny) ||
             (cpl_image_get_size_y(imb) != ny) ||
-            (cpl_image_get_size_y(imc) != ny)) {
+            (cpl_image_get_size_y(imc) != ny) ||
+            (cpl_image_get_size_y(imd) != ny)) {
         cpl_msg_error(cpl_func, "Incompatible sizes") ;
         return -1 ;
     }
 
     /* Loop on pixels */
     for (i=0 ; i<nx*ny ; i++) {
-        // for each pixel p' = a + b * p + c * p * p
+        // for each pixel p' = a + b * p + c * p * p + d * p*p*p
 
+        // TODO: add third power to error
         perr[i] = pow2(perra[i] * pdata[i]) + pow2(perrb[i] * pow2(pdata[i]))
                 + pow2(perrc[i] * pow3(pdata[i])) 
                 + pow2(perr[i] * (pima[i] + 2. * pimb[i] * pdata[i] 
                 + 3. * pimc[i] * pow2(pdata[i])));
         perr[i] = sqrt(perr[i]);
 
-        correction_factor = pima[i] + (pimb[i] + pimc[i] * pdata[i]) * pdata[i];
+        correction_factor = pima[i] + \
+                ((pimb[i] + pimc[i] * pdata[i]) * pdata[i]) + \
+                (pimd[i]*pow3(pdata[i]));
         pdata[i] = pdata[i] * correction_factor;
     }
     /* return */
@@ -179,36 +192,49 @@ int cr2res_detlin_compute(
     cpl_vector          *   error_local ;
     cpl_vector          *   adusPsec ;
     cpl_vector          *   y_tofit, *tmp;
+    cpl_vector          *   adus_loc, *dits_loc;
     double                  y,  cur_coeff, aduPsec;
     cpl_size                i=0 ;
-    int                     counter=0;
+    int                     count_linear=0;
+    int                     count_satur=0;
 
     /* Test entries */
     if (fitted == NULL || dits == NULL || adus == NULL) return -1 ;
     if (cpl_vector_get_size(dits) != cpl_vector_get_size(adus))
         return -1 ;
 
-
     /* Determine true ADU/s by assuming it is linear up to threshold */
     if (cpl_vector_get_min(adus) > CR2RES_DETLIN_THRESHOLD) return -1;
     if (cpl_vector_get_max(adus) < CR2RES_DETLIN_THRESHOLD) return -1;
     for (i = 0; i < cpl_vector_get_size(adus); i++) {
-        if (cpl_vector_get(adus,i) < CR2RES_DETLIN_THRESHOLD ) counter++;
+        if (cpl_vector_get(adus,i) < CR2RES_DETLIN_THRESHOLD ) count_linear++;
+        if (cpl_vector_get(adus,i) > CR2RES_DETLIN_MAXFIT ) count_satur++;
     }
-    cpl_msg_debug(__func__, "Found %d values below threshold", counter);
-    adusPsec = cpl_vector_duplicate(adus);
-    cpl_vector_divide(adusPsec, dits);
-    tmp = cpl_vector_extract(adusPsec,0,counter,1);
+    cpl_msg_debug(__func__, "Found %d values in linear regime, %d saturated",
+                count_linear, count_satur);
+
+    adus_loc = cpl_vector_extract(adus, 0, 
+                cpl_vector_get_size(adus)-count_satur-1, 1);
+    dits_loc = cpl_vector_extract(dits, 0, 
+                cpl_vector_get_size(dits)-count_satur-1, 1);
+
+    cpl_msg_debug(__func__, "len1 %lld , len2 %lld ",
+                cpl_vector_get_size(adus), cpl_vector_get_size(adus_loc));
+
+
+    adusPsec = cpl_vector_duplicate(adus_loc);
+    cpl_vector_divide(adusPsec, dits_loc);
+    tmp = cpl_vector_extract(adusPsec,0,count_linear,1);
     aduPsec = cpl_vector_get_median(tmp);
     cpl_vector_delete(tmp);
     cpl_msg_debug(__func__, "ADU/s is %02f", aduPsec);
 
     samppos = cpl_matrix_wrap(1,
-                cpl_vector_get_size(adus),
-                cpl_vector_get_data((cpl_vector*)adus)) ;
+                cpl_vector_get_size(adus_loc),
+                cpl_vector_get_data((cpl_vector*)adus_loc)) ;
 
-    y_tofit = cpl_vector_new(cpl_vector_get_size(dits));
-    for(i = 0; i < cpl_vector_get_size(dits); i++)
+    y_tofit = cpl_vector_new(cpl_vector_get_size(dits_loc));
+    for(i = 0; i < cpl_vector_get_size(dits_loc); i++)
     {
         // We fit the ratio of true ADU/s over the measured ones.
         y = aduPsec / cpl_vector_get(adusPsec,i);
@@ -233,8 +259,10 @@ int cr2res_detlin_compute(
     /* Sanity check */
     aduPsec=cpl_polynomial_eval_1d(fitted_local,20000.0,NULL);
     if (aduPsec<1.0 || aduPsec>1.2){
-        cpl_matrix_unwrap(samppos) ;
+        cpl_matrix_unwrap(samppos);
         cpl_vector_delete(y_tofit);
+        cpl_vector_delete(dits_loc);
+        cpl_vector_delete(adus_loc);
         cpl_polynomial_delete(fitted_local) ;
         cpl_error_reset() ;
         return -1 ; 
@@ -261,7 +289,7 @@ int cr2res_detlin_compute(
 
         // this actually returns the hankel matrix, not vandermode
         // also directly copied from the cpl source code (cpl_polynomial.c)
-        cr2res_matrix_fill_normal_vandermonde(hankel, mx, adus, CPL_FALSE, 
+        cr2res_matrix_fill_normal_vandermonde(hankel, mx, adus_loc, CPL_FALSE, 
             0, y_tofit);
         cpl_matrix * inverse = cpl_matrix_invert_create(hankel);
         cpl_vector * resids = cpl_vector_new(ndata);
@@ -281,6 +309,8 @@ int cr2res_detlin_compute(
     }
     cpl_vector_delete(y_tofit);
     cpl_matrix_unwrap(samppos) ;    
+    cpl_vector_delete(dits_loc);
+    cpl_vector_delete(adus_loc);
 
     /* Check Result - Polynomial coefficients are NaN sometimes */
     for (i=0 ; i<=max_degree ; i++) {
