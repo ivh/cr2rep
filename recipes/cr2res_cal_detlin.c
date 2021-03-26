@@ -885,9 +885,9 @@ static int cr2res_cal_detlin_reduce(
     median = cpl_image_get_median_dev(cur_coeffs, &sigma) ;
     low_thresh = median - bpm_kappa * sigma ;
     high_thresh = median + bpm_kappa * sigma ;
-    cpl_msg_info(__func__, "Low & high threshold for linear coeff: %.2f %.2f",
+    cpl_msg_info(__func__, "Low & high threshold for linear coeff: %.2e %.2e",
            low_thresh, high_thresh );
-    cpl_msg_info(__func__, "Median, sigma: %.2f %.2f",
+    cpl_msg_info(__func__, "Median, sigma: %.2e %.2e",
            median, sigma );
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
