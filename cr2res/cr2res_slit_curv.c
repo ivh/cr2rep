@@ -82,7 +82,8 @@ static int cr2res_slit_curv_remove_outliers(
     cpl_vector * vec_a,
     cpl_vector * vec_b,
     cpl_vector * vec_c,
-    const int fit_second_order
+    const int fit_second_order,
+    const double divergence
 );
 static int cr2res_slit_curv_single_peak(
     const cpl_image  * img_peak,
@@ -180,7 +181,8 @@ int cr2res_slit_curv_compute_order_trace(
             height, &sfunc, &spec_bi, &model) != 0){
         return -1;
     }
-    peaks = cr2res_etalon_get_maxpos(cpl_bivector_get_x(spec_bi));
+    peaks = cr2res_etalon_find_peaks(cpl_bivector_get_x(spec_bi), 
+        cpl_vector_get_mean(cpl_bivector_get_x(spec_bi)), 3);
     cr2res_slit_curv_remove_peaks_at_edge(&peaks, window, ncols);
     cpl_bivector_delete(spec_bi);
     cpl_vector_delete(sfunc);
@@ -220,7 +222,7 @@ int cr2res_slit_curv_compute_order_trace(
     // however this is a lot easier and works as long as there is no
     // strong variation within the order
     cr2res_slit_curv_remove_outliers(peaks, vec_a, vec_b,
-        vec_c, fit_second_order);
+        vec_c, fit_second_order, 5);
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
        cpl_vector_save(vec_a, "debug_vector_a.fits",
@@ -329,7 +331,8 @@ static int cr2res_slit_curv_remove_outliers(
     cpl_vector * vec_a,
     cpl_vector * vec_b,
     cpl_vector * vec_c,
-    const int fit_second_order
+    const int fit_second_order,
+    const double divergence
 )
 {
     cpl_vector * remove_peaks;
@@ -337,8 +340,6 @@ static int cr2res_slit_curv_remove_outliers(
     cpl_size npeaks;
     cpl_size i, j;
     double median, mad;
-
-    const double divergence = 100;
 
     // First step is to find the peaks to remove
     // We use the median and the median absolute deviation (mad)

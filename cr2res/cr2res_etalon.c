@@ -227,3 +227,230 @@ cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector * in)
     }
     return maxima_pos ;
 }
+
+cpl_vector * cr2res_etalon_get_local_maxima(
+    const cpl_vector * in, 
+    cpl_vector ** left_edges, 
+    cpl_vector ** right_edges){
+    /*
+    Find local maxima in a 1D array.
+    This function finds all local maxima in a 1D array and returns the indices
+    for their edges and midpoints (rounded down for even plateau sizes).
+    Parameters
+    ----------
+    x : ndarray
+        The array to search for local maxima.
+    Returns
+    -------
+    midpoints : ndarray
+        Indices of midpoints of local maxima in `x`.
+    left_edges : ndarray
+        Indices of edges to the left of local maxima in `x`.
+    right_edges : ndarray
+        Indices of edges to the right of local maxima in `x`.
+    Notes
+    -----
+    - Compared to `argrelmax` this function is significantly faster and can
+      detect maxima that are more than one sample wide. However this comes at
+      the cost of being only applicable to 1D arrays.
+    - A maxima is defined as one or more samples of equal value that are
+      surrounded on both sides by at least one smaller sample.
+    .. versionadded:: 1.1.0
+    */
+    
+    cpl_vector * midpoints;
+    int m, i, i_ahead, i_max;
+
+    int width = cpl_vector_get_size(in);
+
+    // Preallocate, there can't be more maxima than half the size of `x`
+    midpoints = cpl_vector_new(width / 2);
+    *left_edges = cpl_vector_new(width / 2);
+    *right_edges = cpl_vector_new(width / 2);
+    m = 0;  // Pointer to the end of valid area in allocated arrays
+
+    i = 1;  // Pointer to current sample, first one can't be maxima
+    i_max = width - 1;  // Last sample can't be maxima
+    while (i < i_max){
+        // Test if previous sample is smaller
+        if (cpl_vector_get(in, i - 1) < cpl_vector_get(in, i)){
+            i_ahead = i + 1;  // Index to look ahead of current sample
+
+            // Find next sample that is unequal to x[i]
+            while (i_ahead < i_max && cpl_vector_get(in, i_ahead) == cpl_vector_get(in, i)){
+                i_ahead += 1;
+            }
+
+            // Maxima is found if next unequal sample is smaller than x[i]
+            if (cpl_vector_get(in, i_ahead) < cpl_vector_get(in, i)){
+                cpl_vector_set(*left_edges, m, i);
+                cpl_vector_set(*right_edges, m, i_ahead - 1);
+                cpl_vector_set(midpoints, m, (i + i_ahead - 1) / 2);
+                m += 1;
+                // Skip samples that can't be maximum
+                i = i_ahead;
+            }
+        }
+        i++;
+    }
+
+    // Keep only valid part of array memory.
+    cpl_vector_set_size(midpoints, m);
+    cpl_vector_set_size(*left_edges, m);
+    cpl_vector_set_size(*right_edges, m);
+
+    return midpoints;
+}
+
+cpl_vector * cr2res_etalon_select_by_peak_distance(const cpl_vector * peaks,
+                             const cpl_vector * peak_heights,
+                             float distance)
+{
+    /*
+    Evaluate which peaks fulfill the distance condition.
+    Parameters
+    ----------
+    peaks : ndarray
+        Indices of peaks in `vector`.
+    priority : ndarray
+        An array matching `peaks` used to determine priority of each peak. A
+        peak with a higher priority value is kept over one with a lower one.
+    distance : np.float64
+        Minimal distance that peaks must be spaced.
+    Returns
+    -------
+    keep : ndarray[bool]
+        A boolean mask evaluating to true where `peaks` fulfill the distance
+        condition.
+    Notes
+    -----
+    Declaring the input arrays as C-contiguous doesn't seem to have performance
+    advantages.
+    .. versionadded:: 1.1.0
+    */
+    
+
+    cpl_vector * keep;
+    cpl_vector * priority_to_position;
+    int i, j, k, peaks_size, distance_;
+
+    peaks_size = cpl_vector_get_size(peaks);
+    // Round up because actual peak distance can only be natural number
+    distance_ = distance;
+    // Prepare array of flags
+    keep = cpl_vector_new(peaks_size);
+    for (i = 0; i < peaks_size; i++){
+        cpl_vector_set(keep, i, 1);
+    }
+
+    // Create map from `i` (index for `peaks` sorted by `priority`) to `j` (index
+    // for `peaks` sorted by position). This allows to iterate `peaks` and `keep`
+    // with `j` by order of `priority` while still maintaining the ability to
+    // step to neighbouring peaks with (`j` + 1) or (`j` - 1).
+    
+    cpl_bivector * bivector_tmp = cpl_bivector_new(peaks_size);
+    priority_to_position = cpl_bivector_get_x(bivector_tmp);
+
+    for (i = 0; i < peaks_size; i++){
+        cpl_vector_set(priority_to_position, i, i);
+    }
+    cpl_vector_copy(cpl_bivector_get_y(bivector_tmp), peak_heights);
+    
+    cpl_bivector_sort(bivector_tmp, bivector_tmp, CPL_SORT_ASCENDING, CPL_SORT_BY_Y);
+
+
+    // Highest priority first -> iterate in reverse order (decreasing)
+    for (i = peaks_size - 1; i> -1; i--){
+        // "Translate" `i` to `j` which points to current peak whose
+        // neighbours are to be evaluated
+        j = cpl_vector_get(priority_to_position, i);
+        if (cpl_vector_get(keep, j) == 0){
+            // Skip evaluation for peak already marked as "don't keep"
+            continue;
+        }
+
+        k = j - 1;
+        // Flag "earlier" peaks for removal until minimal distance is exceeded
+        while (0 <= k &&  cpl_vector_get(peaks, j) - cpl_vector_get(peaks,k) < distance_){
+            cpl_vector_set(keep, k, 0);
+            k--;
+        }
+
+        k = j + 1;
+        // Flag "later" peaks for removal until minimal distance is exceeded
+        while (k < peaks_size && cpl_vector_get(peaks, k) - cpl_vector_get(peaks, j) < distance_){
+            cpl_vector_set(keep, k, 0);
+            k++;
+        }
+    }
+    cpl_bivector_delete(bivector_tmp);
+
+    return keep;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Detect peaks from a 1d periodic signal and store their positions
+  @param    in      The 1d signal as a vector
+  @return   The vector with the maxima positions
+
+  Loosely based on scipy.signal.find_peaks
+ */
+/*----------------------------------------------------------------------------*/
+cpl_vector * cr2res_etalon_find_peaks(
+    const cpl_vector * in, 
+    double height, 
+    double width){
+
+    cpl_vector * right_edges;
+    cpl_vector * left_edges;
+    cpl_vector * peaks;
+    cpl_vector * peak_heights;
+    cpl_vector * peaks_out;
+    cpl_vector * peak_distance;
+    
+    double peak, peak_height, peak_width, left, right;
+    int npeaks;
+    int k;
+
+    peaks = cr2res_etalon_get_local_maxima(in, &left_edges, &right_edges);
+    npeaks = cpl_vector_get_size(peaks);
+
+    peak_heights = cpl_vector_new(npeaks);
+    for (cpl_size i = 0; i < npeaks; i++)
+    {
+        peak = cpl_vector_get(peaks, i);
+        peak_height = cpl_vector_get(in, peak);
+        cpl_vector_set(peak_heights, i, peak_height);
+    }
+
+    peak_distance = cr2res_etalon_select_by_peak_distance(peaks, peak_heights, width);
+
+    // Evaluate height condition
+    peaks_out = cpl_vector_new(npeaks);
+    k = 0;
+    for (cpl_size i = 0; i < npeaks; i++)
+    {
+        peak = cpl_vector_get(peaks, i);
+        left = cpl_vector_get(left_edges, i);
+        right = cpl_vector_get(right_edges, i);
+
+        peak_height = cpl_vector_get(in, peak);
+        peak_width = right - left;
+
+
+        if ((peak_height > height) && (cpl_vector_get(peak_distance, i))){
+            cpl_vector_set(peaks_out, k, peak);
+            k++;
+        }
+    }
+    cpl_vector_set_size(peaks_out, k);
+    cpl_vector_delete(peaks);
+    cpl_vector_delete(left_edges);
+    cpl_vector_delete(right_edges);
+    cpl_vector_delete(peak_heights);
+    cpl_vector_delete(peak_distance);
+
+
+    return peaks_out;
+}

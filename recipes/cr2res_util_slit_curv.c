@@ -276,7 +276,7 @@ static int cr2res_util_slit_curv(
     int                     i, j, k ;
 
     /* Initialise */
-    curv_degree = 2 ;
+    curv_degree = 1 ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
