@@ -662,7 +662,7 @@ static int cr2res_cal_detlin_reduce(
     }
 
     /* Initialise */
-    max_degree = 3 ;
+    max_degree = 2 ;
 
     /* Get the Extension number */
     first_file = cpl_frame_get_filename(

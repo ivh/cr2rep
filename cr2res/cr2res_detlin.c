@@ -77,16 +77,12 @@ int cr2res_detlin_correct(
     const cpl_image     *   errb ;
     const cpl_image     *   imc ;
     const cpl_image     *   errc ;
-    const cpl_image     *   imd ;
-    const cpl_image     *   errd ;
     const double        *   pima ;
     const double        *   perra ;
     const double        *   pimb ;
     const double        *   perrb ;
     const double        *   pimc ;
     const double        *   perrc ;
-    const double        *   pimd ;
-    const double        *   perrd ;
     cpl_image           *   cur_ima ;
     double              *   pdata ;
     double              *   perr ;
@@ -109,21 +105,17 @@ int cr2res_detlin_correct(
     errb = hdrl_image_get_error_const(hdrl_imagelist_get_const(detlin, 1)) ;
     imc = hdrl_image_get_image_const(hdrl_imagelist_get_const(detlin, 2)) ;
     errc = hdrl_image_get_error_const(hdrl_imagelist_get_const(detlin, 2)) ;
-    imd = hdrl_image_get_image_const(hdrl_imagelist_get_const(detlin, 3)) ;
-    errd = hdrl_image_get_error_const(hdrl_imagelist_get_const(detlin, 3)) ;
 
-    if (!ima || !imb || !imc || !imd) {
+    if (!ima || !imb || !imc ) {
         cpl_msg_error(cpl_func, "Cannot access the detlin images") ;
         return -1 ;
     }
     pima = cpl_image_get_data_double_const(ima) ;
     pimb = cpl_image_get_data_double_const(imb) ;
     pimc = cpl_image_get_data_double_const(imc) ;
-    pimd = cpl_image_get_data_double_const(imd) ;
     perra = cpl_image_get_data_double_const(erra);
     perrb = cpl_image_get_data_double_const(errb);
     perrc = cpl_image_get_data_double_const(errc);
-    perrd = cpl_image_get_data_double_const(errd);
 
     /* Test sizes */
     cur_ima = hdrl_image_get_image(in) ;
@@ -132,20 +124,17 @@ int cr2res_detlin_correct(
     if ((cpl_image_get_size_x(ima) != nx) ||
             (cpl_image_get_size_x(imb) != nx) ||
             (cpl_image_get_size_x(imc) != nx) ||
-            (cpl_image_get_size_x(imd) != nx) ||
             (cpl_image_get_size_y(ima) != ny) ||
             (cpl_image_get_size_y(imb) != ny) ||
-            (cpl_image_get_size_y(imc) != ny) ||
-            (cpl_image_get_size_y(imd) != ny)) {
+            (cpl_image_get_size_y(imc) != ny)) {
         cpl_msg_error(cpl_func, "Incompatible sizes") ;
         return -1 ;
     }
 
     /* Loop on pixels */
     for (i=0 ; i<nx*ny ; i++) {
-        // for each pixel p' = a + b * p + c * p * p + d * p*p*p
+        // for each pixel p' = a + b * p + c * p * p 
 
-        // TODO: add third power to error
         perr[i] = pow2(perra[i] * pdata[i]) + pow2(perrb[i] * pow2(pdata[i]))
                 + pow2(perrc[i] * pow3(pdata[i])) 
                 + pow2(perr[i] * (pima[i] + 2. * pimb[i] * pdata[i] 
@@ -153,8 +142,7 @@ int cr2res_detlin_correct(
         perr[i] = sqrt(perr[i]);
 
         correction_factor = pima[i] + \
-                ((pimb[i] + pimc[i] * pdata[i]) * pdata[i]) + \
-                (pimd[i]*pow3(pdata[i]));
+                ((pimb[i] + pimc[i] * pdata[i]) * pdata[i]);
         pdata[i] = pdata[i] * correction_factor;
     }
     /* return */
@@ -228,7 +216,7 @@ int cr2res_detlin_compute(
                 cpl_vector_get_size(adus), cpl_vector_get_size(adus_loc));
     cpl_msg_debug(__func__, "ADU/s is %02f", aduPsec);
     */
-   
+
     samppos = cpl_matrix_wrap(1,
                 cpl_vector_get_size(adus_loc),
                 cpl_vector_get_data((cpl_vector*)adus_loc)) ;
