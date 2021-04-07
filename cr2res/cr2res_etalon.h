@@ -35,5 +35,5 @@ cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector *) ;
 cpl_vector * cr2res_etalon_find_peaks(
     const cpl_vector * in, 
     double height, 
-    double width);
+    double distance);
 #endif

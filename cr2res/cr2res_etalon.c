@@ -228,6 +228,22 @@ cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector * in)
     return maxima_pos ;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Find local maxima in a 1D array. This function finds all local 
+            maxima in a 1D array and returns the indices for their edges and 
+            midpoints (rounded down for even plateau sizes).
+  @param    in      The 1d signal as a vector
+  @param    left_edges [out] left edge positions of the peaks
+  @param    right_edges [out] right edge positions of the peaks
+  @return   The vector with the maxima positions
+
+  The left_edge and right_edge vectors need to be deleted afterwards
+  Note that the edges here refer to points with exactly the same value, not
+  the width of the gaussian peak
+
+ */
+/*----------------------------------------------------------------------------*/
 cpl_vector * cr2res_etalon_get_local_maxima(
     const cpl_vector * in, 
     cpl_vector ** left_edges, 
@@ -302,6 +318,15 @@ cpl_vector * cr2res_etalon_get_local_maxima(
     return midpoints;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Selects the highest peaks that are atleast distance pixel apart
+  @param    peaks          The 1d signal as a vector
+  @param    peak_heights   The heights (priority) of each peak
+  @param    distance       The minimum distance between peaks to keep
+  @return   A boolean vector where 1 means to keep the peak, or 0 to discard it
+ */
+/*----------------------------------------------------------------------------*/
 cpl_vector * cr2res_etalon_select_by_peak_distance(const cpl_vector * peaks,
                              const cpl_vector * peak_heights,
                              float distance)
@@ -391,7 +416,9 @@ cpl_vector * cr2res_etalon_select_by_peak_distance(const cpl_vector * peaks,
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Detect peaks from a 1d periodic signal and store their positions
-  @param    in      The 1d signal as a vector
+  @param    in       The 1d signal as a vector
+  @param    height   The minimum height of each peak
+  @param    distance The minimum distance between peaks
   @return   The vector with the maxima positions
 
   Loosely based on scipy.signal.find_peaks
@@ -400,7 +427,7 @@ cpl_vector * cr2res_etalon_select_by_peak_distance(const cpl_vector * peaks,
 cpl_vector * cr2res_etalon_find_peaks(
     const cpl_vector * in, 
     double height, 
-    double width){
+    double distance){
 
     cpl_vector * right_edges;
     cpl_vector * left_edges;
@@ -424,7 +451,8 @@ cpl_vector * cr2res_etalon_find_peaks(
         cpl_vector_set(peak_heights, i, peak_height);
     }
 
-    peak_distance = cr2res_etalon_select_by_peak_distance(peaks, peak_heights, width);
+    peak_distance = cr2res_etalon_select_by_peak_distance(peaks, 
+                        peak_heights, distance);
 
     // Evaluate height condition
     peaks_out = cpl_vector_new(npeaks);
@@ -432,12 +460,7 @@ cpl_vector * cr2res_etalon_find_peaks(
     for (cpl_size i = 0; i < npeaks; i++)
     {
         peak = cpl_vector_get(peaks, i);
-        left = cpl_vector_get(left_edges, i);
-        right = cpl_vector_get(right_edges, i);
-
         peak_height = cpl_vector_get(in, peak);
-        peak_width = right - left;
-
 
         if ((peak_height > height) && (cpl_vector_get(peak_distance, i))){
             cpl_vector_set(peaks_out, k, peak);
