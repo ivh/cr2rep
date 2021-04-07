@@ -106,6 +106,23 @@ static int cr2res_trace_get_subtrace(
 static int cr2res_trace_filter_keep(
         const char  *   setting,
         int             real_order) ;
+static double cr2res_trace_calculate_pixel_shift(
+    int n, 
+    double sf_lower,
+    double sf_all,
+    double sf_upper,
+    double sf_new,
+    cpl_polynomial * poly_lower, 
+    cpl_polynomial * poly_all, 
+    cpl_polynomial * poly_upper,
+    cpl_polynomial * poly_a,
+    cpl_polynomial * poly_b,
+    cpl_polynomial * poly_c,
+    double * a,
+    double * b,
+    double * c,
+    double * pix_shift_y);
+
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -1135,14 +1152,13 @@ cpl_table * cr2res_trace_new_slit_fraction(
     cpl_vector      *   c_vec;
     cpl_vector      *   wave_vec;
     cpl_size            i, j, k, m, n, nrows, degree ;
+    int order, trace_id;
     int nb_order_idx_values, nb_traces;
     int * order_idx_values, * trace_numbers;
     double a, b, c;
     double pix_lower, pix_upper, pix_all;
     double sf_lower, sf_upper, sf_all, sf_new;
     double pix_shift_x, pix_shift_y;
-    int isError = FALSE;
-    int hasWavelength = TRUE;
 
     /* Check entries */
     if (traces == NULL || new_slit_fraction == NULL) return NULL ;
@@ -1241,19 +1257,11 @@ cpl_table * cr2res_trace_new_slit_fraction(
 
         // Read data arrays from existing table
         // TODO this only works if trace_numbers 0 is a valid trace
-        hasWavelength = TRUE;
         k = cr2res_get_trace_table_index(traces, order_idx_values[i], 
                 trace_numbers[0]);
         const_wave = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, k) ;
         const_wave_err = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH_ERROR, k) ; 
-        
-        if (any(const_wave, isnan)){
-            cpl_msg_warning(__func__, 
-                    "Wavelength polynomial is not set for order %i",
-                    order_idx_values[i]) ;
-            hasWavelength = FALSE;
-        }
-
+       
         const_slit_curv_a = cpl_table_get_array(traces, CR2RES_COL_SLIT_CURV_A,
                 k) ; 
         const_slit_curv_b = cpl_table_get_array(traces, CR2RES_COL_SLIT_CURV_B,
@@ -1284,47 +1292,16 @@ cpl_table * cr2res_trace_new_slit_fraction(
         poly_b = cr2res_convert_array_to_poly(const_slit_curv_b);
         poly_c = cr2res_convert_array_to_poly(const_slit_curv_c); 
 
-        if (hasWavelength){
-            poly_wave = cr2res_convert_array_to_poly(const_wave);
-        }
-
         samppos = cpl_matrix_new(1, CR2RES_DETECTOR_SIZE);
         a_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
         b_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
         c_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
 
-        if (hasWavelength){
-            wave_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
-        }
-
         for (n = 0; n < CR2RES_DETECTOR_SIZE; n++)
         {
-            pix_lower = cpl_polynomial_eval_1d(poly_lower, n + 1, NULL);
-            pix_upper = cpl_polynomial_eval_1d(poly_upper, n + 1, NULL);
-            pix_all = cpl_polynomial_eval_1d(poly_all, n + 1, NULL);
-
-            a = cpl_polynomial_eval_1d(poly_a, n + 1, NULL);
-            b = cpl_polynomial_eval_1d(poly_b, n + 1, NULL);
-            c = cpl_polynomial_eval_1d(poly_c, n + 1, NULL);
-
-            // Shift to the local coordinate system
-            // c is 0 usually, since we don't fit it always
-            a = 0;
-            b += 2 * c * pix_all;
-
-            // vertical pixel shift
-            pix_shift_y = (pix_upper - pix_lower) / 
-                (sf_upper - sf_lower) * (sf_all - sf_new);
-            // cpl_msg_debug(__func__, "Pixel Shift y %f", pix_shift);
-            // horizontal pixel shift
-            pix_shift_x = a + (c * pix_shift_y + b) * pix_shift_y;
-            // pix_shift = a + b * pix_shift + c * pix_shift * pix_shift;
-            // cpl_msg_debug(__func__, "Pixel Shift x %f", pix_shift);
-            // cpl_msg_debug(__func__, "-------");
-
-            // shift back to global position (relative from new local position)
-            a = n + 1;
-            b -= 2 * c * (pix_shift_y + pix_all);
+            pix_shift_x = cr2res_trace_calculate_pixel_shift(n, sf_lower, 
+                sf_all, sf_upper, sf_new, poly_lower, poly_all, 
+                poly_upper, poly_a, poly_b, poly_c, &a, &b, &c, &pix_shift_y);
 
             // Set the location with the shifted position
             cpl_matrix_set(samppos, 0, n, n + 1 - pix_shift_x);
@@ -1332,13 +1309,6 @@ cpl_table * cr2res_trace_new_slit_fraction(
             cpl_vector_set(a_vec, n, a);
             cpl_vector_set(b_vec, n, b);
             cpl_vector_set(c_vec, n, c);
-        }
-        if (hasWavelength){
-            for (n = 0; n < CR2RES_DETECTOR_SIZE; n++)
-            {
-                cpl_vector_set(wave_vec, n, 
-                    cpl_polynomial_eval_1d(poly_wave, n + 1, NULL));
-            }
         }
 
         cpl_polynomial_delete(poly_lower);
@@ -1372,31 +1342,13 @@ cpl_table * cr2res_trace_new_slit_fraction(
             cpl_vector_delete(a_vec);
             cpl_vector_delete(b_vec);
             cpl_vector_delete(c_vec);
-            if (hasWavelength) cpl_vector_delete(wave_vec);
             continue;
-        }
-
-        if (hasWavelength){
-            degree = cpl_polynomial_get_degree(poly_wave);
-            cpl_polynomial_fit(poly_wave, samppos, NULL, wave_vec, NULL, 
-                CPL_FALSE, NULL, &degree);
-
-            if (cpl_error_get_code() != CPL_ERROR_NONE){
-                cpl_msg_error(__func__, 
-                "Could not calculate the new wavelength polynomial. %s", 
-                    cpl_error_get_message());
-                cpl_error_reset();
-                cpl_polynomial_delete(poly_wave);
-                cpl_vector_delete(wave_vec);
-                hasWavelength = FALSE;
-            }
         }
 
         cpl_matrix_delete(samppos);
         cpl_vector_delete(a_vec);
         cpl_vector_delete(b_vec);
         cpl_vector_delete(c_vec);
-        if (hasWavelength) cpl_vector_delete(wave_vec);
 
         slit_curv_a = cr2res_convert_poly_to_array(poly_a, 
                 cpl_array_get_size(const_slit_curv_a));
@@ -1410,17 +1362,9 @@ cpl_table * cr2res_trace_new_slit_fraction(
         cpl_polynomial_delete(poly_c);
 
 
-        /* Set new Wavelength  */
-        if (hasWavelength){
-            wave = cr2res_convert_poly_to_array(poly_wave, 
-                        cpl_array_get_size(const_wave));
-            cpl_polynomial_delete(poly_wave);
-        } else {
-            wave = cpl_array_duplicate(const_wave);
-        }
-        // Copy the data into a new memory
+        /* Set new Wavelength  */    
+        wave = cpl_array_duplicate(const_wave);
         wave_err = cpl_array_duplicate(const_wave_err);
-
         cpl_table_set_array(out, CR2RES_COL_WAVELENGTH, i, wave);
         cpl_table_set_array(out, CR2RES_COL_WAVELENGTH_ERROR, i, wave_err);
         cpl_array_delete(wave) ;
@@ -1450,7 +1394,186 @@ cpl_table * cr2res_trace_new_slit_fraction(
         return NULL ;
     }
     cpl_table_not_selected(out) ;
+
+    // Shift Wavelength according to curvature
+    for (cpl_size k = 0; k < nrows; k++)
+    {
+        order = cpl_table_get_int(out, CR2RES_COL_ORDER, k, NULL);
+        trace_id = cpl_table_get_int(out, CR2RES_COL_TRACENB, k, NULL);
+        out = cr2res_trace_shift_wavelength(out, 0.5, order, trace_id);
+    }
+
     return out ;
+}
+
+static double cr2res_trace_calculate_pixel_shift(
+    int n, 
+    double sf_lower,
+    double sf_all,
+    double sf_upper,
+    double sf_new,
+    cpl_polynomial * poly_lower, 
+    cpl_polynomial * poly_all, 
+    cpl_polynomial * poly_upper,
+    cpl_polynomial * poly_a,
+    cpl_polynomial * poly_b,
+    cpl_polynomial * poly_c,
+    double * a,
+    double * b,
+    double * c,
+    double * pix_shift_y)
+{
+    double pix_lower, pix_upper, pix_all;
+    double pix_shift_x;
+
+    pix_lower = cpl_polynomial_eval_1d(poly_lower, n + 1, NULL);
+    pix_upper = cpl_polynomial_eval_1d(poly_upper, n + 1, NULL);
+    pix_all = cpl_polynomial_eval_1d(poly_all, n + 1, NULL);
+
+    *a = cpl_polynomial_eval_1d(poly_a, n + 1, NULL);
+    *b = cpl_polynomial_eval_1d(poly_b, n + 1, NULL);
+    *c = cpl_polynomial_eval_1d(poly_c, n + 1, NULL);
+
+    // Shift to the local coordinate system
+    // c is 0 usually, since we don't fit it always
+    *a = 0;
+    *b += 2 * (*c) * pix_all;
+
+    // vertical pixel shift
+    *pix_shift_y = (pix_upper - pix_lower) / 
+        (sf_upper - sf_lower) * (sf_all - sf_new);
+    // horizontal pixel shift
+    pix_shift_x = *a + (*c * (*pix_shift_y) + *b) * (*pix_shift_y);
+
+    // Shift to global position
+    *a = n + 1;
+    *b -= 2 * (*c) * (*pix_shift_y + pix_all);
+
+    return pix_shift_x;
+}
+
+cpl_table * cr2res_trace_shift_wavelength(
+    cpl_table     *   traces,
+    double old_slit_fraction,
+    int order,
+    int trace_id)
+{
+    cpl_vector * wave_vec;
+    cpl_polynomial * poly_wave;
+    cpl_array * wave;
+    cpl_matrix * samppos;
+    const cpl_array * const_wave;
+    const cpl_array * const_wave_err;
+    const cpl_array * slit_frac_old;
+    const cpl_array * trace_all_old;
+    const cpl_array * trace_lower_old;
+    const cpl_array * trace_upper_old;
+    const cpl_array * const_slit_curv_a;
+    const cpl_array * const_slit_curv_b;
+    const cpl_array * const_slit_curv_c;
+
+    cpl_polynomial * poly_lower;
+    cpl_polynomial * poly_all;
+    cpl_polynomial * poly_upper;
+    cpl_polynomial * poly_a;
+    cpl_polynomial * poly_b;
+    cpl_polynomial * poly_c;
+
+    int * order_idx_values, nb_order_idx_values;
+    int * trace_numbers, nb_traces;
+    cpl_size k, nrows;
+    cpl_size degree;
+    double a, b, c;
+    double pix_shift_x, pix_shift_y;
+    double sf_lower, sf_all, sf_upper, sf_new;
+
+    k = cr2res_get_trace_table_index(traces, order, trace_id);
+
+    // Get values from the trace wave table
+    const_wave = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, k) ;
+    const_wave_err = cpl_table_get_array(traces, 
+        CR2RES_COL_WAVELENGTH_ERROR,k); 
+    slit_frac_old = cpl_table_get_array(traces, 
+        CR2RES_COL_SLIT_FRACTION, k);
+    trace_all_old = cpl_table_get_array(traces, CR2RES_COL_ALL, k) ;
+    trace_upper_old = cpl_table_get_array(traces, CR2RES_COL_UPPER, k) ;
+    trace_lower_old = cpl_table_get_array(traces, CR2RES_COL_LOWER, k) ;
+    const_slit_curv_a = cpl_table_get_array(traces, 
+        CR2RES_COL_SLIT_CURV_A, k) ; 
+    const_slit_curv_b = cpl_table_get_array(traces, 
+        CR2RES_COL_SLIT_CURV_B, k) ; 
+    const_slit_curv_c = cpl_table_get_array(traces, 
+        CR2RES_COL_SLIT_CURV_C, k) ; 
+
+    poly_all = cr2res_convert_array_to_poly(trace_all_old);
+    poly_lower = cr2res_convert_array_to_poly(trace_lower_old);
+    poly_upper = cr2res_convert_array_to_poly(trace_upper_old);
+
+    // TODO
+    // we switch around sf_new and sf_all, since we are correcting
+    // for a change that has already happened
+    sf_lower = cpl_array_get_double(slit_frac_old, 0, NULL);
+    sf_new = cpl_array_get_double(slit_frac_old, 1, NULL);
+    sf_upper = cpl_array_get_double(slit_frac_old, 2, NULL);
+    sf_all = old_slit_fraction;
+
+    poly_a = cr2res_convert_array_to_poly(const_slit_curv_a);
+    poly_b = cr2res_convert_array_to_poly(const_slit_curv_b);
+    poly_c = cr2res_convert_array_to_poly(const_slit_curv_c); 
+
+    poly_wave = cr2res_convert_array_to_poly(const_wave);
+    wave_vec = cpl_vector_new(CR2RES_DETECTOR_SIZE);
+    samppos = cpl_matrix_new(1, CR2RES_DETECTOR_SIZE);
+
+
+    for (cpl_size n = 0; n < CR2RES_DETECTOR_SIZE; n++)
+    {
+        cpl_vector_set(wave_vec, n, 
+                    cpl_polynomial_eval_1d(poly_wave, n + 1, NULL));
+
+        pix_shift_x = cr2res_trace_calculate_pixel_shift(n, sf_lower, 
+                sf_all, sf_upper, sf_new, poly_lower, poly_all, 
+                poly_upper, poly_a, poly_b, poly_c, &a, &b, &c, 
+                &pix_shift_y);
+
+        cpl_matrix_set(samppos, 0, n, n + 1 - pix_shift_x);
+    }
+
+    cpl_polynomial_delete(poly_a);
+    cpl_polynomial_delete(poly_b);
+    cpl_polynomial_delete(poly_c);
+    cpl_polynomial_delete(poly_lower);
+    cpl_polynomial_delete(poly_all);
+    cpl_polynomial_delete(poly_upper);
+
+    degree = cpl_polynomial_get_degree(poly_wave);
+    cpl_polynomial_fit(poly_wave, samppos, NULL, wave_vec, NULL, 
+        CPL_FALSE, NULL, &degree);
+
+    if (cpl_error_get_code() != CPL_ERROR_NONE){
+        cpl_msg_error(__func__, 
+            "Could not calculate the new wavelength polynomial. %s", 
+            cpl_error_get_message());
+        cpl_error_reset();
+        // delete stuff
+        cpl_vector_delete(wave_vec);
+        cpl_polynomial_delete(poly_wave);
+        cpl_matrix_delete(samppos);
+        return NULL;
+    }
+
+    wave = cr2res_convert_poly_to_array(poly_wave, 
+                        cpl_array_get_size(const_wave));
+
+    cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH, k, wave);
+    cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH_ERROR, k, const_wave_err);
+
+    cpl_vector_delete(wave_vec);
+    cpl_polynomial_delete(poly_wave);
+    cpl_array_delete(wave);
+    cpl_matrix_delete(samppos);
+
+    return traces;
 }
 
 /*----------------------------------------------------------------------------*/

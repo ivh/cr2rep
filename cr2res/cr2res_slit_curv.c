@@ -173,7 +173,9 @@ int cr2res_slit_curv_compute_order_trace(
     // to remove outliers, which would mess with the peak detection
     hdrl_other = hdrl_image_new(cpl_image_get_size_x(img_in),
         cpl_image_get_size_y(img_in));
-    cr2res_slit_curv_smooth_image_median(hdrl_other, img_in, 3);
+    if (cr2res_slit_curv_smooth_image_median(hdrl_other, img_in, 3) != 0){
+        return -1;
+    }
     img_in = hdrl_image_get_image_const(hdrl_other);
     
     // Determine the peaks and remove peaks at the edges of the order
@@ -225,7 +227,9 @@ int cr2res_slit_curv_compute_order_trace(
         vec_c, fit_second_order, 5);
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
-       cpl_vector_save(vec_a, "debug_vector_a.fits",
+        cpl_vector_save(peaks, "debug_peaks.fits",
+            CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+        cpl_vector_save(vec_a, "debug_vector_a.fits",
             CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
         cpl_vector_save(vec_b, "debug_vector_b.fits",
             CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
@@ -294,7 +298,7 @@ static int cr2res_slit_curv_smooth_image_median(
     kernel = cpl_mask_new(kernel_size, kernel_size);
     cpl_mask_not(kernel);
     cpl_image_filter_mask(img_other, img_in, kernel,
-            CPL_FILTER_MEDIAN, CPL_BORDER_ZERO);
+            CPL_FILTER_MEDIAN, CPL_BORDER_FILTER);
     cpl_mask_delete(kernel);
 
     if (cpl_error_get_code() != CPL_ERROR_NONE){
@@ -795,9 +799,12 @@ static int cr2res_slit_curv_single_peak(
     cpl_image * img_slitfunc;
     cpl_image * img_model;
     cpl_image * img_spec;
+    cpl_matrix * x_extract;
+    cpl_vector * y_extract;
     double minimum, maximum;
     double yc, result;
     double pos[2];
+    double pix_value;
 
     const int width = cpl_image_get_size_x(img_peak);
     const int height = cpl_image_get_size_y(img_peak);
@@ -809,13 +816,16 @@ static int cr2res_slit_curv_single_peak(
         for (k = 0; k < height; k++){
             // We want to use the absolute reference frame
             // as thats what is desired in the output
-            pos[0] = peak - window + j;
-            pos[1] = cpl_vector_get(ycen, (cpl_size)pos[0]) - height / 2 + k;
-            cpl_matrix_set(x, n, 0, pos[0]);
-            cpl_matrix_set(x, n, 1, pos[1]);
-            cpl_vector_set(y, n, 
-                cpl_image_get(img_peak, j+1, k+1, &badpix));
-            n++;
+            pix_value = cpl_image_get(img_peak, j+1, k+1, &badpix);
+            // Filter out bad pixels
+            if (!badpix && !isnan(pix_value)){
+                pos[0] = peak - window + j;
+                pos[1] = cpl_vector_get(ycen, (cpl_size)pos[0]) - height / 2 + k;
+                cpl_matrix_set(x, n, 0, pos[0]);
+                cpl_matrix_set(x, n, 1, pos[1]);
+                cpl_vector_set(y, n, pix_value);
+                n++;
+            }
         }
     }
 
@@ -847,10 +857,19 @@ static int cr2res_slit_curv_single_peak(
     cpl_vector_set(a, 7, (double)(intptr_t)cpl_image_get_data(img_slitfunc));
     cpl_vector_set(a, 8, (double)(intptr_t)cpl_vector_get_data_const(ycen));
 
+    // We want to reuse the memory in every peak, but we only need a fraction of
+    // it in every iteration. To adjust the size we wrap the larger memory
+    // in a smaller matrix/vector, that only has the good pixels in it
+    x_extract = cpl_matrix_wrap(n, 2, cpl_matrix_get_data(x));
+    y_extract = cpl_vector_wrap(n, cpl_vector_get_data(y));
+
     // Fit the model
-    error = cpl_fit_lvmq(x, NULL, y, NULL, a, ia, fmodel, dmodel_da, 
+    error = cpl_fit_lvmq(x_extract, NULL, y_extract, NULL, a, ia, fmodel, dmodel_da, 
         CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT, CPL_FIT_LVMQ_MAXITER,
         NULL, NULL, NULL);
+
+    cpl_matrix_unwrap(x_extract);
+    cpl_vector_unwrap(y_extract);
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
         img_model = cpl_image_new(width, height, CPL_TYPE_DOUBLE);

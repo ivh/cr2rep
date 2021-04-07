@@ -35,6 +35,7 @@
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
 #include "cr2res_io.h"
+#include "cr2res_trace.h"
 
 /*-----------------------------------------------------------------------------
                                 Define
@@ -418,6 +419,10 @@ static int cr2res_util_slit_curv(
                 cpl_table_set_array(trace_wave[det_nr-1],
                         CR2RES_COL_SLIT_CURV_C, j, slit_array) ;
                 cpl_array_delete(slit_array) ;
+
+                // Correct the wavelength solution for the curvature
+                cr2res_trace_shift_wavelength(trace_wave[det_nr-1], 0.5, 
+                        order, trace_id);
 
                 cpl_msg_indent_less() ;
             }
