@@ -1481,7 +1481,7 @@ cpl_table * cr2res_trace_shift_wavelength(
 
     int * order_idx_values, nb_order_idx_values;
     int * trace_numbers, nb_traces;
-    cpl_size k, nrows;
+    cpl_size n, k, nrows;
     cpl_size degree;
     double a, b, c;
     double pix_shift_x, pix_shift_y;
@@ -1492,7 +1492,7 @@ cpl_table * cr2res_trace_shift_wavelength(
     // Get values from the trace wave table
     const_wave = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, k) ;
     const_wave_err = cpl_table_get_array(traces, 
-        CR2RES_COL_WAVELENGTH_ERROR,k); 
+        CR2RES_COL_WAVELENGTH_ERROR, k); 
     slit_frac_old = cpl_table_get_array(traces, 
         CR2RES_COL_SLIT_FRACTION, k);
     trace_all_old = cpl_table_get_array(traces, CR2RES_COL_ALL, k) ;
@@ -1526,7 +1526,7 @@ cpl_table * cr2res_trace_shift_wavelength(
     samppos = cpl_matrix_new(1, CR2RES_DETECTOR_SIZE);
 
 
-    for (cpl_size n = 0; n < CR2RES_DETECTOR_SIZE; n++)
+    for (n = 0; n < CR2RES_DETECTOR_SIZE; n++)
     {
         cpl_vector_set(wave_vec, n, 
                     cpl_polynomial_eval_1d(poly_wave, n + 1, NULL));
@@ -1566,7 +1566,10 @@ cpl_table * cr2res_trace_shift_wavelength(
                         cpl_array_get_size(const_wave));
 
     cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH, k, wave);
-    cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH_ERROR, k, const_wave_err);
+    // TODO: change the wavelength errors
+    // This can't be the same array that was taken from the table or we segfault
+    // cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH_ERROR, k, 
+    //         const_wave_err);
 
     cpl_vector_delete(wave_vec);
     cpl_polynomial_delete(poly_wave);
