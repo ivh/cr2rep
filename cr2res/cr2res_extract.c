@@ -3684,16 +3684,18 @@ static int cr2res_extract_slit_func_curved(
         for (x = 0; x < ncols; x++) {
             // Loop through all pixels contributing to x,y
             for (m = 0; m < m_zeta[mzeta_index(x,y)]; m++) {
-                xx = zeta[zeta_index(x,y,m)].x;
-                iy = zeta[zeta_index(x,y,m)].iy;
-                ww = zeta[zeta_index(x,y,m)].w;
-                unc[xx] += (im[y * ncols + x] - model[y * ncols + x]) *
-                    (im[y * ncols + x] - model[y * ncols + x]) *
-                    ww * mask[y * ncols + x];
-                unc[xx] += pix_unc[y * ncols + x] * pix_unc[y * ncols + x] *
-                    ww * mask[y * ncols + x];
-                // Norm
-                p_bj[xx] += ww * mask[y * ncols + x];
+                if (mask[y * ncols + x]){
+                    xx = zeta[zeta_index(x,y,m)].x;
+                    iy = zeta[zeta_index(x,y,m)].iy;
+                    ww = zeta[zeta_index(x,y,m)].w;
+                    unc[xx] += (im[y * ncols + x] - model[y * ncols + x]) *
+                        (im[y * ncols + x] - model[y * ncols + x]) *
+                        ww * mask[y * ncols + x];
+                    unc[xx] += pix_unc[y * ncols + x] * pix_unc[y * ncols + x] *
+                        ww * mask[y * ncols + x];
+                    // Norm
+                    p_bj[xx] += ww * mask[y * ncols + x];
+                }
             }
         }
     }
