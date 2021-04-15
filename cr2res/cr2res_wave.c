@@ -731,7 +731,7 @@ cpl_polynomial * cr2res_wave_1d(
   @param    wavesol_init    List of Initial wavelength solutions
   @param    wavesol_init_err List of Initial wavelength error (can be NULL)
   @param    orders          List of orders of the various spectra
-  @param    orders          List of traces IDs of the various spectra
+  @param    trace_nb        List of traces IDs of the various spectra
   @param    ninputs         Number of entries in the previous parameters
   @param    catalog         Catalog file
   @param    degree_x        The polynomial degree in x

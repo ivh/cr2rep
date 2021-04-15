@@ -36,4 +36,13 @@ cpl_vector * cr2res_etalon_find_peaks(
     const cpl_vector * in, 
     double height, 
     double distance);
+cpl_polynomial * cr2res_etalon_wave_2d(
+    cpl_bivector        **  spectra,
+    cpl_bivector        **  spectra_err,
+    cpl_polynomial      **  wavesol_init,
+    cpl_array           **  wavesol_init_err,
+    int                 *   orders,
+    int                     ninputs,
+    cpl_size                degree_x,
+    cpl_size                degree_y);
 #endif

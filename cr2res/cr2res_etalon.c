@@ -26,11 +26,14 @@
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
+#include <math.h> 
 #include "cr2res_etalon.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
  -----------------------------------------------------------------------------*/
+
+#define SPEED_OF_LIGHT 299792.458
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -476,4 +479,222 @@ cpl_vector * cr2res_etalon_find_peaks(
 
 
     return peaks_out;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Create the 2d wavecal fit using etalon peaks
+  @param    spectra         List of extracted spectra
+  @param    spectra_err     List of extracted spectra errors
+  @param    wavesol_init    List of Initial wavelength solutions
+  @param    wavesol_init_err List of Initial wavelength error (can be NULL)
+  @param    orders          List of orders of the various spectra
+  @param    ninputs         Number of entries in the previous parameters
+  @param    degree_x        The polynomial degree in x
+  @param    degree_y        The polynomial degree in y
+  @return   Wavelength solution, i.e. polynomial that translates pixel
+            values to wavelength.
+
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_etalon_wave_2d(
+    cpl_bivector        **  spectra,
+    cpl_bivector        **  spectra_err,
+    cpl_polynomial      **  wavesol_init,
+    cpl_array           **  wavesol_init_err,
+    int                 *   orders,
+    int                     ninputs,
+    cpl_size                degree_x,
+    cpl_size                degree_y)
+{
+    const cpl_vector * in;
+    cpl_vector * peaks;
+    cpl_vector * freq_peaks;
+    cpl_vector * n_peaks;
+    cpl_vector * temp;
+    cpl_vector * pf;
+    cpl_vector * pn;
+    cpl_polynomial * result;
+    cpl_polynomial * wavesol;
+    cpl_matrix * samppos;
+    cpl_matrix * pxo;
+    cpl_size i, j, npeaks, npeaks_old, total_peaks;
+    cpl_size degree, degree_2d[2];
+    cpl_error_code error;
+    double freq, wave, n, offset;
+    double f0, fr, fd;
+
+
+    /* Check Inputs */
+    if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
+            orders==NULL)
+        return NULL ;
+
+    // Initialize data
+    result = cpl_polynomial_new(2);
+    wavesol = cpl_polynomial_new(1);
+    // TODO: up to 1000 peaks per order?
+    total_peaks = ninputs * 1000;
+    pxo = cpl_matrix_new(2, total_peaks);
+    pf = cpl_vector_new(total_peaks);
+    pn = cpl_vector_new(total_peaks);
+    npeaks_old = 0;
+
+    for (i = 0; i < ninputs; i++){
+        // Find peaks in the etalon spectra
+        in = cpl_bivector_get_y_const(spectra[i]);
+        peaks = cr2res_etalon_find_peaks(in, cpl_vector_get_mean(in), 3);
+        npeaks = cpl_vector_get_size(peaks);
+        // get the frequency of each peak as estimated from the initial guess
+        freq_peaks = cpl_vector_new(npeaks);
+        n_peaks = cpl_vector_new(npeaks);
+        for (j = 0; j < npeaks; j++)
+        {
+            wave = cpl_polynomial_eval_1d(wavesol_init[i], 
+                        cpl_vector_get(peaks, j), NULL);
+            freq = SPEED_OF_LIGHT / wave;
+            cpl_vector_set(freq_peaks, j, freq);
+        }
+
+        // get first guesses for the polynomial parameters fr
+        temp = cpl_vector_new(npeaks - 1);
+        for ( j = 0; j < npeaks - 1; j++)
+        {
+            cpl_vector_set(temp, j, 
+                cpl_vector_get(freq_peaks, j + 1) 
+                - cpl_vector_get(freq_peaks, j));
+        }
+        fr = cpl_vector_get_median(temp);
+        cpl_vector_delete(temp);
+
+        // and a first guess for fd
+        temp = cpl_vector_new(npeaks);
+        for (j = 0; j < npeaks; j++)
+        {
+            cpl_vector_set(temp, j, 
+                fmod(cpl_vector_get(freq_peaks, j), fr)); 
+        }
+        fd = cpl_vector_get_median(temp);
+        cpl_vector_delete(temp);
+
+        // determine the peak numbers
+        for (j = 0; j < npeaks; j++)
+        {
+            n = (cpl_vector_get(freq_peaks, j) - fd) / fr;
+            cpl_vector_set(n_peaks, j, round(n)); 
+        }
+        cpl_vector_subtract_scalar(n_peaks, cpl_vector_get(n_peaks, 0));
+
+        // fit a polynomial to the peaks and peak numbers
+        degree = 1;
+        samppos = cpl_matrix_wrap(1, npeaks, cpl_vector_get_data(n_peaks));
+        error = cpl_polynomial_fit(wavesol, samppos, NULL, freq_peaks, NULL, 
+                                CPL_FALSE, NULL, &degree);
+        cpl_matrix_unwrap(samppos);
+
+        if (error != CPL_ERROR_NONE){
+            cpl_msg_error(__func__, "%s", cpl_error_get_message());
+            cpl_error_reset();
+            cpl_polynomial_delete(result);
+            cpl_matrix_delete(pxo);
+            cpl_vector_delete(pf);
+            cpl_vector_delete(pn);
+            cpl_polynomial_delete(wavesol);
+            cpl_vector_delete(freq_peaks);
+            cpl_vector_delete(n_peaks);
+            return NULL;
+        }
+
+        degree = 0;
+        fd = cpl_polynomial_get_coeff(wavesol, &degree);
+        degree = 1;
+        fr = cpl_polynomial_get_coeff(wavesol, &degree);
+
+        // The first order determines the anchor frequency
+        // this is arbitrary
+        if (i == 0){
+            f0 = fd;
+        } else {
+            // determine the offset to the anchor frequency
+            offset = round((f0 - fd) / fr);
+            cpl_vector_subtract_scalar(n_peaks, offset);
+        }
+
+        for (j = 0; j < npeaks; j++){
+            cpl_vector_set(pf, npeaks_old + j, cpl_vector_get(freq_peaks, j));
+            cpl_matrix_set(pxo, 0, npeaks_old + j, cpl_vector_get(peaks, j));
+            cpl_matrix_set(pxo, 1, npeaks_old + j, orders[i]);
+            cpl_vector_set(pn, npeaks_old + j, 
+                            cpl_vector_get(n_peaks, j));
+        }
+        npeaks_old += npeaks;
+        cpl_vector_delete(freq_peaks);
+        cpl_vector_delete(n_peaks);
+        cpl_vector_delete(peaks);
+    }
+    total_peaks = npeaks_old;
+
+    if (total_peaks == 0){
+        cpl_msg_error(__func__, "No peaks found for etalon wavecal");
+        cpl_polynomial_delete(result);
+        cpl_matrix_delete(pxo);
+        cpl_vector_delete(pf);
+        cpl_vector_delete(pn);
+        cpl_polynomial_delete(wavesol);
+        return NULL;
+    }
+
+    // set the vector sizes
+    cpl_matrix_set_size(pxo, 2, total_peaks);
+    cpl_vector_set_size(pf, total_peaks);
+    cpl_vector_set_size(pn, total_peaks);
+
+    // Fit all peaks with a single polynomial
+    degree = 1;
+    samppos = cpl_matrix_wrap(1, total_peaks, cpl_vector_get_data(pn));
+    error = cpl_polynomial_fit(wavesol, samppos, NULL, pf, NULL, 
+                CPL_FALSE, NULL, &degree);
+    cpl_matrix_unwrap(samppos);
+
+    if (error != CPL_ERROR_NONE){
+        cpl_msg_error(__func__, "Polynomial fit failed in etalon wavecal. %s", 
+            cpl_error_get_message());
+        cpl_error_reset();
+        cpl_polynomial_delete(result);
+        cpl_matrix_delete(pxo);
+        cpl_vector_delete(pf);
+        cpl_vector_delete(pn);
+        cpl_polynomial_delete(wavesol);
+        return NULL;
+    }
+
+    // reevaluate the peak wavelengths based on the fit
+    for (j = 0; j < total_peaks; j++)
+    {
+        freq = cpl_polynomial_eval_1d(wavesol, 
+                    cpl_vector_get(pn, j), NULL);
+        wave = SPEED_OF_LIGHT / freq;
+        cpl_vector_set(pf, j, wave);
+    }
+    cpl_polynomial_delete(wavesol);
+    cpl_vector_delete(pn);
+
+
+    // Do the 2d fit
+    degree_2d[0] = degree_x ;
+    degree_2d[1] = degree_y ;
+    error = cpl_polynomial_fit(result, pxo, NULL, pf, NULL, TRUE, NULL,
+                    degree_2d);
+
+    cpl_matrix_delete(pxo);
+    cpl_vector_delete(pf);
+
+    if (error != CPL_ERROR_NONE){
+        cpl_msg_error(__func__, "Polynomial fit for etalon wavecal failed");
+        cpl_error_reset();
+        cpl_polynomial_delete(result);
+        return NULL;
+    }
+
+    return result;
 }
