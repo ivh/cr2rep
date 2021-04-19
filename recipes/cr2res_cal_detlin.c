@@ -918,11 +918,10 @@ static int cr2res_cal_detlin_reduce(
     /* TODO  */
     qc_nb_bad = 0;
     qc_fitquality = 0.0;
-    qc_median = cr2res_qc_detlin_median(coeffs_loc) ;
-    qc_gain = cr2res_qc_detlin_gain(coeffs_loc) ;
-    /* TODO */
     qc_min_level = qc_max_level = 0 ;
     cr2res_qc_detlin_min_max_level(NULL, &qc_min_level, &qc_max_level) ;
+    qc_median = cr2res_qc_detlin_median(coeffs_loc) ;
+    qc_gain = cr2res_qc_detlin_gain(coeffs_loc) ;
 
     /* Store the QC parameters in the plist */
     cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_DETLIN_NBAD, 
