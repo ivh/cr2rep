@@ -29,6 +29,7 @@
 #include <cpl.h>
 
 #include "cr2res_utils.h"
+#include "cr2res_idp.h"
 #include "cr2res_nodding.h"
 #include "cr2res_calib.h"
 #include "cr2res_pfits.h"
@@ -614,7 +615,7 @@ static int cr2res_obs_nodding(
     out_file = cpl_sprintf("%s_extractedA.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extracta,
             NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTA_PROCATG,
-            RECIPE_STRING, create_idp);
+            RECIPE_STRING);
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_slitfuncA.fits", RECIPE_STRING) ;
@@ -644,7 +645,11 @@ static int cr2res_obs_nodding(
     out_file = cpl_sprintf("%s_extractedB.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extractb,
             NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTB_PROCATG,
-            RECIPE_STRING, create_idp);
+            RECIPE_STRING);
+    if (create_idp) {
+        cr2res_idp_save(out_file, frameset, rawframes, parlist,
+                extractb, RECIPE_STRING) ;
+    }
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_slitfuncB.fits", RECIPE_STRING) ;
@@ -668,7 +673,11 @@ static int cr2res_obs_nodding(
     out_file = cpl_sprintf("%s_extracted_combined.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extractc,
             NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTC_PROCATG,
-            RECIPE_STRING, create_idp);
+            RECIPE_STRING);
+    if (create_idp) {
+        cr2res_idp_save(out_file, frameset, rawframes, parlist,
+                extractc, RECIPE_STRING) ;
+    }
     cpl_free(out_file);
 
     if (type == 2) {

@@ -1652,7 +1652,6 @@ int cr2res_io_save_LINES_DIAGNOSTICS(
   @param    ext_plist   The extensions property lists
   @param    procatg     The PRO CATG value
   @param    recipe      The recipe name
-  @pram     create_idps Flag to trigger the ІDPs generation
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -1665,55 +1664,10 @@ int cr2res_io_save_EXTRACT_1D(
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
         const char              *   procatg,
-        const char              *   recipe,
-        int                         create_idps)
+        const char              *   recipe)
 {
-    cpl_table           *   idp_tab ;
-    char                *   idp_filename ;
-    cpl_propertylist    *   pro_list ;
-    cpl_propertylist    *   ext_head ;
-    int                     err, i ;
-
-    err = cr2res_io_save_table(filename, allframes, inframes, parlist, tables,
+    return cr2res_io_save_table(filename, allframes, inframes, parlist, tables,
             qc_list, ext_plist, recipe, procatg, CR2RES_EXTRACT_1D_PROTYPE) ;
-
-    if (create_idps) {
-        cpl_msg_info(__func__, "Create IDPs for %s", filename) ;
-        idp_tab = cr2res_idp_create_table(tables) ;
-
-        if (qc_list != NULL) pro_list = cpl_propertylist_duplicate(qc_list) ;
-        else pro_list = cpl_propertylist_new() ;
-        cpl_propertylist_append_string(pro_list, CPL_DFS_PRO_CATG,
-                CR2RES_OBS_NODDING_IDP_PROCATG) ;
-        cpl_propertylist_append_string(pro_list, CPL_DFS_PRO_TYPE,
-                CR2RES_EXTRACT_1D_IDP_PROTYPE) ;
-
-        /* Create the first extension header */
-        if (ext_plist[0]==NULL) {
-            ext_head = cpl_propertylist_new() ;
-        } else {
-            ext_head = cpl_propertylist_duplicate(ext_plist[0]);
-        }
-
-        idp_filename = cpl_sprintf("idp_%s", filename) ;
-
-        if (cpl_dfs_save_table(allframes, NULL, parlist, inframes, NULL,
-                    idp_tab, ext_head, recipe, pro_list, NULL,
-                    PACKAGE "/" PACKAGE_VERSION, 
-                    idp_filename) != CPL_ERROR_NONE) {
-            cpl_msg_error(__func__, "Cannot save the IDP %s", idp_filename) ;
-            cpl_table_delete(idp_tab) ;
-            cpl_free(idp_filename) ;
-            cpl_propertylist_delete(ext_head) ;
-            cpl_propertylist_delete(pro_list) ;
-            return -1 ;
-        }
-        cpl_table_delete(idp_tab) ;
-        cpl_propertylist_delete(ext_head) ;
-        cpl_propertylist_delete(pro_list) ;
-        cpl_free(idp_filename) ;
-    }
-    return err ;
 }
 
 /*----------------------------------------------------------------------------*/

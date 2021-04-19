@@ -103,6 +103,19 @@ const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    find out the PROG ID
+  @param    plist       property list to read from
+  @return   pointer to statically allocated character string
+ */
+/*----------------------------------------------------------------------------*/
+const char * cr2res_pfits_get_progid(const cpl_propertylist * plist)
+{
+    return (const char *) cpl_propertylist_get_string(plist,
+            CR2RES_HEADER_PROG_ID);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    find out the lamp4 name
   @param    plist       property list to read from
   @return   pointer to statically allocated character string
@@ -193,6 +206,18 @@ double cr2res_pfits_get_dit(const cpl_propertylist * plist)
         val = (double) cpl_propertylist_get_int(plist, CR2RES_HEADER_DIT);
     }
     return val;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the MJD-OBS value 
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_pfits_get_mjd_obs(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_double(plist, CR2RES_HEADER_MJDOBS)  ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -315,6 +340,18 @@ int cr2res_pfits_get_expno(const cpl_propertylist * plist)
 int cr2res_pfits_get_ndit(const cpl_propertylist * plist)
 {
     return cpl_propertylist_get_int(plist, CR2RES_HEADER_NDIT)  ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the OBS ID value 
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_pfits_get_obs_id(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_int(plist, CR2RES_HEADER_OBS_ID)  ;
 }
 
 /*----------------------------------------------------------------------------*/

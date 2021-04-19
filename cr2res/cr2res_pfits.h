@@ -44,6 +44,7 @@
 #define CR2RES_HEADER_NODPOS            "ESO SEQ NODPOS"
 #define CR2RES_HEADER_NODTHROW          "ESO SEQ NODTHROW"
 #define CR2RES_HEADER_ARCFILE           "ARCFILE"
+#define CR2RES_HEADER_MJDOBS            "MJD-OBS"
 #define CR2RES_HEADER_WLEN_ID           "ESO INS WLEN ID"
 #define CR2RES_HEADER_WLEN_BEGIN        "ESO INS WLEN BEGIN%d"
 #define CR2RES_HEADER_WLEN_END          "ESO INS WLEN END%d"
@@ -53,6 +54,9 @@
 #define CR2RES_HEADER_LAMP8_NAME        "ESO INS1 LAMP8 NAME"
 #define CR2RES_HEADER_NDIT              "ESO DET NDIT"
 #define CR2RES_HEADER_DIT               "ESO DET SEQ1 DIT"
+#define CR2RES_HEADER_PROG_ID           "ESO OBS PROG ID"
+#define CR2RES_HEADER_OBS_ID            "ESO OBS ID"
+
 
 /* QC Parameter Names */
 #define CR2RES_HEADER_QC_DARK_RON1          "ESO QC DARK RON1"
@@ -98,11 +102,14 @@ const char * cr2res_pfits_get_wlen_id(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_lamp4(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_lamp8(const cpl_propertylist *) ;
+const char * cr2res_pfits_get_progid(const cpl_propertylist *) ;
+
 
 double cr2res_pfits_get_ra(const cpl_propertylist *) ;
 double cr2res_pfits_get_dec(const cpl_propertylist *) ;
 double cr2res_pfits_get_nodthrow(const cpl_propertylist *) ;
 double cr2res_pfits_get_dit(const cpl_propertylist *) ;
+double cr2res_pfits_get_mjd_obs(const cpl_propertylist * plist) ;
 double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order_idx) ;
 double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order_idx) ;
 
@@ -111,6 +118,7 @@ int cr2res_pfits_get_naxis2(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_expno(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_nexp(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_ndit(const cpl_propertylist * plist) ;
+int cr2res_pfits_get_obs_id(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_order_zp(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_order_idx(const cpl_propertylist * plist,double yposition);
 

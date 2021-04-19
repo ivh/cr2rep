@@ -30,8 +30,21 @@
                                    Functions prototypes
  -----------------------------------------------------------------------------*/
 
+int cr2res_idp_save(
+        const char              *   filename,
+        cpl_frameset            *   allframes,
+        cpl_frameset            *   rawframes,
+        const cpl_parameterlist *   parlist,
+        cpl_table               **  tables,
+        const char              *   recipe) ;
+
 cpl_table * cr2res_idp_create_table(
         cpl_table               **  tables) ;
+
+int cr2res_idp_compute_mjd(
+        cpl_frameset        *   fset,
+        double              *   mjd_start,
+        double              *   mjd_end) ;
 
 #endif
 

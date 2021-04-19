@@ -708,7 +708,7 @@ static int cr2res_cal_flat(
             cr2res_io_save_EXTRACT_1D(out_file, frameset, 
                     raw_one_setting_decker, parlist, extract_1d, NULL, 
                     ext_plist[i], CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG,
-                    RECIPE_STRING, 0);
+                    RECIPE_STRING);
             cpl_free(out_file);
 
             /* MASTER_FLAT */

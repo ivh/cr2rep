@@ -51,20 +51,21 @@
 #define CR2RES_COL_SLIT_FRACTION    "SlitFraction"  /* Position on the Slit */
 
 /*** CR2RES_OBS_NODDING_IDP_PROCATG  ***/
-#define CR2RES_COL_SPECTRUM         "Spectrum Intensity" /* Intensity */
+#define CR2RES_COL_SPECTRUM         "Spectrum_Intensity" /* Intensity */
 #define CR2RES_COL_ERROR            "Error"         /* Error */
 #define CR2RES_COL_QUALITY          "Quality"       /* Quality */
 #define CR2RES_COL_ORDER            "Order"         /* Order Number */
 #define CR2RES_COL_DETECTOR         "Detector"      /* Detector */
+#define CR2RES_COL_XPOS             "Xpos"          /* Original X position */
 
 /*** LINES_DIAGNOSTICS Table ***/
-#define CR2RES_COL_MEASURED_LAMBDA  "Measured WL"   /* In Nanometers */
-#define CR2RES_COL_CATALOG_LAMBDA   "Catalog WL"    /* In Nanometers */
-#define CR2RES_COL_DELTA_LAMBDA     "Delta WL"      /* In Nanometers */
-#define CR2RES_COL_MEASURED_PIXEL   "Measured Pix"  /* In Pixels */
-#define CR2RES_COL_LINE_WIDTH       "Line Width"    /* In Pixels */
-#define CR2RES_COL_FIT_QUALITY      "Fit Quality"   /*  */
-#define CR2RES_COL_INTENSITY        "Line Intensity"/*  */
+#define CR2RES_COL_MEASURED_LAMBDA  "Measured_WL"   /* In Nanometers */
+#define CR2RES_COL_CATALOG_LAMBDA   "Catalog_WL"    /* In Nanometers */
+#define CR2RES_COL_DELTA_LAMBDA     "Delta_WL"      /* In Nanometers */
+#define CR2RES_COL_MEASURED_PIXEL   "Measured_Pix"  /* In Pixels */
+#define CR2RES_COL_LINE_WIDTH       "Line_Width"    /* In Pixels */
+#define CR2RES_COL_FIT_QUALITY      "Fit_Quality"   /*  */
+#define CR2RES_COL_INTENSITY        "Line_Intensity"/*  */
 
 /*** Clusters Table ***/
 #define CR2RES_COL_XS               "xs"            /* pixel position */
