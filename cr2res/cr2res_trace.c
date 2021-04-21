@@ -85,6 +85,8 @@ static cpl_table * cr2res_trace_fit_traces(
 static cpl_array * cr2res_trace_fit_trace(
         cpl_table   *   table,
         int             degree) ;
+static cpl_table * cr2res_trace_restore_edge_traces(
+        cpl_table   *   trace_table) ;
 static cpl_table * cr2res_trace_convert_labels_to_cluster(cpl_image * labels) ;
 static cpl_mask * cr2res_trace_clean_blobs(
         cpl_mask    *   mask,
@@ -174,6 +176,7 @@ cpl_table * cr2res_trace(
     cpl_apertures   *   aperts ;
     cpl_table       *   clustertable ;
     cpl_table       *   trace_table ;
+    cpl_table       *   restored_trace_table ;
     cpl_size            nlabels ;
 
     /* Check Entries */
@@ -207,6 +210,7 @@ cpl_table * cr2res_trace(
         cpl_mask_delete(mask_clean);
         return NULL ;
     }
+    cpl_mask_delete(mask_clean);
 
     /* Analyse and dump traces */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
@@ -236,18 +240,33 @@ cpl_table * cr2res_trace(
     if ((trace_table = cr2res_trace_fit_traces(clustertable, degree)) == NULL) {
         cpl_msg_error(__func__, "Failed to Fit") ;
         cpl_table_delete(clustertable);
-        cpl_mask_delete(mask_clean);
         return NULL ;
     }
-    cpl_table_delete(clustertable);
-    cpl_mask_delete(mask_clean);
 
     /* Debug Saving */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_table_save(trace_table, NULL, NULL, "debug_trace_table.fits",
-                CPL_IO_CREATE);
+        cpl_table_save(trace_table, NULL, NULL, 
+                "debug_trace_table.fits", CPL_IO_CREATE);
     }
-    return trace_table ;
+
+    /* Detect and restore the edge traces */
+    cpl_msg_info(__func__, "Restore the trace edges") ;
+    if ((restored_trace_table = cr2res_trace_restore_edge_traces(
+                    trace_table)) == NULL) {
+        cpl_msg_error(__func__, "Failed to Restore the edge traces") ;
+        cpl_table_delete(clustertable);
+        cpl_table_delete(trace_table);
+        return NULL ;
+    }
+    cpl_table_delete(trace_table);
+    cpl_table_delete(clustertable);
+
+    /* Debug Saving */
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_table_save(restored_trace_table, NULL, NULL, 
+                "debug_restored_trace_table.fits", CPL_IO_CREATE);
+    }
+    return restored_trace_table ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -2231,6 +2250,120 @@ static cpl_mask * cr2res_trace_signal_detect(
     cpl_image_delete(smxy_image);
 
     return mask ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Restore the edge traces
+  @param trace_table    The trace table
+  @return   A newly allocated restored trace table or NULL in error case
+
+  The function loops over the traces labels. For each of them, it
+  identifies the ones where the traces are incomplete on the detector
+  edges. It then tries to restore them using the availlable information.
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_table * cr2res_trace_restore_edge_traces(
+        cpl_table   *   trace_table)
+{
+    cpl_table       *   restored_trace_table ;
+    const cpl_array *   coeffs_upper ;
+    const cpl_array *   coeffs_lower ;
+    cpl_array       *   new_trace ;
+    cpl_polynomial  *   poly_upper ;
+    cpl_polynomial  *   poly_lower ;
+    cpl_vector      *   heights ;
+    cpl_vector      *   heights_tmp ;
+    double              height, height_med, threshold, lowest_pos,
+                        uppest_pos, curr_pos ;
+    cpl_size            ntraces, i, lowest_idx, uppest_idx ;
+
+    /* Check entries */
+    if (trace_table == NULL) return NULL ;
+
+    /* Initialise */
+    lowest_idx = uppest_idx = -1 ;
+    lowest_pos = 2048.0 ;
+    uppest_pos = 0.0 ;
+    
+    /* Compute the median height of the traces */
+    ntraces = cpl_table_get_nrow(trace_table) ;
+    heights = cpl_vector_new(ntraces) ;
+    for (i=0 ; i<ntraces ; i++) {
+        /* Get the Upper polynomial*/
+        coeffs_upper = cpl_table_get_array(trace_table, CR2RES_COL_UPPER, i) ;
+        poly_upper = cr2res_convert_array_to_poly(coeffs_upper) ;
+
+        /* Get the Lower polynomial*/
+        coeffs_lower = cpl_table_get_array(trace_table, CR2RES_COL_LOWER, i) ;
+        poly_lower = cr2res_convert_array_to_poly(coeffs_lower) ;
+
+        /* Keep track of the uppest and lowest */
+        curr_pos = cpl_polynomial_eval_1d(poly_lower, CR2RES_DETECTOR_SIZE/2.0,
+                NULL) ;
+        if (curr_pos < lowest_pos) {
+            lowest_pos = curr_pos ;
+            lowest_idx = i ;
+        }
+        if (curr_pos > uppest_pos) {
+            uppest_pos = curr_pos ;
+            uppest_idx = i ;
+        }
+
+        /* Compute the height */
+        height = cr2res_trace_compute_height(poly_upper, poly_lower,
+                CR2RES_DETECTOR_SIZE);
+        cpl_polynomial_delete(poly_upper) ;
+        cpl_polynomial_delete(poly_lower) ;
+        cpl_vector_set(heights, i, height) ;
+    }
+
+    /* Heights statistics */
+    heights_tmp = cpl_vector_duplicate(heights) ;
+    height_med = cpl_vector_get_median(heights_tmp) ;
+    cpl_vector_delete(heights_tmp) ;
+    threshold = 0.95 * height_med ;
+    cpl_msg_debug(__func__, "Heigth Median / Threshold: %g / %g",
+            height_med, threshold) ;
+
+    /* Fix wrong traces */
+    restored_trace_table = cpl_table_duplicate(trace_table) ;
+    for (i=0 ; i<ntraces ; i++) {
+        if (cpl_vector_get(heights, i) < threshold) {
+            coeffs_upper=cpl_table_get_array(trace_table, CR2RES_COL_UPPER, i) ;
+            coeffs_lower=cpl_table_get_array(trace_table, CR2RES_COL_LOWER, i) ;
+            if (i == uppest_idx) {
+                cpl_msg_warning(__func__, "Restore Upper trace") ;
+                new_trace = cpl_array_duplicate(coeffs_lower) ;
+                cpl_array_set(new_trace, 0, cpl_array_get(coeffs_lower,
+                            0, NULL) + height_med);
+                cpl_table_set_array(restored_trace_table, CR2RES_COL_UPPER, i, 
+                        new_trace);
+                cpl_array_set(new_trace, 0, cpl_array_get(coeffs_lower,
+                            0, NULL) + height_med/2.0);
+                cpl_table_set_array(restored_trace_table, CR2RES_COL_ALL, i, 
+                        new_trace);
+                cpl_array_delete(new_trace) ;
+            } else if (i == lowest_idx) {
+                cpl_msg_warning(__func__, "Restore Lower trace") ;
+                new_trace = cpl_array_duplicate(coeffs_upper) ;
+                cpl_array_set(new_trace, 0, cpl_array_get(coeffs_upper,
+                            0, NULL) - height_med);
+                cpl_table_set_array(restored_trace_table, CR2RES_COL_LOWER, i, 
+                        new_trace);
+                cpl_array_set(new_trace, 0, cpl_array_get(coeffs_upper,
+                            0, NULL) - height_med/2.0);
+                cpl_table_set_array(restored_trace_table, CR2RES_COL_ALL, i, 
+                        new_trace);
+                cpl_array_delete(new_trace) ;
+            } else {
+                cpl_msg_warning(__func__, 
+                "Incomplete traces only expected on the lower or upper zones");
+            }
+        }
+    }
+    cpl_vector_delete(heights) ;
+    return restored_trace_table ;
 }
 
 /*----------------------------------------------------------------------------*/
