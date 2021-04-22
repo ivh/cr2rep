@@ -1192,7 +1192,7 @@ static int cr2res_obs_nodding_reduce(
         order_idx = order_idx_values[i] ;
         order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
         qc_fwhm_a = cr2res_qc_obs_nodding_slit_psf(slit_func_a, order_idxp);
-        qc_fwhm_b = cr2res_qc_obs_nodding_slit_psf(slit_func_a, order_idxp);
+        qc_fwhm_b = cr2res_qc_obs_nodding_slit_psf(slit_func_b, order_idxp);
 
         key_name = cpl_sprintf(CR2RES_HEADER_QC_SLITFWHM_ORDER, order_idxp) ;
         cpl_propertylist_append_double(plist, key_name,
