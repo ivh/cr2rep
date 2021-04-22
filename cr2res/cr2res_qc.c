@@ -203,10 +203,12 @@ int cr2res_qc_flat_order_positions(
         double          **  order_pos,
         int             *   nbvals)
 {
+    int             *   order_idx_vals ;
     const cpl_array *   slit_frac ;
     int             *   order_nb_loc ;
     double          *   order_pos_loc ;
-    int                 i, n_full, nrows ;
+    int                 i, j, cur_order, nb_order_idx_vals, n_full ;
+    cpl_size            nrows ;
 
     /* Check Entries */
     if (tw == NULL || order_nb==NULL || order_pos==NULL || nbvals==NULL) 
@@ -219,12 +221,26 @@ int cr2res_qc_flat_order_positions(
     nrows = cpl_table_get_nrow(tw) ;
     if (nrows <= 0) return 0 ;
     
+    /* Get the list of different orders */
+    order_idx_vals = cr2res_trace_get_order_idx_values(tw, &nb_order_idx_vals) ;
+
     /* Count the number of full slit orders in tw */
     n_full = 0 ;
-    for (i=0 ; i<nrows ; i++) {
-        slit_frac = cpl_table_get_array(tw, CR2RES_COL_SLIT_FRACTION, i) ;
-        if (cr2res_trace_slit_fraction_info(slit_frac, 
-                    NULL) == CR2RES_DECKER_NONE) n_full++ ;
+    /* Loop on the different orders */
+    for (i=0 ; i<nb_order_idx_vals ; i++) {
+        cur_order = order_idx_vals[i] ;
+        /* Search an open slit of this order */
+        for (j=0 ; j<nrows ; j++) {
+            if (cpl_table_get(tw, CR2RES_COL_ORDER, j, NULL) == cur_order) {
+                slit_frac = cpl_table_get_array(tw, CR2RES_COL_SLIT_FRACTION,j);
+                if (cr2res_trace_slit_fraction_info(slit_frac, NULL) == 
+                        CR2RES_DECKER_NONE) {
+                    n_full++ ;
+                    /* Go to next order */
+                    break ;
+                }
+            }
+        }
     }
 
     /* Allocate output arrays */
@@ -233,15 +249,29 @@ int cr2res_qc_flat_order_positions(
 
     /* Fill the arrays */
     n_full = 0 ;
-    for (i=0 ; i<nrows ; i++) {
-        slit_frac = cpl_table_get_array(tw, CR2RES_COL_SLIT_FRACTION, i) ;
-        if (cr2res_trace_slit_fraction_info(slit_frac, 
-                    NULL) == CR2RES_DECKER_NONE) {
-            order_nb_loc[n_full] = cpl_table_get(tw, CR2RES_COL_ORDER, i, NULL);
-            order_pos_loc[n_full] = cr2res_trace_get_trace_ypos(tw, i) ;
-            n_full++ ;
+
+    /* Loop on the different orders */
+    for (i=0 ; i<nb_order_idx_vals ; i++) {
+        cur_order = order_idx_vals[i] ;
+
+        /* Search an open slit of this order */
+        for (j=0 ; j<nrows ; j++) {
+            if (cpl_table_get(tw, CR2RES_COL_ORDER, j, NULL) == cur_order) {
+                slit_frac = cpl_table_get_array(tw, CR2RES_COL_SLIT_FRACTION,j);
+                if (cr2res_trace_slit_fraction_info(slit_frac, NULL) == 
+                        CR2RES_DECKER_NONE) {
+                    order_nb_loc[n_full] = cur_order ;
+                    order_pos_loc[n_full] = cr2res_trace_get_trace_ypos(tw, j);
+                    cpl_msg_debug(__func__, "Order %d Pos : %g",
+                            order_nb_loc[n_full], order_pos_loc[n_full]) ;
+                    n_full++ ;
+                    /* Go to next order */
+                    break ;
+                }
+            }
         }
     }
+    cpl_free(order_idx_vals); 
 
     /* Return */
     *nbvals = n_full ;
