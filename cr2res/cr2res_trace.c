@@ -1510,6 +1510,13 @@ cpl_table * cr2res_trace_shift_wavelength(
 
     // Get values from the trace wave table
     const_wave = cpl_table_get_array(traces, CR2RES_COL_WAVELENGTH, k) ;
+    if (isnan(cpl_array_get(const_wave,0,NULL))) {
+        cpl_msg_warning(__func__,
+                    "Invalid input wavelength in order %d, trace %d",
+                    order, trace_id);
+        return traces;
+    }
+
     const_wave_err = cpl_table_get_array(traces, 
         CR2RES_COL_WAVELENGTH_ERROR, k); 
     slit_frac_old = cpl_table_get_array(traces, 
@@ -1571,8 +1578,8 @@ cpl_table * cr2res_trace_shift_wavelength(
 
     if (cpl_error_get_code() != CPL_ERROR_NONE){
         cpl_msg_error(__func__, 
-            "Could not calculate the new wavelength polynomial. %s", 
-            cpl_error_get_message());
+            "Could not calculate the new wavelength polynomial. %s. %s",
+            cpl_error_get_message(), cpl_error_get_where());
         cpl_error_reset();
         // delete stuff
         cpl_vector_delete(wave_vec);
