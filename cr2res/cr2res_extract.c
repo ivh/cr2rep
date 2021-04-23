@@ -3623,7 +3623,7 @@ static int cr2res_extract_slit_func_curved(
             for (x = delta_x; x < ncols - delta_x; x++) {
                 cpl_image_set(img_mad, x+1, y+1, (model[y * ncols + x] -
                         im[y * ncols + x]));
-                if (mask[y * ncols + x] == 0)
+                if ((mask[y * ncols + x] == 0) | (im[y * ncols + x] == 0))
                     cpl_image_reject(img_mad, x+1, y+1);
             }
         }
@@ -3639,8 +3639,8 @@ static int cr2res_extract_slit_func_curved(
         mad *= 1.4826; // scaling factor relative to standard deviation
 
         // For debug comparison
-        std = cpl_image_get_stdev_window(img_mad, 1 + delta_x, 1, 
-                ncols - delta_x, nrows);
+        // std = cpl_image_get_stdev_window(img_mad, 1 + delta_x, 1, 
+        //         ncols - delta_x, nrows);
 
         /* Adjust the mask marking outlyers */
         for (y = 0; y < nrows; y++) {
@@ -3667,8 +3667,8 @@ static int cr2res_extract_slit_func_curved(
         /* Check for convergence */
         // TODO: Remove some of the debug output?
         cpl_msg_debug(__func__,  
-            "Iter: %i, Mad: %f, Std: %f, Cost: %f, sP_change: %f", 
-            iter, mad, std, cost, sP_change);
+            "Iter: %i, Mad: %f, Cost: %f, sP_change: %f", 
+            iter, mad, cost, sP_change);
 
         iter++;
     } while (iter == 1 || (iter < maxiter 
@@ -3689,12 +3689,11 @@ static int cr2res_extract_slit_func_curved(
                     iy = zeta[zeta_index(x,y,m)].iy;
                     ww = zeta[zeta_index(x,y,m)].w;
                     unc[xx] += (im[y * ncols + x] - model[y * ncols + x]) *
-                        (im[y * ncols + x] - model[y * ncols + x]) *
-                        ww * mask[y * ncols + x];
-                    unc[xx] += pix_unc[y * ncols + x] * pix_unc[y * ncols + x] *
-                        ww * mask[y * ncols + x];
+                        (im[y * ncols + x] - model[y * ncols + x]) * ww ;
+                    unc[xx] += pix_unc[y * ncols + x] * 
+                                pix_unc[y * ncols + x] * ww ;
                     // Norm
-                    p_bj[xx] += ww * mask[y * ncols + x];
+                    p_bj[xx] += ww;
                 }
             }
         }
