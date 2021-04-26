@@ -69,4 +69,9 @@ cpl_table * cr2res_pol_spec_pol_merge(
         const cpl_table **  pol_spec_list,
         int                 pol_spec_nb) ;
 
+cpl_error_code cr2res_pol_subtract_background(
+          cpl_frameset * rawframes_a,
+          cpl_frameset * rawframes_b);
+
+
 #endif

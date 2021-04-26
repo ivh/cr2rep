@@ -695,4 +695,17 @@ cpl_table * cr2res_pol_spec_pol_merge(
     return cpl_table_duplicate(pol_spec_list[0]) ;
 }
 
+cpl_error_code cr2res_pol_subtract_background(
+          cpl_frameset * rawframes_a,
+          cpl_frameset * rawframes_b)
+{
+
+  // TODO
+  // Modify framesets in place
+  // Take median of all A frames and subtract from each B frame.
+  // Vice versa for each A minus median(Bs)
+
+}
+
+
 /**@}*/
