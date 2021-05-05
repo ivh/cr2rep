@@ -568,6 +568,12 @@ static int cr2res_obs_pol_reduce(
     }
     cpl_free(nod_positions) ;    
 
+    /* Subtract background */
+    if (cr2res_pol_make_background(rawframes_a, rawframes_b) 
+                                                    != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Failed to subtract background");
+    }
+
     /* Reduce A position */
     cpl_msg_info(__func__, "Compute Polarimetry for nodding A position") ;
     cpl_msg_indent_more() ;
