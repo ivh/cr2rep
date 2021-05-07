@@ -133,7 +133,7 @@ int cr2res_detlin_correct(
 
     /* Loop on pixels */
     for (i=0 ; i<nx*ny ; i++) {
-        // for each pixel p' = a + b * p + c * p * p 
+        // for each pixel p' = (a + b * p + c * p * p) * p
 
         perr[i] = pow2(perra[i] * pdata[i]) + pow2(perrb[i] * pow2(pdata[i]))
                 + pow2(perrc[i] * pow3(pdata[i])) 
@@ -270,7 +270,7 @@ int cr2res_detlin_compute(
         // lhs = vandermode(x, order)
         // hankel = dot(lhs.T, lhs)
         // cov = inv(hankel)
-        // cov *= abs(resids) / (len(x) - order)
+        // cov *= sum(abs(resids)) / (len(x) - order)
         // error_local = sqrt(diag(cov))
 
         cpl_matrix * hankel = cpl_matrix_new(nc, nc);

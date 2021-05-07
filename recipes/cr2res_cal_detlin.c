@@ -364,8 +364,11 @@ static int cr2res_cal_detlin(
     cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   plist ;
+    hdrl_image          *   img;
     char                *   out_file;
     int                     i, l, det_nr; 
+    cpl_size                x, y;
+    hdrl_value              pixel;
 
     /* Initialise */
 
@@ -547,16 +550,17 @@ static int cr2res_cal_detlin(
     cpl_free(labels);
 
     // Complete the merging
+    // This completes the weighted mean as described in cr2res_cal_detlin_update
     for (det_nr = 1; det_nr <= CR2RES_NB_DETECTORS; det_nr++)
     {
         for (i = 0; i < hdrl_imagelist_get_size(coeffs_merged[det_nr - 1]); i++)
         {
-            hdrl_image *img = hdrl_imagelist_get(coeffs_merged[det_nr - 1], i);
-            for (cpl_size x = 0; x < hdrl_image_get_size_x(img); x++)
+            img = hdrl_imagelist_get(coeffs_merged[det_nr - 1], i);
+            for (x = 0; x < hdrl_image_get_size_x(img); x++)
             {
-                for (cpl_size y = 0; y < hdrl_image_get_size_y(img); y++)
+                for (y = 0; y < hdrl_image_get_size_y(img); y++)
                 {
-                    hdrl_value pixel = hdrl_image_get_pixel(img, x + 1, y + 1, NULL);
+                    pixel = hdrl_image_get_pixel(img, x + 1, y + 1, NULL);
                     pixel.data /= pixel.error;
                     pixel.error = sqrt(1.0 / pixel.error);
                     hdrl_image_set_pixel(img, x + 1, y + 1, pixel);
@@ -1025,6 +1029,16 @@ static int cr2res_cal_detlin_compare(
   @brief Only pixels not yet computed (CR2RES_BPM_OUTOFORDER) are updated
   @param 
   @return   0 if ok
+
+  This prepares the weighted average of the coefficients, it sets global_bpm
+  and global_coeffs images.
+  In global_coeffs the data values are sum(data / error ** 2) 
+  and the error values are sum (1 / error ** 2).
+  To get the weighted average one needs to divide the data values by the error
+  values, once all components have been added. The errors also need to be
+  transformed by sqrt(1 / error).
+
+  Note that this ignores any possible covariance between the coefficients.
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_detlin_update(
@@ -1040,9 +1054,11 @@ static int cr2res_cal_detlin_update(
     hdrl_image      * new_coeffs_ima;
     cpl_image       * global_errors_ima;
     cpl_image       * new_errors_ima;
+    hdrl_image      * img;
     int badpix;
-    hdrl_value new_value, global_value;
+    hdrl_value new_value, global_value, pixel;
     double tmp;
+    cpl_size x, y;
 
     /* Check Inputs */
     if (new_bpm == NULL || new_coeffs == NULL)
@@ -1067,12 +1083,12 @@ static int cr2res_cal_detlin_update(
 
         for (i = 0; i < hdrl_imagelist_get_size(*global_coeffs); i++)
         {
-            hdrl_image *img = hdrl_imagelist_get(*global_coeffs, i);
-            for (cpl_size x = 0; x < hdrl_image_get_size_x(img); x++)
+            img = hdrl_imagelist_get(*global_coeffs, i);
+            for (x = 0; x < hdrl_image_get_size_x(img); x++)
             {
-                for (cpl_size y = 0; y < hdrl_image_get_size_y(img); y++)
+                for (y = 0; y < hdrl_image_get_size_y(img); y++)
                 {
-                    hdrl_value pixel = hdrl_image_get_pixel(img, x + 1, y + 1, NULL);
+                    pixel = hdrl_image_get_pixel(img, x + 1, y + 1, NULL);
                     pixel.data /= pixel.error * pixel.error;
                     pixel.error = 1 / (pixel.error * pixel.error);
                     hdrl_image_set_pixel(img, x + 1, y + 1, pixel);
@@ -1129,6 +1145,11 @@ static int cr2res_cal_detlin_update(
                     hdrl_image_set_pixel(global_coeffs_ima, i + 1, j + 1,
                                          global_value);
                 }
+            } else if(pglobal_bpm[idx] == CR2RES_BPM_OUTOFORDER 
+                    && pnew_bpm[idx] != CR2RES_BPM_OUTOFORDER){
+                // Update the BPM mask if it was Out of order
+                // even if it still is a bad pixel
+                pglobal_bpm[idx] = pnew_bpm[idx];
             }
         }
     }
