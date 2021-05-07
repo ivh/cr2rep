@@ -153,7 +153,7 @@ int cr2res_detlin_correct(
 /**
   @brief    Fits the response of a given pixel to the illumination increase
   @param    dits        Vector with the DIT values, assumed sorted increasing!
-  @param    adus      Vector with corresponding illumination values (ADU)
+  @param    adus        Vector with corresponding illumination values (ADU)
   @param    max_degree  Maximum degree for the fit 
   @param    fitted      [out] The fitted polynomial
   @param    error       [out] the errors vector
@@ -219,7 +219,7 @@ int cr2res_detlin_compute(
 
     samppos = cpl_matrix_wrap(1,
                 cpl_vector_get_size(adus_loc),
-                cpl_vector_get_data((cpl_vector*)adus_loc)) ;
+                cpl_vector_get_data(adus_loc)) ;
 
     y_tofit = cpl_vector_new(cpl_vector_get_size(dits_loc));
     for(i = 0; i < cpl_vector_get_size(dits_loc); i++)
@@ -270,8 +270,9 @@ int cr2res_detlin_compute(
         // lhs = vandermode(x, order)
         // hankel = dot(lhs.T, lhs)
         // cov = inv(hankel)
-        // cov *= resids / (len(x) - order)
-        // error_local = diag(cov)
+        // cov *= abs(resids) / (len(x) - order)
+        // error_local = sqrt(diag(cov))
+
         cpl_matrix * hankel = cpl_matrix_new(nc, nc);
         cpl_matrix * mx = cpl_matrix_new(nc, 1); // just a temporary matrix
 
@@ -284,11 +285,16 @@ int cr2res_detlin_compute(
 
         cpl_vector_fill_polynomial_fit_residual(resids, y_tofit, NULL,
             fitted_local, samppos, NULL);
+        for (cpl_size i = 0; i < ndata; i++)
+        {
+            cpl_vector_set(resids, i, fabs(cpl_vector_get(resids, i)));
+        }
+        
         cpl_matrix_multiply_scalar(inverse, 
             cpl_vector_get_sum(resids) / (double)(ndata - nc));
 
         for (cpl_size i = 0; i < max_degree + 1; i++) {
-            cpl_vector_set(error_local, i, cpl_matrix_get(inverse, i, i));
+            cpl_vector_set(error_local, i, sqrt(cpl_matrix_get(inverse, i, i)));
         }
         cpl_matrix_delete(hankel);
         cpl_matrix_delete(mx);
