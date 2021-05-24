@@ -4,15 +4,13 @@ import sys
 from astropy.io import fits
 import numpy as np
 import matplotlib.pyplot as plt
-import astropy.units as u
-from specutils import Spectrum1D
-from specutils.fitting import fit_generic_continuum
+from scipy.ndimage import gaussian_filter1d
 
 STEPS=900
 
 EXTNAMES = ['CHIP%d.INT1'%i for i in [1,2,3]]
 ZOOM = 1
-YMAX = 5000
+YMAX = 15000
 YMIN = -3000
 CAT_FACTOR = 5
 CAT_OFFSET = 200
@@ -132,11 +130,9 @@ def main(specname,catname=None,cat2name=None,tracename=None):
                     wl = ev(p,X)
                 tw.close()
             xcor = h.get('ESO QC WAVE BESTXCORR-%02d-01'%order)
-            #ax.hlines(np.percentile(spec,10),wl[0],wl[-1],'r')
-            spec = Spectrum1D(flux=spec*u.Jy, spectral_axis=wl*u.nm)
-            cfit = fit_generic_continuum(spec)
-            spec -= cfit(wl*u.nm)
-            ax.plot(spec.spectral_axis,spec.flux,label=' '.join((ext,str(order))),color='tab:blue',alpha=0.8,pickradius=5,picker=True)
+            coef,cfit = FitCon1(wl,spec,swin=700,deg=2,k2=.5)
+            #spec -= cfit
+            ax.plot(wl,spec,label=' '.join((ext,str(order))),color='tab:blue',alpha=0.8,pickradius=5,picker=True)
             ax.text(wl.mean(),1000,'(O:%d D:%d X:%.2f)'%(order,i+1,xcor or 0.0), fontsize=11,
                 horizontalalignment='center')
 
@@ -150,7 +146,7 @@ def main(specname,catname=None,cat2name=None,tracename=None):
     elif sett.startswith('H'):
         x1,x2=1430,1780
     elif sett.startswith('K'):
-        x1,x2=1940,2400
+        x1,x2=1940,2500
     elif sett.startswith('L'):
         x1,x2=3500,4200
     elif sett.startswith('M'):
@@ -164,6 +160,88 @@ def main(specname,catname=None,cat2name=None,tracename=None):
 
     plt.show()
 
+##############  END MAIN ########################
+
+def FitCon1(
+    wave,
+    flux,
+    deg=3,
+    niter=10,
+    snr=200,
+    sig=None,
+    swin=7,
+    k1=1,
+    k2=3,
+    mask=None,
+    plot=False,
+):
+    """
+    Continuum normalize a spectrum
+    based on IDL code by Oleg Kochukhov    Parameters
+    ----------
+    wave : array
+        wavelength grid
+    flux : arrau
+        spectrum flux
+    niter : int
+        number of iterations
+    deg : int
+        polynomial degree of the continuum fit
+    swin : int
+        smoothing window
+    sig : array, optional
+        uncertainties on the spectral flux, by default None
+    plot : bool, optional
+        Whether to plot the results, by default False
+    k1 : float, optional
+        lower sigma clipping cutoff, by default 1
+    k2 : float, optional
+        upper sigma clipping cutoff, by default 3
+    mask : array, optional
+        mask for the points in the spectrum, mask == 1 is always used,
+        mask == 2 is never used, mask == 0 is always used, by default None
+    snr : float, optional
+        signal to noise ratio, by default 200    Returns
+    -------
+    coeff: array
+        polynomial coefficients of the continuum
+    con : array
+        Continuum points    Raises
+    ------
+    ValueError
+        If poly_type is not a valid value
+    """    # flag array
+    if mask is None:
+        mask = np.full(wave.shape, 0)    # choice of polynomial fitting routine
+    if sig is not None:
+        sig = 1 / sig
+    else:
+        sig = np.ones_like(wave)    # initial set of points to fit
+    wave = wave - np.mean(wave)
+    fmean = np.median(flux)
+    flux = flux - fmean
+    idx = np.where(mask != 2)
+    #idx = np.where( ((flux > con - k1 * rms) & (flux < con + k2 * rms) & (mask != 2)) | (mask == 1))
+    smooth = gaussian_filter1d(flux[idx], swin)
+    coeff = np.polyfit(wave[idx], smooth, deg, w=sig[idx])
+    con = np.polyval(coeff, wave)
+    rms = np.sqrt(np.mean((con[idx] - flux[idx]) ** 2))    # iterate niter times
+    for _ in range(niter):
+        idx = np.where(
+            ((flux > con - k1 * rms) & (flux < con + k2 * rms) & (mask != 2))
+            | (mask == 1)
+        )
+        coeff = np.polyfit(wave[idx], flux[idx], deg, w=sig[idx])
+        con = np.polyval(coeff, wave)
+    rms = np.sqrt(np.mean((con[idx] - flux[idx]) ** 2))    # Re-add mean flux value
+    con += fmean
+    # optional plot
+    if plot:
+        pass
+
+    return coeff, con
+
 
 if __name__ == '__main__':
     main(*sys.argv[1:])
+
