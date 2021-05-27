@@ -456,7 +456,55 @@ int cr2res_wave_apply(
         }
         cpl_array_delete(wl_err_array) ;
         cpl_polynomial_delete(wave_sol_2d);
-    } else {
+    }
+    else if (wavecal_type == CR2RES_ETALON) {
+        /* 2D Etalon */
+        if ((wave_sol_2d=cr2res_etalon_wave_2d_nikolai(
+                        spectra, spectra_err, wavesol_init,
+                        wavesol_init_error, orders, traces_nb, nb_traces,
+                        catalog_fname, 2, degree, -1, 1, display,
+                        &wl_err_array,
+                        &lines_diagnostics_loc)) == NULL) {
+            cpl_msg_error(__func__, "Failed to compute 2d Etalon solution");
+            /* De-allocate */
+            for (i=0 ; i<nb_traces ; i++) {
+                if (spectra[i] != NULL) cpl_bivector_delete(spectra[i]) ;
+                if (spectra_err[i] != NULL) 
+                    cpl_bivector_delete(spectra_err[i]) ;
+                if (wavesol_init[i]!=NULL) 
+                    cpl_polynomial_delete(wavesol_init[i]) ;
+                if (wavesol_init_error[i]!=NULL)
+                    cpl_array_delete(wavesol_init_error[i]) ;
+            }
+            cpl_free(spectra) ;
+            cpl_free(spectra_err) ;
+            cpl_free(wavesol_init) ;
+            cpl_free(wavesol_init_error) ;
+            cpl_free(orders) ;
+            cpl_free(traces_nb) ;
+            cpl_propertylist_delete(qcs_plist);
+            cpl_table_delete(tw_out) ;
+            return -1 ;
+        }
+
+        /* Store the Solution in the table */
+        for (i = 0; i < nb_traces; i++) {
+            wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, orders[i]);
+            wl_array=cr2res_convert_poly_to_array(wave_sol_1d, degree_out+1);
+            cpl_polynomial_delete(wave_sol_1d);
+            if (wl_array != NULL) {
+                cpl_table_set_array(tw_out, CR2RES_COL_WAVELENGTH, i, wl_array);
+                cpl_array_delete(wl_array) ;
+            }
+            if (wl_err_array != NULL) {
+                cpl_table_set_array(tw_out, CR2RES_COL_WAVELENGTH_ERROR, i, 
+                        wl_err_array);
+            }
+        }
+        cpl_array_delete(wl_err_array) ;
+        cpl_polynomial_delete(wave_sol_2d);
+        
+        } else {
         /* 1D Calibration */
         /* Loop over the traces spectra */
         for (i=0 ; i<nb_traces ; i++) {
