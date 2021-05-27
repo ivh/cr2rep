@@ -636,6 +636,9 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_table * lines_diagnostics_loc;
     double pix_pos, lambda_cat, lambda_meas, line_width, line_intens, fit_error;
 
+    cpl_table * lines_diagnostics_loc;
+    double pix_pos, lambda_cat, lambda_meas, line_width, line_intens, fit_error;
+
     /* Check Inputs */
     if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
             orders==NULL)
