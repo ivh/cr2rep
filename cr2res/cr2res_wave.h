@@ -155,4 +155,17 @@ char * cr2res_wave_method_print(cr2res_wavecal_type wavecal_type) ;
 
 cr2res_wavecal_type cr2res_wave_guess_method(const cpl_frame * in) ;
 
+int cr2res_wave_extract_lines(
+        cpl_bivector    *   spectrum,
+        cpl_bivector    *   spectrum_err,
+        cpl_polynomial  *   wavesol_init,
+        const cpl_array *   wave_error_init,
+        cpl_bivector    *   lines_list,
+        int                 display,
+        cpl_matrix      **  px,
+        cpl_vector      **  py,
+        cpl_vector      **  sigma_py,
+        cpl_vector      **  heights,
+        cpl_vector      **  fit_error) ;
+
 #endif

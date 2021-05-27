@@ -66,18 +66,6 @@ static cpl_bivector * cr2res_wave_gen_lines_spectrum(
         double              wl_error,
         double              max_intensity,
         int                 log_flag) ;
-static int cr2res_wave_extract_lines(
-        cpl_bivector    *   spectrum,
-        cpl_bivector    *   spectrum_err,
-        cpl_polynomial  *   wavesol_init,
-        const cpl_array *   wave_error_init,
-        cpl_bivector    *   lines_list,
-        int                 display,
-        cpl_matrix      **  px,
-        cpl_vector      **  py,
-        cpl_vector      **  sigma_py,
-        cpl_vector      **  heights,
-        cpl_vector      **  fit_error) ;
 static cpl_polynomial * cr2res_wave_line_fitting(
         cpl_bivector    *   spectrum,
         cpl_bivector    *   spectrum_err,
@@ -1935,7 +1923,7 @@ static cpl_bivector * cr2res_wave_gen_lines_spectrum(
 
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_wave_extract_lines(
+int cr2res_wave_extract_lines(
         cpl_bivector    *   spectrum,
         cpl_bivector    *   spectrum_err,
         cpl_polynomial  *   wavesol_init,
