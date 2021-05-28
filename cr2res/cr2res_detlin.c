@@ -133,8 +133,11 @@ int cr2res_detlin_correct(
 
     /* Loop on pixels */
     for (i=0 ; i<nx*ny ; i++) {
-        // for each pixel p' = (a + b * p + c * p * p) * p
 
+        // Only correct non-linear regime
+        if (pdata[i] < CR2RES_DETLIN_THRESHOLD) continue ;
+        
+        // for each pixel p' = (a + b * p + c * p * p) * p
         perr[i] = pow2(perra[i] * pdata[i]) + pow2(perrb[i] * pow2(pdata[i]))
                 + pow2(perrc[i] * pow3(pdata[i])) 
                 + pow2(perr[i] * (pima[i] + 2. * pimb[i] * pdata[i] 
