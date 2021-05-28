@@ -179,7 +179,6 @@ hdrl_image * cr2res_calib_image(
             cpl_msg_error(__func__, "Cannot correct for the Non-Linearity") ;
             return NULL ;
         }
-        hdrl_imagelist_delete(calib_list) ;
     }
 
     /* Apply the dark */
@@ -194,11 +193,19 @@ hdrl_image * cr2res_calib_image(
             return NULL ;
         }
 
+        cpl_msg_info(__func__, "Correct DARK for Non-Linearity") ;
+        if (cr2res_detlin_correct(calib, calib_list)) {
+            hdrl_imagelist_delete(calib_list) ;
+            hdrl_imagelist_delete(calib) ;
+            hdrl_image_delete(out);
+            cpl_msg_error(__func__, "Cannot correct DARK for Non-Linearity") ;
+            return NULL ;
+        }
+
         /* Get the dark DIT */
         plist = cpl_propertylist_load(cpl_frame_get_filename(dark), 0);
         dark_dit = cr2res_pfits_get_dit(plist) ;
         cpl_propertylist_delete(plist) ;
-
         /* Multiply the dark by dit/dark_dit */
         hdrl_value hdrl_dit_corr = {dit/dark_dit, 0.0};
         hdrl_image_mul_scalar(calib, hdrl_dit_corr) ;
@@ -212,6 +219,12 @@ hdrl_image * cr2res_calib_image(
         }
         hdrl_image_delete(calib) ;
     }
+
+
+    if (detlin != NULL) {
+       hdrl_imagelist_delete(calib_list) ;
+    }
+
 
     /* Apply the flatfield */
     if (flat != NULL) {
