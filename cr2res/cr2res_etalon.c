@@ -26,7 +26,8 @@
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
-#include <math.h> 
+#include <math.h>
+#include "cr2res_dfs.h"
 #include "cr2res_etalon.h"
 #include "cr2res_wave.h"
 
@@ -46,7 +47,10 @@ static cpl_vector * cr2res_etalon_get_peaks_gaussian(
     cpl_bivector        *  spectra_err,
     cpl_polynomial      *  wavesol_init,
     cpl_array           *  wavesol_init_err,
-    cpl_vector * peaks);
+    cpl_vector          *  peaks,
+    cpl_vector         **  sigma,
+    cpl_vector         **  heights,
+    cpl_vector         **  fit_error);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -492,14 +496,17 @@ static cpl_vector * cr2res_etalon_get_peaks_gaussian(
     cpl_bivector        *  spectra_err,
     cpl_polynomial      *  wavesol_init,
     cpl_array           *  wavesol_init_err,
-    cpl_vector * peaks)
+    cpl_vector          *  peaks,
+    cpl_vector         **  sigma,
+    cpl_vector         **  heights,
+    cpl_vector         **  fit_error)
 {
     cpl_bivector    *  linelist;
     cpl_matrix      *  px;
     cpl_vector      *  py;
-    cpl_vector      *  sigma_py;
-    cpl_vector      *  heights;
-    cpl_vector      *  fit_error;
+    cpl_vector      *  sigma_loc;
+    cpl_vector      *  heights_loc;
+    cpl_vector      *  fit_error_loc;
     cpl_vector      *  wavelength;
     cpl_vector      *  peak_height;
     cpl_vector      *  new_peaks;
@@ -523,8 +530,8 @@ static cpl_vector * cr2res_etalon_get_peaks_gaussian(
     }
 
     cr2res_wave_extract_lines(spectra, spectra_err, wavesol_init, 
-            wavesol_init_err, linelist, 0, &px, &py, &sigma_py, 
-            &heights, &fit_error);
+            wavesol_init_err, linelist, 0, &px, &py, &sigma_loc, 
+            &heights_loc, &fit_error_loc);
 
     // Make px the new peaks
     npeaks = cpl_matrix_get_nrow(px);
@@ -533,9 +540,13 @@ static cpl_vector * cr2res_etalon_get_peaks_gaussian(
     // Delete all the other stuff we don't need
     cpl_bivector_delete(linelist);
     cpl_vector_delete(py);
-    cpl_vector_delete(sigma_py);
-    cpl_vector_delete(heights);
-    cpl_vector_delete(fit_error);
+
+    if (sigma != NULL) *sigma = sigma_loc;
+    else cpl_vector_delete(sigma_loc);
+    if (heights != NULL) *heights = heights_loc;
+    else cpl_vector_delete(heights_loc);
+    if (fit_error_loc != NULL) *fit_error = fit_error_loc;
+    else cpl_vector_delete(fit_error_loc);
 
     return new_peaks;
 }
@@ -562,9 +573,12 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_polynomial      **  wavesol_init,
     cpl_array           **  wavesol_init_err,
     int                 *   orders,
+    int                 *   traces_nb,
     int                     ninputs,
     cpl_size                degree_x,
-    cpl_size                degree_y)
+    cpl_size                degree_y,
+    cpl_array           **  wavelength_error,
+    cpl_table           **  line_diagnostics)
 {
     const cpl_vector * in;
     cpl_vector * peaks;
@@ -574,6 +588,12 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_vector * temp;
     cpl_vector * pf;
     cpl_vector * pn;
+    cpl_vector * sigmas;
+    cpl_vector * heights;
+    cpl_vector * fit_errors;
+    cpl_vector * sigmas_loc;
+    cpl_vector * heights_loc;
+    cpl_vector * fit_errors_loc;
     cpl_polynomial * result;
     cpl_polynomial * wavesol;
     cpl_matrix * samppos;
@@ -583,6 +603,9 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_error_code error;
     double freq, wave, height, n, offset;
     double f0, fr, fd;
+
+    cpl_table * lines_diagnostics_loc;
+    double pix_pos, lambda_cat, lambda_meas, line_width, line_intens, fit_error;
 
     /* Check Inputs */
     if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
@@ -597,7 +620,12 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     pxo = cpl_matrix_new(2, total_peaks);
     pf = cpl_vector_new(total_peaks);
     pn = cpl_vector_new(total_peaks);
+    heights = cpl_vector_new(total_peaks);
+    sigmas = cpl_vector_new(total_peaks);
+    fit_errors = cpl_vector_new(total_peaks);
+
     npeaks_old = 0;
+
 
     for (i = 0; i < ninputs; i++){
         // Find peaks in the etalon spectra
@@ -605,7 +633,9 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         peaks = cr2res_etalon_find_peaks(in, cpl_vector_get_mean(in), 3);
         // get the peak using the gausian fit
         peaks_new = cr2res_etalon_get_peaks_gaussian(spectra[i], spectra_err[i],
-                         wavesol_init[i], wavesol_init_err[i], peaks);
+                         wavesol_init[i], wavesol_init_err[i], peaks, 
+                         &sigmas_loc, &heights_loc, &fit_errors_loc);
+
         // Replace peaks with peaks_new
         cpl_vector_delete(peaks);
         peaks = peaks_new;
@@ -668,6 +698,12 @@ cpl_polynomial * cr2res_etalon_wave_2d(
             cpl_polynomial_delete(wavesol);
             cpl_vector_delete(freq_peaks);
             cpl_vector_delete(n_peaks);
+            cpl_vector_delete(heights_loc);
+            cpl_vector_delete(sigmas_loc);
+            cpl_vector_delete(fit_errors_loc);
+            cpl_vector_delete(heights);
+            cpl_vector_delete(sigmas);
+            cpl_vector_delete(fit_errors);
             return NULL;
         }
 
@@ -692,11 +728,17 @@ cpl_polynomial * cr2res_etalon_wave_2d(
             cpl_matrix_set(pxo, 1, npeaks_old + j, orders[i]);
             cpl_vector_set(pn, npeaks_old + j, 
                             cpl_vector_get(n_peaks, j));
+            cpl_vector_set(heights, npeaks_old + j, cpl_vector_get(heights_loc, j));
+            cpl_vector_set(sigmas, npeaks_old + j, cpl_vector_get(sigmas_loc, j));
+            cpl_vector_set(fit_errors, npeaks_old + j, cpl_vector_get(fit_errors_loc, j));
         }
         npeaks_old += npeaks;
         cpl_vector_delete(freq_peaks);
         cpl_vector_delete(n_peaks);
         cpl_vector_delete(peaks);
+        cpl_vector_delete(heights);
+        cpl_vector_delete(sigmas);
+        cpl_vector_delete(fit_errors);
     }
     total_peaks = npeaks_old;
 
@@ -752,8 +794,61 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     error = cpl_polynomial_fit(result, pxo, NULL, pf, NULL, TRUE, NULL,
                     degree_2d);
 
+    /* Create / Fill / Merge the lines diagnosics table  */
+    if (line_diagnostics != NULL) {
+        *line_diagnostics = NULL;
+        cpl_msg_debug(__func__, "Number of lines: %"CPL_SIZE_FORMAT, total_peaks);
+        /* Create */
+        lines_diagnostics_loc =
+            cr2res_dfs_create_lines_diagnostics_table(total_peaks) ;
+        /* Fill */
+        for (j=0 ; j < total_peaks ; j++) {
+            pix_pos = cpl_matrix_get(pxo, 0, j);
+            lambda_meas = cpl_vector_get(pf, j) ;
+            lambda_cat = cpl_polynomial_eval_1d(wavesol_init[i], pix_pos,
+                    NULL) ;
+            line_width = cpl_vector_get(sigmas, j) ;
+            line_intens = cpl_vector_get(heights, j) ;
+            fit_error = cpl_vector_get(fit_errors, j) ;
+            i = cpl_matrix_get(pxo, 1, j);
+
+            cpl_table_set_int(lines_diagnostics_loc,
+                    CR2RES_COL_ORDER, j, i) ;
+            cpl_table_set_int(lines_diagnostics_loc,
+                    CR2RES_COL_TRACENB, j, -1) ;
+            cpl_table_set_double(lines_diagnostics_loc,
+                    CR2RES_COL_MEASURED_LAMBDA, j, lambda_meas) ;
+            cpl_table_set_double(lines_diagnostics_loc,
+                    CR2RES_COL_CATALOG_LAMBDA, j, lambda_cat);
+            cpl_table_set_double(lines_diagnostics_loc,
+                    CR2RES_COL_DELTA_LAMBDA, j, lambda_cat-lambda_meas);
+            cpl_table_set_double(lines_diagnostics_loc,
+                    CR2RES_COL_MEASURED_PIXEL, j, pix_pos);
+            cpl_table_set_double(lines_diagnostics_loc,
+                    CR2RES_COL_LINE_WIDTH, j, line_width) ;
+            cpl_table_set_double(lines_diagnostics_loc,
+                    CR2RES_COL_FIT_QUALITY, j, fit_error) ;
+            cpl_table_set_double(lines_diagnostics_loc,
+                    CR2RES_COL_INTENSITY, j, line_intens) ;
+        }
+
+        /* Merge */
+        if (*line_diagnostics == NULL) {
+            *line_diagnostics = lines_diagnostics_loc ;
+            lines_diagnostics_loc = NULL ;
+        } else if (lines_diagnostics_loc != NULL) {
+            /* Merge with previous */
+            cpl_table_insert(*line_diagnostics, lines_diagnostics_loc,
+                    cpl_table_get_nrow(*line_diagnostics)) ;
+            cpl_table_delete(lines_diagnostics_loc) ;
+        }
+    }
+
     cpl_matrix_delete(pxo);
     cpl_vector_delete(pf);
+    cpl_vector_delete(heights);
+    cpl_vector_delete(sigmas);
+    cpl_vector_delete(fit_errors);
 
     if (error != CPL_ERROR_NONE){
         cpl_msg_error(__func__, "Polynomial fit for etalon wavecal failed");
@@ -788,9 +883,12 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
     cpl_polynomial      **  wavesol_init,
     cpl_array           **  wavesol_init_err,
     int                 *   orders,
+    int                 *   traces_nb,
     int                     ninputs,
     cpl_size                degree_x,
-    cpl_size                degree_y)
+    cpl_size                degree_y,
+    cpl_array           **  wavelength_error,
+    cpl_table           **  line_diagnostics)
 {
     const cpl_vector * in;
     cpl_vector * peaks;
@@ -801,6 +899,9 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
     cpl_polynomial * poly;
     cpl_matrix * px;
     cpl_vector * py;
+    cpl_vector ** heights;
+    cpl_vector ** sigmas;
+    cpl_vector ** fit_errors;
     cpl_vector ** fpe_xobs;
     cpl_vector ** fpe_wobs;
     cpl_vector ** fpe_freq;
@@ -815,6 +916,9 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
     cpl_size i, j, k, deg, npeaks, npeaks_total;
     double wave, gap, tmp;
 
+    cpl_table * lines_diagnostics_loc;
+    double pix_pos, lambda_cat, lambda_meas, line_width, line_intens, fit_error;
+
     /* Check Inputs */
     if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
             orders==NULL)
@@ -826,6 +930,11 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
     fpe_mord = cpl_malloc(ninputs * sizeof(cpl_vector *));
     fpe_cord = cpl_malloc(ninputs * sizeof(cpl_vector *));
 
+    heights = cpl_malloc(ninputs * sizeof(cpl_vector *));
+    sigmas = cpl_malloc(ninputs * sizeof(cpl_vector *));
+    fit_errors = cpl_malloc(ninputs * sizeof(cpl_vector *));
+
+
     npeaks_total = 0;
 
     for (i = 0; i < ninputs; i++){
@@ -834,7 +943,9 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
         peaks = cr2res_etalon_find_peaks(in, cpl_vector_get_mean(in), 3);
         // get the peak using the gausian fit
         peaks_new = cr2res_etalon_get_peaks_gaussian(spectra[i], spectra_err[i],
-                         wavesol_init[i], wavesol_init_err[i], peaks);
+                         wavesol_init[i], wavesol_init_err[i], peaks,
+                         &sigmas[i], &heights[i], &fit_errors[i]);
+
         // Replace peaks with peaks_new
         cpl_vector_delete(peaks);
         peaks = peaks_new;
@@ -991,6 +1102,61 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
     degree_2d[1] = degree_y ;
     cpl_polynomial_fit(result, px, NULL, py, NULL, TRUE, NULL,
                     degree_2d);
+
+
+    /* Create / Fill / Merge the lines diagnosics table  */
+    if (line_diagnostics != NULL) {
+        *line_diagnostics = NULL;
+        cpl_msg_debug(__func__, "Number of lines: %"CPL_SIZE_FORMAT, npeaks_total);
+        for (i = 0; i < ninputs; i++)
+        {
+            npeaks = cpl_vector_get_size(fpe_mord[i]);
+            /* Create */
+            lines_diagnostics_loc =
+                cr2res_dfs_create_lines_diagnostics_table(npeaks) ;
+            /* Fill */
+            for (j=0 ; j < npeaks ; j++) {
+                pix_pos = cpl_vector_get(fpe_xobs[i], j);
+                lambda_meas = cpl_vector_get(fpe_wobs[i], j) ;
+                lambda_cat = cpl_polynomial_eval_1d(wavesol_init[i], pix_pos,
+                        NULL) ;
+                line_width = cpl_vector_get(sigmas[i], j) ;
+                line_intens = cpl_vector_get(heights[i], j) ;
+                fit_error = cpl_vector_get(fit_errors[i], j) ;
+
+                cpl_table_set_int(lines_diagnostics_loc,
+                        CR2RES_COL_ORDER, j, orders[i]) ;
+                cpl_table_set_int(lines_diagnostics_loc,
+                        CR2RES_COL_TRACENB, j, traces_nb[i]) ;
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_MEASURED_LAMBDA, j, lambda_meas) ;
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_CATALOG_LAMBDA, j, lambda_cat);
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_DELTA_LAMBDA, j, lambda_cat-lambda_meas);
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_MEASURED_PIXEL, j, pix_pos);
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_LINE_WIDTH, j, line_width) ;
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_FIT_QUALITY, j, fit_error) ;
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_INTENSITY, j, line_intens) ;
+            }
+
+            /* Merge */
+            if (*line_diagnostics == NULL) {
+                *line_diagnostics = lines_diagnostics_loc ;
+                lines_diagnostics_loc = NULL ;
+            } else if (lines_diagnostics_loc != NULL) {
+                /* Merge with previous */
+                cpl_table_insert(*line_diagnostics, lines_diagnostics_loc,
+                        cpl_table_get_nrow(*line_diagnostics)) ;
+                cpl_table_delete(lines_diagnostics_loc) ;
+            }
+        }
+    }
+
     cpl_matrix_delete(px);
     cpl_vector_delete(py);
 
@@ -1000,11 +1166,17 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
         cpl_vector_delete(fpe_wobs[i]);
         cpl_vector_delete(fpe_freq[i]);
         cpl_vector_delete(fpe_mord[i]);
+        cpl_vector_delete(heights[i]);
+        cpl_vector_delete(sigmas[i]);
+        cpl_vector_delete(fit_errors[i]);
     }
     cpl_free(fpe_xobs);
     cpl_free(fpe_wobs);
     cpl_free(fpe_freq);
     cpl_free(fpe_mord);
+    cpl_free(heights);
+    cpl_free(sigmas);
+    cpl_free(fit_errors);
 
     return result;
     
