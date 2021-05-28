@@ -193,13 +193,15 @@ hdrl_image * cr2res_calib_image(
             return NULL ;
         }
 
-        cpl_msg_info(__func__, "Correct DARK for Non-Linearity") ;
-        if (cr2res_detlin_correct(calib, calib_list)) {
-            hdrl_imagelist_delete(calib_list) ;
-            hdrl_imagelist_delete(calib) ;
-            hdrl_image_delete(out);
-            cpl_msg_error(__func__, "Cannot correct DARK for Non-Linearity") ;
-            return NULL ;
+        if (detlin != NULL) {
+            cpl_msg_info(__func__, "Correct DARK for Non-Linearity") ;
+            if (cr2res_detlin_correct(calib, calib_list)) {
+                hdrl_imagelist_delete(calib_list) ;
+                hdrl_image_delete(calib) ;
+                hdrl_image_delete(out);
+                cpl_msg_error(__func__,"Cannot correct DARK for Non-Linearity") ;
+                return NULL ;
+            }
         }
 
         /* Get the dark DIT */
