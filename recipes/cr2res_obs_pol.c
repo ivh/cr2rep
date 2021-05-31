@@ -83,6 +83,7 @@ static int cr2res_obs_pol_reduce(
 static int cr2res_obs_pol_reduce_one(
         const cpl_frameset  *   rawframes,
         const cpl_frameset  *   raw_flat_frames,
+        const cpl_frameset  *   raw_background_frames,
         const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
@@ -571,7 +572,7 @@ static int cr2res_obs_pol_reduce(
     /* Reduce A position */
     cpl_msg_info(__func__, "Compute Polarimetry for nodding A position") ;
     cpl_msg_indent_more() ;
-    if (cr2res_obs_pol_reduce_one(rawframes_a, raw_flat_frames, 
+    if (cr2res_obs_pol_reduce_one(rawframes_a, raw_flat_frames, rawframes_b,
                 trace_wave_frame, detlin_frame, master_dark_frame, 
                 master_flat_frame, bpm_frame, 0, extract_oversample, 
                 extract_swath_width, extract_height, extract_smooth, reduce_det,
@@ -584,7 +585,7 @@ static int cr2res_obs_pol_reduce(
     /* Reduce B position */
     cpl_msg_info(__func__, "Compute Polarimetry for nodding B position") ;
     cpl_msg_indent_more() ;
-    if (cr2res_obs_pol_reduce_one(rawframes_b, raw_flat_frames, 
+    if (cr2res_obs_pol_reduce_one(rawframes_b, raw_flat_frames, rawframes_a,
                 trace_wave_frame, detlin_frame, master_dark_frame, 
                 master_flat_frame, bpm_frame, 0, extract_oversample, 
                 extract_swath_width, extract_height, extract_smooth, reduce_det,
@@ -625,6 +626,7 @@ static int cr2res_obs_pol_reduce(
 static int cr2res_obs_pol_reduce_one(
         const cpl_frameset  *   rawframes,
         const cpl_frameset  *   raw_flat_frames,
+        const cpl_frameset  *   raw_background_frames,
         const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
@@ -643,6 +645,9 @@ static int cr2res_obs_pol_reduce_one(
     cr2res_decker       *   decker_positions ;
     hdrl_imagelist      *   in ;
     hdrl_imagelist      *   in_calib ;
+    hdrl_imagelist      *   in_backgr ;
+    cpl_image           *   contrib;
+    hdrl_image          *   backgr;
     int                 *   pol_sorting ;
     cpl_table           *   trace_wave ;
     cpl_table           *   trace_wave_corrected ;
@@ -753,7 +758,53 @@ static int cr2res_obs_pol_reduce_one(
         return -1 ;
     }
     hdrl_imagelist_delete(in) ;
+
+    /* Load image list for BACKGROUND frames */
+    cpl_msg_info(__func__, "Load the images") ;
+    if ((in = cr2res_io_load_image_list_from_set(raw_background_frames, 
+                    reduce_det)) == NULL) {
+        cpl_msg_error(__func__, "Cannot load background images") ;
+        if (dits != NULL) cpl_vector_delete(dits) ;
+        cpl_free(decker_positions) ;
+        hdrl_imagelist_delete(in_calib) ;
+        return -1 ;
+    }
+
+    /* Calibrate the background same as science images */
+    cpl_msg_info(__func__, "Apply the calibrations to background") ;
+    if ((in_backgr = cr2res_calib_imagelist(in, reduce_det, 0, 0, 
+                    master_flat_frame, master_dark_frame, bpm_frame, 
+                    detlin_frame, dits)) == NULL) {
+        cpl_msg_error(__func__,
+                        "Failed to apply the calibrations to background") ;
+        if (dits != NULL) cpl_vector_delete(dits) ;
+        cpl_free(decker_positions) ;
+        hdrl_imagelist_delete(in) ;
+        hdrl_imagelist_delete(in_calib) ;
+        return -1 ;
+    }
+    hdrl_imagelist_delete(in) ;
     if (dits != NULL) cpl_vector_delete(dits) ;
+
+    /* Collapse background images */
+    if (hdrl_imagelist_collapse_mean(in_backgr, &backgr, &contrib) != \
+                    CPL_ERROR_NONE) {
+        cpl_msg_error(__func__,
+                        "Failed to collapse background") ;
+        cpl_free(decker_positions) ;
+        hdrl_imagelist_delete(in_calib) ;
+        hdrl_imagelist_delete(in_backgr) ;
+        return -1;
+    }
+    if (contrib != NULL) cpl_image_delete(contrib) ;
+    if (in_backgr != NULL) hdrl_imagelist_delete(in_backgr) ;
+
+    /* Subtract background from calibrated images */
+    if (hdrl_imagelist_sub_image(in_calib, backgr) != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__,
+                        "Failed to subtract background") ;
+    }
+
 
     /* Load the trace wave */
     cpl_msg_info(__func__, "Load the TRACE WAVE") ;
