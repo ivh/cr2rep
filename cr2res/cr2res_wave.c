@@ -858,7 +858,7 @@ cpl_polynomial * cr2res_wave_2d(
         for (i = 0; i < ninputs; i++){
             // extract line data in 1 spectrum
             if (cr2res_wave_extract_lines(spectra[i], spectra_err[i],
-                wavesol[i], wavesol_init_err[i], catalog_spec, display,
+                wavesol[i], wavesol_init_err[i], catalog_spec, -1, display,
                 &tmp_x, &tmp_y, &tmp_sigma, &heights, &fit_errors) == -1) {
                 cpl_msg_warning(__func__, "Could not extract lines");
                 continue;
@@ -1976,6 +1976,7 @@ int cr2res_wave_extract_lines(
         cpl_polynomial  *   wavesol_init,
         const cpl_array *   wave_error_init,
         cpl_bivector    *   lines_list,
+        int                 window_size,
         int                 display,
         cpl_matrix      **  px,
         cpl_vector      **  py,
@@ -1991,10 +1992,10 @@ int cr2res_wave_extract_lines(
     }
 
     cpl_size power = 1;
-    int window_size = CR2RES_WAVELENGTH_MIN_FIT_PIX;
+    // int window_size = CR2RES_WAVELENGTH_MIN_FIT_PIX;
 
     /* set window_size using the wave_error_init, scaled by the initial guess */
-    if (wave_error_init != NULL)
+    if (window_size < 0 && wave_error_init != NULL)
         if (cpl_array_get_double(wave_error_init, 1, NULL) > 0) {
             window_size = ceil(cpl_array_get_double(wave_error_init, 1,
                 NULL) / fabs(cpl_polynomial_get_coeff(wavesol_init, &power)));
@@ -2013,7 +2014,7 @@ int cr2res_wave_extract_lines(
     const cpl_vector *spec, *unc;
     double * wave, width;
     const double *height;
-    double value, diff;
+    double value, value2, diff;
     double max_wl, min_wl;
     cpl_vector * fit, *fit_x;
     const cpl_vector ** plot;
@@ -2026,7 +2027,7 @@ int cr2res_wave_extract_lines(
     cpl_vector * y = cpl_vector_new(window_size);
     cpl_vector * sigma_y = cpl_vector_new(window_size);
     cpl_vector * a = cpl_vector_new(4);
-    int ia[4] = {1, 1, 1, 1};
+    int * ia = NULL;
     double x0, sigma, area, offset;
 
     spec = cpl_bivector_get_y_const(spectrum);
@@ -2092,7 +2093,9 @@ int cr2res_wave_extract_lines(
             if (value < 0) value = 0;
             cpl_matrix_set(x, j, 0, k);
             cpl_vector_set(y, j, value);
-            cpl_vector_set(sigma_y, j, cpl_vector_get(unc, k));
+            value2 = cpl_vector_get(unc, k);
+            if (isnan(value2) || value2 <= 0) value2 = sqrt(value);
+            cpl_vector_set(sigma_y, j, value2);
         }
 
         if (cpl_vector_get(flag_vec, i) == 0){
@@ -2126,10 +2129,11 @@ int cr2res_wave_extract_lines(
         cpl_vector_set(a, 2, cpl_vector_get_max(y) - cpl_vector_get_min(y));
         cpl_vector_set(a, 3, cpl_vector_get_min(y));
 
+
         error = cpl_fit_lvmq(x, sigma_x, y, sigma_y, a, ia, 
-                        &cr2res_gauss, &cr2res_gauss_derivative,
-                        CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT,
-                        CPL_FIT_LVMQ_MAXITER, NULL, &red_chisq, NULL);
+                    &cr2res_gauss, &cr2res_gauss_derivative,
+                    CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT,
+                    CPL_FIT_LVMQ_MAXITER, NULL, &red_chisq, NULL);
 
         // Set new pixel pos based on gaussian fit
         pixel_new = cpl_vector_get(a, 0);
@@ -2312,7 +2316,7 @@ static cpl_polynomial * cr2res_wave_line_fitting(
 
     // extract line data in 1 spectrum
     if (cr2res_wave_extract_lines(spectrum, spectrum_err, wavesol_init,
-                wave_error_init, lines_list, display, &px, &py, &sigma_py,
+                wave_error_init, lines_list, -1, display, &px, &py, &sigma_py,
                 &heights, &fit_errors) != 0) {
         cpl_msg_error(__func__, "Cannot extract lines") ;
         return NULL ;

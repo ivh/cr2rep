@@ -161,6 +161,7 @@ int cr2res_wave_extract_lines(
         cpl_polynomial  *   wavesol_init,
         const cpl_array *   wave_error_init,
         cpl_bivector    *   lines_list,
+        int                 window_size,
         int                 display,
         cpl_matrix      **  px,
         cpl_vector      **  py,
