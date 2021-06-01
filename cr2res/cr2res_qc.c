@@ -359,6 +359,19 @@ int cr2res_qc_flat_nb_overexposed(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Computes the S2N on the flat
+  @param    master_flat     The master flat
+  @return   
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_flat_s2n(
+        const cpl_image     *   master_flat)
+{
+    return -1.0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Computes the integrated flux over part of the spectrum
   @param    extracted   Extracted spectrum table
   @return   the computed signal

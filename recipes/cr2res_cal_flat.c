@@ -950,7 +950,7 @@ static int cr2res_cal_flat_reduce(
     char                *   setting_id ;
     int                 *   qc_order_nb ;
     double              *   qc_order_pos ;
-    double                  qc_mean, qc_median, qc_flux, qc_rms, qc_s2med, 
+    double                  qc_mean, qc_median, qc_flux, qc_rms, qc_s2n, 
                             qc_trace_centery, dit ;
     int                     i, j, badpix, ext_nr, nb_traces, order, trace_id,
                             qc_overexposed, qc_nbbad, nbvals, zp_order, ngood ;
@@ -1248,9 +1248,9 @@ static int cr2res_cal_flat_reduce(
         cpl_mask_count(bpm_mask) ;
     cpl_mask_delete(bpm_mask);
     qc_rms = sqrt(cpl_image_get_sqflux(my_master_flat) / ngood) ;
-    cpl_image_delete(my_master_flat) ;
 
-    /* qc_s2med = 1.0 ; */
+    qc_s2n = cr2res_qc_flat_s2n(my_master_flat) ;
+    cpl_image_delete(my_master_flat) ;
 
     qc_overexposed =
         cr2res_qc_flat_nb_overexposed(hdrl_image_get_image(first_image)) ;
@@ -1295,10 +1295,8 @@ static int cr2res_cal_flat_reduce(
             qc_flux) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_RMS, 
             qc_rms) ;
-    /*
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_S2MED, 
-            qc_s2med) ;
-            */
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_S2N, 
+            qc_s2n) ;
     cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_FLAT_OVEREXPOSED, 
             qc_overexposed) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_TRACE_CENTERY,
