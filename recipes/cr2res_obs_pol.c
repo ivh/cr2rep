@@ -803,7 +803,12 @@ static int cr2res_obs_pol_reduce_one(
     if (hdrl_imagelist_sub_image(in_calib, backgr) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__,
                         "Failed to subtract background") ;
+        cpl_free(decker_positions) ;
+        hdrl_imagelist_delete(in_calib);
+        hdrl_image_delete(backgr);
+        return -1;
     }
+    hdrl_image_delete(backgr);
 
 
     /* Load the trace wave */
