@@ -2078,7 +2078,14 @@ int cr2res_wave_extract_lines(
 
         // cut out a part of the spectrum around each line
         // assumes that the wavelength vector is ascending !!!
-        pixel_pos = cpl_vector_find(wave_vec, wave[i]);
+        // pixel_pos = cpl_vector_find(wave_vec, wave[i]);
+        tmp = cpl_vector_duplicate(wave_vec);
+        cpl_vector_subtract_scalar(tmp, wave[i]);
+        cpl_vector_multiply(tmp, tmp);
+        pixel_pos = cpl_vector_get_minpos(tmp);
+        cpl_vector_delete(tmp);
+        
+
         value = 0;
         for (j = 0; j < window_size; j++){
             k = pixel_pos - window_size / 2 + j;
@@ -2090,16 +2097,24 @@ int cr2res_wave_extract_lines(
             }
 
             value = cpl_vector_get(spec, k);
+            value2 = cpl_vector_get(unc, k);
             if (value < 0) value = 0;
+            if (isnan(value2) || value2 <= 0){
+                if (value == 0){
+                    value2 = sqrt(cpl_vector_get_mean(spec));
+                } else {
+                    value2 = sqrt(value);
+                }
+            }
+            if (value2 < 1) value2 = 1;
             cpl_matrix_set(x, j, 0, k);
             cpl_vector_set(y, j, value);
-            value2 = cpl_vector_get(unc, k);
-            if (isnan(value2) || value2 <= 0) value2 = sqrt(value);
             cpl_vector_set(sigma_y, j, value2);
         }
 
         if (cpl_vector_get(flag_vec, i) == 0){
             // if the line was flagged as bad, skip the fit
+            cpl_msg_warning(__func__, "At the edge of the wavelength range");
             continue;
         }
 
@@ -2130,6 +2145,7 @@ int cr2res_wave_extract_lines(
         cpl_vector_set(a, 3, cpl_vector_get_min(y));
 
 
+        red_chisq =-1;
         error = cpl_fit_lvmq(x, sigma_x, y, sigma_y, a, ia, 
                     &cr2res_gauss, &cr2res_gauss_derivative,
                     CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT,
@@ -2163,6 +2179,12 @@ int cr2res_wave_extract_lines(
             // | cpl_vector_get(a, 1) < 1 // lower line width limit
             // | cpl_vector_get(a, 1) > 6 // upper
         ){
+            if (error != CPL_ERROR_NONE)
+                cpl_msg_debug(__func__, "%s", cpl_error_get_message());
+            if (fabs(pixel_new - pixel_pos) > window_size)
+                cpl_msg_debug(__func__, "Pixel position mismatch");
+            if (cpl_vector_get(a, 2) < 0)
+                cpl_msg_debug(__func__, "Negative Peak");
             cpl_vector_set(flag_vec, i, 0);
             cpl_error_reset();
             continue;
@@ -2204,6 +2226,7 @@ int cr2res_wave_extract_lines(
 
     if (ngood == 0)
     {
+        cpl_msg_warning(__func__, "No lines");
         cpl_matrix_delete(x);
         cpl_vector_delete(y);
         cpl_vector_delete(sigma_y);

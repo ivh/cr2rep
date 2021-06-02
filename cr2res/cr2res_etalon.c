@@ -529,13 +529,20 @@ static cpl_vector * cr2res_etalon_get_peaks_gaussian(
         cpl_vector_set(peak_height, j, height);
     }
 
-    cr2res_wave_extract_lines(spectra, spectra_err, wavesol_init, 
+    if (cr2res_wave_extract_lines(spectra, spectra_err, wavesol_init, 
             wavesol_init_err, linelist, 40, 0, &px, &py, &sigma_loc, 
-            &heights_loc, &fit_error_loc);
+            &heights_loc, &fit_error_loc) == -1)
+        {
+        // Abort
+        cpl_msg_warning(__func__, "No lines could be found");
+        cpl_bivector_delete(linelist);
+        return NULL;
+        };
 
     // Make px the new peaks
     npeaks = cpl_matrix_get_nrow(px);
     new_peaks = cpl_vector_wrap(npeaks, cpl_matrix_get_data(px));
+    cpl_matrix_unwrap(px);
     // cpl_matrix_unwrap(px);
     // Delete all the other stuff we don't need
     cpl_bivector_delete(linelist);
@@ -644,9 +651,13 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         peaks_new = cr2res_etalon_get_peaks_gaussian(spectra[i], spectra_err[i],
                          wavesol_init[i], wavesol_init_err[i], peaks, 
                          &sigmas_loc, &heights_loc, &fit_errors_loc);
-
-        // Replace peaks with peaks_new
         cpl_vector_delete(peaks);
+        if (peaks_new == NULL){
+            // If we don't find any peaks here, just move on
+            cpl_msg_warning(__func__, "No peaks found in order %i", orders[i]);
+            continue;
+        }
+        // Replace peaks with peaks_new
         peaks = peaks_new;
         npeaks = cpl_vector_get_size(peaks);
 
@@ -1067,7 +1078,7 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
         for ( j = 1; j < npeaks; j++)
         {
             // TODO: m is awkwardly close to 0.5 before rounding...
-            cpl_vector_set(mpos, j-1, round((cpl_vector_get(wcen, j-1) - wcen0)/ 
+            cpl_vector_set(mpos, j-1, round((cpl_vector_get(wcen, j-1))/ 
                     fabs(cpl_vector_get(wcen, j) - cpl_vector_get(wcen, j-1))));
         }
         cpl_vector_set(mpos, 0, 1 + cpl_vector_get(mpos, 1));
@@ -1162,7 +1173,7 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
             k++;
         }
     }
-
+    
     result = cpl_polynomial_new(2);
     degree_2d[0] = degree_x ;
     degree_2d[1] = degree_y ;
