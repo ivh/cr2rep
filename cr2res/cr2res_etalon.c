@@ -1213,7 +1213,7 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
             k++;
         }
     }
-
+    
     result = cpl_polynomial_new(2);
     degree_2d[0] = degree_x ;
     degree_2d[1] = degree_y ;
