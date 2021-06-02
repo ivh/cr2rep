@@ -569,7 +569,7 @@ static int cr2res_obs_pol_reduce(
     }
     cpl_free(nod_positions) ;    
 
-    cpl_msg_debug(__func__,"Number of frames posA:posB %d:%d",
+    cpl_msg_debug(__func__,"Number of frames posA:posB %lld:%lld",
                     cpl_frameset_get_size(rawframes_a),
                     cpl_frameset_get_size(rawframes_b));
 
