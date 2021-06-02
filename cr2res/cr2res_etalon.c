@@ -595,6 +595,8 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_vector * sigmas_loc;
     cpl_vector * heights_loc;
     cpl_vector * fit_errors_loc;
+    cpl_vector * pos;
+    cpl_vector * diff;
     cpl_polynomial * result;
     cpl_polynomial * wavesol;
     cpl_matrix * samppos;
@@ -612,6 +614,8 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
             orders==NULL)
         return NULL ;
+
+    *wavelength_error = NULL;
 
     // Initialize data
     result = cpl_polynomial_new(2);
@@ -858,6 +862,30 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         }
     }
 
+    npeaks = cpl_vector_get_size(pf);
+    // Calculate absolute difference between polynomial and
+    // catalog value for each line
+    // use px and py, so that only good lines are used
+    diff = cpl_vector_new(npeaks);
+    pos = cpl_vector_new(2);
+    for (i = 0; i < npeaks; i++){
+        cpl_vector_set(pos, 0, cpl_matrix_get(pxo, 0, i));
+        cpl_vector_set(pos, 1, cpl_matrix_get(pxo, 1, i));
+        cpl_vector_set(diff, i, abs(
+            cpl_polynomial_eval(result, pos)
+            - cpl_vector_get(pf, i)));
+    }
+
+    if (*wavelength_error == NULL)
+        *wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+    cpl_array_set_double(*wavelength_error, 0,
+            cpl_vector_get_mean(diff));
+    cpl_array_set_double(*wavelength_error, 1,
+            cpl_vector_get_max(diff));
+
+    cpl_vector_delete(diff);
+    cpl_vector_delete(pos);
+
     cpl_matrix_delete(pxo);
     cpl_vector_delete(pf);
     cpl_vector_delete(pi);
@@ -925,6 +953,8 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
     cpl_vector ** fpe_mord;
     cpl_vector ** fpe_cord;
     cpl_polynomial * result;
+    cpl_vector * pos;
+    cpl_vector * diff;
 
     cpl_vector * fpe_gap;
     cpl_vector * tmp_vec;
@@ -940,6 +970,9 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
     if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
             orders==NULL)
         return NULL ;
+
+    *wavelength_error = NULL;
+
 
     fpe_xobs = cpl_malloc(ninputs * sizeof(cpl_vector *));
     fpe_wobs = cpl_malloc(ninputs * sizeof(cpl_vector *));
@@ -1190,6 +1223,30 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
             }
         }
     }
+
+    npeaks = cpl_vector_get_size(py);
+    // Calculate absolute difference between polynomial and
+    // catalog value for each line
+    // use px and py, so that only good lines are used
+    diff = cpl_vector_new(npeaks);
+    pos = cpl_vector_new(2);
+    for (i = 0; i < npeaks; i++){
+        cpl_vector_set(pos, 0, cpl_matrix_get(px, 0, i));
+        cpl_vector_set(pos, 1, cpl_matrix_get(px, 1, i));
+        cpl_vector_set(diff, i, abs(
+            cpl_polynomial_eval(result, pos)
+            - cpl_vector_get(py, i)));
+    }
+
+    if (*wavelength_error == NULL)
+        *wavelength_error = cpl_array_new(2, CPL_TYPE_DOUBLE);
+    cpl_array_set_double(*wavelength_error, 0,
+            cpl_vector_get_mean(diff));
+    cpl_array_set_double(*wavelength_error, 1,
+            cpl_vector_get_max(diff));
+
+    cpl_vector_delete(diff);
+    cpl_vector_delete(pos);
 
     cpl_matrix_delete(px);
     cpl_vector_delete(py);
