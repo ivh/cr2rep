@@ -662,7 +662,7 @@ static int cr2res_util_wave(
                 CR2RES_UTIL_WAVE_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file); 
 
-        if (wavecal_type == CR2RES_LINE2D || wavecal_type == CR2RES_LINE1D) {
+        if (wavecal_type != CR2RES_XCORR) {
             /* Save the Lines Diagnostics */
             out_file = cpl_sprintf("%s_lines_diagnostics.fits",
                     cr2res_get_base_name(cr2res_get_root_name(cur_fname)));
