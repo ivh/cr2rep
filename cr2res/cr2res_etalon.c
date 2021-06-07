@@ -1082,7 +1082,7 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
                     fabs(cpl_vector_get(wcen, j) - cpl_vector_get(wcen, j-1))));
         }
         cpl_vector_set(mpos, 0, 1 + cpl_vector_get(mpos, 1));
-        
+
         fpe_xobs[i] = peaks_new;
         fpe_wobs[i] = wcen;
         fpe_freq[i] = freq;
@@ -1168,12 +1168,12 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
         npeaks = cpl_vector_get_size(fpe_mord[i]);
         for (j = 0; j < npeaks; j++){
             cpl_matrix_set(px, 0, k, cpl_vector_get(fpe_xobs[i], j));
-            cpl_matrix_set(px, 1, k, i);
+            cpl_matrix_set(px, 1, k, orders[i]);
             cpl_vector_set(py, k, cpl_vector_get(fpe_wobs[i], j));
             k++;
         }
     }
-    
+
     result = cpl_polynomial_new(2);
     degree_2d[0] = degree_x ;
     degree_2d[1] = degree_y ;

@@ -853,7 +853,7 @@ static void test_cr2res_calib_detlin()
     // evaluation of that polynomial
     // new image = old_image * detlin_poly(old_image)
 
-    // Case 1: DetLin b = c = 0, å = 1, doesn't change anything
+    // Case 1: DetLin b = c = 0, a = 1, doesn't change anything
     a = 1; c = 0; b = 0;
     sa = sb = sc = 0;
     ima = cr2res_create_hdrl(nx, ny, a, sa);
