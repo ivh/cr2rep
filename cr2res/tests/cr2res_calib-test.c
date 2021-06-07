@@ -1078,7 +1078,7 @@ int main(void)
     test_cr2res_calib_flat();
     test_cr2res_calib_dark();
     test_cr2res_calib_bpm();
-    //test_cr2res_calib_detlin();
+    test_cr2res_calib_detlin();
 
     return cpl_test_end(0);
 }
