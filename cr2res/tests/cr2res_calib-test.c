@@ -47,7 +47,7 @@
 
 #define localdir "." //getenv("srcdir")
 
-static hdrl_image * create_hdrl(int nx, int ny, double value, double error);
+static hdrl_image * cr2res_create_hdrl(int nx, int ny, double value, double error);
 
 static void test_cr2res_calib_image(void);
 static void test_cr2res_calib_cosmic(void);
@@ -142,7 +142,7 @@ static cpl_frame * create_master_flat(char * filename, int nx, int ny, double va
     cpl_frame_set_tag(out, "FLAT");
     cpl_frame_set_group(out, CPL_FRAME_GROUP_CALIB);
 
-    hdrl_image * hdrl = create_hdrl(nx, ny, value, error);
+    hdrl_image * hdrl = cr2res_create_hdrl(nx, ny, value, error);
 
     if (bpm != NULL){
         hdrl_image_reject(hdrl, 1, 1);
@@ -168,7 +168,7 @@ static cpl_frame * create_master_dark(char * filename, int nx, int ny, double va
     cpl_frame_set_tag(out, "DARK");
     cpl_frame_set_group(out, CPL_FRAME_GROUP_CALIB);
 
-    hdrl_image * hdrl = create_hdrl(nx, ny, value, error);
+    hdrl_image * hdrl = cr2res_create_hdrl(nx, ny, value, error);
 
     if (bpm != NULL){
         hdrl_image_reject(hdrl, 1, 1);
@@ -193,7 +193,7 @@ static cpl_frame * create_bpm(char * filename, int nx, int ny, double value)
     cpl_frame_set_tag(out, "BPM");
     cpl_frame_set_group(out, CPL_FRAME_GROUP_CALIB);
 
-    hdrl_image * hdrl = create_hdrl(nx, ny, value, 0);
+    hdrl_image * hdrl = cr2res_create_hdrl(nx, ny, value, 0);
     save_hdrl(filename, hdrl, MODE_BPM, 0);
     hdrl_image_delete(hdrl);
 
@@ -261,7 +261,7 @@ static cpl_frame * create_detlin(char * filename, hdrl_image * a, hdrl_image * b
   @brief    Create a hdrl image with constant value and error
  */
 /*----------------------------------------------------------------------------*/
-static hdrl_image * create_hdrl(int nx, int ny, double value, double error)
+static hdrl_image * cr2res_create_hdrl(int nx, int ny, double value, double error)
 {
     hdrl_image * out = hdrl_image_new(nx, ny);
     hdrl_value hv;
@@ -280,9 +280,8 @@ static void test_cr2res_calib_image()
     double img_value = 100;
     double img_error = 1;
 
-    hdrl_image * in = create_hdrl(nx, ny, img_value, img_error);
+    hdrl_image * in = cr2res_create_hdrl(nx, ny, img_value, img_error);
     int chip = 1;
-    int cosmics_corr = 1;
 
 	char *my_path1 = cpl_sprintf("%s/TEST_master_flat.fits", localdir);
 	char *my_path2 = cpl_sprintf("%s/TEST_master_dark.fits", localdir);
@@ -313,8 +312,6 @@ static void test_cr2res_calib_image()
     cpl_test_image_abs(hdrl_image_get_error(in), hdrl_image_get_error(out), DBL_EPSILON);
     hdrl_image_delete(out);
 
-    // Test all
-    // out = cr2res_calib_image(in, chip, 0, cosmics_corr, flat, dark, bpm, detlin, dit);
 
     hdrl_image_delete(in);
     cpl_frame_delete(flat);
@@ -348,7 +345,7 @@ static void test_cr2res_calib_cosmic()
     int cosmics_corr = 1;
     double dit = 10;
 
-    in = create_hdrl(nx, ny, img_value, img_error);
+    in = cr2res_create_hdrl(nx, ny, img_value, img_error);
 
     // Case 1: No Cosmic Correction, i.e. nothing happens
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, NULL, dit);
@@ -384,11 +381,10 @@ static void test_cr2res_calib_flat()
     cpl_mask * bpm;
     cpl_frame * flat;
     int chip = 1;
-    int cosmics_corr = 1;
     double dit = 10;
     cpl_error_code error;
 
-    in = create_hdrl(nx, ny, img_value, img_error);
+    in = cr2res_create_hdrl(nx, ny, img_value, img_error);
 
     // Case 1: Flat is just 1 and no error, i.e. no change
     flat_value = 1;
@@ -399,7 +395,7 @@ static void test_cr2res_calib_flat()
     
     out_value = img_value / flat_value;
     out_error = sqrt( pow(img_error / flat_value, 2) + pow(img_value * flat_error/ (flat_value * flat_value), 2));
-    cmp = create_hdrl(nx, ny, out_value, out_error);
+    cmp = cr2res_create_hdrl(nx, ny, out_value, out_error);
 
     cpl_test_image_abs(hdrl_image_get_image(cmp), hdrl_image_get_image(out), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(cmp), hdrl_image_get_error(out), DBL_EPSILON);
@@ -416,7 +412,7 @@ static void test_cr2res_calib_flat()
     
     out_value = img_value / flat_value;
     out_error = sqrt( pow(img_error / flat_value, 2) + pow(img_value * flat_error/ (flat_value * flat_value), 2));
-    cmp = create_hdrl(nx, ny, out_value, out_error);
+    cmp = cr2res_create_hdrl(nx, ny, out_value, out_error);
 
     cpl_test_image_abs(hdrl_image_get_image(cmp), hdrl_image_get_image(out), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(cmp), hdrl_image_get_error(out), DBL_EPSILON);
@@ -501,10 +497,9 @@ static void test_cr2res_calib_dark()
     cpl_mask *bpm;
     cpl_frame * dark;
     int chip = 1;
-    int cosmics_corr = 1;
     double dit = 10;
 
-    in = create_hdrl(nx, ny, img_value, img_error);
+    in = cr2res_create_hdrl(nx, ny, img_value, img_error);
 	char *my_path = cpl_sprintf("%s/TEST_master_dark.fits", localdir);
 	char *my_path2 = cpl_sprintf("%s/TEST_empty.fits", localdir);
 
@@ -518,7 +513,7 @@ static void test_cr2res_calib_dark()
     
     out_value = img_value - dit/dark_dit * dark_value;
     out_error = sqrt(pow(img_error, 2) + pow(dit/dark_dit * dark_error, 2));
-    cmp = create_hdrl(nx, ny, out_value, out_error);
+    cmp = cr2res_create_hdrl(nx, ny, out_value, out_error);
 
     cpl_test_image_abs(hdrl_image_get_image(cmp), hdrl_image_get_image(out), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(cmp), hdrl_image_get_error(out), DBL_EPSILON);
@@ -536,7 +531,7 @@ static void test_cr2res_calib_dark()
     
     out_value = img_value - dit/dark_dit * dark_value;
     out_error = sqrt(pow(img_error, 2) + pow(dit/dark_dit * dark_error, 2));
-    cmp = create_hdrl(nx, ny, out_value, out_error);
+    cmp = cr2res_create_hdrl(nx, ny, out_value, out_error);
 
     cpl_test_image_abs(hdrl_image_get_image(cmp), hdrl_image_get_image(out), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(cmp), hdrl_image_get_error(out), DBL_EPSILON);
@@ -554,7 +549,7 @@ static void test_cr2res_calib_dark()
     
     out_value = img_value - dit/dark_dit * dark_value;
     out_error = sqrt(pow(img_error, 2) + pow(dit/dark_dit * dark_error, 2));
-    cmp = create_hdrl(nx, ny, out_value, out_error);
+    cmp = cr2res_create_hdrl(nx, ny, out_value, out_error);
 
     cpl_test_image_abs(hdrl_image_get_image(cmp), hdrl_image_get_image(out), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(cmp), hdrl_image_get_error(out), DBL_EPSILON);
@@ -572,7 +567,7 @@ static void test_cr2res_calib_dark()
     
     out_value = img_value - dit/dark_dit * dark_value;
     out_error = sqrt(pow(img_error, 2) + pow(dit/dark_dit * dark_error, 2));
-    cmp = create_hdrl(nx, ny, out_value, out_error);
+    cmp = cr2res_create_hdrl(nx, ny, out_value, out_error);
 
     cpl_test_image_abs(hdrl_image_get_image(cmp), hdrl_image_get_image(out), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(cmp), hdrl_image_get_error(out), DBL_EPSILON);
@@ -590,7 +585,7 @@ static void test_cr2res_calib_dark()
     
     out_value = img_value - dit/dark_dit * dark_value;
     out_error = sqrt(pow(img_error, 2) + pow(dit/dark_dit * dark_error, 2));
-    cmp = create_hdrl(nx, ny, out_value, out_error);
+    cmp = cr2res_create_hdrl(nx, ny, out_value, out_error);
 
     cpl_test_image_abs(hdrl_image_get_image(cmp), hdrl_image_get_image(out), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(cmp), hdrl_image_get_error(out), DBL_EPSILON);
@@ -608,7 +603,7 @@ static void test_cr2res_calib_dark()
     
     out_value = img_value - dit/dark_dit * dark_value;
     out_error = sqrt(pow(img_error, 2) + pow(dit/dark_dit * dark_error, 2));
-    cmp = create_hdrl(nx, ny, out_value, out_error);
+    cmp = cr2res_create_hdrl(nx, ny, out_value, out_error);
 
     cpl_test_image_abs(hdrl_image_get_image(cmp), hdrl_image_get_image(out), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(cmp), hdrl_image_get_error(out), DBL_EPSILON);
@@ -626,7 +621,7 @@ static void test_cr2res_calib_dark()
     
     out_value = img_value - dit/dark_dit * dark_value;
     out_error = sqrt(pow(img_error, 2) + pow(dit/dark_dit * dark_error, 2));
-    cmp = create_hdrl(nx, ny, out_value, out_error);
+    cmp = cr2res_create_hdrl(nx, ny, out_value, out_error);
 
     cpl_test_image_abs(hdrl_image_get_image(cmp), hdrl_image_get_image(out), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(cmp), hdrl_image_get_error(out), DBL_EPSILON);
@@ -644,7 +639,7 @@ static void test_cr2res_calib_dark()
     
     out_value = img_value - dit/dark_dit * dark_value;
     out_error = sqrt(pow(img_error, 2) + pow(dit/dark_dit * dark_error, 2));
-    cmp = create_hdrl(nx, ny, out_value, out_error);
+    cmp = cr2res_create_hdrl(nx, ny, out_value, out_error);
 
     cpl_test_image_abs(hdrl_image_get_image(cmp), hdrl_image_get_image(out), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(cmp), hdrl_image_get_error(out), DBL_EPSILON);
@@ -721,10 +716,9 @@ static void test_cr2res_calib_bpm()
     hdrl_image * in, * out, * cmp;
     cpl_frame * bpm;
     int chip = 1;
-    int cosmics_corr = 1;
     double dit = 10;
 
-    in = create_hdrl(nx, ny, img_value, img_error);
+    in = cr2res_create_hdrl(nx, ny, img_value, img_error);
     value.data = 10; value.error = img_error;
     hdrl_image_set_pixel(in, 2, 2, value);
 
@@ -754,7 +748,7 @@ static void test_cr2res_calib_bpm()
     cpl_frame_set_tag(bpm, "BPM");
     cpl_frame_set_group(bpm, CPL_FRAME_GROUP_CALIB);
 
-    hdrl = create_hdrl(nx, ny, 0, 0);
+    hdrl = cr2res_create_hdrl(nx, ny, 0, 0);
     value.data = 1;
     hdrl_image_set_pixel(hdrl, 2, 2, value);
     save_hdrl(my_path, hdrl, MODE_BPM, 0);
@@ -775,7 +769,7 @@ static void test_cr2res_calib_bpm()
     cpl_frame_set_tag(bpm, "BPM");
     cpl_frame_set_group(bpm, CPL_FRAME_GROUP_CALIB);
 
-    hdrl = create_hdrl(nx, ny, 1, 0);
+    hdrl = cr2res_create_hdrl(nx, ny, 1, 0);
     value.data = 0;
     hdrl_image_set_pixel(hdrl, 2, 2, value);
     save_hdrl(my_path, hdrl, MODE_BPM, 0);
@@ -833,8 +827,8 @@ static void test_cr2res_calib_detlin()
     int ny = 5;
     int badpix;
 
-    double img_value = 100;
-    double img_error = 1;
+    double img_value = 20000;
+    double img_error = 200;
     double out_value, out_error;
     double bpm_value;
     hdrl_image * hdrl;
@@ -846,25 +840,25 @@ static void test_cr2res_calib_detlin()
     double i, si;
     cpl_frame * detlin;
     int chip = 1;
-    int cosmics_corr = 1;
     double dit = 10;
 
-    in = create_hdrl(nx, ny, img_value, img_error);
+    in = cr2res_create_hdrl(nx, ny, img_value, img_error);
     i = img_value; si = img_error;
 
 	char *my_path = cpl_sprintf("%s/TEST_master_detlin.fits", localdir);
 	char *my_path2 = cpl_sprintf("%s/TEST_empty.fits", localdir);
 
     // DetLin images aren't actually images, but polynomial coefficients for each pixel
-    // The new image is the evaluation of that polynomial for each pixel
+    // The new image is the old multiplied by the
+    // evaluation of that polynomial
     // new image = old_image * detlin_poly(old_image)
 
-    // Case 1: DetLin a = c = 0, b = 1, doesn't change anything
+    // Case 1: DetLin b = c = 0, å = 1, doesn't change anything
     a = 1; c = 0; b = 0;
     sa = sb = sc = 0;
-    ima = create_hdrl(nx, ny, a, sa);
-    imb = create_hdrl(nx, ny, b, sb);
-    imc = create_hdrl(nx, ny, c, sc);
+    ima = cr2res_create_hdrl(nx, ny, a, sa);
+    imb = cr2res_create_hdrl(nx, ny, b, sb);
+    imc = cr2res_create_hdrl(nx, ny, c, sc);
 
     detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
@@ -879,12 +873,12 @@ static void test_cr2res_calib_detlin()
     // Case 2: DetLin a = 1, c = 0, b = 1, x + x**2
     a = b = 1; c = 0;
     sa = sb = sc = 0;
-    ima = create_hdrl(nx, ny, a, sa);
-    imb = create_hdrl(nx, ny, b, sb);
-    imc = create_hdrl(nx, ny, c, sc);
+    ima = cr2res_create_hdrl(nx, ny, a, sa);
+    imb = cr2res_create_hdrl(nx, ny, b, sb);
+    imc = cr2res_create_hdrl(nx, ny, c, sc);
     detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, detlin(img_value, a, b, c), deterr(img_value, a, b, c, img_error, sa, sb, sc));
+    cmp = cr2res_create_hdrl(nx, ny, detlin(img_value, a, b, c), deterr(img_value, a, b, c, img_error, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -898,12 +892,12 @@ static void test_cr2res_calib_detlin()
     // Case 3: DetLin a = b = c = 0, everything is 0
     a = c = b = 0;
     sa = sb = sc = 0;
-    ima = create_hdrl(nx, ny, a, sa);
-    imb = create_hdrl(nx, ny, b, sb);
-    imc = create_hdrl(nx, ny, c, sc);
+    ima = cr2res_create_hdrl(nx, ny, a, sa);
+    imb = cr2res_create_hdrl(nx, ny, b, sb);
+    imc = cr2res_create_hdrl(nx, ny, c, sc);
     detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, 0, 0);
+    cmp = cr2res_create_hdrl(nx, ny, 0, 0);
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -916,12 +910,12 @@ static void test_cr2res_calib_detlin()
     // Case 4: DetLin a = 0.5, c = b = 0, divide all values by 2, including the error
     a = 0.5; b = c = 0;
     sa = sb = sc = 0;
-    ima = create_hdrl(nx, ny, a, sa);
-    imb = create_hdrl(nx, ny, b, sb);
-    imc = create_hdrl(nx, ny, c, sc);
+    ima = cr2res_create_hdrl(nx, ny, a, sa);
+    imb = cr2res_create_hdrl(nx, ny, b, sb);
+    imc = cr2res_create_hdrl(nx, ny, c, sc);
     detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, img_value * a, img_error * a);
+    cmp = cr2res_create_hdrl(nx, ny, img_value * a, img_error * a);
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -935,12 +929,12 @@ static void test_cr2res_calib_detlin()
     // x = a + y * b
     a = 2; b = 0; c = 0;
     sa = sb = sc = 0;
-    ima = create_hdrl(nx, ny, a, sa);
-    imb = create_hdrl(nx, ny, b, sb);
-    imc = create_hdrl(nx, ny, c, sc);
+    ima = cr2res_create_hdrl(nx, ny, a, sa);
+    imb = cr2res_create_hdrl(nx, ny, b, sb);
+    imc = cr2res_create_hdrl(nx, ny, c, sc);
     detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
+    cmp = cr2res_create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -954,12 +948,12 @@ static void test_cr2res_calib_detlin()
     // x = a + y * b + y**2 * c
     a = c = 1; b = 2;
     sa = sb = sc = 0;
-    ima = create_hdrl(nx, ny, a, sa);
-    imb = create_hdrl(nx, ny, b, sb);
-    imc = create_hdrl(nx, ny, c, sc);
+    ima = cr2res_create_hdrl(nx, ny, a, sa);
+    imb = cr2res_create_hdrl(nx, ny, b, sb);
+    imc = cr2res_create_hdrl(nx, ny, c, sc);
     detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
+    cmp = cr2res_create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -973,12 +967,12 @@ static void test_cr2res_calib_detlin()
     // x = b * y
     a = c = 0; b = 1;
     sa = sc = 0; sb = 1;
-    ima = create_hdrl(nx, ny, a, sa);
-    imb = create_hdrl(nx, ny, b, sb);
-    imc = create_hdrl(nx, ny, c, sc);
+    ima = cr2res_create_hdrl(nx, ny, a, sa);
+    imb = cr2res_create_hdrl(nx, ny, b, sb);
+    imc = cr2res_create_hdrl(nx, ny, c, sc);
     detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, pow2(img_value), deterr(i, a, b, c, si, sa, sb, sc));
+    cmp = cr2res_create_hdrl(nx, ny, pow2(img_value), deterr(i, a, b, c, si, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -991,12 +985,12 @@ static void test_cr2res_calib_detlin()
     // Case 8: DetLin a = 1, c = 0, b = 1, but now with error
     a = 1; c = 0; b = 1;
     sa = 1 ; sc = 0; sb = 1;
-    ima = create_hdrl(nx, ny, a, sa);
-    imb = create_hdrl(nx, ny, b, sb);
-    imc = create_hdrl(nx, ny, c, sc);
+    ima = cr2res_create_hdrl(nx, ny, a, sa);
+    imb = cr2res_create_hdrl(nx, ny, b, sb);
+    imc = cr2res_create_hdrl(nx, ny, c, sc);
     detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
+    cmp = cr2res_create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -1011,12 +1005,12 @@ static void test_cr2res_calib_detlin()
     a = 1; c = 1; b = 0;
     sa = 1 ; sc = 1; sb = 0;
     i = img_value; si = img_error;
-    ima = create_hdrl(nx, ny, a, sa);
-    imb = create_hdrl(nx, ny, b, sb);
-    imc = create_hdrl(nx, ny, c, sc);
+    ima = cr2res_create_hdrl(nx, ny, a, sa);
+    imb = cr2res_create_hdrl(nx, ny, b, sb);
+    imc = cr2res_create_hdrl(nx, ny, c, sc);
     detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
+    cmp = cr2res_create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
     hdrl_image_delete(out);
@@ -1031,12 +1025,12 @@ static void test_cr2res_calib_detlin()
     a = 1; c = 1; b = 1;
     sa = 1 ; sc = 1; sb = 1;
     i = img_value; si = img_error;
-    ima = create_hdrl(nx, ny, a, sa);
-    imb = create_hdrl(nx, ny, b, sb);
-    imc = create_hdrl(nx, ny, c, sc);
+    ima = cr2res_create_hdrl(nx, ny, a, sa);
+    imb = cr2res_create_hdrl(nx, ny, b, sb);
+    imc = cr2res_create_hdrl(nx, ny, c, sc);
     detlin = create_detlin(my_path, ima, imb, imc);
     out = cr2res_calib_image(in, chip, 0, 0, NULL, NULL, NULL, detlin, dit);
-    cmp = create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
+    cmp = cr2res_create_hdrl(nx, ny, detlin(i, a, b, c), deterr(i, a, b, c, si, sa, sb, sc));
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), 1e-6);
     hdrl_image_delete(out);
