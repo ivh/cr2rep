@@ -162,6 +162,7 @@ int cr2res_wave_extract_lines(
         const cpl_array *   wave_error_init,
         cpl_bivector    *   lines_list,
         int                 window_size,
+        double              peak_width,
         int                 display,
         cpl_matrix      **  px,
         cpl_vector      **  py,

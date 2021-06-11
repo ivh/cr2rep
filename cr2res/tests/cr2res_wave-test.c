@@ -751,7 +751,7 @@ static void test_cr2res_wave_etalon_2d(){
     cpl_vector_delete(py);
 
     result = cr2res_etalon_wave_2d(spectra, spectra_err, wavesol_init, wavesol_init_err,
-                            orders, traces_nb, ninputs, degree_x, degree_y,
+                            orders, traces_nb, ninputs, degree_x, degree_y, 0,
                             &wavelength_error, &line_diagnostics);
 
     cpl_test_nonnull(result);
@@ -867,7 +867,7 @@ static void test_cr2res_wave_etalon_2d_nikolai(){
     cpl_vector_delete(py);
 
     result = cr2res_etalon_wave_2d_nikolai(spectra, spectra_err, wavesol_init, wavesol_init_err,
-                            orders, traces_nb, ninputs, degree_x, degree_y,
+                            orders, traces_nb, ninputs, degree_x, degree_y, 0,
                             &wavelength_error, &line_diagnostics);
 
     cpl_test_nonnull(result);

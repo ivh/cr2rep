@@ -463,7 +463,8 @@ int cr2res_wave_apply(
         if ((wave_sol_2d = cr2res_etalon_wave_2d_nikolai(
                         spectra, spectra_err, wavesol_init,
                         wavesol_init_error, orders, traces_nb, nb_traces,
-                        2, degree, &wl_err_array, &lines_diagnostics_loc)) == NULL) {
+                        2, degree, display,
+                        &wl_err_array, &lines_diagnostics_loc)) == NULL) {
             cpl_msg_error(__func__, "Failed to compute 2d Etalon solution");
             /* De-allocate */
             for (i=0 ; i<nb_traces ; i++) {
@@ -858,7 +859,7 @@ cpl_polynomial * cr2res_wave_2d(
         for (i = 0; i < ninputs; i++){
             // extract line data in 1 spectrum
             if (cr2res_wave_extract_lines(spectra[i], spectra_err[i],
-                wavesol[i], wavesol_init_err[i], catalog_spec, -1, display,
+                wavesol[i], wavesol_init_err[i], catalog_spec, -1, -1, display,
                 &tmp_x, &tmp_y, &tmp_sigma, &heights, &fit_errors) == -1) {
                 cpl_msg_warning(__func__, "Could not extract lines");
                 continue;
@@ -1977,6 +1978,7 @@ int cr2res_wave_extract_lines(
         const cpl_array *   wave_error_init,
         cpl_bivector    *   lines_list,
         int                 window_size,
+        double              peak_width,
         int                 display,
         cpl_matrix      **  px,
         cpl_vector      **  py,
@@ -2062,7 +2064,9 @@ int cr2res_wave_extract_lines(
     height = cpl_bivector_get_y_data_const(lines_list);
     // TODO width is not provided in the catalog at the moment,
     // use half window size instead?
-    width = 1;
+    if (peak_width <= 0){
+        peak_width = 1;
+    }
 
     // for each line fit a gaussian around guessed position
     // and find actual pixel position
@@ -2140,7 +2144,7 @@ int cr2res_wave_extract_lines(
         // get initial guess for gaussian fit
         value = pixel_pos - window_size / 2 + cpl_vector_get_maxpos(y);
         cpl_vector_set(a, 0, value);
-        cpl_vector_set(a, 1, width);
+        cpl_vector_set(a, 1, peak_width);
         cpl_vector_set(a, 2, cpl_vector_get_max(y) - cpl_vector_get_min(y));
         cpl_vector_set(a, 3, cpl_vector_get_min(y));
 
@@ -2339,7 +2343,7 @@ static cpl_polynomial * cr2res_wave_line_fitting(
 
     // extract line data in 1 spectrum
     if (cr2res_wave_extract_lines(spectrum, spectrum_err, wavesol_init,
-                wave_error_init, lines_list, -1, display, &px, &py, &sigma_py,
+                wave_error_init, lines_list, -1, -1, display, &px, &py, &sigma_py,
                 &heights, &fit_errors) != 0) {
         cpl_msg_error(__func__, "Cannot extract lines") ;
         return NULL ;
