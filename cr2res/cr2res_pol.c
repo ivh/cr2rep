@@ -437,58 +437,70 @@ cpl_bivector * cr2res_pol_demod_intens(
         cpl_vector  **  errors, 
         int             n)
 {
-  cpl_bivector * result;
-  cpl_vector * outspec;
-  cpl_vector * outerr;
-  cpl_vector * tmp;
-  cpl_size size;
-  int i;
+    cpl_bivector    *   result;
+    cpl_vector      *   outspec;
+    cpl_vector      *   outerr;
+    double          *   pouterr ;
+    cpl_vector      *   tmp;
+    int                 ncorrections ;
+    cpl_size            size, i;
 
-  /* Check entries */
-  if (intens == NULL || wl == NULL || errors == NULL) return NULL;
-  if (n != 8) {
-    cpl_msg_error(__func__, "Need 8 spectra!");
-    return NULL;
-  }
-  if (intens[0]== NULL) return NULL;
-  size = cpl_vector_get_size(intens[0]);
-  for (cpl_size i = 0; i < n; i++) {
-    if (intens[i] == NULL) return NULL;
-    if (wl[i] == NULL) return NULL;
-    if (errors[i] == NULL) return NULL;
-    if (cpl_vector_get_size(intens[i]) != size) return NULL;
-    if (cpl_vector_get_size(wl[i]) != size) return NULL;
-    if (cpl_vector_get_size(errors[i]) != size) return NULL;
-  }
-
-  result = cpl_bivector_new(size);
-  outspec = cpl_bivector_get_x(result);
-  outerr = cpl_bivector_get_y(result);
-
-  for (i=0;i<n;i++) {
-    if (i==0) {
-      cpl_vector_copy(outspec, intens[i]);
-      cpl_vector_copy(outerr, errors[i]);
-      cpl_vector_power(outerr, 2.0);
-    } else {
-      cpl_vector_add(outspec, intens[i]);
-      tmp = cpl_vector_duplicate(errors[i]);
-      cpl_vector_power(tmp, 2.0);
-      cpl_vector_add(outerr, tmp);
-      cpl_vector_delete(tmp);
+    /* Check entries */
+    if (n != 8) {
+        cpl_msg_error(__func__, "Expect 8 spectra as inputs");
+        return NULL;
     }
-  }
+    if (intens == NULL || wl == NULL || errors == NULL) return NULL;
+    for (i = 0; i < n; i++) 
+        if (intens[i]==NULL || wl[i]==NULL || errors[i]==NULL) return NULL;
+    size = cpl_vector_get_size(intens[0]);
+    for (i = 0; i < n; i++) {
+        if (cpl_vector_get_size(intens[i]) != size ||
+                cpl_vector_get_size(wl[i]) != size ||
+                cpl_vector_get_size(errors[i]) != size) 
+            return NULL;
+    }
   
-  cpl_vector_divide_scalar(outspec, (double)n/2.0);
-  cpl_vector_power(outerr, 0.5);
+    /* Allocate */
+    result = cpl_bivector_new(size);
+    outspec = cpl_bivector_get_x(result);
+    outerr = cpl_bivector_get_y(result);
+    for (i=0 ; i<n ; i++) {
+        if (i==0) {
+            cpl_vector_copy(outspec, intens[i]);
+            cpl_vector_copy(outerr, errors[i]);
+            cpl_vector_power(outerr, 2.0);
+        } else {
+            cpl_vector_add(outspec, intens[i]);
+            tmp = cpl_vector_duplicate(errors[i]);
+            cpl_vector_power(tmp, 2.0);
+            cpl_vector_add(outerr, tmp);
+            cpl_vector_delete(tmp);
+        }
+    }
+    cpl_vector_divide_scalar(outspec, (double)n/2.0);
 
-  if (cpl_error_get_code() != CPL_ERROR_NONE) {
-    cpl_msg_error(__func__, "Error code: %i", cpl_error_get_code());
-    cpl_bivector_delete(result);
-    return NULL;
-  }
+    /* Clean Errors */
+    ncorrections = 0 ; 
+    pouterr = cpl_vector_get_data(outerr) ;
+    for (i=0 ; i<size ; i++) {
+        if (isnan(pouterr[i]) || pouterr[i] < 0.0) {
+            ncorrections++ ;
+            pouterr[i] = 0.0 ;
+        }
+    }
+    if (ncorrections > 10) 
+        cpl_msg_warning(__func__, 
+                "The Errors vector contained %d negative values", 
+                ncorrections) ;
 
-  return result;
+    cpl_vector_power(outerr, 0.5);
+  
+    if (cpl_error_get_code() != CPL_ERROR_NONE) {
+        cpl_bivector_delete(result);
+        return NULL;
+    }
+    return result;
 }
 
 /*----------------------------------------------------------------------------*/
