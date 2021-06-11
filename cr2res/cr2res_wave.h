@@ -66,6 +66,7 @@ int cr2res_wave_apply(
         int                         display,
         double                      display_wmin,
         double                      display_wmax,
+        int                         zp_order,
         cpl_propertylist    **      qcs,
         cpl_table           **      lines_diagnostics,
         cpl_table           **      extracted_out,
@@ -104,6 +105,7 @@ cpl_polynomial * cr2res_wave_2d(
         cpl_size                degree_y,
         double                  threshold,
         int                     n_iterations,
+        int                     zp_order,
         int                     display,
         cpl_array           **  wavelength_error,
         cpl_table           **  lines_diagnostics) ;

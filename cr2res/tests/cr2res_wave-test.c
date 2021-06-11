@@ -345,7 +345,7 @@ static void test_cr2res_wave_2d()
     // Run function
     cpl_test(wavelength = cr2res_wave_2d(spec, spec_err, guess, init_error,
             orders, traces, norders, catalog_name, degree_x, degree_y,
-            0.0, 0, display, &wavelength_error, &diagnostics));
+            0.0, 0, 0, display, &wavelength_error, &diagnostics));
 
     // Check output
     cpl_polynomial_dump(wavelength, stdout);
@@ -751,7 +751,7 @@ static void test_cr2res_wave_etalon_2d(){
     cpl_vector_delete(py);
 
     result = cr2res_etalon_wave_2d(spectra, spectra_err, wavesol_init, wavesol_init_err,
-                            orders, traces_nb, ninputs, degree_x, degree_y, 0,
+                            orders, traces_nb, ninputs, degree_x, degree_y, 0, 0,
                             &wavelength_error, &line_diagnostics);
 
     cpl_test_nonnull(result);
@@ -867,7 +867,7 @@ static void test_cr2res_wave_etalon_2d_nikolai(){
     cpl_vector_delete(py);
 
     result = cr2res_etalon_wave_2d_nikolai(spectra, spectra_err, wavesol_init, wavesol_init_err,
-                            orders, traces_nb, ninputs, degree_x, degree_y, 0,
+                            orders, traces_nb, ninputs, degree_x, degree_y, 0, 0,
                             &wavelength_error, &line_diagnostics);
 
     cpl_test_nonnull(result);
