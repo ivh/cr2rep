@@ -895,7 +895,6 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     // Do the 2d fit
     px = cpl_matrix_new(2, npeaks_total);
     py = cpl_vector_new(npeaks_total);
-    offset = cr2res_pfits_get_order_zp();
     k = 0;
     for (i = 0; i < ninputs; i++)
     {
