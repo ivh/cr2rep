@@ -446,6 +446,7 @@ int cr2res_wave_apply(
         }
 
         /* Store the Solution in the table */
+        offset = cr2res_pfits_get_order_zp();
         for (i = 0; i < nb_traces; i++) {
             wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, 
                                                     orders[i] + zp_order);
@@ -491,6 +492,7 @@ int cr2res_wave_apply(
             return -1 ;
         }
 
+        offset = cr2res_pfits_get_order_zp();
         /* Store the Solution in the table */
         for (i = 0; i < nb_traces; i++) {
             wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, 
@@ -878,6 +880,7 @@ cpl_polynomial * cr2res_wave_2d(
     for (i = 0; i < ninputs; i++){
         wavesol[i] = cpl_polynomial_duplicate(wavesol_init[i]);
     }
+    offset = cr2res_pfits_get_order_zp();
 
     for (k = 0; k < n_iterations; k++){
 
