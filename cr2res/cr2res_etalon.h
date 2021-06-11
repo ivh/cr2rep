@@ -46,6 +46,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     int                     ninputs,
     cpl_size                degree_x,
     cpl_size                degree_y,
+    int                     zp_order,
     int                     display,
     cpl_array           **  wavelength_error,
     cpl_table           **  line_diagnostics);
@@ -59,6 +60,7 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
     int                     ninputs,
     cpl_size                degree_x,
     cpl_size                degree_y,
+    int                     zp_order,
     int                     display,
     cpl_array           **  wavelength_error,
     cpl_table           **  line_diagnostics);

@@ -870,7 +870,7 @@ static int cr2res_cal_wave_reduce(
     cpl_propertylist    *   plist ;
     cpl_propertylist    *   qcs_plist ;
     const char          *   first_file ;
-    int                     ext_nr ;
+    int                     ext_nr, zp_order;
     double                  best_xcorr ;
     
     /* Check Inputs */
@@ -964,6 +964,12 @@ static int cr2res_cal_wave_reduce(
     cpl_table_delete(slit_func) ;
     hdrl_image_delete(model_master) ;
     hdrl_image_delete(collapsed);
+
+    first_file = cpl_frame_get_filename(
+            cpl_frameset_get_position_const(rawframes, 0)) ;
+    plist = cpl_propertylist_load(first_file, 0) ;
+    zp_order = cr2res_pfits_get_order_zp(plist) ;
+    cpl_propertylist_delete(plist);
     
     /* Compute the Wavelength Calibration */
     cpl_msg_info(__func__, "Compute the Wavelength") ;
@@ -971,7 +977,7 @@ static int cr2res_cal_wave_reduce(
                 reduce_trace, wavecal_type, wl_degree, wl_start, wl_end, 
                 wl_err, wl_shift, log_flag, fallback_input_wavecal_flag, 
                 keep_higher_degrees_flag, clean_spectrum, 
-                display, display_wmin, display_wmax,
+                display, display_wmin, display_wmax, zp_order,
                 &qcs_plist,
                 &lines_diagnostics_out,
                 &extracted_out,

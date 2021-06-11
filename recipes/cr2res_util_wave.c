@@ -396,7 +396,9 @@ static int cr2res_util_wave(
     hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   qcs_plist ;
-    int                     det_nr, order, i, j ;
+    cpl_propertylist    *   plist ;
+    const char          *   first_file;
+    int                     det_nr, order, i, j, zp_order ;
 
     /* Needed for sscanf() */
     setlocale(LC_NUMERIC, "C");
@@ -509,6 +511,12 @@ static int cr2res_util_wave(
         return -1 ;
     }
 
+    first_file = cpl_frame_get_filename(
+            cpl_frameset_get_position_const(rawframes, 0)) ;
+    plist = cpl_propertylist_load(first_file, 0) ;
+    zp_order = cr2res_pfits_get_order_zp(plist) ;
+    cpl_propertylist_delete(plist);
+
     /* Loop on the RAW frames */
     for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
         /* Get the Current Frame */
@@ -607,6 +615,7 @@ static int cr2res_util_wave(
                         wl_degree, wl_start, wl_end, wl_err, wl_shift, log_flag,
                         fallback_input_wavecal_flag, keep_higher_degrees_flag, 
                         clean_spectrum, display, display_wmin, display_wmax,
+                        zp_order,
                         &qcs_plist,
                         &(lines_diagnostics[det_nr-1]),
                         &(updated_extracted_table[det_nr-1]),

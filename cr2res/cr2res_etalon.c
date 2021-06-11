@@ -30,6 +30,7 @@
 #include "cr2res_dfs.h"
 #include "cr2res_etalon.h"
 #include "cr2res_wave.h"
+#include "cr2res_pfits.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
@@ -586,6 +587,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     int                     ninputs,
     cpl_size                degree_x,
     cpl_size                degree_y,
+    int                     zp_order,
     int                     display,
     cpl_array           **  wavelength_error,
     cpl_table           **  line_diagnostics)
@@ -641,7 +643,6 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     fit_errors = cpl_vector_new(total_peaks);
 
     npeaks_old = 0;
-
 
     for (i = 0; i < ninputs; i++){
         if (spectra[i] == NULL){
@@ -750,7 +751,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
             freq = f0 + cpl_vector_get(n_peaks, j) * fr;
             cpl_vector_set(pf, npeaks_old + j, freq);
             cpl_matrix_set(pxo, 0, npeaks_old + j, cpl_vector_get(peaks, j));
-            cpl_matrix_set(pxo, 1, npeaks_old + j, orders[i]);
+            cpl_matrix_set(pxo, 1, npeaks_old + j, orders[i] + zp_order);
             cpl_vector_set(pn, npeaks_old + j, 
                             cpl_vector_get(n_peaks, j));
             cpl_vector_set(heights, npeaks_old + j, cpl_vector_get(heights_loc, j));
@@ -947,6 +948,7 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
     int                     ninputs,
     cpl_size                degree_x,
     cpl_size                degree_y,
+    int                     zp_order,
     int                     display,
     cpl_array           **  wavelength_error,
     cpl_table           **  line_diagnostics)
@@ -1205,7 +1207,7 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
         npeaks = cpl_vector_get_size(fpe_mord[i]);
         for (j = 0; j < npeaks; j++){
             cpl_matrix_set(px, 0, k, cpl_vector_get(fpe_xobs[i], j));
-            cpl_matrix_set(px, 1, k, orders[i]);
+            cpl_matrix_set(px, 1, k, orders[i] + zp_order);
             cpl_vector_set(py, k, cpl_vector_get(fpe_wobs[i], j));
             k++;
         }

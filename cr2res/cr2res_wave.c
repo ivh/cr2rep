@@ -39,6 +39,7 @@
 #include "cr2res_pfits.h"
 #include "cr2res_utils.h"
 #include "cr2res_etalon.h"
+#include "cr2res_pfits.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
@@ -165,6 +166,7 @@ int cr2res_wave_apply(
         int                         display,
         double                      display_wmin,
         double                      display_wmax,
+        int                         zp_order,
         cpl_propertylist    **      qcs,
         cpl_table           **      lines_diagnostics,
         cpl_table           **      extracted_out,
@@ -416,7 +418,7 @@ int cr2res_wave_apply(
         /* 2D Calibration */
         if ((wave_sol_2d=cr2res_wave_2d(spectra, spectra_err, wavesol_init,
                         wavesol_init_error, orders, traces_nb, nb_traces,
-                        catalog_fname, 2, degree, -1, 1, display,
+                        catalog_fname, 2, degree, -1, 1, zp_order, display,
                         &wl_err_array,
                         &lines_diagnostics_loc)) == NULL) {
             cpl_msg_error(__func__, "Failed to compute 2d Wavelength solution");
@@ -443,7 +445,8 @@ int cr2res_wave_apply(
 
         /* Store the Solution in the table */
         for (i = 0; i < nb_traces; i++) {
-            wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, orders[i]);
+            wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, 
+                                                    orders[i] + zp_order);
             wl_array=cr2res_convert_poly_to_array(wave_sol_1d, degree_out+1);
             cpl_polynomial_delete(wave_sol_1d);
             if (wl_array != NULL) {
@@ -463,7 +466,7 @@ int cr2res_wave_apply(
         if ((wave_sol_2d = cr2res_etalon_wave_2d_nikolai(
                         spectra, spectra_err, wavesol_init,
                         wavesol_init_error, orders, traces_nb, nb_traces,
-                        2, degree, display,
+                        2, degree, zp_order, display,
                         &wl_err_array, &lines_diagnostics_loc)) == NULL) {
             cpl_msg_error(__func__, "Failed to compute 2d Etalon solution");
             /* De-allocate */
@@ -489,7 +492,8 @@ int cr2res_wave_apply(
 
         /* Store the Solution in the table */
         for (i = 0; i < nb_traces; i++) {
-            wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, orders[i]);
+            wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, 
+                                                    orders[i] + zp_order);
             wl_array=cr2res_convert_poly_to_array(wave_sol_1d, degree_out+1);
             cpl_polynomial_delete(wave_sol_1d);
             if (wl_array != NULL) {
@@ -802,6 +806,7 @@ cpl_polynomial * cr2res_wave_2d(
         cpl_size                degree_y,
         double                  threshold,
         int                     n_iterations,
+        int                     zp_order,
         int                     display,
         cpl_array           **  wavelength_error,
         cpl_table           **  lines_diagnostics)
@@ -827,7 +832,7 @@ cpl_polynomial * cr2res_wave_2d(
     cpl_polynomial  **  wavesol;
     double              pix_pos, lambda_cat, lambda_meas, line_width,
                         line_intens, fit_error, value;
-    int                 n ;
+    int                 n;
 
     /* Check Inputs */
     if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
@@ -935,7 +940,7 @@ cpl_polynomial * cr2res_wave_2d(
                 cpl_vector_set(py, old + j, cpl_vector_get(tmp_y, j));
                 cpl_vector_set(sigma_py, old + j, cpl_vector_get(tmp_sigma, j));
                 cpl_matrix_set(px, 0, old + j, cpl_matrix_get(tmp_x, j, 0));
-                cpl_matrix_set(px, 1, old + j, orders[i]);
+                cpl_matrix_set(px, 1, old + j, orders[i] + zp_order);
             }
             cpl_matrix_delete(tmp_x);
             cpl_vector_delete(tmp_y);
@@ -1019,7 +1024,7 @@ cpl_polynomial * cr2res_wave_2d(
 
         for (i = 0; i < ninputs; i++){
             cpl_polynomial_delete(wavesol[i]);
-            wavesol[i] = cr2res_wave_poly_2d_to_1d(result, orders[i]);
+            wavesol[i] = cr2res_wave_poly_2d_to_1d(result, orders[i] + zp_order);
         }
     }
 
