@@ -616,6 +616,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_error_code error;
     double freq, wave, height, n, offset;
     double f0, fr, fd;
+    int offset;
 
     cpl_table * lines_diagnostics_loc;
     double pix_pos, lambda_cat, lambda_meas, line_width, line_intens, fit_error;
@@ -641,6 +642,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     fit_errors = cpl_vector_new(total_peaks);
 
     npeaks_old = 0;
+    offset = cr2res_pfits_get_order_zp();
 
 
     for (i = 0; i < ninputs; i++){
@@ -750,7 +752,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
             freq = f0 + cpl_vector_get(n_peaks, j) * fr;
             cpl_vector_set(pf, npeaks_old + j, freq);
             cpl_matrix_set(pxo, 0, npeaks_old + j, cpl_vector_get(peaks, j));
-            cpl_matrix_set(pxo, 1, npeaks_old + j, orders[i]);
+            cpl_matrix_set(pxo, 1, npeaks_old + j, orders[i] + offset);
             cpl_vector_set(pn, npeaks_old + j, 
                             cpl_vector_get(n_peaks, j));
             cpl_vector_set(heights, npeaks_old + j, cpl_vector_get(heights_loc, j));
@@ -979,6 +981,7 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
     cpl_size i, j, k, deg, npeaks, npeaks_total;
     double wave, gap, tmp, wcen0;
     double f0, fr, m;
+    int offset;
 
     cpl_table * lines_diagnostics_loc;
     double pix_pos, lambda_cat, lambda_meas, line_width, line_intens, fit_error;
@@ -1201,6 +1204,7 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
     // Do the 2d fit
     px = cpl_matrix_new(2, npeaks_total);
     py = cpl_vector_new(npeaks_total);
+    offset = cr2res_pfits_get_order_zp();
     k = 0;
     for (i = 0; i < ninputs; i++)
     {
@@ -1208,7 +1212,7 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
         npeaks = cpl_vector_get_size(fpe_mord[i]);
         for (j = 0; j < npeaks; j++){
             cpl_matrix_set(px, 0, k, cpl_vector_get(fpe_xobs[i], j));
-            cpl_matrix_set(px, 1, k, orders[i]);
+            cpl_matrix_set(px, 1, k, orders[i] + offset);
             cpl_vector_set(py, k, cpl_vector_get(fpe_wobs[i], j));
             k++;
         }

@@ -194,7 +194,7 @@ int cr2res_wave_apply(
     int                     trace_id, order, i, j ;
     double                  best_xcorr ;
     int                     out_wl_array_size, init_wl_array_size,
-                            degree_out ;
+                            degree_out, offset ;
 
     /* Check Entries */
     if (wavecal_type != CR2RES_XCORR && wavecal_type != CR2RES_LINE1D && 
@@ -442,8 +442,10 @@ int cr2res_wave_apply(
         }
 
         /* Store the Solution in the table */
+        offset = cr2res_pfits_get_order_zp();
         for (i = 0; i < nb_traces; i++) {
-            wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, orders[i]);
+            wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, 
+                                                    orders[i] + offset);
             wl_array=cr2res_convert_poly_to_array(wave_sol_1d, degree_out+1);
             cpl_polynomial_delete(wave_sol_1d);
             if (wl_array != NULL) {
@@ -487,9 +489,11 @@ int cr2res_wave_apply(
             return -1 ;
         }
 
+        offset = cr2res_pfits_get_order_zp();
         /* Store the Solution in the table */
         for (i = 0; i < nb_traces; i++) {
-            wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, orders[i]);
+            wave_sol_1d = cr2res_wave_poly_2d_to_1d(wave_sol_2d, 
+                                                    orders[i] + offset);
             wl_array=cr2res_convert_poly_to_array(wave_sol_1d, degree_out+1);
             cpl_polynomial_delete(wave_sol_1d);
             if (wl_array != NULL) {
@@ -827,7 +831,7 @@ cpl_polynomial * cr2res_wave_2d(
     cpl_polynomial  **  wavesol;
     double              pix_pos, lambda_cat, lambda_meas, line_width,
                         line_intens, fit_error, value;
-    int                 n ;
+    int                 n, offset;
 
     /* Check Inputs */
     if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
@@ -852,6 +856,7 @@ cpl_polynomial * cr2res_wave_2d(
     for (i = 0; i < ninputs; i++){
         wavesol[i] = cpl_polynomial_duplicate(wavesol_init[i]);
     }
+    offset = cr2res_pfits_get_order_zp();
 
     for (k = 0; k < n_iterations; k++){
 
@@ -935,7 +940,7 @@ cpl_polynomial * cr2res_wave_2d(
                 cpl_vector_set(py, old + j, cpl_vector_get(tmp_y, j));
                 cpl_vector_set(sigma_py, old + j, cpl_vector_get(tmp_sigma, j));
                 cpl_matrix_set(px, 0, old + j, cpl_matrix_get(tmp_x, j, 0));
-                cpl_matrix_set(px, 1, old + j, orders[i]);
+                cpl_matrix_set(px, 1, old + j, orders[i] + offset);
             }
             cpl_matrix_delete(tmp_x);
             cpl_vector_delete(tmp_y);
@@ -1019,7 +1024,7 @@ cpl_polynomial * cr2res_wave_2d(
 
         for (i = 0; i < ninputs; i++){
             cpl_polynomial_delete(wavesol[i]);
-            wavesol[i] = cr2res_wave_poly_2d_to_1d(result, orders[i]);
+            wavesol[i] = cr2res_wave_poly_2d_to_1d(result, orders[i] + offset);
         }
     }
 
