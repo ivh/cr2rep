@@ -789,13 +789,13 @@ static int cr2res_obs_pol_reduce_one(
             return -1 ;
         }
         hdrl_imagelist_delete(in) ;
-        if (dits != NULL) cpl_vector_delete(dits) ;
 
         /* Collapse background images */
         if (hdrl_imagelist_collapse_mean(in_backgr, &backgr, &contrib) != \
                         CPL_ERROR_NONE) {
             cpl_msg_error(__func__,
                             "Failed to collapse background") ;
+            if (dits != NULL) cpl_vector_delete(dits) ;
             cpl_free(decker_positions) ;
             hdrl_imagelist_delete(in_calib) ;
             hdrl_imagelist_delete(in_backgr) ;
@@ -808,6 +808,7 @@ static int cr2res_obs_pol_reduce_one(
         if (hdrl_imagelist_sub_image(in_calib, backgr) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__,
                             "Failed to subtract background") ;
+            if (dits != NULL) cpl_vector_delete(dits) ;
             cpl_free(decker_positions) ;
             hdrl_imagelist_delete(in_calib);
             hdrl_image_delete(backgr);
@@ -817,6 +818,7 @@ static int cr2res_obs_pol_reduce_one(
     } else{
         cpl_msg_warning(__func__, "No background subtraction");
     }
+    if (dits != NULL) cpl_vector_delete(dits) ;
 
     /* Load the trace wave */
     cpl_msg_info(__func__, "Load the TRACE WAVE") ;
@@ -1147,6 +1149,7 @@ static int cr2res_obs_pol_reduce_one(
     /* Check */
     if (pol_spec_merged == NULL) {
         cpl_msg_error(__func__, "Cannot create the POL_SPEC table");
+        cpl_table_delete(trace_wave) ;
         return -1 ;
     }
 
