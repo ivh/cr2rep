@@ -7,8 +7,14 @@ from scipy.constants import speed_of_light as c
 
 fig = plt.figure()
 ax = fig.subplots()
+try:
+    vmi,vma=[float(v) for v in sys.argv[1].split(',')]
+    offs=1
+except:
+    vmi,vma=None,None
+    offs=0
 
-for filename in sys.argv[1:]:
+for filename in sys.argv[1+offs:]:
     f = fits.open(filename)
     sett = f[0].header['HIERARCH ESO INS WLEN ID']
     for d in [1,2,3]:
@@ -23,6 +29,8 @@ for filename in sys.argv[1:]:
     ax.set_xlabel('Order #')
     ax.set_ylabel('nm')
     ax.set_xticks(np.arange(9)+1)
+    if vmi:
+        ax.set(ylim=(vmi,vma))
     outf = filename.replace('.fits','_resid.png')
     fig.savefig(outf)
     ax.clear()
