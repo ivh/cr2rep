@@ -913,7 +913,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     // Do the 2d fit
     degree_2d[0] = degree_x ;
     degree_2d[1] = degree_y ;
-    error = cpl_polynomial_fit(result, pxo, NULL, pf, NULL, TRUE, NULL,
+    error = cpl_polynomial_fit(result, pxo, NULL, pf, NULL, CPL_TRUE, NULL,
                     degree_2d);
 
     /* Create / Fill / Merge the lines diagnosics table  */
@@ -1332,7 +1332,7 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
     result = cpl_polynomial_new(2);
     degree_2d[0] = degree_x ;
     degree_2d[1] = degree_y ;
-    cpl_polynomial_fit(result, px, NULL, py, NULL, TRUE, NULL,
+    cpl_polynomial_fit(result, px, NULL, py, NULL, CPL_TRUE, NULL,
                     degree_2d);
 
 
