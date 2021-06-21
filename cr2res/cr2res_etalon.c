@@ -1157,9 +1157,36 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
             cpl_vector_set(wcen, j, wave);
         }
 
+        // get first guesses for the polynomial parameters fr
+        tmp_vec = cpl_vector_new(npeaks - 1);
+        for ( j = 0; j < npeaks - 1; j++)
+        {
+            cpl_vector_set(tmp_vec, j, 
+                cpl_vector_get(freq, j + 1) 
+                - cpl_vector_get(freq, j));
+        }
+        fr = cpl_vector_get_median(tmp_vec);
+        cpl_vector_delete(tmp_vec);
+
+        // and a first guess for fd
+        tmp_vec = cpl_vector_new(npeaks);
+        for (j = 0; j < npeaks; j++)
+        {
+            cpl_vector_set(tmp_vec, j, 
+                fmod(cpl_vector_get(freq, j), fr)); 
+        }
+        f0 = cpl_vector_get_median(tmp_vec);
+        cpl_vector_delete(tmp_vec);
+
         // Fit a 1d polynomial to the frequencies
+        // determine the peak numbers
         px = cpl_matrix_new(1, npeaks);
-        for ( j = 0; j < npeaks; j++){cpl_matrix_set(px, 0, j, j);}
+        for (j = 0; j < npeaks; j++)
+        {
+            m = (cpl_vector_get(freq, j) - f0) / fr;
+            cpl_matrix_set(px, 0, j, round(m));
+        }
+
         deg = 1;
         poly = cpl_polynomial_new(1);
         cpl_polynomial_fit(poly, px, NULL, freq, NULL, CPL_FALSE, NULL, &deg);
