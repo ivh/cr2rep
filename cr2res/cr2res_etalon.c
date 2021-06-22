@@ -326,8 +326,16 @@ cpl_vector * cr2res_etalon_get_local_maxima(
         i++;
     }
 
+    if (m <1) {
+        cpl_msg_warning(__func__, "Cannot find maxima");
+        cpl_vector_delete(midpoints);
+        cpl_vector_delete(*left_edges);
+        cpl_vector_delete(*right_edges);
+        return NULL;
+    }
     // Keep only valid part of array memory.
     cpl_vector_set_size(midpoints, m);
+
     cpl_vector_set_size(*left_edges, m);
     cpl_vector_set_size(*right_edges, m);
 
@@ -457,6 +465,7 @@ cpl_vector * cr2res_etalon_find_peaks(
     int k;
 
     peaks = cr2res_etalon_get_local_maxima(in, &left_edges, &right_edges);
+    if (peaks == NULL) return NULL;
     npeaks = cpl_vector_get_size(peaks);
 
     peak_heights = cpl_vector_new(npeaks);
@@ -664,11 +673,23 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         // Find peaks in the etalon spectra
         in = cpl_bivector_get_y_const(spectra[i]);
         peaks = cr2res_etalon_find_peaks(in, cpl_vector_get_mean(in), 3);
+
+        if (peaks == NULL) {
+            fpe_xobs[i] = NULL;
+            fpe_wobs[i] = NULL;
+            fpe_freq[i] = NULL;
+            fpe_mord[i] = NULL;
+            fpe_cord[i] = NULL;
+            sigmas[i] = NULL;
+            heights[i] = NULL;
+            fit_errors[i] = NULL;
+            continue;
+        }
+
         // get the peak using the gausian fit
         peaks_new = cr2res_etalon_get_peaks_gaussian(spectra[i], spectra_err[i],
                          wavesol_init[i], wavesol_init_err[i], peaks, display,
                          &sigmas[i], &heights[i], &fit_errors[i]);
-
         // Replace peaks with peaks_new
         cpl_vector_delete(peaks);
         npeaks = cpl_vector_get_size(peaks_new);
