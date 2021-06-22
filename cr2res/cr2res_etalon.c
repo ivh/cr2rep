@@ -825,6 +825,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     // Do the 2d fit
     degree_2d[0] = degree_x ;
     degree_2d[1] = degree_y ;
+
     error = cpl_polynomial_fit(result, pxo, NULL, pf, NULL, TRUE, NULL,
                     degree_2d);
 
@@ -971,6 +972,7 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
     cpl_vector ** fpe_mord;
     cpl_vector ** fpe_cord;
     cpl_polynomial * result;
+    cpl_polynomial * wavesol_loc;
     cpl_vector * pos;
     cpl_vector * diff;
 
@@ -1231,11 +1233,13 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
             /* Create */
             lines_diagnostics_loc =
                 cr2res_dfs_create_lines_diagnostics_table(npeaks) ;
+            wavesol_loc = cr2res_wave_poly_2d_to_1d(result, 
+                    orders[i] + zp_order);
             /* Fill */
             for (j=0 ; j < npeaks ; j++) {
                 pix_pos = cpl_vector_get(fpe_xobs[i], j);
-                lambda_meas = cpl_vector_get(fpe_wobs[i], j) ;
-                lambda_cat = cpl_polynomial_eval_1d(wavesol_init[i], pix_pos,
+                lambda_cat = cpl_vector_get(fpe_wobs[i], j) ;
+                lambda_meas = cpl_polynomial_eval_1d(wavesol_loc, pix_pos,
                         NULL) ;
                 line_width = cpl_vector_get(sigmas[i], j) ;
                 line_intens = cpl_vector_get(heights[i], j) ;

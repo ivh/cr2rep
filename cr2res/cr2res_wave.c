@@ -418,7 +418,7 @@ int cr2res_wave_apply(
         /* 2D Calibration */
         if ((wave_sol_2d=cr2res_wave_2d(spectra, spectra_err, wavesol_init,
                         wavesol_init_error, orders, traces_nb, nb_traces,
-                        catalog_fname, 2, degree, -1, 1, zp_order, display,
+                        catalog_fname, degree, 3, -1, 1, zp_order, display,
                         &wl_err_array,
                         &lines_diagnostics_loc)) == NULL) {
             cpl_msg_error(__func__, "Failed to compute 2d Wavelength solution");
@@ -466,7 +466,7 @@ int cr2res_wave_apply(
         if ((wave_sol_2d = cr2res_etalon_wave_2d_nikolai(
                         spectra, spectra_err, wavesol_init,
                         wavesol_init_error, orders, traces_nb, nb_traces,
-                        2, degree, zp_order, display,
+                        degree, 5, zp_order, display,
                         &wl_err_array, &lines_diagnostics_loc)) == NULL) {
             cpl_msg_error(__func__, "Failed to compute 2d Etalon solution");
             /* De-allocate */
