@@ -37,6 +37,7 @@
  -----------------------------------------------------------------------------*/
 
 #define SPEED_OF_LIGHT 299792.458
+#define modulo(x, y) ((x) - ((y) * trunc((x)/(y))))
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -1173,8 +1174,8 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
         tmp_vec = cpl_vector_new(npeaks);
         for (j = 0; j < npeaks; j++)
         {
-            cpl_vector_set(tmp_vec, j, 
-                fmod(cpl_vector_get(freq, j), fr)); 
+            cpl_vector_set(tmp_vec, j,
+                modulo(cpl_vector_get(freq, j), fr)); 
         }
         f0 = cpl_vector_get_median(tmp_vec);
         cpl_vector_delete(tmp_vec);
@@ -1194,7 +1195,8 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
         // and evaluate it at each peak
         for ( j = 0; j < npeaks; j++)
         {
-            cpl_vector_set(freq, j, cpl_polynomial_eval_1d(poly, j, NULL));
+            m = cpl_matrix_get(px, 0, j);
+            cpl_vector_set(freq, j, cpl_polynomial_eval_1d(poly, m, NULL));
             cpl_vector_set(wcen, j, SPEED_OF_LIGHT / cpl_vector_get(freq, j));
         }
         deg = 0;
