@@ -2096,15 +2096,14 @@ int cr2res_wave_extract_lines(
         
 
         value = 0;
+        k = pixel_pos - window_size / 2;
+        if (k < 0 | k + window_size >= spec_size){
+            // if the window reaches outside the spectrum don't use the line
+            cpl_vector_set(flag_vec, i, 0);
+            continue;
+        }
         for (j = 0; j < window_size; j++){
             k = pixel_pos - window_size / 2 + j;
-            if (k < 0 | k >= spec_size){
-                // if the window reaches outside the spectrum
-                // don't use the line
-                cpl_vector_set(flag_vec, i, 0);
-                break;
-            }
-
             value = cpl_vector_get(spec, k);
             value2 = cpl_vector_get(unc, k);
             if (value < 0) value = 0;
@@ -2119,12 +2118,6 @@ int cr2res_wave_extract_lines(
             cpl_matrix_set(x, j, 0, k);
             cpl_vector_set(y, j, value);
             cpl_vector_set(sigma_y, j, value2);
-        }
-
-        if (cpl_vector_get(flag_vec, i) == 0){
-            // if the line was flagged as bad, skip the fit
-            // cpl_msg_warning(__func__, "At the edge of the wavelength range");
-            continue;
         }
 
         // Filter out bad pixels
