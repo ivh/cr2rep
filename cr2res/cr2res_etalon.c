@@ -1264,7 +1264,7 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
                 cpl_table_set_double(lines_diagnostics_loc,
                         CR2RES_COL_INTENSITY, j, line_intens) ;
             }
-
+            cpl_polynomial_delete(wavesol_loc);
             /* Merge */
             if (*line_diagnostics == NULL) {
                 *line_diagnostics = lines_diagnostics_loc ;
