@@ -2123,7 +2123,7 @@ int cr2res_wave_extract_lines(
 
         if (cpl_vector_get(flag_vec, i) == 0){
             // if the line was flagged as bad, skip the fit
-            cpl_msg_warning(__func__, "At the edge of the wavelength range");
+            // cpl_msg_warning(__func__, "At the edge of the wavelength range");
             continue;
         }
 
