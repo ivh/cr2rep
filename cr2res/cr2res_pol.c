@@ -72,17 +72,17 @@ int cr2res_pol_resample(cpl_vector ** intens,
     1u, 1d, 2u , 2d, 3u, 3d, 4u, 4d
   i.e. first exposure upper beam, then down, then second exposure etc.
 
-  Demodulation formula is P/I = (R^1/4 - 1) / (R^1/4 + 1) with
-    R = 1u/2u * 2d/1d * 3u/4u * 4d/3d
-
+  The demodulation formula is P/I = (R^1/4 - 1) / (R^1/4 + 1) with
+    R = 1u/1d * 2d/2u * 3d/3u * 4u/4d
+see equation 2 in Donati et al. 1997 bibcode: 1997MNRAS.291..658D
   Important : the first of the 8 input wavelength vectors (wl[0]) is the
   reference one for which the output parameters shall be computed
  */
 /*----------------------------------------------------------------------------*/
 cpl_bivector * cr2res_pol_demod_stokes(
-        cpl_vector  **  intens, 
-        cpl_vector  **  wl, 
-        cpl_vector  **  errors, 
+        cpl_vector  **  intens,
+        cpl_vector  **  wl,
+        cpl_vector  **  errors,
         int             n)
 {
   cpl_bivector * result;
@@ -136,22 +136,22 @@ cpl_bivector * cr2res_pol_demod_stokes(
   // Initialize to 0
   for (cpl_size i = 0; i < size; i++)
   {
-    cpl_vector_set(outspec, i, 0.);  
+    cpl_vector_set(outspec, i, 0.);
     cpl_vector_set(outerr, i, 0.);
   }
-  
+
   double r, s, e, tmp;
-  for (cpl_size i = cpl_vector_get_max(xmin); 
+  for (cpl_size i = cpl_vector_get_max(xmin);
         i < cpl_vector_get_min(xmax) + 1; i++){
     // Calculate R
     r = cpl_vector_get(intens_local[0], i);  // 1u
     r /= cpl_vector_get(intens_local[2], i); // 2u
     r *= cpl_vector_get(intens_local[3], i); // 2d
     r /= cpl_vector_get(intens_local[1], i); // 1d
-    r *= cpl_vector_get(intens_local[4], i); // 3u
-    r /= cpl_vector_get(intens_local[6], i); // 4u
-    r *= cpl_vector_get(intens_local[7], i); // 3d
-    r /= cpl_vector_get(intens_local[5], i); // 4d
+    r *= cpl_vector_get(intens_local[5], i); // 3d
+    r /= cpl_vector_get(intens_local[7], i); // 4d
+    r *= cpl_vector_get(intens_local[6], i); // 4u
+    r /= cpl_vector_get(intens_local[4], i); // 3u
     r = pow(r, 0.25); // 0.25 = 2/n
 
     // Calculate Spectrum
@@ -161,8 +161,8 @@ cpl_bivector * cr2res_pol_demod_stokes(
     // sum((err / spec)**2)
     e = 0;
     for (cpl_size j = 0; j < n; j++){
-      tmp = cpl_vector_get(errors_local[j], i) / 
-          cpl_vector_get(intens_local[j], i); 
+      tmp = cpl_vector_get(errors_local[j], i) /
+          cpl_vector_get(intens_local[j], i);
       e += tmp * tmp;
     }
 
@@ -214,7 +214,7 @@ cpl_bivector * cr2res_pol_demod_stokes(
  * @param errors uncertainties of the vectors
  * @param n number of spectra
  * @return 0 on success, != 0 on failure
- 
+
   Important : the first of the 8 input wavelength vectors (wl[0]) is the
   reference one for which the output parameters shall be computed
  */
@@ -249,7 +249,7 @@ int cr2res_pol_resample(cpl_vector ** intens,
   for (cpl_size i = 0; i < n; i++){
     cpl_vector_set(*xmin, i, 0);
     cpl_vector_set(*xmax, i, cpl_vector_get_size(wl[i]) - 1);
-    
+
     for (cpl_size j = 0; j < cpl_vector_get_size(wl[i]); j++){
       if (cpl_vector_get(wl[i], j) >= wmin){
         cpl_vector_set(*xmin, i, j);
@@ -293,7 +293,7 @@ int cr2res_pol_resample(cpl_vector ** intens,
     cpl_bivector_unwrap_vectors(tmp);
     cpl_bivector_unwrap_vectors(target);
 
-    // We copy the wavelength here, even though it is currently noy used in 
+    // We copy the wavelength here, even though it is currently noy used in
     // the rest of the code
     cpl_vector_copy(wl[i], master_wl);
 
@@ -302,14 +302,14 @@ int cr2res_pol_resample(cpl_vector ** intens,
       cpl_vector_set(intens[i], j, 1);
       cpl_vector_set(errors[i], j, 1);
     }
-    for (cpl_size j = cpl_vector_get(*xmax, i) + 1; 
+    for (cpl_size j = cpl_vector_get(*xmax, i) + 1;
          j < cpl_vector_get_size(intens[i]); j++)
     {
       cpl_vector_set(intens[i], j, 1);
       cpl_vector_set(errors[i], j, 1);
     }
   }
-  
+
   cpl_vector_delete(master_wl);
 
   return 0;
@@ -329,7 +329,8 @@ int cr2res_pol_resample(cpl_vector ** intens,
   i.e. first exposure upper beam, then down, then second exposure etc.
 
   Demodulation formula is N = (R^1/4 - 1) / (R^1/4 + 1) , with
-    R = 1u/2u * 2d/1d * 4u/3u * 3d/4d
+    R = 1u/1d * 2u/2d * 3d/3u * 4d/4u
+  see equation 3 in Donati et al. 1997 bibcode: 1997MNRAS.291..658D
   This is anologous to the Stokes demodulation but the last two ratios are
   inverted which makes the true polarization signal cancel out. Thus the
   Null spectrum's deviation from zero is an inverse measure of quality.
@@ -341,9 +342,9 @@ int cr2res_pol_resample(cpl_vector ** intens,
  */
 /*----------------------------------------------------------------------------*/
 cpl_bivector * cr2res_pol_demod_null(
-        cpl_vector  **  intens, 
-        cpl_vector  **  wl, 
-        cpl_vector  **  errors, 
+        cpl_vector  **  intens,
+        cpl_vector  **  wl,
+        cpl_vector  **  errors,
         int             n)
 {
   cpl_vector  **  swapintens;
@@ -383,27 +384,27 @@ cpl_bivector * cr2res_pol_demod_null(
       swaperrors[i]=errors[i];
   }
 
-  // swap index 6 and 4, i.e. 4u and 3u
-  tmpintens = swapintens[6];
-  tmpwl = swapwl[6];
-  tmperrors = swaperrors[6];
-  swapintens[6] = swapintens[4];
-  swapwl[6] = swapwl[4];
-  swaperrors[6] = swaperrors[4];
-  swapintens[4] = tmpintens;
-  swapwl[4] = tmpwl;
-  swaperrors[4] = tmperrors;
+  // swap index 2 and 3, i.e. 2u and 2d
+  tmpintens = swapintens[2];
+  tmpwl = swapwl[2];
+  tmperrors = swaperrors[2];
+  swapintens[2] = swapintens[3];
+  swapwl[2] = swapwl[3];
+  swaperrors[2] = swaperrors[3];
+  swapintens[3] = tmpintens;
+  swapwl[3] = tmpwl;
+  swaperrors[3] = tmperrors;
 
-  // swap index 7 and 5, i.e. 4d and 3d
+  // swap index 7 and 6, i.e. 4d and 4u
   tmpintens = swapintens[7];
   tmpwl = swapwl[7];
   tmperrors = swaperrors[7];
-  swapintens[7] = swapintens[5];
-  swapwl[7] = swapwl[5];
-  swaperrors[7] = swaperrors[5];
-  swapintens[5] = tmpintens;
-  swapwl[5] = tmpwl;
-  swaperrors[5] = tmperrors;
+  swapintens[7] = swapintens[6];
+  swapwl[7] = swapwl[6];
+  swaperrors[7] = swaperrors[6];
+  swapintens[6] = tmpintens;
+  swapwl[6] = tmpwl;
+  swaperrors[6] = tmperrors;
 
   out = cr2res_pol_demod_stokes(swapintens, swapwl, swaperrors, n);
 
@@ -432,9 +433,9 @@ cpl_bivector * cr2res_pol_demod_null(
  */
 /*----------------------------------------------------------------------------*/
 cpl_bivector * cr2res_pol_demod_intens(
-        cpl_vector  **  intens, 
-        cpl_vector  **  wl, 
-        cpl_vector  **  errors, 
+        cpl_vector  **  intens,
+        cpl_vector  **  wl,
+        cpl_vector  **  errors,
         int             n)
 {
     cpl_bivector    *   result;
@@ -444,6 +445,11 @@ cpl_bivector * cr2res_pol_demod_intens(
     cpl_vector      *   tmp;
     int                 ncorrections ;
     cpl_size            size, i;
+    cpl_vector * xmin, * xmax;
+
+    cpl_vector ** intens_local;
+    cpl_vector ** errors_local;
+    cpl_vector ** wl_local;
 
     /* Check entries */
     if (n != 8) {
@@ -451,20 +457,42 @@ cpl_bivector * cr2res_pol_demod_intens(
         return NULL;
     }
     if (intens == NULL || wl == NULL || errors == NULL) return NULL;
-    for (i = 0; i < n; i++) 
+    for (i = 0; i < n; i++)
         if (intens[i]==NULL || wl[i]==NULL || errors[i]==NULL) return NULL;
     size = cpl_vector_get_size(intens[0]);
     for (i = 0; i < n; i++) {
         if (cpl_vector_get_size(intens[i]) != size ||
                 cpl_vector_get_size(wl[i]) != size ||
-                cpl_vector_get_size(errors[i]) != size) 
+                cpl_vector_get_size(errors[i]) != size)
             return NULL;
     }
-  
-    /* Allocate */
+
+    // Resample to common wavelength grid
+    // This modifies intens and errors, so we should copy them first
+    intens_local = cpl_malloc(n * sizeof(cpl_vector*));
+    errors_local = cpl_malloc(n * sizeof(cpl_vector*));
+    wl_local = cpl_malloc(n * sizeof(cpl_vector*));
+    for (cpl_size i = 0; i < n; i++){
+      intens_local[i] = cpl_vector_duplicate(intens[i]);
+      errors_local[i] = cpl_vector_duplicate(errors[i]);
+      wl_local[i] = cpl_vector_duplicate(wl[i]);
+    }
+    xmin = cpl_vector_new(n);
+    xmax = cpl_vector_new(n);
+    cr2res_pol_resample(intens_local, wl_local, errors_local, n, &xmin, &xmax);
+
     result = cpl_bivector_new(size);
     outspec = cpl_bivector_get_x(result);
     outerr = cpl_bivector_get_y(result);
+
+    // Initialize to 0
+    for (cpl_size i = 0; i < size; i++)
+    {
+      cpl_vector_set(outspec, i, 0.);
+      cpl_vector_set(outerr, i, 0.);
+    }
+
+    /* Allocate */
     for (i=0 ; i<n ; i++) {
         if (i==0) {
             cpl_vector_copy(outspec, intens[i]);
@@ -478,10 +506,9 @@ cpl_bivector * cr2res_pol_demod_intens(
             cpl_vector_delete(tmp);
         }
     }
-    cpl_vector_divide_scalar(outspec, (double)n/2.0);
 
     /* Clean Errors */
-    ncorrections = 0 ; 
+    ncorrections = 0 ;
     pouterr = cpl_vector_get_data(outerr) ;
     for (i=0 ; i<size ; i++) {
         if (isnan(pouterr[i]) || pouterr[i] < 0.0) {
@@ -489,13 +516,13 @@ cpl_bivector * cr2res_pol_demod_intens(
             pouterr[i] = 0.0 ;
         }
     }
-    if (ncorrections > 10) 
-        cpl_msg_warning(__func__, 
-                "The Errors vector contained %d negative values", 
+    if (ncorrections > 10)
+        cpl_msg_warning(__func__,
+                "The Errors vector contained %d negative values",
                 ncorrections) ;
 
     cpl_vector_power(outerr, 0.5);
-  
+
     if (cpl_error_get_code() != CPL_ERROR_NONE) {
         cpl_bivector_delete(result);
         return NULL;
@@ -509,7 +536,7 @@ cpl_bivector * cr2res_pol_demod_intens(
   @param    orders  List of orders
   @param    wl      Wavelength for the different orders
   @param    stokes  Stokes parameters for the different orders with errors
-  @param    null    Null parameters for the different orders with errors    
+  @param    null    Null parameters for the different orders with errors
   @param    intens  Intensity for the different orders with errors
   @param    norders Number of orders
   @return   the POL_SPEC table or NULL
@@ -530,7 +557,7 @@ cpl_table * cr2res_pol_POL_SPEC_create(
     int                 all_null, i, nrows ;
 
     /* Check entries */
-    if (orders==NULL || wl==NULL || stokes==NULL || null==NULL || intens==NULL) 
+    if (orders==NULL || wl==NULL || stokes==NULL || null==NULL || intens==NULL)
         return NULL ;
 
     /* Check if all bivectorѕ are not null */
@@ -677,7 +704,7 @@ int * cr2res_pol_sort_frames(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Merge several POL_SPEC tables together
-  @param    
+  @param
   @param   frame2   Frame #2
   @param   frame3   Frame #3
   @param   frame4   Frame #4
