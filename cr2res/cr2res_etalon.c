@@ -623,6 +623,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     double wave, gap, tmp, wcen0;
     double f0, fr, m;
     char * path;
+    FILE * file;
 
 
     cpl_table * lines_diagnostics_loc;
@@ -869,6 +870,28 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         cpl_polynomial_delete(poly);
     }
 
+    // Do the 2d fit
+    px = cpl_matrix_new(2, npeaks_total);
+    py = cpl_vector_new(npeaks_total);
+    k = 0;
+    for (i = 0; i < ninputs; i++)
+    {
+        if (fpe_mord[i] == NULL) continue;
+        npeaks = cpl_vector_get_size(fpe_mord[i]);
+        for (j = 0; j < npeaks; j++){
+            cpl_matrix_set(px, 0, k, cpl_vector_get(fpe_xobs[i], j));
+            cpl_matrix_set(px, 1, k, orders[i] + zp_order);
+            cpl_vector_set(py, k, cpl_vector_get(fpe_wobs[i], j));
+            k++;
+        }
+    }
+
+    result = cpl_polynomial_new(2);
+    degree_2d[0] = degree_x ;
+    degree_2d[1] = degree_y ;
+    cpl_polynomial_fit(result, px, NULL, py, NULL, CPL_TRUE, NULL,
+                    degree_2d);
+
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
         path = cpl_sprintf("debug_etalon_final_mord.fits");
         cpl_vector_save(fpe_mord[0], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
@@ -898,30 +921,25 @@ cpl_polynomial * cr2res_etalon_wave_2d(
             cpl_vector_save(fpe_cord[i], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_EXTEND);
         }
         cpl_free(path);
-    }
 
-    // Do the 2d fit
-    px = cpl_matrix_new(2, npeaks_total);
-    py = cpl_vector_new(npeaks_total);
-    k = 0;
-    for (i = 0; i < ninputs; i++)
-    {
-        if (fpe_mord[i] == NULL) continue;
-        npeaks = cpl_vector_get_size(fpe_mord[i]);
-        for (j = 0; j < npeaks; j++){
-            cpl_matrix_set(px, 0, k, cpl_vector_get(fpe_xobs[i], j));
-            cpl_matrix_set(px, 1, k, orders[i] + zp_order);
-            cpl_vector_set(py, k, cpl_vector_get(fpe_wobs[i], j));
-            k++;
+        tmp_vec = cpl_vector_new((degree_x + 1) * (degree_y + 1));
+        k = 0;
+        for (i = 0; i <= degree_x; i++)
+        {
+            degree_2d[0] = i;
+            for (j = 0; j <= degree_y; j++)
+            {
+                degree_2d[1] = j;
+                cpl_vector_set(tmp_vec, k, 
+                        cpl_polynomial_get_coeff(result, &degree_2d));
+                k++;
+            }
         }
+        path = cpl_sprintf("debug_etalon_final_poly.fits");
+        cpl_vector_save(tmp_vec, path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+        cpl_vector_delete(tmp_vec);
+        cpl_free(path);
     }
-
-    result = cpl_polynomial_new(2);
-    degree_2d[0] = degree_x ;
-    degree_2d[1] = degree_y ;
-    cpl_polynomial_fit(result, px, NULL, py, NULL, CPL_TRUE, NULL,
-                    degree_2d);
-
 
     /* Create / Fill / Merge the lines diagnosics table  */
     if (line_diagnostics != NULL) {
