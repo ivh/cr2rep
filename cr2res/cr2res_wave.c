@@ -463,7 +463,7 @@ int cr2res_wave_apply(
     }
     else if (wavecal_type == CR2RES_ETALON) {
         /* 2D Etalon */
-        if ((wave_sol_2d = cr2res_etalon_wave_2d_nikolai(
+        if ((wave_sol_2d = cr2res_etalon_wave_2d(
                         spectra, spectra_err, wavesol_init,
                         wavesol_init_error, orders, traces_nb, nb_traces,
                         degree, 5, zp_order, display,
