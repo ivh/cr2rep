@@ -1206,16 +1206,17 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
         cpl_polynomial_delete(poly);
         // Determine M
         mpos = cpl_vector_new(npeaks);
-        for ( j = 1; j < npeaks; j++)
+        for ( j = 0; j < npeaks; j++)
         {
             // This is really sensitive to the wavelength solution...
             // TODO: m is awkwardly close to 0.5 before rounding...
-            // m = fabs(f0 / fr + cpl_matrix_get(px, 0, j));
+            m = fabs(f0 / fr + cpl_matrix_get(px, 0, j));
             // cpl_vector_set(mpos, j, round(m));
-            cpl_vector_set(mpos, j, round((cpl_vector_get(wcen, j-1))/ 
-                    fabs(cpl_vector_get(wcen, j) - cpl_vector_get(wcen, j-1))));
+            // m = cpl_vector_get(wcen, j-1)/ 
+            //         fabs(cpl_vector_get(wcen, j) - cpl_vector_get(wcen, j-1));
+            cpl_vector_set(mpos, j, round(m));
         }
-        cpl_vector_set(mpos, 0, 1 + cpl_vector_get(mpos, 1));
+        // cpl_vector_set(mpos, 0, 1 + cpl_vector_get(mpos, 1));
         cpl_matrix_delete(px);
 
         fpe_xobs[i] = peaks_new;
@@ -1314,6 +1315,24 @@ cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
             cpl_vector_set(fpe_wobs[i], j, wave);
         }
         cpl_polynomial_delete(poly);
+    }
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+        char * path;
+        path = cpl_sprintf("debug_etalon_final_mord.fits");
+        cpl_vector_save(fpe_mord[0], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+        for (i = 1; i < ninputs; i++)
+        {
+            cpl_vector_save(fpe_mord[i], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_EXTEND);
+        }
+        cpl_free(path);
+        path = cpl_sprintf("debug_etalon_final_wobs.fits");
+        cpl_vector_save(fpe_wobs[0], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+        for (i = 1; i < ninputs; i++)
+        {
+            cpl_vector_save(fpe_wobs[i], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_EXTEND);
+        }
+        cpl_free(path);
     }
 
     // Do the 2d fit
