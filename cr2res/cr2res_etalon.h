@@ -50,18 +50,4 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     int                     display,
     cpl_array           **  wavelength_error,
     cpl_table           **  line_diagnostics);
-cpl_polynomial * cr2res_etalon_wave_2d_nikolai(
-    cpl_bivector        **  spectra,
-    cpl_bivector        **  spectra_err,
-    cpl_polynomial      **  wavesol_init,
-    cpl_array           **  wavesol_init_err,
-    int                 *   orders,
-    int                 *   traces_nb,
-    int                     ninputs,
-    cpl_size                degree_x,
-    cpl_size                degree_y,
-    int                     zp_order,
-    int                     display,
-    cpl_array           **  wavelength_error,
-    cpl_table           **  line_diagnostics);
 #endif
