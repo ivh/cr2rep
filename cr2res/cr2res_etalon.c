@@ -623,8 +623,6 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     double wave, gap, tmp, wcen0;
     double f0, fr, m;
     char * path;
-    FILE * file;
-
 
     cpl_table * lines_diagnostics_loc;
     double pix_pos, lambda_cat, lambda_meas, line_width, line_intens, fit_error;
@@ -868,6 +866,37 @@ cpl_polynomial * cr2res_etalon_wave_2d(
             cpl_vector_set(fpe_wobs[i], j, wave);
         }
         cpl_polynomial_delete(poly);
+    }
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+        path = cpl_sprintf("debug_etalon_final_mord.fits");
+        cpl_vector_save(fpe_mord[0], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+        for (i = 1; i < ninputs; i++)
+        {
+            cpl_vector_save(fpe_mord[i], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_EXTEND);
+        }
+        cpl_free(path);
+        path = cpl_sprintf("debug_etalon_final_wobs.fits");
+        cpl_vector_save(fpe_wobs[0], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+        for (i = 1; i < ninputs; i++)
+        {
+            cpl_vector_save(fpe_wobs[i], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_EXTEND);
+        }
+        cpl_free(path);
+        path = cpl_sprintf("debug_etalon_final_xobs.fits");
+        cpl_vector_save(fpe_xobs[0], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+        for (i = 1; i < ninputs; i++)
+        {
+            cpl_vector_save(fpe_xobs[i], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_EXTEND);
+        }
+        cpl_free(path);
+        path = cpl_sprintf("debug_etalon_final_cord.fits");
+        cpl_vector_save(fpe_cord[0], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+        for (i = 1; i < ninputs; i++)
+        {
+            cpl_vector_save(fpe_cord[i], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_EXTEND);
+        }
+        cpl_free(path);
     }
 
     // Do the 2d fit
