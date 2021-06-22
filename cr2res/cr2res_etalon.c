@@ -929,7 +929,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
             {
                 degree_2d[1] = j;
                 cpl_vector_set(tmp_vec, k, 
-                        cpl_polynomial_get_coeff(result, &degree_2d));
+                        cpl_polynomial_get_coeff(result, &degree_2d[0]));
                 k++;
             }
         }
