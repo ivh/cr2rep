@@ -527,6 +527,11 @@ cpl_bivector * cr2res_pol_demod_intens(
         cpl_bivector_delete(result);
         return NULL;
     }
+    for (cpl_size i = 0; i < n; i++){
+    cpl_vector_delete(intens_local[i]);
+    cpl_vector_delete(errors_local[i]);
+    cpl_vector_delete(wl_local[i]);
+    }
     cpl_free(intens_local);
     cpl_free(errors_local);
     cpl_free(wl_local);
