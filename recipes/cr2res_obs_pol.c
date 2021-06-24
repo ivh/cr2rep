@@ -1099,9 +1099,9 @@ static int cr2res_obs_pol_reduce_one(
 
             /* Free */
             for (k=0 ; k<nspec_group ; k++) {
-                cpl_vector_delete(intens[k]) ;
-                cpl_vector_delete(wl[k]) ;
-                cpl_vector_delete(errors[k]) ;
+                if (intens[k] != NULL) cpl_vector_delete(intens[k]) ;
+                if (wl[k] != NULL) cpl_vector_delete(wl[k]) ;
+                if (errors[k] != NULL) cpl_vector_delete(errors[k]) ;
             }
             cpl_free(intens) ;
             cpl_free(wl) ;

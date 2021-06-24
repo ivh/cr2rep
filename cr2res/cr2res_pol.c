@@ -133,9 +133,9 @@ cpl_bivector * cr2res_pol_demod_stokes(
   size = cpl_vector_get_size(intens[0]);
   for (cpl_size i = 0; i < n; i++) {
     if (intens[i] == NULL) {
-      return NULL;
       cpl_msg_error(__func__, 
             "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(i));
+      return NULL;
     }
     if (wl[i] == NULL) {
       cpl_msg_error(__func__, 
@@ -423,18 +423,45 @@ cpl_bivector * cr2res_pol_demod_null(
   /* Check entries */
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
   if (n != 8) {
-    cpl_msg_error(__func__, "Need 8 spectra!");
+    cpl_msg_error(__func__, 
+          "Got %i spectra, but expected 8 for polarimetry!", n);
     return NULL;
   }
-  if (intens[0]== NULL) return NULL;
+
+  if (intens[0]== NULL) {
+    cpl_msg_error(__func__, 
+          "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(0));
+    return NULL;
+  }
   size = cpl_vector_get_size(intens[0]);
   for (cpl_size i = 0; i < n; i++) {
-    if (intens[i] == NULL) return NULL;
-    if (wl[i] == NULL) return NULL;
-    if (errors[i] == NULL) return NULL;
-    if (cpl_vector_get_size(intens[i]) != size) return NULL;
-    if (cpl_vector_get_size(wl[i]) != size) return NULL;
-    if (cpl_vector_get_size(errors[i]) != size) return NULL;
+    if (intens[i] == NULL) {
+      cpl_msg_error(__func__, 
+            "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(i));
+      return NULL;
+    }
+    if (wl[i] == NULL) {
+      cpl_msg_error(__func__, 
+            "Wavelength %s is missing for polarimetry", CR2RES_POL_MODE(i));
+      return NULL;
+    }
+    if (errors[i] == NULL) {
+      cpl_msg_error(__func__, 
+            "Errors %s are missing for polarimetry", CR2RES_POL_MODE(i));
+      return NULL;
+    }
+    if (cpl_vector_get_size(intens[i]) != size) {
+      cpl_msg_error(__func__, "Spectra have different sizes");
+      return NULL;
+    }
+    if (cpl_vector_get_size(wl[i]) != size) {
+      cpl_msg_error(__func__, "Wavelengths have different sizes");
+      return NULL;
+    }
+    if (cpl_vector_get_size(errors[i]) != size) {
+      cpl_msg_error(__func__, "Errors have different sizes");
+      return NULL;
+    }
   }
 
   // copy list to leave original unchanged
@@ -515,19 +542,47 @@ cpl_bivector * cr2res_pol_demod_intens(
     cpl_vector ** wl_local;
 
     /* Check entries */
-    if (n != 8) {
-        cpl_msg_error(__func__, "Expect 8 spectra as inputs");
-        return NULL;
-    }
     if (intens == NULL || wl == NULL || errors == NULL) return NULL;
-    for (i = 0; i < n; i++)
-        if (intens[i]==NULL || wl[i]==NULL || errors[i]==NULL) return NULL;
+    if (n != 8) {
+      cpl_msg_error(__func__, 
+            "Got %i spectra, but expected 8 for polarimetry!", n);
+      return NULL;
+    }
+
+    if (intens[0]== NULL) {
+      cpl_msg_error(__func__, 
+            "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(0));
+      return NULL;
+    }
     size = cpl_vector_get_size(intens[0]);
-    for (i = 0; i < n; i++) {
-        if (cpl_vector_get_size(intens[i]) != size ||
-                cpl_vector_get_size(wl[i]) != size ||
-                cpl_vector_get_size(errors[i]) != size)
-            return NULL;
+    for (cpl_size i = 0; i < n; i++) {
+      if (intens[i] == NULL) {
+        cpl_msg_error(__func__, 
+              "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(i));
+        return NULL;
+      }
+      if (wl[i] == NULL) {
+        cpl_msg_error(__func__, 
+              "Wavelength %s is missing for polarimetry", CR2RES_POL_MODE(i));
+        return NULL;
+      }
+      if (errors[i] == NULL) {
+        cpl_msg_error(__func__, 
+              "Errors %s are missing for polarimetry", CR2RES_POL_MODE(i));
+        return NULL;
+      }
+      if (cpl_vector_get_size(intens[i]) != size) {
+        cpl_msg_error(__func__, "Spectra have different sizes");
+        return NULL;
+      }
+      if (cpl_vector_get_size(wl[i]) != size) {
+        cpl_msg_error(__func__, "Wavelengths have different sizes");
+        return NULL;
+      }
+      if (cpl_vector_get_size(errors[i]) != size) {
+        cpl_msg_error(__func__, "Errors have different sizes");
+        return NULL;
+      }
     }
 
     // Resample to common wavelength grid
@@ -542,7 +597,24 @@ cpl_bivector * cr2res_pol_demod_intens(
     }
     xmin = cpl_vector_new(n);
     xmax = cpl_vector_new(n);
-    cr2res_pol_resample(intens_local, wl_local, errors_local, n, &xmin, &xmax);
+
+    if (cr2res_pol_resample(intens_local, wl_local, 
+                    errors_local, n, &xmin, &xmax) == -1){
+      cpl_msg_error(__func__, 
+          "Could not resample polarimetry spectra to the same wavelength scale");
+      for (cpl_size i = 0; i < n; i++)
+      {
+        cpl_vector_delete(intens[i]);
+        cpl_vector_delete(errors[i]);
+        cpl_vector_delete(wl[i]);
+      }
+      cpl_free(intens_local);
+      cpl_free(errors_local);
+      cpl_free(wl_local);
+      cpl_vector_delete(xmin);
+      cpl_vector_delete(xmax);
+      return NULL;
+    }
 
     result = cpl_bivector_new(size);
     outspec = cpl_bivector_get_x(result);
