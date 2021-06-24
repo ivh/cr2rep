@@ -677,11 +677,15 @@ cpl_polynomial * cr2res_wave_1d(
     *lines_diagnostics = NULL ;
 
     /* Create the lines spectrum from the lines list */
-    if (catalog != NULL) 
-        ref_spectrum = cr2res_wave_gen_lines_spectrum(catalog, wavesol_init,
-            wl_error_nm, -1.0, log_flag) ;
-    else 
+    if (catalog != NULL){
+        if ((ref_spectrum = cr2res_wave_gen_lines_spectrum(catalog, wavesol_init,
+            wl_error_nm, -1.0, log_flag)) == NULL){
+                cpl_msg_warning(__func__, "Could not read the line list");
+                ref_spectrum = NULL;
+        }
+    } else {
         ref_spectrum = NULL ;
+    }
 
     /* Clean the input spectrum if requested */
     if (clean_spectrum && ref_spectrum != NULL) {
@@ -1914,6 +1918,7 @@ static cpl_bivector * cr2res_wave_gen_lines_spectrum(
                 cpl_bivector_delete(lines) ;
                 cpl_msg_warning(__func__, "Cannot find lines  in [%.2f %.2f]",
                     wl_min-wl_error,  wl_max+wl_error) ;
+                cpl_error_reset();
                 return NULL;
             };
 
