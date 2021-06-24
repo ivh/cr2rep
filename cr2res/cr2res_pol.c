@@ -179,9 +179,9 @@ cpl_bivector * cr2res_pol_demod_stokes(
         "Could not resample polarimetry spectra to the same wavelength scale");
     for (cpl_size i = 0; i < n; i++)
     {
-      cpl_vector_delete(intens[i]);
-      cpl_vector_delete(errors[i]);
-      cpl_vector_delete(wl[i]);
+      cpl_vector_delete(intens_local[i]);
+      cpl_vector_delete(errors_local[i]);
+      cpl_vector_delete(wl_local[i]);
     }
     cpl_free(intens_local);
     cpl_free(errors_local);
@@ -604,9 +604,9 @@ cpl_bivector * cr2res_pol_demod_intens(
           "Could not resample polarimetry spectra to the same wavelength scale");
       for (cpl_size i = 0; i < n; i++)
       {
-        cpl_vector_delete(intens[i]);
-        cpl_vector_delete(errors[i]);
-        cpl_vector_delete(wl[i]);
+        cpl_vector_delete(intens_local[i]);
+        cpl_vector_delete(errors_local[i]);
+        cpl_vector_delete(wl_local[i]);
       }
       cpl_free(intens_local);
       cpl_free(errors_local);
@@ -658,20 +658,23 @@ cpl_bivector * cr2res_pol_demod_intens(
 
     cpl_vector_power(outerr, 0.5);
 
-    if (cpl_error_get_code() != CPL_ERROR_NONE) {
-        cpl_bivector_delete(result);
-        return NULL;
-    }
     for (cpl_size i = 0; i < n; i++){
-    cpl_vector_delete(intens_local[i]);
-    cpl_vector_delete(errors_local[i]);
-    cpl_vector_delete(wl_local[i]);
+      cpl_vector_delete(intens_local[i]);
+      cpl_vector_delete(errors_local[i]);
+      cpl_vector_delete(wl_local[i]);
     }
     cpl_free(intens_local);
     cpl_free(errors_local);
     cpl_free(wl_local);
     cpl_vector_delete(xmin);
     cpl_vector_delete(xmax);
+
+    if (cpl_error_get_code() != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Error message: %s", cpl_error_get_message());
+        cpl_bivector_delete(result);
+        cpl_error_reset();
+        return NULL;
+    }
 
     return result;
 }
