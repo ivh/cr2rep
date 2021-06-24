@@ -1120,10 +1120,10 @@ static int cr2res_obs_pol_reduce_one(
 
         /* Deallocate */
         for (o=0 ; o<norders ; o++) {
-            if (demod_wl[0] != NULL) cpl_vector_delete(demod_wl[o]) ;
-            if (demod_stokes[0] != NULL) cpl_bivector_delete(demod_stokes[o]) ;
-            if (demod_null[0] != NULL) cpl_bivector_delete(demod_null[o]) ;
-            if (demod_intens[0] != NULL) cpl_bivector_delete(demod_intens[o]) ; 
+            if (demod_wl[o] != NULL) cpl_vector_delete(demod_wl[o]) ;
+            if (demod_stokes[o] != NULL) cpl_bivector_delete(demod_stokes[o]) ;
+            if (demod_null[o] != NULL) cpl_bivector_delete(demod_null[o]) ;
+            if (demod_intens[o] != NULL) cpl_bivector_delete(demod_intens[o]) ; 
         }
         cpl_free(demod_wl) ;
         cpl_free(demod_stokes) ;
