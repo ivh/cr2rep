@@ -950,6 +950,7 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
     cpl_vector      *   wave_vec ;
     const double    *   pwl ;
     int                 nrows, all_null, i, order, trace_id, nb_traces ;
+    cpl_size            j;
 
     /* Check entries */
     if (spectrum == NULL || trace_table == NULL) return NULL ;
@@ -992,9 +993,9 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
 
     /* Fill the table */
     for (i=0 ; i<nb_traces ; i++) {
+        order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
+        trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
         if (spectrum[i] != NULL) {
-            order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
-            trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
             pspec = cpl_bivector_get_x_data_const(spectrum[i]) ;
             perr = cpl_bivector_get_y_data_const(spectrum[i]);
             /* Fill SPEC column */
@@ -1020,6 +1021,22 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
             cpl_table_copy_data_double(out, col_name, pwl) ;
             cpl_free(col_name) ;
             cpl_vector_delete(wave_vec) ;
+        } else {
+            /* Fill SPEC column */
+            col_name = cr2res_dfs_SPEC_colname(order, trace_id) ;
+            cpl_table_fill_column_window_double(out, col_name, 0, CR2RES_DETECTOR_SIZE, NAN);
+            cpl_table_set_column_invalid(out, col_name, 0, CR2RES_DETECTOR_SIZE);
+            cpl_free(col_name) ;
+            /* Fill SPEC_ERR column */
+            col_name = cr2res_dfs_SPEC_ERR_colname(order, trace_id) ;
+            cpl_table_fill_column_window_double(out, col_name, 0, CR2RES_DETECTOR_SIZE, NAN);
+            cpl_table_set_column_invalid(out, col_name, 0, CR2RES_DETECTOR_SIZE);
+            cpl_free(col_name) ;
+            /* Fill WAVELENGTH column */
+            col_name = cr2res_dfs_WAVELENGTH_colname(order, trace_id) ;
+            cpl_table_fill_column_window_double(out, col_name, 0, CR2RES_DETECTOR_SIZE, NAN);
+            cpl_table_set_column_invalid(out, col_name, 0, CR2RES_DETECTOR_SIZE);
+            cpl_free(col_name) ;
         }
     }
     return out ;

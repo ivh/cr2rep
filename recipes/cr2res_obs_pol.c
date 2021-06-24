@@ -1037,45 +1037,52 @@ static int cr2res_obs_pol_reduce_one(
                 spec_size = cpl_table_get_nrow(extract_1d[k]) ;
                 /* Get the SPEC for this order/trace 1 */
                 colname = cr2res_dfs_SPEC_colname(orders[o], 1) ;
-                pcol_data = cpl_table_get_data_double_const(extract_1d[k], 
-                        colname) ;
-                cpl_free(colname) ;
-                if (pcol_data == NULL) {
-                    cpl_error_reset() ;
-                } else {
-                    intens[k] = cpl_vector_new(spec_size) ;
-                    pvec_data = cpl_vector_get_data(intens[k]) ;
-                    for (l=0 ; l<spec_size ; l++) 
-                        pvec_data[l] = pcol_data[l] ;
+                if (cpl_table_has_valid(extract_1d[k], colname)){
+                    pcol_data = cpl_table_get_data_double_const(extract_1d[k], 
+                            colname) ;
+                    if (pcol_data == NULL) {
+                        cpl_error_reset() ;
+                    } else {
+                        intens[k] = cpl_vector_new(spec_size) ;
+                        pvec_data = cpl_vector_get_data(intens[k]) ;
+                        for (l=0 ; l<spec_size ; l++) 
+                            pvec_data[l] = pcol_data[l] ;
+                    }
                 }
+                cpl_free(colname) ;
 
                 /* Get the WAVELENGTH for this order/trace 1 */
                 colname = cr2res_dfs_WAVELENGTH_colname(orders[o], 1) ;
-                pcol_data = cpl_table_get_data_double_const(extract_1d[k], 
-                        colname) ;
-                cpl_free(colname) ;
-                if (pcol_data == NULL) {
-                    cpl_error_reset() ;
-                } else {
-                    wl[k] = cpl_vector_new(spec_size) ;
-                    pvec_data = cpl_vector_get_data(wl[k]) ;
-                    for (l=0 ; l<spec_size ; l++) 
-                        pvec_data[l] = pcol_data[l] ;
+                if (cpl_table_has_valid(extract_1d[k], colname)){
+                    pcol_data = cpl_table_get_data_double_const(extract_1d[k], 
+                            colname) ;
+                    if (pcol_data == NULL) {
+                        cpl_error_reset() ;
+                    } else {
+                        wl[k] = cpl_vector_new(spec_size) ;
+                        pvec_data = cpl_vector_get_data(wl[k]) ;
+                        for (l=0 ; l<spec_size ; l++) 
+                            pvec_data[l] = pcol_data[l] ;
+                    }
                 }
+                cpl_free(colname) ;
 
                 /* Get the ERROR for this order/trace 1 */
                 colname = cr2res_dfs_SPEC_ERR_colname(orders[o], 1) ;
-                pcol_data = cpl_table_get_data_double_const(extract_1d[k], 
-                        colname) ;
-                cpl_free(colname) ;
-                if (pcol_data == NULL) {
-                    cpl_error_reset() ;
-                } else {
-                    errors[k] = cpl_vector_new(spec_size) ;
-                    pvec_data = cpl_vector_get_data(errors[k]) ;
-                    for (l=0 ; l<spec_size ; l++) 
-                        pvec_data[l] = pcol_data[l] ;
+                if (cpl_table_has_valid(extract_1d[k], colname)){
+                    pcol_data = cpl_table_get_data_double_const(extract_1d[k], 
+                            colname) ;
+                    if (pcol_data == NULL) {
+                        cpl_error_reset() ;
+                    } else {
+                        errors[k] = cpl_vector_new(spec_size) ;
+                        pvec_data = cpl_vector_get_data(errors[k]) ;
+                        for (l=0 ; l<spec_size ; l++) 
+                            pvec_data[l] = pcol_data[l] ;
+                    }
                 }
+                cpl_free(colname) ;
+
             }
 
             /* Keep the 1st wl of the 8 as reference for the output file*/
@@ -1113,10 +1120,10 @@ static int cr2res_obs_pol_reduce_one(
 
         /* Deallocate */
         for (o=0 ; o<norders ; o++) {
-            cpl_vector_delete(demod_wl[o]) ;
-            cpl_bivector_delete(demod_stokes[o]) ;
-            cpl_bivector_delete(demod_null[o]) ;
-            cpl_bivector_delete(demod_intens[o]) ;
+            if (demod_wl[0] != NULL) cpl_vector_delete(demod_wl[o]) ;
+            if (demod_stokes[0] != NULL) cpl_bivector_delete(demod_stokes[o]) ;
+            if (demod_null[0] != NULL) cpl_bivector_delete(demod_null[o]) ;
+            if (demod_intens[0] != NULL) cpl_bivector_delete(demod_intens[o]) ; 
         }
         cpl_free(demod_wl) ;
         cpl_free(demod_stokes) ;
