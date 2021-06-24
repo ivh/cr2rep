@@ -116,6 +116,8 @@ cpl_bivector * cr2res_pol_demod_stokes(
   cpl_vector ** intens_local;
   cpl_vector ** errors_local;
   cpl_vector ** wl_local;
+  double r, s, e, tmp;
+  cpl_size i, j;
 
   /* Check entries */
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
@@ -166,7 +168,7 @@ cpl_bivector * cr2res_pol_demod_stokes(
   intens_local = cpl_malloc(n * sizeof(cpl_vector*));
   errors_local = cpl_malloc(n * sizeof(cpl_vector*));
   wl_local = cpl_malloc(n * sizeof(cpl_vector*));
-  for (cpl_size i = 0; i < n; i++){
+  for (i = 0; i < n; i++){
     intens_local[i] = cpl_vector_duplicate(intens[i]);
     errors_local[i] = cpl_vector_duplicate(errors[i]);
     wl_local[i] = cpl_vector_duplicate(wl[i]);
@@ -177,7 +179,7 @@ cpl_bivector * cr2res_pol_demod_stokes(
                   errors_local, n, &xmin, &xmax) == -1){
     cpl_msg_error(__func__, 
         "Could not resample polarimetry spectra to the same wavelength scale");
-    for (cpl_size i = 0; i < n; i++)
+    for (i = 0; i < n; i++)
     {
       cpl_vector_delete(intens_local[i]);
       cpl_vector_delete(errors_local[i]);
@@ -196,14 +198,13 @@ cpl_bivector * cr2res_pol_demod_stokes(
   outerr = cpl_bivector_get_y(result);
 
   // Initialize to 0
-  for (cpl_size i = 0; i < size; i++)
+  for (i = 0; i < size; i++)
   {
     cpl_vector_set(outspec, i, 0.);
     cpl_vector_set(outerr, i, 0.);
   }
 
-  double r, s, e, tmp;
-  for (cpl_size i = cpl_vector_get_max(xmin);
+  for (i = cpl_vector_get_max(xmin);
         i < cpl_vector_get_min(xmax) + 1; i++){
     // Calculate R
     r = cpl_vector_get(intens_local[0], i);  // 1u
@@ -222,7 +223,7 @@ cpl_bivector * cr2res_pol_demod_stokes(
     // Calculate Error
     // sum((err / spec)**2)
     e = 0;
-    for (cpl_size j = 0; j < n; j++){
+    for (j = 0; j < n; j++){
       tmp = cpl_vector_get(errors_local[j], i) /
           cpl_vector_get(intens_local[j], i);
       e += tmp * tmp;
@@ -237,18 +238,18 @@ cpl_bivector * cr2res_pol_demod_stokes(
   }
 
   // We need to remove pointless values outside the wavelength overlap
-  for (cpl_size j = 0; j < cpl_vector_get_max(xmin); j++)
+  for (j = 0; j < cpl_vector_get_max(xmin); j++)
   {
     cpl_vector_set(outspec, j, NAN);
     cpl_vector_set(outerr, j, NAN);
   }
-  for (cpl_size j = cpl_vector_get_min(xmax) + 1; j < size; j++)
+  for (j = cpl_vector_get_min(xmax) + 1; j < size; j++)
   {
     cpl_vector_set(outspec, j, NAN);
     cpl_vector_set(outerr, j, NAN);
   }
 
-  for (cpl_size i = 0; i < n; i++){
+  for (i = 0; i < n; i++){
     cpl_vector_delete(intens_local[i]);
     cpl_vector_delete(errors_local[i]);
     cpl_vector_delete(wl_local[i]);
@@ -291,15 +292,17 @@ int cr2res_pol_resample(cpl_vector ** intens,
 {
   // TODO: Use some other grid as baseline?
   double wmin, wmax;
-  cpl_vector * master_wl = cpl_vector_duplicate(wl[0]);
+  cpl_vector * master_wl;
   cpl_bivector * tmp;
   cpl_bivector * target;
+  cpl_size i, j, m;
 
   // Construct master_wl
   // so that we only include points from within ALL wavelength ranges
+  master_wl = cpl_vector_duplicate(wl[0]);
   wmin = -INFINITY;
   wmax = INFINITY;
-  for (cpl_size i = 0; i < n; i++)
+  for (i = 0; i < n; i++)
   {
     if (cpl_vector_get(wl[i], 0) > wmin){
       wmin = cpl_vector_get(wl[i], 0);
@@ -309,18 +312,18 @@ int cr2res_pol_resample(cpl_vector ** intens,
     }
   }
 
-  for (cpl_size i = 0; i < n; i++){
+  for (i = 0; i < n; i++){
     cpl_vector_set(*xmin, i, 0);
     cpl_vector_set(*xmax, i, cpl_vector_get_size(wl[i]) - 1);
 
-    for (cpl_size j = 0; j < cpl_vector_get_size(wl[i]); j++){
+    for (j = 0; j < cpl_vector_get_size(wl[i]); j++){
       if (cpl_vector_get(wl[i], j) >= wmin){
         cpl_vector_set(*xmin, i, j);
         break;
       }
     }
 
-    for (cpl_size j = cpl_vector_get_size(wl[i]) - 1; j >= 0; j--){
+    for (j = cpl_vector_get_size(wl[i]) - 1; j >= 0; j--){
       if (cpl_vector_get(wl[i], j) <= wmax){
         cpl_vector_set(*xmax, i, j);
         break;
@@ -330,8 +333,8 @@ int cr2res_pol_resample(cpl_vector ** intens,
 
   // We need to limit master_wl to the valid range, since bivector interpolate
   // does not extrapolate at all, but gives an error (?)
-  int m = cpl_vector_get_size(wl[0]);
-  for (cpl_size i = 0; i < m; i++)
+  m = cpl_vector_get_size(wl[0]);
+  for (i = 0; i < m; i++)
   {
     if (cpl_vector_get(master_wl, i) < wmin){
       cpl_vector_set(master_wl, i, wmin);
@@ -342,7 +345,7 @@ int cr2res_pol_resample(cpl_vector ** intens,
 
   // Do we need to copy the arrays before interpolation
   // or does it work in place?
-  for (cpl_size i = 0; i < n; i++)
+  for (i = 0; i < n; i++)
   {
     tmp = cpl_bivector_wrap_vectors(wl[i], intens[i]);
     target = cpl_bivector_wrap_vectors(master_wl, intens[i]);
@@ -360,12 +363,12 @@ int cr2res_pol_resample(cpl_vector ** intens,
     // the rest of the code
     cpl_vector_copy(wl[i], master_wl);
 
-    for (cpl_size j = 0; j < cpl_vector_get(*xmin, i); j++)
+    for (j = 0; j < cpl_vector_get(*xmin, i); j++)
     {
       cpl_vector_set(intens[i], j, 1);
       cpl_vector_set(errors[i], j, 1);
     }
-    for (cpl_size j = cpl_vector_get(*xmax, i) + 1;
+    for (j = cpl_vector_get(*xmax, i) + 1;
          j < cpl_vector_get_size(intens[i]); j++)
     {
       cpl_vector_set(intens[i], j, 1);
