@@ -1211,22 +1211,11 @@ cpl_table * cr2res_trace_new_slit_fraction(
             k=cr2res_get_trace_table_index(traces, order_idx_values[i], 
                     trace_numbers[j]);
             /* Check if the input trace slit_fraction is available */
-            slit_frac_old_table = cpl_table_get_array(traces,
+            slit_frac_old = cpl_table_get_array(traces,
                     CR2RES_COL_SLIT_FRACTION, k) ;
-            slit_frac_old = cpl_array_duplicate(slit_frac_old_table);
             trace_all_old = cpl_table_get_array(traces, CR2RES_COL_ALL, k) ;
             trace_upper_old = cpl_table_get_array(traces, CR2RES_COL_UPPER, k) ;
             trace_lower_old = cpl_table_get_array(traces, CR2RES_COL_LOWER, k) ;
-
-            // If the slit fraction is wrong assume its 0, 0.5, 1
-            if (cr2res_trace_check_slit_fraction(slit_frac_old) == 1){
-                cpl_msg_warning(__func__, 
-                    "Found invalid slit fraction values"
-                    ", using 0 - 0.5 - 1 instead");
-                cpl_array_set_double(slit_frac_old, 0, 0);
-                cpl_array_set_double(slit_frac_old, 1, 0.5);
-                cpl_array_set_double(slit_frac_old, 2, 1);
-            }
 
             /* Unselect rows with wrong slit_fraction or without trace */
             /* to be erased below */
@@ -1235,7 +1224,6 @@ cpl_table * cr2res_trace_new_slit_fraction(
                     trace_upper_old == NULL || trace_lower_old == NULL ||
                     trace_all_old == NULL) {
                 cpl_table_unselect_row(out, i) ;
-                cpl_array_delete(slit_frac_old);
                 m--;
                 continue ;
             }
@@ -1303,14 +1291,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
         /* Compute the new wavelength */
         // Calculate the horizontal pixel shift of the new trace, using
         // the slit curvature first determine the vertical shift
-        slit_frac_old_table = cpl_table_get_array(traces, CR2RES_COL_SLIT_FRACTION,k);
-        slit_frac_old = cpl_array_duplicate(slit_frac_old_table);
-        // we throw the warning above
-        if (cr2res_trace_check_slit_fraction(slit_frac_old) == 1){
-                cpl_array_set_double(slit_frac_old, 0, 0);
-                cpl_array_set_double(slit_frac_old, 1, 0.5);
-                cpl_array_set_double(slit_frac_old, 2, 1);
-        }
+        slit_frac_old = cpl_table_get_array(traces, CR2RES_COL_SLIT_FRACTION,k);
         trace_lower_old = trace_old[0];
         trace_all_old = trace_old[1];
         trace_upper_old = trace_old[2];
@@ -1324,7 +1305,6 @@ cpl_table * cr2res_trace_new_slit_fraction(
         sf_upper = cpl_array_get_double(slit_frac_old, 2, NULL);
         sf_new = cpl_array_get_double(new_slit_fraction, 1, NULL);
         cpl_msg_debug(__func__, "New Slitfunction %f", sf_new);
-        cpl_array_delete(slit_frac_old);
 
         // then use the slit curvature to translate that into a horizontal shift
         poly_a = cr2res_convert_array_to_poly(const_slit_curv_a);
