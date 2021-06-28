@@ -989,6 +989,7 @@ static int cr2res_obs_pol_reduce_one(
                     cpl_free(out_file) ; 
                 }
             }
+
             cpl_table_delete(trace_wave_loc) ;
             cpl_msg_indent_less() ;
         }
@@ -1019,28 +1020,27 @@ static int cr2res_obs_pol_reduce_one(
             demod_intens[o] = NULL;
         }
 
+        intens = cpl_malloc(nspec_group * sizeof(cpl_vector*));
+        wl = cpl_malloc(nspec_group * sizeof(cpl_vector*));
+        errors = cpl_malloc(nspec_group * sizeof(cpl_vector*));
+        for (k = 0; k < nspec_group; k++){
+            intens[k] = NULL;
+            wl[k] = NULL;
+            errors[k] = NULL;
+        }
+
         /* Loop on the orders */
         for (o=0 ; o<norders ; o++) {
             cpl_msg_info(__func__, "Compute Polarimetry for order %d",
                     orders[o]) ;
             /* Get the inputs for the demod functions calls */
-            intens = cpl_malloc(nspec_group * sizeof(cpl_vector*));
-            wl = cpl_malloc(nspec_group * sizeof(cpl_vector*));
-            errors = cpl_malloc(nspec_group * sizeof(cpl_vector*));
-            for (k = 0; k < nspec_group; k++){
-                intens[k] = NULL;
-                wl[k] = NULL;
-                errors[k] = NULL;
-            }
-
             for (k=0 ; k<nspec_group ; k++) {
                 spec_size = cpl_table_get_nrow(extract_1d[k]) ;
                 /* Get the SPEC for this order/trace 1 */
                 colname = cr2res_dfs_SPEC_colname(orders[o], 1) ;
                 if (cpl_table_has_valid(extract_1d[k], colname)){
-                    pcol_data = cpl_table_get_data_double_const(extract_1d[k], 
-                            colname) ;
-                    if (pcol_data == NULL) {
+                    if ((pcol_data = cpl_table_get_data_double_const(
+                            extract_1d[k], colname)) == NULL) {
                         cpl_error_reset() ;
                     } else {
                         intens[k] = cpl_vector_new(spec_size) ;
@@ -1054,9 +1054,8 @@ static int cr2res_obs_pol_reduce_one(
                 /* Get the WAVELENGTH for this order/trace 1 */
                 colname = cr2res_dfs_WAVELENGTH_colname(orders[o], 1) ;
                 if (cpl_table_has_valid(extract_1d[k], colname)){
-                    pcol_data = cpl_table_get_data_double_const(extract_1d[k], 
-                            colname) ;
-                    if (pcol_data == NULL) {
+                    if ((pcol_data = cpl_table_get_data_double_const(
+                            extract_1d[k], colname)) == NULL) {
                         cpl_error_reset() ;
                     } else {
                         wl[k] = cpl_vector_new(spec_size) ;
@@ -1070,9 +1069,8 @@ static int cr2res_obs_pol_reduce_one(
                 /* Get the ERROR for this order/trace 1 */
                 colname = cr2res_dfs_SPEC_ERR_colname(orders[o], 1) ;
                 if (cpl_table_has_valid(extract_1d[k], colname)){
-                    pcol_data = cpl_table_get_data_double_const(extract_1d[k], 
-                            colname) ;
-                    if (pcol_data == NULL) {
+                    if ((pcol_data = cpl_table_get_data_double_const(
+                            extract_1d[k], colname)) == NULL) {
                         cpl_error_reset() ;
                     } else {
                         errors[k] = cpl_vector_new(spec_size) ;
@@ -1082,7 +1080,6 @@ static int cr2res_obs_pol_reduce_one(
                     }
                 }
                 cpl_free(colname) ;
-
             }
 
             /* Keep the 1st wl of the 8 as reference for the output file*/
@@ -1099,18 +1096,28 @@ static int cr2res_obs_pol_reduce_one(
 
             /* Free */
             for (k=0 ; k<nspec_group ; k++) {
-                if (intens[k] != NULL) cpl_vector_delete(intens[k]) ;
-                if (wl[k] != NULL) cpl_vector_delete(wl[k]) ;
-                if (errors[k] != NULL) cpl_vector_delete(errors[k]) ;
+                if (intens[k] != NULL) {
+                    cpl_vector_delete(intens[k]) ;
+                    intens[k] = NULL;
+                }
+                if (wl[k] != NULL) {
+                    cpl_vector_delete(wl[k]) ;
+                    wl[k] = NULL;
+                }
+                if (errors[k] != NULL) {
+                    cpl_vector_delete(errors[k]) ;
+                    errors[k] = NULL;
+                }
             }
-            cpl_free(intens) ;
-            cpl_free(wl) ;
-            cpl_free(errors) ;
         }
+        cpl_free(intens) ;
+        cpl_free(wl) ;
+        cpl_free(errors) ;
 
         /* Free the extracted tables */
-        for (j=0 ; j<nspec_group ; j++) 
+        for (j=0 ; j<nspec_group ; j++){ 
             if (extract_1d[j] != NULL) cpl_table_delete(extract_1d[j]) ;
+        }
         cpl_free(extract_1d) ;
 
         /* Create the pol_spec table */
@@ -1120,10 +1127,10 @@ static int cr2res_obs_pol_reduce_one(
 
         /* Deallocate */
         for (o=0 ; o<norders ; o++) {
-            if (demod_wl[0] != NULL) cpl_vector_delete(demod_wl[o]) ;
-            if (demod_stokes[0] != NULL) cpl_bivector_delete(demod_stokes[o]) ;
-            if (demod_null[0] != NULL) cpl_bivector_delete(demod_null[o]) ;
-            if (demod_intens[0] != NULL) cpl_bivector_delete(demod_intens[o]) ; 
+            if (demod_wl[o] != NULL) cpl_vector_delete(demod_wl[o]) ;
+            if (demod_stokes[o] != NULL) cpl_bivector_delete(demod_stokes[o]) ;
+            if (demod_null[o] != NULL) cpl_bivector_delete(demod_null[o]) ;
+            if (demod_intens[o] != NULL) cpl_bivector_delete(demod_intens[o]) ; 
         }
         cpl_free(demod_wl) ;
         cpl_free(demod_stokes) ;

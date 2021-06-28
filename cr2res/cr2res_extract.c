@@ -132,8 +132,8 @@ static int cr2res_extract_slitdec_adjust_swath(
         int             sw,
         int             lenx,
         int             dx,
-        cpl_vector  *   bins_begin,
-        cpl_vector  *   bins_end) ;
+        cpl_vector  **  bins_begin,
+        cpl_vector  **  bins_end) ;
 
 static int debug_output(int         ncols,
         int         nrows,
@@ -206,7 +206,9 @@ int cr2res_extract_traces(
     hdrl_image          *   model_loc ;
     hdrl_image          *   model_loc_one ;
     int                     nb_traces, i, order, trace_id ;
-    int                     x, y, badpix;
+    int                     badpix;
+    cpl_size                x, y;
+    hdrl_value              pixval;
 
     /* Check Entries */
     if (img == NULL || traces == NULL) return -1 ;
@@ -332,12 +334,12 @@ int cr2res_extract_traces(
         /* Update the model global image */
         if (model_loc_one != NULL) {
             //hdrl_image_add_image(model_loc, model_loc_one) ;
-            for (int x = 1; x <= hdrl_image_get_size_x(model_loc); x++){
-                for (int y = 1; y <= hdrl_image_get_size_y(model_loc); y++){
-                    if (hdrl_image_get_pixel(model_loc_one, x, y, &badpix).data
-                         != 0){
-                        hdrl_image_set_pixel(model_loc, x, y,
-                            hdrl_image_get_pixel(model_loc_one, x, y, &badpix));
+            for (x = 1; x <= hdrl_image_get_size_x(model_loc); x++){
+                for (y = 1; y <= hdrl_image_get_size_y(model_loc); y++){
+                    pixval = hdrl_image_get_pixel(model_loc_one, 
+                                                    x, y, &badpix);
+                    if (pixval.data != 0 & badpix == 0){
+                        hdrl_image_set_pixel(model_loc, x, y, pixval);
                     }
                 }
             }
@@ -370,7 +372,18 @@ int cr2res_extract_traces(
     }
 
     /* Create the extracted_tab for the current detector */
-    extract_loc = cr2res_extract_EXTRACT1D_create(spectrum, traces) ;
+    if ((extract_loc = cr2res_extract_EXTRACT1D_create(spectrum, traces)) 
+                == NULL) {
+        for (i=0 ; i<nb_traces ; i++) {
+            if (slit_func_vec[i] != NULL) cpl_vector_delete(slit_func_vec[i]) ;
+            if (spectrum[i] != NULL) cpl_bivector_delete(spectrum[i]) ;
+        }
+        cpl_free(spectrum) ;
+        cpl_free(slit_func_vec) ;
+        hdrl_image_delete(model_loc) ;
+        cpl_table_delete(slit_func_loc);
+        return -1;
+    }
 
     /* Deallocate Vectors */
     for (i=0 ; i<nb_traces ; i++) {
@@ -1354,15 +1367,11 @@ int cr2res_extract_slitdec_vert(
     if (oversample <= 0) oversample = 1;
 
     /* Number of rows after oversampling */
-    bins_begin = cpl_vector_new(1);
-    bins_end = cpl_vector_new(1);
     ny_os = oversample*(height+1) +1;
     if ((swath = cr2res_extract_slitdec_adjust_swath(ycen, height, leny, swath, 
-                    lenx, 0, bins_begin, bins_end)) == -1){
+                    lenx, 0, &bins_begin, &bins_end)) == -1){
         cpl_msg_error(__func__, "Cannot calculate swath size");
         cpl_vector_delete(ycen);
-        cpl_vector_delete(bins_begin);
-        cpl_vector_delete(bins_end);
         return -1;
     }
     nswaths = cpl_vector_get_size(bins_begin);
@@ -1693,7 +1702,16 @@ int cr2res_extract_slitdec_curved(
     cpl_polynomial      *slitcurve_A, *slitcurve_B, *slitcurve_C;
     cpl_polynomial  **  slitcurves_sw;
     hdrl_image      *   model_out;
-
+    cpl_bivector    *   spectrum_loc;
+    double          *   sP_old;
+    double          *   l_Aij;
+    double          *   p_Aij;
+    double          *   l_bj;
+    double          *   p_bj;
+    cpl_image       *   img_mad;
+    xi_ref          *   xi;
+    zeta_ref        *   zeta;
+    int             *   m_zeta;
     char            *   path;
     double              pixval, errval, img_median, norm, model_unc, img_unc,
                         unc, delta_tmp, a, b, c, yc;
@@ -1701,6 +1719,8 @@ int cr2res_extract_slitdec_curved(
     int                 i, j, k, nswaths, halfswath, row, col, x, y, ny_os,
                         sw_start, sw_end, badpix, y_lower_limit, y_upper_limit,
                         delta_x;
+    int                 ny, nx;
+  
 
     /* Check Entries */
     if (img_hdrl == NULL || trace_tab == NULL) return -1 ;
@@ -1812,11 +1832,9 @@ int cr2res_extract_slitdec_curved(
     }
 
     /* Number of rows after oversampling */
-    bins_begin = cpl_vector_new(1);
-    bins_end = cpl_vector_new(1);
     ny_os = oversample*(height+1) +1;
     if ((swath = cr2res_extract_slitdec_adjust_swath(ycen, height, leny, swath, 
-                    lenx, delta_x, bins_begin, bins_end)) == -1){
+                    lenx, delta_x, &bins_begin, &bins_end)) == -1){
         cpl_msg_error(__func__, "Cannot calculate swath size");
         cpl_vector_delete(ycen);
         cpl_free(ycen_rest) ;
@@ -1841,9 +1859,7 @@ int cr2res_extract_slitdec_curved(
                 ny_os, size);
         }
     }
-
-    
-
+   
     /* Allocate */
     mask_sw = cpl_malloc(height * swath*sizeof(int));
     model_sw = cpl_malloc(height * swath*sizeof(double));
@@ -1858,8 +1874,9 @@ int cr2res_extract_slitdec_curved(
 
     // Local versions of return data
     slitfu = cpl_vector_new(ny_os);
-    spc = cpl_vector_new(lenx);
-    unc_decomposition = cpl_vector_new(lenx);
+    spectrum_loc = cpl_bivector_new(lenx);
+    spc = cpl_bivector_get_x(spectrum_loc);
+    unc_decomposition = cpl_bivector_get_y(spectrum_loc);
     for (j=0; j<lenx ; j++){
         cpl_vector_set(spc, j, 0.);
         cpl_vector_set(unc_decomposition, j, 0.);
@@ -1887,31 +1904,31 @@ int cr2res_extract_slitdec_curved(
     // assert cpl_vector_get_sum(weights_sw) == swath / 2 - delta_x
     // Assign memory for extract_curved algorithm
     // Since the arrays always have the same size, we can reuse allocated memory
-    int ny = oversample * (height + 1) + 1;
-    int nx = 4 * delta_x + 1;
+    ny = oversample * (height + 1) + 1;
+    nx = 4 * delta_x + 1;
     if(nx < 3) nx = 3;
 
-    double *sP_old = cpl_malloc(swath * sizeof(double));
-    double *l_Aij  = cpl_malloc(ny * (4*oversample+1) * sizeof(double));
-    double *p_Aij  = cpl_malloc(swath * nx * sizeof(double));
-    double *l_bj   = cpl_malloc(ny * sizeof(double));
-    double *p_bj   = cpl_malloc(swath * sizeof(double));
-    cpl_image * img_mad = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
+    sP_old = cpl_malloc(swath * sizeof(double));
+    l_Aij  = cpl_malloc(ny * (4*oversample+1) * sizeof(double));
+    p_Aij  = cpl_malloc(swath * nx * sizeof(double));
+    l_bj   = cpl_malloc(ny * sizeof(double));
+    p_bj   = cpl_malloc(swath * sizeof(double));
+    img_mad = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
 
     /*
        Convolution tensor telling the coordinates of detector pixels on which
        {x, iy} element falls and the corresponding projections. [ncols][ny][4]
     */
-    xi_ref * xi = cpl_malloc(swath * ny * 4 * sizeof(xi_ref));
+    xi = cpl_malloc(swath * ny * 4 * sizeof(xi_ref));
 
     /* Convolution tensor telling the coordinates of subpixels {x, iy}
        contributing to detector pixel {x, y}. [ncols][nrows][3*(osample+1)]
     */
-    zeta_ref * zeta = cpl_malloc(swath * height * 3 * (oversample + 1)
+    zeta = cpl_malloc(swath * height * 3 * (oversample + 1)
                                     * sizeof(zeta_ref));
 
     /* The actual number of contributing elements in zeta  [ncols][nrows]  */
-    int * m_zeta = cpl_malloc(swath * height * sizeof(int));
+    m_zeta = cpl_malloc(swath * height * sizeof(int));
 
     for (i=0;i<nswaths;i++){
         sw_start = cpl_vector_get(bins_begin, i);
@@ -2219,9 +2236,7 @@ int cr2res_extract_slitdec_curved(
         cpl_image_delete(model_rect);
         hdrl_image_delete(model_out);
         cpl_vector_delete(ycen);
-  
-        cpl_vector_delete(spc);
-        cpl_vector_delete(unc_decomposition);
+        cpl_bivector_delete(spectrum_loc);
         cpl_vector_delete(slitfu);
         return -1; 
     }
@@ -2244,14 +2259,13 @@ int cr2res_extract_slitdec_curved(
             cpl_error_get_code(), cpl_error_get_where());
         cpl_error_reset();
         cpl_vector_delete(slitfu);
-        cpl_vector_delete(spc);
-        cpl_vector_delete(unc_decomposition);
+        cpl_bivector_delete(spectrum_loc);
         hdrl_image_delete(model_out);
         return -1;
     }
 
     *slit_func = slitfu;
-    *spec = cpl_bivector_wrap_vectors(spc, unc_decomposition);
+    *spec = spectrum_loc;
     *model = model_out;
     return 0;
 }
@@ -3815,8 +3829,8 @@ static int cr2res_extract_slitdec_adjust_swath(
         int             sw,
         int             lenx,
         int             dx,
-        cpl_vector  *   bins_begin,
-        cpl_vector  *   bins_end)
+        cpl_vector  **  bins_begin,
+        cpl_vector  **  bins_end)
 {
     if (sw <= 0  || lenx <= 0) return -1;
     if (bins_begin == NULL || bins_end == NULL) return -1;
@@ -3824,7 +3838,7 @@ static int cr2res_extract_slitdec_adjust_swath(
 
     int nbin, nx, i = 0;
     double step = 0;
-
+    int bin = 0;
     int start = 0, end = lenx;
     // Setting them as int, makes this comparable to using ycen_int
     int ymin, ymax;
@@ -3867,16 +3881,15 @@ static int cr2res_extract_slitdec_adjust_swath(
 
     // Step / 2, to get half width swaths
     step = sw / 2;
-    int bin = 0;
-    cpl_vector_set_size(bins_begin, nbin);
-    cpl_vector_set_size(bins_end, nbin);
+    *bins_begin = cpl_vector_new(nbin);
+    *bins_end = cpl_vector_new(nbin);
 
     // boundaries of bins
     for(i = 0; i < nbin; i++)
     {
         bin = start + min(i * step, nx - sw - 2 * dx);
-        cpl_vector_set(bins_begin, i, bin);
-        cpl_vector_set(bins_end, i, bin + sw + 2 * dx);
+        cpl_vector_set(*bins_begin, i, bin);
+        cpl_vector_set(*bins_end, i, bin + sw + 2 * dx);
     }
     return sw + 2 * dx;
 }
