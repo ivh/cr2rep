@@ -1415,7 +1415,8 @@ cpl_table * cr2res_trace_new_slit_fraction(
     cpl_table_not_selected(out) ;
 
     // Shift Wavelength according to curvature
-    for (cpl_size k = 0; k < nrows; k++)
+    nrows = cpl_table_get_nrow(out);
+    for (k = 0; k < nrows; k++)
     {
         order = cpl_table_get_int(out, CR2RES_COL_ORDER, k, NULL);
         trace_id = cpl_table_get_int(out, CR2RES_COL_TRACENB, k, NULL);
