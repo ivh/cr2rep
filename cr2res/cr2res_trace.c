@@ -1307,6 +1307,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
         // the slit curvature first determine the vertical shift
         slit_frac_old_table = cpl_table_get_array(traces, CR2RES_COL_SLIT_FRACTION,k);
         slit_frac_old = cpl_array_duplicate(slit_frac_old_table);
+        // we throw the warning above
         if (cr2res_trace_check_slit_fraction(slit_frac_old) == 1){
                 cpl_array_set_double(slit_frac_old, 0, 0);
                 cpl_array_set_double(slit_frac_old, 1, 0.5);
