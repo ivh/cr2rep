@@ -372,7 +372,18 @@ int cr2res_extract_traces(
     }
 
     /* Create the extracted_tab for the current detector */
-    extract_loc = cr2res_extract_EXTRACT1D_create(spectrum, traces) ;
+    if ((extract_loc = cr2res_extract_EXTRACT1D_create(spectrum, traces)) 
+                == NULL) {
+        for (i=0 ; i<nb_traces ; i++) {
+            if (slit_func_vec[i] != NULL) cpl_vector_delete(slit_func_vec[i]) ;
+            if (spectrum[i] != NULL) cpl_bivector_delete(spectrum[i]) ;
+        }
+        cpl_free(spectrum) ;
+        cpl_free(slit_func_vec) ;
+        hdrl_image_delete(model_loc) ;
+        cpl_table_delete(slit_func_loc);
+        return -1;
+    }
 
     /* Deallocate Vectors */
     for (i=0 ; i<nb_traces ; i++) {
