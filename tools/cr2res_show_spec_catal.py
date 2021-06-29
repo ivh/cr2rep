@@ -12,7 +12,7 @@ EXTNAMES = ['CHIP%d.INT1'%i for i in [1,2,3]]
 ZOOM = 1
 YMAX = 15000
 YMIN = -3000
-CAT_FACTOR = 5
+CAT_FACTOR = 12
 CAT_OFFSET = 200
 FIT_NPIX=8 # x2 , to left and right of click
 
