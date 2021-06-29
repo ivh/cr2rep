@@ -626,6 +626,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
 
     cpl_vector * fpe_gap;
     cpl_vector * tmp_vec;
+    cpl_table * tmp_table;
     cpl_vector * corr;
     cpl_size degree, degree_2d[2];
     cpl_size i, j, k, deg, npeaks, npeaks_total;
@@ -941,22 +942,27 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         }
         cpl_free(path);
 
-        tmp_vec = cpl_vector_new((degree_x + 1) * (degree_y + 1));
+        tmp_table = cpl_table_new((degree_x + 1) * (degree_y + 1));
+        cpl_table_new_column(tmp_table, "DEGREE_X", CPL_TYPE_INT);
+        cpl_table_new_column(tmp_table, "DEGREE_Y", CPL_TYPE_INT);
+        cpl_table_new_column(tmp_table, "COEFFICIENT", CPL_TYPE_DOUBLE);
         k = 0;
         for (i = 0; i <= degree_x; i++)
         {
-            degree_2d[0] = i;
             for (j = 0; j <= degree_y; j++)
             {
+                degree_2d[0] = i;
                 degree_2d[1] = j;
-                cpl_vector_set(tmp_vec, k, 
-                        cpl_polynomial_get_coeff(result, &degree_2d[0]));
+                tmp = cpl_polynomial_get_coeff(result, &degree_2d[0]);
+                cpl_table_set_int(tmp_table, "DEGREE_X", k, i);
+                cpl_table_set_int(tmp_table, "DEGREE_Y", k, j);
+                cpl_table_set_double(tmp_table, "COEFFICIENT", k, tmp);
                 k++;
             }
         }
         path = cpl_sprintf("debug_etalon_final_poly.fits");
-        cpl_vector_save(tmp_vec, path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-        cpl_vector_delete(tmp_vec);
+        cpl_table_save(tmp_table, NULL, NULL, path, CPL_IO_CREATE);
+        cpl_table_delete(tmp_table);
         cpl_free(path);
     }
 
