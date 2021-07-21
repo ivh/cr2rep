@@ -61,6 +61,7 @@ static void test_cr2res_slit_pos_img(void);
 static void test_cr2res_get_license(void);
 static void test_cr2res_slit_curv_compute_order_trace(void);
 static void test_cr2res_optimal_filter_2d(void);
+static void test_cr2res_polyfit_2d(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -843,6 +844,87 @@ static void test_cr2res_optimal_filter_2d(void)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Perform a 2D polynomial fit f(x, y) = z
+  @param    x coordinates
+  @param    y coordinates
+  @param    z values to fit
+  @param    degrees to fit with shape (ndegrees, 2) with one entry per 
+            xy combination, x degrees in the 1st column, and y degrees in the 2nd,
+            Note that you need to include 0, 0 as well for the constant offset
+  @return   0 for all good, -1 for error
+
+    Perform a 2D polynomial fit, where the fit degrees are explicitly specified.
+
+ */
+/*----------------------------------------------------------------------------*/
+static void test_cr2res_polyfit_2d(void)
+{
+    cpl_vector *x, *y, *z;
+    cpl_matrix *degree;
+    cpl_polynomial * poly;
+    
+    cpl_size npoints = 5 * 5;
+    cpl_size ngrid = npoints * npoints;
+    cpl_size i, j, k;
+    cpl_size power[2];
+
+    x = cpl_vector_new(ngrid);
+    y = cpl_vector_new(ngrid);
+    z = cpl_vector_new(ngrid);
+
+    // f(x, y) = 1 + x + 2 * x y^2
+    k = 0;
+    for (i = 0; i < npoints ; i++){
+        for (j = 0; j  < npoints; j++){
+            cpl_vector_set(x, k, i);
+            cpl_vector_set(y, k, j);
+            cpl_vector_set(z, k, 1 + i + 2 * i * j * j);
+            k++;
+        }
+    }
+
+    // Define the degrees that should be fitted
+    degree = cpl_matrix_new(3, 2);
+    // Fit constant
+    cpl_matrix_set(degree, 0, 0, 0);
+    cpl_matrix_set(degree, 0, 1, 0);
+
+    // Fit x linear
+    cpl_matrix_set(degree, 1, 0, 1);
+    cpl_matrix_set(degree, 1, 1, 0);
+
+    // Fit x y^2
+    cpl_matrix_set(degree, 2, 0, 1);
+    cpl_matrix_set(degree, 2, 1, 2);
+
+    // Do the fit
+    cpl_test(poly = cr2res_polyfit_2d(x, y, z, degree));
+
+    // Check results
+    cpl_test_eq(cpl_polynomial_get_dimension(poly), 2);
+
+    power[0] = 0;
+    power[1] = 0;
+    cpl_test_abs(cpl_polynomial_get_coeff(poly, power), 1, 0.00001);
+
+    power[0] = 1;
+    power[1] = 0;
+    cpl_test_abs(cpl_polynomial_get_coeff(poly, power), 1, 0.00001);
+
+    power[0] = 1;
+    power[1] = 2;
+    cpl_test_abs(cpl_polynomial_get_coeff(poly, power), 2, 0.00001);
+
+    // Clean up
+    cpl_vector_delete(x);
+    cpl_vector_delete(y);
+    cpl_vector_delete(z);
+    cpl_matrix_delete(degree);
+    cpl_polynomial_delete(poly);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Get the pipeline copyright and license
   @return   The copyright and license string
 
@@ -866,24 +948,25 @@ int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
-    test_cr2res_vector_get_rest();
-    test_cr2res_vector_get_int();
-    test_cr2res_polynomial_eval_vector();
-    test_cr2res_image_cut_rectify();
-    test_cr2res_image_insert_rect();
-    test_cr2res_threshold_spec();
-    test_cr2res_get_base_name();
-    test_cr2res_get_root_name();
-    test_cr2res_extract_frameset();
-    test_cr2res_convert_array_to_poly();
-    test_cr2res_convert_poly_to_array();
-    test_cr2res_detector_shotnoise_model();
-    test_cr2res_get_license();
-    test_cr2res_fit_interorder();
-    test_cr2res_slit_pos();
-    test_cr2res_slit_pos_img();
-    test_cr2res_slit_curv_compute_order_trace();
-    test_cr2res_optimal_filter_2d();
+    // test_cr2res_vector_get_rest();
+    // test_cr2res_vector_get_int();
+    // test_cr2res_polynomial_eval_vector();
+    // test_cr2res_image_cut_rectify();
+    // test_cr2res_image_insert_rect();
+    // test_cr2res_threshold_spec();
+    // test_cr2res_get_base_name();
+    // test_cr2res_get_root_name();
+    // test_cr2res_extract_frameset();
+    // test_cr2res_convert_array_to_poly();
+    // test_cr2res_convert_poly_to_array();
+    // test_cr2res_detector_shotnoise_model();
+    // test_cr2res_get_license();
+    // test_cr2res_fit_interorder();
+    // test_cr2res_slit_pos();
+    // test_cr2res_slit_pos_img();
+    // test_cr2res_slit_curv_compute_order_trace();
+    // test_cr2res_optimal_filter_2d();
+    test_cr2res_polyfit_2d();
 
     return cpl_test_end(0);
 }

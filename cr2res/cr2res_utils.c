@@ -40,6 +40,7 @@
 #include "cr2res_extract.h"
 #include "cr2res_trace.h"
 
+
 /*----------------------------------------------------------------------------*/
 /**
  * @defgroup cr2res_utils     Miscellaneous Utilities
@@ -1645,6 +1646,241 @@ cpl_image * cr2res_util_optimal_filter_2d(
 
 #undef aij_index
 #undef w_index
+
+/*
+
+def _scale(x, y):
+    # Normalize x and y to avoid huge numbers
+    # Mean 0, Variation 1
+    offset_x, offset_y = np.mean(x), np.mean(y)
+    norm_x, norm_y = np.std(x), np.std(y)
+    if norm_x == 0:
+        norm_x = 1
+    if norm_y == 0:
+        norm_y = 1
+    x = (x - offset_x) / norm_x
+    y = (y - offset_y) / norm_y
+    return x, y, (norm_x, norm_y), (offset_x, offset_y)
+
+
+def _unscale(x, y, norm, offset):
+    x = x * norm[0] + offset[0]
+    y = y * norm[1] + offset[1]
+    return x, y
+
+def polyfit2d(
+    x, y, z, degree=1, max_degree=None, scale=True, plot=False, plot_title=None
+):
+    """A simple 2D plynomial fit to data x, y, z
+    The polynomial can be evaluated with numpy.polynomial.polynomial.polyval2d
+
+    Parameters
+    ----------
+    x : array[n]
+        x coordinates
+    y : array[n]
+        y coordinates
+    z : array[n]
+        data values
+    degree : int, optional
+        degree of the polynomial fit (default: 1)
+    max_degree : {int, None}, optional
+        if given the maximum combined degree of the coefficients is limited to this value
+    scale : bool, optional
+        Wether to scale the input arrays x and y to mean 0 and variance 1, to avoid numerical overflows.
+        Especially useful at higher degrees. (default: True)
+    plot : bool, optional
+        wether to plot the fitted surface and data (slow) (default: False)
+
+    Returns
+    -------
+    coeff : array[degree+1, degree+1]
+        the polynomial coefficients in numpy 2d format, i.e. coeff[i, j] for x**i * y**j
+    """
+    # Flatten input
+    x = np.asarray(x).ravel()
+    y = np.asarray(y).ravel()
+    z = np.asarray(z).ravel()
+
+    # Removed masked values
+    mask = ~(np.ma.getmask(z) | np.ma.getmask(x) | np.ma.getmask(y))
+    x, y, z = x[mask].ravel(), y[mask].ravel(), z[mask].ravel()
+
+    if scale:
+        x, y, norm, offset = _scale(x, y)
+
+    # Create combinations of degree of x and y
+    # usually: [(0, 0), (1, 0), (0, 1), (1, 1), (2, 0), ....]
+    if np.isscalar(degree):
+        degree = (int(degree), int(degree))
+    assert len(degree) == 2, "Only 2D polynomials can be fitted"
+    degree = [int(degree[0]), int(degree[1])]
+    # idx = [[i, j] for i, j in product(range(degree[0] + 1), range(degree[1] + 1))]
+    coeff = np.zeros((degree[0] + 1, degree[1] + 1))
+    idx = _get_coeff_idx(coeff)
+
+    # Calculate elements 1, x, y, x*y, x**2, y**2, ...
+    A = polyvander2d(x, y, degree)
+
+    # We only want the combinations with maximum order COMBINED power
+    if max_degree is not None:
+        mask = idx[:, 0] + idx[:, 1] <= int(max_degree)
+        idx = idx[mask]
+        A = A[:, mask]
+
+    # Do least squares fit
+    C, *_ = lstsq(A, z)
+
+    # Reorder coefficients into numpy compatible 2d array
+    for k, (i, j) in enumerate(idx):
+        coeff[i, j] = C[k]
+
+    # # Backup copy of coeff
+    if scale:
+        coeff = polyscale2d(coeff, *norm, copy=False)
+        coeff = polyshift2d(coeff, *offset, copy=False)
+
+    if plot:  # pragma: no cover
+        if scale:
+            x, y = _unscale(x, y, norm, offset)
+        plot2d(x, y, z, coeff, title=plot_title)
+
+    return coeff
+*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Perform a 2D polynomial fit f(x, y) = z
+  @param    x coordinates
+  @param    y coordinates
+  @param    z values to fit
+  @param    degrees to fit with shape (ndegrees, 2) with one entry per 
+            xy combination, x degrees in the 1st column, and y degrees in the 2nd,
+            Note that you need to include 0, 0 as well for the constant offset
+  @return   0 for all good, -1 for error
+
+    Perform a 2D polynomial fit, where the fit degrees are explicitly specified.
+
+ */
+/*----------------------------------------------------------------------------*/
+cpl_polynomial * cr2res_polyfit_2d(
+    const cpl_vector * x, 
+    const cpl_vector * y, 
+    const cpl_vector * z,
+    const cpl_matrix * degree
+){
+    cpl_size npoints, ndegrees;
+    double offset_x, offset_y;
+    double norm_x, norm_y;
+    double coef;
+    cpl_size i, j;
+
+    cpl_polynomial * poly;
+    cpl_vector * xhat, * yhat, *zhat;
+    cpl_matrix * mh, * mz;
+    cpl_error * error;
+    cpl_matrix * mcoef;
+    cpl_size power[2];
+
+    if (x == NULL || y == NULL || z == NULL || degree == NULL) return NULL;
+
+    npoints = cpl_vector_get_size(x);
+    if (cpl_vector_get_size(y) != npoints || cpl_vector_get_size(z) != npoints){
+        // All vectors need to be the same size
+        cpl_msg_error(__func__, "Vectors in polyfit2d are not of the same size");
+        return NULL;
+    }
+    ndegrees = cpl_matrix_get_nrow(degree);
+    if (ndegrees <= 0){
+        cpl_msg_error(__func__, "No fit degrees passed to polyfit2d");
+        return NULL;
+    }
+
+    // Normalize x and y to avoid huge numbers
+    // Mean 0, Variation 1
+    // offset_x = cpl_vector_get_mean(x);
+    // offset_y = cpl_vector_get_mean(y);
+    // norm_x = cpl_vector_get_stdev(x);
+    // norm_y = cpl_vector_get_stdev(y);
+    // We normalize to 0 and 1
+    // this only works well when the regular scale is 0 to N
+    // which we do have for a detector
+    // TODO: figure out how to correct for an offset
+    norm_x = cpl_vector_get_max(x);
+    norm_y = cpl_vector_get_max(y);
+    if (norm_x == 0) norm_x = 1;
+    if (norm_y == 0) norm_y = 1;
+
+    xhat = cpl_vector_duplicate(x);
+    yhat = cpl_vector_duplicate(y);
+
+    // cpl_vector_subtract_scalar(xhat, offset_x);
+    cpl_vector_divide_scalar(xhat, norm_x);
+
+    // cpl_vector_subtract_scalar(yhat, offset_y);
+    cpl_vector_divide_scalar(yhat, norm_y);
+
+    // Create the Vandermode Matrix A
+    // Calculate elements 1, x, y, x*y, x**2, y**2, ...
+    const double * xdata, *ydata;
+    double xdegree, ydegree;
+    mh = cpl_matrix_new(npoints, ndegrees);
+    
+    xdata = cpl_vector_get_data_const(xhat);
+    ydata = cpl_vector_get_data_const(yhat);
+
+
+    for (i = 0; i < ndegrees; i++)
+    {
+        xdegree = cpl_matrix_get(degree, i, 0);
+        ydegree = cpl_matrix_get(degree, i, 1);
+
+        for (j = 0; j < npoints; j++)
+        {
+            cpl_matrix_set(mh, j, i, pow(xdata[j], xdegree) * pow(ydata[j], ydegree));
+        }
+    }
+
+    // Wrap the z vector in a matrix
+    // Copy it to avoid the const classifier
+    zhat = cpl_vector_duplicate(z);
+    mz = cpl_matrix_wrap(npoints, 1, cpl_vector_get_data(zhat));
+
+    /* Solve XA=B by a least-square solution (aka pseudo-inverse). */
+    mcoef = cpl_matrix_solve_svd(mh, mz);
+
+    cpl_matrix_unwrap(mz);
+    cpl_matrix_delete(mh);
+
+    // reset the scale
+    for (i = 0; i < ndegrees; i++){
+        xdegree = cpl_matrix_get(degree, i, 0);
+        ydegree = cpl_matrix_get(degree, i, 1);
+
+        coef = cpl_matrix_get(mcoef, i, 0);
+        coef /= pow(norm_x, xdegree) * pow(norm_y, ydegree);
+        cpl_matrix_set(mcoef, i, 0, coef);
+    }
+
+
+    // turn coefficients into a polynomial
+    poly = cpl_polynomial_new(2);
+    for (i = 0; i < ndegrees; i++)
+    {
+        power[0] = cpl_matrix_get(degree, i, 0);
+        power[1] = cpl_matrix_get(degree, i, 1);
+        coef = cpl_matrix_get(mcoef, i, 0);
+        cpl_polynomial_set_coeff(poly, power, coef);
+    }
+
+    cpl_vector_delete(xhat);
+    cpl_vector_delete(yhat);
+    cpl_vector_delete(zhat);
+    cpl_matrix_delete(mcoef);
+    
+
+    return poly;
+}
 
 /*----------------------------------------------------------------------------*/
 /**
