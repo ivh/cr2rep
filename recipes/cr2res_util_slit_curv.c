@@ -74,7 +74,7 @@ Slit curvature computation                                              \n\
             or " CR2RES_UTIL_WAVE_TW_PROCATG "                          \n\
             or " CR2RES_CAL_WAVE_TW_PROCATG "                           \n\
             or " CR2RES_UTIL_SLIT_CURV_TW_PROCATG "                     \n\
-    lamp.fits " CR2RES_WAVE_RAW " [1 to n]                              \n\
+    lamp.fits " CR2RES_WAVE_FPET_RAW " [1 to n]                         \n\
                                                                         \n\
   Outputs                                                               \n\
     <input_lamp_name>_map.fits " CR2RES_UTIL_SLIT_CURV_MAP_PROCATG"     \n\
@@ -304,7 +304,7 @@ static int cr2res_util_slit_curv(
 
     /* Get the rawframes */
     rawframes_tw = cr2res_io_find_TRACE_WAVE_all(frameset);
-    rawframes_lamp = cr2res_extract_frameset(frameset, CR2RES_WAVE_RAW) ;
+    rawframes_lamp = cr2res_extract_frameset(frameset, CR2RES_WAVE_FPET_RAW) ;
     if (rawframes_tw == NULL || rawframes_lamp == NULL || 
             cpl_frameset_get_size(rawframes_lamp) <= 0 ||
             cpl_frameset_get_size(rawframes_tw) <= 0 ||

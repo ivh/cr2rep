@@ -59,7 +59,7 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
  -----------------------------------------------------------------------------*/
 
 static int cr2res_cal_wave_reduce(
-        const cpl_frameset  *   rawframes,
+        const cpl_frameset  *   rawframes_une,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
@@ -114,7 +114,8 @@ Spectrum Extraction and Wavelength Calibration                          \n\
     AUTO:   Guess the Method from the input file header                 \n\
                                                                         \n\
   Inputs                                                                \n\
-    raw.fits " CR2RES_WAVE_RAW " [1 to n]                               \n\
+    raw.fits " CR2RES_WAVE_UNE_RAW " [1 to n]                           \n\
+          or " CR2RES_WAVE_FPET_RAW " [0 to n]                          \n\
     trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [1]                       \n\
             or " CR2RES_CAL_FLAT_TW_MERGED_PROCATG "                    \n\
             or " CR2RES_UTIL_TRACE_TW_PROCATG "                         \n\
@@ -467,7 +468,8 @@ static int cr2res_cal_wave(
     cr2res_collapse         collapse ;
     cr2res_wavecal_type     wavecal_type ;
     const char          *   sval ;
-    cpl_frameset        *   rawframes ;
+    cpl_frameset        *   rawframes_une ;
+    cpl_frameset        *   rawframes_fpet ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   master_flat_frame ;
@@ -611,18 +613,18 @@ static int cr2res_cal_wave(
             CR2RES_EMISSION_LINES_PROCATG) ;
 
     /* Get the RAW Frames */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_WAVE_RAW) ;
-    if (rawframes == NULL) {
-        cpl_msg_error(__func__, "Could not find RAW frames") ;
+    rawframes_une = cr2res_extract_frameset(frameset, CR2RES_WAVE_UNE_RAW) ;
+    if (rawframes_une == NULL) {
+        cpl_msg_error(__func__, "Could not find UNE RAW frames") ;
         return -1 ;
     }
 
     /* Guess the method to be used from the RAW frames header */
     if (wavecal_type == CR2RES_UNSPECIFIED) {
         if ((wavecal_type = cr2res_wave_guess_method(
-                        cpl_frameset_get_position(rawframes, 0))) == 
+                        cpl_frameset_get_position(rawframes_une, 0))) == 
                 CR2RES_UNSPECIFIED) {
-            cpl_frameset_delete(rawframes) ;
+            cpl_frameset_delete(rawframes_une) ;
             cpl_msg_error(__func__, "Cannot guess the method") ;
             cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
             return -1 ;
@@ -633,14 +635,14 @@ static int cr2res_cal_wave(
         cpl_free(method_str) ;
     }
     if (reduce_order > -1 && wavecal_type == CR2RES_LINE2D) {
-        cpl_frameset_delete(rawframes) ;
+        cpl_frameset_delete(rawframes_une) ;
         cpl_msg_error(__func__, "Limiting to one order with LINE2D impossible");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
     if ((wavecal_type == CR2RES_XCORR || wavecal_type == CR2RES_LINE1D ||
                 wavecal_type == CR2RES_LINE2D) && lines_frame == NULL) {
-        cpl_frameset_delete(rawframes) ;
+        cpl_frameset_delete(rawframes_une) ;
         cpl_msg_error(__func__,
                 "The catalog file is needed for XCORR/LINE1D/LINE2D");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -685,7 +687,7 @@ static int cr2res_cal_wave(
         cpl_msg_indent_more() ;
 
         /* Call the reduction function */
-        if (cr2res_cal_wave_reduce(rawframes, detlin_frame,
+        if (cr2res_cal_wave_reduce(rawframes_une, detlin_frame,
                     master_dark_frame, master_flat_frame, bpm_frame,
                     trace_wave_frame, lines_frame, det_nr, reduce_order,
                     reduce_trace, collapse, ext_height, ext_swath_width,
@@ -708,7 +710,7 @@ static int cr2res_cal_wave(
 
     /* Get the setting */
     plist = cpl_propertylist_load(cpl_frame_get_filename(
-                cpl_frameset_get_position(rawframes, 0)), 0) ;
+                cpl_frameset_get_position(rawframes_une, 0)), 0) ;
     setting_id = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
     cr2res_format_setting(setting_id) ;
     cpl_propertylist_delete(plist) ;
@@ -719,7 +721,7 @@ static int cr2res_cal_wave(
     } else {
         out_file = cpl_sprintf("%s_tw.fits", RECIPE_STRING) ;
     }
-    cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist, 
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes_une, parlist, 
             out_trace_wave, NULL, ext_plist, 
             CR2RES_CAL_WAVE_TW_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
@@ -729,7 +731,7 @@ static int cr2res_cal_wave(
     } else {
         out_file = cpl_sprintf("%s_wave_map.fits", RECIPE_STRING) ;
     }
-    cr2res_io_save_WAVE_MAP(out_file, frameset, rawframes, parlist, 
+    cr2res_io_save_WAVE_MAP(out_file, frameset, rawframes_une, parlist, 
             out_wave_map, NULL, ext_plist, 
             CR2RES_CAL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
@@ -740,7 +742,7 @@ static int cr2res_cal_wave(
     } else {
         out_file = cpl_sprintf("%s_extracted.fits", RECIPE_STRING) ;
     }
-    cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+    cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes_une, parlist, 
             out_extracted, NULL, ext_plist, 
             CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
@@ -754,7 +756,8 @@ static int cr2res_cal_wave(
             out_file = cpl_sprintf("%s_lines_diagnostics.fits", 
                     RECIPE_STRING);
         }
-		cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset, rawframes, parlist,
+		cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset,
+                rawframes_une, parlist,
                 lines_diagnostics, NULL, ext_plist,
 				CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
@@ -762,7 +765,7 @@ static int cr2res_cal_wave(
 
     /* Free and return */
     cpl_free(setting_id);
-    cpl_frameset_delete(rawframes) ;
+    cpl_frameset_delete(rawframes_une) ;
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
         if (ext_plist[i] != NULL)
             cpl_propertylist_delete(ext_plist[i]) ;
@@ -782,7 +785,7 @@ static int cr2res_cal_wave(
 /*----------------------------------------------------------------------------*/
 /**
   @brief Compute the Wavelength for a detector
-  @param rawframes          Input raw frames 
+  @param rawframes_une      Input raw frames 
   @param detlin_frame       Associated detlin coefficients
   @param master_dark_frame  Associated master dark
   @param master_flat_frame  Associated master flat
@@ -820,7 +823,7 @@ static int cr2res_cal_wave(
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_wave_reduce(
-        const cpl_frameset  *   rawframes,
+        const cpl_frameset  *   rawframes_une,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
@@ -874,7 +877,7 @@ static int cr2res_cal_wave_reduce(
     double                  best_xcorr ;
     
     /* Check Inputs */
-    if (rawframes==NULL || trace_wave_frame==NULL || out_trace_wave==NULL ||
+    if (rawframes_une==NULL || trace_wave_frame==NULL || out_trace_wave==NULL ||
             lines_diagnostics == NULL || out_extracted == NULL || 
             out_wave_map==NULL || ext_plist==NULL) return -1 ;
     if (collapse!=CR2RES_COLLAPSE_MEAN && collapse!=CR2RES_COLLAPSE_MEDIAN) {
@@ -885,19 +888,19 @@ static int cr2res_cal_wave_reduce(
     best_xcorr = -1 ;
 
     /* Load the DITs if necessary */
-    if (master_dark_frame != NULL)  dits = cr2res_io_read_dits(rawframes) ;
+    if (master_dark_frame != NULL)  dits = cr2res_io_read_dits(rawframes_une) ;
     else                            dits = NULL ;
     if (cpl_msg_get_level() == CPL_MSG_DEBUG && dits != NULL)
         cpl_vector_dump(dits, stdout) ;
 
     /* Load image list */
-    if ((in = cr2res_io_load_image_list_from_set(rawframes,
+    if ((in = cr2res_io_load_image_list_from_set(rawframes_une,
                     reduce_det)) == NULL) {
         cpl_msg_error(__func__, "Cannot load images") ;
         if (dits != NULL) cpl_vector_delete(dits) ;
         return -1 ;
     }
-    if (hdrl_imagelist_get_size(in) != cpl_frameset_get_size(rawframes)) {
+    if (hdrl_imagelist_get_size(in) != cpl_frameset_get_size(rawframes_une)) {
         cpl_msg_error(__func__, "Inconsistent number of loaded images") ;
         if (dits != NULL) cpl_vector_delete(dits) ;
         hdrl_imagelist_delete(in) ;
@@ -966,7 +969,7 @@ static int cr2res_cal_wave_reduce(
     hdrl_image_delete(collapsed);
 
     first_file = cpl_frame_get_filename(
-            cpl_frameset_get_position_const(rawframes, 0)) ;
+            cpl_frameset_get_position_const(rawframes_une, 0)) ;
     plist = cpl_propertylist_load(first_file, 0) ;
     zp_order = cr2res_pfits_get_order_zp(plist) ;
     cpl_propertylist_delete(plist);
@@ -995,7 +998,7 @@ static int cr2res_cal_wave_reduce(
 
     /* Load the extension header for saving */
     first_file = cpl_frame_get_filename(
-            cpl_frameset_get_position_const(rawframes, 0)) ;
+            cpl_frameset_get_position_const(rawframes_une, 0)) ;
     ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
     plist = cpl_propertylist_load(first_file, ext_nr) ;
     if (plist == NULL) {
