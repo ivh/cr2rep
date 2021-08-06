@@ -1691,46 +1691,6 @@ char * cr2res_wave_method_print(
     return out_str ;
 }
 
-/*----------------------------------------------------------------------------*/
-/**
-  @brief  Guess the wavelength method to use from the header
-  @param    in  The frame whose header is to be used
-  @return   The guessed method
- */
-/*----------------------------------------------------------------------------*/
-cr2res_wavecal_type cr2res_wave_guess_method(
-        const cpl_frame     *   in) 
-{
-    cr2res_wavecal_type     wl_method ;
-    cpl_propertylist    *   plist ;
-    const char          *   l4_name ;
-    const char          *   l8_name ;
-
-    /* Check entries */
-    if (in == NULL) return CR2RES_UNSPECIFIED ;
-
-    /* Initialise */
-    wl_method = CR2RES_UNSPECIFIED ;
-
-    /* Load the property list */
-    if ((plist = cpl_propertylist_load(cpl_frame_get_filename(in), 0))==NULL) {
-        return wl_method ;
-    }
-
-    /* Get the Lamps names (NULL if missing) */
-    l4_name = cr2res_pfits_get_lamp4(plist) ;
-    cpl_error_reset() ;
-    l8_name = cr2res_pfits_get_lamp8(plist) ;
-    cpl_error_reset() ;
-    if (l4_name != NULL && !strcmp(l4_name, "UNe_HCL")) 
-        wl_method = CR2RES_XCORR ;
-    else if (l8_name != NULL && !strcmp(l8_name, "Etalon_Halogen"))
-        wl_method = CR2RES_ETALON ;
-    cpl_propertylist_delete(plist) ;
-
-    return wl_method ;
-}
-
 /**@}*/
 
 /*----------------------------------------------------------------------------*/

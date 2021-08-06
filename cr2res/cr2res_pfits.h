@@ -50,8 +50,6 @@
 #define CR2RES_HEADER_WLEN_END          "ESO INS WLEN END%d"
 #define CR2RES_HEADER_WLEN_CENY         "ESO INS WLEN CENY%d"
 #define CR2RES_HEADER_GRAT1_ZPORD       "ESO INS GRAT1 ZP_ORD"
-#define CR2RES_HEADER_LAMP4_NAME        "ESO INS1 LAMP4 NAME"
-#define CR2RES_HEADER_LAMP8_NAME        "ESO INS1 LAMP8 NAME"
 #define CR2RES_HEADER_NDIT              "ESO DET NDIT"
 #define CR2RES_HEADER_DIT               "ESO DET SEQ1 DIT"
 #define CR2RES_HEADER_PROG_ID           "ESO OBS PROG ID"
@@ -109,8 +107,6 @@ const char * cr2res_pfits_get_procatg(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_protype(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_wlen_id(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
-const char * cr2res_pfits_get_lamp4(const cpl_propertylist *) ;
-const char * cr2res_pfits_get_lamp8(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_progid(const cpl_propertylist *) ;
 
 
