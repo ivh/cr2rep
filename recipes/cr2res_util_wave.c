@@ -494,7 +494,7 @@ static int cr2res_util_wave(
     }
     lines_frame = cpl_frameset_find_const(frameset,
             CR2RES_EMISSION_LINES_PROCATG) ;
-    if (wavecal_type != CR2RES_ETALON) {
+    if (wavecal_type != CR2RES_ETALON && lines_frame == NULL) {
         cpl_msg_error(__func__,
                 "The catalog file is needed for XCORR/LINE1D/LINE2D");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
