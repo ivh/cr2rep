@@ -489,7 +489,8 @@ static cpl_mask * cr2res_bpm_compute_running_filter(
 /**
   @brief    Find BPM based on the median of the surounding pixels
   @author   Thomas
-  @return   Modified BPM
+  @param    bpm    input BPM as cpl_image
+  @return   0 if ok
 
     Set the CR2RES_NB_BPM_EDGEPIX pixels around the
     detector edges to CR2RES_BPM_EDGEPIX
@@ -506,4 +507,5 @@ int cr2res_bpm_mask_edgepix(cpl_image * bpm){
             cpl_image_set(bpm,j,i,CR2RES_BPM_EDGEPIX);
         }
     }
+    return 0;
 };
