@@ -330,6 +330,18 @@ int cr2res_pfits_get_obs_id(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
   /*
+  @brief    find out the ORDER value
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_pfits_get_order(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_int(plist, CR2RES_HEADER_GRAT1_ORDER)  ;
+}
+
+/*----------------------------------------------------------------------------*/
+  /*
   @brief    find out the ZP_ORD value
   @param    plist       property list to read from
   @return   the requested value

@@ -923,7 +923,8 @@ static int cr2res_cal_wave_reduce(
     cpl_propertylist    *   plist_fpet_out ;
     cpl_propertylist    *   plist ;
     const char          *   first_file ;
-    int                     ext_nr, zp_order_une, zp_order_fpet ;
+    int                     ext_nr, zp_order_une, zp_order_fpet,
+                            grat1_order_une, grat1_order_fpet ;
     
     /* Check Inputs */
     if (rawframes_une==NULL || trace_wave_frame==NULL || 
@@ -1139,6 +1140,7 @@ static int cr2res_cal_wave_reduce(
             cpl_frameset_get_position_const(rawframes_une, 0)) ;
     plist = cpl_propertylist_load(first_file, 0) ;
     zp_order_une = cr2res_pfits_get_order_zp(plist) ;
+    grat1_order_une = cr2res_pfits_get_order(plist) ;
     cpl_propertylist_delete(plist);
    
     cpl_msg_info(__func__, "Compute the Wavelength for UNE") ;
@@ -1147,6 +1149,7 @@ static int cr2res_cal_wave_reduce(
                 wl_err, wl_shift, log_flag, fallback_input_wavecal_flag, 
                 keep_higher_degrees_flag, clean_spectrum, 
                 display, display_wmin, display_wmax, zp_order_une,
+                grat1_order_une,
                 &qcs_une_out,
                 &lines_diagnostics_une_out,
                 &extracted_une_out,
@@ -1165,6 +1168,7 @@ static int cr2res_cal_wave_reduce(
                 cpl_frameset_get_position_const(rawframes_fpet, 0)) ;
         plist = cpl_propertylist_load(first_file, 0) ;
         zp_order_fpet = cr2res_pfits_get_order_zp(plist) ;
+        grat1_order_fpet = cr2res_pfits_get_order(plist) ;
         cpl_propertylist_delete(plist);
        
         cpl_msg_info(__func__, "Compute the Wavelength for FPET") ;
@@ -1173,6 +1177,7 @@ static int cr2res_cal_wave_reduce(
                     wl_err, wl_shift, log_flag, fallback_input_wavecal_flag, 
                     keep_higher_degrees_flag, clean_spectrum, 
                     display, display_wmin, display_wmax, zp_order_fpet,
+                    grat1_order_fpet,
                     &qcs_fpet_out,
                     &lines_diagnostics_fpet_out,
                     &extracted_fpet_out,

@@ -372,6 +372,36 @@ double cr2res_qc_flat_s2n(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Computes the central WLEN of a given order
+  @param    tw      the TW table
+  @param    order   the order index
+  @return   the computed number or -1.0 in error case
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_wave_central(
+        const cpl_table *   tw,
+        int                 order_idx)
+{
+    cpl_vector  *   wls ;
+    double          wl_central ;
+    int             trace_nb ;
+
+    /* Initialise */
+    trace_nb = 1 ;
+
+    /* Get the wavelengths */
+    if ((wls = cr2res_trace_get_wl(tw, order_idx, trace_nb,
+                    CR2RES_DETECTOR_SIZE)) == NULL) {
+        cpl_msg_error(__func__, "No Matching column in TW table") ;
+        return -1.0 ;
+    }
+    wl_central = cpl_vector_get(wls, (int)(CR2RES_DETECTOR_SIZE/2)) ;
+    cpl_vector_delete(wls) ;
+    return wl_central ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Computes the integrated flux over part of the spectrum
   @param    extracted   Extracted spectrum table
   @return   the computed signal

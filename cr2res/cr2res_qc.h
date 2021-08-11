@@ -62,8 +62,9 @@ double cr2res_qc_flat_s2n(
         const cpl_image     *   master_flat) ;
 
 /* WAVE */
-
-
+double cr2res_qc_wave_central(
+        const cpl_table *   tw,
+        int                 order) ;
 
 
 /* OBS */

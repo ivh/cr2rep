@@ -39,6 +39,7 @@
 #include "cr2res_pfits.h"
 #include "cr2res_utils.h"
 #include "cr2res_etalon.h"
+#include "cr2res_qc.h"
 #include "cr2res_pfits.h"
 
 /*-----------------------------------------------------------------------------
@@ -167,6 +168,7 @@ int cr2res_wave_apply(
         double                      display_wmin,
         double                      display_wmax,
         int                         zp_order,
+        int                         grat1_order,
         cpl_propertylist    **      qcs,
         cpl_table           **      lines_diagnostics,
         cpl_table           **      extracted_out,
@@ -194,8 +196,8 @@ int cr2res_wave_apply(
     cpl_polynomial      *   wave_sol_1d ;
     cpl_array           *   wl_err_array ;
     int                     trace_id, order, i, j ;
-    double                  best_xcorr ;
-    int                     out_wl_array_size, init_wl_array_size,
+    double                  best_xcorr, qc_wlen_central ;
+    int                     out_wl_array_size, init_wl_array_size, order_idx, 
                             degree_out ;
 
     /* Check Entries */
@@ -581,6 +583,12 @@ int cr2res_wave_apply(
         }
     }
 
+    /* Store the central Wavelength QC */
+    order_idx = cr2res_order_real_to_idx(grat1_order, zp_order) ; 
+    qc_wlen_central = cr2res_qc_wave_central(tw_out, order_idx) ;
+    cpl_propertylist_append_double(qcs_plist,
+            CR2RES_HEADER_QC_WAVE_CENTWL, qc_wlen_central);
+    
     /* Recompute the extracted table wavelengths with the results */
     extracted_out_loc = cr2res_wave_recompute_wl(spectra_tab, tw_out) ;
 

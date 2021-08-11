@@ -398,7 +398,7 @@ static int cr2res_util_wave(
     cpl_propertylist    *   qcs_plist ;
     cpl_propertylist    *   plist ;
     const char          *   first_file;
-    int                     det_nr, order, i, j, zp_order ;
+    int                     det_nr, order, i, j, zp_order, grat1_order ;
 
     /* Needed for sscanf() */
     setlocale(LC_NUMERIC, "C");
@@ -512,6 +512,7 @@ static int cr2res_util_wave(
             cpl_frameset_get_position_const(rawframes, 0)) ;
     plist = cpl_propertylist_load(first_file, 0) ;
     zp_order = cr2res_pfits_get_order_zp(plist) ;
+    grat1_order = cr2res_pfits_get_order(plist) ;
     cpl_propertylist_delete(plist);
 
     /* Loop on the RAW frames */
@@ -598,7 +599,7 @@ static int cr2res_util_wave(
                         wl_degree, wl_start, wl_end, wl_err, wl_shift, log_flag,
                         fallback_input_wavecal_flag, keep_higher_degrees_flag, 
                         clean_spectrum, display, display_wmin, display_wmax,
-                        zp_order,
+                        zp_order, grat1_order,
                         &qcs_plist,
                         &(lines_diagnostics[det_nr-1]),
                         &(updated_extracted_table[det_nr-1]),
