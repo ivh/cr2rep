@@ -824,9 +824,11 @@ static int cr2res_obs_nodding_reduce(
                             slit_frac_a_mid, slit_frac_a_top, slit_frac_b_bot, 
                             slit_frac_b_mid, slit_frac_b_top, nod_throw ;
     double                  qc_signal_a, qc_signal_b, qc_fwhm_a, 
-                            qc_fwhm_b ;
+                            qc_fwhm_b, qc_standard_flux_a,
+                            qc_standard_flux_b ;
     cpl_array           *   fwhm_a_array ;
     cpl_array           *   fwhm_b_array ;
+    char                *   cur_setting ;
     int                 *   order_idx_values ;
     double              *   qc_snrs ;
     int                     nb_order_idx_values, order_real,
@@ -1157,6 +1159,12 @@ static int cr2res_obs_nodding_reduce(
     extracted_combined = cr2res_obs_nodding_combine(extracted_a, extracted_b) ;
     cpl_msg_indent_less() ;
 
+    /* Get the Setting */
+    plist = cpl_propertylist_load(first_fname, 0) ;
+    cur_setting = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
+    cr2res_format_setting(cur_setting) ;
+    cpl_propertylist_delete(plist) ;
+
     /* Store the extenѕion header for product saving */
     plist = cpl_propertylist_load(first_fname,
             cr2res_io_get_ext_idx(first_fname, reduce_det, 1)) ;
@@ -1167,6 +1175,15 @@ static int cr2res_obs_nodding_reduce(
     qc_signal_b = cr2res_qc_obs_nodding_signal(extracted_b) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SIGNAL, 
             (qc_signal_a+qc_signal_b)/2.0) ;
+
+    /* QC STANDARD FLUX */
+    qc_standard_flux_a =
+        cr2res_qc_obs_nodding_standard_flux(extracted_a, cur_setting) ;
+    qc_standard_flux_b =
+        cr2res_qc_obs_nodding_standard_flux(extracted_b, cur_setting) ;
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_STANDARD_FLUX, 
+            (qc_standard_flux_a+qc_standard_flux_b)/2.0) ;
+    cpl_free(cur_setting) ;
 
     /* QC - SNR on nodding A posision */
     qc_snrs = cr2res_qc_snr(trace_wave_a, extracted_a, &order_idx_values,

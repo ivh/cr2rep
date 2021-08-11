@@ -417,7 +417,7 @@ double cr2res_qc_obs_nodding_signal(
     int             nrows, size;
 
     /* Check Entries */
-    if (extracted == NULL) return -1 ;
+    if (extracted == NULL) return -1.0 ;
 
     /* Initialise */
     qc_signal = -1.0 ;
@@ -444,6 +444,93 @@ double cr2res_qc_obs_nodding_signal(
     cpl_vector_delete(vector2);
 
     return qc_signal ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the standard flux over part of the spectrum
+  @param    extracted   Extracted spectrum table
+  @param    setting     The setting
+  @return   the computed standard flux
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_obs_nodding_standard_flux(
+        const cpl_table     *   extracted,
+        char                *   setting)
+{
+    double          qc_flux ;
+    char        *   colname;
+    double      *   ext_data;
+    double      *   wl_data;
+    double          wl_start ;
+    cpl_vector  *   vector, *vector2;
+    int             nrows, wl_start_index, i ;
+
+    /* Check Entries */
+    if (extracted == NULL) return -1.0 ;
+
+    /* Initialise */
+    qc_flux = -1.0 ;
+    wl_start = -1.0 ;
+    nrows = cpl_table_get_nrow(extracted);
+
+    /* Get the wl boundaries */
+    if (!strcmp(setting, "Y1029"))
+        wl_start = 1087.3 ;
+    else if (!strcmp(setting, "H1559"))
+        wl_start = 1504.8 ;
+    else if (!strcmp(setting, "K2217"))
+        wl_start = 2205.0 ;
+    else if (!strcmp(setting, "L3377"))
+        wl_start = 3611.0 ;
+    else if (!strcmp(setting, "M4266"))
+        wl_start = 5050.4 ;
+
+    if (wl_start < 0.0) {
+        cpl_msg_warning(__func__, 
+                "QC Standard Flux : No WL specified for setting %s", setting) ;
+        return -1.0 ;
+    }
+
+    /* Get the Data */
+    colname = cr2res_dfs_SPEC_colname(CR2RES_QC_ORDER, CR2RES_QC_TRACE);
+    ext_data = cpl_table_get_data_double((cpl_table*) extracted, colname);
+    cpl_free(colname);
+    colname = cr2res_dfs_WAVELENGTH_colname(CR2RES_QC_ORDER, CR2RES_QC_TRACE);
+    wl_data = cpl_table_get_data_double((cpl_table*) extracted, colname);
+    cpl_free(colname);
+    if (cpl_error_get_code() == CPL_ERROR_DATA_NOT_FOUND) {
+        cpl_error_reset();
+        return -1;
+    }
+
+    wl_start_index = -1 ;
+    for (i=0 ; i<nrows ; i++) {
+        if (wl_data[i] > wl_start && wl_start_index <0) {
+            wl_start_index = i ;
+            break ;
+        }
+    }
+
+    if (wl_data[0] > wl_start || wl_start_index < 0 || 
+            wl_start_index > cpl_table_get_nrow(extracted)-CR2RES_QC_SIZE) {
+        cpl_msg_warning(__func__, 
+                "QC Standard Flux : Specified WL out of range %g", wl_start) ;
+        return -1.0 ;
+    }
+    cpl_msg_info(__func__, 
+            "QC STD FLUX : Trace %d Order %d WL start %g, idx range: [%d-%d]", 
+            CR2RES_QC_TRACE, CR2RES_QC_ORDER, wl_start, wl_start_index,
+            wl_start_index+CR2RES_QC_SIZE) ;
+
+    vector = cpl_vector_wrap(nrows, ext_data);
+    vector2 = cpl_vector_extract(vector, wl_start_index, 
+            wl_start_index+CR2RES_QC_SIZE, 1) ;
+    qc_flux = cpl_vector_get_mean(vector2);
+    cpl_vector_unwrap(vector);
+    cpl_vector_delete(vector2);
+
+    return qc_flux ;
 }
 
 /*----------------------------------------------------------------------------*/
