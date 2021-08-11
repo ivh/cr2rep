@@ -53,6 +53,7 @@ typedef enum _cr2res_bpm_type_ {
 
 #define CR2RES_NB_BPM_TYPES     5
 #define CR2RES_NB_BPM_EDGEPIX   4 // same for all detector edges
+#define CR2RES_NB_BPM_VIGN_BOTTOM   40 // vignetted lower area
 
 static cr2res_bpm_type bpm_types[CR2RES_NB_BPM_TYPES] = {
     CR2RES_BPM_DARK, 
