@@ -42,19 +42,24 @@ typedef enum _cr2res_bpm_type_ {
     CR2RES_BPM_DARK  	    = 1 << 0,
     CR2RES_BPM_FLAT         = 1 << 1,
     CR2RES_BPM_DETLIN       = 1 << 2,
-    CR2RES_BPM_OUTOFORDER   = 1 << 3
+    CR2RES_BPM_OUTOFORDER   = 1 << 3,
+    CR2RES_BPM_EDGEPIX      = 1 << 4
 } cr2res_bpm_type ;
 #define CR2RES_BPM_ALL      CR2RES_BPM_DARK |           \
                             CR2RES_BPM_FLAT |           \
                             CR2RES_BPM_DETLIN |         \
-                            CR2RES_BPM_OUTOFORDER 
+                            CR2RES_BPM_OUTOFORDER |     \
+                            CR2RES_BPM_EDGEPIX
 
-#define CR2RES_NB_BPM_TYPES     4
+#define CR2RES_NB_BPM_TYPES     5
+#define CR2RES_NB_BPM_EDGEPIX   4 // same for all detector edges
+
 static cr2res_bpm_type bpm_types[CR2RES_NB_BPM_TYPES] = {
     CR2RES_BPM_DARK, 
     CR2RES_BPM_FLAT, 
     CR2RES_BPM_DETLIN, 
-    CR2RES_BPM_OUTOFORDER};
+    CR2RES_BPM_OUTOFORDER,
+    CR2RES_BPM_EDGEPIX};
 
 /*-----------------------------------------------------------------------------
                                 Prototypes
@@ -92,5 +97,6 @@ int cr2res_bpm_add_mask(
 
 int cr2res_bpm_find_bad_pixels(cpl_image * img, double sigma, int size);
 
+int cr2res_bpm_mask_edgepix(cpl_image * bpm);
 
 #endif
