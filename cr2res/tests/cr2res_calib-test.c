@@ -1073,12 +1073,12 @@ int main(void)
 
     create_empty_fits();
 
-    test_cr2res_calib_image();
-    test_cr2res_calib_cosmic();
-    test_cr2res_calib_flat();
-    test_cr2res_calib_dark();
-    test_cr2res_calib_bpm();
-    test_cr2res_calib_detlin();
+    //test_cr2res_calib_image();
+    //test_cr2res_calib_cosmic();
+    //test_cr2res_calib_flat();
+    //test_cr2res_calib_dark();
+    //test_cr2res_calib_bpm();
+    //test_cr2res_calib_detlin();
 
     return cpl_test_end(0);
 }
