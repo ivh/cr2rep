@@ -185,7 +185,7 @@ Flat                                                                    \n\
     cr2res_qc_flat_mean_level()                                         \n\
     cr2res_qc_flat_mean_med_flux()                                      \n\
     cr2res_qc_flat_med_snr()                                            \n\
-    cr2res_qc_flat_nb_overexposed()                                     \n\
+    cr2res_qc_overexposed()                                             \n\
     cr2res_qc_flat_trace_center_y()                                     \n\
     cr2res_trace_merge()                                                \n\
     cr2res_io_save_SLIT_MODEL()                                         \n\
@@ -1253,7 +1253,7 @@ static int cr2res_cal_flat_reduce(
     cpl_image_delete(my_master_flat) ;
 
     qc_overexposed =
-        cr2res_qc_flat_nb_overexposed(hdrl_image_get_image(first_image)) ;
+        cr2res_qc_overexposed(hdrl_image_get_image(first_image)) ;
 
     hdrl_image_delete(first_image) ;
     qc_trace_centery = cr2res_qc_flat_trace_center_y(computed_traces) ;
@@ -1297,7 +1297,7 @@ static int cr2res_cal_flat_reduce(
             qc_rms) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_S2N, 
             qc_s2n) ;
-    cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_FLAT_OVEREXPOSED, 
+    cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_OVEREXPOSED, 
             qc_overexposed) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_TRACE_CENTERY,
             qc_trace_centery) ;

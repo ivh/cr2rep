@@ -332,12 +332,12 @@ double cr2res_qc_flat_trace_center_y(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Computes the number of overexposed pixels in the first raw frame
+  @brief    Computes the number of overexposed pixels
   @param    ima     the first raw image
   @return   the computed number or -1 in error case
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_qc_flat_nb_overexposed(
+int cr2res_qc_overexposed(
         const cpl_image     *   ima)
 {
     cpl_mask * mask;
@@ -384,13 +384,9 @@ double cr2res_qc_wave_central(
 {
     cpl_vector  *   wls ;
     double          wl_central ;
-    int             trace_nb ;
-
-    /* Initialise */
-    trace_nb = 1 ;
 
     /* Get the wavelengths */
-    if ((wls = cr2res_trace_get_wl(tw, order_idx, trace_nb,
+    if ((wls = cr2res_trace_get_wl(tw, order_idx, CR2RES_QC_TRACE,
                     CR2RES_DETECTOR_SIZE)) == NULL) {
         cpl_msg_error(__func__, "No Matching column in TW table") ;
         return -1.0 ;
@@ -398,6 +394,36 @@ double cr2res_qc_wave_central(
     wl_central = cpl_vector_get(wls, (int)(CR2RES_DETECTOR_SIZE/2)) ;
     cpl_vector_delete(wls) ;
     return wl_central ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the dispersion of a given order
+  @param    tw      the TW table
+  @param    order   the order index
+  @return   the computed number or -1.0 in error case
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_wave_disp(
+        const cpl_table *   tw,
+        int                 order_idx)
+{
+    cpl_vector  *   wls ;
+    double          wl_disp ;
+    int             nbins ;
+
+    if (tw == NULL) return -1.0 ;
+
+    /* Get the wavelengths */
+    if ((wls = cr2res_trace_get_wl(tw, order_idx, CR2RES_QC_TRACE,
+                    CR2RES_DETECTOR_SIZE)) == NULL) {
+        cpl_msg_error(__func__, "No Matching column in TW table") ;
+        return -1.0 ;
+    }
+    nbins = cpl_vector_get_size(wls) ;
+    wl_disp = (cpl_vector_get(wls, nbins-1) - cpl_vector_get(wls, 0)) / nbins;
+    cpl_vector_delete(wls) ;
+    return wl_disp ;
 }
 
 /*----------------------------------------------------------------------------*/

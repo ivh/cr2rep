@@ -51,8 +51,6 @@ int cr2res_qc_detlin_min_max_level(
 /* FLAT */
 double cr2res_qc_flat_trace_center_y(
         const cpl_table     *   trace) ;
-int cr2res_qc_flat_nb_overexposed(
-        const cpl_image     *   ima) ;
 int cr2res_qc_flat_order_positions(
         const cpl_table *   tw,
         int             **  order_nb,
@@ -65,8 +63,13 @@ double cr2res_qc_flat_s2n(
 double cr2res_qc_wave_central(
         const cpl_table *   tw,
         int                 order) ;
+double cr2res_qc_wave_disp(
+        const cpl_table *   tw,
+        int                 order) ;
 
 /* OBS */
+int cr2res_qc_overexposed(
+        const cpl_image     *   ima) ;
 double cr2res_qc_obs_nodding_signal(
         const cpl_table     *   extracted) ;
 double cr2res_qc_obs_nodding_standard_flux(

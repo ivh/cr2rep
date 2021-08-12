@@ -196,7 +196,7 @@ int cr2res_wave_apply(
     cpl_polynomial      *   wave_sol_1d ;
     cpl_array           *   wl_err_array ;
     int                     trace_id, order, i, j ;
-    double                  best_xcorr, qc_wlen_central ;
+    double                  best_xcorr, qc_wlen_central, qc_wlen_disp ;
     int                     out_wl_array_size, init_wl_array_size, order_idx, 
                             degree_out ;
 
@@ -588,6 +588,9 @@ int cr2res_wave_apply(
     qc_wlen_central = cr2res_qc_wave_central(tw_out, order_idx) ;
     cpl_propertylist_append_double(qcs_plist,
             CR2RES_HEADER_QC_WAVE_CENTWL, qc_wlen_central);
+    qc_wlen_disp = cr2res_qc_wave_disp(tw_out, order_idx) ;
+    cpl_propertylist_append_double(qcs_plist,
+            CR2RES_HEADER_QC_WAVE_DISPWL, qc_wlen_disp);
     
     /* Recompute the extracted table wavelengths with the results */
     extracted_out_loc = cr2res_wave_recompute_wl(spectra_tab, tw_out) ;
