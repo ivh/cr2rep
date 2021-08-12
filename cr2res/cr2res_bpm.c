@@ -497,10 +497,18 @@ static cpl_mask * cr2res_bpm_compute_running_filter(
  */
 /*----------------------------------------------------------------------------*/
 cpl_image * cr2res_bpm_mask_edgepix(cpl_image * bpm){
-    cpl_size    i,j;
+    cpl_size    i,j,sx,sy;
     cpl_image * out;
     out = cpl_image_duplicate(bpm);
-    for (i=1; i<=CR2RES_DETECTOR_SIZE; i++){
+
+    sx = cpl_image_get_size_x(bpm);
+    sy = cpl_image_get_size_y(bpm);
+
+    // Image is too small for edgepixels, just keeo it as it is
+    if ((sx <= CR2RES_NB_BPM_EDGEPIX+1) | (sy <= CR2RES_NB_BPM_EDGEPIX+1)) 
+        return out;
+
+    for (i=1; i<=sx; i++){
         for (j=1; j<=CR2RES_NB_BPM_EDGEPIX; j++){
             cpl_image_set(out,i,j,CR2RES_BPM_EDGEPIX);
             cpl_image_set(out,i,CR2RES_DETECTOR_SIZE-j+1,CR2RES_BPM_EDGEPIX);

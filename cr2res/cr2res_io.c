@@ -1501,12 +1501,13 @@ int cr2res_io_save_BPM(
             
     /* Convert to HDRL images */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        if (bpms[det_nr-1] == NULL) 
+        if (bpms[det_nr-1] == NULL){
             hdrl_bpms[det_nr-1] = NULL ;
-        else
+        } else{
             bpm_tmp = cr2res_bpm_mask_edgepix(bpms[det_nr-1]);
             hdrl_bpms[det_nr-1] = hdrl_image_create(bpm_tmp, NULL) ;
             cpl_image_delete(bpm_tmp);
+        }
     }
 
     /* Save */

@@ -1069,16 +1069,17 @@ static void test_cr2res_calib_detlin()
 /*----------------------------------------------------------------------------*/
 int main(void)
 {
+    cpl_error_reset();
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
     create_empty_fits();
 
-    //test_cr2res_calib_image();
-    //test_cr2res_calib_cosmic();
-    //test_cr2res_calib_flat();
-    //test_cr2res_calib_dark();
-    //test_cr2res_calib_bpm();
-    //test_cr2res_calib_detlin();
+    test_cr2res_calib_image();
+    test_cr2res_calib_cosmic();
+    test_cr2res_calib_flat();
+    test_cr2res_calib_dark();
+    test_cr2res_calib_bpm();
+    test_cr2res_calib_detlin();
 
     return cpl_test_end(0);
 }
