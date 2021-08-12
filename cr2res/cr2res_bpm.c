@@ -490,22 +490,23 @@ static cpl_mask * cr2res_bpm_compute_running_filter(
   @brief    Find BPM based on the median of the surounding pixels
   @author   Thomas
   @param    bpm    input BPM as cpl_image
-  @return   0 if ok
+  @return   modified copy of BPM cpl_image
 
     Set the CR2RES_NB_BPM_EDGEPIX pixels around the
     detector edges to CR2RES_BPM_EDGEPIX
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_bpm_mask_edgepix(cpl_image * bpm){
-    cpl_size i,j;
-
+cpl_image * cr2res_bpm_mask_edgepix(cpl_image * bpm){
+    cpl_size    i,j;
+    cpl_image * out;
+    out = cpl_image_duplicate(bpm);
     for (i=1; i<=CR2RES_DETECTOR_SIZE; i++){
-        for (j=1; j<=4; j++){
-            cpl_image_set(bpm,i,j,CR2RES_BPM_EDGEPIX);
-            cpl_image_set(bpm,i,CR2RES_DETECTOR_SIZE-j+1,CR2RES_BPM_EDGEPIX);
-            cpl_image_set(bpm,CR2RES_DETECTOR_SIZE-j+1,i,CR2RES_BPM_EDGEPIX);
-            cpl_image_set(bpm,j,i,CR2RES_BPM_EDGEPIX);
+        for (j=1; j<=CR2RES_NB_BPM_EDGEPIX; j++){
+            cpl_image_set(out,i,j,CR2RES_BPM_EDGEPIX);
+            cpl_image_set(out,i,CR2RES_DETECTOR_SIZE-j+1,CR2RES_BPM_EDGEPIX);
+            cpl_image_set(out,CR2RES_DETECTOR_SIZE-j+1,i,CR2RES_BPM_EDGEPIX);
+            cpl_image_set(out,j,i,CR2RES_BPM_EDGEPIX);
         }
     }
-    return 0;
+    return out;
 };

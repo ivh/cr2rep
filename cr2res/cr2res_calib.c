@@ -229,6 +229,7 @@ hdrl_image * cr2res_calib_image(
        hdrl_imagelist_delete(calib_list) ;
     }
 
+    /* TODO: make the folling part optional with a parameter */
     /* Subrtact residual boas/dark from vignetted rows at bottom */
     img_tmp1 = hdrl_image_get_image(out);
     img_tmp2 = cpl_image_collapse_median_create(img_tmp1, 0,

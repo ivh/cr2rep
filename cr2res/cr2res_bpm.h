@@ -98,6 +98,6 @@ int cr2res_bpm_add_mask(
 
 int cr2res_bpm_find_bad_pixels(cpl_image * img, double sigma, int size);
 
-int cr2res_bpm_mask_edgepix(cpl_image * bpm);
+cpl_image * cr2res_bpm_mask_edgepix(cpl_image * bpm);
 
 #endif
