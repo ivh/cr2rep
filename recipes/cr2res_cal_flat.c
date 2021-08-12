@@ -1315,8 +1315,6 @@ static int cr2res_cal_flat_reduce(
             qc_rms) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_S2N, 
             qc_s2n) ;
-    cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_OVEREXPOSED, 
-            qc_overexposed) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_TRACE_CENTERY,
             qc_trace_centery) ;
     cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_FLAT_NBBAD, 
