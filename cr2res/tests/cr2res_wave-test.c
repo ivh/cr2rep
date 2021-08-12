@@ -808,7 +808,7 @@ int main(void)
     test_cr2res_wave_poly_2d_to_1d();
 	test_cr2res_wave_estimate_compute();
     test_cr2res_wave_clean_spectrum();
-    test_cr2res_wave_etalon_2d();
+    //test_cr2res_wave_etalon_2d();
     return cpl_test_end(0);
 }
 
