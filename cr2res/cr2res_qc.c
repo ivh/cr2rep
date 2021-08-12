@@ -437,7 +437,7 @@ double cr2res_qc_overexposed(
     for (j=0 ; j<CR2RES_DETECTOR_SIZE ; j++) {
         for (i=0 ; i<CR2RES_DETECTOR_SIZE ; i++) {
             if (plabel[i+j*CR2RES_DETECTOR_SIZE] == order_idx &&
-                    !cpl_image_is_rejected(ima, i, j)) {
+                    !cpl_image_is_rejected(ima, i+1, j+1)) {
                 nb_total++ ;
                 if (pima[i+j*CR2RES_DETECTOR_SIZE] > 
                         CR2RES_DETECTOR_OVEREXP_THRESH) {
@@ -446,6 +446,7 @@ double cr2res_qc_overexposed(
             }
         }
     }
+    cpl_image_delete(labels) ;
     if (nb_total == 0) return -1.0 ;
     return nb_over / nb_total ;
 }
