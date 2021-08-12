@@ -497,13 +497,18 @@ static cpl_mask * cr2res_bpm_compute_running_filter(
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_bpm_mask_edgepix(cpl_image * bpm){
-    cpl_size i,j;
+    cpl_size i,j,sx, sy;
+    sx = cpl_image_get_size_x(bpm);
+    sy = cpl_image_get_size_y(bpm);
 
-    for (i=1; i<=CR2RES_DETECTOR_SIZE; i++){
+    // Image is too small for edgepixels, just keeo it as it is
+    if ((sx <= 5) | (sy <= 5)) return 0;
+    
+    for (i=1; i<=sx; i++){
         for (j=1; j<=4; j++){
             cpl_image_set(bpm,i,j,CR2RES_BPM_EDGEPIX);
-            cpl_image_set(bpm,i,CR2RES_DETECTOR_SIZE-j+1,CR2RES_BPM_EDGEPIX);
-            cpl_image_set(bpm,CR2RES_DETECTOR_SIZE-j+1,i,CR2RES_BPM_EDGEPIX);
+            cpl_image_set(bpm,i,sx-j+1,CR2RES_BPM_EDGEPIX);
+            cpl_image_set(bpm,sx-j+1,i,CR2RES_BPM_EDGEPIX);
             cpl_image_set(bpm,j,i,CR2RES_BPM_EDGEPIX);
         }
     }

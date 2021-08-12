@@ -229,17 +229,21 @@ hdrl_image * cr2res_calib_image(
        hdrl_imagelist_delete(calib_list) ;
     }
 
-    /* Subrtact residual boas/dark from vignetted rows at bottom */
-    img_tmp1 = hdrl_image_get_image(out);
-    img_tmp2 = cpl_image_collapse_median_create(img_tmp1, 0,
-                CR2RES_NB_BPM_EDGEPIX, CR2RES_DETECTOR_SIZE-CR2RES_NB_BPM_VIGN_BOTTOM);
-    calib = hdrl_image_new(CR2RES_DETECTOR_SIZE,CR2RES_DETECTOR_SIZE);
-    for (i=1; i<=CR2RES_DETECTOR_SIZE; i++){
-        hdrl_image_insert(calib, img_tmp2, NULL, 1, i);
+    /* Subtract residual bias/dark from vignetted rows at bottom */
+    if (hdrl_image_get_size_y(out) > CR2RES_NB_BPM_VIGN_BOTTOM){
+        img_tmp1 = hdrl_image_get_image(out);
+        img_tmp2 = cpl_image_collapse_median_create(img_tmp1, 0,
+                    CR2RES_NB_BPM_EDGEPIX, CR2RES_DETECTOR_SIZE-CR2RES_NB_BPM_VIGN_BOTTOM);
+        calib = hdrl_image_new(CR2RES_DETECTOR_SIZE,CR2RES_DETECTOR_SIZE);
+        for (i=1; i<=CR2RES_DETECTOR_SIZE; i++){
+            hdrl_image_insert(calib, img_tmp2, NULL, 1, i);
+        }
+        hdrl_image_sub_image(out, calib);
+        hdrl_image_delete(calib) ;
+        cpl_image_delete(img_tmp2);
+    } else {
+        cpl_msg_warning(__func__, "The image is smaller than the bias/dark vignette at the bottom. It is not removed.");
     }
-    hdrl_image_sub_image(out, calib);
-    hdrl_image_delete(calib) ;
-    cpl_image_delete(img_tmp2);
 
     /* Apply the flatfield */
     if (flat != NULL) {
