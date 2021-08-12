@@ -68,8 +68,10 @@ double cr2res_qc_wave_disp(
         int                 order) ;
 
 /* OBS */
-int cr2res_qc_overexposed(
-        const cpl_image     *   ima) ;
+double cr2res_qc_overexposed(
+        const cpl_image *   ima,
+        const cpl_table *   tw,
+        int                 order_idx) ;
 double cr2res_qc_obs_nodding_signal(
         const cpl_table     *   extracted) ;
 double cr2res_qc_obs_nodding_standard_flux(

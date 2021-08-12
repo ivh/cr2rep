@@ -330,32 +330,6 @@ double cr2res_qc_flat_trace_center_y(
     return qc_trace_center_y ;
 }
 
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Computes the number of overexposed pixels
-  @param    ima     the first raw image
-  @return   the computed number or -1 in error case
- */
-/*----------------------------------------------------------------------------*/
-int cr2res_qc_overexposed(
-        const cpl_image     *   ima)
-{
-    cpl_mask * mask;
-    int     qc_overexposed ;
-    int     threshold = CR2RES_DETECTOR_OVEREXP_THRESH;
-
-    /* Check Entries */
-    if (ima == NULL) return -1 ;
-
-    /* Initialise */
-    qc_overexposed = -1 ;
-    
-    mask = cpl_mask_threshold_image_create(ima, 0, threshold);
-    qc_overexposed = (int) cpl_mask_count(mask);
-
-    cpl_mask_delete(mask);
-    return qc_overexposed ;
-}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -424,6 +398,56 @@ double cr2res_qc_wave_disp(
     wl_disp = (cpl_vector_get(wls, nbins-1) - cpl_vector_get(wls, 0)) / nbins;
     cpl_vector_delete(wls) ;
     return wl_disp ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the Overexposed fraction
+  @param    ima         the image (with BPM)
+  @param    tw          the TW table
+  @param    order_idx   the order index
+  @return   the computed overexposed value
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_overexposed(
+        const cpl_image *   ima,
+        const cpl_table *   tw,
+        int                 order_idx)
+{
+    cpl_image       *   labels ;
+    const double    *   pima ;
+    int             *   plabel ;
+    int                 i, j, nb_over, nb_total ;
+
+    /* Check Entries */
+    if (ima == NULL || tw == NULL) return -1.0 ;
+    if (cpl_image_get_size_x(ima) != CR2RES_DETECTOR_SIZE ||
+            cpl_image_get_size_y(ima) != CR2RES_DETECTOR_SIZE) {
+        return -1.0 ;
+    }
+    pima = cpl_image_get_data_double_const(ima) ;
+
+    /* Create Label image */
+    labels = cr2res_trace_gen_image((cpl_table *)tw, CR2RES_DETECTOR_SIZE, 
+            CR2RES_DETECTOR_SIZE);
+    plabel = cpl_image_get_data_int(labels) ;
+
+    nb_over = nb_total = 0 ;
+    /* Loop on th pixels */
+    for (j=0 ; j<CR2RES_DETECTOR_SIZE ; j++) {
+        for (i=0 ; i<CR2RES_DETECTOR_SIZE ; i++) {
+            if (plabel[i+j*CR2RES_DETECTOR_SIZE] == order_idx &&
+                    !cpl_image_is_rejected(ima, i, j)) {
+                nb_total++ ;
+                if (pima[i+j*CR2RES_DETECTOR_SIZE] > 
+                        CR2RES_DETECTOR_OVEREXP_THRESH) {
+                    nb_over ++ ;
+                }
+            }
+        }
+    }
+    if (nb_total == 0) return -1.0 ;
+    return nb_over / nb_total ;
 }
 
 /*----------------------------------------------------------------------------*/

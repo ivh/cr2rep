@@ -951,9 +951,9 @@ static int cr2res_cal_flat_reduce(
     int                 *   qc_order_nb ;
     double              *   qc_order_pos ;
     double                  qc_mean, qc_median, qc_flux, qc_rms, qc_s2n, 
-                            qc_trace_centery, dit ;
+                            qc_trace_centery, dit, qc_overexposed ;
     int                     i, j, badpix, ext_nr, nb_traces, order, trace_id,
-                            qc_overexposed, qc_nbbad, nbvals, zp_order, ngood ;
+                            qc_nbbad, nbvals, zp_order, ngood ;
 
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
@@ -1061,6 +1061,7 @@ static int cr2res_cal_flat_reduce(
     } else {
         traces = cpl_table_duplicate(computed_traces) ;
     }
+    cpl_table_delete(computed_traces) ;
 
     /* Extract */
     nb_traces = cpl_table_get_nrow(traces) ;
@@ -1179,7 +1180,6 @@ static int cr2res_cal_flat_reduce(
     }
     cpl_free(spectrum) ;
     cpl_free(slit_func_vec) ;
-    cpl_table_delete(traces) ;
 
     /* Compute the Master flat */
     cpl_msg_info(__func__, "Compute the master flat") ;
@@ -1189,10 +1189,10 @@ static int cr2res_cal_flat_reduce(
                     &bpm_flat)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the Master Flat") ;
         cpl_table_delete(slit_func_tab) ;
+        cpl_table_delete(traces) ;
         cpl_table_delete(extract_tab) ;
         hdrl_image_delete(model_master) ;
         hdrl_image_delete(collapsed) ;
-        cpl_table_delete(computed_traces) ;
         cpl_msg_indent_less() ;
         return -1 ;
     }
@@ -1213,13 +1213,13 @@ static int cr2res_cal_flat_reduce(
     } else {
         if (cpl_image_or(bpm_im, NULL, bpm_flat)) {
             cpl_msg_error(__func__, "Failed to add the mask to the BPM") ;
+            cpl_table_delete(traces) ;
             cpl_table_delete(slit_func_tab) ;
             cpl_table_delete(extract_tab) ;
             hdrl_image_delete(model_master) ;
             hdrl_image_delete(master_flat_loc) ;
             cpl_image_delete(bpm_im) ;
             cpl_image_delete(bpm_flat) ;
-            cpl_table_delete(computed_traces) ;
             cpl_msg_indent_less() ;
             return -1 ;
         }
@@ -1252,20 +1252,16 @@ static int cr2res_cal_flat_reduce(
     qc_s2n = cr2res_qc_flat_s2n(my_master_flat) ;
     cpl_image_delete(my_master_flat) ;
 
-    qc_overexposed =
-        cr2res_qc_overexposed(hdrl_image_get_image(first_image)) ;
-
-    hdrl_image_delete(first_image) ;
-    qc_trace_centery = cr2res_qc_flat_trace_center_y(computed_traces) ;
+    qc_trace_centery = cr2res_qc_flat_trace_center_y(traces) ;
     qc_nbbad = cr2res_bpm_count(bpm_im, CR2RES_BPM_FLAT) ;
-    cr2res_qc_flat_order_positions(computed_traces, &qc_order_nb, &qc_order_pos,
-            &nbvals);
+    cr2res_qc_flat_order_positions(traces, &qc_order_nb, &qc_order_pos,&nbvals);
 
     /* Load the extension header for saving */
     ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
     plist = cpl_propertylist_load(first_file, ext_nr) ;
     if (plist == NULL) {
-        cpl_table_delete(computed_traces) ;
+        hdrl_image_delete(first_image) ;
+        cpl_table_delete(traces) ;
         cpl_table_delete(slit_func_tab) ;
         cpl_table_delete(extract_tab) ;
         hdrl_image_delete(model_master) ;
@@ -1274,6 +1270,28 @@ static int cr2res_cal_flat_reduce(
         cpl_msg_error(__func__, "Failed to load the plist") ;
         return -1 ;
     }
+
+    /* QC.OVEREXPOSED */
+    /* Loop on the traces */
+    for (i=0 ; i<nb_traces ; i++) {
+        /* Get Order and trace id */
+        order = cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) ;
+        trace_id = cpl_table_get(traces, CR2RES_COL_TRACENB, i, NULL) ;
+
+        /* Check if this order needs to be skipped */
+        if (reduce_order > -1 && order != reduce_order) continue ;
+
+        /* Check if this trace needs to be skipped */
+        if (reduce_trace > -1 && trace_id != reduce_trace) continue ;
+
+        qc_overexposed = cr2res_qc_overexposed(
+                hdrl_image_get_image(first_image), traces, order) ;
+        char * qc_name = cpl_sprintf("%s-%02d-%02d",
+                CR2RES_HEADER_QC_OVEREXPOSED, order, trace_id) ;
+        cpl_propertylist_append_double(plist, qc_name, qc_overexposed);
+        cpl_free(qc_name) ;
+    }
+    hdrl_image_delete(first_image) ;
 
     /* Store the QC parameters in the plist */
     if (qc_order_nb != NULL && qc_order_pos != NULL) {
@@ -1305,7 +1323,7 @@ static int cr2res_cal_flat_reduce(
             qc_nbbad) ;
 
     /* Return the results */
-    *trace_wave = computed_traces ;
+    *trace_wave = traces ;
     *slit_func = slit_func_tab ;
     *extract_1d = extract_tab ;
     *slit_model = model_master ;
