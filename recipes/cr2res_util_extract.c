@@ -211,7 +211,7 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.swath_width",
-            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_util_extract", 300);
+            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_util_extract", 800);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "swath_width");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -226,7 +226,7 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.smooth_slit",
             CPL_TYPE_DOUBLE,
             "Smoothing along the slit at extraction",
-            "cr2res.cr2res_util_extract", 0.01);
+            "cr2res.cr2res_util_extract", 2.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "smooth_slit");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);

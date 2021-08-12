@@ -317,7 +317,7 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.extract_smooth_slit",
             CPL_TYPE_DOUBLE,
             "Smoothing along the slit",
-            "cr2res.cr2res_obs_nodding", 0.001);
+            "cr2res.cr2res_obs_nodding", 2.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_slit");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
