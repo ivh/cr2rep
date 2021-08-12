@@ -59,7 +59,8 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
  -----------------------------------------------------------------------------*/
 
 static int cr2res_cal_wave_reduce(
-        const cpl_frameset  *   rawframes,
+        const cpl_frameset  *   rawframes_une,
+        const cpl_frameset  *   rawframes_fpet,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
@@ -87,11 +88,16 @@ static int cr2res_cal_wave_reduce(
         int                     display,
         double                  display_wmin,
         double                  display_wmax,
-        cpl_table           **  out_trace_wave,
-        cpl_table           **  lines_diagnostics,
-        cpl_table           **  out_extracted,
-        hdrl_image          **  out_wave_map,
-        cpl_propertylist    **  ext_plist) ;
+        cpl_table           **  out_trace_wave_une,
+        cpl_table           **  lines_diagnostics_une,
+        cpl_table           **  out_extracted_une,
+        hdrl_image          **  out_wave_map_une,
+        cpl_propertylist    **  ext_plist_une,
+        cpl_table           **  out_trace_wave_fpet,
+        cpl_table           **  lines_diagnostics_fpet,
+        cpl_table           **  out_extracted_fpet,
+        hdrl_image          **  out_wave_map_fpet,
+        cpl_propertylist    **  ext_plist_fpet) ;
 static int cr2res_cal_wave_create(cpl_plugin *);
 static int cr2res_cal_wave_exec(cpl_plugin *);
 static int cr2res_cal_wave_destroy(cpl_plugin *);
@@ -110,11 +116,10 @@ Spectrum Extraction and Wavelength Calibration                          \n\
     XCORR:  Cross Correlation with a emission lines catalog (default)   \n\
     LINE1D: Line identification and fitting for each 1D spectra         \n\
     LINE2D: Line identification and fitting for all 1D spectra at once  \n\
-    ETALON: Does not require any static calibration filer               \n\
-    AUTO:   Guess the Method from the input file header                 \n\
                                                                         \n\
   Inputs                                                                \n\
-    raw.fits " CR2RES_WAVE_RAW " [1 to n]                               \n\
+    raw.fits " CR2RES_WAVE_UNE_RAW " [1 to n]                           \n\
+          or " CR2RES_WAVE_FPET_RAW " [0 to n]                          \n\
     trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [1]                       \n\
             or " CR2RES_CAL_FLAT_TW_MERGED_PROCATG "                    \n\
             or " CR2RES_UTIL_TRACE_TW_PROCATG "                         \n\
@@ -141,16 +146,17 @@ Spectrum Extraction and Wavelength Calibration                          \n\
   Algorithm                                                             \n\
     loop on detectors d:                                                \n\
       Call cr2res_cal_wave_reduce()                                     \n\
-        -> out_trace_wave(d)                                            \n\
-        -> lines_diagnostics(d)                                         \n\
-        -> out_extracted(d)                                             \n\
-        -> out_wave_map(d)                                              \n\
-    Save out_trace_wave                                                 \n\
-    Save lines_diagnostics                                              \n\
-    Save out_extracted                                                  \n\
-    Save out_wave_map                                                   \n\
+        -> out_trace_wave[une|fpet](d)                                  \n\
+        -> lines_diagnostics[une|fpet](d)                               \n\
+        -> out_extracted[une|fpet](d)                                   \n\
+        -> out_wave_map[une|fpet](d)                                    \n\
+    Save out_trace_wave[une|fpet]                                       \n\
+    Save lines_diagnostics[une|fpet]                                    \n\
+    Save out_extracted[une|fpet]                                        \n\
+    Save out_wave_map[une|fpet]                                         \n\
                                                                         \n\
     cr2res_cal_wave_reduce():                                           \n\
+      Successively for UNE and FPET RAW frames:                         \n\
         Load the raw image list                                         \n\
         Apply the calibrations to the image list                        \n\
         Collapse the image list                                         \n\
@@ -295,20 +301,20 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.ext_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
-            "cr2res.cr2res_cal_wave", 3);
+            "cr2res.cr2res_cal_wave", 5);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ext_oversample");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.ext_swath_width",
-            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_cal_wave", 600);
+            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_cal_wave", 800);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ext_swath_width");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.ext_height",
             CPL_TYPE_INT, "Extraction height",
-            "cr2res.cr2res_cal_wave", 65);
+            "cr2res.cr2res_cal_wave", 120);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ext_height");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -316,15 +322,15 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.ext_smooth_slit",
             CPL_TYPE_DOUBLE,
             "Smoothing along the slit",
-            "cr2res.cr2res_cal_wave", 0.01);
+            "cr2res.cr2res_cal_wave", 3.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ext_smooth_slit");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.wl_method",
             CPL_TYPE_STRING, 
-            "Wavelength Method (AUTO / XCORR / LINE1D / LINE2D / ETALON)",
-            "cr2res.cr2res_cal_wave", "AUTO");
+            "Wavelength Method (XCORR / LINE1D / LINE2D)",
+            "cr2res.cr2res_cal_wave", "XCORR");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_method");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -467,7 +473,8 @@ static int cr2res_cal_wave(
     cr2res_collapse         collapse ;
     cr2res_wavecal_type     wavecal_type ;
     const char          *   sval ;
-    cpl_frameset        *   rawframes ;
+    cpl_frameset        *   rawframes_une ;
+    cpl_frameset        *   rawframes_fpet ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   master_flat_frame ;
@@ -475,13 +482,17 @@ static int cr2res_cal_wave(
     const cpl_frame     *   trace_wave_frame ;
     const cpl_frame     *   lines_frame ;
     char                *   out_file;
-    cpl_table           *   out_trace_wave[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   lines_diagnostics[CR2RES_NB_DETECTORS] ;
-    cpl_table           *   out_extracted[CR2RES_NB_DETECTORS] ;
-    hdrl_image          *   out_wave_map[CR2RES_NB_DETECTORS] ;
-    cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   out_trace_wave_une[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   lines_diagnostics_une[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   out_extracted_une[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   out_wave_map_une[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   ext_plist_une[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   out_trace_wave_fpet[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   lines_diagnostics_fpet[CR2RES_NB_DETECTORS] ;
+    cpl_table           *   out_extracted_fpet[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   out_wave_map_fpet[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   ext_plist_fpet[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   plist ;
-    char                *   setting_id ;
     int                     det_nr, order, i ;
 
     /* Needed for sscanf() */
@@ -531,10 +542,8 @@ static int cr2res_cal_wave(
     if (!strcmp(sval, "XCORR"))         wavecal_type = CR2RES_XCORR ;
     else if (!strcmp(sval, "LINE1D"))   wavecal_type = CR2RES_LINE1D ;
     else if (!strcmp(sval, "LINE2D"))   wavecal_type = CR2RES_LINE2D ;
-    else if (!strcmp(sval, "ETALON"))   wavecal_type = CR2RES_ETALON ;
-    else if (!strcmp(sval, "AUTO"))     wavecal_type = CR2RES_UNSPECIFIED ;
     else {
-        cpl_msg_error(__func__, "Invalid Data Type specified");
+        cpl_msg_error(__func__, "Invalid Method specified");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1;
     }
@@ -609,40 +618,24 @@ static int cr2res_cal_wave(
     bpm_frame = cr2res_io_find_BPM(frameset) ;
     lines_frame = cpl_frameset_find_const(frameset,
             CR2RES_EMISSION_LINES_PROCATG) ;
-
-    /* Get the RAW Frames */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_WAVE_RAW) ;
-    if (rawframes == NULL) {
-        cpl_msg_error(__func__, "Could not find RAW frames") ;
-        return -1 ;
-    }
-
-    /* Guess the method to be used from the RAW frames header */
-    if (wavecal_type == CR2RES_UNSPECIFIED) {
-        if ((wavecal_type = cr2res_wave_guess_method(
-                        cpl_frameset_get_position(rawframes, 0))) == 
-                CR2RES_UNSPECIFIED) {
-            cpl_frameset_delete(rawframes) ;
-            cpl_msg_error(__func__, "Cannot guess the method") ;
-            cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
-            return -1 ;
-        }
-        char * method_str = cr2res_wave_method_print(wavecal_type) ;
-        cpl_msg_info(__func__, "Method Automatically Guessed : %s",
-                method_str) ;
-        cpl_free(method_str) ;
-    }
-    if (reduce_order > -1 && wavecal_type == CR2RES_LINE2D) {
-        cpl_frameset_delete(rawframes) ;
-        cpl_msg_error(__func__, "Limiting to one order with LINE2D impossible");
+    if (lines_frame == NULL) {
+        cpl_msg_error(__func__, "The emission lines file is needed");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
-    if ((wavecal_type == CR2RES_XCORR || wavecal_type == CR2RES_LINE1D ||
-                wavecal_type == CR2RES_LINE2D) && lines_frame == NULL) {
-        cpl_frameset_delete(rawframes) ;
-        cpl_msg_error(__func__,
-                "The catalog file is needed for XCORR/LINE1D/LINE2D");
+
+    /* Get the RAW Frames */
+    rawframes_une = cr2res_extract_frameset(frameset, CR2RES_WAVE_UNE_RAW) ;
+    if (rawframes_une == NULL) {
+        cpl_msg_error(__func__, "Could not find UNE RAW frames") ;
+        return -1 ;
+    }
+    rawframes_fpet = cr2res_extract_frameset(frameset, CR2RES_WAVE_FPET_RAW) ;
+
+    if (reduce_order > -1 && wavecal_type == CR2RES_LINE2D) {
+        cpl_frameset_delete(rawframes_une) ;
+        if (rawframes_fpet!=NULL) cpl_frameset_delete(rawframes_fpet) ;
+        cpl_msg_error(__func__, "Limiting to one order with LINE2D impossible");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
@@ -651,32 +644,50 @@ static int cr2res_cal_wave(
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
         /* Initialise */
-        out_trace_wave[det_nr-1] = NULL ;
-        lines_diagnostics[det_nr-1] = NULL ;
-        out_extracted[det_nr-1] = NULL ;
-        out_wave_map[det_nr-1] = NULL ;
-        ext_plist[det_nr-1] = NULL ;
+        out_trace_wave_une[det_nr-1] = NULL ;
+        lines_diagnostics_une[det_nr-1] = NULL ;
+        out_extracted_une[det_nr-1] = NULL ;
+        out_wave_map_une[det_nr-1] = NULL ;
+        ext_plist_une[det_nr-1] = NULL ;
+        out_trace_wave_fpet[det_nr-1] = NULL ;
+        lines_diagnostics_fpet[det_nr-1] = NULL ;
+        out_extracted_fpet[det_nr-1] = NULL ;
+        out_wave_map_fpet[det_nr-1] = NULL ;
+        ext_plist_fpet[det_nr-1] = NULL ;
 
         /* Compute only one detector */
         if (reduce_det != 0 && det_nr != reduce_det) {
             /* This Detector will not be processed here */
             /* The output trace wave contains the input one ... */
-            out_trace_wave[det_nr-1] = cr2res_io_load_TRACE_WAVE(
+            out_trace_wave_une[det_nr-1] = cr2res_io_load_TRACE_WAVE(
                     cpl_frame_get_filename(trace_wave_frame),
                     det_nr) ;
+            if (rawframes_fpet != NULL) 
+                out_trace_wave_fpet[det_nr-1] = 
+                    cpl_table_duplicate(out_trace_wave_une[det_nr-1]) ;
             /*    ...  without the WL / WL_ERR */
             /*    ... unless fallback_input_wavecal_flag is set */
             
             if (!fallback_input_wavecal_flag) {
                 /* Reset WL / WL_ERR */
-                cpl_table_erase_column(out_trace_wave[det_nr-1],
+                cpl_table_erase_column(out_trace_wave_une[det_nr-1],
                         CR2RES_COL_WAVELENGTH) ;
-                cpl_table_new_column_array(out_trace_wave[det_nr-1],
+                cpl_table_new_column_array(out_trace_wave_une[det_nr-1],
                         CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 2) ;
-                cpl_table_erase_column(out_trace_wave[det_nr-1],
+                cpl_table_erase_column(out_trace_wave_une[det_nr-1],
                         CR2RES_COL_WAVELENGTH_ERROR) ;
-                cpl_table_new_column_array(out_trace_wave[det_nr-1],  
+                cpl_table_new_column_array(out_trace_wave_une[det_nr-1],  
                         CR2RES_COL_WAVELENGTH_ERROR, CPL_TYPE_DOUBLE, 2) ;
+                if (rawframes_fpet != NULL) {
+                    cpl_table_erase_column(out_trace_wave_fpet[det_nr-1],
+                            CR2RES_COL_WAVELENGTH) ;
+                    cpl_table_new_column_array(out_trace_wave_fpet[det_nr-1],
+                            CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE, 2) ;
+                    cpl_table_erase_column(out_trace_wave_fpet[det_nr-1],
+                            CR2RES_COL_WAVELENGTH_ERROR) ;
+                    cpl_table_new_column_array(out_trace_wave_fpet[det_nr-1],  
+                            CR2RES_COL_WAVELENGTH_ERROR, CPL_TYPE_DOUBLE, 2) ;
+                }
             }
             continue ;
         }
@@ -685,7 +696,7 @@ static int cr2res_cal_wave(
         cpl_msg_indent_more() ;
 
         /* Call the reduction function */
-        if (cr2res_cal_wave_reduce(rawframes, detlin_frame,
+        if (cr2res_cal_wave_reduce(rawframes_une, rawframes_fpet, detlin_frame,
                     master_dark_frame, master_flat_frame, bpm_frame,
                     trace_wave_frame, lines_frame, det_nr, reduce_order,
                     reduce_trace, collapse, ext_height, ext_swath_width,
@@ -695,86 +706,102 @@ static int cr2res_cal_wave(
                     keep_higher_degrees_flag, clean_spectrum,
                     display, display_wmin, 
                     display_wmax, 
-                    &(out_trace_wave[det_nr-1]),
-                    &(lines_diagnostics[det_nr-1]),
-                    &(out_extracted[det_nr-1]),
-                    &(out_wave_map[det_nr-1]),
-                    &(ext_plist[det_nr-1])) == -1) {
+                    &(out_trace_wave_une[det_nr-1]),
+                    &(lines_diagnostics_une[det_nr-1]),
+                    &(out_extracted_une[det_nr-1]),
+                    &(out_wave_map_une[det_nr-1]),
+                    &(ext_plist_une[det_nr-1]),
+                    &(out_trace_wave_fpet[det_nr-1]),
+                    &(lines_diagnostics_fpet[det_nr-1]),
+                    &(out_extracted_fpet[det_nr-1]),
+                    &(out_wave_map_fpet[det_nr-1]),
+                    &(ext_plist_fpet[det_nr-1])) == -1) {
             cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
             cpl_error_reset() ;
         }
         cpl_msg_indent_less() ;
     }
 
-    /* Get the setting */
-    plist = cpl_propertylist_load(cpl_frame_get_filename(
-                cpl_frameset_get_position(rawframes, 0)), 0) ;
-    setting_id = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
-    cr2res_format_setting(setting_id) ;
-    cpl_propertylist_delete(plist) ;
-
-    /* Ѕave Products */
-    if (0) {
-        out_file = cpl_sprintf("%s_%s_tw.fits", RECIPE_STRING, setting_id) ;
-    } else {
-        out_file = cpl_sprintf("%s_tw.fits", RECIPE_STRING) ;
-    }
-    cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes, parlist, 
-            out_trace_wave, NULL, ext_plist, 
+    /* Ѕave Products UNE */
+    out_file = cpl_sprintf("%s_tw_une.fits", RECIPE_STRING) ;
+    cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes_une, parlist, 
+            out_trace_wave_une, NULL, ext_plist_une, 
             CR2RES_CAL_WAVE_TW_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
-    if (0) {
-        out_file = cpl_sprintf("%s_%s_wave_map.fits", RECIPE_STRING,setting_id);
-    } else {
-        out_file = cpl_sprintf("%s_wave_map.fits", RECIPE_STRING) ;
-    }
-    cr2res_io_save_WAVE_MAP(out_file, frameset, rawframes, parlist, 
-            out_wave_map, NULL, ext_plist, 
+    out_file = cpl_sprintf("%s_wave_map_une.fits", RECIPE_STRING) ;
+    cr2res_io_save_WAVE_MAP(out_file, frameset, rawframes_une, parlist, 
+            out_wave_map_une, NULL, ext_plist_une, 
             CR2RES_CAL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
-    if (0) {
-        out_file = cpl_sprintf("%s_%s_extracted.fits", RECIPE_STRING, 
-                setting_id) ;
-    } else {
-        out_file = cpl_sprintf("%s_extracted.fits", RECIPE_STRING) ;
-    }
-    cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
-            out_extracted, NULL, ext_plist, 
+    out_file = cpl_sprintf("%s_extracted_une.fits", RECIPE_STRING) ;
+    cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes_une, parlist, 
+            out_extracted_une, NULL, ext_plist_une, 
             CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
-	if (wavecal_type == CR2RES_LINE2D || wavecal_type == CR2RES_LINE1D) {
-		/* Save the Lines Diagnostics */
-        if (0) {
-            out_file = cpl_sprintf("%s_%s_lines_diagnostics.fits", 
-                    RECIPE_STRING, setting_id);
-        } else {
-            out_file = cpl_sprintf("%s_lines_diagnostics.fits", 
-                    RECIPE_STRING);
-        }
-		cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset, rawframes, parlist,
-                lines_diagnostics, NULL, ext_plist,
-				CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG, RECIPE_STRING) ;
-		cpl_free(out_file);
-	}
+    out_file = cpl_sprintf("%s_lines_diagnostics_une.fits", 
+            RECIPE_STRING);
+    cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset,
+            rawframes_une, parlist,
+            lines_diagnostics_une, NULL, ext_plist_une,
+            CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG, RECIPE_STRING) ;
+    cpl_free(out_file);
+
+    if (rawframes_fpet != NULL) {
+        /* Ѕave Products UNE */
+        out_file = cpl_sprintf("%s_tw_fpet.fits", RECIPE_STRING) ;
+        cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes_fpet, parlist, 
+                out_trace_wave_fpet, NULL, ext_plist_fpet, 
+                CR2RES_CAL_WAVE_TW_PROCATG, RECIPE_STRING) ;
+        cpl_free(out_file);
+
+        out_file = cpl_sprintf("%s_wave_map_fpet.fits", RECIPE_STRING) ;
+        cr2res_io_save_WAVE_MAP(out_file, frameset, rawframes_fpet, parlist, 
+                out_wave_map_fpet, NULL, ext_plist_fpet, 
+                CR2RES_CAL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
+        cpl_free(out_file);
+
+        out_file = cpl_sprintf("%s_extracted_fpet.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes_fpet, parlist, 
+                out_extracted_fpet, NULL, ext_plist_fpet, 
+                CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
+        cpl_free(out_file);
+
+        out_file = cpl_sprintf("%s_lines_diagnostics_fpet.fits", 
+                RECIPE_STRING);
+        cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset,
+                rawframes_fpet, parlist,
+                lines_diagnostics_fpet, NULL, ext_plist_fpet,
+                CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG, RECIPE_STRING) ;
+        cpl_free(out_file);
+    }
 
     /* Free and return */
-    cpl_free(setting_id);
-    cpl_frameset_delete(rawframes) ;
+    cpl_frameset_delete(rawframes_une) ;
+    if (rawframes_fpet!=NULL) cpl_frameset_delete(rawframes_fpet) ;
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
-        if (ext_plist[i] != NULL)
-            cpl_propertylist_delete(ext_plist[i]) ;
-        if (out_trace_wave[i] != NULL)
-            cpl_table_delete(out_trace_wave[i]) ;
-        if (lines_diagnostics[i] != NULL)
-            cpl_table_delete(lines_diagnostics[i]) ;
-        if (out_extracted[i] != NULL)
-            cpl_table_delete(out_extracted[i]) ;
-        if (out_wave_map[i] != NULL) {
-            hdrl_image_delete(out_wave_map[i]) ;
-        }
+        if (ext_plist_une[i] != NULL)
+            cpl_propertylist_delete(ext_plist_une[i]) ;
+        if (out_trace_wave_une[i] != NULL)
+            cpl_table_delete(out_trace_wave_une[i]) ;
+        if (lines_diagnostics_une[i] != NULL)
+            cpl_table_delete(lines_diagnostics_une[i]) ;
+        if (out_extracted_une[i] != NULL)
+            cpl_table_delete(out_extracted_une[i]) ;
+        if (out_wave_map_une[i] != NULL)
+            hdrl_image_delete(out_wave_map_une[i]) ;
+        if (ext_plist_fpet[i] != NULL)
+            cpl_propertylist_delete(ext_plist_fpet[i]) ;
+        if (out_trace_wave_fpet[i] != NULL)
+            cpl_table_delete(out_trace_wave_fpet[i]) ;
+        if (lines_diagnostics_fpet[i] != NULL)
+            cpl_table_delete(lines_diagnostics_fpet[i]) ;
+        if (out_extracted_fpet[i] != NULL)
+            cpl_table_delete(out_extracted_fpet[i]) ;
+        if (out_wave_map_fpet[i] != NULL) 
+            hdrl_image_delete(out_wave_map_fpet[i]) ;
     }
     return (int)cpl_error_get_code();
 }
@@ -782,7 +809,8 @@ static int cr2res_cal_wave(
 /*----------------------------------------------------------------------------*/
 /**
   @brief Compute the Wavelength for a detector
-  @param rawframes          Input raw frames 
+  @param rawframes_une      Input raw frames UNE
+  @param rawframes_fpet     Input raw frames FPET (or NULL)
   @param detlin_frame       Associated detlin coefficients
   @param master_dark_frame  Associated master dark
   @param master_flat_frame  Associated master flat
@@ -797,7 +825,7 @@ static int cr2res_cal_wave(
   @param ext_swath_width    Extraction related
   @param ext_oversample     Extraction related
   @param ext_smooth_slit    Extraction related
-  @param wavecal_type       CR2RES_XCORR/LINE1D/LINE2D/ETALON
+  @param wavecal_type       CR2RES_XCORR/LINE1D/LINE2D
   @param wl_start           WL estimate of the first pixel
   @param wl_end             WL estimate of the last pixel
   @param wl_err             WL error 
@@ -811,16 +839,22 @@ static int cr2res_cal_wave(
   @param display            Flag to enable display functionalities
   @param display_wmin       Minimum Wavelength to  display
   @param display_wmax       Maximum Wavelength to  display
-  @param out_trace_wave     [out] trace wave table
-  @param lines_diagnostics  [out] lines diagnostics table
-  @param out_extracted      [out] extracted table with updated WL
-  @param out_wave_map       [out] Wave map
-  @param ext_plist          [out] the header for saving the products
+  @param out_trace_wave_une      [out] trace wave table
+  @param lines_diagnostics_une   [out] lines diagnostics table
+  @param out_extracted_une       [out] extracted table with updated WL
+  @param out_wave_map_une        [out] Wave map
+  @param ext_plist_une           [out] the header for saving the products
+  @param out_trace_wave_fpet     [out] trace wave table
+  @param lines_diagnostics_fpet  [out] lines diagnostics table
+  @param out_extracted_fpet      [out] extracted table with updated WL
+  @param out_wave_map_fpet       [out] Wave map
+  @param ext_plist_fpet          [out] the header for saving the products
   @return   0 if ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_wave_reduce(
-        const cpl_frameset  *   rawframes,
+        const cpl_frameset  *   rawframes_une,
+        const cpl_frameset  *   rawframes_fpet,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
@@ -848,176 +882,395 @@ static int cr2res_cal_wave_reduce(
         int                     display,
         double                  display_wmin,
         double                  display_wmax,
-        cpl_table           **  out_trace_wave,
-        cpl_table           **  lines_diagnostics,
-        cpl_table           **  out_extracted,
-        hdrl_image          **  out_wave_map,
-        cpl_propertylist    **  ext_plist)
+        cpl_table           **  out_trace_wave_une,
+        cpl_table           **  lines_diagnostics_une,
+        cpl_table           **  out_extracted_une,
+        hdrl_image          **  out_wave_map_une,
+        cpl_propertylist    **  ext_plist_une,
+        cpl_table           **  out_trace_wave_fpet,
+        cpl_table           **  lines_diagnostics_fpet,
+        cpl_table           **  out_extracted_fpet,
+        hdrl_image          **  out_wave_map_fpet,
+        cpl_propertylist    **  ext_plist_fpet)
 {
-    cpl_vector          *   dits ;
-    hdrl_imagelist      *   in ;
-    hdrl_imagelist      *   in_calib ;
-    hdrl_image          *   collapsed ;
+    cpl_vector          *   dits_une ;
+    cpl_vector          *   dits_fpet ;
+    hdrl_imagelist      *   in_une ;
+    hdrl_imagelist      *   in_fpet ;
+    hdrl_imagelist      *   in_une_calib ;
+    hdrl_imagelist      *   in_fpet_calib ;
+    hdrl_image          *   collapsed_une ;
+    hdrl_image          *   collapsed_fpet ;
     cpl_image           *   contrib ;
     cpl_table           *   tw_in ;
-    cpl_table           *   extracted ;
-    cpl_table           *   slit_func ;
-    hdrl_image          *   model_master ;
-    hdrl_image          *   wl_map ;
-    cpl_table           *   tw_out ;
-    cpl_table           *   lines_diagnostics_out ;
-    cpl_table           *   extracted_out ;
+    cpl_table           *   extracted_une ;
+    cpl_table           *   slit_func_une ;
+    hdrl_image          *   model_master_une ;
+    cpl_table           *   extracted_fpet ;
+    cpl_table           *   slit_func_fpet ;
+    hdrl_image          *   model_master_fpet ;
+    hdrl_image          *   wl_map_une_out ;
+    cpl_table           *   tw_une_out ;
+    cpl_table           *   lines_diagnostics_une_out ;
+    cpl_table           *   extracted_une_out ;
+    cpl_propertylist    *   qcs_une_out ;
+    cpl_propertylist    *   plist_une_out ;
+    hdrl_image          *   wl_map_fpet_out ;
+    cpl_table           *   tw_fpet_out ;
+    cpl_table           *   lines_diagnostics_fpet_out ;
+    cpl_table           *   extracted_fpet_out ;
+    cpl_propertylist    *   qcs_fpet_out ;
+    cpl_propertylist    *   plist_fpet_out ;
     cpl_propertylist    *   plist ;
-    cpl_propertylist    *   qcs_plist ;
     const char          *   first_file ;
-    int                     ext_nr, zp_order;
-    double                  best_xcorr ;
+    int                     ext_nr, zp_order_une, zp_order_fpet,
+                            grat1_order_une, grat1_order_fpet ;
     
     /* Check Inputs */
-    if (rawframes==NULL || trace_wave_frame==NULL || out_trace_wave==NULL ||
-            lines_diagnostics == NULL || out_extracted == NULL || 
-            out_wave_map==NULL || ext_plist==NULL) return -1 ;
+    if (rawframes_une==NULL || trace_wave_frame==NULL || 
+            out_trace_wave_une==NULL || out_trace_wave_fpet==NULL ||
+            lines_diagnostics_une == NULL || lines_diagnostics_fpet == NULL ||
+            out_extracted_une == NULL || out_extracted_fpet == NULL ||
+            out_wave_map_une == NULL || out_wave_map_fpet == NULL ||
+            ext_plist_une == NULL || ext_plist_fpet == NULL) return -1 ;
     if (collapse!=CR2RES_COLLAPSE_MEAN && collapse!=CR2RES_COLLAPSE_MEDIAN) {
         return -1 ;
     }
 
-    /* Initialise */
-    best_xcorr = -1 ;
+    /* Load the UNE DITs if necessary */
+    if (master_dark_frame != NULL)  
+        dits_une = cr2res_io_read_dits(rawframes_une) ;
+    else                            
+        dits_une = NULL ;
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG && dits_une != NULL)
+        cpl_vector_dump(dits_une, stdout) ;
 
-    /* Load the DITs if necessary */
-    if (master_dark_frame != NULL)  dits = cr2res_io_read_dits(rawframes) ;
-    else                            dits = NULL ;
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG && dits != NULL)
-        cpl_vector_dump(dits, stdout) ;
+    /* Load the FPET DITs if necessary */
+    if (rawframes_fpet != NULL) {
+        if (master_dark_frame != NULL)  
+            dits_fpet = cr2res_io_read_dits(rawframes_fpet) ;
+        else                            
+            dits_fpet = NULL ;
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG && dits_fpet != NULL)
+            cpl_vector_dump(dits_fpet, stdout) ;
+    } else {
+        dits_fpet = NULL ;
+    }
 
-    /* Load image list */
-    if ((in = cr2res_io_load_image_list_from_set(rawframes,
+    /* Load UNE image list */
+    if ((in_une = cr2res_io_load_image_list_from_set(rawframes_une,
                     reduce_det)) == NULL) {
         cpl_msg_error(__func__, "Cannot load images") ;
-        if (dits != NULL) cpl_vector_delete(dits) ;
+        if (dits_une != NULL) cpl_vector_delete(dits_une) ;
+        if (dits_fpet != NULL) cpl_vector_delete(dits_fpet) ;
         return -1 ;
     }
-    if (hdrl_imagelist_get_size(in) != cpl_frameset_get_size(rawframes)) {
+    if (hdrl_imagelist_get_size(in_une) !=
+            cpl_frameset_get_size(rawframes_une)) {
         cpl_msg_error(__func__, "Inconsistent number of loaded images") ;
-        if (dits != NULL) cpl_vector_delete(dits) ;
-        hdrl_imagelist_delete(in) ;
+        if (dits_une != NULL) cpl_vector_delete(dits_une) ;
+        if (dits_fpet != NULL) cpl_vector_delete(dits_fpet) ;
+        hdrl_imagelist_delete(in_une) ;
         return -1 ;
     }
 
-    /* Calibrate the images */
-    if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0, 0,
+    /* Load FPET image list */
+    if (rawframes_fpet != NULL) {
+        if ((in_fpet = cr2res_io_load_image_list_from_set(rawframes_fpet,
+                        reduce_det)) == NULL) {
+            cpl_msg_error(__func__, "Cannot load images") ;
+            if (dits_une != NULL) cpl_vector_delete(dits_une) ;
+            if (dits_fpet != NULL) cpl_vector_delete(dits_fpet) ;
+            hdrl_imagelist_delete(in_une) ;
+            return -1 ;
+        }
+        if (hdrl_imagelist_get_size(in_fpet) !=
+                cpl_frameset_get_size(rawframes_fpet)) {
+            cpl_msg_error(__func__, "Inconsistent number of loaded images") ;
+            if (dits_une != NULL) cpl_vector_delete(dits_une) ;
+            if (dits_fpet != NULL) cpl_vector_delete(dits_fpet) ;
+            hdrl_imagelist_delete(in_une) ;
+            hdrl_imagelist_delete(in_fpet) ;
+            return -1 ;
+        }
+    } else {
+        in_fpet = NULL ;
+    }
+
+    /* Calibrate the UNE images */
+    if ((in_une_calib = cr2res_calib_imagelist(in_une, reduce_det, 0, 0,
                     master_flat_frame, master_dark_frame, bpm_frame, 
-                    detlin_frame, dits)) == NULL) {
+                    detlin_frame, dits_une)) == NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
-        if (dits != NULL) cpl_vector_delete(dits) ;
-        hdrl_imagelist_delete(in) ;
+        if (dits_une != NULL) cpl_vector_delete(dits_une) ;
+        hdrl_imagelist_delete(in_une) ;
+        if (dits_fpet != NULL) cpl_vector_delete(dits_fpet) ;
+        if (in_fpet != NULL) hdrl_imagelist_delete(in_fpet) ;
         return -1 ;
     }
-    hdrl_imagelist_delete(in) ;
-    if (dits != NULL) cpl_vector_delete(dits) ;
+    hdrl_imagelist_delete(in_une) ;
+    if (dits_une != NULL) cpl_vector_delete(dits_une) ;
 
-    /* Collapse */
+    /* Calibrate the UNE images */
+    if (rawframes_fpet != NULL) {
+        if ((in_fpet_calib = cr2res_calib_imagelist(in_fpet, reduce_det, 0, 0,
+                        master_flat_frame, master_dark_frame, bpm_frame, 
+                        detlin_frame, dits_fpet)) == NULL) {
+            cpl_msg_error(__func__, "Failed to apply the calibrations") ;
+            hdrl_imagelist_delete(in_une_calib) ;
+            if (dits_fpet != NULL) cpl_vector_delete(dits_fpet) ;
+            if (in_fpet != NULL) hdrl_imagelist_delete(in_fpet) ;
+            return -1 ;
+        }
+        hdrl_imagelist_delete(in_fpet) ;
+        if (dits_fpet != NULL) cpl_vector_delete(dits_fpet) ;
+    } else {
+        in_fpet_calib = NULL ;
+    }
+
+    /* Collapse UNE */
     contrib = NULL ;
     if (collapse == CR2RES_COLLAPSE_MEAN) {
-        cpl_msg_info(__func__, "Collapse (Mean) the input frames") ;
+        cpl_msg_info(__func__, "Collapse (Mean) the input UNE frames") ;
         cpl_msg_indent_more() ;
-        hdrl_imagelist_collapse_mean(in_calib, &collapsed, &contrib) ;
+        hdrl_imagelist_collapse_mean(in_une_calib, &collapsed_une,
+                &contrib) ;
     } else if (collapse == CR2RES_COLLAPSE_MEDIAN) {
-        cpl_msg_info(__func__, "Collapse (Median) the input frames") ;
+        cpl_msg_info(__func__, "Collapse (Median) the input UNE frames") ;
         cpl_msg_indent_more() ;
-        hdrl_imagelist_collapse_median(in_calib, &collapsed, &contrib) ;
+        hdrl_imagelist_collapse_median(in_une_calib, &collapsed_une,
+                &contrib) ;
     } else {
         /* Should never happen */
-        collapsed = NULL ;
+        collapsed_une = NULL ;
         contrib = NULL ;
     }
-    hdrl_imagelist_delete(in_calib) ;
+    hdrl_imagelist_delete(in_une_calib) ;
     if (contrib != NULL) cpl_image_delete(contrib) ;
     if (cpl_error_get_code() != CPL_ERROR_NONE) {
-        cpl_msg_error(__func__, "Failed to Collapse: %d", cpl_error_get_code()) ;
+        cpl_msg_error(__func__, "Failed Collapse: %d", cpl_error_get_code()) ;
         cpl_msg_indent_less() ;
+        if (in_fpet_calib != NULL) hdrl_imagelist_delete(in_fpet_calib) ;
         return -1 ;
     }
     cpl_msg_indent_less() ;
+
+    /* Collapse FPET */
+    if (rawframes_fpet != NULL) {
+        contrib = NULL ;
+        if (collapse == CR2RES_COLLAPSE_MEAN) {
+            cpl_msg_info(__func__, "Collapse (Mean) the input FPET frames") ;
+            cpl_msg_indent_more() ;
+            hdrl_imagelist_collapse_mean(in_fpet_calib, &collapsed_fpet,
+                    &contrib) ;
+        } else if (collapse == CR2RES_COLLAPSE_MEDIAN) {
+            cpl_msg_info(__func__, "Collapse (Median) the input FPET frames") ;
+            cpl_msg_indent_more() ;
+            hdrl_imagelist_collapse_median(in_fpet_calib, &collapsed_fpet,
+                    &contrib) ;
+        } else {
+            /* Should never happen */
+            collapsed_fpet = NULL ;
+            contrib = NULL ;
+        }
+        hdrl_imagelist_delete(in_fpet_calib) ;
+        if (contrib != NULL) cpl_image_delete(contrib) ;
+        if (cpl_error_get_code() != CPL_ERROR_NONE) {
+            cpl_msg_error(__func__, 
+                    "Failed Collapse: %d", cpl_error_get_code()) ;
+            cpl_msg_indent_less() ;
+            hdrl_image_delete(collapsed_une) ;
+            return -1 ;
+        }
+        cpl_msg_indent_less() ;
+    } else {
+        collapsed_fpet = NULL ;
+    }
 
     /* Load the trace wave */
     cpl_msg_info(__func__, "Load the TRACE WAVE") ;
     if ((tw_in = cr2res_io_load_TRACE_WAVE(cpl_frame_get_filename(
                         trace_wave_frame), reduce_det)) == NULL) {
         cpl_msg_error(__func__, "Failed to Load the traces file") ;
-        hdrl_image_delete(collapsed) ;
+        hdrl_image_delete(collapsed_une) ;
+        if (collapsed_fpet != NULL) hdrl_image_delete(collapsed_fpet) ;
         return -1 ;
     }
 
-    /* Execute the extraction */
-    cpl_msg_info(__func__, "Spectra Extraction") ;
-    if (cr2res_extract_traces(collapsed, tw_in, NULL, reduce_order, 
+    /* Execute the extraction for UNE */
+    cpl_msg_info(__func__, "Spectra Extraction UNE") ;
+    if (cr2res_extract_traces(collapsed_une, tw_in, NULL, reduce_order, 
                 reduce_trace, CR2RES_EXTR_OPT_CURV, ext_height, ext_swath_width,
                 ext_oversample, ext_smooth_slit, 0.0, 
                 0, 0, 0, // display flags
-                &extracted, &slit_func, &model_master) == -1) {
+                &extracted_une, &slit_func_une, &model_master_une) == -1) {
         cpl_msg_error(__func__, "Failed to extract");
-        hdrl_image_delete(collapsed) ;
+        hdrl_image_delete(collapsed_une) ;
+        if (collapsed_fpet != NULL) hdrl_image_delete(collapsed_fpet) ;
         cpl_table_delete(tw_in) ;
         return -1 ;
     }
-    cpl_table_delete(slit_func) ;
-    hdrl_image_delete(model_master) ;
-    hdrl_image_delete(collapsed);
+    cpl_table_delete(slit_func_une) ;
+    hdrl_image_delete(model_master_une) ;
+    hdrl_image_delete(collapsed_une);
 
+    /* Execute the extraction for FPET */
+    if (rawframes_fpet != NULL) {
+        cpl_msg_info(__func__, "Spectra Extraction FPET") ;
+        if (cr2res_extract_traces(collapsed_fpet, tw_in, NULL, reduce_order, 
+                    reduce_trace, CR2RES_EXTR_OPT_CURV, ext_height, 
+                    ext_swath_width, ext_oversample, ext_smooth_slit, 0.0, 
+                    0, 0, 0, // display flags
+                    &extracted_fpet, &slit_func_fpet, &model_master_fpet)==-1) {
+            cpl_msg_error(__func__, "Failed to extract");
+            cpl_table_delete(extracted_une) ;
+            cpl_table_delete(tw_in) ;
+            if (collapsed_fpet != NULL) hdrl_image_delete(collapsed_fpet) ;
+            return -1 ;
+        }
+        cpl_table_delete(slit_func_fpet) ;
+        hdrl_image_delete(model_master_fpet) ;
+        hdrl_image_delete(collapsed_fpet);
+    } else {
+        extracted_fpet = NULL ;
+    }
+
+    /* Compute the Wavelength Calibration for UNE */
     first_file = cpl_frame_get_filename(
-            cpl_frameset_get_position_const(rawframes, 0)) ;
+            cpl_frameset_get_position_const(rawframes_une, 0)) ;
     plist = cpl_propertylist_load(first_file, 0) ;
-    zp_order = cr2res_pfits_get_order_zp(plist) ;
+    zp_order_une = cr2res_pfits_get_order_zp(plist) ;
+    grat1_order_une = cr2res_pfits_get_order(plist) ;
     cpl_propertylist_delete(plist);
-    
-    /* Compute the Wavelength Calibration */
-    cpl_msg_info(__func__, "Compute the Wavelength") ;
-    if (cr2res_wave_apply(tw_in, extracted, lines_frame, reduce_order, 
+   
+    cpl_msg_info(__func__, "Compute the Wavelength for UNE") ;
+    if (cr2res_wave_apply(tw_in, extracted_une, lines_frame, reduce_order, 
                 reduce_trace, wavecal_type, wl_degree, wl_start, wl_end, 
                 wl_err, wl_shift, log_flag, fallback_input_wavecal_flag, 
                 keep_higher_degrees_flag, clean_spectrum, 
-                display, display_wmin, display_wmax, zp_order,
-                &qcs_plist,
-                &lines_diagnostics_out,
-                &extracted_out,
-                &tw_out) || cpl_error_get_code()) {
+                display, display_wmin, display_wmax, zp_order_une,
+                grat1_order_une,
+                &qcs_une_out,
+                &lines_diagnostics_une_out,
+                &extracted_une_out,
+                &tw_une_out) || cpl_error_get_code()) {
         cpl_msg_error(__func__, "Failed to calibrate");
         cpl_table_delete(tw_in) ;
-        cpl_table_delete(extracted) ;
+        cpl_table_delete(extracted_une) ;
         return -1 ;
     }
     cpl_table_delete(tw_in) ;
-    cpl_table_delete(extracted) ;
+    cpl_table_delete(extracted_une) ;
+
+    /* Compute the Wavelength Calibration for FPET */
+    if (rawframes_fpet != NULL) {
+        first_file = cpl_frame_get_filename(
+                cpl_frameset_get_position_const(rawframes_fpet, 0)) ;
+        plist = cpl_propertylist_load(first_file, 0) ;
+        zp_order_fpet = cr2res_pfits_get_order_zp(plist) ;
+        grat1_order_fpet = cr2res_pfits_get_order(plist) ;
+        cpl_propertylist_delete(plist);
+       
+        cpl_msg_info(__func__, "Compute the Wavelength for FPET") ;
+        if (cr2res_wave_apply(tw_une_out, extracted_fpet, NULL, reduce_order, 
+                    reduce_trace, CR2RES_ETALON, wl_degree, wl_start, wl_end, 
+                    wl_err, wl_shift, log_flag, fallback_input_wavecal_flag, 
+                    keep_higher_degrees_flag, clean_spectrum, 
+                    display, display_wmin, display_wmax, zp_order_fpet,
+                    grat1_order_fpet,
+                    &qcs_fpet_out,
+                    &lines_diagnostics_fpet_out,
+                    &extracted_fpet_out,
+                    &tw_fpet_out) || cpl_error_get_code()) {
+            cpl_msg_error(__func__, "Failed to calibrate");
+            cpl_table_delete(extracted_fpet) ;
+            cpl_table_delete(tw_une_out) ;
+            cpl_propertylist_delete(qcs_une_out) ;
+            cpl_table_delete(lines_diagnostics_une_out) ;
+            cpl_table_delete(extracted_une_out) ;
+            return -1 ;
+        }
+        cpl_table_delete(extracted_fpet) ;
+    } else {
+        lines_diagnostics_fpet_out = NULL ;
+        extracted_fpet_out = NULL ;
+        qcs_fpet_out = NULL ;
+        tw_fpet_out = NULL ;
+    }
 
     /* Generate the Wave Map */
-    wl_map = cr2res_wave_gen_wave_map(tw_out) ;
+    wl_map_une_out = cr2res_wave_gen_wave_map(tw_une_out) ;
+    if (rawframes_fpet != NULL) {
+        wl_map_fpet_out = cr2res_wave_gen_wave_map(tw_fpet_out) ;
+    } else {
+        wl_map_fpet_out = NULL ;
+    }
 
-    /* Load the extension header for saving */
+    /* Load the extension header for saving UNE*/
     first_file = cpl_frame_get_filename(
-            cpl_frameset_get_position_const(rawframes, 0)) ;
+            cpl_frameset_get_position_const(rawframes_une, 0)) ;
     ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
-    plist = cpl_propertylist_load(first_file, ext_nr) ;
-    if (plist == NULL) {
-        cpl_table_delete(tw_out) ;
-        cpl_table_delete(lines_diagnostics_out) ;
-        cpl_table_delete(extracted_out) ;
-        hdrl_image_delete(wl_map) ;
+    plist_une_out = cpl_propertylist_load(first_file, ext_nr) ;
+    if (plist_une_out == NULL) {
+        cpl_propertylist_delete(qcs_une_out) ;
+        cpl_table_delete(tw_une_out) ;
+        cpl_table_delete(lines_diagnostics_une_out) ;
+        cpl_table_delete(extracted_une_out) ;
+        hdrl_image_delete(wl_map_une_out) ;
         cpl_msg_error(__func__, "Failed to load the plist") ;
         return -1 ;
     }
+    if (qcs_une_out != NULL) {
+        cpl_propertylist_append(plist_une_out, qcs_une_out) ;
+        cpl_propertylist_delete(qcs_une_out) ;
+    }
 
-    /* Store the QC parameters in the plist */
-    if (qcs_plist != NULL) {
-        cpl_propertylist_append(plist, qcs_plist) ;
-        cpl_propertylist_delete(qcs_plist) ;
+    /* Load the extension header for saving FPET */
+    if (rawframes_fpet != NULL) {
+        first_file = cpl_frame_get_filename(
+                cpl_frameset_get_position_const(rawframes_fpet, 0)) ;
+        ext_nr = cr2res_io_get_ext_idx(first_file, reduce_det, 1) ;
+        plist_fpet_out = cpl_propertylist_load(first_file, ext_nr) ;
+        if (plist_fpet_out == NULL) {
+            cpl_propertylist_delete(qcs_une_out) ;
+            cpl_table_delete(tw_une_out) ;
+            cpl_table_delete(lines_diagnostics_une_out) ;
+            cpl_table_delete(extracted_une_out) ;
+            hdrl_image_delete(wl_map_une_out) ;
+            cpl_propertylist_delete(qcs_fpet_out) ;
+            cpl_table_delete(tw_fpet_out) ;
+            cpl_table_delete(lines_diagnostics_fpet_out) ;
+            cpl_table_delete(extracted_fpet_out) ;
+            hdrl_image_delete(wl_map_fpet_out) ;
+            cpl_msg_error(__func__, "Failed to load the plist") ;
+            return -1 ;
+        }
+        if (qcs_fpet_out != NULL) {
+            cpl_propertylist_append(plist_fpet_out, qcs_fpet_out) ;
+            cpl_propertylist_delete(qcs_fpet_out) ;
+        }
+    } else {
+        plist_fpet_out = NULL ;
     }
 
     /* Return */
-    *out_trace_wave = tw_out ;
-    *lines_diagnostics = lines_diagnostics_out ;
-    *out_extracted = extracted_out ;
-    *out_wave_map = wl_map;
-    *ext_plist = plist ;
+    *out_trace_wave_une = tw_une_out ;
+    *lines_diagnostics_une = lines_diagnostics_une_out ;
+    *out_extracted_une = extracted_une_out ;
+    *out_wave_map_une = wl_map_une_out ;
+    *ext_plist_une = plist_une_out ;
+
+    /*
+    *out_trace_wave_fpet = NULL ;
+    *lines_diagnostics_fpet = NULL ;
+    *out_extracted_fpet = NULL ;
+    *out_wave_map_fpet = NULL  ;
+    *ext_plist_fpet = NULL  ;
+    */
+    *out_trace_wave_fpet = tw_fpet_out ;
+    *lines_diagnostics_fpet = lines_diagnostics_fpet_out ;
+    *out_extracted_fpet = extracted_fpet_out ;
+    *out_wave_map_fpet = wl_map_fpet_out ;
+    *ext_plist_fpet = plist_fpet_out ;
     return 0 ;
 }

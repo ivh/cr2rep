@@ -20,8 +20,10 @@ for filename in sys.argv[1+offs:]:
     for d in [1,2,3]:
         dat = f['CHIP%d.INT1'%d].data
         xoff = (d-2)*0.2
-        ax.plot(dat['Order']+xoff,dat['Delta_WL'],'.',label='D%d'%d)
-
+        try:
+            ax.plot(dat['Order']+xoff,dat['Delta_WL'],'.',label='D%d'%d)
+        except:
+            pass
 
 
     ax.set_title('Residual delta-lambda, %s'%sett)

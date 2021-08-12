@@ -50,8 +50,7 @@
 #define CR2RES_HEADER_WLEN_END          "ESO INS WLEN END%d"
 #define CR2RES_HEADER_WLEN_CENY         "ESO INS WLEN CENY%d"
 #define CR2RES_HEADER_GRAT1_ZPORD       "ESO INS GRAT1 ZP_ORD"
-#define CR2RES_HEADER_LAMP4_NAME        "ESO INS1 LAMP4 NAME"
-#define CR2RES_HEADER_LAMP8_NAME        "ESO INS1 LAMP8 NAME"
+#define CR2RES_HEADER_GRAT1_ORDER       "ESO INS GRAT1 ORDER"
 #define CR2RES_HEADER_NDIT              "ESO DET NDIT"
 #define CR2RES_HEADER_DIT               "ESO DET SEQ1 DIT"
 #define CR2RES_HEADER_PROG_ID           "ESO OBS PROG ID"
@@ -94,6 +93,7 @@
 #define CR2RES_HEADER_QC_WAVE_OVEREXPOSED   "ESO QC WAVE OVEREXPOSED"
 
 #define CR2RES_HEADER_QC_SIGNAL             "ESO QC SIGNAL"
+#define CR2RES_HEADER_QC_STANDARD_FLUX      "ESO QC STANDARD FLUX"
 #define CR2RES_HEADER_QC_SNR                "ESO QC SNR%d"
 #define CR2RES_HEADER_QC_SLITFWHM_ORDER     "ESO QC SLITFWHM%d"
 #define CR2RES_HEADER_QC_SLITFWHM_MED       "ESO QC SLITFWHM MED"
@@ -109,8 +109,6 @@ const char * cr2res_pfits_get_procatg(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_protype(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_wlen_id(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
-const char * cr2res_pfits_get_lamp4(const cpl_propertylist *) ;
-const char * cr2res_pfits_get_lamp8(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_progid(const cpl_propertylist *) ;
 
 
@@ -129,6 +127,7 @@ int cr2res_pfits_get_nexp(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_ndit(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_obs_id(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_order_zp(const cpl_propertylist * plist) ;
+int cr2res_pfits_get_order(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_order_idx(const cpl_propertylist * plist,double yposition);
 
 cr2res_decker cr2res_pfits_get_decker_position(const cpl_propertylist * plist) ;

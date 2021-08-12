@@ -141,6 +141,8 @@ hdrl_image * cr2res_calib_image(
     hdrl_imagelist      *   calib_list ;
     cpl_propertylist    *   plist ;
     double                  dark_dit ;
+    cpl_image               *img_tmp1, *img_tmp2;
+    cpl_size                i;
 
     /* Test entries */
     if (in == NULL) return NULL ;
@@ -227,6 +229,17 @@ hdrl_image * cr2res_calib_image(
        hdrl_imagelist_delete(calib_list) ;
     }
 
+    /* Subrtact residual boas/dark from vignetted rows at bottom */
+    img_tmp1 = hdrl_image_get_image(out);
+    img_tmp2 = cpl_image_collapse_median_create(img_tmp1, 0,
+                CR2RES_NB_BPM_EDGEPIX, CR2RES_DETECTOR_SIZE-CR2RES_NB_BPM_VIGN_BOTTOM);
+    calib = hdrl_image_new(CR2RES_DETECTOR_SIZE,CR2RES_DETECTOR_SIZE);
+    for (i=1; i<=CR2RES_DETECTOR_SIZE; i++){
+        hdrl_image_insert(calib, img_tmp2, NULL, 1, i);
+    }
+    hdrl_image_sub_image(out, calib);
+    hdrl_image_delete(calib) ;
+    cpl_image_delete(img_tmp2);
 
     /* Apply the flatfield */
     if (flat != NULL) {

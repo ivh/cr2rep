@@ -93,6 +93,19 @@ int cr2res_order_idx_to_real(int order_idx, int order_zp)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Convert the order_real into order_idx
+  @param    order_real  Order Real
+  @param    order_zp    Order Zero Point
+  @return   order_idx
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_order_real_to_idx(int order_real, int order_zp)
+{
+    return order_real - order_zp + 1;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Convert the RA from hh mm ss to degrees 
   @param    hh      hours
   @param    mm      minutes 

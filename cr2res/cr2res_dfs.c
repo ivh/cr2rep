@@ -78,7 +78,8 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_DETLIN_LAMP_RAW) ||
                 !strcmp(tag, CR2RES_DARK_RAW) ||
                 !strcmp(tag, CR2RES_FLAT_RAW) ||
-                !strcmp(tag, CR2RES_WAVE_RAW) ||
+                !strcmp(tag, CR2RES_WAVE_UNE_RAW) ||
+                !strcmp(tag, CR2RES_WAVE_FPET_RAW) ||
                 !strcmp(tag, CR2RES_METROLOGY_RAW) ||
                 !strcmp(tag, CR2RES_CAL_NODDING_OTHER_RAW) ||
                 !strcmp(tag, CR2RES_CAL_NODDING_JITTER_RAW) ||

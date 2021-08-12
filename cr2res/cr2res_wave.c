@@ -39,6 +39,7 @@
 #include "cr2res_pfits.h"
 #include "cr2res_utils.h"
 #include "cr2res_etalon.h"
+#include "cr2res_qc.h"
 #include "cr2res_pfits.h"
 
 /*-----------------------------------------------------------------------------
@@ -167,6 +168,7 @@ int cr2res_wave_apply(
         double                      display_wmin,
         double                      display_wmax,
         int                         zp_order,
+        int                         grat1_order,
         cpl_propertylist    **      qcs,
         cpl_table           **      lines_diagnostics,
         cpl_table           **      extracted_out,
@@ -194,8 +196,8 @@ int cr2res_wave_apply(
     cpl_polynomial      *   wave_sol_1d ;
     cpl_array           *   wl_err_array ;
     int                     trace_id, order, i, j ;
-    double                  best_xcorr ;
-    int                     out_wl_array_size, init_wl_array_size,
+    double                  best_xcorr, qc_wlen_central ;
+    int                     out_wl_array_size, init_wl_array_size, order_idx, 
                             degree_out ;
 
     /* Check Entries */
@@ -460,8 +462,7 @@ int cr2res_wave_apply(
         }
         cpl_array_delete(wl_err_array) ;
         cpl_polynomial_delete(wave_sol_2d);
-    }
-    else if (wavecal_type == CR2RES_ETALON) {
+    } else if (wavecal_type == CR2RES_ETALON) {
         /* 2D Etalon */
         if ((wave_sol_2d = cr2res_etalon_wave_2d(
                         spectra, spectra_err, wavesol_init,
@@ -508,9 +509,10 @@ int cr2res_wave_apply(
         cpl_array_delete(wl_err_array) ;
         cpl_polynomial_delete(wave_sol_2d);
         
-        } else {
+    } else {
         /* 1D Calibration */
         /* Loop over the traces spectra */
+        
         for (i=0 ; i<nb_traces ; i++) {
             /* Get Order and trace id */
             order = cpl_table_get(tw_out, CR2RES_COL_ORDER, i, NULL) ;
@@ -581,6 +583,12 @@ int cr2res_wave_apply(
         }
     }
 
+    /* Store the central Wavelength QC */
+    order_idx = cr2res_order_real_to_idx(grat1_order, zp_order) ; 
+    qc_wlen_central = cr2res_qc_wave_central(tw_out, order_idx) ;
+    cpl_propertylist_append_double(qcs_plist,
+            CR2RES_HEADER_QC_WAVE_CENTWL, qc_wlen_central);
+    
     /* Recompute the extracted table wavelengths with the results */
     extracted_out_loc = cr2res_wave_recompute_wl(spectra_tab, tw_out) ;
 
@@ -749,6 +757,9 @@ cpl_polynomial * cr2res_wave_1d(
                     display_wmin,
                     display_wmax) ;
             cpl_bivector_delete(spectrum_corrected) ;
+
+// TODO : GENERATE THE LINES STATISTICS ---> *lines_diagnostics
+
         }
     } else if (wavecal_type == CR2RES_LINE1D) {
         solution = cr2res_wave_line_fitting(spectrum_local, spectrum_err,
@@ -756,6 +767,9 @@ cpl_polynomial * cr2res_wave_1d(
                 ref_spectrum, degree, display, NULL, wavelength_error,
                 lines_diagnostics) ;
     } else if (wavecal_type == CR2RES_ETALON) {
+
+// TODO : This should not happen any more ---> remove the if ()
+
         solution = cr2res_wave_etalon(spectrum_local, spectrum_err, 
                 wavesol_init, degree, wavelength_error);
     }
@@ -1689,46 +1703,6 @@ char * cr2res_wave_method_print(
     else                         
         out_str = cpl_sprintf("Unsupported") ;
     return out_str ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief  Guess the wavelength method to use from the header
-  @param    in  The frame whose header is to be used
-  @return   The guessed method
- */
-/*----------------------------------------------------------------------------*/
-cr2res_wavecal_type cr2res_wave_guess_method(
-        const cpl_frame     *   in) 
-{
-    cr2res_wavecal_type     wl_method ;
-    cpl_propertylist    *   plist ;
-    const char          *   l4_name ;
-    const char          *   l8_name ;
-
-    /* Check entries */
-    if (in == NULL) return CR2RES_UNSPECIFIED ;
-
-    /* Initialise */
-    wl_method = CR2RES_UNSPECIFIED ;
-
-    /* Load the property list */
-    if ((plist = cpl_propertylist_load(cpl_frame_get_filename(in), 0))==NULL) {
-        return wl_method ;
-    }
-
-    /* Get the Lamps names (NULL if missing) */
-    l4_name = cr2res_pfits_get_lamp4(plist) ;
-    cpl_error_reset() ;
-    l8_name = cr2res_pfits_get_lamp8(plist) ;
-    cpl_error_reset() ;
-    if (l4_name != NULL && !strcmp(l4_name, "UNe_HCL")) 
-        wl_method = CR2RES_XCORR ;
-    else if (l8_name != NULL && !strcmp(l8_name, "Etalon_Halogen"))
-        wl_method = CR2RES_ETALON ;
-    cpl_propertylist_delete(plist) ;
-
-    return wl_method ;
 }
 
 /**@}*/

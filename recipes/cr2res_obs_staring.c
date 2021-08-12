@@ -242,7 +242,7 @@ static int cr2res_obs_staring_create(cpl_plugin * plugin)
     p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.extract_smooth",
             CPL_TYPE_DOUBLE,
             "Smoothing along the slit (1 for high S/N, 5 for low)",
-            "cr2res.cr2res_obs_staring", 0.01);
+            "cr2res.cr2res_obs_staring", 2.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);

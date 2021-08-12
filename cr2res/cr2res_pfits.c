@@ -116,32 +116,6 @@ const char * cr2res_pfits_get_progid(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    find out the lamp4 name
-  @param    plist       property list to read from
-  @return   pointer to statically allocated character string
- */
-/*----------------------------------------------------------------------------*/
-const char * cr2res_pfits_get_lamp4(const cpl_propertylist * plist)
-{
-    return (const char *) cpl_propertylist_get_string(plist, 
-            CR2RES_HEADER_LAMP4_NAME);
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    find out the lamp8 name
-  @param    plist       property list to read from
-  @return   pointer to statically allocated character string
- */
-/*----------------------------------------------------------------------------*/
-const char * cr2res_pfits_get_lamp8(const cpl_propertylist * plist)
-{
-    return (const char *) cpl_propertylist_get_string(plist, 
-            CR2RES_HEADER_LAMP8_NAME);
-}
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    find out the Setting
   @param    plist       property list to read from
   @return   pointer to statically allocated character string
@@ -352,6 +326,18 @@ int cr2res_pfits_get_ndit(const cpl_propertylist * plist)
 int cr2res_pfits_get_obs_id(const cpl_propertylist * plist)
 {
     return cpl_propertylist_get_int(plist, CR2RES_HEADER_OBS_ID)  ;
+}
+
+/*----------------------------------------------------------------------------*/
+  /*
+  @brief    find out the ORDER value
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_pfits_get_order(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_int(plist, CR2RES_HEADER_GRAT1_ORDER)  ;
 }
 
 /*----------------------------------------------------------------------------*/

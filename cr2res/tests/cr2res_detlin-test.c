@@ -102,7 +102,7 @@ for (i=0; i<n; i++){
     /* Check if we are close to true aduPsec*/
   cpl_vector_divide_scalar(adus_corr,aduPsec);
   cpl_vector_dump(adus_corr,stdout);
-  cpl_test_vector_abs(adus_corr,dits,aduPsec*0.01);
+  cpl_test_vector_abs(adus_corr,dits,aduPsec*0.02);
 
   cpl_vector_delete(dits);
   cpl_vector_delete(adus);

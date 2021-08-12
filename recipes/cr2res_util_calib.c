@@ -72,7 +72,8 @@ Frames Calibration                                                      \n\
                                                                         \n\
   Inputs                                                                \n\
     raw.fits " CR2RES_FLAT_RAW" [1 to n]                                \n\
-          or " CR2RES_WAVE_RAW"                                         \n\
+          or " CR2RES_WAVE_UNE_RAW"                                     \n\
+          or " CR2RES_WAVE_FPET_RAW"                                    \n\
           or " CR2RES_CAL_NODDING_OTHER_RAW "                           \n\
           or " CR2RES_CAL_NODDING_JITTER_RAW"                           \n\
           or " CR2RES_OBS_NODDING_OTHER_RAW"                            \n\
@@ -499,7 +500,8 @@ static int cr2res_util_calib(
   @param    set     Input frame set
   @return   the RAW frameset or NULL in error case or if it is missing
     Allowed RAW types : CR2RES_FLAT_RAW
-                        CR2RES_WAVE_RAW
+                        CR2RES_WAVE_UNE_RAW
+                        CR2RES_WAVE_FPET_RAW
                         CR2RES_CAL_NODDING_OTHER_RAW
                         CR2RES_CAL_NODDING_JITTER_RAW
                         CR2RES_OBS_NODDING_OTHER_RAW
@@ -523,21 +525,22 @@ static cpl_frameset * cr2res_util_calib_find_RAW(const cpl_frameset * in)
     if (in == NULL) return NULL ;
 
     /* Create the tags list */
-    ntags = 13 ;
+    ntags = 14 ;
     tags = cpl_malloc(ntags * sizeof(char *)) ;
     tags[0] = cpl_sprintf(CR2RES_FLAT_RAW) ;
-    tags[1] = cpl_sprintf(CR2RES_WAVE_RAW) ;
-    tags[2] = cpl_sprintf(CR2RES_CAL_NODDING_OTHER_RAW) ;
-    tags[3] = cpl_sprintf(CR2RES_CAL_NODDING_JITTER_RAW) ;
-    tags[4] = cpl_sprintf(CR2RES_OBS_NODDING_OTHER_RAW) ;
-    tags[5] = cpl_sprintf(CR2RES_OBS_NODDING_JITTER_RAW) ;
-    tags[6] = cpl_sprintf(CR2RES_OBS_ASTROMETRY_OTHER_RAW) ;
-    tags[7] = cpl_sprintf(CR2RES_OBS_ASTROMETRY_JITTER_RAW) ;
-    tags[8] = cpl_sprintf(CR2RES_OBS_STARING_OTHER_RAW) ;
-    tags[9] = cpl_sprintf(CR2RES_OBS_STARING_JITTER_RAW) ;
-    tags[10] = cpl_sprintf(CR2RES_OBS_POLARIMETRY_OTHER_RAW) ;
-    tags[11] = cpl_sprintf(CR2RES_OBS_2D_OBJECT_RAW) ;
-    tags[12] = cpl_sprintf(CR2RES_OBS_2D_SKY_RAW) ;
+    tags[1] = cpl_sprintf(CR2RES_WAVE_UNE_RAW) ;
+    tags[2] = cpl_sprintf(CR2RES_WAVE_FPET_RAW) ;
+    tags[3] = cpl_sprintf(CR2RES_CAL_NODDING_OTHER_RAW) ;
+    tags[4] = cpl_sprintf(CR2RES_CAL_NODDING_JITTER_RAW) ;
+    tags[5] = cpl_sprintf(CR2RES_OBS_NODDING_OTHER_RAW) ;
+    tags[6] = cpl_sprintf(CR2RES_OBS_NODDING_JITTER_RAW) ;
+    tags[7] = cpl_sprintf(CR2RES_OBS_ASTROMETRY_OTHER_RAW) ;
+    tags[8] = cpl_sprintf(CR2RES_OBS_ASTROMETRY_JITTER_RAW) ;
+    tags[9] = cpl_sprintf(CR2RES_OBS_STARING_OTHER_RAW) ;
+    tags[10] = cpl_sprintf(CR2RES_OBS_STARING_JITTER_RAW) ;
+    tags[11] = cpl_sprintf(CR2RES_OBS_POLARIMETRY_OTHER_RAW) ;
+    tags[12] = cpl_sprintf(CR2RES_OBS_2D_OBJECT_RAW) ;
+    tags[13] = cpl_sprintf(CR2RES_OBS_2D_SKY_RAW) ;
 
     /* Get the frameset */
     out = cr2res_extract_frameset_several_tags(in, (const char**)tags, ntags) ;

@@ -37,6 +37,7 @@
 #include "cr2res_utils.h"
 #include "cr2res_dfs.h"
 #include "cr2res_pfits.h"
+#include "cr2res_bpm.h"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -1502,6 +1503,7 @@ int cr2res_io_save_BPM(
         if (bpms[det_nr-1] == NULL) 
             hdrl_bpms[det_nr-1] = NULL ;
         else
+            cr2res_bpm_mask_edgepix(bpms[det_nr-1]);
             hdrl_bpms[det_nr-1] = hdrl_image_create(bpms[det_nr-1], NULL) ;
     }
 

@@ -62,13 +62,16 @@ double cr2res_qc_flat_s2n(
         const cpl_image     *   master_flat) ;
 
 /* WAVE */
-
-
-
+double cr2res_qc_wave_central(
+        const cpl_table *   tw,
+        int                 order) ;
 
 /* OBS */
 double cr2res_qc_obs_nodding_signal(
         const cpl_table     *   extracted) ;
+double cr2res_qc_obs_nodding_standard_flux(
+        const cpl_table     *   extracted,
+        char                *   setting) ;
 double cr2res_qc_obs_nodding_slit_psf(
         const cpl_table     *   slitfu,
         int                     order_idxp) ;
