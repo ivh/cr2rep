@@ -448,7 +448,7 @@ double cr2res_qc_overexposed(
     }
     cpl_image_delete(labels) ;
     if (nb_total == 0) return -1.0 ;
-    return nb_over / nb_total ;
+    return (double)nb_over/(double)nb_total ;
 }
 
 /*----------------------------------------------------------------------------*/

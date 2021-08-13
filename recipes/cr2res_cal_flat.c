@@ -1289,6 +1289,7 @@ static int cr2res_cal_flat_reduce(
         char * qc_name = cpl_sprintf("%s-%02d-%02d",
                 CR2RES_HEADER_QC_OVEREXPOSED, order, trace_id) ;
         cpl_propertylist_append_double(plist, qc_name, qc_overexposed);
+        printf("over: %g\n", qc_overexposed) ;
         cpl_free(qc_name) ;
     }
     hdrl_image_delete(first_image) ;
