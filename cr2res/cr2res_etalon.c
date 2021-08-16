@@ -381,6 +381,7 @@ cpl_vector * cr2res_etalon_select_by_peak_distance(const cpl_vector * peaks,
 
     cpl_vector * keep;
     cpl_vector * priority_to_position;
+    cpl_bivector * bivector_tmp;
     int i, j, k, peaks_size, distance_;
 
     peaks_size = cpl_vector_get_size(peaks);
@@ -388,16 +389,14 @@ cpl_vector * cr2res_etalon_select_by_peak_distance(const cpl_vector * peaks,
     distance_ = distance;
     // Prepare array of flags
     keep = cpl_vector_new(peaks_size);
-    for (i = 0; i < peaks_size; i++){
-        cpl_vector_set(keep, i, 1);
-    }
+    cpl_vector_fill(keep, 1);
 
     // Create map from `i` (index for `peaks` sorted by `priority`) to `j` (index
     // for `peaks` sorted by position). This allows to iterate `peaks` and `keep`
     // with `j` by order of `priority` while still maintaining the ability to
     // step to neighbouring peaks with (`j` + 1) or (`j` - 1).
     
-    cpl_bivector * bivector_tmp = cpl_bivector_new(peaks_size);
+    bivector_tmp = cpl_bivector_new(peaks_size);
     priority_to_position = cpl_bivector_get_x(bivector_tmp);
 
     for (i = 0; i < peaks_size; i++){
@@ -499,7 +498,6 @@ cpl_vector * cr2res_etalon_find_peaks(
     cpl_vector_delete(peak_heights);
     cpl_vector_delete(peak_distance);
 
-
     return peaks_out;
 }
 
@@ -556,7 +554,6 @@ static cpl_vector * cr2res_etalon_get_peaks_gaussian(
     npeaks = cpl_matrix_get_nrow(px);
     new_peaks = cpl_vector_wrap(npeaks, cpl_matrix_get_data(px));
     cpl_matrix_unwrap(px);
-    // cpl_matrix_unwrap(px);
     // Delete all the other stuff we don't need
     cpl_bivector_delete(linelist);
     cpl_vector_delete(py);
@@ -634,6 +631,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     double f0, fr, m;
     char * path;
     FILE * file;
+    cpl_error_code error;
 
     cpl_table * lines_diagnostics_loc;
     double pix_pos, lambda_cat, lambda_meas, line_width, line_intens, fit_error;
@@ -793,6 +791,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         // cpl_vector_set(mpos, 0, 1 + cpl_vector_get(mpos, 1));
         cpl_matrix_delete(px);
 
+        // Store vectors for later
         fpe_xobs[i] = peaks_new;
         fpe_wobs[i] = wcen;
         fpe_freq[i] = freq;
@@ -800,6 +799,31 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         // This is only used for the debug output
         fpe_cord[i] = cpl_vector_new(npeaks);
         cpl_vector_fill(fpe_cord[i], orders[i] + zp_order);
+    }
+
+    if (npeaks_total == 0){
+        cpl_msg_error(__func__, "No peaks found for Etalon wavecal");
+        for (i = 0; i < ninputs; i++)
+        {
+            if (fpe_mord[i] == NULL) continue;
+            cpl_vector_delete(fpe_xobs[i]);
+            cpl_vector_delete(fpe_wobs[i]);
+            cpl_vector_delete(fpe_freq[i]);
+            cpl_vector_delete(fpe_mord[i]);
+            cpl_vector_delete(fpe_cord[i]);
+            cpl_vector_delete(heights[i]);
+            cpl_vector_delete(sigmas[i]);
+            cpl_vector_delete(fit_errors[i]);
+        }
+        cpl_free(fpe_xobs);
+        cpl_free(fpe_wobs);
+        cpl_free(fpe_freq);
+        cpl_free(fpe_mord);
+        cpl_free(fpe_cord);
+        cpl_free(heights);
+        cpl_free(sigmas);
+        cpl_free(fit_errors);
+        return NULL;
     }
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
@@ -910,8 +934,36 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     result = cpl_polynomial_new(2);
     degree_2d[0] = degree_x ;
     degree_2d[1] = degree_y ;
-    cpl_polynomial_fit(result, px, NULL, py, NULL, CPL_TRUE, NULL,
+    error = cpl_polynomial_fit(result, px, NULL, py, NULL, CPL_TRUE, NULL,
                     degree_2d);
+
+    if (error != CPL_ERROR_NONE){
+        cpl_msg_error(__func__, "Error in Etalon polynomial fit");
+        cpl_polynomial_delete(result);
+        cpl_matrix_delete(px);
+        cpl_vector_delete(py);
+        for (i = 0; i < ninputs; i++)
+        {
+            if (fpe_mord[i] == NULL) continue;
+            cpl_vector_delete(fpe_xobs[i]);
+            cpl_vector_delete(fpe_wobs[i]);
+            cpl_vector_delete(fpe_freq[i]);
+            cpl_vector_delete(fpe_mord[i]);
+            cpl_vector_delete(fpe_cord[i]);
+            cpl_vector_delete(heights[i]);
+            cpl_vector_delete(sigmas[i]);
+            cpl_vector_delete(fit_errors[i]);
+        }
+        cpl_free(fpe_xobs);
+        cpl_free(fpe_wobs);
+        cpl_free(fpe_freq);
+        cpl_free(fpe_mord);
+        cpl_free(fpe_cord);
+        cpl_free(heights);
+        cpl_free(sigmas);
+        cpl_free(fit_errors);
+        return NULL;
+    }
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
         path = cpl_sprintf("debug_etalon_final_mord.fits");
@@ -964,61 +1016,6 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         path = cpl_sprintf("debug_etalon_final_poly.fits");
         cpl_table_save(tmp_table, NULL, NULL, path, CPL_IO_CREATE);
         cpl_table_delete(tmp_table);
-        cpl_free(path);
-    }
-
-    result = cpl_polynomial_new(2);
-    degree_2d[0] = degree_x ;
-    degree_2d[1] = degree_y ;
-    cpl_polynomial_fit(result, px, NULL, py, NULL, CPL_TRUE, NULL,
-                    degree_2d);
-
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG){
-        path = cpl_sprintf("debug_etalon_final_mord.fits");
-        cpl_vector_save(fpe_mord[0], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-        for (i = 1; i < ninputs; i++)
-        {
-            cpl_vector_save(fpe_mord[i], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_EXTEND);
-        }
-        cpl_free(path);
-        path = cpl_sprintf("debug_etalon_final_wobs.fits");
-        cpl_vector_save(fpe_wobs[0], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-        for (i = 1; i < ninputs; i++)
-        {
-            cpl_vector_save(fpe_wobs[i], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_EXTEND);
-        }
-        cpl_free(path);
-        path = cpl_sprintf("debug_etalon_final_xobs.fits");
-        cpl_vector_save(fpe_xobs[0], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-        for (i = 1; i < ninputs; i++)
-        {
-            cpl_vector_save(fpe_xobs[i], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_EXTEND);
-        }
-        cpl_free(path);
-        path = cpl_sprintf("debug_etalon_final_cord.fits");
-        cpl_vector_save(fpe_cord[0], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-        for (i = 1; i < ninputs; i++)
-        {
-            cpl_vector_save(fpe_cord[i], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_EXTEND);
-        }
-        cpl_free(path);
-
-        tmp_vec = cpl_vector_new((degree_x + 1) * (degree_y + 1));
-        k = 0;
-        for (i = 0; i <= degree_x; i++)
-        {
-            degree_2d[0] = i;
-            for (j = 0; j <= degree_y; j++)
-            {
-                degree_2d[1] = j;
-                cpl_vector_set(tmp_vec, k, 
-                        cpl_polynomial_get_coeff(result, &degree_2d[0]));
-                k++;
-            }
-        }
-        path = cpl_sprintf("debug_etalon_final_poly.fits");
-        cpl_vector_save(tmp_vec, path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-        cpl_vector_delete(tmp_vec);
         cpl_free(path);
     }
 
