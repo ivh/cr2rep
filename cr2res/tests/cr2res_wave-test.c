@@ -788,7 +788,7 @@ static void test_cr2res_wave_etalon_2d(){
 
     if (wavelength_error != NULL) cpl_array_delete(wavelength_error);
     if (line_diagnostics != NULL) cpl_table_delete(line_diagnostics);
-    cpl_polynomial_delete(result);
+    if (result != NULL) cpl_polynomial_delete(result);
 
 }
 
