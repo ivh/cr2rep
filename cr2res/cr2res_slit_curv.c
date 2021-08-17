@@ -834,8 +834,8 @@ static int cr2res_slit_curv_single_peak(
     img_slitfunc = cpl_image_collapse_median_create(img_peak, 1, 0, 0);
     maximum = cpl_image_get_max(img_slitfunc);
     // minimum = cpl_image_get_min(img_slitfunc);
-    if (maximum == 0){
-        // Abort before division by 0
+    if (maximum <= 0){
+        // Abort before division by 0, and weird peaks
         cpl_image_delete(img_slitfunc);
         return -1;
     }
