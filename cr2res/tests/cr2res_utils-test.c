@@ -898,7 +898,7 @@ static void test_cr2res_polyfit_2d(void)
     cpl_matrix_set(degree, 2, 1, 2);
 
     // Do the fit
-//    cpl_test(poly = cr2res_polyfit_2d(x, y, z, degree));
+    cpl_test(poly = cr2res_polyfit_2d(x, y, z, degree));
 
     // Check results
     cpl_test_eq(cpl_polynomial_get_dimension(poly), 2);
@@ -966,7 +966,7 @@ int main(void)
     test_cr2res_slit_pos_img();
     test_cr2res_slit_curv_compute_order_trace();
     test_cr2res_optimal_filter_2d();
-    //test_cr2res_polyfit_2d();
+    test_cr2res_polyfit_2d();
 
     return cpl_test_end(0);
 }

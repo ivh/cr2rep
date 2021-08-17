@@ -693,18 +693,18 @@ static void test_cr2res_wave_clean_spectrum(void)
  */
 /*----------------------------------------------------------------------------*/
 static void test_cr2res_wave_etalon_2d(){
-    cpl_bivector        **  spectra;
-    cpl_bivector        **  spectra_err;
-    cpl_polynomial      **  wavesol_init;
-    cpl_array           **  wavesol_init_err;
-    int                 *   orders;
-    int                 *   traces_nb;
-    cpl_table           *  line_diagnostics;
-    cpl_array           *  wavelength_error;
+    cpl_bivector        **  spectra = NULL;
+    cpl_bivector        **  spectra_err = NULL;
+    cpl_polynomial      **  wavesol_init = NULL;
+    cpl_array           **  wavesol_init_err = NULL;
+    int                 *   orders = NULL;
+    int                 *   traces_nb = NULL;
+    cpl_table           *  line_diagnostics = NULL;
+    cpl_array           *  wavelength_error = NULL;
     int ninputs = 2;
     cpl_size degree_x = 1;
     cpl_size degree_y = 1;
-    cpl_polynomial * result;
+    cpl_polynomial * result = NULL;
     cpl_size degree, degree2d[2];
     double c00, c01, c10, c11;
     double wave, freq;
@@ -788,7 +788,7 @@ static void test_cr2res_wave_etalon_2d(){
 
     if (wavelength_error != NULL) cpl_array_delete(wavelength_error);
     if (line_diagnostics != NULL) cpl_table_delete(line_diagnostics);
-    cpl_polynomial_delete(result);
+    if (result != NULL) cpl_polynomial_delete(result);
 
 }
 
@@ -808,7 +808,7 @@ int main(void)
     test_cr2res_wave_poly_2d_to_1d();
 	test_cr2res_wave_estimate_compute();
     test_cr2res_wave_clean_spectrum();
-    //test_cr2res_wave_etalon_2d();
+    test_cr2res_wave_etalon_2d();
     return cpl_test_end(0);
 }
 
