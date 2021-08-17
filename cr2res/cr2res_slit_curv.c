@@ -834,6 +834,12 @@ static int cr2res_slit_curv_single_peak(
     img_slitfunc = cpl_image_collapse_median_create(img_peak, 1, 0, 0);
     maximum = cpl_image_get_max(img_slitfunc);
     // minimum = cpl_image_get_min(img_slitfunc);
+    if (maximum == 0){
+        // Abort before division by 0
+        cpl_image_delete(img_slitfunc);
+        return -1;
+    }
+
     cpl_image_divide_scalar(img_slitfunc, maximum);
 
     // Collapse image along x axis, to get spectrum
@@ -893,8 +899,7 @@ static int cr2res_slit_curv_single_peak(
 
     // Check results
     if (error != CPL_ERROR_NONE){
-        cpl_errorstate_dump(NULL, CPL_FALSE,
-                        cpl_errorstate_dump_one_debug);
+        cpl_msg_debug(__func__, "%s", cpl_error_get_message());
         cpl_error_reset();
         
         *value_a = *value_b = *value_c = 0.;
