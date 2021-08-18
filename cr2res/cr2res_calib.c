@@ -52,6 +52,7 @@
   @param    in          the input hdrl image list
   @param    chip        the chip to calibrate (1 to CR2RES_NB_DETECTORS)
   @param    clean_bad   Flag to activate the cleaning of the bad pixels 
+  @param    subtract_nolight_rows   
   @param    cosmics_corr    Flag to correct for cosmics
   @param    flat        the flat frame or NULL
   @param    dark        the dark frame or NULL
@@ -67,6 +68,7 @@ hdrl_imagelist * cr2res_calib_imagelist(
         const hdrl_imagelist    *   in,
         int                         chip,
         int                         clean_bad,
+        int                         subtract_nolight_rows,
         int                         cosmics_corr,
         const cpl_frame         *   flat,
         const cpl_frame         *   dark,
@@ -96,7 +98,8 @@ hdrl_imagelist * cr2res_calib_imagelist(
 
         /* Calibrate */
         if ((cur_ima_calib = cr2res_calib_image(cur_ima, chip, clean_bad, 
-                        cosmics_corr, flat, dark, bpm, detlin, dit)) == NULL) {
+                        subtract_nolight_rows, cosmics_corr, flat, dark, bpm, 
+                        detlin, dit)) == NULL) {
             cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
             hdrl_imagelist_delete(out) ;
             return NULL ;
@@ -114,6 +117,7 @@ hdrl_imagelist * cr2res_calib_imagelist(
   @param    in          the input hdrl image
   @param    chip        the chip to calibrate (1 to CR2RES_NB_DETECTORS)
   @param    clean_bad   Flag to activate the cleaning of the bad pixels 
+  @param    subtract_nolight_rows   
   @param    cosmics_corr    Flag to correct for cosmics
   @param    flat        the flat frame or NULL
   @param    dark        the dark frame or NULL
@@ -129,6 +133,7 @@ hdrl_image * cr2res_calib_image(
         const hdrl_image    *   in,
         int                     chip,
         int                     clean_bad,
+        int                     subtract_nolight_rows,
         int                     cosmics_corr,
         const cpl_frame     *   flat,
         const cpl_frame     *   dark,
@@ -141,7 +146,7 @@ hdrl_image * cr2res_calib_image(
     hdrl_imagelist      *   calib_list ;
     cpl_propertylist    *   plist ;
     double                  dark_dit ;
-    cpl_image               *img_tmp1, *img_tmp2;
+    cpl_image           *   img_tmp ;
     cpl_size                i;
 
     /* Test entries */
@@ -230,19 +235,17 @@ hdrl_image * cr2res_calib_image(
     }
 
     /* Subtract residual bias/dark from vignetted rows at bottom */
-    /* TODO: make this a parameter, then this if (for unit tests)
-         can probably be removed */
-    if (hdrl_image_get_size_y(out) == CR2RES_DETECTOR_SIZE){
-        img_tmp1 = hdrl_image_get_image(out);
-        img_tmp2 = cpl_image_collapse_median_create(img_tmp1, 0,
-                    CR2RES_NB_BPM_EDGEPIX, CR2RES_DETECTOR_SIZE-CR2RES_NB_BPM_VIGN_BOTTOM);
+    if (subtract_nolight_rows) {
+        img_tmp = cpl_image_collapse_median_create(
+                hdrl_image_get_image(out), 0, CR2RES_NB_BPM_EDGEPIX, 
+                CR2RES_DETECTOR_SIZE-CR2RES_NB_BPM_VIGN_BOTTOM);
         calib = hdrl_image_new(CR2RES_DETECTOR_SIZE,CR2RES_DETECTOR_SIZE);
-        for (i=1; i<=CR2RES_DETECTOR_SIZE; i++){
-            hdrl_image_insert(calib, img_tmp2, NULL, 1, i);
+        for (i=1; i<=CR2RES_DETECTOR_SIZE; i++) {
+            hdrl_image_insert(calib, img_tmp, NULL, 1, i);
         }
         hdrl_image_sub_image(out, calib);
         hdrl_image_delete(calib) ;
-        cpl_image_delete(img_tmp2);
+        cpl_image_delete(img_tmp);
     }
 
     /* Apply the flatfield */

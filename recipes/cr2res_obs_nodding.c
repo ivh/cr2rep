@@ -905,11 +905,12 @@ static int cr2res_obs_nodding_reduce(
     }
 
     /* Calibrate the images */
+    int subtract_nolight_rows = 0 ;
     cpl_msg_info(__func__, "Apply the Calibrations") ;
     cpl_msg_indent_more() ;
-    if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0, 0, 
-                    master_flat_frame, master_dark_frame, bpm_frame, 
-                    detlin_frame, dits)) == NULL) {
+    if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
+                    subtract_nolight_rows, 0, master_flat_frame, 
+                    master_dark_frame, bpm_frame, detlin_frame, dits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         cpl_msg_indent_less() ;
         cpl_free(nod_positions) ;    

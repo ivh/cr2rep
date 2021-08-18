@@ -750,11 +750,12 @@ static int cr2res_obs_pol_reduce_one(
         return -1 ;
     }
 
+    int subtract_nolight_rows = 0 ;
     /* Calibrate the images */
     cpl_msg_info(__func__, "Apply the calibrations") ;
-    if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0, 0, 
-                    master_flat_frame, master_dark_frame, bpm_frame, 
-                    detlin_frame, dits)) == NULL) {
+    if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
+                    subtract_nolight_rows, 0, master_flat_frame, 
+                    master_dark_frame, bpm_frame, detlin_frame, dits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         if (dits != NULL) cpl_vector_delete(dits) ;
         cpl_free(decker_positions) ;
@@ -777,9 +778,10 @@ static int cr2res_obs_pol_reduce_one(
 
         /* Calibrate the background same as science images */
         cpl_msg_info(__func__, "Apply the calibrations to background") ;
-        if ((in_backgr = cr2res_calib_imagelist(in, reduce_det, 0, 0, 
-                        master_flat_frame, master_dark_frame, bpm_frame, 
-                        detlin_frame, dits)) == NULL) {
+        if ((in_backgr = cr2res_calib_imagelist(in, reduce_det, 0, 
+                        subtract_nolight_rows, 0, master_flat_frame, 
+                        master_dark_frame, bpm_frame, detlin_frame, 
+                        dits)) == NULL) {
             cpl_msg_error(__func__,
                             "Failed to apply the calibrations to background") ;
             if (dits != NULL) cpl_vector_delete(dits) ;

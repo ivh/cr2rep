@@ -569,10 +569,11 @@ static int cr2res_obs_staring_reduce(
         return -1 ;
     }
 
+    int subtract_nolight_rows = 0 ;
     /* Calibrate the images */
-    if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0, 0, 
-                    master_flat_frame, master_dark_frame, bpm_frame, 
-                    detlin_frame, dits)) == NULL) {
+    if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
+                    subtract_nolight_rows, 0, master_flat_frame, 
+                    master_dark_frame, bpm_frame, detlin_frame, dits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         if (dits != NULL) cpl_vector_delete(dits) ;
         hdrl_imagelist_delete(in) ;

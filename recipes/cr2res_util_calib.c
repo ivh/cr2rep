@@ -380,10 +380,12 @@ static int cr2res_util_calib(
         }
 
         /* Calibrate the images */
+        int subtract_nolight_rows = 0 ;
         cpl_msg_info(__func__, "Calibrate the input images") ;
         if ((calibrated[det_nr-1] = cr2res_calib_imagelist(in, det_nr,
-                        clean_bad, 0, master_flat_frame, master_dark_frame, 
-                        bpm_frame, detlin_frame, dits)) == NULL) {
+                        clean_bad, subtract_nolight_rows, 0, master_flat_frame,
+                        master_dark_frame, bpm_frame, detlin_frame, 
+                        dits)) == NULL) {
             cpl_msg_warning(__func__, "Failed to apply the calibrations") ;
             cpl_error_reset() ;
             if (dits != NULL) cpl_vector_delete(dits) ;

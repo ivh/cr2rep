@@ -997,10 +997,12 @@ static int cr2res_cal_wave_reduce(
         in_fpet = NULL ;
     }
 
+    int subtract_nolight_rows = 0 ;
     /* Calibrate the UNE images */
-    if ((in_une_calib = cr2res_calib_imagelist(in_une, reduce_det, 0, 0,
-                    master_flat_frame, master_dark_frame, bpm_frame, 
-                    detlin_frame, dits_une)) == NULL) {
+    if ((in_une_calib = cr2res_calib_imagelist(in_une, reduce_det, 0,
+                    subtract_nolight_rows, 0, master_flat_frame, 
+                    master_dark_frame, bpm_frame, detlin_frame, 
+                    dits_une)) == NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         if (dits_une != NULL) cpl_vector_delete(dits_une) ;
         hdrl_imagelist_delete(in_une) ;
@@ -1013,9 +1015,10 @@ static int cr2res_cal_wave_reduce(
 
     /* Calibrate the UNE images */
     if (rawframes_fpet != NULL) {
-        if ((in_fpet_calib = cr2res_calib_imagelist(in_fpet, reduce_det, 0, 0,
-                        master_flat_frame, master_dark_frame, bpm_frame, 
-                        detlin_frame, dits_fpet)) == NULL) {
+        if ((in_fpet_calib = cr2res_calib_imagelist(in_fpet, reduce_det,
+                        0, subtract_nolight_rows, 0, master_flat_frame,
+                        master_dark_frame, bpm_frame, detlin_frame, 
+                        dits_fpet)) == NULL) {
             cpl_msg_error(__func__, "Failed to apply the calibrations") ;
             hdrl_imagelist_delete(in_une_calib) ;
             if (dits_fpet != NULL) cpl_vector_delete(dits_fpet) ;

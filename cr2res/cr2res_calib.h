@@ -46,7 +46,8 @@ typedef enum {
 hdrl_imagelist * cr2res_calib_imagelist(
         const hdrl_imagelist    *   in,
         int                         chip,
-        int                     	clean_bad,
+        int                         clean_bad,
+        int                         subtract_nolight_rows,
         int                         cosmics_corr,
         const cpl_frame         *   flat,
         const cpl_frame         *   dark,
@@ -58,6 +59,7 @@ hdrl_image * cr2res_calib_image(
         const hdrl_image    *   in,
         int                     chip,
         int                     clean_bad,
+        int                     subtract_nolight_rows,
         int                     cosmics_corr,
         const cpl_frame     *   flat,
         const cpl_frame     *   dark,
