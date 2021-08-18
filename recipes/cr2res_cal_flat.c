@@ -65,6 +65,7 @@ static int cr2res_cal_flat_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   bpm_frame,
         int                     filter_traces,
+        int                     subtract_nolight_rows,
         int                     calib_cosmics_corr,
         double                  bpm_low,
         double                  bpm_high,
@@ -267,6 +268,13 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.subtract_nolight_rows",
+            CPL_TYPE_BOOL, "Subtract the no-light rows",
+            "cr2res.cr2res_cal_flat", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "subtract_nolight_rows");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.calib_cosmics_corr",
             CPL_TYPE_BOOL, "Correct the Cosmics",
             "cr2res.cr2res_cal_flat", FALSE);
@@ -458,7 +466,8 @@ static int cr2res_cal_flat(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     calib_cosmics_corr, trace_degree, trace_min_cluster,
+    int                     subtract_nolight_rows, calib_cosmics_corr, 
+                            trace_degree, trace_min_cluster,
                             trace_opening, trace_filter,
                             extract_oversample, extract_swath_width,
                             extract_height, reduce_det, reduce_order,
@@ -502,6 +511,9 @@ static int cr2res_cal_flat(
         {"Open", "Decker1", "Decker2"} ;
 
     /* RETRIEVE INPUT PARAMETERS */
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_flat.subtract_nolight_rows");
+    subtract_nolight_rows = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.calib_cosmics_corr");
     calib_cosmics_corr = cpl_parameter_get_bool(param);
@@ -659,13 +671,14 @@ static int cr2res_cal_flat(
                 /* Call the reduction function */
                 if (cr2res_cal_flat_reduce(raw_one_setting_decker,
                             trace_wave_frame, detlin_frame, master_dark_frame, 
-                            bpm_frame, trace_filter, calib_cosmics_corr, 
-                            bpm_low, bpm_high, bpm_lines_ratio, trace_degree, 
-                            trace_min_cluster, trace_smooth_x, trace_smooth_y, 
-                            trace_threshold, trace_opening, extr_method, 
-                            extract_oversample, extract_swath_width, 
-                            extract_height, extract_smooth_slit,
-                            det_nr, reduce_order, reduce_trace,
+                            bpm_frame, trace_filter, subtract_nolight_rows, 
+                            calib_cosmics_corr, bpm_low, bpm_high, 
+                            bpm_lines_ratio, trace_degree, trace_min_cluster, 
+                            trace_smooth_x, trace_smooth_y, trace_threshold, 
+                            trace_opening, extr_method, extract_oversample, 
+                            extract_swath_width, extract_height, 
+                            extract_smooth_slit, det_nr, reduce_order, 
+                            reduce_trace,
                             &(master_flat[det_nr-1]),
                             &(trace_wave[i][det_nr-1]),
                             &(slit_func[det_nr-1]),
@@ -864,6 +877,7 @@ static int cr2res_cal_flat(
   @param master_dark_frame  Associated master dark
   @param bpm_frame          Associated BPM
   @param filter_traces      Flag to Filter out traces
+  @param subtract_nolight_rows
   @param calib_cosmics_corr Flag to correct for cosmics
   @param bpm_low            Threshold for BPM detection
   @param bpm_high           Threshold for BPM detection
@@ -899,6 +913,7 @@ static int cr2res_cal_flat_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   bpm_frame,
         int                     filter_traces,
+        int                     subtract_nolight_rows,
         int                     calib_cosmics_corr,
         double                  bpm_low,
         double                  bpm_high,
@@ -980,7 +995,6 @@ static int cr2res_cal_flat_reduce(
         return -1 ;
     }
 
-    int subtract_nolight_rows = 0 ;
     /* Calibrate the Data */
     cpl_msg_info(__func__, "Calibrate the input images") ;
     cpl_msg_indent_more() ;

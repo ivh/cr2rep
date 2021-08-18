@@ -70,6 +70,7 @@ static int cr2res_cal_wave_reduce(
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
+        int                     subtract_nolight_rows,
         cr2res_collapse         collapse,
         int                     ext_height,
         int                     ext_swath_width,
@@ -292,6 +293,14 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.subtract_nolight_rows",
+            CPL_TYPE_BOOL, "Subtract the no-light rows.",
+            "cr2res.cr2res_cal_wave", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "keep");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.collapse_method",
             CPL_TYPE_STRING, "Collapse the input images (MEAN or MEDIAN)",
             "cr2res.cr2res_cal_wave", "MEDIAN");
@@ -467,7 +476,7 @@ static int cr2res_cal_wave(
                             wl_degree, display, log_flag,
                             fallback_input_wavecal_flag,
                             keep_higher_degrees_flag, 
-                            clean_spectrum ;
+                            clean_spectrum, subtract_nolight_rows ;
     double                  ext_smooth_slit, wl_start, wl_end, wl_err, wl_shift,
                             display_wmin, display_wmax ;
     cr2res_collapse         collapse ;
@@ -514,6 +523,9 @@ static int cr2res_cal_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.trace_nb");
     reduce_trace = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_wave.subtract_nolight_rows");
+    subtract_nolight_rows = cpl_parameter_get_bool(param) ;
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.collapse_method");
     sval = cpl_parameter_get_string(param);
@@ -699,10 +711,10 @@ static int cr2res_cal_wave(
         if (cr2res_cal_wave_reduce(rawframes_une, rawframes_fpet, detlin_frame,
                     master_dark_frame, master_flat_frame, bpm_frame,
                     trace_wave_frame, lines_frame, det_nr, reduce_order,
-                    reduce_trace, collapse, ext_height, ext_swath_width,
-                    ext_oversample, ext_smooth_slit, wavecal_type, wl_degree, 
-                    wl_start, wl_end, wl_err, wl_shift, log_flag, 
-                    fallback_input_wavecal_flag,
+                    reduce_trace, subtract_nolight_rows, collapse, ext_height, 
+                    ext_swath_width, ext_oversample, ext_smooth_slit, 
+                    wavecal_type, wl_degree, wl_start, wl_end, wl_err, 
+                    wl_shift, log_flag, fallback_input_wavecal_flag,
                     keep_higher_degrees_flag, clean_spectrum,
                     display, display_wmin, 
                     display_wmax, 
@@ -820,6 +832,7 @@ static int cr2res_cal_wave(
   @param reduce_det         The detector to compute
   @param reduce_order       The order to compute (-1 for all)
   @param reduce_trace       The trace to compute (-1 for all)
+  @param subtract_nolight_rows
   @param collapse           CR2RES_COLLAPSE_MEAN or CR2RES_COLLAPSE_MEDIAN
   @param ext_height         Extraction related
   @param ext_swath_width    Extraction related
@@ -864,6 +877,7 @@ static int cr2res_cal_wave_reduce(
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
+        int                     subtract_nolight_rows,
         cr2res_collapse         collapse,
         int                     ext_height, 
         int                     ext_swath_width,
@@ -997,7 +1011,6 @@ static int cr2res_cal_wave_reduce(
         in_fpet = NULL ;
     }
 
-    int subtract_nolight_rows = 0 ;
     /* Calibrate the UNE images */
     if ((in_une_calib = cr2res_calib_imagelist(in_une, reduce_det, 0,
                     subtract_nolight_rows, 0, master_flat_frame, 

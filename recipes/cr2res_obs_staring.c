@@ -64,6 +64,7 @@ static int cr2res_obs_staring_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        int                     subtract_nolight_rows,
         int                     calib_cosmics_corr,
         int                     extract_oversample,
         int                     extract_swath_width,
@@ -219,6 +220,15 @@ static int cr2res_obs_staring_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
+
+    p = cpl_parameter_new_value(
+            "cr2res.cr2res_obs_staring.subtract_nolight_rows",
+            CPL_TYPE_BOOL, "Subtract the no-light rows",
+            "cr2res.cr2res_obs_staring", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "subtract_nolight_rows");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.extract_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
             "cr2res.cr2res_obs_staring", 5);
@@ -324,9 +334,9 @@ static int cr2res_obs_staring(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     extract_oversample, extract_swath_width,
-                            extract_height, reduce_det, ndit, nexp,
-                            disp_order, disp_trace ;
+    int                     subtract_nolight_rows, extract_oversample, 
+                            extract_swath_width, extract_height, reduce_det, 
+                            ndit, nexp, disp_order, disp_trace ;
     double                  extract_smooth, ra, dec, dit ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   trace_wave_frame ;
@@ -344,6 +354,9 @@ static int cr2res_obs_staring(
 
 
     /* RETRIEVE INPUT PARAMETERS */
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_staring.subtract_nolight_rows");
+    subtract_nolight_rows = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.extract_oversample");
     extract_oversample = cpl_parameter_get_int(param);
@@ -411,8 +424,9 @@ static int cr2res_obs_staring(
         /* Call the reduction function */
         if (cr2res_obs_staring_reduce(rawframes, 
                     trace_wave_frame, detlin_frame, master_dark_frame, 
-                    master_flat_frame, bpm_frame, 0, extract_oversample, 
-                    extract_swath_width, extract_height, extract_smooth, det_nr,
+                    master_flat_frame, bpm_frame, subtract_nolight_rows, 0, 
+                    extract_oversample, extract_swath_width, extract_height, 
+                    extract_smooth, det_nr,
                     &(extract[det_nr-1]),
                     &(slitfunc[det_nr-1]),
                     &(model[det_nr-1]),
@@ -468,6 +482,7 @@ static int cr2res_obs_staring(
   @param master_dark_frame      Associated master dark
   @param master_flat_frame      Associated master flat
   @param bpm_frame              Associated BPM
+  @param subtract_nolight_rows
   @param calib_cosmics_corr     Flag to correct for cosmics
   @param extract_oversample     Extraction related
   @param extract_swath_width    Extraction related
@@ -488,6 +503,7 @@ static int cr2res_obs_staring_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        int                     subtract_nolight_rows,
         int                     calib_cosmics_corr,
         int                     extract_oversample,
         int                     extract_swath_width,
@@ -569,7 +585,6 @@ static int cr2res_obs_staring_reduce(
         return -1 ;
     }
 
-    int subtract_nolight_rows = 0 ;
     /* Calibrate the images */
     if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
                     subtract_nolight_rows, 0, master_flat_frame, 

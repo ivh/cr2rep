@@ -61,6 +61,7 @@ static int cr2res_obs_2d_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        int                     subtract_nolight_rows,
         int                     calib_cosmics_corr,
         int                     reduce_det,
         int                     reduce_order,
@@ -201,6 +202,13 @@ static int cr2res_obs_2d_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_2d.subtract_nolight_rows",
+            CPL_TYPE_BOOL, "Subtract the no-light rows",
+            "cr2res.cr2res_obs_2d", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "subtract_nolight_rows");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_2d.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
             "cr2res.cr2res_obs_2d", 0);
@@ -277,8 +285,8 @@ static int cr2res_obs_2d(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     reduce_det, reduce_order, 
-                            reduce_trace ;
+    int                     reduce_det, reduce_order, reduce_trace, 
+                            subtract_nolight_rows ;
     cpl_frameset        *   rawframes ;
     cpl_frame           *   rawframe ;
     const cpl_frame     *   detlin_frame ;
@@ -297,6 +305,9 @@ static int cr2res_obs_2d(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_2d.detector");
     reduce_det = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_2d.subtract_nolight_rows");
+    subtract_nolight_rows = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_2d.order");
     reduce_order = cpl_parameter_get_int(param);
@@ -356,7 +367,8 @@ static int cr2res_obs_2d(
             /* Call the reduction function */
             if (cr2res_obs_2d_reduce(rawframe, trace_wave_frame, detlin_frame, 
                         master_dark_frame, master_flat_frame, bpm_frame,
-                        0, det_nr, reduce_order, reduce_trace,
+                        subtract_nolight_rows, 0, det_nr, reduce_order, 
+                        reduce_trace,
                         &(extract[det_nr-1]),
                         &(ext_plist[det_nr-1])) == -1) {
                 cpl_msg_warning(__func__, "Failed to reduce detector %d", 
@@ -398,6 +410,7 @@ static int cr2res_obs_2d(
   @param master_dark_frame      Associated master dark
   @param master_flat_frame      Associated master flat
   @param bpm_frame              Associated BPM
+  @param subtract_nolight_rows
   @param calib_cosmics_corr     Flag to correct for cosmics
   @param reduce_det             The detector to compute
   @param reduce_order           The order to reduce (-1 for all)
@@ -414,6 +427,7 @@ static int cr2res_obs_2d_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        int                     subtract_nolight_rows,
         int                     calib_cosmics_corr,
         int                     reduce_det,
         int                     reduce_order,
@@ -475,7 +489,6 @@ static int cr2res_obs_2d_reduce(
         return -1 ;
     }
 
-    int subtract_nolight_rows = 0 ;
     /* Calibrate the image */
     if ((in_calib = cr2res_calib_image(in, reduce_det, 0,
                     subtract_nolight_rows, 0, master_flat_frame, 

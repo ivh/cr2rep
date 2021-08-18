@@ -198,6 +198,14 @@ static int cr2res_util_calib_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value(
+            "cr2res.cr2res_util_calib.subtract_nolight_rows",
+            CPL_TYPE_BOOL, "Subtract the no-light rows",
+            "cr2res.cr2res_util_calib", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "subtract_nolight_rows");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_calib.calib_cosmics_corr",
             CPL_TYPE_BOOL, "Correct the Cosmics",
             "cr2res.cr2res_util_calib", FALSE);
@@ -267,7 +275,8 @@ static int cr2res_util_calib(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     clean_bad, calib_cosmics_corr, reduce_det ;
+    int                     clean_bad, calib_cosmics_corr, reduce_det, 
+                            subtract_nolight_rows ;
     cr2res_collapse         collapse ;
     const char          *   sval ;
     cpl_frameset        *   rawframes ;
@@ -303,6 +312,9 @@ static int cr2res_util_calib(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_calib.clean_bad");
     clean_bad = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_calib.subtract_nolight_rows");
+    subtract_nolight_rows = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_calib.calib_cosmics_corr");
     calib_cosmics_corr = cpl_parameter_get_bool(param);
@@ -380,7 +392,6 @@ static int cr2res_util_calib(
         }
 
         /* Calibrate the images */
-        int subtract_nolight_rows = 0 ;
         cpl_msg_info(__func__, "Calibrate the input images") ;
         if ((calibrated[det_nr-1] = cr2res_calib_imagelist(in, det_nr,
                         clean_bad, subtract_nolight_rows, 0, master_flat_frame,
