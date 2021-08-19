@@ -660,8 +660,12 @@ static int cr2res_cal_dark(
 
         /* Save the results */
         /* MASTER DARK */
-        filename = cpl_sprintf("%s_%s_%gx%d_master.fits", 
+        if (single_dit_ndit_setting) {
+            filename = cpl_sprintf("%s_master.fits", RECIPE_STRING);
+        } else {
+            filename = cpl_sprintf("%s_%s_%gx%d_master.fits", 
                     RECIPE_STRING, setting_id, dit, ndit); 
+        }
         if (cr2res_io_save_MASTER_DARK(filename, frameset, raw_one, parlist, 
                     master_darks, NULL, ext_plist, 
                     CR2RES_CAL_DARK_MASTER_PROCATG, RECIPE_STRING) != 0) {
@@ -688,8 +692,12 @@ static int cr2res_cal_dark(
         cpl_free(filename) ;
 
         /* BPM */
-        filename = cpl_sprintf("%s_%s_%gx%d_bpm.fits", 
-                    RECIPE_STRING, setting_id, dit, ndit); 
+        if (single_dit_ndit_setting) {
+            filename = cpl_sprintf("%s_bpm.fits", RECIPE_STRING);
+        } else {
+            filename = cpl_sprintf("%s_%s_%gx%d_bpm.fits", 
+                        RECIPE_STRING, setting_id, dit, ndit); 
+        }
         if (cr2res_io_save_BPM(filename, frameset, raw_one, parlist, bpms, NULL,
                     ext_plist, CR2RES_CAL_DARK_BPM_PROCATG, 
                     RECIPE_STRING) != 0) {
