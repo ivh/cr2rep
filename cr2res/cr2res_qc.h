@@ -40,13 +40,9 @@ double cr2res_dark_qc_ron(
 
 /* DETLIN */
 double cr2res_qc_detlin_median(
-        const cpl_imagelist     *   coeffs) ;
-double cr2res_qc_detlin_gain(
-        const cpl_imagelist     *   coeffs) ;
-int cr2res_qc_detlin_min_max_level(
-        const cpl_image     *   ima,
-        double              *   min_level,
-        double              *   max_level) ;
+        const cpl_imagelist     *   coeffs,
+        double                  *   min_level,
+        double                  *   max_level) ;
 
 /* FLAT */
 double cr2res_qc_flat_trace_center_y(

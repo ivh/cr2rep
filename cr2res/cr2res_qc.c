@@ -96,26 +96,31 @@ double cr2res_dark_qc_ron(
 /**
   @brief    Computes the detlin median non linearity 
   @param    coeffs  The detector non linearity coefficients
+  @param    min_level   [out] min level
+  @param    max_level   [out] max level
   @return   The computed median or -1.0 in error case
  */
 /*----------------------------------------------------------------------------*/
 double cr2res_qc_detlin_median(
-        const cpl_imagelist     *   coeffs)
+        const cpl_imagelist     *   coeffs,
+        double                  *   min_level,
+        double                  *   max_level) 
 {
-    double      qc_detlin_median ;
+    double      qc_detlin_median, qc_detlin_min, qc_detlin_max ;
     double      level;
     int         nimgs = 3, width, height;
     hdrl_imagelist * hdrl_coeffs;
     hdrl_image * img;
     hdrl_value value = {CR2RES_NONLIN_LEVEL, 0};
-    /* Check Entries */
-    if (coeffs == NULL) return -1.0 ;
 
-    /* TODO FIX - > the function returns occasioanlly NaN */
-    return 0.0 ;
+
+    /* Check Entries */
+    if (coeffs==NULL || min_level==NULL || max_level==NULL) return -1.0 ;
 
     /* Initialise */
     qc_detlin_median = -1.0 ;
+    qc_detlin_min = -1.0 ;
+    qc_detlin_max = -1.0 ;
 
     // Apply detlin correction on an image with constant value
     hdrl_coeffs = hdrl_imagelist_create((cpl_imagelist*) coeffs, NULL);
@@ -127,64 +132,20 @@ double cr2res_qc_detlin_median(
 
     // Then determine the median of that corrected image
     qc_detlin_median = cpl_image_get_median(hdrl_image_get_image(img));
+    qc_detlin_min = cpl_image_get_min(hdrl_image_get_image(img)) ;
+    qc_detlin_max = cpl_image_get_max(hdrl_image_get_image(img)) ;
 
     hdrl_imagelist_delete(hdrl_coeffs);
     hdrl_image_delete(img);
 
+    // TODO : Find out why the function return NaN sometimes - and Fix it
+    if (isnan(qc_detlin_median) || 
+            isnan(qc_detlin_min) ||
+            isnan(qc_detlin_max)) return -1.0 ;
+
+    *min_level = qc_detlin_min ;
+    *max_level = qc_detlin_max ;
     return qc_detlin_median ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Computes the detlin gain
-  @param    coeffs  The detector non linearity coefficients
-  @return   The computed gain or -1.0 in error case
- */
-/*----------------------------------------------------------------------------*/
-double cr2res_qc_detlin_gain(
-        const cpl_imagelist     *   coeffs)
-{
-    double      qc_detlin_gain ;
-
-    /* Check Entries */
-    if (coeffs == NULL) return -1.0 ;
-
-    /* Initialise */
-    qc_detlin_gain = -1.0 ;
-
-    /* TODO */
-    
-    return qc_detlin_gain ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Computes the detlin min and max level
-  @param    ima         input image
-  @param    min_level   [out] The computed min level
-  @param    max_level   [out] The computed max level
-  @return   0 if ok, -1 otherwise
- */
-/*----------------------------------------------------------------------------*/
-int cr2res_qc_detlin_min_max_level(
-        const cpl_image     *   ima,
-        double              *   min_level,
-        double              *   max_level)
-{
-    double      min_level_loc, max_level_loc ;
-
-    /* Check Entries */
-    if (ima == NULL || min_level == NULL || max_level == NULL) return -1 ;
-
-    /* Initialise */
-    *min_level = -1.0 ;
-    *max_level = -1.0 ;
-
-    /* TODO */
-    
-    *min_level = min_level_loc ;
-    *max_level = max_level_loc ;
-    return 0 ;
 }
 
 /*----------------------------------------------------------------------------*/

@@ -659,8 +659,7 @@ static int cr2res_cal_detlin_reduce(
     cpl_size                max_degree, l ;
     double                  low_thresh, high_thresh, median, sigma ;
     int                     qc_nb_bad, qc_nbfailed, qc_nbsuccess ;
-    double                  qc_median, qc_fitquality, qc_gain,
-                            qc_min_level, qc_max_level ;
+    double                  qc_median, qc_gain, qc_min_level, qc_max_level ;
     
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
@@ -920,10 +919,10 @@ static int cr2res_cal_detlin_reduce(
     median = cpl_image_get_median_dev(cur_coeffs, &sigma) ;
     low_thresh = median - bpm_kappa * sigma ;
     high_thresh = median + bpm_kappa * sigma ;
-    cpl_msg_info(__func__, "Low & high threshold for linear coeff: %.2e %.2e",
+    cpl_msg_debug(__func__, "Low & high threshold for linear coeff: %.2e %.2e",
            low_thresh, high_thresh );
-    cpl_msg_info(__func__, "Median, sigma: %.2e %.2e",
-           median, sigma );
+    cpl_msg_debug(__func__, "Median, sigma: %.2e %.2e", median, sigma );
+    qc_nb_bad = 0;
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
             idx = i + j*nx ;
@@ -931,6 +930,7 @@ static int cr2res_cal_detlin_reduce(
                     (pcur_coeffs[idx] < low_thresh || 
                      pcur_coeffs[idx] > high_thresh)) {
                 pbpm_loc[idx] = CR2RES_BPM_DETLIN ;
+                qc_nb_bad++; 
             }
         }
     }
@@ -950,13 +950,8 @@ static int cr2res_cal_detlin_reduce(
     cpl_mask_delete(bpm_mask); 
 
     /* Compute the QC parameters */
-    /* TODO  */
-    qc_nb_bad = 0;
-    qc_fitquality = 0.0;
-    qc_min_level = qc_max_level = 0 ;
-    cr2res_qc_detlin_min_max_level(NULL, &qc_min_level, &qc_max_level) ;
-    qc_median = cr2res_qc_detlin_median(coeffs_loc) ;
-    qc_gain = cr2res_qc_detlin_gain(coeffs_loc) ;
+    qc_median = cr2res_qc_detlin_median(coeffs_loc, &qc_min_level,
+            &qc_max_level) ;
 
     /* Store the QC parameters in the plist */
     cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_DETLIN_NBAD, 
@@ -965,12 +960,8 @@ static int cr2res_cal_detlin_reduce(
             qc_nbfailed) ;
     cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_DETLIN_NBSUCCESS,
             qc_nbsuccess) ;
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_DETLIN_FITQUALITY, 
-            qc_fitquality) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_DETLIN_MEDIAN, 
             qc_median) ;
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_DETLIN_GAIN, 
-            qc_gain) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_DETLIN_MINLEVEL,
             qc_min_level) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_DETLIN_MAXLEVEL,
