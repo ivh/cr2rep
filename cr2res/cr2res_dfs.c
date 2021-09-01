@@ -550,6 +550,7 @@ cpl_table * cr2res_dfs_create_lines_diagnostics_table(int nrows)
     cpl_table_new_column(out, CR2RES_COL_LINE_WIDTH, CPL_TYPE_DOUBLE);
     cpl_table_new_column(out, CR2RES_COL_FIT_QUALITY, CPL_TYPE_DOUBLE);
     cpl_table_new_column(out, CR2RES_COL_INTENSITY, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(out, CR2RES_COL_FPET_M, CPL_TYPE_DOUBLE);
     return out ;
 }
 /*----------------------------------------------------------------------------*/

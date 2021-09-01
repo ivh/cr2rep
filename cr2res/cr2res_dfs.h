@@ -66,6 +66,7 @@
 #define CR2RES_COL_LINE_WIDTH       "Line_Width"    /* In Pixels */
 #define CR2RES_COL_FIT_QUALITY      "Fit_Quality"   /*  */
 #define CR2RES_COL_INTENSITY        "Line_Intensity"/*  */
+#define CR2RES_COL_FPET_M           "FPET_Order"
 
 /*** Clusters Table ***/
 #define CR2RES_COL_XS               "xs"            /* pixel position */

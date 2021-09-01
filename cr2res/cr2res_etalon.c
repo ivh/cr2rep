@@ -1050,7 +1050,10 @@ cpl_polynomial * cr2res_etalon_wave_2d(
                 line_width = cpl_vector_get(sigmas[i], j) ;
                 line_intens = cpl_vector_get(heights[i], j) ;
                 fit_error = cpl_vector_get(fit_errors[i], j) ;
-
+                if (j>0){
+                    m = cpl_vector_get(fpe_wobs[i], j-1) \
+                     / fabs(lambda_cat - cpl_vector_get(fpe_wobs[i], j-1));
+                } else { m=0.0; }
                 cpl_table_set_int(lines_diagnostics_loc,
                         CR2RES_COL_ORDER, j, orders[i]) ;
                 cpl_table_set_int(lines_diagnostics_loc,
@@ -1069,6 +1072,8 @@ cpl_polynomial * cr2res_etalon_wave_2d(
                         CR2RES_COL_FIT_QUALITY, j, fit_error) ;
                 cpl_table_set_double(lines_diagnostics_loc,
                         CR2RES_COL_INTENSITY, j, line_intens) ;
+                cpl_table_set_double(lines_diagnostics_loc,
+                        CR2RES_COL_FPET_M, j, m) ;
             }
             cpl_polynomial_delete(wavesol_loc);
             /* Merge */
@@ -1083,7 +1088,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
             }
         }
     }
-
+    cpl_msg_debug(__func__,"%s",cpl_error_get_where());
     npeaks = cpl_vector_get_size(py);
     // Calculate absolute difference between polynomial and
     // catalog value for each line

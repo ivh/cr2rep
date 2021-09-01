@@ -1770,7 +1770,7 @@ def polyfit2d(
   @param    degrees to fit with shape (ndegrees, 2) with one entry per 
             xy combination, x degrees in the 1st column, and y degrees in the 2nd,
             Note that you need to include 0, 0 as well for the constant offset
-  @return   0 for all good, -1 for error
+  @return   Fitted polynomail, NULL for error
 
     Perform a 2D polynomial fit, where the fit degrees are explicitly specified.
 
