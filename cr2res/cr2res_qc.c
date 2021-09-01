@@ -129,6 +129,9 @@ double cr2res_qc_detlin_median(
     img = hdrl_image_new(width, height); 
     hdrl_image_add_scalar(img, value);
     cr2res_detlin_correct(img, hdrl_coeffs);
+    // mask the Nan values, that exist in the out of order pixels
+    // as well as bad pixels and wherever detlin failed
+    hdrl_image_reject_value(img, CPL_VALUE_NAN);
 
     // Then determine the median of that corrected image
     qc_detlin_median = cpl_image_get_median(hdrl_image_get_image(img));
@@ -138,7 +141,6 @@ double cr2res_qc_detlin_median(
     hdrl_imagelist_delete(hdrl_coeffs);
     hdrl_image_delete(img);
 
-    // TODO : Find out why the function return NaN sometimes - and Fix it
     if (isnan(qc_detlin_median) || 
             isnan(qc_detlin_min) ||
             isnan(qc_detlin_max)) return -1.0 ;
