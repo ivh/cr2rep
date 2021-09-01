@@ -1053,7 +1053,10 @@ cpl_polynomial * cr2res_etalon_wave_2d(
                 if (j>0){
                     m = cpl_vector_get(fpe_wobs[i], j-1) \
                      / fabs(lambda_cat - cpl_vector_get(fpe_wobs[i], j-1));
-                } else { m=0.0; }
+                } else {
+                    m = cpl_vector_get(fpe_wobs[i], j+1) \
+                     / fabs(lambda_cat - cpl_vector_get(fpe_wobs[i], j+1));
+                }
                 cpl_table_set_int(lines_diagnostics_loc,
                         CR2RES_COL_ORDER, j, orders[i]) ;
                 cpl_table_set_int(lines_diagnostics_loc,
