@@ -193,7 +193,7 @@ Nodding Observation                                                     \n\
       If STD star, compute the throughput                               \n\
         -> throughput                                                   \n\
                                                                         \n\
-  Library functions uѕed                                                \n\
+  Library functions used                                                \n\
     cr2res_io_find_TRACE_WAVE()                                         \n\
     cr2res_io_find_BPM()                                                \n\
     cr2res_obs_nodding_reduce()                                         \n\
