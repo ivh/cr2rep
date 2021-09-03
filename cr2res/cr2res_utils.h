@@ -78,7 +78,8 @@ cpl_polynomial * cr2res_fit_interorder(
 int cr2res_slit_pos(
         const cpl_table *    trace_wave,
         cpl_polynomial  ***  coef_slit,
-        cpl_polynomial  ***  coef_wave) ;
+        cpl_polynomial  ***  coef_wave,
+        int             *    size) ;
 
 int cr2res_slit_pos_image(
         const cpl_table *   trace_wave,

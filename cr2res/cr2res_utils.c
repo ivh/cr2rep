@@ -423,14 +423,12 @@ cpl_polynomial * cr2res_fit_interorder(
 int cr2res_slit_pos(
         const cpl_table *    trace_wave, 
         cpl_polynomial  ***  coef_slit, 
-        cpl_polynomial  ***  coef_wave)
+        cpl_polynomial  ***  coef_wave,
+        int             *    size)
 {
 
     if (trace_wave == NULL || coef_slit == NULL || 
             coef_wave == NULL) return -1;
-    if (*coef_slit == NULL || *coef_wave == NULL) return -1;
-
-    // load data
 
     cpl_vector      *  x;
     cpl_matrix      *  matrix_xy;
@@ -439,16 +437,16 @@ int cr2res_slit_pos(
     cpl_vector      *  vec_s;
     cpl_polynomial  *  wave;
     cpl_polynomial  *  line[3];
+    cpl_polynomial  *  poly;
     const cpl_array *  slit;
     int             *  order_idx_values;
     int             *  traces;
     const cpl_size maxdeg = 2;
-    int i, j, k, row;
+    int i, j, k, n, m, row;
     int order_idx, trace;
     double px, py, pw, ps;
     int nb_order_idx_values, nb_traces;
     cpl_error_code errcode;
-
 
     // pixels x, only one because thats the same for all traces
     x = cpl_vector_new(CR2RES_DETECTOR_SIZE);
@@ -457,6 +455,16 @@ int cr2res_slit_pos(
 
     order_idx_values = cr2res_trace_get_order_idx_values(trace_wave, 
             &nb_order_idx_values);
+    
+    // Initialize the new polynomials
+    *coef_wave = cpl_malloc(nb_order_idx_values * sizeof(cpl_polynomial*));
+    *coef_slit = cpl_malloc(nb_order_idx_values * sizeof(cpl_polynomial*));
+    for (i=0; i < nb_order_idx_values; i++) {
+        (*coef_wave)[i] = cpl_polynomial_new(2);
+        (*coef_slit)[i] = cpl_polynomial_new(2);
+    }
+    *size = nb_order_idx_values;
+
     for (i = 0; i < nb_order_idx_values; i++) {
         order_idx = order_idx_values[i];
         // For each trace of this order
@@ -483,14 +491,14 @@ int cr2res_slit_pos(
             slit = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_FRACTION, k);
 
             // calculate polynomials for all traces
-            for (i = 0; i < CR2RES_DETECTOR_SIZE; i++) {
+            for (n = 0; n < CR2RES_DETECTOR_SIZE; n++) {
                 // For each of the three edges (upper, all, lower) of a trace
-                for (k = 0; k < 3; k++){
+                for (m = 0; m < 3; m++){
                     row++;
-                    px = cpl_vector_get(x, i);
-                    py = cpl_polynomial_eval_1d(line[k], px, NULL);
+                    px = cpl_vector_get(x, n);
+                    py = cpl_polynomial_eval_1d(line[m], px, NULL);
                     pw = cpl_polynomial_eval_1d(wave, px, NULL);
-                    ps = cpl_array_get_double(slit, k, NULL);
+                    ps = cpl_array_get_double(slit, m, NULL);
 
                     cpl_matrix_set(matrix_xy, 0, row, px);
                     cpl_matrix_set(matrix_xy, 1, row, py);
@@ -508,16 +516,48 @@ int cr2res_slit_pos(
         }
 
         // fit 2D wavelengths
-        errcode = cpl_polynomial_fit((*coef_wave)[j], matrix_xy, NULL, vec_w, 
+        poly = (*coef_wave)[i];
+        errcode = cpl_polynomial_fit(poly, matrix_xy, NULL, vec_w, 
                 NULL, FALSE, NULL, &maxdeg);
         if (errcode != CPL_ERROR_NONE){
-            // TODO: What to do in case of error?
+            cpl_msg_error(__func__, "Polynomial fit failed with error: %s", cpl_error_get_message());
             cpl_error_reset();
+            for (i=0; i < nb_order_idx_values; i++) {
+                cpl_polynomial_delete((*coef_wave)[i]);
+                cpl_polynomial_delete((*coef_slit)[i]);
+            }
+            cpl_free(*coef_wave);
+            cpl_free(*coef_slit);
+            cpl_matrix_delete(matrix_xy);
+            cpl_matrix_delete(matrix_wd);
+            cpl_vector_delete(vec_s);
+            cpl_vector_delete(vec_w);
+            cpl_free(traces);
+            cpl_vector_delete(x);
+            cpl_free(order_idx_values);
+            return -1;
         }
-        errcode = cpl_polynomial_fit((*coef_slit)[j], matrix_wd, NULL, vec_s, 
+        
+        poly = (*coef_slit)[i];
+        errcode = cpl_polynomial_fit(poly, matrix_wd, NULL, vec_s, 
                 NULL, FALSE, NULL, &maxdeg);
         if (errcode != CPL_ERROR_NONE){
+            cpl_msg_error(__func__, "Polynomial fit failed with error: %s", cpl_error_get_message());
             cpl_error_reset();
+            for (i=0; i < nb_order_idx_values; i++) {
+                cpl_polynomial_delete((*coef_wave)[i]);
+                cpl_polynomial_delete((*coef_slit)[i]);
+            }
+            cpl_free(*coef_wave);
+            cpl_free(*coef_slit);
+            cpl_matrix_delete(matrix_xy);
+            cpl_matrix_delete(matrix_wd);
+            cpl_vector_delete(vec_s);
+            cpl_vector_delete(vec_w);
+            cpl_free(traces);
+            cpl_vector_delete(x);
+            cpl_free(order_idx_values);
+            return -1;
         }
         cpl_matrix_delete(matrix_xy);
         cpl_matrix_delete(matrix_wd);
@@ -561,19 +601,8 @@ int cr2res_slit_pos_image(
     cpl_polynomial ** coef_wave;
     int *order_idx_values;
 
-    order_idx_values = cr2res_trace_get_order_idx_values(trace_wave, 
-            &nb_order_idx_values);
-    cpl_free(order_idx_values);
-
-    coef_wave = cpl_malloc(nb_order_idx_values * sizeof(cpl_polynomial*));
-    coef_slit = cpl_malloc(nb_order_idx_values * sizeof(cpl_polynomial*));
-    for (i=0; i < nb_order_idx_values; i++) {
-        coef_wave[i] = cpl_polynomial_new(2);
-        coef_slit[i] = cpl_polynomial_new(2);
-    }
-
-    if (-1 == cr2res_slit_pos(trace_wave, &coef_slit, &coef_wave)){
-        for (i=0; i < nb_order_idx_values; i++){
+    if (cr2res_slit_pos(trace_wave, &coef_slit, &coef_wave, &nb_order_idx_values)){
+        for (i=0; i < nb_order_idx_values; i++) {
             cpl_polynomial_delete(coef_wave[i]);
             cpl_polynomial_delete(coef_slit[i]);
         }
@@ -596,7 +625,7 @@ int cr2res_slit_pos_image(
                 cpl_vector_set(vec_wd, 1, (double)y);
                 s = cpl_polynomial_eval(coef_slit[k], vec_wd);
 
-                if ((s > 0) && (s < 10)) {
+                if ((s >= 0) && (s <= 1)) {
                     cpl_image_set(*slitpos, x, y, s);
                     cpl_image_set(*wavelength, x, y, w);
                 }
