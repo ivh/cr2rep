@@ -596,7 +596,7 @@ int cr2res_io_get_ext_idx(
 
     /* EXTNAME expectation */
     if (wished_ext_nb < 0) {
-        /* Warning only for data - error are sometimeѕ optional */
+        /* Warning only for data - error are sometimes optional */
         if (data == 1)
             cpl_msg_warning(__func__,
         "EXTNAME is supposed to match CHIPn.INT1 or CHIPnERR.INT1 (n=1/2/3)") ;
@@ -616,7 +616,7 @@ int cr2res_io_get_ext_idx(
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
   @return   A hdrl image or NULL in error case. 
             The returned object needs to be deallocated
-  This function load imageѕ files (also where the error is missing)
+  This function load images files (also where the error is missing)
   with the proper EXTNAME convention
  */
 /*----------------------------------------------------------------------------*/
@@ -720,7 +720,7 @@ hdrl_imagelist * cr2res_io_load_image_list(
               needs to be deallocated
   The returned hdrl image list contains the list of all data images
   for a given detector from a list of input image frames
-  This function load imageѕ files (also where the error is missing)
+  This function load images files (also where the error is missing)
   with the proper EXTNAME convention
  */
 /*----------------------------------------------------------------------------*/

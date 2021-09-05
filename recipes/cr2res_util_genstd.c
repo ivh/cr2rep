@@ -78,7 +78,7 @@ Photospheric flux table generation                                      \n\
                                                                         \n\
   Algorithm                                                             \n\
                                                                         \n\
-  Library functions uѕed                                                \n\
+  Library functions used                                                \n\
 " ;
 
 /*-----------------------------------------------------------------------------

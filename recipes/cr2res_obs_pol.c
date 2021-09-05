@@ -112,7 +112,7 @@ static char cr2res_obs_pol_description[] = "\
 Polarimetry Observation                                                 \n\
   The input raw frames are separated in A and B nodding positions. A    \n\
   and B frames are reduced separately. The frames are grouped by blocks \n\
-  of 4 frames. Each block generateѕ 8 extractions. For each order       \n\
+  of 4 frames. Each block generates 8 extractions. For each order       \n\
   found, 8 spectra are passed to the demodulation functions.            \n\
   The results are stored in polarimetry tables (1 per group of 4        \n\
   frames). The polarimetry tables are then merged together if there are \n\
@@ -164,7 +164,7 @@ Polarimetry Observation                                                 \n\
         Compute 8 extracted tables (2 per image):                       \n\
             1u, 1d, 2u, 2d, 3u, 3d, 4u, 4d                              \n\
             where u/d are for up and down                               \n\
-                  1->4 iѕ derived with cr2res_pol_sort_frames()         \n\
+                  1->4 is derived with cr2res_pol_sort_frames()         \n\
                   The decker info is used to derive the 8 slit fractions\n\
         Count norders the number of different orders in those 8 tables  \n\
             [Note : 1 extracted table has 1 spectrum per order]         \n\
@@ -176,13 +176,13 @@ Polarimetry Observation                                                 \n\
           Call cr2res_pol_demod_null()                                  \n\
             -> demod_null(o, g)                                         \n\
           Call cr2res_pol_demod_intens()                                \n\
-            -> demod_intenѕ(o, g)                                       \n\
+            -> demod_intens(o, g)                                       \n\
         Create pol_spec(g) from demod_stokes(g),                        \n\
                                 demod_null(g),                          \n\
-                                demod_intenѕ(g)                         \n\
+                                demod_intens(g)                         \n\
       Merge pol_spec(g) into pol_spec                                   \n\
                                                                         \n\
-  Library functions uѕed                                                \n\
+  Library functions used                                                \n\
     cr2res_io_find_TRACE_WAVE()                                         \n\
     cr2res_io_find_BPM()                                                \n\
     cr2res_obs_pol_reduce()                                             \n\
@@ -1028,7 +1028,7 @@ static int cr2res_obs_pol_reduce_one(
         }
         cpl_msg_debug(__func__, "%d different orders found", norders) ;
 
-        /* Allocate data containerѕ */
+        /* Allocate data containers */
         demod_wl = cpl_malloc(norders * sizeof(cpl_vector*)) ;
         demod_stokes = cpl_malloc(norders * sizeof(cpl_bivector*)) ;
         demod_null = cpl_malloc(norders * sizeof(cpl_bivector*)) ;
@@ -1187,7 +1187,7 @@ static int cr2res_obs_pol_reduce_one(
         return -1 ;
     }
 
-    /* Store the extenѕion header for product saving */
+    /* Store the extension header for product saving */
     ext_plist_loc = cpl_propertylist_load(first_fname,
             cr2res_io_get_ext_idx(first_fname, reduce_det, 1)) ;
 
@@ -1225,7 +1225,7 @@ static int cr2res_obs_pol_reduce_one(
   @param    norders         [out] Number of orders in the output table
   @return   newly allocated int array
 
-  The int array will need to be freed by the caller. Its size iѕ
+  The int array will need to be freed by the caller. Its size is
   norders. It contains the list of orders found in all the input ext tables
  */
 /*----------------------------------------------------------------------------*/

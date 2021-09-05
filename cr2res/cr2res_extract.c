@@ -971,7 +971,7 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
     /* Initialise */
     nb_traces = cpl_table_get_nrow(trace_table) ;
 
-    /* Check if all vectorѕ are not null */
+    /* Check if all vectors are not null */
     all_null = 1 ;
     for (i=0 ; i<nb_traces ; i++)
         if (spectrum[i] != NULL) {
@@ -1080,7 +1080,7 @@ cpl_table * cr2res_extract_SLITFUNC_create(
     nrows_max = -1 ;
     nb_traces = cpl_table_get_nrow(trace_table) ;
 
-    /* Check that all vectorѕ are not null */
+    /* Check that all vectors are not null */
     all_null = 1 ;
     for (i=0 ; i<nb_traces ; i++)
         if (slit_func[i] != NULL) {
@@ -2569,7 +2569,7 @@ cpl_table * cr2res_extract_EXTRACT2D_create(
     /* Initialise */
     nb_traces = cpl_table_get_nrow(trace_table) ;
 
-    /* Check if all vectorѕ are not null */
+    /* Check if all vectors are not null */
     all_null = 1 ;
     for (i=0 ; i<nb_traces ; i++)
         if (spectrum[i] != NULL) {

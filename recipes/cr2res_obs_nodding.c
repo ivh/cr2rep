@@ -1022,8 +1022,8 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_indent_more() ;
     /*
     The assumption is made here that :  
-        - The slit center is exactly in the middle of A and B poѕitions
-        - The nodthrow iѕ the distance in arcseconds between A and B
+        - The slit center is exactly in the middle of A and B positions
+        - The nodthrow is the distance in arcseconds between A and B
         - The slit size is 10 arcseconds
         - The B position is above the A position (--nodding-invert=false)
     */
@@ -1179,7 +1179,7 @@ static int cr2res_obs_nodding_reduce(
     cr2res_format_setting(cur_setting) ;
     cpl_propertylist_delete(plist) ;
 
-    /* Store the extenѕion header for product saving */
+    /* Store the extension header for product saving */
     plist = cpl_propertylist_load(first_fname,
             cr2res_io_get_ext_idx(first_fname, reduce_det, 1)) ;
                     

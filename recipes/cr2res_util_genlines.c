@@ -86,10 +86,10 @@ Generate Lines calibration tables                                       \n\
     Create the CPL table                                                \n\
     Save the table with all lines                                       \n\
     Loop on the selection files                                         \n\
-        Only keep the lines that fall in the selection rangeѕ (if any)  \n\
+        Only keep the lines that fall in the selection ranges (if any)  \n\
         Save the table with the selected lines                          \n\
                                                                         \n\
-  Library functions uѕed                                                \n\
+  Library functions used                                                \n\
     cr2res_io_save_EMISSION_LINES()                                     \n\
 " ;
 
@@ -357,7 +357,7 @@ static int cr2res_util_genlines(
         selection_fname = cpl_frame_get_filename(selection_frame) ;
         bivec_selected = NULL ;
 
-        /* Apply the ѕelection */
+        /* Apply the selection */
         bivec_selec = cpl_bivector_read(selection_fname) ;
         if (bivec_selec != NULL) {
             pbivec_x = cpl_bivector_get_x_data(bivec) ;

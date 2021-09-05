@@ -83,7 +83,7 @@ int cr2res_pol_resample(cpl_vector ** intens,
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Demodulate extracted spectra into Stokes parameter
-  @param    intens      Array of n extracted intenѕities
+  @param    intens      Array of n extracted intensities
   @param    wl          Array of n extracted wavelengths
   @param    errors      Array of n extracted errors
   @param    n           Length of intens, wl and erros [needs to be 8]
@@ -383,7 +383,7 @@ int cr2res_pol_resample(cpl_vector ** intens,
 
 /**
   @brief    Demodulate extracted spectra into Null spectrum
-  @param    intens      Array of n extracted intenѕities
+  @param    intens      Array of n extracted intensities
   @param    wl          Array of n extracted wavelengths
   @param    errors      Array of n extracted errors
   @param    n           Length of intens, wl and erros [needs to be 8]
@@ -511,7 +511,7 @@ cpl_bivector * cr2res_pol_demod_null(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Combine extracted spectra into Intensity spectrum
-  @param    intens      Array of n extracted intenѕities
+  @param    intens      Array of n extracted intensities
   @param    wl          Array of n extracted wavelengths
   @param    errors      Array of n extracted errors
   @param    n           Length of intens, wl and erros [needs to be 8]
@@ -712,7 +712,7 @@ cpl_table * cr2res_pol_POL_SPEC_create(
     if (orders==NULL || wl==NULL || stokes==NULL || null==NULL || intens==NULL)
         return NULL ;
 
-    /* Check if all bivectorѕ are not null */
+    /* Check if all bivectors are not null */
     all_null = 1 ;
     for (i=0 ; i<norders ; i++)
         if (wl[i]!=NULL && stokes[i]!=NULL && null[i]!=NULL && intens[i]!=NULL){
@@ -822,7 +822,7 @@ cpl_table * cr2res_pol_POL_SPEC_create(
   @param   frame4   Frame #4
   @return   an array of 4 integer indices or NULL in error case
 
-  If the Out array is giving the new position : ordering[0] iѕ the
+  If the Out array is giving the new position : ordering[0] is the
   position of frame1, ordering[1] is the position of frame2, etc...
   If the Frames order needs to be  Frame #4, #1, #3, #2, orderіng will
   contain [3, 0, 2, 1]
@@ -862,7 +862,7 @@ int * cr2res_pol_sort_frames(
   @param   frame4   Frame #4
   @return   an array of 4 integer indices or NULL in error case
 
-  If the Out array is giving the new position : ordering[0] iѕ the
+  If the Out array is giving the new position : ordering[0] is the
   position of frame1, ordering[1] is the position of frame2, etc...
   If the Frames order needs to be  Frame #2, #4, #3, #1, orderіng will
   contain [3, 0, 2, 1]

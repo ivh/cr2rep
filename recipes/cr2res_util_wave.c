@@ -127,7 +127,7 @@ Wavelength Calibration                                                  \n\
           CR2RES_ETALON: cr2res_wave_etalon()                           \n\
           CR2RES_XCORR:  cr2res_wave_xcorr()                            \n\
                                                                         \n\
-  Library Functions uѕed                                                \n\
+  Library Functions used                                                \n\
     cr2res_io_find_TRACE_WAVE()                                         \n\
     cr2res_io_load_TRACE_WAVE()                                         \n\
     cr2res_io_load_EXTRACT_1D()                                         \n\
@@ -540,7 +540,7 @@ static int cr2res_util_wave(
             updated_extracted_table[det_nr-1] = NULL ;
             out_wave_map[det_nr-1] = NULL ;
 
-            /* Store the extenѕion header for product saving */
+            /* Store the extension header for product saving */
             ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname,
                     cr2res_io_get_ext_idx(cur_fname, det_nr, 1)) ;
 

@@ -82,7 +82,7 @@ Plotting                                                                \n\
                                                                         \n\
   Algorithm                                                             \n\
                                                                         \n\
-  Library Functions uѕed                                                \n\
+  Library Functions used                                                \n\
 " ;
 
 /*-----------------------------------------------------------------------------

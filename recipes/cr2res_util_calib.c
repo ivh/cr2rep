@@ -107,7 +107,7 @@ Frames Calibration                                                      \n\
       Collapse the calibrated image list to collapsed(d)                \n\
       if (collapse) save collapsed                                      \n\
       else save every individual calibrated frame                       \n\
-  Library functions uѕed:                                               \n\
+  Library functions used:                                               \n\
     cr2res_io_load_image()                                              \n\
     cr2res_calib_imagelist()                                            \n\
     cr2res_io_save_CALIBRATED()                                         \n\

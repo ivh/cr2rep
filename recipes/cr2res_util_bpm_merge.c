@@ -75,7 +75,7 @@ BPM merging                                                             \n\
                                                                         \n\
   Algorithm         TODO                                                \n\
                                                                         \n\
-  Library functions uѕed:                                               \n\
+  Library functions used:                                               \n\
     cr2res_io_load_BPM()        TODO                                    \n\
     cr2res_io_save_BPM()                                                \n\
 ";

@@ -89,7 +89,7 @@ Maps creation                                                           \n\
         Call cr2res_slit_curv_gen_map() to generate slit_curv_map(d)    \n\
     Save wave_map, traces_map and slit_curv_map                         \n\
                                                                         \n\
-  Library Functions uѕed                                                \n\
+  Library Functions used                                                \n\
     cr2res_io_load_TRACE_WAVE()                                         \n\
     cr2res_trace_gen_image()                                            \n\
     cr2res_slit_curv_gen_map()                                          \n\
@@ -311,7 +311,7 @@ static int cr2res_util_trace_map(
             ext_nr = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
             if (ext_nr < 0) continue ;
 
-            /* Store the extenѕion header for product saving */
+            /* Store the extension header for product saving */
             ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname, ext_nr) ;
 
             /* Compute only one detector */

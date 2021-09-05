@@ -121,7 +121,7 @@ Spectrum Extraction                                                     \n\
           -> creates SLIT_MODEL(f,d), SLIT_FUNC(f,d), EXTRACT_1D(f,d)   \n\
       Save SLIT_MODEL(f), SLIT_FUNC(f), EXTRACT_1D(f)                   \n\
                                                                         \n\
-  Library functions uѕed                                                \n\
+  Library functions used                                                \n\
     cr2res_io_load_TRACE_WAVE()                                         \n\
     cr2res_trace_new_slit_fraction()                                    \n\
     cr2res_io_load_image()                                              \n\
@@ -464,7 +464,7 @@ static int cr2res_util_extract(
             extract_tab[det_nr-1] = NULL ;
             ext_plist[det_nr-1] = NULL ;
 
-            /* Store the extenѕion header for product saving */
+            /* Store the extension header for product saving */
             ext_nr = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
             if (ext_nr < 0) continue ;
             ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname, ext_nr) ;

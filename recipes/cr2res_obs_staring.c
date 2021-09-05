@@ -135,7 +135,7 @@ Staring Observation                                                     \n\
         -> model_master                                                 \n\
       Compute QC parameters                                             \n\
                                                                         \n\
-  Library functions uѕed                                                \n\
+  Library functions used                                                \n\
     cr2res_io_find_TRACE_WAVE()                                         \n\
     cr2res_io_find_BPM()                                                \n\
     cr2res_obs_staring_reduce()                                         \n\
@@ -633,7 +633,7 @@ static int cr2res_obs_staring_reduce(
     }
 	hdrl_image_delete(collapsed) ;
 
-    /* Store the extenѕion header for product saving */
+    /* Store the extension header for product saving */
     plist = cpl_propertylist_load(first_fname,
             cr2res_io_get_ext_idx(first_fname, reduce_det, 1)) ;
 

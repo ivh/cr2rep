@@ -314,7 +314,7 @@ int cr2res_wave_apply(
         }
     }
 
-    /* Only if we use fallback or keep hiher degreeѕ is the ouput */
+    /* Only if we use fallback or keep hiher degrees is the ouput */
     /* degree potentially higher than the requested one */
     if (!fallback_input_wavecal_flag && !keep_higher_degrees_flag) 
         out_wl_array_size = degree+1 ;
@@ -1444,7 +1444,7 @@ cpl_array * cr2res_wave_get_estimate(
     b1 = (wmax - wmin) / (CR2RES_DETECTOR_SIZE-1) ;
 
     if (cpl_error_get_code()) {
-        cpl_msg_warning(__func__, "Miѕsing WMIN/WMAX for order %d", order) ;
+        cpl_msg_warning(__func__, "Missing WMIN/WMAX for order %d", order) ;
         cpl_error_reset() ;
         c = 0.0 ;
     } else {
@@ -1800,7 +1800,7 @@ static cpl_vector * cr2res_wave_clean_spectrum(
   @brief    Recompute the wavelengths of an extracted spectrum
   @param    spectra 
   @param    tw      Trace Wave table
-  @return   The newly allocated extracted spectra with updated wavelengthѕ
+  @return   The newly allocated extracted spectra with updated wavelengths
  */
 /*----------------------------------------------------------------------------*/
 static cpl_table * cr2res_wave_recompute_wl(

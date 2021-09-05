@@ -164,7 +164,7 @@ Flat                                                                    \n\
                  --trace_min_cluster, --trace_smooth, --trace_opening)  \n\
                 on avg                                                  \n\
       For the following step, the computed TW is used if there is no    \n\
-      input TW provided, the provided one is uѕed otherwise.            \n\
+      input TW provided, the provided one is used otherwise.            \n\
       loop on the traces t:                                             \n\
         cr2res_extract_slitdec_curved(--extract_oversample,             \n\
                  --extract_swath_width, --extract_height,               \n\
@@ -177,7 +177,7 @@ Flat                                                                    \n\
       Compute QCs                                                       \n\
       store the qc parameters in the returned property list             \n\
                                                                         \n\
-  Library functions uѕed:                                               \n\
+  Library functions used:                                               \n\
     cr2res_io_extract_decker_frameset()                                 \n\
     cr2res_trace()                                                      \n\
     cr2res_extract_slitdec_curved()                                     \n\

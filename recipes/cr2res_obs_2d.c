@@ -118,7 +118,7 @@ static char cr2res_obs_2d_description[] = "\
       Call cr2res_extract2d_traces()                                    \n\
         -> extract                                                      \n\
                                                                         \n\
-  Library Functions uѕed                                                \n\
+  Library Functions used                                                \n\
     cr2res_io_find_TRACE_WAVE()                                         \n\
     cr2res_io_find_BPM()                                                \n\
     cr2res_obs_2d_reduce()                                              \n\

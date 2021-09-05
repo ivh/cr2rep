@@ -81,7 +81,7 @@ Dark                                                                    \n\
     CR2RES_CAL_DARK_BPM_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
-    group the input frames by different valueѕ of DET SEQ1 DIT          \n\
+    group the input frames by different values of DET SEQ1 DIT          \n\
                or/and DET NDIT or/and WLEN ID                           \n\
     loop on groups g:                                                   \n\
       loop on detectors d:                                              \n\
@@ -486,7 +486,7 @@ static int cr2res_cal_dark(
             master_darks[det_nr-1] = NULL ;
             bpms[det_nr-1] = NULL ;
 
-            /* Store the extenѕion header for product saving */
+            /* Store the extension header for product saving */
             ext_plist[det_nr-1] = cpl_propertylist_load(first_fname,
                     cr2res_io_get_ext_idx(first_fname, det_nr, 1)) ;
 

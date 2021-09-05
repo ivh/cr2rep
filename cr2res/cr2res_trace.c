@@ -406,7 +406,7 @@ cpl_image * cr2res_trace_gen_image(
   @param    nb_order_idx_values [output] number of diffrent order_idx values
   @return   newly allocated int array
 
-  The int array will need to be freed by the caller. Its size iѕ
+  The int array will need to be freed by the caller. Its size is
   nb_orders. It contains the list of different order_idx values found in the 
   TW table.
  */

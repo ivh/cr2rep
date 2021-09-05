@@ -94,7 +94,7 @@ Slit curvature computation                                              \n\
       Save the TRACE_WAVE                                               \n\
       Save the SLIT_CURVE_MAP                                           \n\
                                                                         \n\
-  Library functions uѕed                                                \n\
+  Library functions used                                                \n\
     cr2res_io_load_TRACE_WAVE()                                         \n\
     cr2res_slit_curv_compute_order_trace()                              \n\
     cr2res_slit_curv_gen_map()                                          \n\
@@ -337,7 +337,7 @@ static int cr2res_util_slit_curv(
             trace_wave[det_nr-1] = NULL ;
             lamp_image[det_nr-1] = NULL ;
 
-            /* Store the extenѕion header for product saving */
+            /* Store the extension header for product saving */
             ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname_tw,
                     cr2res_io_get_ext_idx(cur_fname_tw, det_nr, 1)) ;
 

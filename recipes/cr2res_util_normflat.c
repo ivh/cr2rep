@@ -80,7 +80,7 @@ static int cr2res_util_normflat(cpl_frameset *, const cpl_parameterlist *);
 static char cr2res_util_normflat_description[] = "\
 Flat normalization                                                      \n\
   The input RAW files are grouped by setting/decker and each group is   \n\
-  reduced ѕeparately. For each group, a slit model file with matching   \n\
+  reduced separately. For each group, a slit model file with matching   \n\
   setting/decker is expected.                                           \n\
                                                                         \n\
   Inputs                                                                \n\
@@ -115,7 +115,7 @@ Flat normalization                                                      \n\
                slit_model, --bpm_low, --bpm_high, --bpm_lines_ratio)    \n\
         -> master_flat, bpm                                             \n\
                                                                         \n\
-Library functions uѕed:                                                 \n\
+Library functions used:                                                 \n\
     cr2res_extract_frameset()                                           \n\
     cr2res_io_extract_decker_frameset()                                 \n\
     cr2res_io_find_SLIT_MODEL()                                         \n\

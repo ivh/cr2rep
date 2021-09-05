@@ -97,7 +97,7 @@ Traces detection                                                        \n\
                 columns (slit fraction, wl, slit curvature)             \n\
       Save the trace wave table                                         \n\
                                                                         \n\
-  Library functions uѕed                                                \n\
+  Library functions used                                                \n\
     cr2res_io_load_image()                                              \n\
     cr2res_trace()                                                      \n\
     cr2res_trace_add_extra_columns()                                    \n\
@@ -379,7 +379,7 @@ static int cr2res_util_trace(
             /* Initialise */
             traces[det_nr-1] = NULL ;
 
-            /* Store the extenѕion header for product saving */
+            /* Store the extension header for product saving */
             ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname,
                     cr2res_io_get_ext_idx(cur_fname, det_nr, 1)) ;
 

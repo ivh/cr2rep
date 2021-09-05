@@ -230,7 +230,7 @@ int cr2res_idp_save(
     if (mjd_end > 0 && mjd_start > 0) {
         cpl_propertylist_update_double(ext_head, "TELAPSE", mjd_end-mjd_start) ;
         cpl_propertylist_set_comment(ext_head, "TELAPSE", 
-                "Total elapѕed time in seconds [s]") ;
+                "Total elapsed time in seconds [s]") ;
 
         cpl_propertylist_update_double(ext_head, "TMID",
                 (mjd_end+mjd_start)/2.0) ;

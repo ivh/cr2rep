@@ -82,7 +82,7 @@ BPM splitting                                                           \n\
       loop on bpm types t:                                              \n\
         Save bpm_single_type(f, t) (UTIL_BPM_SPLIT)                     \n\
                                                                         \n\
-  Library functions uѕed:                                               \n\
+  Library functions used:                                               \n\
     cr2res_io_load_BPM()                                                \n\
     cr2res_bpm_from_mask()                                              \n\
     cr2res_io_save_BPM()                                                \n\

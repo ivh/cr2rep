@@ -239,7 +239,7 @@ int cr2res_detlin_compute(
         cpl_polynomial_fit(fitted_local, samppos, NULL, y_tofit, NULL,
             CPL_FALSE, NULL, &max_degree) != CPL_ERROR_NONE) {
         
-        /* Failed Fit - Fill the coefficientѕ */
+        /* Failed Fit - Fill the coefficients */
         cpl_matrix_unwrap(samppos) ;
         cpl_vector_delete(y_tofit);
         cpl_polynomial_delete(fitted_local) ;

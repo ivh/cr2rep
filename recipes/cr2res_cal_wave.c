@@ -179,7 +179,7 @@ Spectrum Extraction and Wavelength Calibration                          \n\
           CR2RES_ETALON: cr2res_wave_etalon()                           \n\
           CR2RES_XCORR:  cr2res_wave_xcorr()                            \n\
                                                                         \n\
-  Library Functions uѕed                                                \n\
+  Library Functions used                                                \n\
     cr2res_io_find_TRACE_WAVE()                                         \n\
     cr2res_io_find_BPM()                                                \n\
     cr2res_io_read_dits()                                               \n\
