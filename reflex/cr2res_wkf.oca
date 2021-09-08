@@ -31,8 +31,8 @@ if DPR.CATG like "%CALIB%" and DPR.TYPE like "%WAVE%" and DPR.TYPE like "%FPET%"
 }
 if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%JITTER%" then
 {
-    RAW.TYPE = "OBS_NODDING";
-    REFLEX.CATG = "OBS_NODDING";
+    RAW.TYPE = "OBS_NODDING_JITTER";
+    REFLEX.CATG = "OBS_NODDING_JITTER";
     CATG = "SCIENCE";
     REFLEX.TARGET = "T";
 }
