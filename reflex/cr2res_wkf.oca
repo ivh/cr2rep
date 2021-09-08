@@ -87,6 +87,12 @@ action FLAT_action
         and inputFile.INSTRUME==INSTRUME        
         and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
 
+	minRet = 1; maxRet = 1;
+    select file as UTIL_WAVE_TW from calibFiles where
+        PRO.CATG=="UTIL_WAVE_TW"
+        and inputFile.INSTRUME==INSTRUME        
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
     recipe cr2res_cal_flat;
 
     product CAL_FLAT_MASTER_WKF { PRO.CATG="CAL_FLAT_MASTER_WKF"; PRO.EXT="tpl_0000.fits";}
