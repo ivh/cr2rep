@@ -476,9 +476,9 @@ double cr2res_qc_obs_nodding_standard_flux(
     char        *   colname;
     double      *   ext_data;
     double      *   wl_data;
-    double          wl_start ;
+    double          wl_start, wl_stop ;
     cpl_vector  *   vector, *vector2;
-    int             nrows, wl_start_index, i ;
+    int             nrows, wl_start_index, wl_stop_index, i ;
 
     /* Check Entries */
     if (extracted == NULL) return -1.0 ;
@@ -486,19 +486,38 @@ double cr2res_qc_obs_nodding_standard_flux(
     /* Initialise */
     qc_flux = -1.0 ;
     wl_start = -1.0 ;
+    wl_stop = -1 ;
     nrows = cpl_table_get_nrow(extracted);
 
     /* Get the wl boundaries */
-    if (!strcmp(setting, "Y1029"))
+    if (!strcmp(setting, "Y1029")) {
         wl_start = 1087.3 ;
-    else if (!strcmp(setting, "H1559"))
+        wl_stop = -1 ;
+    } else if (!strcmp(setting, "H1559")) {
         wl_start = 1504.8 ;
-    else if (!strcmp(setting, "K2217"))
+        wl_stop = -1 ;
+    } else if (!strcmp(setting, "K2217")) {
         wl_start = 2205.0 ;
-    else if (!strcmp(setting, "L3377"))
-        wl_start = 3611.0 ;
-    else if (!strcmp(setting, "M4266"))
-        wl_start = 5050.4 ;
+        wl_stop = -1 ;
+    } else if (!strcmp(setting, "L3377")) {
+        wl_start = 3828.70 ;
+        wl_stop = 3829.30 ;
+    } else if (!strcmp(setting, "M4266")) {
+        wl_start = 3953.00 ;
+        wl_stop = 3953.90 ;
+    } else if (!strcmp(setting, "Y1028")) {
+        wl_start = 1045.70 ;
+        wl_stop =  1047.00 ;
+    } else if (!strcmp(setting, "J1228")) {
+        wl_start = 1245.50 ;
+        wl_stop =  1246.40 ;
+    } else if (!strcmp(setting, "H1567")) {
+        wl_start = 1695.20 ;
+        wl_stop =  1696.20 ;
+    } else if (!strcmp(setting, "K2148")) {
+        wl_start = 2312.60 ;
+        wl_stop = 2313.30 ;
+    }
 
     if (wl_start < 0.0) {
         cpl_msg_warning(__func__, 
@@ -520,26 +539,36 @@ double cr2res_qc_obs_nodding_standard_flux(
 
     wl_start_index = -1 ;
     for (i=0 ; i<nrows ; i++) {
-        if (wl_data[i] > wl_start && wl_start_index <0) {
+        if (wl_data[i] > wl_start && wl_start_index < 0) {
             wl_start_index = i ;
             break ;
         }
     }
+    wl_stop_index = -1;
+    if (wl_stop > 0.0) {
+        for (i=0 ; i<nrows ; i++) {
+            if (wl_data[i] <  wl_stop && wl_stop_index < 0) {
+                wl_stop_index = i ;
+                break ;
+            }
+        }
+    } else {
+        wl_stop_index = wl_start_index + CR2RES_QC_SIZE ;
+    }
 
-    if (wl_data[0] > wl_start || wl_start_index < 0 || 
-            wl_start_index > cpl_table_get_nrow(extracted)-CR2RES_QC_SIZE) {
+    if (wl_start_index < 0 || wl_stop_index >= cpl_table_get_nrow(extracted)) {
         cpl_msg_warning(__func__, 
-                "QC Standard Flux : Specified WL out of range %g", wl_start) ;
+                "QC Standard Flux : Specified WL out of range %g-%g",
+                wl_start, wl_stop) ;
         return -1.0 ;
     }
     cpl_msg_info(__func__, 
             "QC STD FLUX : Trace %d Order %d WL start %g, idx range: [%d-%d]", 
             CR2RES_QC_TRACE, CR2RES_QC_ORDER, wl_start, wl_start_index,
-            wl_start_index+CR2RES_QC_SIZE) ;
+            wl_stop_index) ;
 
     vector = cpl_vector_wrap(nrows, ext_data);
-    vector2 = cpl_vector_extract(vector, wl_start_index, 
-            wl_start_index+CR2RES_QC_SIZE, 1) ;
+    vector2 = cpl_vector_extract(vector, wl_start_index, wl_stop_index, 1) ;
     qc_flux = cpl_vector_get_mean(vector2);
     cpl_vector_unwrap(vector);
     cpl_vector_delete(vector2);
