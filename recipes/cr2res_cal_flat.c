@@ -312,7 +312,7 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.trace_min_cluster",
             CPL_TYPE_INT, "size in pixels of the smallest allowed cluster",
-            "cr2res.cr2res_cal_flat", 250000);
+            "cr2res.cr2res_cal_flat", 200000);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_min_cluster");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
