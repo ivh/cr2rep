@@ -2325,16 +2325,19 @@ static int cr2res_io_save_image(
         cpl_image_save(to_save, filename, type, qclist_loc, CPL_IO_EXTEND) ;
         cpl_free(wished_extname) ;
 
-        /* Save the NOISE */
-        wished_extname = cr2res_io_create_extname(det_nr, 0) ;
-        cpl_propertylist_update_string(qclist_loc, "EXTNAME", wished_extname) ;
-        if (data[det_nr-1] == NULL)    
-            to_save = NULL ;
-        else                        
-            to_save = hdrl_image_get_error(data[det_nr-1]);
-        cpl_image_save(to_save, filename, type, qclist_loc, CPL_IO_EXTEND) ;
+        /* Save the NOISE - always but for the BPM */
+        if (strcmp(protype, CR2RES_BPM_PROTYPE)) {
+            wished_extname = cr2res_io_create_extname(det_nr, 0) ;
+            cpl_propertylist_update_string(qclist_loc, "EXTNAME", 
+                    wished_extname) ;
+            if (data[det_nr-1] == NULL)    
+                to_save = NULL ;
+            else                        
+                to_save = hdrl_image_get_error(data[det_nr-1]);
+            cpl_image_save(to_save, filename, type, qclist_loc, CPL_IO_EXTEND) ;
+            cpl_free(wished_extname) ;
+        }
         cpl_propertylist_delete(qclist_loc) ;
-        cpl_free(wished_extname) ;
     }
 
 	return 0 ;
