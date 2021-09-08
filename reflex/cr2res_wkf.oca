@@ -61,7 +61,7 @@ select execute(WAVE_action) from inputFiles
   	group by TPL.START as (TPL_A,tpl);
 
 select execute(OBS_NODDING_action) from inputFiles 
-    where REFLEX.CATG=="OBS_NODDING"
+    where REFLEX.CATG=="OBS_NODDING_JITTER"
   	group by TPL.START as (TPL_A,tpl);
 
 
