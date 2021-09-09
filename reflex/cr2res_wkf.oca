@@ -46,7 +46,8 @@ if PRO.CATG is string and INSTRUME=="CRIRES" then
 // Selection rules
 select execute(DARK_action) from inputFiles 
     where REFLEX.CATG=="DARK"
-  	group by TPL.START as (TPL_A,tpl);
+  	group by TPL.START, DET.SEQ1.DIT  as (TPL_A,tpl);
+
 
 select execute(FLAT_action) from inputFiles 
     where REFLEX.CATG=="FLAT"
