@@ -518,6 +518,10 @@ static int cr2res_obs_nodding(
             CR2RES_CAL_DETLIN_COEFFS_PROCATG);
     master_dark_frame = cpl_frameset_find_const(frameset,
             CR2RES_CAL_DARK_MASTER_PROCATG) ; 
+    if (master_dark_frame != NULL) {
+        cpl_msg_warning(__func__,
+                "Providing a MASTER DARK is not recommended for this recipe") ;
+    }
     photo_flux_frame = cpl_frameset_find_const(frameset,
             CR2RES_PHOTO_FLUX_PROCATG) ; 
     master_flat_frame = cpl_frameset_find_const(frameset,
