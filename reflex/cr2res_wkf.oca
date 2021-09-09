@@ -54,11 +54,7 @@ select execute(FLAT_action) from inputFiles
   	group by TPL.START as (TPL_A,tpl);
 
 select execute(WAVE_action) from inputFiles 
-    where REFLEX.CATG=="WAVE_UNE"
-  	group by TPL.START as (TPL_A,tpl);
-
-select execute(WAVE_action) from inputFiles 
-    where REFLEX.CATG=="WAVE_FPET"
+    where REFLEX.CATG=="WAVE_UNE" or REFLEX.CATG=="WAVE_FPET"
   	group by TPL.START as (TPL_A,tpl);
 
 select execute(OBS_NODDING_action) from inputFiles 
