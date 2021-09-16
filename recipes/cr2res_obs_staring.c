@@ -438,7 +438,7 @@ static int cr2res_obs_staring(
         cpl_msg_indent_less() ;
     }
 
-    /* Ѕave Products */
+    /* Save Products */
     out_file = cpl_sprintf("%s_slitfunc.fits", RECIPE_STRING) ;
     cr2res_io_save_SLIT_FUNC(out_file, frameset, rawframes, parlist,
             slitfunc, NULL, ext_plist, CR2RES_OBS_STARING_SLITFUNC_PROCATG,

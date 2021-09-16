@@ -738,7 +738,7 @@ static int cr2res_cal_wave(
         cpl_msg_indent_less() ;
     }
 
-    /* Ѕave Products UNE */
+    /* Save Products UNE */
     if (rawframes_une != NULL) {
         out_file = cpl_sprintf("%s_tw_une.fits", RECIPE_STRING) ;
         cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes_une, parlist, 
@@ -768,7 +768,7 @@ static int cr2res_cal_wave(
     }
 
     if (rawframes_fpet != NULL) {
-        /* Ѕave Products UNE */
+        /* Save Products UNE */
         out_file = cpl_sprintf("%s_tw_fpet.fits", RECIPE_STRING) ;
         cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes_fpet, parlist, 
                 out_trace_wave_fpet, NULL, ext_plist_fpet, 

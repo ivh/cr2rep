@@ -444,7 +444,7 @@ static int cr2res_util_calib(
         cpl_msg_indent_less() ;
     }
 
-    /* Ѕave Products */
+    /* Save Products */
     if (collapse == CR2RES_COLLAPSE_NONE) {
         /* Save individual calibrated images */
         /* Loop on the RAW frames */

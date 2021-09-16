@@ -476,7 +476,7 @@ static int cr2res_obs_pol(
         cpl_msg_indent_less() ;
     }
 
-    /* Ѕave Products */
+    /* Save Products */
     out_file = cpl_sprintf("%s_pol_specA.fits", RECIPE_STRING) ;
     cr2res_io_save_POL_SPEC(out_file, frameset, rawframes, parlist,
             pol_speca, NULL, ext_plista, CR2RES_OBS_POL_SPECA_PROCATG, 

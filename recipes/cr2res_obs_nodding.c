@@ -621,7 +621,7 @@ static int cr2res_obs_nodding(
         cpl_msg_indent_less() ;
     }
 
-    /* Ѕave Products */
+    /* Save Products */
     out_file = cpl_sprintf("%s_combinedA.fits", RECIPE_STRING) ;
     cr2res_io_save_COMBINED(out_file, frameset, rawframes, parlist,
             combineda, NULL, ext_plist, CR2RES_OBS_NODDING_COMBINEDA_PROCATG, 

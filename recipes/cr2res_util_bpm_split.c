@@ -293,7 +293,7 @@ static int cr2res_util_bpm_split(
             cpl_msg_indent_less() ;
         }
 
-        /* Ѕave Products */
+        /* Save Products */
 
         /* SPLITTED_BPM */
         for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {

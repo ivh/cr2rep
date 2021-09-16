@@ -286,7 +286,7 @@ static int cr2res_util_bpm_merge(
         cpl_msg_indent_less() ;
     }
 
-    /* Ѕave Products */
+    /* Save Products */
 
     /* MERGED_BPM */
     out_file=cpl_sprintf("%s.fits", RECIPE_STRING) ;

@@ -694,7 +694,7 @@ static int cr2res_cal_flat(
                 cpl_msg_indent_less() ;
             }
 
-            /* Ѕave Products */
+            /* Save Products */
 
             /* SLIT_MODEL */
             if (nlabels == 1) {

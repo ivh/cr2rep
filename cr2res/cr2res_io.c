@@ -2321,7 +2321,7 @@ static int cr2res_io_save_image(
         /* Set BPMs as NaNs */
         if (to_save != NULL) cr2res_io_set_bpm_as_NaNs(to_save) ;
 
-        /* Ѕave */
+        /* Save */
         cpl_image_save(to_save, filename, type, qclist_loc, CPL_IO_EXTEND) ;
         cpl_free(wished_extname) ;
 

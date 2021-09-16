@@ -378,7 +378,7 @@ static int cr2res_obs_2d(
             cpl_msg_indent_less() ;
         }
 
-        /* Ѕave Products */
+        /* Save Products */
 
         /* Extracted */
         out_file = cpl_sprintf("%s_frame_%d_extracted.fits", 

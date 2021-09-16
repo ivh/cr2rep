@@ -405,7 +405,7 @@ static int cr2res_util_normflat(
             cpl_msg_indent_less() ;
             cpl_frame_delete(slitmodel_frame) ;
 
-            /* Ѕave Products */
+            /* Save Products */
 
             /* MASTER_FLAT */
             if (nlabels == 1) {
