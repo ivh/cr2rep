@@ -88,7 +88,7 @@ Dark                                                                    \n\
         Load the images and create the associate error for each of      \n\
                them using cr2res_detector_shotnoise_model(--gain)       \n\
         Collapse the images with hdrl_imagelist_collapse(--collapse.*)  \n\
-        Compute BPM form the collapsed master dark using                \n\
+        Compute BPM from the collapsed master dark using                \n\
                cr2res_bpm_compute(--bpm_kappa, --bpm_lines_ratio)       \n\
         Set the BPM in the master dark                                  \n\
         Compute the QCs with statistics and                             \n\
