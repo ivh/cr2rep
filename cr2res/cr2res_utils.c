@@ -412,11 +412,16 @@ cpl_polynomial * cr2res_fit_interorder(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Get a picture of the slit position (and wavelength?) depend on x, y
-  @param
-  @param
-  @param
-  @param
+  @brief    Create the polynomials needed to calculate the slit pos and 
+            wavelength at any point x, y within an order
+  @param    trace_wave input trace wave table with wavelength polynomials for
+                       all orders
+  @param    coef_slit  [out] slit pos polynomials as a function of the 
+                       wavelength and the pixel row y
+  @param    coef_wave  [out] wavelength polynomials as a function of the pixel
+                       position x, y
+  @param    size       [out] the number of orders (polynomials) in coef_slit and
+                       coef_wave
   @return   0 on success, -1 on fail
  */
 /*----------------------------------------------------------------------------*/
@@ -428,7 +433,7 @@ int cr2res_slit_pos(
 {
 
     if (trace_wave == NULL || coef_slit == NULL || 
-            coef_wave == NULL) return -1;
+            coef_wave == NULL || size == NULL) return -1;
 
     cpl_vector      *  x;
     cpl_matrix      *  matrix_xy;
@@ -535,6 +540,9 @@ int cr2res_slit_pos(
             cpl_free(traces);
             cpl_vector_delete(x);
             cpl_free(order_idx_values);
+            *coef_wave = NULL;
+            *coef_slit = NULL;
+            *size = 0;
             return -1;
         }
         
@@ -557,6 +565,9 @@ int cr2res_slit_pos(
             cpl_free(traces);
             cpl_vector_delete(x);
             cpl_free(order_idx_values);
+            *coef_wave = NULL;
+            *coef_slit = NULL;
+            *size = 0;
             return -1;
         }
         cpl_matrix_delete(matrix_xy);
@@ -569,6 +580,23 @@ int cr2res_slit_pos(
     // delete cpl pointers
     cpl_vector_delete(x);
     cpl_free(order_idx_values);
+
+    // Just check if anything went wrong in general
+    if (cpl_error_get_code() != CPL_ERROR_NONE){
+        for (i=0; i < nb_order_idx_values; i++) {
+                cpl_polynomial_delete((*coef_wave)[i]);
+                cpl_polynomial_delete((*coef_slit)[i]);
+            }
+        cpl_free(*coef_wave);
+        cpl_free(*coef_slit);
+        *coef_wave = NULL;
+        *coef_slit = NULL;
+        *size = 0;
+        cpl_msg_error(__func__, "ERROR: %s", cpl_error_get_message());
+        cpl_error_reset();
+        return -1;
+    }
+
     return 0;
 }
 
@@ -591,7 +619,6 @@ int cr2res_slit_pos_image(
 {
     if (trace_wave == NULL | slitpos == NULL | 
             wavelength == NULL) return -1;
-    if (*slitpos == NULL | *wavelength == NULL) return -1;
 
     double w, s;
     int i, k, x, y, nb_order_idx_values;
@@ -602,14 +629,14 @@ int cr2res_slit_pos_image(
     int *order_idx_values;
 
     if (cr2res_slit_pos(trace_wave, &coef_slit, &coef_wave, &nb_order_idx_values)){
-        for (i=0; i < nb_order_idx_values; i++) {
-            cpl_polynomial_delete(coef_wave[i]);
-            cpl_polynomial_delete(coef_slit[i]);
-        }
-        cpl_free(coef_wave);
-        cpl_free(coef_slit);
         return -1;
     }
+
+    // Create outut images
+    *slitpos = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE,
+                                                         CPL_TYPE_DOUBLE);
+    *wavelength = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE,
+                                                        CPL_TYPE_DOUBLE);
 
     vec_xy = cpl_vector_new(2);
     vec_wd = cpl_vector_new(2);

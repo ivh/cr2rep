@@ -23,7 +23,7 @@ DISTCLEANFILES = *~
 
 
 EXTRA_DIST = cr2res_utils_test_image.fits \
-        CRIFORS_H24_F_decker1_trace.fits \
+        cr2res_util_calib_calibrated_collapsed_extr1D_tw.fits \
         cr2res_slit_curv_test.fits \
         cr2res_slit_curv_test_tw.fits
 

@@ -2318,10 +2318,6 @@ int cr2res_extract2d_traces(
     slit_fraction = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
 
     // Calculate wavelength and slitfunction map once
-    wavemap = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE,
-                                                         CPL_TYPE_DOUBLE);
-    slitmap = cpl_image_new(CR2RES_DETECTOR_SIZE, CR2RES_DETECTOR_SIZE,
-                                                        CPL_TYPE_DOUBLE);
     if (cr2res_slit_pos_image(traces, &slitmap, &wavemap) != 0)
     {
         cpl_msg_error(__func__,
