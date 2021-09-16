@@ -135,7 +135,7 @@ static cpl_vector * cr2res_wave_etalon_measure_fringes(
   @param    log_flag        Flag to apply a log() to the lines intensities
   @param    fallback_input_wavecal_flag Flag to copy the input WL to the output 
                             when they are not computed
-  @param    keep_higher_degrees_flag  Flag to use higher polゆnomial degrees
+  @param    keep_higher_degrees_flag  Flag to use higher polynomial degrees
                             from the guess
   @param    clean_spectrum  Remove the lines that are not in the catalog (1d)
   @param    display         Flag to enable display functionalities

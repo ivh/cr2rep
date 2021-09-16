@@ -306,7 +306,7 @@ static int cr2res_util_splice(
             ext_nr_blaze = cr2res_io_get_ext_idx(blaze_file, det_nr, 1) ;
 
 
-            /* Skіp if any detector is missing */
+            /* Skip if any detector is missing */
             if (ext_nr_trace<0 || ext_nr_extracted<0 || ext_nr_blaze<0) 
                 continue ;
 
@@ -364,7 +364,7 @@ static int cr2res_util_splice(
             ext_nr_extracted = cr2res_io_get_ext_idx(extracted_file, det_nr, 1);
             ext_nr_blaze = cr2res_io_get_ext_idx(blaze_file, det_nr, 1) ;
 
-            /* Skіp if any detector is missing */
+            /* Skip if any detector is missing */
             if (ext_nr_trace<0 || ext_nr_extracted<0 || ext_nr_blaze<0) 
                 continue ;
 

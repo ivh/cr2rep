@@ -957,7 +957,7 @@ static int cr2res_obs_nodding_reduce(
     /* Check the sizes of A/B image lists */
     if (hdrl_imagelist_get_size(in_a) != hdrl_imagelist_get_size(in_b)
             || hdrl_imagelist_get_size(in_a) == 0) {
-        cpl_msg_error(__func__, "Іnconsistent A / B number of images") ;
+        cpl_msg_error(__func__, "Inconsistent A / B number of images") ;
         hdrl_imagelist_delete(in_a) ;
         hdrl_imagelist_delete(in_b) ;
         return -1 ;

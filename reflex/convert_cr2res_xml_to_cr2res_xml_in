@@ -24,7 +24,7 @@ sed -i -e 's#\(<property name="OCA File" class="ptolemy.data.expr.FileParameter"
 sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*interactive_window.py">#\1@prefix@/share/esopipes/cr2re-@VERSION@/reflex/interactive_window.py">#' $wkf_file
 
 # Workflow title 
-sed -i -e "s%CRIRES+ Workflow (v\..*\?)%CRIRESٍ+ Workflow (v\. @VERSION@)%g" $wkf_file
+sed -i -e "s%CRIRES+ Workflow (v\..*\?)%CRIRES+ Workflow (v\. @VERSION@)%g" $wkf_file
 
 # Leftover hardcoded paths
 #sed -i -e 's#\(===\).*">#\1===">#' $wkf_file

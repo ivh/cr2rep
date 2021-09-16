@@ -824,7 +824,7 @@ cpl_table * cr2res_pol_POL_SPEC_create(
 
   If the Out array is giving the new position : ordering[0] is the
   position of frame1, ordering[1] is the position of frame2, etc...
-  If the Frames order needs to be  Frame #4, #1, #3, #2, orderіng will
+  If the Frames order needs to be  Frame #4, #1, #3, #2, ordering will
   contain [3, 0, 2, 1]
 
   The returned positions correspond to the 1,2,3,4 inputs in the demod
@@ -864,7 +864,7 @@ int * cr2res_pol_sort_frames(
 
   If the Out array is giving the new position : ordering[0] is the
   position of frame1, ordering[1] is the position of frame2, etc...
-  If the Frames order needs to be  Frame #2, #4, #3, #1, orderіng will
+  If the Frames order needs to be  Frame #2, #4, #3, #1, ordering will
   contain [3, 0, 2, 1]
 
   The returned positions correspond to the 1,2,3,4 inputs in the demod

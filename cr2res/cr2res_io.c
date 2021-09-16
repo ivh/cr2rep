@@ -2456,7 +2456,7 @@ static int cr2res_io_save_imagelist(
 /*----------------------------------------------------------------------------*/
 /**
   @brief Create a cpl_imagelist from the data/error of a hdrl_imagelist
-  @param    in      the hdrl_imageḻist
+  @param    in      the hdrl_imagelist
   @param    data    1 -> data, 0 -> error
   @return  the newly allocated cpl_imagelist
  */
