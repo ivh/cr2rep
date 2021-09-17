@@ -3,15 +3,9 @@
 #sort files
 #for a in CRI* ; do set=$(dfits $a | fitsort -d INS.WLEN.ID | cut -f2 ); mkdir -p $set; mv $a $set; done
 
-BASE=`readlink -f /home/tom/pCOMM`
-echo $BASE
-cp -s $BASE/210313_detlin/cr2res_cal_detlin_coeffs.fits .
-
-cp /home/tom/pipes/cr2rep.git/catalogs/lines_u* .
-
-# copy sofs that have no raw frames
-#for s in Y[1-4][0-9][0-9][0-9]; do
-for s in [YJHKLM][1-4][0-9][0-9][0-9]; do
+mksetting () {
+    echo $BASE
+    s=$1
     cd $s
     rm -rf *_out *.sof
     cp -r $BASE/sofs/* .
@@ -42,11 +36,15 @@ for s in [YJHKLM][1-4][0-9][0-9][0-9]; do
      replace redman sarmiento -- *sof
     fi
 
-    cd ..
-done
+}
+export -f mksetting
 
 
-#echo "FIXING DARK SELECTION IN H AND K"
-#replace _15x10_ _15x1_ -- [HK]????/*sof
+BASE=`readlink -f /home/tom/pCOMM`
+cp -s $BASE/210313_detlin/cr2res_cal_detlin_coeffs.fits .
+cp /home/tom/pipes/cr2rep.git/catalogs/lines_u* .
+
+parallel "BASE=$BASE mksetting {}" ::: [YJHKLM][1-4][0-9][0-9][0-9]
+
 
 exit 0;
