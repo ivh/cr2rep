@@ -468,6 +468,12 @@ static int cr2res_util_wave(
     }
  
     /* Check Parameters */
+    if (display==TRUE && (reduce_order==-1 || reduce_det==0)){
+        cpl_msg_warning(__func__,
+                "Option --display can only be used with --order"
+                " and --detector");
+        display=FALSE;
+    }
     if (wl_degree < 0) {
         cpl_msg_error(__func__, "The degree needs to be >= 0");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
