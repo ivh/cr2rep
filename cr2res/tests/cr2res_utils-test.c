@@ -38,7 +38,7 @@
 #include <cr2res_slit_curv.h>
 
 #ifndef localdir
-#define localdir "."
+#define localdir getenv("srcdir")
 #endif
 
 
