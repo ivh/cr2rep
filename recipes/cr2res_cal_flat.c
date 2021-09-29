@@ -1161,7 +1161,7 @@ static int cr2res_cal_flat_reduce(
         } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
             if (cr2res_extract_slitdec_curved(collapsed, traces, NULL,order, 
                         trace_id, extract_height, extract_swath_width, 
-                        extract_oversample, extract_smooth_slit, 0.0,
+                        extract_oversample, extract_smooth_slit, 2.0E-7,
                         &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
                 cpl_msg_error(__func__, "Cannot (slitdec-) extract the trace") ;
                 slit_func_vec[i] = NULL ;
