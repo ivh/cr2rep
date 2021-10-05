@@ -627,7 +627,7 @@
         </property>
         <property name="italic" class="ptolemy.data.expr.Parameter" value="false">
         </property>
-        <property name="text" class="ptolemy.kernel.util.StringAttribute" value="CRIRES  Workflow (v. 0.6.2)">
+        <property name="text" class="ptolemy.kernel.util.StringAttribute" value="CRIRES+ Workflow (v. @VERSION@)">
             <property name="_style" class="ptolemy.actor.gui.style.TextStyle">
                 <property name="height" class="ptolemy.data.expr.Parameter" value="20">
                 </property>
@@ -1897,7 +1897,7 @@
         <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:421:1">
         </property>
     </property>
-    <property name="CALIB_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="CALIB_DATA_PATH_TO_REPLACE/cr2res-@VERSION@/">
+    <property name="CALIB_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="CALIB_DATA_PATH_TO_REPLACE/cr2re-@VERSION@/">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
 <property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>none</configure></property>
 <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>yang zhao, edward lee</configure></property>

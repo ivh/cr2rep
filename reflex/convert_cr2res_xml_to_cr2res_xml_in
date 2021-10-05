@@ -7,7 +7,7 @@ cp cr2res.xml $wkf_file
 # Input directories
 sed -i -e 's#\(<property name="ROOT_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1ROOT_DATA_PATH_TO_REPLACE/">#' $wkf_file
 sed -i -e 's#\(<property name="RAW_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/reflex_input/cr2res">#' $wkf_file
-sed -i -e 's#\(<property name="CALIB_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1CALIB_DATA_PATH_TO_REPLACE/cr2res-@VERSION@/">#' $wkf_file
+sed -i -e 's#\(<property name="CALIB_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1CALIB_DATA_PATH_TO_REPLACE/cr2re-@VERSION@/">#' $wkf_file
 
 # Working directories
 sed -i -e 's#\(<property name="BOOKKEEPING_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/reflex_book_keeping/cr2res">#' $wkf_file
