@@ -2,4 +2,6 @@ The following RecipeExecuters ahve'Input File Category' set.
 Therefore the list of values needs to be copied the new actor instance
 when re-instantiating.
 * cr2res_cal_wave
+CAL_DARK_BPM CAL_DARK_MASTER CAL_FLAT_MASTER EMISSION_LINES UTIL_WAVE_TW WAVE_UNE WAVE_FPET
 * cr2res_obs_nodding
+CAL_NODDING_OTHER CAL_NODDING_JITTER OBS_NODDING_OTHER OBS_NODDING_JITTER OBS_ASTROMETRY_OTHER OBS_ASTROMETRY_JITTER CAL_WAVE_TW CAL_DARK_BPM CAL_FLAT_MASTER

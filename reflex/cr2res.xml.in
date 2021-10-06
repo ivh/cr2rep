@@ -2,7 +2,7 @@
 <!DOCTYPE entity PUBLIC "-//UC Berkeley//DTD MoML 1//EN"
     "http://ptolemy.eecs.berkeley.edu/xml/dtd/MoML_1.dtd">
 <entity name="cr2res" class="ptolemy.actor.TypedCompositeActor">
-    <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:kepler-project.org/ns/:95220:49:6">
+    <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:10:54">
     </property>
     <property name="class" class="ptolemy.kernel.util.StringAttribute" value="ptolemy.actor.TypedCompositeActor">
         <property name="id" class="ptolemy.kernel.util.StringAttribute" value="null">
@@ -10,13 +10,13 @@
     </property>
     <property name="_createdBy" class="ptolemy.kernel.attributes.VersionAttribute" value="11.1.devel">
     </property>
-    <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={0, 23, 1920, 1177}, maximized=true}">
+    <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={66, 82, 1604, 943}, maximized=false}">
     </property>
-    <property name="_vergilSize" class="ptolemy.actor.gui.SizeAttribute" value="[1693, 1052]">
+    <property name="_vergilSize" class="ptolemy.actor.gui.SizeAttribute" value="[1288, 794]">
     </property>
-    <property name="_vergilZoomFactor" class="ptolemy.data.expr.ExpertParameter" value="0.7618807924908515">
+    <property name="_vergilZoomFactor" class="ptolemy.data.expr.ExpertParameter" value="0.5806216683478275">
     </property>
-    <property name="_vergilCenter" class="ptolemy.data.expr.ExpertParameter" value="{1020.0662039825143, 696.3967197812196}">
+    <property name="_vergilCenter" class="ptolemy.data.expr.ExpertParameter" value="{1079.1559876373835, 550.7498867888842}">
     </property>
     <property name="RAW_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="$ROOT_DATA_DIR/reflex_input/cr2res">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
@@ -412,7 +412,7 @@
         <property name="_location" class="ptolemy.kernel.util.Location" value="[675.0, 1210.0]">
         </property>
     </property>
-    <property name="END_PRODUCTS_SUBDIR" class="ptolemy.data.expr.StringParameter" value="2021-09-09T11:41:42/CRIRE.2021-08-16T23:22:50.334_tpl">
+    <property name="END_PRODUCTS_SUBDIR" class="ptolemy.data.expr.StringParameter" value="2021-10-06T11:21:26/CRIRE.2021-09-16T06:53:44.783_tpl">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
 <property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
 <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Edward A. Lee</configure></property>
@@ -480,7 +480,7 @@
         <property name="_location" class="ptolemy.kernel.util.Location" value="[1040.0, 175.0]">
         </property>
     </property>
-    <property name="GLOBAL_TIMESTAMP" class="ptolemy.data.expr.StringParameter" value="2021-09-09T11:41:42">
+    <property name="GLOBAL_TIMESTAMP" class="ptolemy.data.expr.StringParameter" value="2021-10-06T11:21:26">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
 <property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
 <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Edward A. Lee</configure></property>
@@ -1678,7 +1678,7 @@
             </property>
         </property>
     </property>
-    <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org/ns/:2479:15:19:urn:lsid:kepler-project.org/ns/:25158:87:133:urn:lsid:kepler-project.org/ns/:26405:3:18:urn:lsid:kepler-project.org/ns/:31989:42:154:urn:lsid:kepler-project.org/ns/:37190:12:69:urn:lsid:kepler-project.org/ns/:37190:30:36:urn:lsid:kepler-project.org/ns/:37190:34:1:urn:lsid:kepler-project.org/ns/:37281:9:14:urn:lsid:kepler-project.org/ns/:37281:14:20:urn:lsid:kepler-project.org/ns/:37281:17:1:urn:lsid:kepler-project.org/ns/:38242:10:90:urn:lsid:kepler-project.org/ns/:38254:2:25:urn:lsid:kepler-project.org/ns/:38254:5:24:urn:lsid:kepler-project.org/ns/:43955:75:13:urn:lsid:kepler-project.org/ns/:44497:4:20:urn:lsid:kepler-project.org/ns/:44576:51:80:urn:lsid:kepler-project.org/ns/:49494:10:13:urn:lsid:kepler-project.org/ns/:53338:16:7:urn:lsid:kepler-project.org/ns/:54756:7:10:urn:lsid:kepler-project.org/ns/:67333:2:190:urn:lsid:kepler-project.org/ns/:67539:7:4:urn:lsid:kepler-project.org/ns/:67605:8:15:urn:lsid:kepler-project.org/ns/:75138:4:46:urn:lsid:kepler-project.org/ns/:77712:2:54:urn:lsid:kepler-project.org/ns/:77718:10:19:urn:lsid:kepler-project.org/ns/:77807:2:16:urn:lsid:kepler-project.org/ns/:77926:2:13:urn:lsid:kepler-project.org/ns/:78556:39:27:urn:lsid:kepler-project.org/ns/:79818:11:30:urn:lsid:kepler-project.org/ns/:81185:9:14:urn:lsid:kepler-project.org/ns/:82258:34:11:urn:lsid:kepler-project.org/ns/:85713:334:222:urn:lsid:kepler-project.org/ns/:94825:11:522:urn:lsid:kepler-project.org/ns/:95220:21:37:urn:lsid:kepler-project.org/ns/:95220:32:132:urn:lsid:uuid:50f33d03-6188-4404-a912-ecd056bfb493:7:27">
+    <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org/ns/:2479:15:19:urn:lsid:kepler-project.org/ns/:25158:87:133:urn:lsid:kepler-project.org/ns/:26405:3:18:urn:lsid:kepler-project.org/ns/:31989:42:154:urn:lsid:kepler-project.org/ns/:37190:12:69:urn:lsid:kepler-project.org/ns/:37190:30:36:urn:lsid:kepler-project.org/ns/:37190:34:1:urn:lsid:kepler-project.org/ns/:37281:9:14:urn:lsid:kepler-project.org/ns/:37281:14:20:urn:lsid:kepler-project.org/ns/:37281:17:1:urn:lsid:kepler-project.org/ns/:38242:10:90:urn:lsid:kepler-project.org/ns/:38254:2:25:urn:lsid:kepler-project.org/ns/:38254:5:24:urn:lsid:kepler-project.org/ns/:43955:75:13:urn:lsid:kepler-project.org/ns/:44497:4:20:urn:lsid:kepler-project.org/ns/:44576:51:80:urn:lsid:kepler-project.org/ns/:49494:10:13:urn:lsid:kepler-project.org/ns/:53338:16:7:urn:lsid:kepler-project.org/ns/:54756:7:10:urn:lsid:kepler-project.org/ns/:67333:2:190:urn:lsid:kepler-project.org/ns/:67539:7:4:urn:lsid:kepler-project.org/ns/:67605:8:15:urn:lsid:kepler-project.org/ns/:75138:4:46:urn:lsid:kepler-project.org/ns/:77712:2:54:urn:lsid:kepler-project.org/ns/:77718:10:19:urn:lsid:kepler-project.org/ns/:77807:2:16:urn:lsid:kepler-project.org/ns/:77926:2:13:urn:lsid:kepler-project.org/ns/:78556:39:27:urn:lsid:kepler-project.org/ns/:79818:11:30:urn:lsid:kepler-project.org/ns/:81185:9:14:urn:lsid:kepler-project.org/ns/:82258:34:11:urn:lsid:kepler-project.org/ns/:85713:334:222:urn:lsid:kepler-project.org/ns/:94825:11:522:urn:lsid:kepler-project.org/ns/:95220:21:37:urn:lsid:kepler-project.org/ns/:95220:32:132:urn:lsid:uuid:50f33d03-6188-4404-a912-ecd056bfb493:7:27:urn:lsid:kepler-project.org/ns/:95220:49:6">
     </property>
     <property name="Setup Directory" class="ptolemy.vergil.kernel.attributes.RectangleAttribute">
         <property name="_hideName" class="ptolemy.data.expr.SingletonParameter" value="true">
@@ -3466,7 +3466,7 @@
 <property name="prop:semanticType41" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
 <property name="prop:entityId" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
 <property name="prop:class" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
-</property>        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:50f33d03-6188-4404-a912-ecd056bfb493:6:13">
+</property>        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:9:9">
         </property>
         <property name="class" class="ptolemy.kernel.util.StringAttribute" value="org.eso.FitsRouter">
             <property name="id" class="ptolemy.kernel.util.StringAttribute" value="null">
@@ -3476,7 +3476,7 @@
         </property>
         <property name="_location" class="ptolemy.kernel.util.Location" value="[240.0, 965.0]">
         </property>
-        <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:903:1:urn:lsid:kepler-project.org/ns/:31989:112:6:urn:lsid:kepler-project.org/ns/:37190:33:1:urn:lsid:kepler-project.org/ns/:38242:18:6:urn:lsid:kepler-project.org/ns/:94825:21:27:urn:lsid:kepler-project.org/ns/:95220:24:10">
+        <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:903:1:urn:lsid:kepler-project.org/ns/:31989:112:6:urn:lsid:kepler-project.org/ns/:37190:33:1:urn:lsid:kepler-project.org/ns/:38242:18:6:urn:lsid:kepler-project.org/ns/:94825:21:27:urn:lsid:kepler-project.org/ns/:95220:24:10:urn:lsid:uuid:50f33d03-6188-4404-a912-ecd056bfb493:6:13">
         </property>
         <property name="_hideName" class="ptolemy.data.expr.SingletonParameter" value="true">
         </property>
@@ -3509,6 +3509,16 @@
             </property>
         </property>
         <property name="OBS_NODDING_JITTER_config" class="ptolemy.data.expr.Parameter" value="&quot;OBS_NODDING_JITTER&quot;">
+        </property>
+        <property name="CAL_NODDING_OTHER_config" class="ptolemy.data.expr.Parameter" value="&quot;CAL_NODDING_OTHER&quot;">
+        </property>
+        <property name="OBS_NODDING_OTHER_config" class="ptolemy.data.expr.Parameter" value="&quot;OBS_NODDING_OTHER&quot;">
+        </property>
+        <property name="CAL_NODDING_JITTER_config" class="ptolemy.data.expr.Parameter" value="&quot;CAL_NODDING_JITTER&quot;">
+        </property>
+        <property name="OBS_ASTROMETRY_OTHER_config" class="ptolemy.data.expr.Parameter" value="&quot;OBS_ASTROMETRY_OTHER&quot;">
+        </property>
+        <property name="OBS_ASTROMETRY_JITTER_config" class="ptolemy.data.expr.Parameter" value="&quot;OBS_ASTROMETRY_JITTER&quot;">
         </property>
         <port name="in" class="ptolemy.actor.TypedIOPort">
             <property name="input"/>
@@ -3562,7 +3572,7 @@
         </port>
         <port name="UTIL_WAVE_TW" class="ptolemy.actor.TypedIOPort">
             <property name="output"/>
-            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
+            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="EAST">
             </property>
             <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
             </property>
@@ -3570,6 +3580,49 @@
         <port name="WAVE_FPET" class="ptolemy.actor.TypedIOPort">
             <property name="output"/>
             <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="EAST">
+            </property>
+            <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
+            </property>
+        </port>
+        <port name="CAL_NODDING_OTHER" class="ptolemy.actor.TypedIOPort">
+            <property name="output"/>
+            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
+            </property>
+            <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
+            </property>
+        </port>
+        <port name="OBS_NODDING_OTHER" class="ptolemy.actor.TypedIOPort">
+            <property name="output"/>
+            <property name="defaultValue" class="ptolemy.data.expr.Parameter">
+            </property>
+            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
+            </property>
+            <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
+            </property>
+        </port>
+        <port name="CAL_NODDING_JITTER" class="ptolemy.actor.TypedIOPort">
+            <property name="output"/>
+            <property name="defaultValue" class="ptolemy.data.expr.Parameter">
+            </property>
+            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
+            </property>
+            <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
+            </property>
+        </port>
+        <port name="OBS_ASTROMETRY_OTHER" class="ptolemy.actor.TypedIOPort">
+            <property name="output"/>
+            <property name="defaultValue" class="ptolemy.data.expr.Parameter">
+            </property>
+            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
+            </property>
+            <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
+            </property>
+        </port>
+        <port name="OBS_ASTROMETRY_JITTER" class="ptolemy.actor.TypedIOPort">
+            <property name="output"/>
+            <property name="defaultValue" class="ptolemy.data.expr.Parameter">
+            </property>
+            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
             </property>
             <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
             </property>
@@ -3762,7 +3815,7 @@
             </port>
         </entity>
         <entity name="Finished Datasets" class="ptolemy.actor.lib.gui.Display">
-            <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={0, 186, 1323, 196}, maximized=false}">
+            <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={66, 186, 1323, 223}, maximized=false}">
             </property>
             <property name="_paneSize" class="ptolemy.actor.gui.SizeAttribute" value="[1323, 153]">
             </property>
@@ -6867,7 +6920,7 @@
 <property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;A Composite actor is an aggregation of actors. It may have a local director that is responsible for executing the contained actors. A Composite actor with a local director is called an opaque actor. Composite actors do not require a local director. Composite actors with no local director &quot;inherit&quot; the director from the containing workflow and are called non-opaque.&lt;/p&gt;&#10;&#10;&lt;p&gt;To create a composite actor, drag and drop the Composite actor onto the Workflow canvas. Right-click the actor and select Open Actor from the drop-down menu. A new Kepler application window will open for designing the composite.&lt;/p&gt;</configure></property>
 </property>        <property name="_location" class="ptolemy.kernel.util.Location" value="[970.0, 865.0]">
         </property>
-        <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={0, 23, 1920, 1177}, maximized=true}">
+        <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={66, 27, 1854, 1053}, maximized=false}">
         </property>
         <property name="_vergilSize" class="ptolemy.actor.gui.SizeAttribute" value="[1693, 1052]">
         </property>
@@ -7193,7 +7246,7 @@
 <property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;A Composite actor is an aggregation of actors. It may have a local director that is responsible for executing the contained actors. A Composite actor with a local director is called an opaque actor. Composite actors do not require a local director. Composite actors with no local director &quot;inherit&quot; the director from the containing workflow and are called non-opaque.&lt;/p&gt;&#10;&#10;&lt;p&gt;To create a composite actor, drag and drop the Composite actor onto the Workflow canvas. Right-click the actor and select Open Actor from the drop-down menu. A new Kepler application window will open for designing the composite.&lt;/p&gt;</configure></property>
 </property>        <property name="_location" class="ptolemy.kernel.util.Location" value="[1135.0, 1070.0]">
         </property>
-        <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={0, 23, 1920, 1177}, maximized=true}">
+        <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={66, 27, 1854, 1053}, maximized=false}">
         </property>
         <property name="_vergilSize" class="ptolemy.actor.gui.SizeAttribute" value="[1693, 1052]">
         </property>
@@ -7351,7 +7404,7 @@
             </port>
         </entity>
         <entity name="cr2res_obs_nodding_1" class="org.eso.RecipeExecuter">
-            <property name="Input Files Category" class="ptolemy.data.expr.StringParameter" value="OBS_NODDING_JITTER CAL_WAVE_TW CAL_DARK_BPM CAL_FLAT_MASTER ">
+            <property name="Input Files Category" class="ptolemy.data.expr.StringParameter" value="&#10;CAL_NODDING_OTHER CAL_NODDING_JITTER OBS_NODDING_OTHER OBS_NODDING_JITTER OBS_ASTROMETRY_OTHER OBS_ASTROMETRY_JITTER CAL_WAVE_TW CAL_DARK_BPM CAL_FLAT_MASTER">
             </property>
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
 <property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
@@ -8167,7 +8220,7 @@
             </property>
         </entity>
         <entity name="Display" class="ptolemy.actor.lib.gui.Display">
-            <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={1265, 170, 508, 389}, maximized=false}">
+            <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={1265, 170, 508, 416}, maximized=false}">
             </property>
             <property name="_paneSize" class="ptolemy.actor.gui.SizeAttribute" value="[508, 346]">
             </property>
@@ -8352,7 +8405,7 @@
     <relation name="relation24" class="ptolemy.actor.TypedIORelation">
         <property name="width" class="ptolemy.data.expr.Parameter" value="1">
         </property>
-        <vertex name="vertex1" value="[555.0, 1115.0]">
+        <vertex name="vertex1" value="[740.0, 860.0]">
         </vertex>
     </relation>
     <relation name="relation" class="ptolemy.actor.TypedIORelation">
@@ -8375,6 +8428,16 @@
     </relation>
     <relation name="relation20" class="ptolemy.actor.TypedIORelation">
     </relation>
+    <relation name="relation21" class="ptolemy.actor.TypedIORelation">
+    </relation>
+    <relation name="relation25" class="ptolemy.actor.TypedIORelation">
+    </relation>
+    <relation name="relation26" class="ptolemy.actor.TypedIORelation">
+    </relation>
+    <relation name="relation27" class="ptolemy.actor.TypedIORelation">
+    </relation>
+    <relation name="relation29" class="ptolemy.actor.TypedIORelation">
+    </relation>
     <link port="cr2res_cal_dark.sof_in" relation="relation12"/>
     <link port="cr2res_cal_dark.sof_out" relation="relation22"/>
     <link port="Initialize.raw_data_dir" relation="relation14"/>
@@ -8390,6 +8453,11 @@
     <link port="FitsRouter.OBS_NODDING_JITTER" relation="relation23"/>
     <link port="FitsRouter.UTIL_WAVE_TW" relation="relation19"/>
     <link port="FitsRouter.WAVE_FPET" relation="relation20"/>
+    <link port="FitsRouter.CAL_NODDING_OTHER" relation="relation21"/>
+    <link port="FitsRouter.OBS_NODDING_OTHER" relation="relation25"/>
+    <link port="FitsRouter.CAL_NODDING_JITTER" relation="relation26"/>
+    <link port="FitsRouter.OBS_ASTROMETRY_OTHER" relation="relation27"/>
+    <link port="FitsRouter.OBS_ASTROMETRY_JITTER" relation="relation29"/>
     <link port="Close DataSet.current_dataset" relation="relation28"/>
     <link port="Close DataSet.final_files" relation="relation4"/>
     <link port="Close DataSet.global_timestamp" relation="relation5"/>
@@ -8424,6 +8492,11 @@
     <link port="SofCombiner.sof in" relation="relation22"/>
     <link port="SofCombiner.sof in" relation="relation24"/>
     <link port="SofCombiner.sof in" relation="relation3"/>
+    <link port="SofCombiner.sof in" relation="relation21"/>
+    <link port="SofCombiner.sof in" relation="relation25"/>
+    <link port="SofCombiner.sof in" relation="relation26"/>
+    <link port="SofCombiner.sof in" relation="relation27"/>
+    <link port="SofCombiner.sof in" relation="relation29"/>
     <link port="SofCombiner.sof out" relation="relation"/>
     <link port="Initialise Current Dataset.dataset" relation="relation11"/>
     <link port="Initialise Current Dataset.dataset_in" relation="relation13"/>
