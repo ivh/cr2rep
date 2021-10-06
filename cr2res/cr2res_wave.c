@@ -262,7 +262,7 @@ int cr2res_wave_apply(
         } else {
             if ((wavesol_init[i]=cr2res_get_trace_wave_poly(tw_in, 
                             CR2RES_COL_WAVELENGTH, order, trace_id)) == NULL) {
-                cpl_msg_error(__func__, "Cannot get the WL guess") ;
+                cpl_msg_warning(__func__, "Cannot get the WL guess") ;
                 cpl_bivector_delete(spectra[i]);
                 cpl_bivector_delete(spectra_err[i]);
                 spectra[i] = spectra_err[i] = NULL ;
@@ -281,7 +281,7 @@ int cr2res_wave_apply(
                                 CR2RES_COL_WAVELENGTH_ERROR,
                                 cr2res_get_trace_table_index(tw_in, order, 
                                     trace_id)))) == NULL) {
-                cpl_msg_error(__func__, "Cannot get the WL ERROR guess") ;
+                cpl_msg_warning(__func__, "Cannot get the WL ERROR guess") ;
                 cpl_bivector_delete(spectra[i]);
                 cpl_bivector_delete(spectra_err[i]);
                 cpl_polynomial_delete(wavesol_init[i]) ;
