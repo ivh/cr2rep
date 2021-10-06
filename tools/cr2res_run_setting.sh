@@ -26,7 +26,7 @@ esorex --log-file=03_cr2res_util_trace.log --output-dir=03_cr2res_util_trace_out
 echo "Next ${SETT}: cr2res_util_slit_curv 04_cr2res_util_slit_curv.sof"
 esorex --log-file=04_cr2res_util_slit_curv.log --output-dir=04_cr2res_util_slit_curv_out cr2res_util_slit_curv 04_cr2res_util_slit_curv.sof
 echo "Next ${SETT}: cr2res_util_extract 05_cr2res_util_extract.sof (extact flat)"
-esorex --log-file=05_cr2res_util_extract.log --output-dir=05_cr2res_util_extract_out cr2res_util_extract --oversample=4 --swath_width=800 --smooth_slit=3 -smooth_spec=2.0E-7 05_cr2res_util_extract.sof 
+esorex --log-file=05_cr2res_util_extract.log --output-dir=05_cr2res_util_extract_out cr2res_util_extract --smooth_slit=3 -smooth_spec=2.0E-7 05_cr2res_util_extract.sof 
 echo "Next ${SETT}: cr2res_util_normflat 06_cr2res_util_normflat.sof"
 esorex --log-file=06_cr2res_util_normflat.log --output-dir=06_cr2res_util_normflat_out cr2res_util_normflat 06_cr2res_util_normflat.sof
 
@@ -59,18 +59,18 @@ else
     esorex --log-file=09_cr2res_util_genlines.log  --output-dir=09_cr2res_util_genlines_out  cr2res_util_genlines 09_cr2res_util_genlines.sof
 
     echo "Next ${SETT}: cr2res_util_wave 11_cr2res_util_wave.sof"
-    esorex --log-file=11_cr2res_util_wave.log --output-dir=11_cr2res_util_wave_out cr2res_util_wave --wl_method=XCORR --wl_degree=0 --keep --wl_err=0.1 11_cr2res_util_wave.sof
+    esorex --log-file=11_cr2res_util_wave.log --output-dir=11_cr2res_util_wave_out cr2res_util_wave --wl_method=XCORR --wl_degree=0 --keep --wl_err=0.1 --fallback 11_cr2res_util_wave.sof
     #rm -f 11_cr2res_util_wave_out/cr2res_util_calib_calibrated_collapsed_extr1D_tw.fits
     #cp /home/tom/pCOMM/manucal/${SETT}_manucal_tw.fits 11_cr2res_util_wave_out/cr2res_util_calib_calibrated_collapsed_extr1D_tw.fits
 
     echo "Next ${SETT}: cr2res_util_wave 12_cr2res_util_wave.sof"
-    esorex --log-file=12_cr2res_util_wave.log --output-dir=12_cr2res_util_wave_out cr2res_util_wave --wl_method=XCORR --wl_degree=2 --wl_err=0.03 12_cr2res_util_wave.sof
+    esorex --log-file=12_cr2res_util_wave.log --output-dir=12_cr2res_util_wave_out cr2res_util_wave --wl_method=XCORR --wl_degree=2 --wl_err=0.03 --fallback 12_cr2res_util_wave.sof
     echo "Next ${SETT}: cr2res_util_calib 13_cr2res_util_calib.sof (calib+combine Etalon raw frames)"
     esorex --log-file=13_cr2res_util_calib.log --output-dir=13_cr2res_util_calib_out cr2res_util_calib --collapse="MEAN" 13_cr2res_util_calib.sof
     echo "Next ${SETT}: cr2res_util_extract 14_cr2res_util_extract.sof (extract Etalon)"
     esorex --log-file=14_cr2res_util_extract.log --output-dir=14_cr2res_util_extract_out cr2res_util_extract --swath_width=800 --oversample=4 --smooth_slit=3 14_cr2res_util_extract.sof
     echo "Next ${SETT}: cr2res_util_wave 15_cr2res_util_wave.sof"
-    esorex --log-file=15_cr2res_util_wave.log --output-dir=15_cr2res_util_wave_out cr2res_util_wave --wl_method=ETALON --wl_degree=4 15_cr2res_util_wave.sof
+    esorex --log-file=15_cr2res_util_wave.log --output-dir=15_cr2res_util_wave_out cr2res_util_wave --wl_method=ETALON --wl_degree=4 --fallback 15_cr2res_util_wave.sof
 
     show_wavecal.py 08_cr2res_util_extract_out/cr2res_util_calib_calibrated_collapsed_extr1D.fits 09_cr2res_util_genlines_out/lines_u_${CATNAME}.fits 09_cr2res_util_genlines_out/lines_u_${CATNAME}_une_sel.fits
     show_raw.py 07_cr2res_util_calib_out/cr2res_util_calib_calibrated_collapsed.fits # UNe
