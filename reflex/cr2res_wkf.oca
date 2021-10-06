@@ -177,6 +177,11 @@ action WAVE_action
 }
 action NODDING_action
 {
+	minRet = 1; maxRet = 1;
+    select file as PHOTO_FLUX from calibFiles where
+        PRO.CATG=="PHOTO_FLUX"
+        and inputFile.INSTRUME==INSTRUME ;
+
 	minRet = 0; maxRet = 1;
     select file as CAL_DARK_BPM_WKF from calibFiles where
         PRO.CATG=="CAL_DARK_BPM_WKF"
