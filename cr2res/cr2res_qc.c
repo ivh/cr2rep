@@ -255,7 +255,6 @@ double cr2res_qc_flat_trace_center_y(
 {
     cpl_vector * vector;
     cpl_array * array;
-    cpl_polynomial * poly;
     int * order_idx_values, nb_order_idx_values, central_order_idx, i;
     int * traces, nb_traces;
     double      qc_trace_center_y ;
@@ -288,7 +287,6 @@ double cr2res_qc_flat_trace_center_y(
 
     cpl_free(order_idx_values);
     cpl_free(traces);
-    cpl_polynomial_delete(poly);
 
     return qc_trace_center_y ;
 }
