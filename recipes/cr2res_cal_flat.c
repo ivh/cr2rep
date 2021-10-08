@@ -1073,6 +1073,12 @@ static int cr2res_cal_flat_reduce(
     if (tw_frame) {
         traces = cr2res_io_load_TRACE_WAVE(cpl_frame_get_filename(tw_frame), 
                 reduce_det) ;
+        if (traces == NULL) {
+            cpl_msg_error(__func__, "Cannot Load the provided TW file") ;
+            hdrl_image_delete(collapsed) ;
+            cpl_table_delete(computed_traces) ;
+            return -1 ;
+        }
     } else {
         traces = cpl_table_duplicate(computed_traces) ;
     }
