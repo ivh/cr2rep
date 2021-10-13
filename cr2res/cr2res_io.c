@@ -1610,6 +1610,7 @@ int cr2res_io_save_TRACE_WAVE(
         const char              *   procatg,
         const char              *   recipe)
 {
+
     return cr2res_io_save_table(filename, allframes, inframes, parlist, tables,
             qc_list, ext_plist, recipe, procatg, CR2RES_TW_PROTYPE) ;
 }
@@ -2127,6 +2128,7 @@ static int cr2res_io_save_table(
     } else {
         ext_head = cpl_propertylist_duplicate(ext_plist[0]);
         cpl_propertylist_erase(ext_head, "EXTNAME");
+        cpl_propertylist_erase(ext_head, "BUNIT");
     }
     wished_extname = cr2res_io_create_extname(1, 1) ;
     cpl_propertylist_update_string(ext_head, "EXTNAME", wished_extname) ;
@@ -2164,6 +2166,7 @@ static int cr2res_io_save_table(
         } else {
             ext_head = cpl_propertylist_duplicate(ext_plist[i]);
             cpl_propertylist_erase(ext_head, "EXTNAME");
+            cpl_propertylist_erase(ext_head, "BUNIT");
         }
         wished_extname = cr2res_io_create_extname(i+1, 1) ;
         cpl_propertylist_update_string(ext_head, "EXTNAME", wished_extname) ;
