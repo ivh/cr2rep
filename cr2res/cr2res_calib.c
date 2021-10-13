@@ -38,6 +38,8 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+int cr2res_add_shotnoise(hdrl_image * in, int ndit, int det);
+
 /*----------------------------------------------------------------------------*/
 /**
   @defgroup cr2res_calib
@@ -139,7 +141,8 @@ hdrl_image * cr2res_calib_image(
         const cpl_frame     *   dark,
         const cpl_frame     *   bpm,
         const cpl_frame     *   detlin,
-        double                  dit)
+        double                  dit,
+        int                     ndit)
 {
     hdrl_image          *   out ;
     hdrl_image          *   calib ;
@@ -277,6 +280,37 @@ hdrl_image * cr2res_calib_image(
         cpl_msg_info(__func__, "NOT YET IMPLEMENTED") ;
     }
     return out ;
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Add shot-noise to errors in HDRL-image
+  @param    in          the input hdrl image, gets modified
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_add_shotnoise(hdrl_image * in, int ndit, int det){
+
+    double gain_sqrt;
+
+    if (det == 1) gain_sqrt = sqrt(CR2RES_GAIN_CHIP1);
+    else if (det == 2) gain_sqrt = sqrt(CR2RES_GAIN_CHIP2);
+    else if (det == 3) gain_sqrt = sqrt(CR2RES_GAIN_CHIP3);
+    else {
+        cpl_msg_error(__func__,"Unknown detector");
+        return -1;
+    }
+    cpl_image * error = hdrl_image_get_error(in);
+    cpl_image * adus = hdrl_image_get_image(in);
+    cpl_image * tmp_im;
+
+    if ( (tmp_im=cpl_image_power_create(adus, 0.5)) == NULL){
+        cpl_msg_error(__func__,"Sqrt failed");
+        return -1;
+    }
+
+    return 0;
 }
 
 /**@}*/

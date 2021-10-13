@@ -32,11 +32,6 @@
 
 #define CR2RES_PHOTOM_STARSDIST_ARCSEC  30.0
 
-/* Provided by Paul Bristow (email 10/09/2020) */
-#define CR2RES_GAIN_CHIP1               2.15
-#define CR2RES_GAIN_CHIP2       		2.19
-#define CR2RES_GAIN_CHIP3       		2.00
-
 /*-----------------------------------------------------------------------------
    							        Prototypes
  -----------------------------------------------------------------------------*/
