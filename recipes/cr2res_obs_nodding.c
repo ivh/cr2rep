@@ -821,7 +821,7 @@ static int cr2res_obs_nodding_reduce(
     cpl_image           *   contrib_b ;
     cr2res_nodding_pos  *   nod_positions ;
     cpl_vector          *   dits ;
-    cpl_vector          *   ndits ;
+    cpl_vector          *   ndits=NULL ;
     cpl_table           *   trace_wave ;
     cpl_table           *   trace_wave_corrected ;
     cpl_table           *   trace_wave_a ;
@@ -908,6 +908,8 @@ static int cr2res_obs_nodding_reduce(
 
     /*Load the NDITs */
     ndits = cr2res_io_read_ndits(rawframes);
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG && ndits != NULL) 
+        cpl_vector_dump(ndits, stdout) ;
 
     /* Load image list */
     cpl_msg_info(__func__, "Load the image list") ;
