@@ -665,6 +665,7 @@ static int cr2res_obs_pol_reduce_one(
         cpl_propertylist    **  ext_plist)
 {
     cpl_vector          *   dits ;
+    cpl_vector          *   ndits ;
     cr2res_decker       *   decker_positions ;
     hdrl_imagelist      *   in ;
     hdrl_imagelist      *   in_calib ;
@@ -744,6 +745,9 @@ static int cr2res_obs_pol_reduce_one(
     else                            dits = NULL ;
     if (cpl_msg_get_level() == CPL_MSG_DEBUG && dits != NULL) 
         cpl_vector_dump(dits, stdout) ;
+    
+    /* Load the NDITs */
+    ndits = cr2res_io_read_ndits(rawframes) ;
 
     /* Get the decker positions */
     if ((decker_positions = cr2res_io_read_decker_positions(rawframes))==NULL) {
@@ -758,12 +762,14 @@ static int cr2res_obs_pol_reduce_one(
                     reduce_det)) == NULL) {
         cpl_msg_error(__func__, "Cannot load images") ;
         if (dits != NULL) cpl_vector_delete(dits) ;
+        if (ndits != NULL) cpl_vector_delete(ndits) ;
         cpl_free(decker_positions) ;
         return -1 ;
     }
     if (hdrl_imagelist_get_size(in) != cpl_frameset_get_size(rawframes)) {
         cpl_msg_error(__func__, "Inconsistent number of loaded images") ;
         if (dits != NULL) cpl_vector_delete(dits) ;
+        if (ndits != NULL) cpl_vector_delete(ndits) ;
         cpl_free(decker_positions) ;
         hdrl_imagelist_delete(in) ;
         return -1 ;
@@ -772,37 +778,44 @@ static int cr2res_obs_pol_reduce_one(
     /* Calibrate the images */
     cpl_msg_info(__func__, "Apply the calibrations") ;
     if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
-                    subtract_nolight_rows, 0, master_flat_frame, 
-                    master_dark_frame, bpm_frame, detlin_frame, dits))==NULL) {
+            subtract_nolight_rows, 0, master_flat_frame, 
+            master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         if (dits != NULL) cpl_vector_delete(dits) ;
+        if (ndits != NULL) cpl_vector_delete(ndits) ;
         cpl_free(decker_positions) ;
         hdrl_imagelist_delete(in) ;
         return -1 ;
     }
     hdrl_imagelist_delete(in) ;
+    if (dits != NULL) cpl_vector_delete(dits) ;
+    if (ndits != NULL) cpl_vector_delete(ndits) ;
 
     if (cpl_frameset_get_size(raw_background_frames) > 1 ) {
         /* Load image list for BACKGROUND frames */
-        cpl_msg_info(__func__, "Load the images") ;
+        cpl_msg_info(__func__, "Load the background images") ;
         if ((in = cr2res_io_load_image_list_from_set(raw_background_frames, 
                         reduce_det)) == NULL) {
             cpl_msg_error(__func__, "Cannot load background images") ;
-            if (dits != NULL) cpl_vector_delete(dits) ;
             cpl_free(decker_positions) ;
             hdrl_imagelist_delete(in_calib) ;
             return -1 ;
         }
+        /* Load the DITs & NDITs */
+        if (master_dark_frame != NULL)  dits = cr2res_io_read_dits(rawframes) ;
+        else                            dits = NULL ;
+        ndits = cr2res_io_read_ndits(rawframes) ;
 
         /* Calibrate the background same as science images */
         cpl_msg_info(__func__, "Apply the calibrations to background") ;
         if ((in_backgr = cr2res_calib_imagelist(in, reduce_det, 0, 
                         subtract_nolight_rows, 0, master_flat_frame, 
                         master_dark_frame, bpm_frame, detlin_frame, 
-                        dits)) == NULL) {
+                        dits, ndits)) == NULL) {
             cpl_msg_error(__func__,
                             "Failed to apply the calibrations to background") ;
             if (dits != NULL) cpl_vector_delete(dits) ;
+            if (ndits != NULL) cpl_vector_delete(ndits) ;
             cpl_free(decker_positions) ;
             hdrl_imagelist_delete(in) ;
             hdrl_imagelist_delete(in_calib) ;
@@ -816,6 +829,7 @@ static int cr2res_obs_pol_reduce_one(
             cpl_msg_error(__func__,
                             "Failed to collapse background") ;
             if (dits != NULL) cpl_vector_delete(dits) ;
+            if (ndits != NULL) cpl_vector_delete(ndits) ;
             cpl_free(decker_positions) ;
             hdrl_imagelist_delete(in_calib) ;
             hdrl_imagelist_delete(in_backgr) ;
@@ -829,6 +843,7 @@ static int cr2res_obs_pol_reduce_one(
             cpl_msg_error(__func__,
                             "Failed to subtract background") ;
             if (dits != NULL) cpl_vector_delete(dits) ;
+            if (ndits != NULL) cpl_vector_delete(ndits) ;
             cpl_free(decker_positions) ;
             hdrl_imagelist_delete(in_calib);
             hdrl_image_delete(backgr);
@@ -839,6 +854,7 @@ static int cr2res_obs_pol_reduce_one(
         cpl_msg_warning(__func__, "No background subtraction");
     }
     if (dits != NULL) cpl_vector_delete(dits) ;
+    if (ndits != NULL) cpl_vector_delete(ndits) ;
 
     /* Load the trace wave */
     cpl_msg_info(__func__, "Load the TRACE WAVE") ;

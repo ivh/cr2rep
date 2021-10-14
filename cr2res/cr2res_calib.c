@@ -99,7 +99,7 @@ hdrl_imagelist * cr2res_calib_imagelist(
     for (i=0 ; i<hdrl_imagelist_get_size(in) ; i++) {
         cur_ima = hdrl_imagelist_get(in, i) ;
         if (dark != NULL) dit = cpl_vector_get(dits, i) ;
-        ndit = cpl_vector_get(dits, i) ;
+        ndit = (int)cpl_vector_get(dits, i) ;
 
         /* Calibrate */
         if ((cur_ima_calib = cr2res_calib_image(cur_ima, chip, clean_bad, 
