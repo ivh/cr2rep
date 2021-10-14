@@ -91,6 +91,7 @@ hdrl_imagelist * cr2res_calib_imagelist(
 
     /* Initialise */
     dit = 0.0 ;
+    ndit = 1 ;
 
     /* Create calibrated image list */
     out = hdrl_imagelist_new() ;
