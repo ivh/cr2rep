@@ -38,6 +38,8 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip);
+
 /*----------------------------------------------------------------------------*/
 /**
   @defgroup cr2res_calib
@@ -74,12 +76,14 @@ hdrl_imagelist * cr2res_calib_imagelist(
         const cpl_frame         *   dark,
         const cpl_frame         *   bpm,
         const cpl_frame         *   detlin,
-        const cpl_vector        *   dits)
+        const cpl_vector        *   dits,
+        const cpl_vector        *   ndits)
 {
     hdrl_imagelist      *   out ;
     const hdrl_image    *   cur_ima ;
     hdrl_image          *   cur_ima_calib ;
     double                  dit ;
+    int                     ndit ;
     cpl_size                i ;
 
     /* Check Inputs */
@@ -94,12 +98,13 @@ hdrl_imagelist * cr2res_calib_imagelist(
     /* Loop on the images */
     for (i=0 ; i<hdrl_imagelist_get_size(in) ; i++) {
         cur_ima = hdrl_imagelist_get(in, i) ;
-        if (dark != NULL) dit = cpl_vector_get(dits, i) ;
+        if (dark != NULL)  dit = cpl_vector_get(dits, i) ;
+        if (ndits != NULL) ndit = (int)cpl_vector_get(ndits, i) ;
 
         /* Calibrate */
         if ((cur_ima_calib = cr2res_calib_image(cur_ima, chip, clean_bad, 
                         subtract_nolight_rows, cosmics_corr, flat, dark, bpm, 
-                        detlin, dit)) == NULL) {
+                        detlin, dit, ndit)) == NULL) {
             cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
             hdrl_imagelist_delete(out) ;
             return NULL ;
@@ -139,7 +144,8 @@ hdrl_image * cr2res_calib_image(
         const cpl_frame     *   dark,
         const cpl_frame     *   bpm,
         const cpl_frame     *   detlin,
-        double                  dit)
+        double                  dit,
+        int                     ndit)
 {
     hdrl_image          *   out ;
     hdrl_image          *   calib ;
@@ -186,6 +192,14 @@ hdrl_image * cr2res_calib_image(
             cpl_msg_error(__func__, "Cannot correct for the Non-Linearity") ;
             return NULL ;
         }
+    }
+
+    /* Add shot-noise */
+    if (cr2res_add_shotnoise(out, ndit, chip)){
+        cpl_msg_error(__func__, "Cannot add shot-noise") ;
+        hdrl_imagelist_delete(calib_list) ;
+        hdrl_image_delete(out);
+        return NULL ;
     }
 
     /* Apply the dark */
@@ -277,6 +291,43 @@ hdrl_image * cr2res_calib_image(
         cpl_msg_info(__func__, "NOT YET IMPLEMENTED") ;
     }
     return out ;
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Add shot-noise to errors in HDRL-image
+  @param    in          the input hdrl image, gets modified
+  @return   0 if ok, -1 in error case
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip){
+
+    double gain_sqrt;
+    cpl_image * error = hdrl_image_get_error(in);
+    cpl_image * adu  = hdrl_image_get_image(in);
+    cpl_image * tmp_im;
+
+    if      (chip == 1) gain_sqrt = sqrt(CR2RES_GAIN_CHIP1);
+    else if (chip == 2) gain_sqrt = sqrt(CR2RES_GAIN_CHIP2);
+    else if (chip == 3) gain_sqrt = sqrt(CR2RES_GAIN_CHIP3);
+    else {
+        cpl_msg_error(__func__,"Unknown detector");
+        return -1;
+    }
+
+    cpl_msg_debug(__func__, "chip:%d, sqrtgain:%g, ndit:%d",
+                            chip, gain_sqrt, ndit);
+    
+    if ( (tmp_im=cpl_image_power_create(adu, 0.5)) == NULL){
+        cpl_msg_error(__func__,"Sqrt failed");
+        return -1;
+    }
+    cpl_image_divide_scalar(tmp_im, gain_sqrt);
+    cpl_image_divide_scalar(tmp_im, sqrt((float)ndit));
+    cpl_image_add(error, tmp_im);
+    cpl_image_delete(tmp_im);
+    return 0;
 }
 
 /**@}*/

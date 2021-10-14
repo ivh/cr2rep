@@ -285,6 +285,7 @@ static int cr2res_util_calib(
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
     cpl_vector          *   dits ;
+    cpl_vector          *   ndits ;
     hdrl_imagelist      *   in ;
     cpl_image           *   contrib ;
     const cpl_frame     *   cur_frame ;
@@ -373,6 +374,7 @@ static int cr2res_util_calib(
         else                            dits = NULL ;
         if (cpl_msg_get_level() == CPL_MSG_DEBUG && dits != NULL)
             cpl_vector_dump(dits, stdout) ;
+        ndits = cr2res_io_read_ndits(rawframes) ;
 
         /* Load image list */
         cpl_msg_info(__func__, "Load the input frames") ;
@@ -380,12 +382,14 @@ static int cr2res_util_calib(
                         det_nr)) == NULL) {
             cpl_msg_warning(__func__, "Cannot load images") ;
             if (dits != NULL) cpl_vector_delete(dits) ;
+            if (ndits != NULL) cpl_vector_delete(ndits) ;
             cpl_msg_indent_less() ;
             continue ; 
         }
         if (hdrl_imagelist_get_size(in) != cpl_frameset_get_size(rawframes)) {
             cpl_msg_error(__func__, "Inconsistent number of loaded images") ;
             if (dits != NULL) cpl_vector_delete(dits) ;
+            if (ndits != NULL) cpl_vector_delete(ndits) ;
             hdrl_imagelist_delete(in) ;
             cpl_msg_indent_less() ;
             continue ; 
@@ -396,16 +400,18 @@ static int cr2res_util_calib(
         if ((calibrated[det_nr-1] = cr2res_calib_imagelist(in, det_nr,
                         clean_bad, subtract_nolight_rows, 0, master_flat_frame,
                         master_dark_frame, bpm_frame, detlin_frame, 
-                        dits)) == NULL) {
+                        dits, ndits)) == NULL) {
             cpl_msg_warning(__func__, "Failed to apply the calibrations") ;
             cpl_error_reset() ;
             if (dits != NULL) cpl_vector_delete(dits) ;
+            if (ndits != NULL) cpl_vector_delete(ndits) ;
             hdrl_imagelist_delete(in) ;
             cpl_msg_indent_less() ;
             continue ;
         }
         hdrl_imagelist_delete(in) ;
         if (dits != NULL) cpl_vector_delete(dits) ;
+        if (ndits != NULL) cpl_vector_delete(ndits) ;
 
         /* Collapse */
         if (collapse == CR2RES_COLLAPSE_MEAN) {

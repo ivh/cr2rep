@@ -962,6 +962,7 @@ static int cr2res_cal_flat_reduce(
     cpl_table           *   extract_tab ;
     hdrl_image          *   model_tmp ;
     cpl_vector          *   dits ;
+    cpl_vector          *   ndits ;
     char                *   setting_id ;
     int                 *   qc_order_nb ;
     double              *   qc_order_pos ;
@@ -987,6 +988,9 @@ static int cr2res_cal_flat_reduce(
         cpl_msg_error(__func__, "Failed to read the dits") ;
         return -1 ;
     }
+    /*Load the NDITs */
+    ndits = cr2res_io_read_ndits(rawframes);
+
     /* Load the image list */
     imlist = cr2res_io_load_image_list_from_set(rawframes, reduce_det) ;
     if (imlist == NULL) {
@@ -999,10 +1003,11 @@ static int cr2res_cal_flat_reduce(
     cpl_msg_info(__func__, "Calibrate the input images") ;
     cpl_msg_indent_more() ;
     if ((imlist_calibrated = cr2res_calib_imagelist(imlist, reduce_det, 
-                    0, subtract_nolight_rows, calib_cosmics_corr, NULL, 
-                    master_dark_frame, bpm_frame, detlin_frame, dits))==NULL) {
+            0, subtract_nolight_rows, calib_cosmics_corr, NULL, 
+            master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
         cpl_vector_delete(dits) ;
+        cpl_vector_delete(ndits) ;
         hdrl_imagelist_delete(imlist) ;
         cpl_msg_indent_less() ;
         return -1 ;
@@ -1012,6 +1017,7 @@ static int cr2res_cal_flat_reduce(
         imlist = imlist_calibrated ;
     }
     cpl_vector_delete(dits) ;
+    cpl_vector_delete(ndits) ;
     cpl_msg_indent_less() ;
 
     /* Collapse */

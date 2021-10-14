@@ -39,6 +39,11 @@
 #define CR2RES_DETECTOR_SIZE            2048
 #define CR2RES_DETECTOR_OVEREXP_THRESH  37000
 
+/* Provided by Paul Bristow (email 10/09/2020) */
+#define CR2RES_GAIN_CHIP1                       2.15
+#define CR2RES_GAIN_CHIP2                       2.19
+#define CR2RES_GAIN_CHIP3                       2.00
+
 typedef enum {
     CR2RES_DECKER_INVALID,
     CR2RES_DECKER_NONE,

@@ -920,6 +920,8 @@ static int cr2res_cal_wave_reduce(
         cpl_propertylist    **  ext_plist_fpet)
 {
     cpl_vector          *   dits_une ;
+    cpl_vector          *   ndits_une ;
+    cpl_vector          *   ndits_fpet ;
     hdrl_imagelist      *   in_une ;
     hdrl_imagelist      *   in_fpet ;
     hdrl_imagelist      *   in_une_calib ;
@@ -975,6 +977,9 @@ static int cr2res_cal_wave_reduce(
             dits_une = NULL ;
         if (cpl_msg_get_level() == CPL_MSG_DEBUG && dits_une != NULL)
             cpl_vector_dump(dits_une, stdout) ;
+        
+        /*Load the NDITs */
+        ndits_une = cr2res_io_read_ndits(rawframes_une);
 
         /* Load UNE image list */
         if ((in_une = cr2res_io_load_image_list_from_set(rawframes_une,
@@ -996,15 +1001,17 @@ static int cr2res_cal_wave_reduce(
         if ((in_une_calib = cr2res_calib_imagelist(in_une, reduce_det, 0,
                         subtract_nolight_rows, 0, master_flat_frame, 
                         master_dark_frame, bpm_frame, detlin_frame, 
-                        dits_une)) == NULL) {
+                        dits_une, ndits_une)) == NULL) {
             cpl_msg_error(__func__, "Failed to apply the calibrations") ;
             if (dits_une != NULL) cpl_vector_delete(dits_une) ;
+            if (ndits_une != NULL) cpl_vector_delete(ndits_une) ;
             hdrl_imagelist_delete(in_une) ;
             cpl_msg_indent_less() ;
             return -1 ;
         }
         hdrl_imagelist_delete(in_une) ;
         if (dits_une != NULL) cpl_vector_delete(dits_une) ;
+        if (ndits_une != NULL) cpl_vector_delete(ndits_une) ;
 
         /* Collapse UNE */
         contrib = NULL ;
@@ -1156,10 +1163,13 @@ static int cr2res_cal_wave_reduce(
             return -1 ;
         }
 
+        /* Load FPET NDITs*/
+        ndits_fpet = cr2res_io_read_ndits(rawframes_fpet);
+
         /* Calibrate the FPET images */
         if ((in_fpet_calib = cr2res_calib_imagelist(in_fpet, reduce_det, 0, 
                         subtract_nolight_rows, 0, master_flat_frame, NULL, 
-                        bpm_frame, detlin_frame, NULL)) == NULL) {
+                        bpm_frame, detlin_frame, NULL, ndits_fpet)) == NULL) {
             cpl_msg_error(__func__, "Failed to apply the calibrations") ;
             if (in_fpet != NULL) hdrl_imagelist_delete(in_fpet) ;
             if (plist_une_out != NULL) cpl_propertylist_delete(plist_une_out) ;
@@ -1168,9 +1178,11 @@ static int cr2res_cal_wave_reduce(
                 cpl_table_delete(lines_diagnostics_une_out) ;
             if (extracted_une_out != NULL) cpl_table_delete(extracted_une_out) ;
             if (wl_map_une_out != NULL) hdrl_image_delete(wl_map_une_out) ;
+            if (ndits_fpet != NULL) cpl_vector_delete(ndits_fpet) ;
             return -1 ;
         }
         hdrl_imagelist_delete(in_fpet) ;
+        if (ndits_fpet != NULL) cpl_vector_delete(ndits_fpet) ;
 
         /* Collapse FPET */
         contrib = NULL ;

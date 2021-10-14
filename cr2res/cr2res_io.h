@@ -45,6 +45,7 @@ cpl_frameset * cr2res_io_find_BPM_all(const cpl_frameset * in) ;
 const cpl_frame * cr2res_io_find_SLIT_FUNC(const cpl_frameset * in) ;
 
 cpl_vector * cr2res_io_read_dits(const cpl_frameset * in) ;
+cpl_vector * cr2res_io_read_ndits(const cpl_frameset * in) ;
 
 cr2res_decker * cr2res_io_read_decker_positions(const cpl_frameset * in) ;
 

@@ -518,6 +518,7 @@ static int cr2res_obs_staring_reduce(
     hdrl_imagelist      *   in ;
     hdrl_imagelist      *   in_calib ;
     cpl_vector          *   dits ;
+    cpl_vector          *   ndits ;
     cpl_table           *   trace_wave ;
     hdrl_image          *   collapsed ;
     cpl_image           *   contrib ;
@@ -571,6 +572,9 @@ static int cr2res_obs_staring_reduce(
     if (cpl_msg_get_level() == CPL_MSG_DEBUG && dits != NULL) 
         cpl_vector_dump(dits, stdout) ;
 
+    /* Load NDITs */
+    ndits = cr2res_io_read_ndits(rawframes) ;
+
     /* Load image list */
     if ((in = cr2res_io_load_image_list_from_set(rawframes, 
                     reduce_det)) == NULL) {
@@ -587,15 +591,17 @@ static int cr2res_obs_staring_reduce(
 
     /* Calibrate the images */
     if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
-                    subtract_nolight_rows, 0, master_flat_frame, 
-                    master_dark_frame, bpm_frame, detlin_frame, dits))==NULL) {
+            subtract_nolight_rows, 0, master_flat_frame, 
+            master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         if (dits != NULL) cpl_vector_delete(dits) ;
+        if (ndits != NULL) cpl_vector_delete(ndits) ;
         hdrl_imagelist_delete(in) ;
         return -1 ;
     }
     hdrl_imagelist_delete(in) ;
     if (dits != NULL) cpl_vector_delete(dits) ;
+    if (ndits != NULL) cpl_vector_delete(ndits) ;
 
     /* Collapse the image list */
     cpl_msg_info(__func__, "Collapse") ;

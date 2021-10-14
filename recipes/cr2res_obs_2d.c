@@ -440,6 +440,7 @@ static int cr2res_obs_2d_reduce(
     cpl_table           *   trace_wave ;
     cpl_propertylist    *   plist ;
     double                  dit ;
+    int                     ndit ;
     cpl_table           *   extracted ;
     cpl_size                i ;
     char                *   key_name ;
@@ -475,9 +476,10 @@ static int cr2res_obs_2d_reduce(
     /* Get the DIT */
     plist = cpl_propertylist_load(cpl_frame_get_filename(rawframe), 0) ;
     dit = cr2res_pfits_get_dit(plist) ;
+    ndit = cr2res_pfits_get_ndit(plist) ;
     cpl_propertylist_delete(plist); 
     if (cpl_error_get_code()) {
-        cpl_msg_error(__func__, "Cannot read the DIT") ;
+        cpl_msg_error(__func__, "Cannot read the DIT & NDIT") ;
         return -1 ;
     }
     cpl_msg_debug(__func__, "DIT value : %g", dit) ;
@@ -491,8 +493,8 @@ static int cr2res_obs_2d_reduce(
 
     /* Calibrate the image */
     if ((in_calib = cr2res_calib_image(in, reduce_det, 0,
-                    subtract_nolight_rows, 0, master_flat_frame, 
-                    master_dark_frame, bpm_frame, detlin_frame, dit)) == NULL) {
+            subtract_nolight_rows, 0, master_flat_frame, 
+            master_dark_frame, bpm_frame, detlin_frame, dit, ndit)) == NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         hdrl_image_delete(in) ;
         return -1 ;
