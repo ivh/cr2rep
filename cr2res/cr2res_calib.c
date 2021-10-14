@@ -313,8 +313,9 @@ int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip){
         return -1;
     }
 
+    cpl_msg_debug(__func__, "chip:%d, sqrtgain:%g, ndit:%d");
     cpl_image_add(error, tmp_im);
-
+    cpl_image_delete(tmp_im);
     return 0;
 }
 
