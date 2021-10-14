@@ -399,6 +399,36 @@ cpl_vector * cr2res_io_read_dits(const cpl_frameset * in)
 
     return dits ;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the NDITs from a frame set
+  @param    set     Input frame set
+  @return   the NDITs or NULL in error case
+ */
+/*----------------------------------------------------------------------------*/
+cpl_vector * cr2res_io_read_ndits(const cpl_frameset * in)
+{
+    cpl_vector          *   ndits ;
+    cpl_propertylist    *   plist ;
+    cpl_size                i ;
+
+    /* Check entries */
+    if (in == NULL) return NULL ;
+
+    /* Allocate the vector */
+    ndits = cpl_vector_new(cpl_frameset_get_size(in)) ;
+
+    /* Loop on the frames */
+    for (i=0 ; i< cpl_vector_get_size(ndits) ; i++) {
+        plist = cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position_const(in, i)), 0) ;
+        cpl_vector_set(ndits, i, cr2res_pfits_get_ndit(plist)) ;
+        cpl_propertylist_delete(plist) ;
+    }
+
+    return ndits ;
+}
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the decker positions from a frame set

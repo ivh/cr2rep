@@ -53,7 +53,8 @@ hdrl_imagelist * cr2res_calib_imagelist(
         const cpl_frame         *   dark,
         const cpl_frame         *   bpm,
         const cpl_frame         *   detlin,
-        const cpl_vector        *   dits) ;
+        const cpl_vector        *   dits,
+        const cpl_vector        *   ndits) ;
 
 hdrl_image * cr2res_calib_image(
         const hdrl_image    *   in,
@@ -65,6 +66,7 @@ hdrl_image * cr2res_calib_image(
         const cpl_frame     *   dark,
         const cpl_frame     *   bpm,
         const cpl_frame     *   detlin,
-        double                  dit) ;
+        double                  dit,
+        int                     ndit) ;
 
 #endif
