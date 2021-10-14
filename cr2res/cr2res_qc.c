@@ -518,7 +518,7 @@ double cr2res_qc_obs_nodding_standard_flux(
     }
 
     if (wl_start < 0.0) {
-        cpl_msg_warning(__func__, 
+        cpl_msg_info(__func__, 
                 "QC Standard Flux : No WL specified for setting %s", setting) ;
         return -1.0 ;
     }

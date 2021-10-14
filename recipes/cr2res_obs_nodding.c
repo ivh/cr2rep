@@ -1413,7 +1413,6 @@ static cpl_table * cr2res_obs_nodding_combine(
             /* Compute the average */
             hdrl_spectrum1D_add_spectrum(c_spec, a_spec) ;
             hdrl_spectrum1D_delete(&a_spec);
-            hdrl_spectrum1D_div_scalar(c_spec, (hdrl_value){2.0, 0.0});
 
             /* Update the table with the result */
             p_flux = cpl_table_get_data_double(extractc, col_name) ;

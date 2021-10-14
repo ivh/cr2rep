@@ -2128,7 +2128,8 @@ static int cr2res_io_save_table(
     } else {
         ext_head = cpl_propertylist_duplicate(ext_plist[0]);
         cpl_propertylist_erase(ext_head, "EXTNAME");
-        cpl_propertylist_erase(ext_head, "BUNIT");
+        if (cpl_propertylist_get_property(ext_head, "BUNIT") != NULL)
+                    cpl_propertylist_erase(ext_head, "BUNIT");
     }
     wished_extname = cr2res_io_create_extname(1, 1) ;
     cpl_propertylist_update_string(ext_head, "EXTNAME", wished_extname) ;

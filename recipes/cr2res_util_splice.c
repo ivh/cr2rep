@@ -61,8 +61,8 @@ static int cr2res_util_splice(cpl_frameset *, const cpl_parameterlist *);
  -----------------------------------------------------------------------------*/
 
 static char cr2res_util_splice_description[] = "\
-Splicin                                                                 \n\
-  Compute ...                                                           \n\
+Continuum normalization and splicing together spectra.                  \n\
+                                                                        \n\
                                                                         \n\
   Inputs                                                                \n\
     blaze.fits " CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG " [1]               \n\
