@@ -263,6 +263,7 @@ cpl_table * cr2res_combine_extracted(
     cpl_table                   *   extractc ;
     cpl_array                   *   col_names ;
     const char                  *   col_name ;
+    char                        *   err_col ;
     char                        *   col_type ;
     char                        *   wave_col ;
     hdrl_spectrum1D_wave_scale      scale ;
@@ -273,8 +274,9 @@ cpl_table * cr2res_combine_extracted(
     hdrl_data_t                     val1, val2 ;
     hdrl_parameter              *   params ;
     double                      *   p_flux ;
+    double                      *   p_err ;
     cpl_size                        ncols, i, j, sz, sz_a, sz_b ;
-    int                             trace_nb, order, increasing_values ;
+    int                             trace_nb, order, increasing_values, n ;
 
     /* Check Inputs */
     if (extracta == NULL || extractb == NULL) return NULL ;
@@ -297,19 +299,21 @@ cpl_table * cr2res_combine_extracted(
 
             /* Get the wavelength column name */
             wave_col = cr2res_dfs_WAVELENGTH_colname(order,trace_nb) ;
+            err_col = cr2res_dfs_SPEC_ERR_colname(order,trace_nb) ;
 
             /* Get the A spectrum */
             a_spec = hdrl_spectrum1D_convert_from_table(extracta,
-                    col_name, wave_col, NULL, NULL, scale);
+                    col_name, wave_col, err_col, NULL, scale);
 
             /* Get the B spectrum */
             b_spec = hdrl_spectrum1D_convert_from_table(extractb,
-                    col_name, wave_col, NULL, NULL, scale);
+                    col_name, wave_col, err_col, NULL, scale);
 
             /* Check */
             if (a_spec == NULL || b_spec == NULL) {
                 cpl_msg_error(__func__, "Cannot create HDRL spectra - abort") ;
                 cpl_free(wave_col) ;
+                cpl_free(err_col);
                 if (col_type != NULL) cpl_free(col_type) ;
                 cpl_array_delete(col_names) ;
                 cpl_table_delete(extractc) ;
@@ -324,6 +328,7 @@ cpl_table * cr2res_combine_extracted(
                 hdrl_spectrum1D_delete(&a_spec);
                 hdrl_spectrum1D_delete(&b_spec);
                 cpl_free(wave_col) ;
+                cpl_free(err_col);
                 if (col_type != NULL) cpl_free(col_type) ;
                 cpl_array_delete(col_names) ;
                 cpl_table_delete(extractc) ;
@@ -353,6 +358,7 @@ cpl_table * cr2res_combine_extracted(
                 hdrl_spectrum1D_delete(&a_spec);
                 hdrl_spectrum1D_delete(&b_spec);
                 cpl_free(wave_col) ;
+                cpl_free(err_col);
                 if (col_type != NULL) cpl_free(col_type) ;
                 /* Set the column to 0 */
                 p_flux = cpl_table_get_data_double(extractc, col_name) ;
@@ -373,6 +379,7 @@ cpl_table * cr2res_combine_extracted(
             if (c_spec == NULL) {
                 cpl_msg_error(__func__,"Cannot resample HDRL spectra - abort") ;
                 cpl_free(wave_col) ;
+                cpl_free(err_col);
                 if (col_type != NULL) cpl_free(col_type) ;
                 cpl_array_delete(col_names) ;
                 hdrl_spectrum1D_delete(&a_spec);
@@ -385,22 +392,33 @@ cpl_table * cr2res_combine_extracted(
             hdrl_spectrum1D_delete(&a_spec);
 
             /* Update the table with the result */
+            // construct the name of the error column based on the spec column
             p_flux = cpl_table_get_data_double(extractc, col_name) ;
+            if ((p_err = cpl_table_get_data_double(extractc, err_col))
+                == NULL) {
+                // Add the column if it doesn't exists
+                cpl_error_reset();
+                cpl_table_new_column(extractc, err_col, CPL_TYPE_DOUBLE);
+                p_err = cpl_table_get_data_double(extractc, err_col) ;
+            }
             sz = cpl_table_get_nrow(extractc) ;
             if (sz != hdrl_spectrum1D_get_size(c_spec)) {
                 cpl_msg_error(__func__, "Wrong size - abort") ;
                 hdrl_spectrum1D_delete(&c_spec);
                 cpl_free(wave_col) ;
+                cpl_free(err_col);
                 if (col_type != NULL) cpl_free(col_type) ;
                 cpl_array_delete(col_names) ;
                 cpl_table_delete(extractc) ;
                 return NULL ;
             }
             for (j = 0; j < sz; j++) {
-                p_flux[j]=hdrl_spectrum1D_get_flux_value(c_spec, j, NULL).data;
+                p_flux[j] = hdrl_spectrum1D_get_flux_value(c_spec, j, NULL).data;
+                p_err[j] = hdrl_spectrum1D_get_flux_value(c_spec, j, NULL).error;
             }
             hdrl_spectrum1D_delete(&c_spec);
             cpl_free(wave_col) ;
+            cpl_free(err_col);
         }
         if (col_type != NULL) cpl_free(col_type) ;
     }
