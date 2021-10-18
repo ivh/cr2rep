@@ -76,6 +76,7 @@ static int cr2res_cal_wave_reduce(
         int                     ext_swath_width,
         int                     ext_oversample,
         double                  ext_smooth_slit,
+        double                  ext_smooth_spec,
         cr2res_wavecal_type     wavecal_type,
         int                     wl_degree,
         double                  wl_start,
@@ -308,31 +309,37 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.ext_oversample",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
             "cr2res.cr2res_cal_wave", 5);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ext_oversample");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_oversample");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.ext_swath_width",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_swath_width",
             CPL_TYPE_INT, "The swath width", "cr2res.cr2res_cal_wave", 800);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ext_swath_width");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_swath_width");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.ext_height",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_height",
             CPL_TYPE_INT, "Extraction height",
             "cr2res.cr2res_cal_wave", 120);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ext_height");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_height");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.ext_smooth_slit",
-            CPL_TYPE_DOUBLE,
-            "Smoothing along the slit",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_smooth_slit",
+            CPL_TYPE_DOUBLE, "Smoothing along the slit",
             "cr2res.cr2res_cal_wave", 3.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "ext_smooth_slit");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_slit");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_smooth_spec",
+            CPL_TYPE_DOUBLE, "Smoothing along the spectrum",
+            "cr2res.cr2res_cal_wave", 2.0E-7);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_spec");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -477,8 +484,8 @@ static int cr2res_cal_wave(
                             fallback_input_wavecal_flag,
                             keep_higher_degrees_flag, 
                             clean_spectrum, subtract_nolight_rows ;
-    double                  ext_smooth_slit, wl_start, wl_end, wl_err, wl_shift,
-                            display_wmin, display_wmax ;
+    double                  ext_smooth_slit, ext_smooth_spec, wl_start, wl_end,
+                            wl_err, wl_shift, display_wmin, display_wmax ;
     cr2res_collapse         collapse ;
     cr2res_wavecal_type     wavecal_type ;
     const char          *   sval ;
@@ -537,17 +544,20 @@ static int cr2res_cal_wave(
         return -1 ;
     }
     param = cpl_parameterlist_find_const(parlist,
-           "cr2res.cr2res_cal_wave.ext_oversample");
+           "cr2res.cr2res_cal_wave.extract_oversample");
     ext_oversample = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_wave.ext_swath_width");
+            "cr2res.cr2res_cal_wave.extract_swath_width");
     ext_swath_width = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_wave.ext_height");
+            "cr2res.cr2res_cal_wave.extract_height");
     ext_height = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_wave.ext_smooth_slit");
+            "cr2res.cr2res_cal_wave.extract_smooth_slit");
     ext_smooth_slit = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_wave.extract_smooth_spec");
+    ext_smooth_spec = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.wl_method");
     sval = cpl_parameter_get_string(param) ;
@@ -722,9 +732,9 @@ static int cr2res_cal_wave(
                     master_dark_frame, master_flat_frame, bpm_frame,
                     trace_wave_frame, lines_frame, det_nr, reduce_order,
                     reduce_trace, subtract_nolight_rows, collapse, ext_height, 
-                    ext_swath_width, ext_oversample, ext_smooth_slit, 
-                    wavecal_type, wl_degree, wl_start, wl_end, wl_err, 
-                    wl_shift, log_flag, fallback_input_wavecal_flag,
+                    ext_swath_width, ext_oversample, ext_smooth_slit,
+                    ext_smooth_spec, wavecal_type, wl_degree, wl_start, wl_end,
+                    wl_err, wl_shift, log_flag, fallback_input_wavecal_flag,
                     keep_higher_degrees_flag, clean_spectrum,
                     display, display_wmin, 
                     display_wmax, 
@@ -850,6 +860,7 @@ static int cr2res_cal_wave(
   @param ext_swath_width    Extraction related
   @param ext_oversample     Extraction related
   @param ext_smooth_slit    Extraction related
+  @param ext_smooth_spec    Extraction related
   @param wavecal_type       CR2RES_XCORR/LINE1D/LINE2D
   @param wl_start           WL estimate of the first pixel
   @param wl_end             WL estimate of the last pixel
@@ -895,6 +906,7 @@ static int cr2res_cal_wave_reduce(
         int                     ext_swath_width,
         int                     ext_oversample, 
         double                  ext_smooth_slit,
+        double                  ext_smooth_spec,
         cr2res_wavecal_type     wavecal_type,
         int                     wl_degree,
         double                  wl_start,
@@ -1055,8 +1067,8 @@ static int cr2res_cal_wave_reduce(
         cpl_msg_indent_more() ;
         if (cr2res_extract_traces(collapsed_une, tw_in, NULL, reduce_order, 
                     reduce_trace, CR2RES_EXTR_OPT_CURV, ext_height, 
-                    ext_swath_width, ext_oversample, ext_smooth_slit, 0.0, 
-                    0, 0, 0, // display flags
+                    ext_swath_width, ext_oversample, ext_smooth_slit,
+                    ext_smooth_spec, 0, 0, 0, // display flags
                     &extracted_une, &slit_func_une, &model_master_une) == -1) {
             cpl_msg_error(__func__, "Failed to extract");
             hdrl_image_delete(collapsed_une) ;
@@ -1247,8 +1259,8 @@ static int cr2res_cal_wave_reduce(
         cpl_msg_indent_more() ;
         if (cr2res_extract_traces(collapsed_fpet, tw_in, NULL, reduce_order, 
                     reduce_trace, CR2RES_EXTR_OPT_CURV, ext_height, 
-                    ext_swath_width, ext_oversample, ext_smooth_slit, 0.0, 
-                    0, 0, 0, // display flags
+                    ext_swath_width, ext_oversample, ext_smooth_slit,
+                    ext_smooth_spec, 0, 0, 0, // display flags
                     &extracted_fpet, &slit_func_fpet, &model_master_fpet)==-1) {
             cpl_msg_error(__func__, "Failed to extract");
             cpl_table_delete(tw_in) ;
