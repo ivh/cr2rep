@@ -75,7 +75,8 @@ static int cr2res_obs_pol_reduce(
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
-        double                  extract_smooth,
+        double                  extract_smooth_slit,
+        double                  extract_smooth_spec,
         int                     reduce_det,
         cpl_table           **  pol_spec_a,
         cpl_table           **  pol_spec_b,
@@ -95,7 +96,8 @@ static int cr2res_obs_pol_reduce_one(
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
-        double                  extract_smooth,
+        double                  extract_smooth_slit,
+        double                  extract_smooth_spec,
         int                     reduce_det,
         cpl_table           **  pol_spec,
         cpl_propertylist    **  ext_plist) ;
@@ -305,11 +307,17 @@ static int cr2res_obs_pol_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_pol.extract_smooth",
-            CPL_TYPE_DOUBLE,
-            "Smoothing along the slit",
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_pol.extract_smooth_spec",
+            CPL_TYPE_DOUBLE, "Smoothing along the spectrum",
+            "cr2res.cr2res_obs_pol", 0.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_spec");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_pol.extract_smooth_slit",
+            CPL_TYPE_DOUBLE, "Smoothing along the slit",
             "cr2res.cr2res_obs_pol", 2.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_slit");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -377,7 +385,7 @@ static int cr2res_obs_pol(
     const cpl_parameter *   param ;
     int                     extract_oversample, extract_swath_width,
                             extract_height, reduce_det, subtract_nolight_rows ;
-    double                  extract_smooth ;
+    double                  extract_smooth_slit, extract_smooth_spec ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_flat_frames ;
     const cpl_frame     *   trace_wave_frame ;
@@ -408,8 +416,11 @@ static int cr2res_obs_pol(
             "cr2res.cr2res_obs_pol.extract_height");
     extract_height = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_obs_pol.extract_smooth");
-    extract_smooth = cpl_parameter_get_double(param);
+            "cr2res.cr2res_obs_pol.extract_smooth_slit");
+    extract_smooth_slit = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_pol.extract_smooth_spec");
+    extract_smooth_spec = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_pol.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -464,8 +475,8 @@ static int cr2res_obs_pol(
         if (cr2res_obs_pol_reduce(rawframes, raw_flat_frames, trace_wave_frame, 
                     detlin_frame, master_dark_frame, master_flat_frame, 
                     bpm_frame, subtract_nolight_rows, 0, extract_oversample, 
-                    extract_swath_width, extract_height, extract_smooth, 
-                    det_nr,
+                    extract_swath_width, extract_height, extract_smooth_slit, 
+                    extract_smooth_spec, det_nr,
                     &(pol_speca[det_nr-1]),
                     &(pol_specb[det_nr-1]),
                     &(ext_plista[det_nr-1]),
@@ -521,7 +532,8 @@ static int cr2res_obs_pol(
   @param extract_oversample     Extraction related
   @param extract_swath_width    Extraction related
   @param extract_height         Extraction related
-  @param extract_smooth         Extraction related
+  @param extract_smooth_slit    Extraction related
+  @param extract_smooth_spec    Extraction related
   @param reduce_det             The detector to compute
   @param pol_speca              [out] polarimetry spectrum (A)
   @param pol_specb              [out] polarimetry spectrum (B)
@@ -543,7 +555,8 @@ static int cr2res_obs_pol_reduce(
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
-        double                  extract_smooth,
+        double                  extract_smooth_slit,
+        double                  extract_smooth_spec,
         int                     reduce_det,
         cpl_table           **  pol_speca,
         cpl_table           **  pol_specb,
@@ -595,8 +608,8 @@ static int cr2res_obs_pol_reduce(
                 trace_wave_frame, detlin_frame, master_dark_frame, 
                 master_flat_frame, bpm_frame, subtract_nolight_rows, 0, 
                 extract_oversample, extract_swath_width, extract_height, 
-                extract_smooth, reduce_det, &pol_speca_loc, 
-                &ext_plista_loc) == -1) {
+                extract_smooth_slit, extract_smooth_spec, reduce_det, 
+                &pol_speca_loc, &ext_plista_loc) == -1) {
         cpl_msg_error(__func__, "Failed to Reduce A nodding frames") ;
     }
     cpl_msg_indent_less() ;
@@ -608,8 +621,8 @@ static int cr2res_obs_pol_reduce(
                 trace_wave_frame, detlin_frame, master_dark_frame, 
                 master_flat_frame, bpm_frame, subtract_nolight_rows, 0, 
                 extract_oversample, extract_swath_width, extract_height,
-                extract_smooth, reduce_det, &pol_specb_loc, 
-                &ext_plistb_loc) == -1) {
+                extract_smooth_slit, extract_smooth_spec, reduce_det, 
+                &pol_specb_loc, &ext_plistb_loc) == -1) {
         cpl_msg_error(__func__, "Failed to Reduce B nodding frames") ;
     }
     cpl_msg_indent_less() ;
@@ -638,7 +651,8 @@ static int cr2res_obs_pol_reduce(
   @param extract_oversample     Extraction related
   @param extract_swath_width    Extraction related
   @param extract_height         Extraction related
-  @param extract_smooth         Extraction related
+  @param extract_smooth_slit    Extraction related
+  @param extract_smooth_spec    Extraction related
   @param reduce_det             The detector to compute
   @param pol_spec               [out] polarimetry spectrum
   @param ext_plist              [out] the header for saving the products
@@ -659,7 +673,8 @@ static int cr2res_obs_pol_reduce_one(
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
-        double                  extract_smooth,
+        double                  extract_smooth_slit,
+        double                  extract_smooth_spec,
         int                     reduce_det,
         cpl_table           **  pol_spec,
         cpl_propertylist    **  ext_plist)
@@ -950,7 +965,7 @@ static int cr2res_obs_pol_reduce_one(
                         hdrl_imagelist_get_const(in_calib, frame_idx),
                         trace_wave_loc, NULL, -1, -1, CR2RES_EXTR_OPT_CURV, 
                         extract_height, extract_swath_width, extract_oversample,
-                        extract_smooth, 0.0, 0, 0, 0, 
+                        extract_smooth_slit, extract_smooth_spec, 0, 0, 0, 
                         &(extract_1d[2*j]), &slit_func, &model_master) == -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j] = NULL ;
@@ -1001,7 +1016,7 @@ static int cr2res_obs_pol_reduce_one(
                         hdrl_imagelist_get_const(in_calib, frame_idx),
                         trace_wave_loc, NULL, -1, -1, CR2RES_EXTR_OPT_CURV, 
                         extract_height, extract_swath_width, extract_oversample,
-                        extract_smooth, 0.0, 0, 0, 0, 
+                        extract_smooth_slit, extract_smooth_spec, 0, 0, 0, 
                         &(extract_1d[2*j+1]), &slit_func, &model_master)== -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j+1] = NULL ;

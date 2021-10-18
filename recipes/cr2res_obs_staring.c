@@ -69,7 +69,8 @@ static int cr2res_obs_staring_reduce(
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
-        double                  extract_smooth,
+        double                  extract_smooth_slit,
+        double                  extract_smooth_spec,
         int                     reduce_det,
         cpl_table           **  extract,
         cpl_table           **  slitfunc,
@@ -249,11 +250,18 @@ static int cr2res_obs_staring_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.extract_smooth",
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.extract_smooth_slit",
             CPL_TYPE_DOUBLE,
             "Smoothing along the slit (1 for high S/N, 5 for low)",
             "cr2res.cr2res_obs_staring", 2.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_slit");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.extract_smooth_spec",
+            CPL_TYPE_DOUBLE, "Smoothing along the spectrum",
+            "cr2res.cr2res_obs_staring", 0.0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_spec");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -337,7 +345,8 @@ static int cr2res_obs_staring(
     int                     subtract_nolight_rows, extract_oversample, 
                             extract_swath_width, extract_height, reduce_det, 
                             ndit, nexp, disp_order, disp_trace ;
-    double                  extract_smooth, ra, dec, dit ;
+    double                  extract_smooth_slit, extract_smooth_spec, ra, dec, 
+                            dit ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   trace_wave_frame ;
     const cpl_frame     *   detlin_frame ;
@@ -367,8 +376,11 @@ static int cr2res_obs_staring(
             "cr2res.cr2res_obs_staring.extract_height");
     extract_height = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_obs_staring.extract_smooth");
-    extract_smooth = cpl_parameter_get_double(param);
+            "cr2res.cr2res_obs_staring.extract_smooth_slit");
+    extract_smooth_slit = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_staring.extract_smooth_spec");
+    extract_smooth_spec = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -426,7 +438,7 @@ static int cr2res_obs_staring(
                     trace_wave_frame, detlin_frame, master_dark_frame, 
                     master_flat_frame, bpm_frame, subtract_nolight_rows, 0, 
                     extract_oversample, extract_swath_width, extract_height, 
-                    extract_smooth, det_nr,
+                    extract_smooth_slit, extract_smooth_spec, det_nr,
                     &(extract[det_nr-1]),
                     &(slitfunc[det_nr-1]),
                     &(model[det_nr-1]),
@@ -487,7 +499,8 @@ static int cr2res_obs_staring(
   @param extract_oversample     Extraction related
   @param extract_swath_width    Extraction related
   @param extract_height         Extraction related
-  @param extract_smooth         Extraction related
+  @param extract_smooth_slit    Extraction related
+  @param extract_smooth_spec    Extraction related
   @param reduce_det             The detector to compute
   @param extract                [out] extracted spectrum 
   @param slitfunc               [out] slit function
@@ -508,7 +521,8 @@ static int cr2res_obs_staring_reduce(
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
-        double                  extract_smooth,
+        double                  extract_smooth_slit,
+        double                  extract_smooth_spec,
         int                     reduce_det,
         cpl_table           **  extract,
         cpl_table           **  slitfunc,
@@ -630,8 +644,8 @@ static int cr2res_obs_staring_reduce(
     cpl_msg_info(__func__, "Spectra Extraction") ;
     if (cr2res_extract_traces(collapsed, trace_wave, NULL, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
-                extract_oversample, extract_smooth, 0.0, 0, 0, 0,
-                &extracted, &slit_func, &model_master) == -1) {
+                extract_oversample, extract_smooth_slit, extract_smooth_spec, 
+                0, 0, 0, &extracted, &slit_func, &model_master) == -1) {
         cpl_msg_error(__func__, "Failed to extract");
         hdrl_image_delete(collapsed) ;
         cpl_table_delete(trace_wave) ;
