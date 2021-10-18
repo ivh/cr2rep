@@ -196,12 +196,14 @@ hdrl_image * cr2res_calib_image(
     }
 
     /* Add shot-noise */
+    /*
     if (cr2res_add_shotnoise(out, ndit, chip)){
         cpl_msg_error(__func__, "Cannot add shot-noise") ;
         hdrl_imagelist_delete(calib_list) ;
         hdrl_image_delete(out);
         return NULL ;
     }
+    */
 
     /* Apply the dark */
     if (dark != NULL) {
