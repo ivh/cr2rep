@@ -401,6 +401,23 @@ cpl_vector * cr2res_qc_lines_collect(double wmin, double wmax)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Computes one line Intensity
+  @param    spec        spectrum
+  @param    wl          line position
+  @return   the computed intensity
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_wave_line_intens(
+        const cpl_bivector  *   spec,
+        double                  wl)
+{
+    // TODO Thomas / Ansgar
+    //cpl_plot_bivector("set grid;set xlabel 'Wavelength (nm)';set ylabel 'Spec';", "t 'Spectrum' w lines", "",spec) ;
+    return -1.0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Computes one line Fwhm 
   @param    spec        spectrum
   @param    wl          line position
@@ -414,6 +431,45 @@ double cr2res_qc_wave_line_fwhm(
     // TODO Thomas / Ansgar
     //cpl_plot_bivector("set grid;set xlabel 'Wavelength (nm)';set ylabel 'Spec';", "t 'Spectrum' w lines", "",spec) ;
     return -1.0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the lines intensities
+  @param    extracted   extracted spectrum
+  @return   the computed resolution
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_wave_lamp_effic(
+        const cpl_bivector  *   spec)
+{
+    cpl_vector  *   ref_lines ;
+    cpl_vector  *   ref_lines_intens ;
+    double          wmin, wmax, intens_med, intens;
+    int             i ;
+
+    /* Get the reference lines */
+    wmin = cpl_vector_get(cpl_bivector_get_x_const(spec), 0);
+    wmax = cpl_vector_get(cpl_bivector_get_x_const(spec),
+            cpl_bivector_get_size(spec)-1) ;
+    ref_lines = cr2res_qc_lines_collect(wmin, wmax) ;
+    if (ref_lines == NULL) return -1.0 ;
+
+    //cpl_vector_dump(ref_lines, stdout) ;
+
+    /* Loop on the lines */
+    ref_lines_intens = cpl_vector_new(cpl_vector_get_size(ref_lines)) ;
+    for (i=0 ; i<cpl_vector_get_size(ref_lines) ; i++) {
+        intens = cr2res_qc_wave_line_intens(spec, cpl_vector_get(ref_lines, i));
+        cpl_vector_set(ref_lines_intens, i, intens); 
+    }
+    cpl_vector_delete(ref_lines) ;
+
+    /* Compute the median */
+    intens_med = cpl_vector_get_median(ref_lines_intens) ;
+    cpl_vector_delete(ref_lines_intens) ;
+
+    return intens_med ;
 }
 
 /*----------------------------------------------------------------------------*/

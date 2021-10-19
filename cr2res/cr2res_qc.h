@@ -65,6 +65,15 @@ double cr2res_qc_wave_disp(
 
 cpl_vector * cr2res_qc_lines_collect(double wmin, double wmax) ;
 
+double cr2res_qc_wave_line_intens(
+        const cpl_bivector  *   spec,
+        double                  wl) ;
+double cr2res_qc_wave_lamp_effic(
+        const cpl_bivector  *   spec) ;
+
+double cr2res_qc_wave_line_fwhm(
+        const cpl_bivector  *   spec,
+        double                  wl) ;
 double cr2res_qc_wave_resol_fwhm(
         const cpl_bivector  *   spec) ;
 
@@ -82,10 +91,10 @@ double cr2res_qc_obs_nodding_slit_psf(
         const cpl_table     *   slitfu,
         int                     order_idxp) ;
 double * cr2res_qc_snr(
-	const cpl_table *   tw,
-	const cpl_table *   extracted,
-	int             **  out_order_idx_values,
-	int             *   out_nb_order_idx_values) ;
+    const cpl_table *   tw,
+    const cpl_table *   extracted,
+    int             **  out_order_idx_values,
+    int             *   out_nb_order_idx_values) ;
 
 #endif
 
