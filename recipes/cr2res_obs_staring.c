@@ -64,6 +64,7 @@ static int cr2res_obs_staring_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        const cpl_array     *   slit_frac,
         int                     subtract_nolight_rows,
         int                     calib_cosmics_corr,
         int                     extract_oversample,
@@ -130,6 +131,8 @@ Staring Observation                                                     \n\
       Apply the calibrations to the image list                          \n\
       Collapse the image list                                           \n\
       Load the input trace wave                                         \n\
+      Recompute a new trace wave with the specified slit fraction       \n\
+             (--slit_frac) if needed                                    \n\
       Extract the spectra from the collapsed image                      \n\
         -> extracted                                                    \n\
         -> slit_func                                                    \n\
@@ -230,6 +233,13 @@ static int cr2res_obs_staring_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.slit_frac",
+            CPL_TYPE_STRING, "Wished slit fraction",
+            "cr2res.cr2res_obs_staring", "-1.0, -1.0");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "slit_frac");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.extract_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
             "cr2res.cr2res_obs_staring", 5);
@@ -285,7 +295,6 @@ static int cr2res_obs_staring_create(cpl_plugin * plugin)
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "display_trace");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
-
 
     return 0;
 }
@@ -346,13 +355,15 @@ static int cr2res_obs_staring(
                             extract_swath_width, extract_height, reduce_det, 
                             ndit, nexp, disp_order, disp_trace ;
     double                  extract_smooth_slit, extract_smooth_spec, ra, dec, 
-                            dit ;
+                            dit, slit_low, slit_up ;
+    cpl_array           *   slit_frac ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   trace_wave_frame ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
+    const char          *   sval ;
     cpl_table           *   extract[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slitfunc[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   model[CR2RES_NB_DETECTORS] ;
@@ -390,9 +401,29 @@ static int cr2res_obs_staring(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.display_trace");
     disp_trace = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_staring.slit_frac");
+    sval = cpl_parameter_get_string(param) ;
+    if (sscanf(sval, "%lg,%lg", &slit_low, &slit_up) != 2) {
+        cpl_msg_error(__func__, "Invalid Slit Fraction specified");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
+
+    /* Check Parameters */
+    if (slit_low >= 0.0 && slit_up >= 0.0 && slit_low <= 1.0 && slit_up <= 1.0
+            && slit_up > slit_low) {
+        slit_frac = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
+        cpl_array_set(slit_frac, 0, slit_low) ;
+        cpl_array_set(slit_frac, 1, (slit_low+slit_up)/2.0) ;
+        cpl_array_set(slit_frac, 2, slit_up) ;
+    } else {
+        slit_frac = NULL ;
+    }
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
+        if (slit_frac != NULL) cpl_array_delete(slit_frac) ;
         cpl_msg_error(__func__, "Cannot identify RAW and CALIB frames") ;
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
@@ -401,6 +432,7 @@ static int cr2res_obs_staring(
     /* Get Calibration frames */
     trace_wave_frame = cr2res_io_find_TRACE_WAVE(frameset) ;
     if (trace_wave_frame == NULL) {
+		if (slit_frac != NULL) cpl_array_delete(slit_frac) ;
         cpl_msg_error(__func__, "Could not find TRACE_WAVE frame") ;
         return -1 ;
     }
@@ -415,6 +447,7 @@ static int cr2res_obs_staring(
     /* Get the RAW Frames */
     rawframes = cr2res_obs_staring_find_RAW(frameset) ;
     if (rawframes == NULL) {
+		if (slit_frac != NULL) cpl_array_delete(slit_frac) ;
         cpl_msg_error(__func__, "Could not find RAW frames") ;
         return -1 ;
     }
@@ -436,9 +469,10 @@ static int cr2res_obs_staring(
         /* Call the reduction function */
         if (cr2res_obs_staring_reduce(rawframes, 
                     trace_wave_frame, detlin_frame, master_dark_frame, 
-                    master_flat_frame, bpm_frame, subtract_nolight_rows, 0, 
-                    extract_oversample, extract_swath_width, extract_height, 
-                    extract_smooth_slit, extract_smooth_spec, det_nr,
+                    master_flat_frame, bpm_frame, slit_frac, 
+                    subtract_nolight_rows, 0, extract_oversample, 
+                    extract_swath_width, extract_height, extract_smooth_slit, 
+                    extract_smooth_spec, det_nr,
                     &(extract[det_nr-1]),
                     &(slitfunc[det_nr-1]),
                     &(model[det_nr-1]),
@@ -449,6 +483,7 @@ static int cr2res_obs_staring(
         }
         cpl_msg_indent_less() ;
     }
+    if (slit_frac != NULL) cpl_array_delete(slit_frac) ;
 
     /* Save Products */
     out_file = cpl_sprintf("%s_slitfunc.fits", RECIPE_STRING) ;
@@ -494,6 +529,7 @@ static int cr2res_obs_staring(
   @param master_dark_frame      Associated master dark
   @param master_flat_frame      Associated master flat
   @param bpm_frame              Associated BPM
+  @param slit_frac              Specified slit fraction or NULL
   @param subtract_nolight_rows
   @param calib_cosmics_corr     Flag to correct for cosmics
   @param extract_oversample     Extraction related
@@ -516,6 +552,7 @@ static int cr2res_obs_staring_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        const cpl_array     *   slit_frac,
         int                     subtract_nolight_rows,
         int                     calib_cosmics_corr,
         int                     extract_oversample,
@@ -534,6 +571,7 @@ static int cr2res_obs_staring_reduce(
     cpl_vector          *   dits ;
     cpl_vector          *   ndits ;
     cpl_table           *   trace_wave ;
+    cpl_table           *   trace_wave_new ;
     hdrl_image          *   collapsed ;
     cpl_image           *   contrib ;
     cpl_propertylist    *   plist ;
@@ -639,6 +677,20 @@ static int cr2res_obs_staring_reduce(
         hdrl_image_delete(collapsed) ;
         return -1 ;
     }
+
+	/* Extract at the specified slit fraction */
+	if (slit_frac != NULL) {
+		if ((trace_wave_new = cr2res_trace_new_slit_fraction(
+						trace_wave, slit_frac)) == NULL) {
+			cpl_msg_warning(__func__,
+	"Failed to compute the traces for user specified slit fraction") ;
+			cpl_error_reset() ;
+		} else {
+			cpl_table_delete(trace_wave) ;
+			trace_wave = trace_wave_new ;
+			trace_wave_new = NULL ;
+		}
+	}
 
     /* Execute the extraction */
     cpl_msg_info(__func__, "Spectra Extraction") ;

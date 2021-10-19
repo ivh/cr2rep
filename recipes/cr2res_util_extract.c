@@ -408,7 +408,7 @@ static int cr2res_util_extract(
     }
 
     /* Check Parameters */
-    if (slit_low > 0.0 && slit_up > 0.0 && slit_low < 1.0 && slit_up < 1.0 
+    if (slit_low >= 0.0 && slit_up >= 0.0 && slit_low <= 1.0 && slit_up <= 1.0 
             && slit_up > slit_low) {
         slit_frac = cpl_array_new(3, CPL_TYPE_DOUBLE) ;
         cpl_array_set(slit_frac, 0, slit_low) ;
