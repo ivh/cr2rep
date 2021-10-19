@@ -38,6 +38,7 @@
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
 #include "cr2res_io.h"
+#include "cr2res_qc.h"
 #include "cr2res_extract.h"
 #include "cr2res_trace.h"
 #include "cr2res_wave.h"
@@ -961,9 +962,12 @@ static int cr2res_cal_wave_reduce(
     cpl_propertylist    *   qcs_fpet_out ;
     cpl_propertylist    *   plist_fpet_out ;
     cpl_propertylist    *   plist ;
+    hdrl_image          *   first_image ;
     const char          *   first_file ;
-    int                     ext_nr, zp_order_une, zp_order_fpet,
-                            grat1_order_une, grat1_order_fpet ;
+    double                  qc_overexposed ;
+    int                     i, order, trace_id, ext_nr, zp_order_une, 
+                            zp_order_fpet, nb_traces, grat1_order_une, 
+                            grat1_order_fpet ;
     
     /* Check Inputs */
     if (rawframes_fpet==NULL && rawframes_une==NULL) return -1 ;
@@ -1110,7 +1114,6 @@ static int cr2res_cal_wave_reduce(
             return -1 ;
         }
         cpl_msg_indent_less() ;
-        cpl_table_delete(tw_in) ;
         cpl_table_delete(extracted_une) ;
 
         /* Generate the Wave Map */
@@ -1123,6 +1126,7 @@ static int cr2res_cal_wave_reduce(
         plist_une_out = cpl_propertylist_load(first_file, ext_nr) ;
         if (plist_une_out == NULL) {
             cpl_propertylist_delete(qcs_une_out) ;
+			cpl_table_delete(tw_in) ;
             cpl_table_delete(tw_une_out) ;
             cpl_table_delete(lines_diagnostics_une_out) ;
             cpl_table_delete(extracted_une_out) ;
@@ -1131,6 +1135,35 @@ static int cr2res_cal_wave_reduce(
             cpl_msg_indent_less() ;
             return -1 ;
         }
+
+        /* Load the first RAW image and compute QC OVEREXPOSED */
+        first_image = cr2res_io_load_image(first_file,reduce_det) ;
+
+		/* QC.OVEREXPOSED */
+		/* Loop on the traces */
+        nb_traces = cpl_table_get_nrow(tw_in) ;
+		for (i=0 ; i<nb_traces ; i++) {
+			/* Get Order and trace id */
+			order = cpl_table_get(tw_in, CR2RES_COL_ORDER, i, NULL) ;
+			trace_id = cpl_table_get(tw_in, CR2RES_COL_TRACENB, i, NULL) ;
+
+			/* Check if this order needs to be skipped */
+			if (reduce_order > -1 && order != reduce_order) continue ;
+
+			/* Check if this trace needs to be skipped */
+			if (reduce_trace > -1 && trace_id != reduce_trace) continue ;
+
+			qc_overexposed = cr2res_qc_overexposed(
+					hdrl_image_get_image(first_image), tw_in, order) ;
+			char * qc_name = cpl_sprintf("%s-%02d-%02d",
+					CR2RES_HEADER_QC_OVEREXPOSED, order, trace_id) ;
+			if (qcs_une_out == NULL) qcs_une_out = cpl_propertylist_new() ;
+			cpl_propertylist_append_double(qcs_une_out, qc_name,qc_overexposed);
+			cpl_free(qc_name) ;
+        }
+        hdrl_image_delete(first_image) ;
+		cpl_table_delete(tw_in) ;
+
         if (qcs_une_out != NULL) {
             cpl_propertylist_append(plist_une_out, qcs_une_out) ;
             cpl_propertylist_delete(qcs_une_out) ;
