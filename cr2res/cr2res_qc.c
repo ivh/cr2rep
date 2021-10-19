@@ -323,7 +323,9 @@ double cr2res_qc_wave_central(
     /* Get the wavelengths */
     if ((wls = cr2res_trace_get_wl(tw, order_idx, CR2RES_QC_TRACE,
                     CR2RES_DETECTOR_SIZE)) == NULL) {
-        cpl_msg_error(__func__, "No Matching column in TW table") ;
+        cpl_msg_warning(__func__, 
+                "QC CENTWL - cannot find wl solution for order/trace %d/%d",
+                order_idx, CR2RES_QC_TRACE) ;
         return -1.0 ;
     }
     wl_central = cpl_vector_get(wls, (int)(CR2RES_DETECTOR_SIZE/2)) ;
@@ -352,13 +354,29 @@ double cr2res_qc_wave_disp(
     /* Get the wavelengths */
     if ((wls = cr2res_trace_get_wl(tw, order_idx, CR2RES_QC_TRACE,
                     CR2RES_DETECTOR_SIZE)) == NULL) {
-        cpl_msg_error(__func__, "No Matching column in TW table") ;
+        cpl_msg_warning(__func__, 
+                "QC DISPWL - cannot find wl solution for order/trace %d/%d",
+                order_idx, CR2RES_QC_TRACE) ;
         return -1.0 ;
     }
     nbins = cpl_vector_get_size(wls) ;
     wl_disp = (cpl_vector_get(wls, nbins-1) - cpl_vector_get(wls, 0)) / nbins;
     cpl_vector_delete(wls) ;
     return wl_disp ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the lines resolution
+  @param    extracted   extracted spectrum
+  @return   the computed resolution
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_wave_resol(
+        const cpl_bivector  *   spec)
+{
+    return 2.3 ;
+    return -1.0 ;
 }
 
 /*----------------------------------------------------------------------------*/

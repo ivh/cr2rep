@@ -62,6 +62,8 @@ double cr2res_qc_wave_central(
 double cr2res_qc_wave_disp(
         const cpl_table *   tw,
         int                 order) ;
+double cr2res_qc_wave_resol(
+        const cpl_bivector  *   spec) ;
 
 /* OBS */
 double cr2res_qc_overexposed(
