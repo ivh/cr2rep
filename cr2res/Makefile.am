@@ -45,6 +45,7 @@ noinst_HEADERS =    cr2res_bpm.h \
                     cr2res_pfits.h \
                     cr2res_photom.h \
                     cr2res_qc.h \
+                    cr2res_qc_lines.h \
                     cr2res_slit_curv.h \
                     cr2res_splice.h \
                     cr2res_trace.h \
