@@ -31,6 +31,7 @@
 #include <cpl.h>
 
 #include "cr2res_qc.h"
+#include "cr2res_qc_lines.h"
 #include "cr2res_trace.h"
 #include "cr2res_dfs.h"
 #include "cr2res_extract.h"
@@ -367,16 +368,91 @@ double cr2res_qc_wave_disp(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Computes the lines resolution
+  @brief    Collect lines between 2 wavelengths
+  @param    wstart
+  @param    wstop
+  @return   the vector with the collected lines
+ */
+/*----------------------------------------------------------------------------*/
+cpl_vector * cr2res_qc_lines_collect(double wmin, double wmax)
+{
+    cpl_vector  *   lines ;
+    int             i, nb_found ;
+
+    /* Initialise */
+    nb_found = 0 ;
+
+    /* Find the Interesting lines */ 
+    for (i=0 ; i< QC_LINES_NUMBER ; i++) 
+        if (qc_lines[i] > wmin && qc_lines[i] < wmax) nb_found++ ;
+
+    if (nb_found == 0) return NULL ;
+
+    /* Allocate the container */
+    lines = cpl_vector_new(nb_found); 
+
+    /* Fill with the good lines */
+    nb_found = 0 ;
+    for (i=0 ; i< QC_LINES_NUMBER ; i++) 
+        if (qc_lines[i] > wmin && qc_lines[i] < wmax) 
+            cpl_vector_set(lines, nb_found++, qc_lines[i]) ;
+    return lines; 
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes one line Fwhm 
+  @param    spec        spectrum
+  @param    wl          line position
+  @return   the computed fwhm
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_wave_line_fwhm(
+        const cpl_bivector  *   spec,
+        double                  wl)
+{
+    // TODO Thomas / Ansgar
+    //cpl_plot_bivector("set grid;set xlabel 'Wavelength (nm)';set ylabel 'Spec';", "t 'Spectrum' w lines", "",spec) ;
+    return -1.0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the lines Fwhm median
   @param    extracted   extracted spectrum
   @return   the computed resolution
  */
 /*----------------------------------------------------------------------------*/
-double cr2res_qc_wave_resol(
+double cr2res_qc_wave_resol_fwhm(
         const cpl_bivector  *   spec)
 {
-    return 2.3 ;
-    return -1.0 ;
+    cpl_vector  *   ref_lines ;
+    cpl_vector  *   ref_lines_fwhm ;
+    double          wmin, wmax, fwhm_med, fwhm;
+    int             i ;
+
+    /* Get the reference lines */
+    wmin = cpl_vector_get(cpl_bivector_get_x_const(spec), 0);
+    wmax = cpl_vector_get(cpl_bivector_get_x_const(spec),
+            cpl_bivector_get_size(spec)-1) ;
+    ref_lines = cr2res_qc_lines_collect(wmin, wmax) ;
+    if (ref_lines == NULL) return -1.0 ;
+
+    //cpl_vector_dump(ref_lines, stdout) ;
+
+    /* Loop on the lines */
+    ref_lines_fwhm = cpl_vector_new(cpl_vector_get_size(ref_lines)) ;
+    for (i=0 ; i<cpl_vector_get_size(ref_lines) ; i++) {
+        fwhm = cr2res_qc_wave_line_fwhm(spec, cpl_vector_get(ref_lines, i));
+        cpl_vector_set(ref_lines_fwhm, i, fwhm); 
+    }
+    cpl_vector_delete(ref_lines) ;
+
+    /* Compute the median */
+    fwhm_med = cpl_vector_get_median(ref_lines_fwhm) ;
+    cpl_vector_delete(ref_lines_fwhm) ;
+
+    return fwhm_med ;
 }
 
 /*----------------------------------------------------------------------------*/

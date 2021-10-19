@@ -90,6 +90,7 @@ cpl_polynomial * cr2res_wave_1d(
         double                  display_wmin,
         double                  display_wmax,
         double              *   best_xcorr,
+        double              *   lines_resol_fwhm,
         double              *   lines_resol,
         cpl_array           **  wavelength_error,
         cpl_table           **  lines_diagnostics) ;

@@ -62,7 +62,10 @@ double cr2res_qc_wave_central(
 double cr2res_qc_wave_disp(
         const cpl_table *   tw,
         int                 order) ;
-double cr2res_qc_wave_resol(
+
+cpl_vector * cr2res_qc_lines_collect(double wmin, double wmax) ;
+
+double cr2res_qc_wave_resol_fwhm(
         const cpl_bivector  *   spec) ;
 
 /* OBS */

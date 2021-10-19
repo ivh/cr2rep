@@ -14,7 +14,8 @@
 #ifndef CRIRES_QC_LINES_H
 #define CRIRES_QC_LINES_H
 
-static double qc_lines[1026]={
+#define     QC_LINES_NUMBER     1026
+static double qc_lines[QC_LINES_NUMBER]={
 954.2587,
 954.3909,
 955.3605,
