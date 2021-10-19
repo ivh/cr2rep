@@ -714,6 +714,7 @@ static int cr2res_cal_detlin_reduce(
                     cpl_error_reset() ;
                 }
                 hdrl_imagelist_delete(darklist) ;
+                cpl_frameset_delete(sorted_darkframes);
 
             }
         }
