@@ -1154,6 +1154,7 @@ static int cr2res_cal_wave_reduce(
         if ((in_fpet = cr2res_io_load_image_list_from_set(rawframes_fpet,
                         reduce_det)) == NULL) {
             cpl_msg_error(__func__, "Cannot load images") ;
+            cpl_msg_indent_less() ;
             if (plist_une_out != NULL) cpl_propertylist_delete(plist_une_out) ;
             if (tw_une_out != NULL) cpl_table_delete(tw_une_out) ;
             if (lines_diagnostics_une_out != NULL) 
@@ -1165,6 +1166,7 @@ static int cr2res_cal_wave_reduce(
         if (hdrl_imagelist_get_size(in_fpet) !=
                 cpl_frameset_get_size(rawframes_fpet)) {
             cpl_msg_error(__func__, "Inconsistent number of loaded images") ;
+            cpl_msg_indent_less() ;
             hdrl_imagelist_delete(in_fpet) ;
             if (plist_une_out != NULL) cpl_propertylist_delete(plist_une_out) ;
             if (tw_une_out != NULL) cpl_table_delete(tw_une_out) ;
@@ -1183,6 +1185,7 @@ static int cr2res_cal_wave_reduce(
                         subtract_nolight_rows, 0, master_flat_frame, NULL, 
                         bpm_frame, detlin_frame, NULL, ndits_fpet)) == NULL) {
             cpl_msg_error(__func__, "Failed to apply the calibrations") ;
+            cpl_msg_indent_less() ;
             if (in_fpet != NULL) hdrl_imagelist_delete(in_fpet) ;
             if (plist_une_out != NULL) cpl_propertylist_delete(plist_une_out) ;
             if (tw_une_out != NULL) cpl_table_delete(tw_une_out) ;
@@ -1344,6 +1347,7 @@ static int cr2res_cal_wave_reduce(
             cpl_propertylist_append(plist_fpet_out, qcs_fpet_out) ;
             cpl_propertylist_delete(qcs_fpet_out) ;
         }
+        cpl_msg_indent_less() ;
     } else {
         tw_fpet_out = NULL ;
         lines_diagnostics_fpet_out = NULL ;
