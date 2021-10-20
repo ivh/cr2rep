@@ -4,9 +4,6 @@ import sys
 from astropy.io import fits
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
-from turbo_colormap import turbo_colormap_data
-Turbo = ListedColormap(turbo_colormap_data)
 
 FIG = plt.figure(figsize=(10, 3.5))
 
@@ -38,7 +35,7 @@ for fname_img in sys.argv[1+offs:]:
         #imgdata /= float(dit)
         vmin = vmi or np.percentile(imgdata,5)
         vmax = vma or np.percentile(imgdata,98)
-        axs[i-1].imshow(imgdata, origin='lower', cmap=Turbo,
+        axs[i-1].imshow(imgdata, origin='lower', cmap='plasma',
             vmin=vmin, vmax=vmax)
 
         #axs[i-1].axis((1,2048,1,2048))

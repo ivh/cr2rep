@@ -3,9 +3,6 @@ import os, sys
 from astropy.io import fits
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
-from turbo_colormap import turbo_colormap_data
-Turbo = ListedColormap(turbo_colormap_data)
 
 def compare(fname_trace, fname_img=None):
     """ compare img and trace """
@@ -40,7 +37,7 @@ def compare(fname_trace, fname_img=None):
             vmin, vmax = np.percentile(imgdata, (5, 95))
             vmax += (vmax-vmin)*0.4
             ax.imshow(imgdata, origin="lower", vmin = vmin, vmax=vmax,
-                cmap='viridis')
+                cmap='plasma')
 
         for t in tdata:
             upper = t["Upper"]

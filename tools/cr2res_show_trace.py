@@ -4,9 +4,6 @@ import sys
 from astropy.io import fits
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
-from turbo_colormap import turbo_colormap_data
-Turbo = ListedColormap(turbo_colormap_data)
 
 def compare(fname_trace, fname_img=None, fname_spec=None):
     """ compare img and trace """
@@ -38,7 +35,7 @@ def compare(fname_trace, fname_img=None, fname_spec=None):
             imgdata = img['CHIP%d.INT1'%i].data
             #imgdata = np.ma.masked_where(np.isnan(imgdata),imgdata)
             imgdata = np.nan_to_num(imgdata)
-            ax.imshow(imgdata, origin='lower', cmap=Turbo,
+            ax.imshow(imgdata, origin='lower', cmap='plasma',
                 vmin=np.percentile(imgdata,5),
                 vmax=np.percentile(imgdata,98))
 
