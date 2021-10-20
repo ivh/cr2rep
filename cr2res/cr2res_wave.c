@@ -1982,6 +1982,203 @@ static cpl_bivector * cr2res_wave_gen_lines_spectrum(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief  Fit a single line in the spectrum with a gaussian
+  @param    spec            Input spectrum flux
+  @param    unc             Input spectrum error
+  @param    pixel_pos       Estimated pixel position of the line
+  @param    window_width    Width of the window to use for the fit
+  @param    peak_width      Initial guess for the width of the peak
+  @param    display         Flag to display results
+  @param    result          [out] Vector with output values
+  @return   0 on success, -1 otherwise
+
+    Create a cutout of the spectrum around that position.
+    Clean up bad pixels.
+    Fit a gaussian to that cutout.
+    Plot the results.
+
+    The result vector has the following elements:
+    0: Peak position
+    1: Peak width, i.e. sigma of the gaussian
+    2: Peak height
+    3: Peak base, i.e. offset from 0
+    4: reduced chi2 of the fit
+
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_wave_fit_single_line(
+    const cpl_vector * spec, 
+    const cpl_vector * unc, 
+    cpl_size pixel_pos, 
+    cpl_size window_size,
+    cpl_size peak_width,
+    int display,
+    cpl_vector ** result)
+{
+    // For gaussian fit of each line
+    // gauss = A * exp((x-mu)^2/(2*sig^2)) + cont
+
+    cpl_vector * tmp = NULL;
+    cpl_matrix * x = NULL;
+    cpl_matrix * sigma_x = NULL;
+    cpl_vector * y = NULL;
+    cpl_vector * sigma_y = NULL;
+    cpl_vector * a = NULL;
+    int * ia = NULL;
+    double x0, sigma, area, offset, red_chisq;
+    double value, value2, diff;
+    cpl_size k, j, spec_size;
+    cpl_error_code error;
+
+    // Check inputs
+    if (spec == NULL) return -1;
+    if (unc != NULL){
+        if (cpl_vector_get_size(spec) != cpl_vector_get_size(unc)) return -1;
+    }
+    if (pixel_pos < 0 | pixel_pos > cpl_vector_get_size(spec)) return -1;
+    if (window_size < 0) return -1;
+    if (peak_width < 0) peak_width = 1;
+
+    x = cpl_matrix_new(window_size, 1);
+    sigma_x = NULL;
+    y = cpl_vector_new(window_size);
+    sigma_y = cpl_vector_new(window_size);
+    a = cpl_vector_new(4);
+    ia = NULL;
+
+    spec_size = cpl_vector_get_size(spec);
+    value = 0;
+    k = pixel_pos - window_size / 2;
+
+    // Extract the spectrum within the window
+    if (k < 0 | k + window_size >= spec_size){
+        // if the window reaches outside the spectrum don't use the line
+        cpl_msg_error(__func__, 
+            "Line at pixel %lli extends past the edge of the spectrum.", 
+            pixel_pos);
+        // cleanup
+        cpl_matrix_delete(x);
+        cpl_vector_delete(y);
+        cpl_vector_delete(sigma_y);
+        cpl_vector_delete(a);
+        return -1;
+    }
+    for (j = 0; j < window_size; j++){
+        k = pixel_pos - window_size / 2 + j;
+        value = cpl_vector_get(spec, k);
+        value2 = unc != NULL ? cpl_vector_get(unc, k) : 0;
+        if (value < 0) value = 0;
+        if (isnan(value2) || value2 <= 0){
+            value2 = value == 0 ? sqrt(cpl_vector_get_mean(spec)) : sqrt(value);
+        }
+        if (value2 < 1) value2 = 1;
+        cpl_matrix_set(x, j, 0, k);
+        cpl_vector_set(y, j, value);
+        cpl_vector_set(sigma_y, j, value2);
+    }
+
+    // Filter out bad pixels
+    tmp = cpl_vector_duplicate(y);
+    // First element
+    if (fabs(cpl_vector_get(tmp, 0) - cpl_vector_get(tmp, 1)) 
+            > MAX_DEVIATION_FOR_BAD_PIXEL)
+        cpl_vector_set(y, 0, cpl_vector_get(tmp, 1));     
+    // Elements in between
+    for (j = 1; j < window_size-1; j++){
+        diff = 2 * cpl_vector_get(tmp, j) - 
+                cpl_vector_get(tmp, j-1) - cpl_vector_get(tmp, j+1);
+        diff = fabs(diff);
+        if (diff > MAX_DEVIATION_FOR_BAD_PIXEL){
+            value = (cpl_vector_get(tmp, j-1) + cpl_vector_get(tmp, j+1)) / 2.;
+            cpl_vector_set(y, j, value);
+        }
+    }
+    // Last element
+    if (fabs(cpl_vector_get(tmp, window_size-1) - 
+            cpl_vector_get(tmp, window_size-2)) > MAX_DEVIATION_FOR_BAD_PIXEL)
+        cpl_vector_set(y, window_size-1, cpl_vector_get(tmp, window_size-2));
+    cpl_vector_delete(tmp);
+
+    // get initial guess for gaussian fit
+    value = pixel_pos - window_size / 2 + cpl_vector_get_maxpos(y);
+    cpl_vector_set(a, 0, value);
+    cpl_vector_set(a, 1, peak_width);
+    cpl_vector_set(a, 2, cpl_vector_get_max(y) - cpl_vector_get_min(y));
+    cpl_vector_set(a, 3, cpl_vector_get_min(y));
+
+    // perform the fit
+    red_chisq = -1;
+    error = cpl_fit_lvmq(x, sigma_x, y, sigma_y, a, ia, 
+                &cr2res_gauss, &cr2res_gauss_derivative,
+                CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT,
+                CPL_FIT_LVMQ_MAXITER, NULL, &red_chisq, NULL);
+
+    if (error != CPL_ERROR_NONE){
+        cpl_msg_error(__func__, "Could not fit line at pixel %lli. %s", 
+            pixel_pos, cpl_error_get_message_default(error));
+        cpl_vector_delete(a);
+        return -1;
+    }
+
+    // Set new pixel pos based on gaussian fit
+    if (*result == NULL){
+        *result = cpl_vector_new(5);
+    }
+    // 0: Peak position
+    cpl_vector_set(*result, 0, cpl_vector_get(a, 0));
+    // 1: Peak width
+    cpl_vector_set(*result, 1, cpl_vector_get(a, 1));
+    // 2 : Peak height
+    cpl_vector_set(*result, 2, cpl_vector_get(a, 2));
+    // 3: Peak base
+    cpl_vector_set(*result, 3, cpl_vector_get(a, 3));
+    // 4: Peak red_chisq
+    cpl_vector_set(*result, 4, red_chisq);
+
+    if (display) {
+        /* Plot Observation and Fit */
+        const cpl_vector ** plot;
+        cpl_vector * fit;
+        cpl_vector * fit_x;
+        double dbl, res;
+        // TODO: Currently this will create a plot window for each line
+        // afaik, to get them all in one plot, one needs to save all the fits
+        // and then run one big plot_vectors (maybe bivectors) command with set multiplot
+        // alternatively create a file for each line, instead of plot window
+        plot = cpl_malloc(3 * sizeof(cpl_vector*));
+        fit = cpl_vector_new(window_size);
+        fit_x = cpl_vector_new(window_size);
+
+        for (j = 0; j < window_size; j++){
+            dbl = cpl_matrix_get(x, j, 0);
+            cr2res_gauss(&dbl, cpl_vector_get_data_const(a), &res);
+            cpl_vector_set(fit, j, res);
+            // dbl = cpl_polynomial_eval_1d(wavesol_init, dbl, NULL);
+            cpl_vector_set(fit_x, j, dbl);
+        }
+        plot[0] = fit_x;
+        plot[1] = y;
+        plot[2] = fit;
+        cpl_plot_vectors(
+        "set grid;set xlabel 'Position (Pixel)';set ylabel 'Intensity (ADU/sec)';",
+            "title 'Observed' w lines", "q", plot, 3);
+        cpl_vector_delete(fit);
+        cpl_vector_delete(fit_x);
+        cpl_free(plot);
+        cpl_error_reset();
+    }
+
+    // Cleanup
+    cpl_vector_delete(a);
+    cpl_matrix_delete(x);
+    cpl_vector_delete(y);
+    cpl_vector_delete(sigma_y);
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief  Extract line positions in spectrum
   @param    spectrum        Input spectrum
   @param    spectrum_err    Input spectrum error
@@ -2052,7 +2249,6 @@ int cr2res_wave_extract_lines(
     cpl_size i, j, k, ngood, spec_size, npossible;
     double pixel_pos, pixel_new, red_chisq, dbl, res;
     int n = cpl_bivector_get_size(lines_list);
-    cpl_error_code error;
     cpl_vector * wave_vec, * pixel_vec, *width_vec, *flag_vec,
                *height_vec, *fit_error_vec;
     const cpl_vector *spec, *unc;
@@ -2060,19 +2256,9 @@ int cr2res_wave_extract_lines(
     const double *height;
     double value, value2, diff;
     double max_wl, min_wl;
-    cpl_vector * fit, *fit_x;
-    const cpl_vector ** plot;
+    double peak_height;
     cpl_vector * tmp;
-
-    // For gaussian fit of each line
-    // gauss = A * exp((x-mu)^2/(2*sig^2)) + cont
-    cpl_matrix * x = cpl_matrix_new(window_size, 1);
-    cpl_matrix * sigma_x = NULL;
-    cpl_vector * y = cpl_vector_new(window_size);
-    cpl_vector * sigma_y = cpl_vector_new(window_size);
-    cpl_vector * a = cpl_vector_new(4);
-    int * ia = NULL;
-    double x0, sigma, area, offset;
+    cpl_vector * result;
 
     spec = cpl_bivector_get_y_const(spectrum);
     unc = cpl_bivector_get_y_const(spectrum_err);
@@ -2130,73 +2316,24 @@ int cr2res_wave_extract_lines(
         cpl_vector_multiply(tmp, tmp);
         pixel_pos = cpl_vector_get_minpos(tmp);
         cpl_vector_delete(tmp);
-        
 
-        value = 0;
-        k = pixel_pos - window_size / 2;
-        if (k < 0 | k + window_size >= spec_size){
-            // if the window reaches outside the spectrum don't use the line
+        result = NULL;        
+        if (cr2res_wave_fit_single_line(spec, unc, pixel_pos, 
+                window_size, peak_width, display, &result)){
             cpl_vector_set(flag_vec, i, 0);
             continue;
         }
-        for (j = 0; j < window_size; j++){
-            k = pixel_pos - window_size / 2 + j;
-            value = cpl_vector_get(spec, k);
-            value2 = cpl_vector_get(unc, k);
-            if (value < 0) value = 0;
-            if (isnan(value2) || value2 <= 0){
-                if (value == 0){
-                    value2 = sqrt(cpl_vector_get_mean(spec));
-                } else {
-                    value2 = sqrt(value);
-                }
-            }
-            if (value2 < 1) value2 = 1;
-            cpl_matrix_set(x, j, 0, k);
-            cpl_vector_set(y, j, value);
-            cpl_vector_set(sigma_y, j, value2);
-        }
-
-        // Filter out bad pixels
-        tmp = cpl_vector_duplicate(y);
-        // First element
-        if (fabs(cpl_vector_get(tmp, 0) - cpl_vector_get(tmp, 1)) > MAX_DEVIATION_FOR_BAD_PIXEL)
-            cpl_vector_set(y, 0, cpl_vector_get(tmp, 1));     
-        // Elements in between
-        for (j = 1; j < window_size-1; j++){
-            diff = 2 * cpl_vector_get(tmp, j) - cpl_vector_get(tmp, j-1) - cpl_vector_get(tmp, j+1);
-            diff = fabs(diff);
-            if (diff > MAX_DEVIATION_FOR_BAD_PIXEL){
-                value = (cpl_vector_get(tmp, j-1) + cpl_vector_get(tmp, j+1)) / 2.;
-                cpl_vector_set(y, j, value);
-            }
-        }
-        // Last element
-        if (fabs(cpl_vector_get(tmp, window_size-1) - cpl_vector_get(tmp, window_size-2)) > MAX_DEVIATION_FOR_BAD_PIXEL)
-            cpl_vector_set(y, window_size-1, cpl_vector_get(tmp, window_size-2));
-        cpl_vector_delete(tmp);
-
-        // get initial guess for gaussian fit
-        value = pixel_pos - window_size / 2 + cpl_vector_get_maxpos(y);
-        cpl_vector_set(a, 0, value);
-        cpl_vector_set(a, 1, peak_width);
-        cpl_vector_set(a, 2, cpl_vector_get_max(y) - cpl_vector_get_min(y));
-        cpl_vector_set(a, 3, cpl_vector_get_min(y));
-
-
-        red_chisq =-1;
-        error = cpl_fit_lvmq(x, sigma_x, y, sigma_y, a, ia, 
-                    &cr2res_gauss, &cr2res_gauss_derivative,
-                    CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT,
-                    CPL_FIT_LVMQ_MAXITER, NULL, &red_chisq, NULL);
 
         // Set new pixel pos based on gaussian fit
-        pixel_new = cpl_vector_get(a, 0);
+        pixel_new = cpl_vector_get(result, 0);
+        peak_height = cpl_vector_get(result, 2);
         cpl_vector_set(pixel_vec, i, pixel_new);
         // width == uncertainty of wavelength position?
-        cpl_vector_set(width_vec, i, cpl_vector_get(a, 1));
-        cpl_vector_set(height_vec, i, cpl_vector_get(a, 2));
-        cpl_vector_set(fit_error_vec, i, red_chisq);
+        cpl_vector_set(width_vec, i, cpl_vector_get(result, 1));
+        cpl_vector_set(height_vec, i, peak_height);
+        cpl_vector_set(fit_error_vec, i, cpl_vector_get(result, 4));
+
+        cpl_vector_delete(result);
 
         // if fit to bad set flag to 0(False)
         // fit is bad, when
@@ -2207,10 +2344,8 @@ int cr2res_wave_extract_lines(
         // 5) Peak is smaller than the noise level (SNR > 1)
         // 6) sigma is too large or too small
 
-        if (error != CPL_ERROR_NONE
-            // | red_chisq > 100
-            | fabs(pixel_new - pixel_pos) > window_size
-            | cpl_vector_get(a, 2) < 0
+        if (fabs(pixel_new - pixel_pos) > window_size
+            | peak_height < 0
             // TODO: the floor is not the same as the noise
             // maybe one could use the std around the floor as a noise estimate?
             // | cpl_vector_get(a, 2) < cpl_vector_get(a, 3)
@@ -2218,47 +2353,15 @@ int cr2res_wave_extract_lines(
             // | cpl_vector_get(a, 1) < 1 // lower line width limit
             // | cpl_vector_get(a, 1) > 6 // upper
         ){
-            if (error != CPL_ERROR_NONE)
-                cpl_msg_debug(__func__, "%s", cpl_error_get_message());
             if (fabs(pixel_new - pixel_pos) > window_size)
                 cpl_msg_debug(__func__, "Pixel position mismatch");
-            if (cpl_vector_get(a, 2) < 0)
+            if (peak_height < 0)
                 cpl_msg_debug(__func__, "Negative Peak");
             cpl_vector_set(flag_vec, i, 0);
             cpl_error_reset();
             continue;
         }
         ngood++;
-
-        /* Display */
-        if (display) {
-            /* Plot Observation and Fit */
-            // TODO: Currently this will create a plot window for each line
-            // afaik, to get them all in one plot, one needs to save all the fits
-            // and then run one big plot_vectors (maybe bivectors) command with set multiplot
-            // alternatively create a file for each line, instead of plot window
-            plot = cpl_malloc(3 * sizeof(cpl_vector*));
-            fit = cpl_vector_new(window_size);
-            fit_x = cpl_vector_new(window_size);
-
-            for (j = 0; j < window_size; j++){
-                dbl = cpl_matrix_get(x, j, 0);
-                cr2res_gauss(&dbl, cpl_vector_get_data_const(a), &res);
-                cpl_vector_set(fit, j, res);
-                // dbl = cpl_polynomial_eval_1d(wavesol_init, dbl, NULL);
-                cpl_vector_set(fit_x, j, dbl);
-            }
-            plot[0] = fit_x;
-            plot[1] = y;
-            plot[2] = fit;
-            cpl_plot_vectors(
-            "set grid;set xlabel 'Position (Pixel)';set ylabel 'Intensity (ADU/sec)';",
-                "title 'Observed' w lines", "q", plot, 3);
-            cpl_vector_delete(fit);
-            cpl_vector_delete(fit_x);
-            cpl_free(plot);
-            cpl_error_reset();
-        }
     }
 
     cpl_msg_debug(__func__, "Using %lli out of %lli lines", ngood, npossible);
@@ -2266,11 +2369,6 @@ int cr2res_wave_extract_lines(
     if (ngood == 0)
     {
         cpl_msg_warning(__func__, "No lines");
-        cpl_matrix_delete(x);
-        cpl_vector_delete(y);
-        cpl_vector_delete(sigma_y);
-        cpl_vector_delete(a);
-
         cpl_vector_delete(wave_vec);
         cpl_vector_delete(pixel_vec);
         cpl_vector_delete(width_vec);
@@ -2302,11 +2400,6 @@ int cr2res_wave_extract_lines(
             k++;
         }
     }
-    cpl_matrix_delete(x);
-    cpl_vector_delete(y);
-    cpl_vector_delete(sigma_y);
-    cpl_vector_delete(a);
-
     cpl_vector_delete(wave_vec);
     cpl_vector_delete(pixel_vec);
     cpl_vector_delete(width_vec);

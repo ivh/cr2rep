@@ -159,6 +159,15 @@ cpl_polynomial * cr2res_wave_poly_2d_to_1d(
 
 char * cr2res_wave_method_print(cr2res_wavecal_type wavecal_type) ;
 
+int cr2res_wave_fit_single_line(
+    const cpl_vector * spec, 
+    const cpl_vector * unc, 
+    cpl_size pixel_pos, 
+    cpl_size window_size,
+    cpl_size peak_width,
+    int display,
+    cpl_vector ** result);
+
 int cr2res_wave_extract_lines(
         cpl_bivector    *   spectrum,
         cpl_bivector    *   spectrum_err,

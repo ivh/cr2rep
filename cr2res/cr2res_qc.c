@@ -412,8 +412,58 @@ double cr2res_qc_wave_line_intens(
         double                  wl)
 {
     // TODO Thomas / Ansgar
-    //cpl_plot_bivector("set grid;set xlabel 'Wavelength (nm)';set ylabel 'Spec';", "t 'Spectrum' w lines", "",spec) ;
-    return -1.0 ;
+    //cpl_plot_bivector("set grid;set xlabel 'Wavelength (nm)';
+    // set ylabel 'Spec';", "t 'Spectrum' w lines", "",spec) ;
+    const cpl_vector * wave;
+    const cpl_vector * flux;
+    cpl_vector * tmp;
+    cpl_size pixel_pos;
+    cpl_size window_size;
+    cpl_size k, n_inner, n_outer;
+    double sum_inner, sum_outer;
+    double value;
+
+    // TODO: How large should this window be?
+    window_size = 10;
+
+    // Determine pixel pos
+    // TODO: If we are sure that wave is sorted, we can also use cpl_vector_find
+    tmp = cpl_vector_duplicate(wave);
+    cpl_vector_subtract_scalar(tmp, wl);
+    cpl_vector_multiply(tmp, tmp);
+    pixel_pos = cpl_vector_get_minpos(tmp);
+    cpl_vector_delete(tmp);
+
+    // Sum up the values of the spectrum
+    // inside the window and outside the window
+    sum_inner = 0;
+    sum_outer = 0;
+    n_inner = 0;
+    n_outer = 0;
+    for (cpl_size i = -window_size * 2; i < 2 * window_size; i++)
+    {
+        k = pixel_pos - i;
+        if (k < 0 | k > cpl_vector_get_size(flux)){
+            continue;
+        }
+        value = cpl_vector_get(flux, k);
+        if (fabs(i) < window_size){
+            // Inner sum
+            n_inner++;
+            sum_inner += value;
+        } else {
+            // Outer sum
+            n_outer++;
+            sum_outer += value;
+        }
+    }
+    // Take the mean
+    sum_inner /= n_inner;
+    sum_outer /= n_outer;
+    // return the difference
+    value = sum_inner - sum_outer;
+
+    return value;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -429,8 +479,47 @@ double cr2res_qc_wave_line_fwhm(
         double                  wl)
 {
     // TODO Thomas / Ansgar
-    //cpl_plot_bivector("set grid;set xlabel 'Wavelength (nm)';set ylabel 'Spec';", "t 'Spectrum' w lines", "",spec) ;
-    return -1.0 ;
+    //cpl_plot_bivector("set grid;set xlabel 'Wavelength (nm)';
+    // set ylabel 'Spec';", "t 'Spectrum' w lines", "",spec) ;
+    const cpl_vector * wave;
+    const cpl_vector * flux;
+    cpl_vector * unc;
+    cpl_vector * result;
+    cpl_vector * tmp;
+    cpl_size pixel_pos;
+    cpl_size window_width;
+    cpl_size fwhm ;
+
+    wave = cpl_bivector_get_x_const(spec);
+    flux = cpl_bivector_get_y_const(spec);
+    unc = NULL;
+    result = NULL;
+    // TODO: what should the size of the window be?
+    window_width = 20;
+
+    // Determine pixel pos
+    tmp = cpl_vector_duplicate(wave);
+    cpl_vector_subtract_scalar(tmp, wl);
+    cpl_vector_multiply(tmp, tmp);
+    pixel_pos = cpl_vector_get_minpos(tmp);
+    cpl_vector_delete(tmp);
+
+    // Fit the line with a gaussian
+    if (cr2res_wave_fit_single_line(flux, unc, pixel_pos, 
+            window_width, 1, 0, &result)){
+        // Could not determine the line fit
+        cpl_error_reset();
+        return -1.0 ;
+    }
+
+    // Get the FWHM from the results
+    // and multiply with the conversion factor from sigma to FWHM
+    fwhm = cpl_vector_get(result, 1);
+    fwhm *= 2.355;
+
+    cpl_vector_delete(result);
+
+    return fwhm ;
 }
 
 /*----------------------------------------------------------------------------*/
