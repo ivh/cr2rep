@@ -669,6 +669,13 @@ static int cr2res_cal_wave(
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
+    if (reduce_order > -1 && wavecal_type == CR2RES_ETALON) {
+        if (rawframes_une !=NULL) cpl_frameset_delete(rawframes_une) ;
+        if (rawframes_fpet!=NULL) cpl_frameset_delete(rawframes_fpet) ;
+        cpl_msg_error(__func__, "Limiting to one order with ETALON impossible");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
 
     /* Loop over the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
@@ -1178,7 +1185,15 @@ static int cr2res_cal_wave_reduce(
     }
 
     /* Reduce the FPET */
-    if (rawframes_fpet != NULL) {
+    if (rawframes_fpet != NULL && reduce_order != -1){
+        cpl_msg_warning(__func__, 
+            "Etalon wavecal requires all orders to be used, skipping it.");
+        tw_fpet_out = NULL ;
+        lines_diagnostics_fpet_out = NULL ;
+        extracted_fpet_out = NULL ;
+        wl_map_fpet_out = NULL ;
+        plist_fpet_out = NULL ;
+    } else if (rawframes_fpet != NULL) {
         cpl_msg_info(__func__, "Reduce %"CPL_SIZE_FORMAT" FPET Frames",
                 cpl_frameset_get_size(rawframes_fpet)) ;
         cpl_msg_indent_more() ;
@@ -1338,6 +1353,7 @@ static int cr2res_cal_wave_reduce(
                     &tw_fpet_out) || cpl_error_get_code()) {
             cpl_msg_error(__func__, "Failed to calibrate");
             cpl_table_delete(extracted_fpet) ;
+            cpl_table_delete(tw_in) ;
             if (plist_une_out != NULL) cpl_propertylist_delete(plist_une_out) ;
             if (tw_une_out != NULL) cpl_table_delete(tw_une_out) ;
             if (lines_diagnostics_une_out != NULL) 

@@ -423,6 +423,8 @@ double cr2res_qc_wave_line_intens(
     double sum_inner, sum_outer;
     double value;
 
+    if (spec == NULL | ~isfinite(wl)) return -1;
+
     // TODO: How large should this window be?
     window_size = 10;
 
@@ -433,6 +435,9 @@ double cr2res_qc_wave_line_intens(
     cpl_vector_multiply(tmp, tmp);
     pixel_pos = cpl_vector_get_minpos(tmp);
     cpl_vector_delete(tmp);
+
+    // If the wavelength value is outside the spectrum
+    if (pixel_pos == 0 | pixel_pos == cpl_vector_get_size(wave)) return -1;
 
     // Sum up the values of the spectrum
     // inside the window and outside the window
@@ -490,6 +495,8 @@ double cr2res_qc_wave_line_fwhm(
     cpl_size window_width;
     cpl_size fwhm ;
 
+    if (spec == NULL | ~isfinite(wl)) return -1;
+
     wave = cpl_bivector_get_x_const(spec);
     flux = cpl_bivector_get_y_const(spec);
     unc = NULL;
@@ -503,6 +510,10 @@ double cr2res_qc_wave_line_fwhm(
     cpl_vector_multiply(tmp, tmp);
     pixel_pos = cpl_vector_get_minpos(tmp);
     cpl_vector_delete(tmp);
+
+    // If the wavelength value is outside the spectrum
+    if (pixel_pos == 0 | pixel_pos == cpl_vector_get_size(wave)) return -1;
+
 
     // Fit the line with a gaussian
     if (cr2res_wave_fit_single_line(flux, unc, pixel_pos, 

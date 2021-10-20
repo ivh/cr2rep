@@ -207,6 +207,11 @@ int cr2res_wave_apply(
         return -1 ;
     if (catalog_frame == NULL && wavecal_type != CR2RES_ETALON)
         return -1 ;
+    // Both LINE2D and ETALON only work with all orders
+    if (reduce_order > -1 && 
+        (wavecal_type == CR2RES_LINE2D || wavecal_type == CR2RES_ETALON))
+        return -1;
+
 
     /* Initialise */
     if (catalog_frame != NULL) 
