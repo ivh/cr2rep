@@ -2032,7 +2032,7 @@ int cr2res_wave_fit_single_line(
     int * ia = NULL;
     double x0, sigma, area, offset, red_chisq;
     double value, value2, diff;
-    cpl_size k, j, spec_size;
+    cpl_size k, j, n, spec_size;
     cpl_error_code error;
 
     // Check inputs
@@ -2058,9 +2058,9 @@ int cr2res_wave_fit_single_line(
     // Extract the spectrum within the window
     if (k < 0 | k + window_size >= spec_size){
         // if the window reaches outside the spectrum don't use the line
-        cpl_msg_error(__func__, 
-            "Line at pixel %lli extends past the edge of the spectrum.", 
-            pixel_pos);
+        // cpl_msg_error(__func__, 
+        //     "Line at pixel %lli extends past the edge of the spectrum.", 
+        //     pixel_pos);
         // cleanup
         cpl_matrix_delete(x);
         cpl_vector_delete(y);
@@ -2068,19 +2068,34 @@ int cr2res_wave_fit_single_line(
         cpl_vector_delete(a);
         return -1;
     }
+    n = 0;
     for (j = 0; j < window_size; j++){
         k = pixel_pos - window_size / 2 + j;
         value = cpl_vector_get(spec, k);
         value2 = unc != NULL ? cpl_vector_get(unc, k) : 0;
-        if (value < 0) value = 0;
+        if (isnan(value) || value < 0) value = 0;
         if (isnan(value2) || value2 <= 0){
-            value2 = value == 0 ? sqrt(cpl_vector_get_mean(spec)) : sqrt(value);
+            value2 = value == 0 ? 1 : sqrt(value);
         }
         if (value2 < 1) value2 = 1;
-        cpl_matrix_set(x, j, 0, k);
-        cpl_vector_set(y, j, value);
-        cpl_vector_set(sigma_y, j, value2);
+        if (value != 0){
+            cpl_matrix_set(x, n, 0, k);
+            cpl_vector_set(y, n, value);
+            cpl_vector_set(sigma_y, n, value2);
+            n++;
+        }
     }
+    if (n == 0){
+        // cpl_msg_error(__func__, "No good points for line fit");
+        cpl_vector_delete(a);
+        cpl_matrix_delete(x);
+        cpl_vector_delete(y);
+        cpl_vector_delete(sigma_y);
+        return -1;
+    }
+    cpl_matrix_set_size(x, n, 1);
+    cpl_vector_set_size(y, n);
+    cpl_vector_set_size(sigma_y, n);
 
     // Filter out bad pixels
     tmp = cpl_vector_duplicate(y);
@@ -2089,7 +2104,7 @@ int cr2res_wave_fit_single_line(
             > MAX_DEVIATION_FOR_BAD_PIXEL)
         cpl_vector_set(y, 0, cpl_vector_get(tmp, 1));     
     // Elements in between
-    for (j = 1; j < window_size-1; j++){
+    for (j = 1; j < n-1; j++){
         diff = 2 * cpl_vector_get(tmp, j) - 
                 cpl_vector_get(tmp, j-1) - cpl_vector_get(tmp, j+1);
         diff = fabs(diff);
@@ -2099,9 +2114,9 @@ int cr2res_wave_fit_single_line(
         }
     }
     // Last element
-    if (fabs(cpl_vector_get(tmp, window_size-1) - 
-            cpl_vector_get(tmp, window_size-2)) > MAX_DEVIATION_FOR_BAD_PIXEL)
-        cpl_vector_set(y, window_size-1, cpl_vector_get(tmp, window_size-2));
+    if (fabs(cpl_vector_get(tmp, n-1) - 
+            cpl_vector_get(tmp, n-2)) > MAX_DEVIATION_FOR_BAD_PIXEL)
+        cpl_vector_set(y, n-1, cpl_vector_get(tmp, n-2));
     cpl_vector_delete(tmp);
 
     // get initial guess for gaussian fit
@@ -2114,14 +2129,16 @@ int cr2res_wave_fit_single_line(
     // perform the fit
     red_chisq = -1;
     error = cpl_fit_lvmq(x, sigma_x, y, sigma_y, a, ia, 
-                &cr2res_gauss, &cr2res_gauss_derivative,
-                CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT,
-                CPL_FIT_LVMQ_MAXITER, NULL, &red_chisq, NULL);
-
+            &cr2res_gauss, &cr2res_gauss_derivative,
+            CPL_FIT_LVMQ_TOLERANCE, CPL_FIT_LVMQ_COUNT,
+            CPL_FIT_LVMQ_MAXITER * 100, NULL, &red_chisq, NULL);
     if (error != CPL_ERROR_NONE){
-        cpl_msg_error(__func__, "Could not fit line at pixel %lli. %s", 
-            pixel_pos, cpl_error_get_message_default(error));
+        // cpl_msg_error(__func__, "Could not fit line at pixel %lli. %s", 
+        //     pixel_pos, cpl_error_get_message_default(error));
         cpl_vector_delete(a);
+        cpl_matrix_delete(x);
+        cpl_vector_delete(y);
+        cpl_vector_delete(sigma_y);
         return -1;
     }
 
@@ -2151,10 +2168,10 @@ int cr2res_wave_fit_single_line(
         // and then run one big plot_vectors (maybe bivectors) command with set multiplot
         // alternatively create a file for each line, instead of plot window
         plot = cpl_malloc(3 * sizeof(cpl_vector*));
-        fit = cpl_vector_new(window_size);
-        fit_x = cpl_vector_new(window_size);
+        fit = cpl_vector_new(n);
+        fit_x = cpl_vector_new(n);
 
-        for (j = 0; j < window_size; j++){
+        for (j = 0; j < n; j++){
             dbl = cpl_matrix_get(x, j, 0);
             cr2res_gauss(&dbl, cpl_vector_get_data_const(a), &res);
             cpl_vector_set(fit, j, res);

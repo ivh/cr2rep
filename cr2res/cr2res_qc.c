@@ -423,10 +423,13 @@ double cr2res_qc_wave_line_intens(
     double sum_inner, sum_outer;
     double value;
 
-    if (spec == NULL | ~isfinite(wl)) return -1;
+    if (spec == NULL) return -1;
 
     // TODO: How large should this window be?
     window_size = 10;
+
+    wave = cpl_bivector_get_x_const(spec);
+    flux = cpl_bivector_get_y_const(spec);
 
     // Determine pixel pos
     // TODO: If we are sure that wave is sorted, we can also use cpl_vector_find
@@ -493,9 +496,9 @@ double cr2res_qc_wave_line_fwhm(
     cpl_vector * tmp;
     cpl_size pixel_pos;
     cpl_size window_width;
-    cpl_size fwhm ;
+    double fwhm ;
 
-    if (spec == NULL | ~isfinite(wl)) return -1;
+    if (spec == NULL) return -1;
 
     wave = cpl_bivector_get_x_const(spec);
     flux = cpl_bivector_get_y_const(spec);
@@ -526,7 +529,7 @@ double cr2res_qc_wave_line_fwhm(
     // Get the FWHM from the results
     // and multiply with the conversion factor from sigma to FWHM
     fwhm = cpl_vector_get(result, 1);
-    fwhm *= 2.355;
+    fwhm = fwhm * 2.355;
 
     cpl_vector_delete(result);
 
@@ -546,7 +549,7 @@ double cr2res_qc_wave_lamp_effic(
     cpl_vector  *   ref_lines ;
     cpl_vector  *   ref_lines_intens ;
     double          wmin, wmax, intens_med, intens;
-    int             i ;
+    int             i, n, nall ;
 
     /* Get the reference lines */
     wmin = cpl_vector_get(cpl_bivector_get_x_const(spec), 0);
@@ -558,12 +561,25 @@ double cr2res_qc_wave_lamp_effic(
     //cpl_vector_dump(ref_lines, stdout) ;
 
     /* Loop on the lines */
-    ref_lines_intens = cpl_vector_new(cpl_vector_get_size(ref_lines)) ;
-    for (i=0 ; i<cpl_vector_get_size(ref_lines) ; i++) {
+    n = 0;
+    nall = cpl_vector_get_size(ref_lines);
+    ref_lines_intens = cpl_vector_new(nall) ;
+    for (i=0 ; i < nall ; i++) {
         intens = cr2res_qc_wave_line_intens(spec, cpl_vector_get(ref_lines, i));
-        cpl_vector_set(ref_lines_intens, i, intens); 
+        if (intens != -1) {
+            cpl_vector_set(ref_lines_intens, n, intens); 
+            n++;
+        }
     }
     cpl_vector_delete(ref_lines) ;
+    if (n == 0){
+        cpl_vector_delete(ref_lines_intens) ;
+        return -1;
+    }
+    cpl_vector_set_size(ref_lines_intens, n);
+    cpl_msg_info(__func__, 
+        "Using %i of %i lines to estimate Intensity", n, nall);
+
 
     /* Compute the median */
     intens_med = cpl_vector_get_median(ref_lines_intens) ;
@@ -585,7 +601,7 @@ double cr2res_qc_wave_resol_fwhm(
     cpl_vector  *   ref_lines ;
     cpl_vector  *   ref_lines_fwhm ;
     double          wmin, wmax, fwhm_med, fwhm;
-    int             i ;
+    int             i, n, nall;
 
     /* Get the reference lines */
     wmin = cpl_vector_get(cpl_bivector_get_x_const(spec), 0);
@@ -597,12 +613,23 @@ double cr2res_qc_wave_resol_fwhm(
     //cpl_vector_dump(ref_lines, stdout) ;
 
     /* Loop on the lines */
-    ref_lines_fwhm = cpl_vector_new(cpl_vector_get_size(ref_lines)) ;
+    n = 0;
+    nall = cpl_vector_get_size(ref_lines);
+    ref_lines_fwhm = cpl_vector_new(nall) ;
     for (i=0 ; i<cpl_vector_get_size(ref_lines) ; i++) {
         fwhm = cr2res_qc_wave_line_fwhm(spec, cpl_vector_get(ref_lines, i));
-        cpl_vector_set(ref_lines_fwhm, i, fwhm); 
+        if (fwhm != -1){
+            cpl_vector_set(ref_lines_fwhm, n, fwhm); 
+            n++;
+        }
     }
     cpl_vector_delete(ref_lines) ;
+    if (n == 0){
+        cpl_vector_delete(ref_lines_fwhm) ;
+        return -1;
+    }
+    cpl_vector_set_size(ref_lines_fwhm, n);
+    cpl_msg_info(__func__, "Using %i of %i lines to estimate FWHM", n, nall);
 
     /* Compute the median */
     fwhm_med = cpl_vector_get_median(ref_lines_fwhm) ;
