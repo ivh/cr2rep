@@ -2,7 +2,7 @@
 <!DOCTYPE entity PUBLIC "-//UC Berkeley//DTD MoML 1//EN"
     "http://ptolemy.eecs.berkeley.edu/xml/dtd/MoML_1.dtd">
 <entity name="cr2res" class="ptolemy.actor.TypedCompositeActor">
-    <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:10:68">
+    <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:10:462">
     </property>
     <property name="class" class="ptolemy.kernel.util.StringAttribute" value="ptolemy.actor.TypedCompositeActor">
         <property name="id" class="ptolemy.kernel.util.StringAttribute" value="null">
@@ -10,13 +10,13 @@
     </property>
     <property name="_createdBy" class="ptolemy.kernel.attributes.VersionAttribute" value="11.1.devel">
     </property>
-    <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={290, 62, 1604, 943}, maximized=false}">
+    <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={104, 27, 1782, 1004}, maximized=false}">
     </property>
-    <property name="_vergilSize" class="ptolemy.actor.gui.SizeAttribute" value="[1288, 794]">
+    <property name="_vergilSize" class="ptolemy.actor.gui.SizeAttribute" value="[1466, 855]">
     </property>
-    <property name="_vergilZoomFactor" class="ptolemy.data.expr.ExpertParameter" value="0.5806216683478275">
+    <property name="_vergilZoomFactor" class="ptolemy.data.expr.ExpertParameter" value="0.6086682186278745">
     </property>
-    <property name="_vergilCenter" class="ptolemy.data.expr.ExpertParameter" value="{1079.1559876373835, 550.7498867888842}">
+    <property name="_vergilCenter" class="ptolemy.data.expr.ExpertParameter" value="{1173.2685613722492, 569.353083201414}">
     </property>
     <property name="RAW_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="$ROOT_DATA_DIR/reflex_input/cr2res">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
@@ -412,7 +412,7 @@
         <property name="_location" class="ptolemy.kernel.util.Location" value="[675.0, 1210.0]">
         </property>
     </property>
-    <property name="END_PRODUCTS_SUBDIR" class="ptolemy.data.expr.StringParameter" value="2021-10-06T17:14:19/CRIRE.2021-09-16T06:53:44.783_tpl">
+    <property name="END_PRODUCTS_SUBDIR" class="ptolemy.data.expr.StringParameter" value="2021-10-21T16:28:45/CRIRE.2021-08-16T23:22:50.334_tpl">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
 <property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
 <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Edward A. Lee</configure></property>
@@ -480,7 +480,7 @@
         <property name="_location" class="ptolemy.kernel.util.Location" value="[1040.0, 175.0]">
         </property>
     </property>
-    <property name="GLOBAL_TIMESTAMP" class="ptolemy.data.expr.StringParameter" value="2021-10-06T17:17:05">
+    <property name="GLOBAL_TIMESTAMP" class="ptolemy.data.expr.StringParameter" value="2021-10-21T16:28:45">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
 <property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
 <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Edward A. Lee</configure></property>
@@ -1685,15 +1685,15 @@
         </property>
         <property name="_hideAllParameters" class="ptolemy.data.expr.Parameter" value="true">
         </property>
-        <property name="_location" class="ptolemy.kernel.util.Location" value="[-19.0, 1196.0]">
+        <property name="_location" class="ptolemy.kernel.util.Location" value="-20.0, 1200.0">
         </property>
         <property name="lineWidth" class="ptolemy.data.expr.Parameter" value="1">
         </property>
         <property name="lineColor" class="ptolemy.actor.gui.ColorAttribute" value="{0.4,0.4,0.0,1.0}">
         </property>
-        <property name="width" class="ptolemy.data.expr.Parameter" value="1664.0">
+        <property name="width" class="ptolemy.data.expr.Parameter" value="1664.9999999999998">
         </property>
-        <property name="height" class="ptolemy.data.expr.Parameter" value="26.0">
+        <property name="height" class="ptolemy.data.expr.Parameter" value="59.99999999999999">
         </property>
         <property name="centered" class="ptolemy.data.expr.Parameter" value="false">
         </property>
@@ -1714,7 +1714,7 @@
 <property name="prop:width" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>The horizontal extent. The value is a double that defaults to 100.0.</configure></property>
 <property name="prop:lineColor" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>The line color. Specify a string representing an array of four elements: red, green, blue, and alpha, where alpha is transparency. The default is an opaque black, {0.0, 0.0, 0.0, 1.0}</configure></property>
 <property name="prop:fillColor" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>The fill color. Specify a string representing an array of four elements: red, green, blue, and alpha, where alpha is transparency. By default, the value is &quot;none.&quot;</configure></property>
-</property>        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:kepler-project.org/ns/:31989:69:4">
+</property>        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:28:1">
         </property>
         <property name="class" class="ptolemy.kernel.util.StringAttribute" value="ptolemy.vergil.kernel.attributes.RectangleAttribute">
             <property name="id" class="ptolemy.kernel.util.StringAttribute" value="urn:lsid:kepler-project.org:class:1197:1">
@@ -1724,7 +1724,7 @@
         </property>
         <property name="semanticType11" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:2:1#WorkflowDocumentation">
         </property>
-        <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:434:1:urn:lsid:kepler-project.org/ns/:13961:216:9:urn:lsid:kepler-project.org/ns/:16989:12:1">
+        <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:434:1:urn:lsid:kepler-project.org/ns/:13961:216:9:urn:lsid:kepler-project.org/ns/:16989:12:1:urn:lsid:kepler-project.org/ns/:31989:69:4">
         </property>
     </property>
     <property name="Annotation7" class="ptolemy.vergil.kernel.attributes.TextAttribute">
@@ -1807,7 +1807,7 @@
         </property>
         <property name="_editorFactory" class="ptolemy.vergil.toolbox.VisibleParameterEditorFactory">
         </property>
-        <property name="_location" class="ptolemy.kernel.util.Location" value="[1440.0, 1210.0]">
+        <property name="_location" class="ptolemy.kernel.util.Location" value="[945.0, 1240.0]">
         </property>
         <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:421:1">
         </property>
@@ -2396,6 +2396,44 @@
         </property>
         <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:436:1:urn:lsid:kepler-project.org/ns/:16482:52:1:urn:lsid:kepler-project.org/ns/:16989:16:1:urn:lsid:kepler-project.org/ns/:18725:2:3:urn:lsid:kepler-project.org/ns/:77712:3:3">
         </property>
+    </property>
+    <property name="DatasetName" class="ptolemy.data.expr.StringParameter" value="CRIRE.2021-08-16T23:22:50.334_tpl">
+<property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
+<property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
+<property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Edward A. Lee</configure></property>
+<property name="version" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
+<property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;StringParameter specifies a persistent string. &lt;/p&gt;&#10;&#10;&lt;p&gt;Change the name of the StringParameter to better identify the specified value (right-click the parameter and select &quot;Customize Name&quot; from the menu). Other actors may refer to the StringParameter using the $NAME syntax (e.g. $Parameter).&#10;&lt;/p&gt;</configure></property>
+</property>        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:27:1">
+        </property>
+        <property name="class" class="ptolemy.kernel.util.StringAttribute" value="ptolemy.data.expr.StringParameter">
+            <property name="id" class="ptolemy.kernel.util.StringAttribute" value="urn:lsid:kepler-project.org:class:1185:1">
+            </property>
+        </property>
+        <property name="semanticType00" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:1:1#Parameter">
+        </property>
+        <property name="semanticType11" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:2:1#Parameter">
+        </property>
+        <property name="_hideName" class="ptolemy.kernel.util.SingletonAttribute">
+        </property>
+        <property name="_icon" class="ptolemy.vergil.icon.ValueIcon">
+            <property name="_color" class="ptolemy.actor.gui.ColorAttribute" value="{1.0, 0.0, 0.0, 1.0}">
+            </property>
+        </property>
+        <property name="_smallIconDescription" class="ptolemy.kernel.util.SingletonConfigurableAttribute">
+            <configure>
+        <svg>
+          <text x="20" style="font-size:14; font-family:SansSerif; fill:red" y="20">-S-</text>
+        </svg>
+      </configure>
+        </property>
+        <property name="_editorFactory" class="ptolemy.vergil.toolbox.VisibleParameterEditorFactory">
+        </property>
+        <property name="_location" class="ptolemy.kernel.util.Location" value="[375.0, 1240.0]">
+        </property>
+        <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:421:1">
+        </property>
+    </property>
+    <property name="enableBackwardTypeInference" class="ptolemy.data.expr.Parameter" value="false">
     </property>
     <entity name="cr2res_cal_dark" class="ptolemy.actor.TypedCompositeActor">
         <property name="_createdBy" class="ptolemy.kernel.attributes.VersionAttribute" value="7.0.2">
@@ -3466,7 +3504,7 @@
 <property name="prop:semanticType41" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
 <property name="prop:entityId" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
 <property name="prop:class" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
-</property>        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:9:11">
+</property>        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:9:36">
         </property>
         <property name="class" class="ptolemy.kernel.util.StringAttribute" value="org.eso.FitsRouter">
             <property name="id" class="ptolemy.kernel.util.StringAttribute" value="null">
@@ -3479,18 +3517,6 @@
         <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:903:1:urn:lsid:kepler-project.org/ns/:31989:112:6:urn:lsid:kepler-project.org/ns/:37190:33:1:urn:lsid:kepler-project.org/ns/:38242:18:6:urn:lsid:kepler-project.org/ns/:94825:21:27:urn:lsid:kepler-project.org/ns/:95220:24:10:urn:lsid:uuid:50f33d03-6188-4404-a912-ecd056bfb493:6:13">
         </property>
         <property name="_hideName" class="ptolemy.data.expr.SingletonParameter" value="true">
-        </property>
-        <property name="DARK_config" class="ptolemy.data.expr.Parameter" value="&quot;DARK&quot;">
-        </property>
-        <property name="FLAT_config" class="ptolemy.data.expr.Parameter" value="&quot;FLAT&quot;">
-        </property>
-        <property name="EMISSION_LINES_config" class="ptolemy.data.expr.Parameter" value="&quot;EMISSION_LINES&quot;">
-        </property>
-        <property name="WAVE_UNE_config" class="ptolemy.data.expr.Parameter" value="&quot;WAVE_UNE&quot;">
-        </property>
-        <property name="WAVE_FPET_config" class="ptolemy.data.expr.Parameter" value="&quot;WAVE_FPET&quot;">
-        </property>
-        <property name="UTIL_WAVE_TW_config" class="ptolemy.data.expr.Parameter" value="&quot;UTIL_WAVE_TW&quot;">
         </property>
         <property name="" class="ptolemy.vergil.basic.DocAttribute">
             <property name="description" class="ptolemy.kernel.util.StringAttribute" value="&lt;p&gt;The FitsRouter routes files base on their category: by default, all the files are routed to the rejected directory, but the user can add additional port and configure the actor to route particular files there.&lt;/p&gt;&#10;&lt;p&gt;Basic Mode: create an output port named as a category (e.g.: FLAT), all files belonging to that category will be routed to that port.&lt;/p&gt;&#10;&lt;p&gt;Advanced Mode: create an output port named as you want (e.g.: MyPort), then create a string parameter whose name is the port name plus &quot;_config&quot; (e.g.: MyPort_config). This parameter can be a comma separated list of regular expressions: each file matching at least one of them will be routed to this port.&lt;/p&gt;&#10;&lt;p&gt;If you want to define the minimum or maximum the number of files that are broadcasted to a port you can define a parameter whose name is the port name plus &quot;_min_number&quot; or &quot;_max_number&quot;, respectively.&lt;/p&gt;&#10;&lt;p&gt;Note: one file can be routed to many ports, if no port fits it is routed to the rejected port.&lt;/p&gt;">
@@ -3508,19 +3534,7 @@
             <property name="entityId (parameter)" class="ptolemy.kernel.util.StringAttribute">
             </property>
         </property>
-        <property name="OBS_NODDING_JITTER_config" class="ptolemy.data.expr.Parameter" value="&quot;OBS_NODDING_JITTER&quot;">
-        </property>
-        <property name="CAL_NODDING_OTHER_config" class="ptolemy.data.expr.Parameter" value="&quot;CAL_NODDING_OTHER&quot;">
-        </property>
-        <property name="OBS_NODDING_OTHER_config" class="ptolemy.data.expr.Parameter" value="&quot;OBS_NODDING_OTHER&quot;">
-        </property>
-        <property name="CAL_NODDING_JITTER_config" class="ptolemy.data.expr.Parameter" value="&quot;CAL_NODDING_JITTER&quot;">
-        </property>
-        <property name="OBS_ASTROMETRY_OTHER_config" class="ptolemy.data.expr.Parameter" value="&quot;OBS_ASTROMETRY_OTHER&quot;">
-        </property>
-        <property name="OBS_ASTROMETRY_JITTER_config" class="ptolemy.data.expr.Parameter" value="&quot;OBS_ASTROMETRY_JITTER&quot;">
-        </property>
-        <property name="PHOTO_FLUX_config" class="ptolemy.data.expr.Parameter" value="&quot;PHOTO_FLUX&quot;">
+        <property name="SCIENCE_config" class="ptolemy.data.expr.Parameter" value="&quot;OBS_NODDING_OTHER,OBS_NODDING_JITTER,CAL_NODDING_OTHER,CAL_NODDING_JITTER,OBS_ASTROMETRY_OTHER,OBS_ASTROMETRY_JITTER&quot;">
         </property>
         <port name="in" class="ptolemy.actor.TypedIOPort">
             <property name="input"/>
@@ -3565,16 +3579,9 @@
             <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
             </property>
         </port>
-        <port name="OBS_NODDING_JITTER" class="ptolemy.actor.TypedIOPort">
+        <port name="UTIL_TRACE_TW" class="ptolemy.actor.TypedIOPort">
             <property name="output"/>
-            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
-            </property>
-            <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
-            </property>
-        </port>
-        <port name="UTIL_WAVE_TW" class="ptolemy.actor.TypedIOPort">
-            <property name="output"/>
-            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="EAST">
+            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="NORTH">
             </property>
             <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
             </property>
@@ -3586,46 +3593,23 @@
             <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
             </property>
         </port>
-        <port name="CAL_NODDING_OTHER" class="ptolemy.actor.TypedIOPort">
-            <property name="output"/>
-            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
-            </property>
-            <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
-            </property>
-        </port>
-        <port name="OBS_NODDING_OTHER" class="ptolemy.actor.TypedIOPort">
-            <property name="output"/>
-            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
-            </property>
-            <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
-            </property>
-        </port>
-        <port name="CAL_NODDING_JITTER" class="ptolemy.actor.TypedIOPort">
-            <property name="output"/>
-            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
-            </property>
-            <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
-            </property>
-        </port>
-        <port name="OBS_ASTROMETRY_OTHER" class="ptolemy.actor.TypedIOPort">
-            <property name="output"/>
-            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
-            </property>
-            <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
-            </property>
-        </port>
-        <port name="OBS_ASTROMETRY_JITTER" class="ptolemy.actor.TypedIOPort">
-            <property name="output"/>
-            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
-            </property>
-            <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
-            </property>
-        </port>
         <port name="PHOTO_FLUX" class="ptolemy.actor.TypedIOPort">
             <property name="output"/>
-            <property name="defaultValue" class="ptolemy.data.expr.Parameter">
+            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
             </property>
-            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="EAST">
+            <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
+            </property>
+        </port>
+        <port name="UTIL_WAVE_TW" class="ptolemy.actor.TypedIOPort">
+            <property name="output"/>
+            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="NORTH">
+            </property>
+            <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
+            </property>
+        </port>
+        <port name="SCIENCE" class="ptolemy.actor.TypedIOPort">
+            <property name="output"/>
+            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
             </property>
             <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
             </property>
@@ -6581,7 +6565,7 @@
     <entity name="cr2res_cal_flat" class="ptolemy.actor.TypedCompositeActor">
         <property name="_createdBy" class="ptolemy.kernel.attributes.VersionAttribute" value="7.0.2">
         </property>
-        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:kepler-project.org/ns/:95220:37:15">
+        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:39:4">
         </property>
         <property name="class" class="ptolemy.kernel.util.StringAttribute" value="ptolemy.actor.TypedCompositeActor">
             <property name="id" class="ptolemy.kernel.util.StringAttribute" value="urn:lsid:kepler-project.org:class:449:1">
@@ -6598,7 +6582,7 @@
 <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Yuhong Xiong</configure></property>
 <property name="version" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
 <property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;A Composite actor is an aggregation of actors. It may have a local director that is responsible for executing the contained actors. A Composite actor with a local director is called an opaque actor. Composite actors do not require a local director. Composite actors with no local director &quot;inherit&quot; the director from the containing workflow and are called non-opaque.&lt;/p&gt;&#10;&#10;&lt;p&gt;To create a composite actor, drag and drop the Composite actor onto the Workflow canvas. Right-click the actor and select Open Actor from the drop-down menu. A new Kepler application window will open for designing the composite.&lt;/p&gt;</configure></property>
-</property>        <property name="_location" class="ptolemy.kernel.util.Location" value="[515.0, 740.0]">
+</property>        <property name="_location" class="ptolemy.kernel.util.Location" value="[575.0, 725.0]">
         </property>
         <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={66, 27, 1854, 1053}, maximized=false}">
         </property>
@@ -6616,7 +6600,7 @@
             <property name="version" class="ptolemy.kernel.util.StringAttribute" value="null">
             </property>
         </property>
-        <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:449:1:urn:lsid:kepler-project.org/ns/:25158:89:39:urn:lsid:kepler-project.org/ns/:78556:40:5:urn:lsid:kepler-project.org/ns/:85713:335:2:urn:lsid:kepler-project.org/ns/:94825:15:23">
+        <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:449:1:urn:lsid:kepler-project.org/ns/:25158:89:39:urn:lsid:kepler-project.org/ns/:78556:40:5:urn:lsid:kepler-project.org/ns/:85713:335:2:urn:lsid:kepler-project.org/ns/:94825:15:23:urn:lsid:kepler-project.org/ns/:95220:37:15">
         </property>
         <property name="DDF Director" class="ptolemy.domains.ddf.kernel.DDFDirector">
             <property name="localClock" class="ptolemy.actor.LocalClock">
@@ -6772,42 +6756,43 @@
 <property name="port:sof out" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the output files</configure></property>
 <property name="port:errors" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the errors generated by EsoRex, empty if lazy mode is triggered</configure></property>
 <property name="port:sop out" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the parameters used in the last execution of the recipe</configure></property>
-<property name="prop:Input Files Category" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>a list of file categories separated by a comma or a space: only input files belonging to one of these categories will be passed to the recipe</configure></property>
-<property name="prop:recipe" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the selected pipeline recipe (cannot be changed)</configure></property>
-<property name="prop:Output Files Category" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>a list of file categories separated by a comma or a space: only products belonging to one of these categories will be broadcast to the output port</configure></property>
-<property name="prop:Pause before execution" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true then the execution is paused just before executing the recipe</configure></property>
-<property name="prop:Bookkeeping DB" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
-<property name="prop:Bookkeeping Dir" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the directory the recipe will use as a working directory</configure></property>
-<property name="prop:Clean Temporary Directories" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true, the temporary directories (where the logs, the final and the temporary products of the recipe are created) are cleaned before the execution</configure></property>
 <property name="prop:Lazy Mode" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true then the actor will check whether the pipeline recipe has already been executed with the same input files and with the same recipe parameters. If this is the case then the recipe will not be executed, and instead the previously generated products (which are the same as those that  would have been generated if the recipe were executed, except for a timestamp) will be broadcast to the output port.</configure></property>
-<property name="prop:mode" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;Run: the recipe will be executed (see lazy mode)&lt;/p&gt;&lt;p&gt;Skip: the inputs are broadcast to the output with the following modifications: input files will be filtered according to input and output tags and recipe parameters will be filtered based on the recipe and whether the parameter is set to PORT&lt;/p&gt;&lt;p&gt;Disabled: the recipe is not executed and an empty SoF is generated on the output port&lt;/p&gt;</configure></property>
-<property name="prop:File Purpose Processing" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;how the purpose of the input files will be sent to the output:&lt;/p&gt;&lt;p&gt;Do nothing: leave the input purpose unmodified&lt;/p&gt;&lt;p&gt;Strip last: remove the last section of the input purpose, if there is only one section set the purpose to universal. This is the default mode, and it means that the actor has completed a reduction step and removes it from the purpose chain&lt;/p&gt;&lt;p&gt;Set to universal: set the output purpose to universal&lt;/p&gt;</configure></property>
-<property name="prop:recipe_param_9" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: trace_smooth_y. Default value:401</configure></property>
-<property name="prop:recipe_param_8" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: trace_smooth_x. Default value:111</configure></property>
-<property name="prop:Logs Dir" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the directory where the EsoRex logs will be saved</configure></property>
-<property name="prop:recipe_param_7" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: trace_min_cluster. Default value:250000</configure></property>
-<property name="prop:recipe_param_6" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: trace_degree. Default value:2</configure></property>
-<property name="prop:recipe_param_5" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: bpm_lines_ratio. Default value:0.5</configure></property>
-<property name="prop:recipe_param_4" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: bpm_high. Default value:1.2</configure></property>
-<property name="prop:Products Dir" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the directory where the products will be created</configure></property>
-<property name="prop:recipe_param_3" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: bpm_low. Default value:0.8</configure></property>
-<property name="prop:recipe_param_2" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: calib_cosmics_corr. Default value:false</configure></property>
-<property name="prop:recipe_param_19" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: trace_nb. Default value:-1</configure></property>
-<property name="prop:recipe_param_1" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: subtract_nolight_rows. Default value:false</configure></property>
-<property name="prop:recipe_param_18" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: order. Default value:-1</configure></property>
-<property name="prop:Recipe Failure Mode" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;it specifies the behavior of the actor if the recipe fails&lt;/p&gt; &lt;p&gt;Stop: the actor produces an error message and the workflows stops. This is the default&lt;/p&gt;&lt;p&gt;Continue: the actor outputs an empty SoF&lt;/p&gt;&lt;p&gt;Ask: the actor pops up a window and asks the user whether he wants to continue or stop the execution&lt;/p&gt;</configure></property>
-<property name="prop:recipe_param_17" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: detector. Default value:0</configure></property>
-<property name="prop:recipe_param_16" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: extract_smooth_slit. Default value:3</configure></property>
-<property name="prop:recipe_param_15" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: extract_height. Default value:-1</configure></property>
 <property name="prop:EsoRex default args" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>additional parameters passed to EsoRex</configure></property>
+<property name="prop:recipe" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the selected pipeline recipe (cannot be changed)</configure></property>
+<property name="prop:Products Dir" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the directory where the products will be created</configure></property>
+<property name="prop:File Purpose Processing" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;how the purpose of the input files will be sent to the output:&lt;/p&gt;&lt;p&gt;Do nothing: leave the input purpose unmodified&lt;/p&gt;&lt;p&gt;Strip last: remove the last section of the input purpose, if there is only one section set the purpose to universal. This is the default mode, and it means that the actor has completed a reduction step and removes it from the purpose chain&lt;/p&gt;&lt;p&gt;Set to universal: set the output purpose to universal&lt;/p&gt;</configure></property>
+<property name="prop:recipe_param_19" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: order. Default value:-1</configure></property>
+<property name="prop:recipe_param_18" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: detector. Default value:0</configure></property>
+<property name="prop:recipe_param_17" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: extract_smooth_spec. Default value:2.0E-7</configure></property>
+<property name="prop:Allow empty inputs" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true then an empty sof on the input port will be broadcast to the output without executing the recipe</configure></property>
+<property name="prop:recipe_param_16" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: extract_smooth_slit. Default value:3</configure></property>
+<property name="prop:mode" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;Run: the recipe will be executed (see lazy mode)&lt;/p&gt;&lt;p&gt;Skip: the inputs are broadcast to the output with the following modifications: input files will be filtered according to input and output tags and recipe parameters will be filtered based on the recipe and whether the parameter is set to PORT&lt;/p&gt;&lt;p&gt;Disabled: the recipe is not executed and an empty SoF is generated on the output port&lt;/p&gt;</configure></property>
+<property name="prop:Pause after execution" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true then the execution is paused after the execution of the recipe</configure></property>
+<property name="prop:recipe_param_15" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: extract_height. Default value:-1</configure></property>
 <property name="prop:recipe_param_14" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: extract_swath_width. Default value:800</configure></property>
 <property name="prop:recipe_param_13" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: extract_oversample. Default value:5</configure></property>
 <property name="prop:recipe_param_12" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: extract_method. Default value:OPT_CURV</configure></property>
 <property name="prop:recipe_param_11" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: trace_opening. Default value:true</configure></property>
 <property name="prop:recipe_param_10" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: trace_threshold. Default value:3</configure></property>
-<property name="prop:Pause after execution" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true then the execution is paused after the execution of the recipe</configure></property>
-<property name="prop:Allow empty inputs" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true then an empty sof on the input port will be broadcast to the output without executing the recipe</configure></property>
-</property>            <property name="_location" class="ptolemy.kernel.util.Location" value="[285.0, 25.0]">
+<property name="prop:Pause before execution" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true then the execution is paused just before executing the recipe</configure></property>
+<property name="prop:recipe_param_9" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: trace_smooth_y. Default value:401</configure></property>
+<property name="prop:recipe_param_8" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: trace_smooth_x. Default value:111</configure></property>
+<property name="prop:recipe_param_7" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: trace_min_cluster. Default value:200000</configure></property>
+<property name="prop:recipe_param_6" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: trace_degree. Default value:2</configure></property>
+<property name="prop:recipe_param_5" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: bpm_lines_ratio. Default value:0.5</configure></property>
+<property name="prop:recipe_param_4" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: bpm_high. Default value:1.2</configure></property>
+<property name="prop:recipe_param_3" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: bpm_low. Default value:0.8</configure></property>
+<property name="prop:recipe_param_2" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: calib_cosmics_corr. Default value:false</configure></property>
+<property name="prop:recipe_param_1" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: subtract_nolight_rows. Default value:false</configure></property>
+<property name="prop:Logs Dir" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the directory where the EsoRex logs will be saved</configure></property>
+<property name="prop:Bookkeeping DB" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
+<property name="prop:Input Files Category" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>a list of file categories separated by a comma or a space: only input files belonging to one of these categories will be passed to the recipe</configure></property>
+<property name="prop:Recipe Failure Mode" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;it specifies the behavior of the actor if the recipe fails&lt;/p&gt; &lt;p&gt;Stop: the actor produces an error message and the workflows stops. This is the default&lt;/p&gt;&lt;p&gt;Continue: the actor outputs an empty SoF&lt;/p&gt;&lt;p&gt;Ask: the actor pops up a window and asks the user whether he wants to continue or stop the execution&lt;/p&gt;</configure></property>
+<property name="prop:Output Files Category" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>a list of file categories separated by a comma or a space: only products belonging to one of these categories will be broadcast to the output port</configure></property>
+<property name="prop:Bookkeeping Dir" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the directory the recipe will use as a working directory</configure></property>
+<property name="prop:recipe_param_20" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: trace_nb. Default value:-1</configure></property>
+<property name="prop:Clean Temporary Directories" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true, the temporary directories (where the logs, the final and the temporary products of the recipe are created) are cleaned before the execution</configure></property>
+</property>            <property name="_location" class="ptolemy.kernel.util.Location" value="[255.0, 45.0]">
             </property>
             <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute">
                 <configure></configure>
@@ -6836,24 +6821,24 @@
             <property name="width" class="ptolemy.data.expr.Parameter" value="1">
             </property>
         </relation>
-        <relation name="relation2" class="ptolemy.actor.TypedIORelation">
+        <relation name="relation" class="ptolemy.actor.TypedIORelation">
             <property name="width" class="ptolemy.data.expr.Parameter" value="1">
             </property>
         </relation>
-        <relation name="relation6" class="ptolemy.actor.TypedIORelation">
+        <relation name="relation2" class="ptolemy.actor.TypedIORelation">
             <property name="width" class="ptolemy.data.expr.Parameter" value="1">
             </property>
         </relation>
         <link port="sof_in" relation="relation5"/>
         <link port="sof_out" relation="relation4"/>
         <link port="SofSplitter.sof in" relation="relation5"/>
-        <link port="SofSplitter.sof out" relation="relation2"/>
+        <link port="SofSplitter.sof out" relation="relation"/>
         <link port="SofSplitter.#groups" relation="relation3"/>
-        <link port="SofAccumulator.sof in" relation="relation6"/>
+        <link port="SofAccumulator.sof in" relation="relation2"/>
         <link port="SofAccumulator.#groups" relation="relation3"/>
         <link port="SofAccumulator.sof out" relation="relation4"/>
-        <link port="cr2res_cal_flat_1.sof in" relation="relation2"/>
-        <link port="cr2res_cal_flat_1.sof out" relation="relation6"/>
+        <link port="cr2res_cal_flat_1.sof in" relation="relation"/>
+        <link port="cr2res_cal_flat_1.sof out" relation="relation2"/>
     </entity>
     <entity name="SofCombiner3" class="org.eso.SofCombiner">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
@@ -6874,7 +6859,7 @@
         </property>
         <property name="semanticType41" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:4:1#ESO">
         </property>
-        <property name="_location" class="ptolemy.kernel.util.Location" value="[440.0, 720.0]">
+        <property name="_location" class="ptolemy.kernel.util.Location" value="[505.0, 725.0]">
         </property>
         <property name="_hideName" class="ptolemy.data.expr.SingletonParameter" value="true">
         </property>
@@ -6904,7 +6889,7 @@
     <entity name="cr2res_cal_wave" class="ptolemy.actor.TypedCompositeActor">
         <property name="_createdBy" class="ptolemy.kernel.attributes.VersionAttribute" value="7.0.2">
         </property>
-        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:kepler-project.org/ns/:95220:36:15">
+        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:24:85">
         </property>
         <property name="class" class="ptolemy.kernel.util.StringAttribute" value="ptolemy.actor.TypedCompositeActor">
             <property name="id" class="ptolemy.kernel.util.StringAttribute" value="urn:lsid:kepler-project.org:class:449:1">
@@ -6921,7 +6906,7 @@
 <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Yuhong Xiong</configure></property>
 <property name="version" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
 <property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;A Composite actor is an aggregation of actors. It may have a local director that is responsible for executing the contained actors. A Composite actor with a local director is called an opaque actor. Composite actors do not require a local director. Composite actors with no local director &quot;inherit&quot; the director from the containing workflow and are called non-opaque.&lt;/p&gt;&#10;&#10;&lt;p&gt;To create a composite actor, drag and drop the Composite actor onto the Workflow canvas. Right-click the actor and select Open Actor from the drop-down menu. A new Kepler application window will open for designing the composite.&lt;/p&gt;</configure></property>
-</property>        <property name="_location" class="ptolemy.kernel.util.Location" value="[970.0, 865.0]">
+</property>        <property name="_location" class="ptolemy.kernel.util.Location" value="[960.0, 900.0]">
         </property>
         <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={66, 27, 1854, 1053}, maximized=false}">
         </property>
@@ -6939,7 +6924,7 @@
             <property name="version" class="ptolemy.kernel.util.StringAttribute" value="null">
             </property>
         </property>
-        <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:449:1:urn:lsid:kepler-project.org/ns/:25158:89:39:urn:lsid:kepler-project.org/ns/:78556:40:5:urn:lsid:kepler-project.org/ns/:85713:335:2:urn:lsid:kepler-project.org/ns/:94825:15:28">
+        <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:449:1:urn:lsid:kepler-project.org/ns/:25158:89:39:urn:lsid:kepler-project.org/ns/:78556:40:5:urn:lsid:kepler-project.org/ns/:85713:335:2:urn:lsid:kepler-project.org/ns/:94825:15:28:urn:lsid:kepler-project.org/ns/:95220:36:15">
         </property>
         <property name="DDF Director" class="ptolemy.domains.ddf.kernel.DDFDirector">
             <property name="localClock" class="ptolemy.actor.LocalClock">
@@ -6972,7 +6957,7 @@
             </property>
             <property name="semanticType11" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:2:1#Director">
             </property>
-            <property name="_location" class="ptolemy.kernel.util.Location" value="[30.0, 60.0]">
+            <property name="_location" class="ptolemy.kernel.util.Location" value="[-25.0, 85.0]">
             </property>
             <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:director:5:1">
             </property>
@@ -6981,14 +6966,14 @@
             <property name="input"/>
             <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="WEST">
             </property>
-            <property name="_location" class="ptolemy.kernel.util.Location" value="[-40.0, 320.0]">
+            <property name="_location" class="ptolemy.kernel.util.Location" value="[-130.0, 335.0]">
             </property>
         </port>
         <port name="sof_out" class="ptolemy.actor.TypedIOPort">
             <property name="output"/>
             <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
             </property>
-            <property name="_location" class="ptolemy.kernel.util.Location" value="[745.0, 320.0]">
+            <property name="_location" class="ptolemy.kernel.util.Location" value="[705.0, 320.0]">
             </property>
         </port>
         <entity name="SofSplitter" class="org.eso.SofSplitter">
@@ -7013,7 +6998,7 @@
             </property>
             <property name="semanticType" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:4:1#ESO">
             </property>
-            <property name="_location" class="ptolemy.kernel.util.Location" value="[85.0, 175.0]">
+            <property name="_location" class="ptolemy.kernel.util.Location" value="[170.0, 175.0]">
             </property>
             <port name="sof in" class="ptolemy.actor.TypedIOPort">
                 <property name="input"/>
@@ -7080,6 +7065,240 @@
                 </property>
             </port>
         </entity>
+        <entity name="FitsRouter" class="org.eso.FitsRouter">
+<property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
+<property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
+<property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>ESO</configure></property>
+<property name="version" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>2.9</configure></property>
+<property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;The FitsRouter sorts files based on their category: by default, all files are routed to the rejected directory, but the user can add an additional port and configure the actor to route particular files to the new port. The category is defined by the value of either HIERARCH.ESO.PRO.CATG (keyword added to the file by the pipeline recipes) or REFLEX.CATG (virtual keyword created by the DataOrganizer).&lt;/p&gt;&#10;&lt;p&gt;Basic Mode: create an output port named as a category (e.g.: FLAT), all files belonging to that category will be routed to that port.&lt;/p&gt;&#10;&lt;p&gt;Advanced Mode: create an output port named as you want (e.g.: MyPort), then create a string parameter whose name is the port name plus &quot;_config&quot; (e.g.: MyPort_config). This parameter can be a list of regular expressions separated by a comma or a space (you can mix both in the same parameter): each file matching at least one of them will be routed to this port.&lt;/p&gt;&#10;&lt;p&gt;If you want to define the minimum or maximum the number of files that are broadcasted to a port you can define a parameter whose name is the port name plus &quot;_min_number&quot; or &quot;_max_number&quot;, respectively.&lt;/p&gt;&#10;&lt;p&gt;Note: one file can be routed to many ports, if no port fits it is routed to the rejected port.&lt;/p&gt;</configure></property>
+<property name="port:in" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>The input data</configure></property>
+<property name="port:sof rejected" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>The rejected SoF</configure></property>
+<property name="prop:semanticType41" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
+<property name="prop:entityId" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
+<property name="prop:class" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
+</property>            <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:25:1">
+            </property>
+            <property name="class" class="ptolemy.kernel.util.StringAttribute" value="org.eso.FitsRouter">
+                <property name="id" class="ptolemy.kernel.util.StringAttribute" value="null">
+                </property>
+            </property>
+            <property name="semanticType41" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:4:1#ESO">
+            </property>
+            <property name="_location" class="ptolemy.kernel.util.Location" value="[-60.0, 365.0]">
+            </property>
+            <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:903:1">
+            </property>
+            <port name="in" class="ptolemy.actor.TypedIOPort">
+                <property name="input"/>
+                <property name="_showName" class="ptolemy.data.expr.Parameter" value="true">
+                </property>
+                <property name="tokenConsumptionRate" class="ptolemy.data.expr.Parameter" value="1">
+                </property>
+            </port>
+            <port name="sof rejected" class="ptolemy.actor.TypedIOPort">
+                <property name="output"/>
+                <property name="multiport"/>
+                <property name="_showName" class="ptolemy.data.expr.Parameter" value="true">
+                </property>
+            </port>
+            <port name="UTIL_WAVE_TW" class="ptolemy.actor.TypedIOPort">
+                <property name="output"/>
+                <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
+                </property>
+            </port>
+        </entity>
+        <entity name="IsSofEmpty" class="org.eso.IsSofEmpty">
+<property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
+<property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Identifies empty SoFs</configure></property>
+<property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>ESO</configure></property>
+<property name="version" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>2.9</configure></property>
+<property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>IsSofEmpty emits a true token if the input soF is empty</configure></property>
+<property name="port:is not empty" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>true if the input is not empty</configure></property>
+<property name="port:is empty" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>true if the input is empty</configure></property>
+<property name="port:sof in" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>The input sof</configure></property>
+<property name="prop:semanticType41" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
+<property name="prop:entityId" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
+<property name="prop:class" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
+</property>            <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:kepler-project.org/ns/:12341:49:2">
+            </property>
+            <property name="class" class="ptolemy.kernel.util.StringAttribute" value="org.eso.IsSofEmpty">
+                <property name="id" class="ptolemy.kernel.util.StringAttribute" value="null">
+                </property>
+            </property>
+            <property name="semanticType" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:4:1#ESO">
+            </property>
+            <property name="_location" class="ptolemy.kernel.util.Location" value="[60.0, 380.0]">
+            </property>
+            <port name="sof in" class="ptolemy.actor.TypedIOPort">
+                <property name="input"/>
+                <property name="multiport"/>
+                <property name="_showName" class="ptolemy.data.expr.Parameter" value="true">
+                </property>
+            </port>
+            <port name="is empty" class="ptolemy.actor.TypedIOPort">
+                <property name="output"/>
+                <property name="_showName" class="ptolemy.data.expr.Parameter" value="true">
+                </property>
+            </port>
+            <port name="is not empty" class="ptolemy.actor.TypedIOPort">
+                <property name="output"/>
+                <property name="_showName" class="ptolemy.data.expr.Parameter" value="true">
+                </property>
+            </port>
+        </entity>
+        <entity name="DDF Boolean Select" class="ptolemy.domains.ddf.lib.DDFBooleanSelect">
+<property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
+<property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
+<property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Gang Zhou</configure></property>
+<property name="version" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
+<property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt; A type polymorphic select with boolean valued control for use in&#10; the DDF domain. In the first iteration, an input token at the&#10; &lt;i&gt;control&lt;/i&gt; port is read and its value is noted. In the second&#10; iteration, if the &lt;i&gt;control&lt;/i&gt; input read from the previous&#10; iteration is true, then an input token at the &lt;i&gt;trueInput&lt;/i&gt; port&#10; is read and sent to the output. Likewise with a false &lt;i&gt;control&lt;/i&gt;&#10; input and the &lt;i&gt;falseInput&lt;/i&gt; port. It alternates between these&#10; two kinds of iterations until stopped. The &lt;i&gt;control&lt;/i&gt; port must&#10; receive Boolean Tokens. The &lt;i&gt;trueInput&lt;/i&gt; and &lt;i&gt;falseInput&lt;/i&gt;&#10; ports may receive Tokens of any type. Because tokens are immutable,&#10; the same Token is sent to the output, rather than a copy.&lt;/p&gt;&#10; &lt;p&gt;&#10; Note this actor sends an output token every two iterations. Contrast&#10; this with BooleanSelect which sends an output token every iteration.&#10; &lt;/p&gt;&#10;        </configure></property>
+<property name="port:falseInput" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Input for tokens on the false path. The port type can be any type.</configure></property>
+<property name="port:output" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>The output port.  The type is at least the type of &lt;i&gt;trueInput&lt;/i&gt; and &lt;i&gt;falseInput&lt;/i&gt;. </configure></property>
+<property name="port:trueInput" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Input for tokens on the true path. The port type can be any type.</configure></property>
+<property name="port:control" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Input that selects one of the other input ports. The type is boolean.</configure></property>
+</property>            <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:kepler-project.org:actor:526:1">
+            </property>
+            <property name="class" class="ptolemy.kernel.util.StringAttribute" value="ptolemy.domains.ddf.lib.DDFBooleanSelect">
+                <property name="id" class="ptolemy.kernel.util.StringAttribute" value="urn:lsid:kepler-project.org:class:526:1">
+                </property>
+            </property>
+            <property name="semanticType00" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:1:1#BooleanControlActor">
+            </property>
+            <property name="semanticType11" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:2:1#BooleanControl">
+            </property>
+            <property name="_location" class="ptolemy.kernel.util.Location" value="[570.0, 235.0]">
+            </property>
+            <port name="trueInput" class="ptolemy.actor.TypedIOPort">
+                <property name="input"/>
+                <property name="tokenConsumptionRate" class="ptolemy.data.expr.Parameter" value="0">
+                </property>
+            </port>
+            <port name="falseInput" class="ptolemy.actor.TypedIOPort">
+                <property name="input"/>
+                <property name="tokenConsumptionRate" class="ptolemy.data.expr.Parameter" value="0">
+                </property>
+            </port>
+            <port name="control" class="ptolemy.actor.TypedIOPort">
+                <property name="input"/>
+                <property name="tokenConsumptionRate" class="ptolemy.data.expr.Parameter" value="1">
+                </property>
+                <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
+                </property>
+            </port>
+        </entity>
+        <entity name="Boolean Switch" class="ptolemy.actor.lib.BooleanSwitch">
+<property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
+<property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
+<property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Steve Neuendorffer</configure></property>
+<property name="version" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
+<property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;The BooleanSwitch actor reads a value of any type, as well as a Boolean token that is used as a control. If the Boolean token is true, the actor outputs the received value to the trueOutput port; if the Boolean token is false, the actor outputs the received value to the falseOutput port.&#10;If the actor has never received a value on the control port, then the actor will output to the falseOutput port.&lt;/p&gt;&#10;&#10;&lt;p&gt;The actor only works under certain directors. It will not work under an SDF Director, but it will under a PN Director, for example.&lt;/p&gt;</configure></property>
+<property name="port:input" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>An input port that accepts tokens of any type.</configure></property>
+<property name="port:falseOutput" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>An output port that broadcasts the input token when the control is false.</configure></property>
+<property name="port:trueOutput" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>An output port that broadcasts the input token when the control is true.</configure></property>
+<property name="port:control" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>An input port that accepts a Boolean token used to select which output port (trueOutput or falseOutput) to broadcast.</configure></property>
+</property>            <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:kepler-project.org:actor:54:1">
+            </property>
+            <property name="class" class="ptolemy.kernel.util.StringAttribute" value="ptolemy.actor.lib.BooleanSwitch">
+                <property name="id" class="ptolemy.kernel.util.StringAttribute" value="urn:lsid:kepler-project.org:class:930:1">
+                </property>
+            </property>
+            <property name="semanticType00" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:1:1#BooleanControlActor">
+            </property>
+            <property name="semanticType11" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:2:1#BooleanControl">
+            </property>
+            <property name="_location" class="ptolemy.kernel.util.Location" value="[40.0, 235.0]">
+            </property>
+            <port name="control" class="ptolemy.actor.TypedIOPort">
+                <property name="input"/>
+                <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
+                </property>
+            </port>
+        </entity>
+        <entity name="String Constant" class="ptolemy.actor.lib.StringConst">
+            <property name="value" class="ptolemy.data.expr.Parameter" value="">
+            </property>
+            <property name="firingCountLimit" class="ptolemy.data.expr.Parameter" value="NONE">
+            </property>
+            <property name="NONE" class="ptolemy.data.expr.Parameter" value="0">
+            </property>
+<property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
+<property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
+<property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Edward Lee</configure></property>
+<property name="version" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
+<property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;The StringConstant actor outputs a string specified via the actor's value parameter.&lt;/p&gt;&#10;&#10;&lt;p&gt;Specifying strings with the StringConstant actor is convenient, as the actor does not require that strings be surrounded by quotes. The actor is often used to specify file paths, which can be selected using the Browse button available in the actor's parameters.&lt;/p&gt;&#10;&#10;&lt;p&gt;Specified string values can include references to parameters within scope (i.e., parameters defined at the same level of the hierarchy or higher). &lt;/p&gt;&#10;&#10;&lt;p&gt;NOTE: If using a PN Director, the 'firingCountLimit' parameter is often set to a finite integer (e.g. '1') so that the workflow will terminate. &lt;/p&gt;&#10;&#10;</configure></property>
+<property name="port:output" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>An output port that broadcasts a string constant specified by the value parameter.  </configure></property>
+<property name="port:trigger" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>A multiport that has no declared type (in other words, the port can accept any data type: double, int, array, etc.) If the port is connected, the actor will not fire until the trigger port receives an input token. Connecting the port is optional, but useful when scheduling the actor to perform at a certain time. </configure></property>
+<property name="prop:firingCountLimit" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>The limit on the number of times the actor will fire. The default value is 'NONE', meaning there is no limit on the number of time the constant will be provided to the output port. Any integer can be provided as a value for this parameter.</configure></property>
+<property name="prop:value" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>The value produced by the actor. Specified strings do not require enclosing quotes. (To include a '$' sign in the string, enter '$$'.)</configure></property>
+</property>            <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:kepler-project.org:actor:204:1">
+            </property>
+            <property name="class" class="ptolemy.kernel.util.StringAttribute" value="ptolemy.actor.lib.StringConst">
+                <property name="id" class="ptolemy.kernel.util.StringAttribute" value="urn:lsid:kepler-project.org:class:1052:1">
+                </property>
+            </property>
+            <property name="semanticType00" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:1:1#StringFunctionActor">
+            </property>
+            <property name="semanticType11" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:2:1#Constant">
+            </property>
+            <property name="_icon" class="ptolemy.vergil.icon.BoxedValueIcon">
+                <property name="attributeName" class="ptolemy.kernel.util.StringAttribute" value="value">
+                </property>
+                <property name="displayWidth" class="ptolemy.data.expr.Parameter" value="60">
+                </property>
+            </property>
+            <property name="_location" class="ptolemy.kernel.util.Location" value="[255.0, 285.0]">
+            </property>
+            <port name="trigger" class="ptolemy.actor.TypedIOPort">
+                <property name="input"/>
+                <property name="multiport"/>
+                <property name="_showName" class="ptolemy.data.expr.SingletonParameter" value="true">
+                </property>
+            </port>
+        </entity>
+        <entity name="SofCreator" class="org.eso.SofCreator">
+            <property name="Dataset Name" class="ptolemy.data.expr.StringParameter" value="$DatasetName">
+            </property>
+            <property name="Default Category" class="ptolemy.data.expr.StringParameter" value="">
+            </property>
+            <property name="Filename Pattern" class="ptolemy.data.expr.StringParameter" value="*.fits">
+            </property>
+<property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
+<property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>It reads the content of a directory and creates an SoF</configure></property>
+<property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>ESO</configure></property>
+<property name="version" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>2.9</configure></property>
+<property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>The SofCreator reads the contents of a directory and creates an SoF: the file category is based on the keyword PRO.CATG or REFLEX.CATG. If both are missing the Default Category is used.</configure></property>
+<property name="port:data dir" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>The input dir. If an empty string is provided the actor generates an empty SoF</configure></property>
+<property name="port:sof out" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>The output sof</configure></property>
+<property name="prop:semanticType41" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
+<property name="prop:Filename Pattern" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>a wildcard pattern representing the files to be included (e.g. *.fits)</configure></property>
+<property name="prop:entityId" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
+<property name="prop:Default Category" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>The default category to be used to classify FITS files if they do not possess any of the required keywords.</configure></property>
+<property name="prop:class" class="ptolemy.kernel.util.ConfigurableAttribute"><configure></configure></property>
+<property name="prop:Dataset name" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the dataset name of the output SoF</configure></property>
+</property>            <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:26:2">
+            </property>
+            <property name="class" class="ptolemy.kernel.util.StringAttribute" value="org.eso.SofCreator">
+                <property name="id" class="ptolemy.kernel.util.StringAttribute" value="null">
+                </property>
+            </property>
+            <property name="semanticType41" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:4:1#ESO">
+            </property>
+            <property name="_location" class="ptolemy.kernel.util.Location" value="[370.0, 260.0]">
+            </property>
+            <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:906:1">
+            </property>
+            <port name="data dir" class="ptolemy.actor.TypedIOPort">
+                <property name="input"/>
+                <property name="multiport"/>
+                <property name="_showName" class="ptolemy.data.expr.Parameter" value="true">
+                </property>
+            </port>
+            <port name="sof out" class="ptolemy.actor.TypedIOPort">
+                <property name="output"/>
+                <property name="_showName" class="ptolemy.data.expr.Parameter" value="true">
+                </property>
+            </port>
+        </entity>
         <entity name="cr2res_cal_wave_1" class="org.eso.RecipeExecuter">
             <property name="Input Files Category" class="ptolemy.data.expr.StringParameter" value="CAL_DARK_BPM CAL_DARK_MASTER CAL_FLAT_MASTER EMISSION_LINES UTIL_WAVE_TW WAVE_UNE WAVE_FPET">
             </property>
@@ -7102,24 +7321,24 @@
 <property name="prop:recipe" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the selected pipeline recipe (cannot be changed)</configure></property>
 <property name="prop:Products Dir" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the directory where the products will be created</configure></property>
 <property name="prop:File Purpose Processing" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;how the purpose of the input files will be sent to the output:&lt;/p&gt;&lt;p&gt;Do nothing: leave the input purpose unmodified&lt;/p&gt;&lt;p&gt;Strip last: remove the last section of the input purpose, if there is only one section set the purpose to universal. This is the default mode, and it means that the actor has completed a reduction step and removes it from the purpose chain&lt;/p&gt;&lt;p&gt;Set to universal: set the output purpose to universal&lt;/p&gt;</configure></property>
-<property name="prop:recipe_param_19" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: display. Default value:false</configure></property>
-<property name="prop:recipe_param_18" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: clean_spectrum. Default value:true</configure></property>
-<property name="prop:recipe_param_17" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: keep. Default value:false</configure></property>
+<property name="prop:recipe_param_19" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: clean_spectrum. Default value:true</configure></property>
+<property name="prop:recipe_param_18" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: keep. Default value:false</configure></property>
+<property name="prop:recipe_param_17" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: fallback. Default value:false</configure></property>
 <property name="prop:Allow empty inputs" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true then an empty sof on the input port will be broadcast to the output without executing the recipe</configure></property>
-<property name="prop:recipe_param_16" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: fallback. Default value:false</configure></property>
+<property name="prop:recipe_param_16" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: log. Default value:false</configure></property>
 <property name="prop:mode" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;Run: the recipe will be executed (see lazy mode)&lt;/p&gt;&lt;p&gt;Skip: the inputs are broadcast to the output with the following modifications: input files will be filtered according to input and output tags and recipe parameters will be filtered based on the recipe and whether the parameter is set to PORT&lt;/p&gt;&lt;p&gt;Disabled: the recipe is not executed and an empty SoF is generated on the output port&lt;/p&gt;</configure></property>
 <property name="prop:Pause after execution" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true then the execution is paused after the execution of the recipe</configure></property>
-<property name="prop:recipe_param_15" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: log. Default value:false</configure></property>
-<property name="prop:recipe_param_14" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: wl_degree. Default value:2</configure></property>
-<property name="prop:recipe_param_13" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: wl_err. Default value:-1</configure></property>
-<property name="prop:recipe_param_12" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: wl_est. Default value:-1.0, -1.0</configure></property>
-<property name="prop:recipe_param_11" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: wl_shift. Default value:0</configure></property>
-<property name="prop:recipe_param_10" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: wl_method. Default value:XCORR</configure></property>
+<property name="prop:recipe_param_15" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: wl_degree. Default value:2</configure></property>
+<property name="prop:recipe_param_14" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: wl_err. Default value:-1</configure></property>
+<property name="prop:recipe_param_13" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: wl_est. Default value:-1.0, -1.0</configure></property>
+<property name="prop:recipe_param_12" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: wl_shift. Default value:0</configure></property>
+<property name="prop:recipe_param_11" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: wl_method. Default value:XCORR</configure></property>
+<property name="prop:recipe_param_10" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: extract_smooth_spec. Default value:2.0E-7</configure></property>
 <property name="prop:Pause before execution" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true then the execution is paused just before executing the recipe</configure></property>
-<property name="prop:recipe_param_9" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: ext_smooth_slit. Default value:3</configure></property>
-<property name="prop:recipe_param_8" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: ext_height. Default value:120</configure></property>
-<property name="prop:recipe_param_7" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: ext_swath_width. Default value:800</configure></property>
-<property name="prop:recipe_param_6" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: ext_oversample. Default value:5</configure></property>
+<property name="prop:recipe_param_9" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: extract_smooth_slit. Default value:3</configure></property>
+<property name="prop:recipe_param_8" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: extract_height. Default value:120</configure></property>
+<property name="prop:recipe_param_7" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: extract_swath_width. Default value:800</configure></property>
+<property name="prop:recipe_param_6" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: extract_oversample. Default value:5</configure></property>
 <property name="prop:recipe_param_5" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: collapse_method. Default value:MEDIAN</configure></property>
 <property name="prop:recipe_param_4" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: keep. Default value:false</configure></property>
 <property name="prop:recipe_param_3" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: trace_nb. Default value:-1</configure></property>
@@ -7130,10 +7349,11 @@
 <property name="prop:Input Files Category" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>a list of file categories separated by a comma or a space: only input files belonging to one of these categories will be passed to the recipe</configure></property>
 <property name="prop:Recipe Failure Mode" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;it specifies the behavior of the actor if the recipe fails&lt;/p&gt; &lt;p&gt;Stop: the actor produces an error message and the workflows stops. This is the default&lt;/p&gt;&lt;p&gt;Continue: the actor outputs an empty SoF&lt;/p&gt;&lt;p&gt;Ask: the actor pops up a window and asks the user whether he wants to continue or stop the execution&lt;/p&gt;</configure></property>
 <property name="prop:Output Files Category" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>a list of file categories separated by a comma or a space: only products belonging to one of these categories will be broadcast to the output port</configure></property>
+<property name="prop:recipe_param_21" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: display_range. Default value:-1.0, -1.0</configure></property>
 <property name="prop:Bookkeeping Dir" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>the directory the recipe will use as a working directory</configure></property>
-<property name="prop:recipe_param_20" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: display_range. Default value:-1.0, -1.0</configure></property>
+<property name="prop:recipe_param_20" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: display. Default value:false</configure></property>
 <property name="prop:Clean Temporary Directories" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true, the temporary directories (where the logs, the final and the temporary products of the recipe are created) are cleaned before the execution</configure></property>
-</property>            <property name="_location" class="ptolemy.kernel.util.Location" value="[340.0, 40.0]">
+</property>            <property name="_location" class="ptolemy.kernel.util.Location" value="[320.0, 95.0]">
             </property>
             <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute">
                 <configure></configure>
@@ -7154,15 +7374,47 @@
             <property name="width" class="ptolemy.data.expr.Parameter" value="1">
             </property>
         </relation>
+        <relation name="relation7" class="ptolemy.actor.TypedIORelation">
+            <property name="width" class="ptolemy.data.expr.Parameter" value="-1">
+            </property>
+            <vertex name="vertex1" value="[140.0, 355.0]">
+            </vertex>
+        </relation>
+        <relation name="relation5" class="ptolemy.actor.TypedIORelation">
+            <property name="width" class="ptolemy.data.expr.Parameter" value="-1">
+            </property>
+            <vertex name="vertex1" value="{-45.0, 285.0}">
+            </vertex>
+        </relation>
+        <relation name="relation2" class="ptolemy.actor.TypedIORelation">
+            <property name="width" class="ptolemy.data.expr.Parameter" value="1">
+            </property>
+        </relation>
+        <relation name="relation8" class="ptolemy.actor.TypedIORelation">
+            <property name="width" class="ptolemy.data.expr.Parameter" value="1">
+            </property>
+        </relation>
         <relation name="relation4" class="ptolemy.actor.TypedIORelation">
             <property name="width" class="ptolemy.data.expr.Parameter" value="1">
             </property>
         </relation>
-        <relation name="relation5" class="ptolemy.actor.TypedIORelation">
+        <relation name="relation9" class="ptolemy.actor.TypedIORelation">
             <property name="width" class="ptolemy.data.expr.Parameter" value="1">
             </property>
         </relation>
-        <relation name="relation" class="ptolemy.actor.TypedIORelation">
+        <relation name="relation11" class="ptolemy.actor.TypedIORelation">
+            <property name="width" class="ptolemy.data.expr.Parameter" value="1">
+            </property>
+        </relation>
+        <relation name="relation10" class="ptolemy.actor.TypedIORelation">
+            <property name="width" class="ptolemy.data.expr.Parameter" value="1">
+            </property>
+        </relation>
+        <relation name="relation12" class="ptolemy.actor.TypedIORelation">
+            <property name="width" class="ptolemy.data.expr.Parameter" value="1">
+            </property>
+        </relation>
+        <relation name="relation13" class="ptolemy.actor.TypedIORelation">
             <property name="width" class="ptolemy.data.expr.Parameter" value="1">
             </property>
         </relation>
@@ -7171,15 +7423,31 @@
             </property>
         </relation>
         <link port="sof_in" relation="relation5"/>
-        <link port="sof_out" relation="relation4"/>
-        <link port="SofSplitter.sof in" relation="relation5"/>
-        <link port="SofSplitter.sof out" relation="relation6"/>
+        <link port="sof_out" relation="relation8"/>
+        <link port="SofSplitter.sof in" relation="relation4"/>
+        <link port="SofSplitter.sof out" relation="relation13"/>
         <link port="SofSplitter.#groups" relation="relation3"/>
-        <link port="SofAccumulator.sof in" relation="relation"/>
+        <link port="SofAccumulator.sof in" relation="relation6"/>
         <link port="SofAccumulator.#groups" relation="relation3"/>
-        <link port="SofAccumulator.sof out" relation="relation4"/>
-        <link port="cr2res_cal_wave_1.sof in" relation="relation6"/>
-        <link port="cr2res_cal_wave_1.sof out" relation="relation"/>
+        <link port="SofAccumulator.sof out" relation="relation9"/>
+        <link port="FitsRouter.in" relation="relation5"/>
+        <link port="FitsRouter.UTIL_WAVE_TW" relation="relation2"/>
+        <link port="IsSofEmpty.sof in" relation="relation2"/>
+        <link port="IsSofEmpty.is not empty" relation="relation7"/>
+        <link port="DDF Boolean Select.trueInput" relation="relation9"/>
+        <link port="DDF Boolean Select.falseInput" relation="relation12"/>
+        <link port="DDF Boolean Select.control" relation="relation7"/>
+        <link port="DDF Boolean Select.output" relation="relation8"/>
+        <link port="Boolean Switch.input" relation="relation5"/>
+        <link port="Boolean Switch.control" relation="relation7"/>
+        <link port="Boolean Switch.trueOutput" relation="relation4"/>
+        <link port="Boolean Switch.falseOutput" relation="relation11"/>
+        <link port="String Constant.output" relation="relation10"/>
+        <link port="String Constant.trigger" relation="relation11"/>
+        <link port="SofCreator.data dir" relation="relation10"/>
+        <link port="SofCreator.sof out" relation="relation12"/>
+        <link port="cr2res_cal_wave_1.sof in" relation="relation13"/>
+        <link port="cr2res_cal_wave_1.sof out" relation="relation6"/>
     </entity>
     <entity name="SofCombiner4" class="org.eso.SofCombiner">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
@@ -7200,7 +7468,7 @@
         </property>
         <property name="semanticType41" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:4:1#ESO">
         </property>
-        <property name="_location" class="ptolemy.kernel.util.Location" value="[905.0, 895.0]">
+        <property name="_location" class="ptolemy.kernel.util.Location" value="[895.0, 875.0]">
         </property>
         <property name="_hideName" class="ptolemy.data.expr.SingletonParameter" value="true">
         </property>
@@ -7230,7 +7498,7 @@
     <entity name="cr2res_obs_nodding" class="ptolemy.actor.TypedCompositeActor">
         <property name="_createdBy" class="ptolemy.kernel.attributes.VersionAttribute" value="7.0.2">
         </property>
-        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:kepler-project.org/ns/:95220:29:19">
+        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:34:5">
         </property>
         <property name="class" class="ptolemy.kernel.util.StringAttribute" value="ptolemy.actor.TypedCompositeActor">
             <property name="id" class="ptolemy.kernel.util.StringAttribute" value="urn:lsid:kepler-project.org:class:449:1">
@@ -7247,7 +7515,7 @@
 <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Yuhong Xiong</configure></property>
 <property name="version" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
 <property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;A Composite actor is an aggregation of actors. It may have a local director that is responsible for executing the contained actors. A Composite actor with a local director is called an opaque actor. Composite actors do not require a local director. Composite actors with no local director &quot;inherit&quot; the director from the containing workflow and are called non-opaque.&lt;/p&gt;&#10;&#10;&lt;p&gt;To create a composite actor, drag and drop the Composite actor onto the Workflow canvas. Right-click the actor and select Open Actor from the drop-down menu. A new Kepler application window will open for designing the composite.&lt;/p&gt;</configure></property>
-</property>        <property name="_location" class="ptolemy.kernel.util.Location" value="[1135.0, 1070.0]">
+</property>        <property name="_location" class="ptolemy.kernel.util.Location" value="[1170.0, 1015.0]">
         </property>
         <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={66, 27, 1854, 1053}, maximized=false}">
         </property>
@@ -7265,7 +7533,7 @@
             <property name="version" class="ptolemy.kernel.util.StringAttribute" value="null">
             </property>
         </property>
-        <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:449:1:urn:lsid:kepler-project.org/ns/:25158:89:39:urn:lsid:kepler-project.org/ns/:78556:40:5:urn:lsid:kepler-project.org/ns/:85713:335:2:urn:lsid:kepler-project.org/ns/:94825:15:44">
+        <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:449:1:urn:lsid:kepler-project.org/ns/:25158:89:39:urn:lsid:kepler-project.org/ns/:78556:40:5:urn:lsid:kepler-project.org/ns/:85713:335:2:urn:lsid:kepler-project.org/ns/:94825:15:44:urn:lsid:kepler-project.org/ns/:95220:29:19">
         </property>
         <property name="DDF Director" class="ptolemy.domains.ddf.kernel.DDFDirector">
             <property name="localClock" class="ptolemy.actor.LocalClock">
@@ -7312,7 +7580,7 @@
         </port>
         <port name="sof_out" class="ptolemy.actor.TypedIOPort">
             <property name="output"/>
-            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="SOUTH">
+            <property name="_cardinal" class="ptolemy.kernel.util.StringAttribute" value="EAST">
             </property>
             <property name="_location" class="ptolemy.kernel.util.Location" value="[745.0, 320.0]">
             </property>
@@ -7407,7 +7675,7 @@
             </port>
         </entity>
         <entity name="cr2res_obs_nodding_1" class="org.eso.RecipeExecuter">
-            <property name="Input Files Category" class="ptolemy.data.expr.StringParameter" value="CAL_NODDING_OTHER CAL_NODDING_JITTER OBS_NODDING_OTHER OBS_NODDING_JITTER OBS_ASTROMETRY_OTHER OBS_ASTROMETRY_JITTER CAL_WAVE_TW CAL_DARK_BPM CAL_FLAT_MASTER PHOTO_FLUX">
+            <property name="Input Files Category" class="ptolemy.data.expr.StringParameter" value="CAL_NODDING_OTHER CAL_NODDING_JITTER OBS_NODDING_OTHER OBS_NODDING_JITTER OBS_ASTROMETRY_OTHER OBS_ASTROMETRY_JITTER CAL_WAVE_TW CAL_DARK_BPM CAL_FLAT_MASTER PHOTO_FLUX UTIL_TRACE_TW">
             </property>
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
 <property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
@@ -7451,7 +7719,7 @@
 <property name="prop:recipe_param_10" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Parameter name: display_detector. Default value:0</configure></property>
 <property name="prop:Pause after execution" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true then the execution is paused after the execution of the recipe</configure></property>
 <property name="prop:Allow empty inputs" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>if true then an empty sof on the input port will be broadcast to the output without executing the recipe</configure></property>
-</property>            <property name="_location" class="ptolemy.kernel.util.Location" value="[250.0, 95.0]">
+</property>            <property name="_location" class="ptolemy.kernel.util.Location" value="[265.0, 90.0]">
             </property>
             <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute">
                 <configure></configure>
@@ -7480,24 +7748,24 @@
             <property name="width" class="ptolemy.data.expr.Parameter" value="1">
             </property>
         </relation>
-        <relation name="relation" class="ptolemy.actor.TypedIORelation">
+        <relation name="relation6" class="ptolemy.actor.TypedIORelation">
             <property name="width" class="ptolemy.data.expr.Parameter" value="1">
             </property>
         </relation>
-        <relation name="relation2" class="ptolemy.actor.TypedIORelation">
+        <relation name="relation" class="ptolemy.actor.TypedIORelation">
             <property name="width" class="ptolemy.data.expr.Parameter" value="1">
             </property>
         </relation>
         <link port="sof_in" relation="relation5"/>
         <link port="sof_out" relation="relation4"/>
         <link port="SofSplitter.sof in" relation="relation5"/>
-        <link port="SofSplitter.sof out" relation="relation"/>
+        <link port="SofSplitter.sof out" relation="relation6"/>
         <link port="SofSplitter.#groups" relation="relation3"/>
-        <link port="SofAccumulator.sof in" relation="relation2"/>
+        <link port="SofAccumulator.sof in" relation="relation"/>
         <link port="SofAccumulator.#groups" relation="relation3"/>
         <link port="SofAccumulator.sof out" relation="relation4"/>
-        <link port="cr2res_obs_nodding_1.sof in" relation="relation"/>
-        <link port="cr2res_obs_nodding_1.sof out" relation="relation2"/>
+        <link port="cr2res_obs_nodding_1.sof in" relation="relation6"/>
+        <link port="cr2res_obs_nodding_1.sof out" relation="relation"/>
     </entity>
     <entity name="SofCombiner" class="org.eso.SofCombiner">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
@@ -7518,7 +7786,7 @@
         </property>
         <property name="semanticType41" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:4:1#ESO">
         </property>
-        <property name="_location" class="ptolemy.kernel.util.Location" value="[1070.0, 1045.0]">
+        <property name="_location" class="ptolemy.kernel.util.Location" value="[1085.0, 1045.0]">
         </property>
         <property name="_hideName" class="ptolemy.data.expr.SingletonParameter" value="true">
         </property>
@@ -7548,7 +7816,7 @@
     <entity name="Initialise Current Dataset" class="ptolemy.actor.TypedCompositeActor">
         <property name="_createdBy" class="ptolemy.kernel.attributes.VersionAttribute" value="8.1.devel">
         </property>
-        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:kepler-project.org/ns/:95220:23:1">
+        <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:29:7">
         </property>
         <property name="class" class="ptolemy.kernel.util.StringAttribute" value="ptolemy.actor.TypedCompositeActor">
             <property name="id" class="ptolemy.kernel.util.StringAttribute" value="urn:lsid:kepler-project.org:class:449:1">
@@ -7567,7 +7835,7 @@
 <property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&lt;p&gt;A Composite actor is an aggregation of actors. It may have a local director that is responsible for executing the contained actors. A Composite actor with a local director is called an opaque actor. Composite actors do not require a local director. Composite actors with no local director &quot;inherit&quot; the director from the containing workflow and are called non-opaque.&lt;/p&gt;&#10;&#10;&lt;p&gt;To create a composite actor, drag and drop the Composite actor onto the Workflow canvas. Right-click the actor and select Open Actor from the drop-down menu. A new Kepler application window will open for designing the composite.&lt;/p&gt;</configure></property>
 </property>        <property name="_location" class="ptolemy.kernel.util.Location" value="[75.0, 1045.0]">
         </property>
-        <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:449:1:urn:lsid:kepler-project.org/ns/:31989:46:6:urn:lsid:kepler-project.org/ns/:78556:38:2">
+        <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:449:1:urn:lsid:kepler-project.org/ns/:31989:46:6:urn:lsid:kepler-project.org/ns/:78556:38:2:urn:lsid:kepler-project.org/ns/:95220:23:1">
         </property>
         <property name="Rectangle" class="ptolemy.vergil.kernel.attributes.RectangleAttribute">
             <property name="_hideName" class="ptolemy.data.expr.SingletonParameter" value="true">
@@ -7742,7 +8010,7 @@
             <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:434:1">
             </property>
         </property>
-        <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={838, 115, 1220, 514}, maximized=false}">
+        <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={270, 251, 1541, 829}, maximized=false}">
         </property>
         <property name="_vergilSize" class="ptolemy.actor.gui.SizeAttribute" value="[850, 611]">
         </property>
@@ -8223,7 +8491,7 @@
             </property>
         </entity>
         <entity name="Display" class="ptolemy.actor.lib.gui.Display">
-            <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={1265, 170, 508, 416}, maximized=false}">
+            <property name="_windowProperties" class="ptolemy.actor.gui.WindowPropertiesAttribute" value="{bounds={1397, 38, 508, 416}, maximized=false}">
             </property>
             <property name="_paneSize" class="ptolemy.actor.gui.SizeAttribute" value="[508, 346]">
             </property>
@@ -8258,6 +8526,31 @@
             <property name="_location" class="ptolemy.kernel.util.Location" value="{775.0, 255.0}">
             </property>
             <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:7:1">
+            </property>
+        </entity>
+        <entity name="Variable Setter2" class="ptolemy.actor.lib.SetVariable">
+            <property name="variableName" class="ptolemy.kernel.util.StringAttribute" value="DatasetName">
+            </property>
+            <property name="delayed" class="ptolemy.data.expr.Parameter" value="false">
+            </property>
+<property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
+<property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
+<property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>Edward Lee, Steve Neuendorffer, Jerome Blanc</configure></property>
+<property name="version" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>null</configure></property>
+<property name="userLevelDocumentation" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>&#10;Set the value of a variable. The result may occur at two different times, depending on the value of the delayed parameter. &#10;If delayed is true, then the change to the value of the variable is implemented in a change request, and consequently will not take hold until the end of the current toplevel iteration. This helps ensure that users of value of the variable will see changes to the value deterministically (independent of the schedule of execution of the actors). &#10;If delayed is false, then the change to the value of the variable is performed immediately. This allows more frequent reconfiguration, and can mimic the operation of PGM's graph variables. &#10;Note that the variable name is observed during preinitialize(). If it is changed after that, the change will not take effect until the next time the model is executed. Moreover, the type of the variable is constrained in preinitialize() to be at least that of the input port for this actor. &#10;The variable can be either any attribute that implements the Settable interface. If it is in addition an instance of Variable, then the input token is used directly to set the value, and the type of the variable is constrained to be the same as the type of the input. Otherwise, then input token is converted to a string and the setExpression() method on the variable is used to set the value. &#10;The variable can occur anywhere in the hierarchy above the current level. If the variable is not found in the container, then the container of the container is checked until we reach the top level.</configure></property>
+</property>            <property name="entityId" class="org.kepler.moml.NamedObjId" value="urn:lsid:uuid:d143822c-aa11-4390-9d49-2296d65f8cdf:30:2">
+            </property>
+            <property name="class" class="ptolemy.kernel.util.StringAttribute" value="ptolemy.actor.lib.SetVariable">
+                <property name="id" class="ptolemy.kernel.util.StringAttribute" value="urn:lsid:kepler-project.org:class:886:1">
+                </property>
+            </property>
+            <property name="semanticType00" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:1:1#Variable">
+            </property>
+            <property name="semanticType11" class="org.kepler.sms.SemanticType" value="urn:lsid:localhost:onto:2:1#LocalInput">
+            </property>
+            <property name="_location" class="ptolemy.kernel.util.Location" value="[730.0, 395.0]">
+            </property>
+            <property name="derivedFrom" class="org.kepler.moml.NamedObjIdReferralList" value="urn:lsid:kepler-project.org:actor:10:1">
             </property>
         </entity>
         <relation name="relation" class="ptolemy.actor.TypedIORelation">
@@ -8342,6 +8635,7 @@
         <link port="2.parts" relation="relation10"/>
         <link port="2.whole" relation="relation"/>
         <link port="Display.input" relation="relation"/>
+        <link port="Variable Setter2.input" relation="relation10"/>
     </entity>
     <relation name="relation10" class="ptolemy.actor.TypedIORelation">
         <property name="width" class="ptolemy.data.expr.Parameter" value="1">
@@ -8379,41 +8673,21 @@
         <property name="width" class="ptolemy.data.expr.Parameter" value="1">
         </property>
     </relation>
-    <relation name="relation17" class="ptolemy.actor.TypedIORelation">
-        <property name="width" class="ptolemy.data.expr.Parameter" value="1">
-        </property>
-    </relation>
-    <relation name="relation7" class="ptolemy.actor.TypedIORelation">
-        <property name="width" class="ptolemy.data.expr.Parameter" value="1">
-        </property>
-    </relation>
-    <relation name="relation15" class="ptolemy.actor.TypedIORelation">
-        <property name="width" class="ptolemy.data.expr.Parameter" value="1">
-        </property>
-    </relation>
     <relation name="relation22" class="ptolemy.actor.TypedIORelation">
         <property name="width" class="ptolemy.data.expr.Parameter" value="1">
         </property>
-        <vertex name="vertex1" value="[415.0, 715.0]">
+        <vertex name="vertex1" value="[475.0, 700.0]">
         </vertex>
     </relation>
     <relation name="relation2" class="ptolemy.actor.TypedIORelation">
         <property name="width" class="ptolemy.data.expr.Parameter" value="1">
         </property>
     </relation>
-    <relation name="relation23" class="ptolemy.actor.TypedIORelation">
-        <property name="width" class="ptolemy.data.expr.Parameter" value="1">
-        </property>
-    </relation>
     <relation name="relation24" class="ptolemy.actor.TypedIORelation">
         <property name="width" class="ptolemy.data.expr.Parameter" value="1">
         </property>
-        <vertex name="vertex1" value="[740.0, 860.0]">
+        <vertex name="vertex1" value="[840.0, 805.0]">
         </vertex>
-    </relation>
-    <relation name="relation" class="ptolemy.actor.TypedIORelation">
-        <property name="width" class="ptolemy.data.expr.Parameter" value="1">
-        </property>
     </relation>
     <relation name="relation28" class="ptolemy.actor.TypedIORelation">
     </relation>
@@ -8421,27 +8695,35 @@
     </relation>
     <relation name="relation11" class="ptolemy.actor.TypedIORelation">
     </relation>
-    <relation name="relation3" class="ptolemy.actor.TypedIORelation">
+    <relation name="relation17" class="ptolemy.actor.TypedIORelation">
     </relation>
-    <relation name="relation18" class="ptolemy.actor.TypedIORelation">
+    <relation name="relation" class="ptolemy.actor.TypedIORelation">
     </relation>
-    <relation name="relation19" class="ptolemy.actor.TypedIORelation">
-        <vertex name="vertex1" value="[415.0, 830.0]">
+    <relation name="relation32" class="ptolemy.actor.TypedIORelation">
+        <property name="width" class="ptolemy.data.expr.Parameter" value="-1">
+        </property>
+        <vertex name="vertex1" value="[280.0, 835.0]">
         </vertex>
     </relation>
-    <relation name="relation20" class="ptolemy.actor.TypedIORelation">
+    <relation name="relation31" class="ptolemy.actor.TypedIORelation">
+        <property name="width" class="ptolemy.data.expr.Parameter" value="-1">
+        </property>
+        <vertex name="vertex1" value="[270.0, 820.0]">
+        </vertex>
     </relation>
     <relation name="relation21" class="ptolemy.actor.TypedIORelation">
     </relation>
-    <relation name="relation25" class="ptolemy.actor.TypedIORelation">
+    <relation name="relation7" class="ptolemy.actor.TypedIORelation">
     </relation>
-    <relation name="relation26" class="ptolemy.actor.TypedIORelation">
+    <relation name="relation15" class="ptolemy.actor.TypedIORelation">
     </relation>
-    <relation name="relation27" class="ptolemy.actor.TypedIORelation">
+    <relation name="relation18" class="ptolemy.actor.TypedIORelation">
     </relation>
-    <relation name="relation29" class="ptolemy.actor.TypedIORelation">
+    <relation name="relation20" class="ptolemy.actor.TypedIORelation">
     </relation>
-    <relation name="relation30" class="ptolemy.actor.TypedIORelation">
+    <relation name="relation23" class="ptolemy.actor.TypedIORelation">
+    </relation>
+    <relation name="relation3" class="ptolemy.actor.TypedIORelation">
     </relation>
     <link port="cr2res_cal_dark.sof_in" relation="relation12"/>
     <link port="cr2res_cal_dark.sof_out" relation="relation22"/>
@@ -8452,18 +8734,14 @@
     <link port="Data Set Selection.datasets_in" relation="relation10"/>
     <link port="FitsRouter.in" relation="relation11"/>
     <link port="FitsRouter.DARK" relation="relation8"/>
-    <link port="FitsRouter.FLAT" relation="relation7"/>
-    <link port="FitsRouter.EMISSION_LINES" relation="relation15"/>
-    <link port="FitsRouter.WAVE_UNE" relation="relation18"/>
-    <link port="FitsRouter.OBS_NODDING_JITTER" relation="relation23"/>
-    <link port="FitsRouter.UTIL_WAVE_TW" relation="relation19"/>
-    <link port="FitsRouter.WAVE_FPET" relation="relation20"/>
-    <link port="FitsRouter.CAL_NODDING_OTHER" relation="relation21"/>
-    <link port="FitsRouter.OBS_NODDING_OTHER" relation="relation25"/>
-    <link port="FitsRouter.CAL_NODDING_JITTER" relation="relation26"/>
-    <link port="FitsRouter.OBS_ASTROMETRY_OTHER" relation="relation27"/>
-    <link port="FitsRouter.OBS_ASTROMETRY_JITTER" relation="relation29"/>
-    <link port="FitsRouter.PHOTO_FLUX" relation="relation30"/>
+    <link port="FitsRouter.FLAT" relation="relation21"/>
+    <link port="FitsRouter.EMISSION_LINES" relation="relation7"/>
+    <link port="FitsRouter.WAVE_UNE" relation="relation15"/>
+    <link port="FitsRouter.UTIL_TRACE_TW" relation="relation31"/>
+    <link port="FitsRouter.WAVE_FPET" relation="relation18"/>
+    <link port="FitsRouter.PHOTO_FLUX" relation="relation3"/>
+    <link port="FitsRouter.UTIL_WAVE_TW" relation="relation32"/>
+    <link port="FitsRouter.SCIENCE" relation="relation23"/>
     <link port="Close DataSet.current_dataset" relation="relation28"/>
     <link port="Close DataSet.final_files" relation="relation4"/>
     <link port="Close DataSet.global_timestamp" relation="relation5"/>
@@ -8478,32 +8756,28 @@
     <link port="SofCombiner2.sof out" relation="relation12"/>
     <link port="cr2res_cal_flat.sof_in" relation="relation16"/>
     <link port="cr2res_cal_flat.sof_out" relation="relation24"/>
-    <link port="SofCombiner3.sof in" relation="relation7"/>
     <link port="SofCombiner3.sof in" relation="relation22"/>
-    <link port="SofCombiner3.sof in" relation="relation19"/>
+    <link port="SofCombiner3.sof in" relation="relation21"/>
+    <link port="SofCombiner3.sof in" relation="relation31"/>
+    <link port="SofCombiner3.sof in" relation="relation32"/>
     <link port="SofCombiner3.sof out" relation="relation16"/>
     <link port="cr2res_cal_wave.sof_in" relation="relation17"/>
-    <link port="cr2res_cal_wave.sof_out" relation="relation3"/>
-    <link port="SofCombiner4.sof in" relation="relation15"/>
-    <link port="SofCombiner4.sof in" relation="relation22"/>
+    <link port="cr2res_cal_wave.sof_out" relation="relation20"/>
     <link port="SofCombiner4.sof in" relation="relation24"/>
+    <link port="SofCombiner4.sof in" relation="relation22"/>
+    <link port="SofCombiner4.sof in" relation="relation32"/>
+    <link port="SofCombiner4.sof in" relation="relation7"/>
+    <link port="SofCombiner4.sof in" relation="relation15"/>
     <link port="SofCombiner4.sof in" relation="relation18"/>
-    <link port="SofCombiner4.sof in" relation="relation19"/>
-    <link port="SofCombiner4.sof in" relation="relation20"/>
     <link port="SofCombiner4.sof out" relation="relation17"/>
     <link port="cr2res_obs_nodding.sof_in" relation="relation"/>
     <link port="cr2res_obs_nodding.sof_out" relation="relation2"/>
-    <link port="SofCombiner.sof in" relation="relation23"/>
-    <link port="SofCombiner.sof in" relation="relation22"/>
-    <link port="SofCombiner.sof in" relation="relation22"/>
+    <link port="SofCombiner.sof in" relation="relation20"/>
     <link port="SofCombiner.sof in" relation="relation24"/>
+    <link port="SofCombiner.sof in" relation="relation22"/>
+    <link port="SofCombiner.sof in" relation="relation31"/>
+    <link port="SofCombiner.sof in" relation="relation23"/>
     <link port="SofCombiner.sof in" relation="relation3"/>
-    <link port="SofCombiner.sof in" relation="relation21"/>
-    <link port="SofCombiner.sof in" relation="relation25"/>
-    <link port="SofCombiner.sof in" relation="relation26"/>
-    <link port="SofCombiner.sof in" relation="relation27"/>
-    <link port="SofCombiner.sof in" relation="relation29"/>
-    <link port="SofCombiner.sof in" relation="relation30"/>
     <link port="SofCombiner.sof out" relation="relation"/>
     <link port="Initialise Current Dataset.dataset" relation="relation11"/>
     <link port="Initialise Current Dataset.dataset_in" relation="relation13"/>
