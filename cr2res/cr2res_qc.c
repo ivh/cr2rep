@@ -43,6 +43,7 @@
 #define CR2RES_QC_ORDER 4
 #define CR2RES_QC_TRACE 1
 #define CR2RES_QC_SIZE  100
+#define CR2RES_QC_WINDOW 20
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -426,7 +427,7 @@ double cr2res_qc_wave_line_intens(
     if (spec == NULL) return -1;
 
     // TODO: How large should this window be?
-    window_size = 10;
+    window_size = CR2RES_QC_WINDOW / 2;
 
     wave = cpl_bivector_get_x_const(spec);
     flux = cpl_bivector_get_y_const(spec);
@@ -455,6 +456,9 @@ double cr2res_qc_wave_line_intens(
             continue;
         }
         value = cpl_vector_get(flux, k);
+        if (isnan(value)){
+            continue;
+        }
         if (fabs(i) < window_size){
             // Inner sum
             n_inner++;
@@ -465,9 +469,13 @@ double cr2res_qc_wave_line_intens(
             sum_outer += value;
         }
     }
+    if (n_inner + n_outer == 0){
+        // No valid points
+        return -1;
+    }
     // Take the mean
-    sum_inner /= n_inner;
-    sum_outer /= n_outer;
+    if (n_inner != 0) sum_inner /= n_inner;
+    if (n_outer != 0) sum_outer /= n_outer;
     // return the difference
     value = sum_inner - sum_outer;
 
@@ -505,7 +513,7 @@ double cr2res_qc_wave_line_fwhm(
     unc = NULL;
     result = NULL;
     // TODO: what should the size of the window be?
-    window_width = 20;
+    window_width = CR2RES_QC_WINDOW;
 
     // Determine pixel pos
     tmp = cpl_vector_duplicate(wave);
@@ -566,7 +574,7 @@ double cr2res_qc_wave_lamp_effic(
     ref_lines_intens = cpl_vector_new(nall) ;
     for (i=0 ; i < nall ; i++) {
         intens = cr2res_qc_wave_line_intens(spec, cpl_vector_get(ref_lines, i));
-        if (intens != -1) {
+        if (intens != -1 && intens > 0) {
             cpl_vector_set(ref_lines_intens, n, intens); 
             n++;
         }
@@ -618,7 +626,7 @@ double cr2res_qc_wave_resol_fwhm(
     ref_lines_fwhm = cpl_vector_new(nall) ;
     for (i=0 ; i<cpl_vector_get_size(ref_lines) ; i++) {
         fwhm = cr2res_qc_wave_line_fwhm(spec, cpl_vector_get(ref_lines, i));
-        if (fwhm != -1){
+        if (fwhm != -1 && fwhm > 0.1 && fwhm < CR2RES_QC_WINDOW){
             cpl_vector_set(ref_lines_fwhm, n, fwhm); 
             n++;
         }
