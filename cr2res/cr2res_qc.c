@@ -424,7 +424,7 @@ double cr2res_qc_wave_line_intens(
     double sum_inner, sum_outer;
     double value;
 
-    if (spec == NULL) return -1;
+    if (spec == NULL) return -1.0;
 
     // TODO: How large should this window be?
     window_size = CR2RES_QC_WINDOW / 2;
@@ -441,7 +441,7 @@ double cr2res_qc_wave_line_intens(
     cpl_vector_delete(tmp);
 
     // If the wavelength value is outside the spectrum
-    if (pixel_pos == 0 | pixel_pos == cpl_vector_get_size(wave)) return -1;
+    if (pixel_pos == 0 | pixel_pos == cpl_vector_get_size(wave)) return -1.0;
 
     // Sum up the values of the spectrum
     // inside the window and outside the window
@@ -471,7 +471,7 @@ double cr2res_qc_wave_line_intens(
     }
     if (n_inner + n_outer == 0){
         // No valid points
-        return -1;
+        return -1.0;
     }
     // Take the mean
     if (n_inner != 0) sum_inner /= n_inner;
@@ -506,7 +506,7 @@ double cr2res_qc_wave_line_fwhm(
     cpl_size window_width;
     double fwhm ;
 
-    if (spec == NULL) return -1;
+    if (spec == NULL) return -1.0;
 
     wave = cpl_bivector_get_x_const(spec);
     flux = cpl_bivector_get_y_const(spec);
@@ -523,12 +523,11 @@ double cr2res_qc_wave_line_fwhm(
     cpl_vector_delete(tmp);
 
     // If the wavelength value is outside the spectrum
-    if (pixel_pos == 0 | pixel_pos == cpl_vector_get_size(wave)) return -1;
-
+    if (pixel_pos == 0 | pixel_pos == cpl_vector_get_size(wave)) return -1.0;
 
     // Fit the line with a gaussian
-    if (cr2res_wave_fit_single_line(flux, unc, pixel_pos, 
-            window_width, 1, 0, &result)){
+    if (cr2res_wave_fit_single_line(flux, unc, pixel_pos, window_width, 1, 0, 
+                &result)){
         // Could not determine the line fit
         cpl_error_reset();
         return -1.0 ;
@@ -574,7 +573,7 @@ double cr2res_qc_wave_lamp_effic(
     ref_lines_intens = cpl_vector_new(nall) ;
     for (i=0 ; i < nall ; i++) {
         intens = cr2res_qc_wave_line_intens(spec, cpl_vector_get(ref_lines, i));
-        if (intens != -1 && intens > 0) {
+        if (intens > 0.0) {
             cpl_vector_set(ref_lines_intens, n, intens); 
             n++;
         }
@@ -582,7 +581,7 @@ double cr2res_qc_wave_lamp_effic(
     cpl_vector_delete(ref_lines) ;
     if (n == 0){
         cpl_vector_delete(ref_lines_intens) ;
-        return -1;
+        return -1.0 ;
     }
     cpl_vector_set_size(ref_lines_intens, n);
     cpl_msg_info(__func__, 
@@ -626,7 +625,7 @@ double cr2res_qc_wave_resol_fwhm(
     ref_lines_fwhm = cpl_vector_new(nall) ;
     for (i=0 ; i<cpl_vector_get_size(ref_lines) ; i++) {
         fwhm = cr2res_qc_wave_line_fwhm(spec, cpl_vector_get(ref_lines, i));
-        if (fwhm != -1 && fwhm > 0.1 && fwhm < CR2RES_QC_WINDOW){
+        if (fwhm > 0.1 && fwhm < CR2RES_QC_WINDOW){
             cpl_vector_set(ref_lines_fwhm, n, fwhm); 
             n++;
         }
@@ -634,7 +633,7 @@ double cr2res_qc_wave_resol_fwhm(
     cpl_vector_delete(ref_lines) ;
     if (n == 0){
         cpl_vector_delete(ref_lines_fwhm) ;
-        return -1;
+        return -1.0;
     }
     cpl_vector_set_size(ref_lines_fwhm, n);
     cpl_msg_info(__func__, "Using %i of %i lines to estimate FWHM", n, nall);
