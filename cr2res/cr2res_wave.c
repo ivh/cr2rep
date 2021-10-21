@@ -706,7 +706,7 @@ cpl_polynomial * cr2res_wave_1d(
     cpl_bivector        *   ref_spectrum ;
     cpl_bivector        *   simple_ref_spectrum ;
     const cpl_bivector  **  plot;
-    double                  wl_error_nm, disp ;
+    double                  wl_error_nm, disp, lamb0 ;
     int                     i ;
 
     /* Check Inputs */
@@ -811,15 +811,16 @@ cpl_polynomial * cr2res_wave_1d(
             if (lines_resol_fwhm != NULL) 
                 *lines_resol_fwhm = 
                     cr2res_qc_wave_resol_fwhm(spectrum_corrected) ;
+            lamb0 = cpl_vector_get(cpl_bivector_get_x(spectrum_corrected), 0);
             disp = (cpl_vector_get(cpl_bivector_get_x(spectrum_corrected),
-                    cpl_bivector_get_size(spectrum_corrected)-1) -
-                    cpl_vector_get(cpl_bivector_get_x(spectrum_corrected), 0)) 
+                    cpl_bivector_get_size(spectrum_corrected)-1) - lamb0) 
                 / cpl_bivector_get_size(spectrum_corrected) ;
             cpl_bivector_delete(spectrum_corrected) ;
 
             /* Compute QC.RESOL */
             if (lines_resol != NULL) 
-                *lines_resol = *lines_resol_fwhm * disp ;
+                *lines_resol = lamb0 / ( *lines_resol_fwhm * disp  );
+                ;
 
 
 // TODO : GENERATE THE LINES STATISTICS ---> *lines_diagnostics
