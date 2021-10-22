@@ -341,7 +341,7 @@ static int cr2res_cal_dark(
 
     /* Initialise */
     bpm_kappa_global_default = 0.5 ;
-    bpm_kappa_local_default = 7.0 ;
+    bpm_kappa_local_default = 6.0 ;
     bpm_kappa_running_default = 5.0 ;
 
     /* RETRIEVE INPUT PARAMETERS */

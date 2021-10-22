@@ -658,7 +658,7 @@ static int cr2res_cal_wave(
     if (lines_frame == NULL && rawframes_une != NULL) {
         if (rawframes_une !=NULL) cpl_frameset_delete(rawframes_une) ;
         if (rawframes_fpet!=NULL) cpl_frameset_delete(rawframes_fpet) ;
-        cpl_msg_error(__func__, "The emission lines file is needed");
+        cpl_msg_error(__func__, "The emission lines catalog is needed");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
