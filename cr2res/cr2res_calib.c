@@ -196,14 +196,12 @@ hdrl_image * cr2res_calib_image(
     }
 
     /* Add shot-noise */
-    /*
     if (cr2res_add_shotnoise(out, ndit, chip)){
         cpl_msg_error(__func__, "Cannot add shot-noise") ;
         hdrl_imagelist_delete(calib_list) ;
         hdrl_image_delete(out);
         return NULL ;
     }
-    */
 
     /* Apply the dark */
     if (dark != NULL) {
@@ -311,6 +309,14 @@ int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip){
     cpl_image * adu  = hdrl_image_get_image(in);
     cpl_image * tmp_im;
 
+    if (adu==NULL){
+        cpl_msg_error(__func__,"Broken input image");
+        return -1;
+    }
+    if (error==NULL){
+        cpl_msg_error(__func__,"Error input null not supported");
+    }
+
     if      (chip == 1) gain_sqrt = sqrt(CR2RES_GAIN_CHIP1);
     else if (chip == 2) gain_sqrt = sqrt(CR2RES_GAIN_CHIP2);
     else if (chip == 3) gain_sqrt = sqrt(CR2RES_GAIN_CHIP3);
@@ -322,7 +328,11 @@ int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip){
     cpl_msg_debug(__func__, "chip:%d, sqrtgain:%g, ndit:%d",
                             chip, gain_sqrt, ndit);
     
-    if ( (tmp_im=cpl_image_power_create(adu, 0.5)) == NULL){
+    if ( (tmp_im=cpl_image_abs_create(adu)) == NULL){
+        cpl_msg_error(__func__,"Abs failed");
+        return -1;
+    }
+    if ( (cpl_image_power(tmp_im, 0.5)) != CPL_ERROR_NONE){
         cpl_msg_error(__func__,"Sqrt failed");
         return -1;
     }
