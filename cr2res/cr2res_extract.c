@@ -1725,6 +1725,22 @@ int cr2res_extract_slitdec_curved(
     /* Check Entries */
     if (img_hdrl == NULL || trace_tab == NULL) return -1 ;
 
+    if (smooth_slit == 0.0) {
+        cpl_msg_error(__func__, "Slit-smoothing cannot be 0.0");
+        return -1;
+    } else if (smooth_slit < 0.1) {
+        cpl_msg_warning(__func__, "Slit-smoothing unreasonably small");
+    } else if (smooth_slit > 10.0) {
+        cpl_msg_warning(__func__, "Slit-smoothing unreasonably big");
+    }
+
+    if (oversample < 3){
+        cpl_msg_error(__func__, "Oversampling too small");
+        return -1;
+    } else if (oversample > 15) {
+        cpl_msg_warning(__func__, "Large oversampling, runtime will be long");
+    }
+
     img_in = hdrl_image_get_image_const(img_hdrl);
     err_in = hdrl_image_get_error_const(img_hdrl);
 
