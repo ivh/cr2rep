@@ -129,6 +129,11 @@ action FLAT_action
         and inputFile.INS.WLEN.ID==INS.WLEN.ID 
         and inputFile.DET.SEQ1.DIT==DET.SEQ1.DIT ;
 
+	minRet = 0; maxRet = 1;
+    select file as CAL_DETLIN_COEFFS from calibFiles where
+        PRO.CATG=="CAL_DETLIN_COEFFS"
+        and inputFile.INSTRUME==INSTRUME ;
+
     minRet = 0; maxRet = 1;
     select file as UTIL_TRACE_TW from calibFiles where
         PRO.CATG=="UTIL_TRACE_TW"
@@ -199,6 +204,11 @@ action NODDING_action
         PRO.CATG=="CAL_FLAT_MASTER_WKF"
         and inputFile.INSTRUME==INSTRUME        
         and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+
+	minRet = 0; maxRet = 1;
+    select file as CAL_DETLIN_COEFFS from calibFiles where
+        PRO.CATG=="CAL_DETLIN_COEFFS"
+        and inputFile.INSTRUME==INSTRUME ;
 
 	minRet = 0; maxRet = 1;
     select file as CAL_WAVE_TW_WKF from calibFiles where
