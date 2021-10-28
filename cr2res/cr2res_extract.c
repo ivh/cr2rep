@@ -1308,6 +1308,8 @@ int cr2res_extract_slitdec_vert(
     cpl_image       *   img_rect;
     cpl_image       *   err_rect;
     cpl_image       *   model_rect;
+    cpl_image       *   img_tmp1;
+    cpl_image       *   img_tmp2;
     cpl_vector      *   ycen ;
     cpl_image       *   img_tmp;
     cpl_image       *   img_out;
@@ -1684,6 +1686,7 @@ int cr2res_extract_slitdec_curved(
     cpl_image       *   model_rect;
     cpl_vector      *   ycen ;
     cpl_image       *   img_tmp;
+    cpl_image       *   img_tmp2;
     cpl_image       *   img_out;
     cpl_vector      *   spec_sw;
     cpl_vector      *   slitfu_sw;
@@ -2024,6 +2027,17 @@ int cr2res_extract_slitdec_curved(
                                             cpl_vector_get(ycen, x-1));
             cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow, 0);
         }
+
+        /* subtract median row */
+        img_tmp = cpl_image_collapse_median_create(
+            img_sw, 0, 0, 0);
+        img_tmp2 = cpl_image_new(swath, height,CPL_TYPE_DOUBLE);
+        for (row=1; row<=height; row++) {
+            cpl_image_copy(img_tmp2, img_tmp, 1, row);
+        }
+        cpl_image_subtract(img_sw, img_tmp2);
+        cpl_image_delete(img_tmp) ;
+        cpl_image_delete(img_tmp2);
 
         for (j=0; j< height * swath; j++) model_sw[j] = 0;
         img_sw_data = cpl_image_get_data_double(img_sw);
