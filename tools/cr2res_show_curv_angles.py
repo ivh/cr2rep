@@ -60,7 +60,6 @@ def get_angles(fname_trace):
 
 
 if __name__ == "__main__":
-    # files = ["/home/tom/pCOMM/210916_calibs/K2148/15_cr2res_util_wave_out/cr2res_util_calib_calibrated_collapsed_extr1D_tw.fits"]
     files = sys.argv[1:]
 
     angles = []
