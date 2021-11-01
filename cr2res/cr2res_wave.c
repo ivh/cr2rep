@@ -1990,7 +1990,7 @@ static cpl_bivector * cr2res_wave_gen_lines_spectrum(
 /**
   @brief  Fit a single line in the spectrum with a gaussian
   @param    spec            Input spectrum flux
-  @param    unc             Input spectrum error
+  @param    unc             Input spectrum error, may be NULL
   @param    pixel_pos       Estimated pixel position of the line
   @param    window_width    Width of the window to use for the fit
   @param    peak_width      Initial guess for the width of the peak
@@ -2009,6 +2009,8 @@ static cpl_bivector * cr2res_wave_gen_lines_spectrum(
     2: Peak height
     3: Peak base, i.e. offset from 0
     4: reduced chi2 of the fit
+
+    the result vector must be deleted by the caller
 
  */
 /*----------------------------------------------------------------------------*/
@@ -2063,10 +2065,10 @@ int cr2res_wave_fit_single_line(
         //     "Line at pixel %lli extends past the edge of the spectrum.", 
         //     pixel_pos);
         // cleanup
+        cpl_vector_delete(a);
         cpl_matrix_delete(x);
         cpl_vector_delete(y);
         cpl_vector_delete(sigma_y);
-        cpl_vector_delete(a);
         return -1;
     }
     n = 0;
@@ -2144,9 +2146,7 @@ int cr2res_wave_fit_single_line(
     }
 
     // Set new pixel pos based on gaussian fit
-    if (*result == NULL){
-        *result = cpl_vector_new(5);
-    }
+    *result = cpl_vector_new(5);
     // 0: Peak position
     cpl_vector_set(*result, 0, cpl_vector_get(a, 0));
     // 1: Peak width
