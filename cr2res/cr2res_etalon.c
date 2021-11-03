@@ -607,6 +607,8 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_vector * mpos;
     cpl_polynomial * poly;
     cpl_matrix * px;
+    cpl_vector * pxa;
+    cpl_vector * pxb;
     cpl_vector * py;
     cpl_vector ** heights;
     cpl_vector ** sigmas;
@@ -925,7 +927,8 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     }
 
     // Do the 2d fit
-    px = cpl_matrix_new(2, npeaks_total);
+    pxa = cpl_vector_new(npeaks_total);
+    pxb = cpl_vector_new(npeaks_total);
     py = cpl_vector_new(npeaks_total);
     k = 0;
     for (i = 0; i < ninputs; i++)
@@ -933,23 +936,26 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         if (fpe_mord[i] == NULL) continue;
         npeaks = cpl_vector_get_size(fpe_mord[i]);
         for (j = 0; j < npeaks; j++){
-            cpl_matrix_set(px, 0, k, cpl_vector_get(fpe_xobs[i], j));
-            cpl_matrix_set(px, 1, k, orders[i] + zp_order);
+            cpl_vector_set(pxa, k, cpl_vector_get(fpe_xobs[i], j));
+            cpl_vector_set(pxb, k, orders[i] + zp_order);
             cpl_vector_set(py, k, cpl_vector_get(fpe_wobs[i], j));
             k++;
         }
     }
 
-    result = cpl_polynomial_new(2);
+    // result = cpl_polynomial_new(2);
     degree_2d[0] = degree_x ;
     degree_2d[1] = degree_y ;
-    error = cpl_polynomial_fit(result, px, NULL, py, NULL, CPL_TRUE, NULL,
-                    degree_2d);
+    // error = cpl_polynomial_fit(result, px, NULL, py, NULL, CPL_TRUE, NULL,
+    //                 degree_2d);
+    result = cr2res_polyfit_2d(pxa, pxb, py, degree_2d);
 
-    if (error != CPL_ERROR_NONE){
+
+    if (result == NULL){
         cpl_msg_error(__func__, "Error in Etalon polynomial fit");
-        cpl_polynomial_delete(result);
-        cpl_matrix_delete(px);
+        // cpl_polynomial_delete(result);
+        cpl_vector_delete(pxa);
+        cpl_vector_delete(pxb);
         cpl_vector_delete(py);
         for (i = 0; i < ninputs; i++)
         {
@@ -1099,8 +1105,8 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     diff = cpl_vector_new(npeaks);
     pos = cpl_vector_new(2);
     for (i = 0; i < npeaks; i++){
-        cpl_vector_set(pos, 0, cpl_matrix_get(px, 0, i));
-        cpl_vector_set(pos, 1, cpl_matrix_get(px, 1, i));
+        cpl_vector_set(pos, 0, cpl_vector_get(pxa, i));
+        cpl_vector_set(pos, 1, cpl_vector_get(pxb, i));
         cpl_vector_set(diff, i, fabs(
             cpl_polynomial_eval(result, pos)
             - cpl_vector_get(py, i)));
@@ -1116,7 +1122,8 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_vector_delete(diff);
     cpl_vector_delete(pos);
 
-    cpl_matrix_delete(px);
+    cpl_vector_delete(pxa);
+    cpl_vector_delete(pxb);
     cpl_vector_delete(py);
 
     for (i = 0; i < ninputs; i++)
