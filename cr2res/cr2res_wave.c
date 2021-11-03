@@ -904,7 +904,8 @@ cpl_polynomial * cr2res_wave_2d(
     cpl_vector      *   tmp_y;
     cpl_vector      *   tmp_sigma;
     cpl_vector      *   pos;
-    cpl_matrix      *   px ;
+    cpl_vector      *   pxa ;
+    cpl_vector      *   pxb ;
     cpl_matrix      *   sigma_px ;
     cpl_vector      *   py ;
     cpl_vector      *   sigma_py ;
@@ -923,7 +924,8 @@ cpl_polynomial * cr2res_wave_2d(
         return NULL ;
 
     /* Initialise */
-    px = sigma_px = NULL ;
+    pxa = pxb = NULL;
+    sigma_px = NULL ;
     py = sigma_py = NULL ;
     *lines_diagnostics = NULL ;
     *wavelength_error = NULL;
@@ -1005,9 +1007,10 @@ cpl_polynomial * cr2res_wave_2d(
             if (tmp_y != NULL) new = cpl_vector_get_size(tmp_y);
             else new = 0;
 
-            if (px == NULL){
+            if (pxa == NULL){
                 // First order to run
-                px = cpl_matrix_new(2, new);
+                pxa = cpl_vector_new(new);
+                pxb = cpl_vector_new(new);
                 py = cpl_vector_new(new);
                 sigma_py = cpl_vector_new(new);
                 old = 0;
@@ -1015,14 +1018,15 @@ cpl_polynomial * cr2res_wave_2d(
                 old = cpl_vector_get_size(py);
                 cpl_vector_set_size(py, old + new);
                 cpl_vector_set_size(sigma_py, old + new);
-                cpl_matrix_set_size(px, 2, old + new);
+                cpl_vector_set_size(pxa, old + new);
+                cpl_vector_set_size(pxb, old + new);
             }
 
             for (j = 0; j < new; j++){
                 cpl_vector_set(py, old + j, cpl_vector_get(tmp_y, j));
                 cpl_vector_set(sigma_py, old + j, cpl_vector_get(tmp_sigma, j));
-                cpl_matrix_set(px, 0, old + j, cpl_matrix_get(tmp_x, j, 0));
-                cpl_matrix_set(px, 1, old + j, orders[i] + zp_order);
+                cpl_vector_set(pxa, old + j, cpl_matrix_get(tmp_x, j, 0));
+                cpl_vector_set(pxb, old + j, orders[i] + zp_order);
             }
             cpl_matrix_delete(tmp_x);
             cpl_vector_delete(tmp_y);
@@ -1032,7 +1036,7 @@ cpl_polynomial * cr2res_wave_2d(
         }
         
 
-        if (px == NULL){
+        if (pxa == NULL){
             // No orders ran succesfully
             cpl_msg_error(__func__, "No lines could be extracted in any order");
             cpl_bivector_delete(catalog_spec) ;
@@ -1044,14 +1048,17 @@ cpl_polynomial * cr2res_wave_2d(
         for (i = 0; i < n - 1; i++){
             degree_2d[0] = degree_x ;
             degree_2d[1] = degree_y ;
-            error = cpl_polynomial_fit(result, px, NULL, py, NULL, TRUE, NULL,
-                    degree_2d);
+            // error = cpl_polynomial_fit(result, px, NULL, py, NULL, TRUE, NULL,
+            //         degree_2d);
+            result = cr2res_polyfit_2d(pxa, pxb, py, degree_2d);
+        
             // in case something went wrong during fitting
-            if (error != CPL_ERROR_NONE){
+            if (result == NULL){
                 cpl_msg_error(__func__, "Polynomial fit failed. Error: %s", 
                     cpl_error_get_message());
-                cpl_polynomial_delete(result);
-                cpl_matrix_delete(px);
+                // cpl_polynomial_delete(result);
+                cpl_vector_delete(pxa);
+                cpl_vector_delete(pxb);
                 cpl_vector_delete(py);
                 cpl_vector_delete(sigma_py);
                 cpl_bivector_delete(catalog_spec) ;
@@ -1066,8 +1073,8 @@ cpl_polynomial * cr2res_wave_2d(
 
             for (j = 0; j < cpl_vector_get_size(py); j++)
             {
-                cpl_vector_set(loc, 0, cpl_matrix_get(px, 0, j));
-                cpl_vector_set(loc, 1, cpl_matrix_get(px, 1, j));
+                cpl_vector_set(loc, 0, cpl_vector_get(pxa, j));
+                cpl_vector_set(loc, 1, cpl_vector_get(pxb, j));
                 value = cpl_polynomial_eval(result, loc);
                 cpl_vector_set(pos, j, value);
             }
@@ -1087,7 +1094,8 @@ cpl_polynomial * cr2res_wave_2d(
             }
             if (cpl_vector_get_max(pos) > threshold){
                 j = cpl_vector_get_maxpos(pos);
-                cpl_matrix_erase_rows(px, j, 1);
+                cr2res_vector_erase_element(pxa, j);
+                cr2res_vector_erase_element(pxb, j);
                 cr2res_vector_erase_element(py, j);
                 cr2res_vector_erase_element(sigma_py, j);
                 cpl_vector_delete(pos);
@@ -1098,10 +1106,11 @@ cpl_polynomial * cr2res_wave_2d(
         }
 
         if (k != n_iterations - 1){
-            cpl_matrix_delete(px);
+            cpl_vector_delete(pxa);
+            cpl_vector_delete(pxb);
             cpl_vector_delete(py);
             cpl_vector_delete(sigma_py);
-            px = NULL;
+            pxa = pxb = NULL;
         }
 
         for (i = 0; i < ninputs; i++){
@@ -1117,8 +1126,8 @@ cpl_polynomial * cr2res_wave_2d(
     diff = cpl_vector_new(n);
     pos = cpl_vector_new(2);
     for (i = 0; i < n; i++){
-        cpl_vector_set(pos, 0, cpl_matrix_get(px, 0, i));
-        cpl_vector_set(pos, 1, cpl_matrix_get(px, 1, i));
+        cpl_vector_set(pos, 0, cpl_vector_get(pxa, i));
+        cpl_vector_set(pos, 1, cpl_vector_get(pxb, i));
         cpl_vector_set(diff, i, abs(
             cpl_polynomial_eval(result, pos)
             - cpl_vector_get(py, i)));
@@ -1138,7 +1147,8 @@ cpl_polynomial * cr2res_wave_2d(
         cpl_polynomial_delete(wavesol[i]);
     }
     cpl_free(wavesol);
-    cpl_matrix_delete(px);
+    cpl_vector_delete(pxa);
+    cpl_vector_delete(pxb);
     cpl_vector_delete(py);
     cpl_vector_delete(sigma_py);
 

@@ -163,10 +163,10 @@ cpl_image * cr2res_util_optimal_filter_2d(
         double lam_y);
 
 cpl_polynomial * cr2res_polyfit_2d(
-    const cpl_vector * x, 
-    const cpl_vector * y, 
-    const cpl_vector * z,
-    const cpl_matrix * degree
+        const cpl_vector * x, 
+        const cpl_vector * y, 
+        const cpl_vector * z,
+        const cpl_size degree[2]
 );
 
 const char * cr2res_get_license(void) ;

@@ -2012,7 +2012,7 @@ def polyfit2d(
 
  */
 /*----------------------------------------------------------------------------*/
-cpl_polynomial * cr2res_polyfit_2d(
+cpl_polynomial * cr2res_polyfit_2d_loc(
     const cpl_vector * x, 
     const cpl_vector * y, 
     const cpl_vector * z,
@@ -2129,6 +2129,40 @@ cpl_polynomial * cr2res_polyfit_2d(
     
 
     return poly;
+}
+
+cpl_polynomial * cr2res_polyfit_2d(
+    const cpl_vector * x, 
+    const cpl_vector * y,
+    const cpl_vector * z,
+    const cpl_size degree[2]
+){
+
+    cpl_matrix * deg;
+    cpl_polynomial * result;
+    cpl_size ndegrees = degree[0] * degree[1] + 1;
+    cpl_size max_degree = max(degree[0], degree[1]);
+    cpl_size i, j, n;
+
+    deg = cpl_matrix_new(ndegrees, 2);
+
+    n = 0;
+    for (i = 0; i < degree[0]; i++)
+    {
+        for (j = 0; j < degree[1]; j++)
+        {
+            if (i + j > max_degree) continue;
+            cpl_matrix_set(deg, n, 0, i);
+            cpl_matrix_set(deg, n, 1, j);
+            n++;
+        }
+    }
+    
+    cpl_matrix_set_size(deg, n, 2);
+
+    result = cr2res_polyfit_2d_loc(x, y, z, deg);
+    cpl_matrix_delete(deg);
+    return result;
 }
 
 /*----------------------------------------------------------------------------*/
