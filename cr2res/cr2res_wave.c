@@ -936,7 +936,7 @@ cpl_polynomial * cr2res_wave_2d(
             return NULL ;
     }
     n = cpl_bivector_get_size(catalog_spec);
-    result = cpl_polynomial_new(2);
+    // result = cpl_polynomial_new(2);
     wavesol = cpl_malloc(ninputs * sizeof(cpl_vector *));
     for (i = 0; i < ninputs; i++){
         wavesol[i] = cpl_polynomial_duplicate(wavesol_init[i]);
@@ -1040,7 +1040,7 @@ cpl_polynomial * cr2res_wave_2d(
             // No orders ran succesfully
             cpl_msg_error(__func__, "No lines could be extracted in any order");
             cpl_bivector_delete(catalog_spec) ;
-            cpl_polynomial_delete(result);
+            // cpl_polynomial_delete(result);
             return NULL;
         }
 
