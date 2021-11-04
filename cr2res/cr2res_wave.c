@@ -2510,8 +2510,12 @@ static cpl_polynomial * cr2res_wave_line_fitting(
         return NULL ;
     }
 
+    // fit polynomial to data points
+    result = cr2res_wave_polyfit_1d(px, py, sigma_py, degree, wavesol_init,
+            wavelength_error, sigma_fit, &cov);
+
     /* Create / Fill the lines diagnosics table  */
-    if (lines_diagnostics != NULL && px != NULL ) {
+    if (lines_diagnostics != NULL && px != NULL && result != NULL) {
         nlines = cpl_matrix_get_nrow(px) ;
         cpl_msg_debug(__func__, "Number of lines: %"CPL_SIZE_FORMAT, nlines);
         /* Create */
@@ -2520,7 +2524,7 @@ static cpl_polynomial * cr2res_wave_line_fitting(
         for (j=0 ; j<nlines ; j++) {
             pix_pos = cpl_matrix_get(px, j, 0) ;
             lambda_cat = cpl_vector_get(py, j) ;
-            lambda_meas = cpl_polynomial_eval_1d(wavesol_init, pix_pos, NULL) ;
+            lambda_meas = cpl_polynomial_eval_1d(result, pix_pos, NULL) ;
             line_width = cpl_vector_get(sigma_py, j) ;
             line_intens = cpl_vector_get(heights, j) ;
             fit_error = cpl_vector_get(fit_errors, j) ;
@@ -2542,10 +2546,6 @@ static cpl_polynomial * cr2res_wave_line_fitting(
                     CR2RES_COL_INTENSITY, j, line_intens) ;
         }
     }
-
-    // fit polynomial to data points
-    result = cr2res_wave_polyfit_1d(px, py, sigma_py, degree, wavesol_init,
-            wavelength_error, sigma_fit, &cov);
 
     if (display){
         cpl_size n = cpl_bivector_get_size(spectrum);
