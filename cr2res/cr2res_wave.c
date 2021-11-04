@@ -915,7 +915,7 @@ cpl_polynomial * cr2res_wave_2d(
     cpl_polynomial  **  wavesol;
     double              pix_pos, lambda_cat, lambda_meas, line_width,
                         line_intens, fit_error, value;
-    int                 n;
+    int                 n, badpix, order, trace;
 
     /* Check Inputs */
     if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
@@ -1140,6 +1140,38 @@ cpl_polynomial * cr2res_wave_2d(
             cpl_vector_get_mean(diff));
     cpl_array_set_double(*wavelength_error, 1,
             cpl_vector_get_max(diff));
+
+    /* Update the lines diagnosics table with the new solution*/
+    if (lines_diagnostics != NULL) {
+        nlines = cpl_table_get_nrow(*lines_diagnostics);
+        /* Fill */
+        i = 0;
+        for (j=0 ; j<nlines ; j++) {
+            pix_pos = cpl_table_get_double(*lines_diagnostics, 
+                            CR2RES_COL_MEASURED_PIXEL, j, &badpix);
+            lambda_cat = cpl_table_get_double(*lines_diagnostics, 
+                            CR2RES_COL_CATALOG_LAMBDA, j, &badpix);
+            order = cpl_table_get_int(*lines_diagnostics, 
+                            CR2RES_COL_ORDER, j, &badpix);
+            trace = cpl_table_get_int(*lines_diagnostics, 
+                            CR2RES_COL_TRACENB, j, &badpix);
+
+            // Assure we pick the correct wave solution
+            while(!(orders[i] == order && traces_nb[i] == trace)){
+                i++;
+                // reset it in case we circle around, but this should not happen
+                if (i == ninputs) i = 0;
+            }
+            // Calculate the new lambda and update the table
+            lambda_meas = cpl_polynomial_eval_1d(wavesol[i], pix_pos, NULL) ;
+            cpl_table_set_double(*lines_diagnostics,
+                    CR2RES_COL_CATALOG_LAMBDA, j, lambda_cat);
+            cpl_table_set_double(*lines_diagnostics,
+                    CR2RES_COL_DELTA_LAMBDA, j, lambda_cat-lambda_meas);
+        }
+    }
+
+    // Cleanup
     cpl_vector_delete(diff);
     cpl_vector_delete(pos);
     cpl_bivector_delete(catalog_spec) ;
