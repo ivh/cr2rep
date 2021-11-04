@@ -31,8 +31,8 @@
                                     Define
  -----------------------------------------------------------------------------*/
 
-#define CR2RES_DETLIN_THRESHOLD 3000.0 // ADU up to which linear response
-#define CR2RES_DETLIN_MAXFIT    40000.0 // Ignore ADU values above this
+#define CR2RES_DETLIN_THRESHOLD 4000.0 // ADU up to which linear response
+#define CR2RES_DETLIN_MAXFIT    37000.0 // Ignore ADU values above this
 
 /*-----------------------------------------------------------------------------
                                 Prototypes

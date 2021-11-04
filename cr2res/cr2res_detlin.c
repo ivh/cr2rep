@@ -185,9 +185,8 @@ int cr2res_detlin_compute(
     cpl_vector          *   y_tofit, *tmp;
     cpl_vector          *   adus_loc, *dits_loc;
     double                  y,  cur_coeff, aduPsec;
-    cpl_size                i=0 ;
+    cpl_size                i=0, first_satur=-1 ;
     int                     count_linear=0;
-    int                     count_satur=0;
 
     /* Test entries */
     if (fitted == NULL || dits == NULL || adus == NULL) return -1 ;
@@ -199,13 +198,15 @@ int cr2res_detlin_compute(
     if (cpl_vector_get_max(adus) < CR2RES_DETLIN_THRESHOLD) return -1;
     for (i = 0; i < cpl_vector_get_size(adus); i++) {
         if (cpl_vector_get(adus,i) < CR2RES_DETLIN_THRESHOLD ) count_linear++;
-        if (cpl_vector_get(adus,i) > CR2RES_DETLIN_MAXFIT ) count_satur++;
+        if (cpl_vector_get(adus,i)>CR2RES_DETLIN_MAXFIT && first_satur==-1) 
+            first_satur=i;
     }
 
-    adus_loc = cpl_vector_extract(adus, 0, 
-                cpl_vector_get_size(adus)-count_satur-1, 1);
-    dits_loc = cpl_vector_extract(dits, 0, 
-                cpl_vector_get_size(dits)-count_satur-1, 1);
+    // in case no adus above threshold
+    if (first_satur==-1) first_satur= cpl_vector_get_size(dits);
+
+    adus_loc = cpl_vector_extract(adus, 0, first_satur-1, 1);
+    dits_loc = cpl_vector_extract(dits, 0, first_satur-1, 1);
 
     
     adusPsec = cpl_vector_duplicate(adus_loc);
@@ -213,12 +214,6 @@ int cr2res_detlin_compute(
     tmp = cpl_vector_extract(adusPsec,0,count_linear,1);
     aduPsec = cpl_vector_get_median(tmp);
     cpl_vector_delete(tmp);
-    /* cpl_msg_debug(__func__, "Found %d values in linear regime, %d saturated",
-                count_linear, count_satur);
-    cpl_msg_debug(__func__, "len1 %lld , len2 %lld ",
-                cpl_vector_get_size(adus), cpl_vector_get_size(adus_loc));
-    cpl_msg_debug(__func__, "ADU/s is %02f", aduPsec);
-    */
 
     samppos = cpl_matrix_wrap(1,
                 cpl_vector_get_size(adus_loc),
@@ -249,7 +244,7 @@ int cr2res_detlin_compute(
 
     /* Sanity check */
     aduPsec=cpl_polynomial_eval_1d(fitted_local,20000.0,NULL);
-    if (aduPsec<1.0 || aduPsec>1.2){
+    if (aduPsec<0.99 || aduPsec>1.2){
         cpl_matrix_unwrap(samppos);
         cpl_vector_delete(y_tofit);
         cpl_vector_delete(dits_loc);

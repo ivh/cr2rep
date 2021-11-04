@@ -208,7 +208,7 @@ static int cr2res_cal_detlin_create(cpl_plugin * plugin)
     /* Fill the parameters list */
     p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.bpm_kappa",
             CPL_TYPE_DOUBLE, "Kappa threshold for BPM detection",
-            "cr2res.cr2res_cal_detlin", 1.8);
+            "cr2res.cr2res_cal_detlin", 8.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_kappa");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -236,7 +236,7 @@ static int cr2res_cal_detlin_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.trace_smooth_y",
             CPL_TYPE_INT, "Length of the smoothing kernel in y",
-            "cr2res.cr2res_cal_detlin", 401);
+            "cr2res.cr2res_cal_detlin", 480);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "trace_smooth_y");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -934,7 +934,8 @@ static int cr2res_cal_detlin_reduce(
             }
         }
     }
-
+    cpl_msg_info(__func__, "%d bad pixels found, %g percent", qc_nb_bad,
+                            (double)qc_nb_bad/ny/nx*100 );
     /* Reject *again* the bad pixels in the image lists */
     /* Get Mask */
     bpm_mask = cpl_mask_threshold_image_create(bpm_loc,-0.5,0.5) ;
