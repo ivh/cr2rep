@@ -2068,13 +2068,13 @@ int cr2res_wave_fit_single_line(
     // For gaussian fit of each line
     // gauss = A * exp((x-mu)^2/(2*sig^2)) + cont
 
-    cpl_vector * tmp = NULL;
-    cpl_matrix * x = NULL;
-    cpl_matrix * sigma_x = NULL;
-    cpl_vector * y = NULL;
-    cpl_vector * sigma_y = NULL;
-    cpl_vector * a = NULL;
-    int * ia = NULL;
+    cpl_vector * tmp;
+    cpl_matrix * x;
+    cpl_matrix * sigma_x;
+    cpl_vector * y;
+    cpl_vector * sigma_y;
+    cpl_vector * a;
+    int * ia;
     double x0, sigma, area, offset, red_chisq;
     double value, value2, diff;
     cpl_size k, j, n, spec_size;
@@ -2130,8 +2130,9 @@ int cr2res_wave_fit_single_line(
             n++;
         }
     }
-    if (n == 0){
-        // cpl_msg_error(__func__, "No good points for line fit");
+    if (n < 5){
+        // Need at least 5 points for the fit (4 unknowns)
+        // cpl_msg_error(__func__, "Not enough good points for line fit");
         cpl_vector_delete(a);
         cpl_matrix_delete(x);
         cpl_vector_delete(y);
@@ -2142,27 +2143,32 @@ int cr2res_wave_fit_single_line(
     cpl_vector_set_size(y, n);
     cpl_vector_set_size(sigma_y, n);
 
+
     // Filter out bad pixels
-    tmp = cpl_vector_duplicate(y);
-    // First element
-    if (fabs(cpl_vector_get(tmp, 0) - cpl_vector_get(tmp, 1)) 
-            > MAX_DEVIATION_FOR_BAD_PIXEL)
-        cpl_vector_set(y, 0, cpl_vector_get(tmp, 1));     
-    // Elements in between
-    for (j = 1; j < n-1; j++){
-        diff = 2 * cpl_vector_get(tmp, j) - 
-                cpl_vector_get(tmp, j-1) - cpl_vector_get(tmp, j+1);
-        diff = fabs(diff);
-        if (diff > MAX_DEVIATION_FOR_BAD_PIXEL){
-            value = (cpl_vector_get(tmp, j-1) + cpl_vector_get(tmp, j+1)) / 2.;
-            cpl_vector_set(y, j, value);
+    // This needs at least 2 elements
+    if (n > 2){
+        tmp = cpl_vector_duplicate(y);
+        // First element
+        if (fabs(cpl_vector_get(tmp, 0) - cpl_vector_get(tmp, 1)) 
+                > MAX_DEVIATION_FOR_BAD_PIXEL)
+            cpl_vector_set(y, 0, cpl_vector_get(tmp, 1));     
+        // Elements in between
+        for (j = 1; j < n-1; j++){
+            diff = 2 * cpl_vector_get(tmp, j) - 
+                    cpl_vector_get(tmp, j-1) - cpl_vector_get(tmp, j+1);
+            diff = fabs(diff);
+            if (diff > MAX_DEVIATION_FOR_BAD_PIXEL){
+                value = (cpl_vector_get(tmp, j-1) + cpl_vector_get(tmp, j+1)) / 2.;
+                cpl_vector_set(y, j, value);
+            }
         }
+        // Last element
+        if (fabs(cpl_vector_get(tmp, n-1) - 
+                cpl_vector_get(tmp, n-2)) > MAX_DEVIATION_FOR_BAD_PIXEL)
+            cpl_vector_set(y, n-1, cpl_vector_get(tmp, n-2));
+        cpl_vector_delete(tmp);
+        
     }
-    // Last element
-    if (fabs(cpl_vector_get(tmp, n-1) - 
-            cpl_vector_get(tmp, n-2)) > MAX_DEVIATION_FOR_BAD_PIXEL)
-        cpl_vector_set(y, n-1, cpl_vector_get(tmp, n-2));
-    cpl_vector_delete(tmp);
 
     // get initial guess for gaussian fit
     value = pixel_pos - window_size / 2 + cpl_vector_get_maxpos(y);
@@ -2184,6 +2190,7 @@ int cr2res_wave_fit_single_line(
         cpl_matrix_delete(x);
         cpl_vector_delete(y);
         cpl_vector_delete(sigma_y);
+        cpl_error_reset();
         return -1;
     }
 
@@ -2290,6 +2297,26 @@ int cr2res_wave_extract_lines(
         cpl_vector      **  heights,
         cpl_vector      **  fit_error)
 {
+    
+    cpl_vector * wave_vec;
+    cpl_vector * pixel_vec;
+    cpl_vector * width_vec;
+    cpl_vector * flag_vec;
+    cpl_vector * height_vec;
+    cpl_vector * fit_error_vec;
+    cpl_vector * tmp;
+    cpl_vector * result;
+    const cpl_vector * spec;
+    const cpl_vector * unc;
+    const double * wave;
+    const double * height;
+    cpl_size power;
+    cpl_size i, j, k, ngood, spec_size, npossible;
+    double pixel_pos, pixel_new, red_chisq, dbl = 0, res = 0;
+    double value, value2, diff;
+    double max_wl, min_wl;
+    double peak_height, width;
+    int n;
 
     /* Check Entries */
     if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL ||
@@ -2297,12 +2324,10 @@ int cr2res_wave_extract_lines(
         return -1;
     }
 
-    cpl_size power = 1;
-    // int window_size = CR2RES_WAVELENGTH_MIN_FIT_PIX;
-
     /* set window_size using the wave_error_init, scaled by the initial guess */
     if (window_size < 0 && wave_error_init != NULL)
         if (cpl_array_get_double(wave_error_init, 1, NULL) > 0) {
+            power = 1;
             window_size = ceil(cpl_array_get_double(wave_error_init, 1,
                 NULL) / fabs(cpl_polynomial_get_coeff(wavesol_init, &power)));
         }
@@ -2311,20 +2336,8 @@ int cr2res_wave_extract_lines(
         window_size = CR2RES_WAVELENGTH_MIN_FIT_PIX;
     cpl_msg_debug(__func__, "Using window size %d pix.", window_size);
 
-    cpl_size i, j, k, ngood, spec_size, npossible;
-    double pixel_pos, pixel_new, red_chisq, dbl, res;
-    int n = cpl_bivector_get_size(lines_list);
-    cpl_vector * wave_vec, * pixel_vec, *width_vec, *flag_vec,
-               *height_vec, *fit_error_vec;
-    const cpl_vector *spec, *unc;
-    double * wave, width;
-    const double *height;
-    double value, value2, diff;
-    double max_wl, min_wl;
-    double peak_height;
-    cpl_vector * tmp;
-    cpl_vector * result;
-
+    
+    n = cpl_bivector_get_size(lines_list);
     spec = cpl_bivector_get_y_const(spectrum);
     unc = cpl_bivector_get_y_const(spectrum_err);
 
@@ -2353,7 +2366,7 @@ int cr2res_wave_extract_lines(
 
 
     // get line data
-    wave = cpl_bivector_get_x_data(lines_list);
+    wave = cpl_bivector_get_x_data_const(lines_list);
     height = cpl_bivector_get_y_data_const(lines_list);
     // TODO width is not provided in the catalog at the moment,
     // use half window size instead?
@@ -2523,8 +2536,8 @@ static cpl_polynomial * cr2res_wave_line_fitting(
     cpl_matrix      *   px;
     cpl_vector      *   py;
     cpl_vector      *   sigma_py;
-    cpl_vector      *   heights = NULL;
-    cpl_vector      *   fit_errors = NULL;
+    cpl_vector      *   heights ;
+    cpl_vector      *   fit_errors ;
     cpl_size            nlines, j ;
     double              pix_pos, lambda_cat, lambda_meas, line_width,
                         line_intens, fit_error ;
