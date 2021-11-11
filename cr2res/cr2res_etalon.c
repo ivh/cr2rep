@@ -628,7 +628,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_table * tmp_table;
     cpl_vector * corr;
     cpl_size degree, degree_2d[2];
-    cpl_size i, j, k, deg, npeaks, npeaks_total;
+    cpl_size i, j, k, deg, npeaks, npeaks_total, npoints;
     double wave, gap, tmp, wcen0;
     double f0, fr, m;
     char * path;
@@ -779,8 +779,10 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         for ( j = 0; j < npeaks; j++)
         {
             m = cpl_matrix_get(px, 0, j);
-            cpl_vector_set(freq, j, cpl_polynomial_eval_1d(poly, m, NULL));
-            cpl_vector_set(wcen, j, SPEED_OF_LIGHT / cpl_vector_get(freq, j));
+            // actually the frequency, just reusing the parameter name
+            wave = cpl_polynomial_eval_1d(poly, m, NULL);
+            cpl_vector_set(freq, j, wave);
+            cpl_vector_set(wcen, j, SPEED_OF_LIGHT / wave);
         }
         deg = 0;
         f0 = cpl_polynomial_get_coeff(poly, &deg);
@@ -899,32 +901,50 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_vector_delete(corr);
 
     /*
-    Final polishing. Adjust the measured wavelengths using 3rd order polynomial
-    in each spectral order requiring const to be constant within each CRIRES+ order.
+    Fit m * wave of all orders with a linear fit, i.e. assuming it only varies
+    slowly between orders. Then determine new wavelengths based on that.
+
+    Alternatively assume that m * w is constant even across orders?
     */
+    npoints = 0;
+    for (i = 0; i < ninputs; i++){
+        if (fpe_mord[i] == NULL) continue;
+        npoints += cpl_vector_get_size(fpe_mord[i]);
+    }
+    py = cpl_vector_new(npoints);
+    px = cpl_matrix_new(1, npoints);
+    k = 0;
     for (i = 0; i < ninputs; i++)
     {
         if (fpe_mord[i] == NULL) continue;
-        py = cpl_vector_duplicate(fpe_mord[i]);
-        cpl_vector_multiply(py, fpe_wobs[i]);
-        poly = cpl_polynomial_new(1);
-        deg = 3;
-        px = cpl_matrix_wrap(1, cpl_vector_get_size(fpe_mord[i]), 
-                cpl_vector_get_data(fpe_mord[i]));
-        cpl_polynomial_fit(poly, px, NULL, py, NULL, CPL_FALSE, NULL, &deg);
-        cpl_matrix_unwrap(px);
-        cpl_vector_delete(py);
-
         for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
         {
-            wave = cpl_polynomial_eval_1d(poly, 
-                        cpl_vector_get(fpe_mord[i], j), NULL) 
-                        / cpl_vector_get(fpe_mord[i], j) ;
+            wave = cpl_vector_get(fpe_wobs[i], j);
+            m = cpl_vector_get(fpe_mord[i], j);
+            cpl_matrix_set(px, 0, k, m);
+            cpl_vector_set(py, k, m * wave);
+            k++;
+        }
+    }
+    deg = 1;
+    poly = cpl_polynomial_new(1);
+    cpl_polynomial_fit(poly, px, NULL, py, NULL, CPL_FALSE, NULL, &deg);
+    cpl_matrix_delete(px);
+    cpl_vector_delete(py);
+
+    for (i = 0; i < ninputs; i++)
+    {
+        if (fpe_mord[i] == NULL) continue;
+        for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
+        {
+            m = cpl_vector_get(fpe_mord[i], j);
+            wave = cpl_polynomial_eval_1d(poly, m, NULL) / m ;
             cpl_vector_set(fpe_freq[i], j, SPEED_OF_LIGHT / wave);
             cpl_vector_set(fpe_wobs[i], j, wave);
         }
-        cpl_polynomial_delete(poly);
     }
+    cpl_polynomial_delete(poly);
+
 
     // Do the 2d fit
     pxa = cpl_vector_new(npeaks_total);
