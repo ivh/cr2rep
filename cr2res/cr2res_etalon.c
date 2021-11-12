@@ -864,22 +864,23 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     // gap here is the constant m * w
     // TODO: the "constant" m * w actually varies slowly, try using a 1d fit
     // instead of the constant assumed here
-    k = 0;
-    fpe_gap = cpl_vector_new(npeaks_total);
-    for (i = 0; i < ninputs; i++)
-    {
-        if (fpe_mord[i] == NULL) continue;
-        for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
-        {
-            cpl_vector_set(fpe_gap, k,
-                cpl_vector_get(fpe_mord[i], j)
-                * cpl_vector_get(fpe_wobs[i], j));
-            k++;
-        }
-    }
-    gap = cpl_vector_get_median(fpe_gap);
-    cpl_vector_delete(fpe_gap);
-    
+    // k = 0;
+    // fpe_gap = cpl_vector_new(npeaks_total);
+    // for (i = 0; i < ninputs; i++)
+    // {
+    //     if (fpe_mord[i] == NULL) continue;
+    //     for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
+    //     {
+    //         cpl_vector_set(fpe_gap, k,
+    //             cpl_vector_get(fpe_mord[i], j)
+    //             * cpl_vector_get(fpe_wobs[i], j));
+    //         k++;
+    //     }
+    // }
+    // gap = cpl_vector_get_median(fpe_gap);
+    // cpl_vector_delete(fpe_gap);
+    gap = 9990000;
+
     // Calculate and apply the correction
     // TODO: is being off by one after the correction an issue?
     corr = cpl_vector_new(ninputs);
@@ -907,14 +908,14 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     Alternatively assume that m * w is constant even across orders?
     */
     npoints = 0;
-    for (i = 0; i < ninputs; i++){
+    for (i = 1; i < ninputs - 1; i++){
         if (fpe_mord[i] == NULL) continue;
         npoints += cpl_vector_get_size(fpe_mord[i]);
     }
     py = cpl_vector_new(npoints);
     px = cpl_matrix_new(1, npoints);
     k = 0;
-    for (i = 0; i < ninputs; i++)
+    for (i = 1; i < ninputs - 1; i++)
     {
         if (fpe_mord[i] == NULL) continue;
         for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
