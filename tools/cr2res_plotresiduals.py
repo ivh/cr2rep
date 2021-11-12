@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from astropy.io import fits
 from scipy.constants import speed_of_light as sol
 
-fig = plt.figure(figsize=(7,5))
+fig = plt.figure(figsize=(8,5))
 ax = fig.subplots()
 try:
     vmi,vma=[float(v) for v in sys.argv[1].split(',')]
@@ -20,10 +20,17 @@ def dlam2vel(lam0):
 def vel2dlam(lam0):
     return lambda vel: vel/sol*lam0
 
+def dlam2pix(disp):
+    return lambda dlam: dlam/disp
+
+def pix2dlam(disp):
+    return lambda pix: disp*pix
+
 for filename in sys.argv[1+offs:]:
     f = fits.open(filename)
     sett = f[0].header['HIERARCH ESO INS WLEN ID']
     cwlen = f[0].header['HIERARCH ESO INS WLEN CWLEN']
+    disp = f[0].header['HIERARCH ESO INS GRAT1 DISP']
     for d in [1,2,3]:
         dat = f['CHIP%d.INT1'%d].data
         xoff = (d-2)*0.2
@@ -43,6 +50,9 @@ for filename in sys.argv[1+offs:]:
 
     secax = ax.secondary_yaxis('right',functions=(dlam2vel(cwlen),vel2dlam(cwlen)))
     secax.set_ylabel(r'$\Delta v$ [m/s]')
+
+    triax = ax.secondary_yaxis(-0.2,functions=(dlam2pix(disp),pix2dlam(disp)))
+    triax.set_ylabel(r'$\Delta$ pixels ')
 
     fig.tight_layout()
     outf = filename.replace('.fits','_resid.png')
