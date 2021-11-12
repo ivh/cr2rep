@@ -627,6 +627,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_vector * tmp_vec;
     cpl_table * tmp_table;
     cpl_vector * corr;
+    cpl_vector * pw;
     cpl_size degree, degree_2d[2];
     cpl_size i, j, k, deg, npeaks, npeaks_total, npoints;
     double wave, gap, tmp, wcen0;
@@ -637,6 +638,8 @@ cpl_polynomial * cr2res_etalon_wave_2d(
 
     cpl_table * lines_diagnostics_loc;
     double pix_pos, lambda_cat, lambda_meas, line_width, line_intens, fit_error;
+    double coef, offset;
+    int pad;
 
     /* Check Inputs */
     if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
@@ -750,7 +753,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
                 cpl_vector_get(freq, j + 1) 
                 - cpl_vector_get(freq, j));
         }
-        fr = cpl_vector_get_median(tmp_vec);
+        fr = fabs(cpl_vector_get_median(tmp_vec));
         cpl_vector_delete(tmp_vec);
 
         // and a first guess for fd
@@ -795,14 +798,25 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         {
             // This is really sensitive to the wavelength solution...
             // TODO: m is awkwardly close to 0.5 before rounding...
-            m = fabs(f0 / fr + cpl_matrix_get(px, 0, j));
-            // cpl_vector_set(mpos, j, round(m));
+            m = cpl_matrix_get(px, 0, j);
+            cpl_vector_set(mpos, j, round(m));
             // m = cpl_vector_get(wcen, j-1)/ 
             //         fabs(cpl_vector_get(wcen, j) - cpl_vector_get(wcen, j-1));
-            cpl_vector_set(mpos, j, round(m));
+            // cpl_vector_set(mpos, j, m);
         }
         // cpl_vector_set(mpos, 0, 1 + cpl_vector_get(mpos, 1));
         cpl_matrix_delete(px);
+
+        // 
+        tmp_vec = cpl_vector_new(npeaks);
+        for (j = 1; j < npeaks; j++){
+            m = cpl_vector_get(wcen, j-1)/ 
+                    fabs(cpl_vector_get(wcen, j) - cpl_vector_get(wcen, j-1));
+            cpl_vector_set(tmp_vec, j, m - cpl_vector_get(mpos, j));
+        }
+        offset = cpl_vector_get_median(tmp_vec);
+        cpl_vector_add_scalar(mpos, round(offset));
+        cpl_vector_delete(tmp_vec);
 
         // Store vectors for later
         fpe_xobs[i] = peaks_new;
@@ -862,27 +876,24 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     Here with find the offsets using eq. 1 and apply them:
     */
     // gap here is the constant m * w
-    // TODO: the "constant" m * w actually varies slowly, try using a 1d fit
-    // instead of the constant assumed here
-    // k = 0;
-    // fpe_gap = cpl_vector_new(npeaks_total);
-    // for (i = 0; i < ninputs; i++)
-    // {
-    //     if (fpe_mord[i] == NULL) continue;
-    //     for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
-    //     {
-    //         cpl_vector_set(fpe_gap, k,
-    //             cpl_vector_get(fpe_mord[i], j)
-    //             * cpl_vector_get(fpe_wobs[i], j));
-    //         k++;
-    //     }
-    // }
-    // gap = cpl_vector_get_median(fpe_gap);
-    // cpl_vector_delete(fpe_gap);
-    gap = 9990000;
+    k = 0;
+    fpe_gap = cpl_vector_new(npeaks_total);
+    for (i = 0; i < ninputs; i++)
+    {
+        if (fpe_mord[i] == NULL) continue;
+        for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
+        {
+            cpl_vector_set(fpe_gap, k,
+                cpl_vector_get(fpe_mord[i], j)
+                * cpl_vector_get(fpe_wobs[i], j));
+            k++;
+        }
+    }
+    gap = cpl_vector_get_median(fpe_gap);
+    cpl_vector_delete(fpe_gap);
+    gap = 1e7;
 
     // Calculate and apply the correction
-    // TODO: is being off by one after the correction an issue?
     corr = cpl_vector_new(ninputs);
     for (i = 0; i < ninputs; i++)
     {
@@ -890,8 +901,9 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         tmp_vec = cpl_vector_new(cpl_vector_get_size(fpe_mord[i]));
         for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
         {
-            tmp = gap / cpl_vector_get(fpe_wobs[i], j);
-            tmp -= cpl_vector_get(fpe_mord[i], j);
+            m = cpl_vector_get(fpe_mord[i], j);
+            wave = cpl_vector_get(fpe_wobs[i], j);
+            tmp = gap / wave - m;
             cpl_vector_set(tmp_vec, j, tmp);
         }
         cpl_vector_set(corr, i, round(cpl_vector_get_median(tmp_vec)));
@@ -901,21 +913,20 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     }
     cpl_vector_delete(corr);
 
-    /*
-    Fit m * wave of all orders with a linear fit, i.e. assuming it only varies
-    slowly between orders. Then determine new wavelengths based on that.
-
-    Alternatively assume that m * w is constant even across orders?
-    */
+    // In a second step we assume that m*wave varies linearly across all orders
+    // and then correct for that
     npoints = 0;
-    for (i = 1; i < ninputs - 1; i++){
+    pad = 2;
+    for (i = pad; i < ninputs - pad; i++)
+    {
         if (fpe_mord[i] == NULL) continue;
         npoints += cpl_vector_get_size(fpe_mord[i]);
     }
+    
     py = cpl_vector_new(npoints);
     px = cpl_matrix_new(1, npoints);
     k = 0;
-    for (i = 1; i < ninputs - 1; i++)
+    for (i = pad; i < ninputs - pad; i++)
     {
         if (fpe_mord[i] == NULL) continue;
         for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
@@ -927,19 +938,68 @@ cpl_polynomial * cr2res_etalon_wave_2d(
             k++;
         }
     }
-    deg = 1;
     poly = cpl_polynomial_new(1);
+    deg = 1;
     cpl_polynomial_fit(poly, px, NULL, py, NULL, CPL_FALSE, NULL, &deg);
     cpl_matrix_delete(px);
     cpl_vector_delete(py);
 
+    // Calculate and apply the correction
+    corr = cpl_vector_new(ninputs);
+    for (i = 0; i < ninputs; i++)
+    {
+        if (fpe_mord[i] == NULL) continue;
+        npeaks = cpl_vector_get_size(fpe_mord[i]);
+        tmp_vec = cpl_vector_new(npeaks);
+        for (j = 0; j < npeaks; j++)
+        {
+            m = cpl_vector_get(fpe_mord[i], j);
+            wave = cpl_vector_get(fpe_wobs[i], j);
+            gap = cpl_polynomial_eval_1d(poly, m, NULL);
+            tmp = gap / wave - m;
+            cpl_vector_set(tmp_vec, j, tmp);
+        }
+        cpl_vector_set(corr, i, round(cpl_vector_get_median(tmp_vec)));
+        cpl_vector_delete(tmp_vec);
+        // Apply the correction
+        cpl_vector_add_scalar(fpe_mord[i], cpl_vector_get(corr, i));
+    }
+    cpl_vector_delete(corr);
+    cpl_polynomial_delete(poly);
+
+    /*
+    Fit m * wave of all orders with a linear fit, i.e. assuming it only varies
+    slowly between orders. Then determine new wavelengths based on that.
+    */
+    py = cpl_vector_new(npeaks_total);
+    px = cpl_matrix_new(1, npeaks_total);
+    k = 0;
+    for (i = 0; i < ninputs; i++)
+    {
+        if (fpe_mord[i] == NULL) continue;
+        for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
+        {
+            wave = cpl_vector_get(fpe_wobs[i], j);
+            m = cpl_vector_get(fpe_mord[i], j);
+            cpl_matrix_set(px, 0, k, m);
+            cpl_vector_set(py, k, m * wave);
+            k++;
+        }
+    }
+    poly = cpl_polynomial_new(1);
+    deg = 3;
+    cpl_polynomial_fit(poly, px, NULL, py, NULL, CPL_FALSE, NULL, &deg);
+
+    cpl_matrix_delete(px);
+    cpl_vector_delete(py);
+    
     for (i = 0; i < ninputs; i++)
     {
         if (fpe_mord[i] == NULL) continue;
         for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
         {
             m = cpl_vector_get(fpe_mord[i], j);
-            wave = cpl_polynomial_eval_1d(poly, m, NULL) / m ;
+            wave = cpl_polynomial_eval_1d(poly, m, NULL) / m;
             cpl_vector_set(fpe_freq[i], j, SPEED_OF_LIGHT / wave);
             cpl_vector_set(fpe_wobs[i], j, wave);
         }
