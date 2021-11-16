@@ -1022,7 +1022,7 @@ static int cr2res_cal_wave_reduce(
         }
         /* Calibrate the UNE images */
         if ((in_une_calib = cr2res_calib_imagelist(in_une, reduce_det, 0,
-                        subtract_nolight_rows, 0, master_flat_frame, 
+                        subtract_nolight_rows, 1, 0, master_flat_frame, 
                         master_dark_frame, bpm_frame, detlin_frame, 
                         dits_une, ndits_une)) == NULL) {
             cpl_msg_error(__func__, "Failed to apply the calibrations") ;
@@ -1231,7 +1231,7 @@ static int cr2res_cal_wave_reduce(
 
         /* Calibrate the FPET images */
         if ((in_fpet_calib = cr2res_calib_imagelist(in_fpet, reduce_det, 0, 
-                        subtract_nolight_rows, 0, master_flat_frame, NULL, 
+                        subtract_nolight_rows, 1, 0, master_flat_frame, NULL, 
                         bpm_frame, detlin_frame, NULL, ndits_fpet)) == NULL) {
             cpl_msg_error(__func__, "Failed to apply the calibrations") ;
             cpl_msg_indent_less() ;

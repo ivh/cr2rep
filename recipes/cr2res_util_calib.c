@@ -398,7 +398,7 @@ static int cr2res_util_calib(
         /* Calibrate the images */
         cpl_msg_info(__func__, "Calibrate the input images") ;
         if ((calibrated[det_nr-1] = cr2res_calib_imagelist(in, det_nr,
-                        clean_bad, subtract_nolight_rows, 0, master_flat_frame,
+                        clean_bad, subtract_nolight_rows, 1, 0, master_flat_frame,
                         master_dark_frame, bpm_frame, detlin_frame, 
                         dits, ndits)) == NULL) {
             cpl_msg_warning(__func__, "Failed to apply the calibrations") ;
