@@ -39,6 +39,7 @@
  -----------------------------------------------------------------------------*/
 
 int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip);
+int cr2res_calib_subtract_background_scatter(hdrl_image * in, const hdrl_image * flat);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -71,6 +72,7 @@ hdrl_imagelist * cr2res_calib_imagelist(
         int                         chip,
         int                         clean_bad,
         int                         subtract_nolight_rows,
+        int                         subtract_background_scatter,
         int                         cosmics_corr,
         const cpl_frame         *   flat,
         const cpl_frame         *   dark,
@@ -104,7 +106,8 @@ hdrl_imagelist * cr2res_calib_imagelist(
 
         /* Calibrate */
         if ((cur_ima_calib = cr2res_calib_image(cur_ima, chip, clean_bad, 
-                        subtract_nolight_rows, cosmics_corr, flat, dark, bpm, 
+                        subtract_nolight_rows, subtract_background_scatter,
+                        cosmics_corr, flat, dark, bpm, 
                         detlin, dit, ndit)) == NULL) {
             cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
             hdrl_imagelist_delete(out) ;
@@ -140,6 +143,7 @@ hdrl_image * cr2res_calib_image(
         int                     chip,
         int                     clean_bad,
         int                     subtract_nolight_rows,
+        int                     subtract_background_scatter,
         int                     cosmics_corr,
         const cpl_frame     *   flat,
         const cpl_frame     *   dark,
@@ -263,6 +267,24 @@ hdrl_image * cr2res_calib_image(
         cpl_image_delete(img_tmp);
     }
 
+    if (subtract_background_scatter && flat != NULL) {
+        /* Load the flat */
+        cpl_msg_info(__func__, "Load the flat field") ;
+        if ((calib = cr2res_io_load_MASTER_FLAT(
+                        cpl_frame_get_filename(flat), chip)) == NULL) {
+            cpl_msg_error(__func__, "Cannot load the flat field") ;
+            hdrl_image_delete(out);
+            return NULL ;
+        }
+
+        // Run calibratrion
+        if (cr2res_calib_subtract_background_scatter(out, calib)){
+            cpl_msg_error(__func__, "Could not remove background scatter");
+        }
+
+        hdrl_image_delete(calib);
+    }
+
     /* Apply the flatfield */
     if (flat != NULL) {
         /* Load the flat */
@@ -284,6 +306,8 @@ hdrl_image * cr2res_calib_image(
         }
         hdrl_image_delete(calib) ;
     }
+
+
 
     /* Comics correction */
     if (cosmics_corr) {
@@ -340,6 +364,98 @@ int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip){
     cpl_image_divide_scalar(tmp_im, sqrt((float)ndit));
     cpl_image_add(error, tmp_im);
     cpl_image_delete(tmp_im);
+    return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Remove background scatter column by column
+  @param    in          the input hdrl image, gets modified
+  @return   0 if ok, -1 in error case
+
+  Fits the background scatter in each column, using a 1d polynomial of degree ?
+  to the out of order pixels.
+
+  Here the orders are defined via the flat image
+
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_calib_subtract_background_scatter(hdrl_image * in, const hdrl_image * flat)
+{
+    // Define Parameters
+    cpl_image * img;
+    const cpl_image * flat_img;
+    cpl_polynomial * poly;
+    cpl_matrix * px;
+    cpl_vector * py;
+    cpl_size deg, ncolumns, nrow, npixel;
+    cpl_size i, j;
+    int badpix;
+    double value;
+
+    // Check Input 
+    if (in == NULL || flat == NULL) return -1;
+    if (hdrl_image_get_size_x(in) != hdrl_image_get_size_x(flat)) return -1;
+    if (hdrl_image_get_size_y(in) != hdrl_image_get_size_y(flat)) return -1;
+
+    // Loop over the columns
+    img = hdrl_image_get_image(in);
+    flat_img = hdrl_image_get_image_const(flat);
+    ncolumns = cpl_image_get_size_x(img);
+    nrow = cpl_image_get_size_y(img);
+
+
+    for (i = 1; i < ncolumns + 1; i++)
+    {
+        // Fill vectors and matrix
+        px = cpl_matrix_new(1, nrow);
+        py = cpl_vector_new(nrow);
+        npixel = 0;
+        for ( j = 1; j < nrow + 1; j++)
+        {
+            // TODO: check that the pixels are actually rejected
+            // Filter pixels that are rejected in the flat (i.e. between orders)
+            // but not rejected by the image (i.e. not bad pixels)
+            if (cpl_image_is_rejected(flat_img, i, j) 
+                    && !cpl_image_is_rejected(img, i, j)){
+                cpl_matrix_set(px, 0, npixel, j);
+                cpl_vector_set(py, npixel, cpl_image_get(img, i, j, &badpix));
+                npixel++;
+            }
+        }
+        cpl_matrix_set_size(px, 1, npixel);
+        cpl_vector_set_size(py, npixel);
+
+        // Fit polynomial
+        poly = cpl_polynomial_new(1);
+        deg = 2;
+        if (cpl_polynomial_fit(poly, px, NULL, py, NULL, CPL_FALSE, NULL, &deg)
+                != CPL_ERROR_NONE) {
+            cpl_msg_error(__func__, "Could not fit the background scatter of column %"CPL_SIZE_FORMAT, i);
+            cpl_error_reset();
+            cpl_matrix_delete(px);
+            cpl_vector_delete(py);
+            cpl_polynomial_delete(poly);
+            return -1;
+        }
+
+        // Subtract column
+        for ( j = 1; j < nrow + 1; j++)
+        {
+            value = cpl_image_get(img, i, j, &badpix);
+            // Just skip this pixel if it is bad
+            if (badpix) continue; 
+            value -= cpl_polynomial_eval_1d(poly, j, NULL);
+            cpl_image_set(img, i, j, value);
+        }
+
+        // Clean up
+        cpl_matrix_delete(px);
+        cpl_vector_delete(py);
+        cpl_polynomial_delete(poly);
+    }
+    
+
     return 0;
 }
 
