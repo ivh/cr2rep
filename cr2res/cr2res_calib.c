@@ -268,6 +268,8 @@ hdrl_image * cr2res_calib_image(
     }
 
     if (subtract_background_scatter && flat != NULL) {
+        cpl_msg_info(__func__, "Correct for the background scatter");
+
         /* Load the flat */
         cpl_msg_info(__func__, "Load the flat field") ;
         if ((calib = cr2res_io_load_MASTER_FLAT(
@@ -388,6 +390,7 @@ int cr2res_calib_subtract_background_scatter(hdrl_image * in, const hdrl_image *
     cpl_polynomial * poly;
     cpl_matrix * px;
     cpl_vector * py;
+    cpl_vector * tmp;
     cpl_size deg, ncolumns, nrow, npixel;
     cpl_size i, j;
     int badpix;
@@ -405,13 +408,13 @@ int cr2res_calib_subtract_background_scatter(hdrl_image * in, const hdrl_image *
     nrow = cpl_image_get_size_y(img);
 
 
-    for (i = 1; i < ncolumns + 1; i++)
+    for (i = CR2RES_NB_BPM_EDGEPIX + 1; i < ncolumns - CR2RES_NB_BPM_EDGEPIX; i++)
     {
         // Fill vectors and matrix
         px = cpl_matrix_new(1, nrow);
         py = cpl_vector_new(nrow);
         npixel = 0;
-        for ( j = 1; j < nrow + 1; j++)
+        for ( j = CR2RES_NB_BPM_VIGN_BOTTOM + 1; j < nrow + 1; j++)
         {
             // TODO: check that the pixels are actually rejected
             // Filter pixels that are rejected in the flat (i.e. between orders)
@@ -423,12 +426,25 @@ int cr2res_calib_subtract_background_scatter(hdrl_image * in, const hdrl_image *
                 npixel++;
             }
         }
+        if (npixel == 0){
+            cpl_msg_error(__func__, "Could not find any valid points for column %"CPL_SIZE_FORMAT, i);
+            cpl_matrix_delete(px);
+            cpl_vector_delete(py);
+            continue;
+        }
         cpl_matrix_set_size(px, 1, npixel);
         cpl_vector_set_size(py, npixel);
 
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+            tmp = cpl_vector_wrap(npixel, cpl_matrix_get_data(px));
+            cpl_vector_save(tmp, "debug_background.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+            cpl_vector_save(py, "debug_background.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_EXTEND);
+            cpl_vector_unwrap(tmp);
+        }
+
         // Fit polynomial
         poly = cpl_polynomial_new(1);
-        deg = 2;
+        deg = 5;
         if (cpl_polynomial_fit(poly, px, NULL, py, NULL, CPL_FALSE, NULL, &deg)
                 != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Could not fit the background scatter of column %"CPL_SIZE_FORMAT, i);
@@ -436,7 +452,7 @@ int cr2res_calib_subtract_background_scatter(hdrl_image * in, const hdrl_image *
             cpl_matrix_delete(px);
             cpl_vector_delete(py);
             cpl_polynomial_delete(poly);
-            return -1;
+            continue;
         }
 
         // Subtract column
