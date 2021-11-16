@@ -434,7 +434,9 @@ int cr2res_calib_subtract_background_scatter(hdrl_image * in, const hdrl_image *
         }
         cpl_matrix_set_size(px, 1, npixel);
         cpl_vector_set_size(py, npixel);
-
+        tmp = cpl_vector_filter_median_create(py,10);
+        cpl_vector_delete(py);
+        py=tmp;
         if (cpl_msg_get_level() == CPL_MSG_DEBUG){
             tmp = cpl_vector_wrap(npixel, cpl_matrix_get_data(px));
             cpl_vector_save(tmp, "debug_background.fits", CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
@@ -444,7 +446,7 @@ int cr2res_calib_subtract_background_scatter(hdrl_image * in, const hdrl_image *
 
         // Fit polynomial
         poly = cpl_polynomial_new(1);
-        deg = 5;
+        deg = 3;
         if (cpl_polynomial_fit(poly, px, NULL, py, NULL, CPL_FALSE, NULL, &deg)
                 != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Could not fit the background scatter of column %"CPL_SIZE_FORMAT, i);
