@@ -35,6 +35,10 @@ def onkey(event):
         cat = find_nearest(catalog,event.xdata)
         print('%.3f'%cat)
         WL_should.append(cat)
+    if event.key=='X':
+        print('fit reset!')
+        PIX_is=[]
+        WL_should=[]
     if event.key=='F':
         try:
             p=np.polyfit(PIX_is,WL_should,deg=2)
@@ -130,8 +134,11 @@ def main(specname,catname=None,cat2name=None,tracename=None):
                     wl = ev(p,X)
                 tw.close()
             xcor = h.get('ESO QC WAVE BESTXCORR-%02d-01'%order)
-            coef,cfit = FitCon1(wl,spec,swin=700,deg=2,k2=.5)
-            spec -= cfit
+            try:
+                coef,cfit = FitCon1(wl,spec,swin=700,deg=2,k2=.5)
+                spec -= cfit
+            except:
+                pass
             ax.plot(wl,spec,label=' '.join((ext,str(order))),color='tab:blue',alpha=0.8,pickradius=5,picker=True)
             #ax.plot(wl,cfit,alpha=0.8,)
             ax.text(wl.mean(),1000,'(O:%d D:%d X:%.2f)'%(order,i+1,xcor or 0.0), fontsize=11,
