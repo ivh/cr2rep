@@ -55,6 +55,7 @@ int cr2res_wave_apply(
         int                         reduce_trace,
         cr2res_wavecal_type         wavecal_type,
         int                         degree,
+        int                         xdegree,
         double                      wl_start,
         double                      wl_end,
         double                      wl_err,
@@ -151,7 +152,7 @@ cpl_polynomial * cr2res_wave_polys_1d_to_2d(
         cpl_polynomial  **  poly_1ds,
         int             *   orders,
         int                 npolys,
-        cpl_size            degree) ;
+        cpl_size            xdegree) ;
 
 cpl_polynomial * cr2res_wave_poly_2d_to_1d(
         cpl_polynomial  *   poly_2d,

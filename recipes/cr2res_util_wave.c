@@ -268,9 +268,16 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.wl_degree",
-            CPL_TYPE_INT, "Wavelength Polynomial degree",
-            "cr2res.cr2res_util_wave", 2);
+            CPL_TYPE_INT, "Wavelength Polynomial degree, main dipsersion",
+            "cr2res.cr2res_util_wave", 5);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_degree");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_util_wave.wl_xdegree",
+            CPL_TYPE_INT, "Wavelength Polynomial degree, cross-dispersion",
+            "cr2res.cr2res_util_wave", 5);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_xdegree");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -374,7 +381,7 @@ static int cr2res_util_wave(
 {
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
-                            wl_degree, display, log_flag,
+                            wl_degree, wl_xdegree, display, log_flag,
                             fallback_input_wavecal_flag,
                             keep_higher_degrees_flag, clean_spectrum ;
     double                  wl_start, wl_end, wl_err, wl_shift, display_wmin, 
@@ -445,6 +452,9 @@ static int cr2res_util_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.wl_degree");
     wl_degree = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_wave.wl_xdegree");
+    wl_xdegree = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_wave.log");
     log_flag = cpl_parameter_get_bool(param) ;
@@ -602,7 +612,8 @@ static int cr2res_util_wave(
             cpl_msg_info(__func__, "Compute the Wavelength") ;
             if (cr2res_wave_apply(trace_wave, extracted_table,
                         lines_frame, reduce_order, reduce_trace, wavecal_type,
-                        wl_degree, wl_start, wl_end, wl_err, wl_shift, log_flag,
+                        wl_degree, wl_xdegree, 
+                        wl_start, wl_end, wl_err, wl_shift, log_flag,
                         fallback_input_wavecal_flag, keep_higher_degrees_flag, 
                         clean_spectrum, display, display_wmin, display_wmax,
                         zp_order, grat1_order,

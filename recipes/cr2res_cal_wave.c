@@ -368,14 +368,14 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.wl_err",
             CPL_TYPE_DOUBLE, "Estimated wavelength error (in nm)",
-            "cr2res.cr2res_cal_wave", -1.0);
+            "cr2res.cr2res_cal_wave", 0.04);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_err");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.wl_degree",
             CPL_TYPE_INT, "Wavelegth Polynomial degree",
-            "cr2res.cr2res_cal_wave", 2);
+            "cr2res.cr2res_cal_wave", 0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_degree");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -397,7 +397,7 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.keep_higher_degrees",
             CPL_TYPE_BOOL,
             "Flag for re-using higher degrees of first guess in Cross-Corr.",
-            "cr2res.cr2res_cal_wave", FALSE);
+            "cr2res.cr2res_cal_wave", TRUE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "keep");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -1104,7 +1104,8 @@ static int cr2res_cal_wave_reduce(
         cpl_msg_info(__func__, "Compute the Wavelength for UNE") ;
         cpl_msg_indent_more() ;
         if (cr2res_wave_apply(tw_in, extracted_une, lines_frame, reduce_order, 
-                    reduce_trace, wavecal_type, wl_degree, wl_start, wl_end, 
+                    reduce_trace, wavecal_type, wl_degree, -1,  // xdegree
+                    wl_start, wl_end, 
                     wl_err, wl_shift, log_flag, fallback_input_wavecal_flag, 
                     keep_higher_degrees_flag, clean_spectrum, 
                     display, display_wmin, display_wmax, zp_order_une,
@@ -1341,10 +1342,13 @@ static int cr2res_cal_wave_reduce(
        
         cpl_msg_info(__func__, "Compute the Wavelength for FPET") ;
         cpl_msg_indent_more() ;
+        cpl_msg_info(__func__, "Running FPET with both degrees=5") ;
+
         if (cr2res_wave_apply(tw_in, extracted_fpet, NULL, reduce_order, 
-                    reduce_trace, CR2RES_ETALON, wl_degree, wl_start, wl_end, 
+                    reduce_trace, CR2RES_ETALON, 5, 5, wl_start, wl_end, 
                     wl_err, wl_shift, log_flag, fallback_input_wavecal_flag, 
-                    keep_higher_degrees_flag, clean_spectrum, 
+                    FALSE, // --keep=FALSE 
+                    clean_spectrum, 
                     display, display_wmin, display_wmax, zp_order_fpet,
                     grat1_order_fpet,
                     &qcs_fpet_out,

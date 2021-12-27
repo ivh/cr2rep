@@ -127,7 +127,8 @@ static cpl_vector * cr2res_wave_etalon_measure_fringes(
   @param    reduce_order    The order to compute (-1 for all)
   @param    reduce_trace    The trace to compute (-1 for all)
   @param    wavecal_type    CR2RES_XCORR/LINE1D/LINE2D/ETALON
-  @param    degree          Required polynomial degree
+  @param    degree          Polynomial degree in dispersion direction
+  @param    xdegree         Polynomial degree in cross-dispersion direction
   @param    wl_start        WL estimate of the first pixel
   @param    wl_end          WL estimate of the last pixel
   @param    wl_err          WL error 
@@ -156,6 +157,7 @@ int cr2res_wave_apply(
         int                         reduce_trace,
         cr2res_wavecal_type         wavecal_type,
         int                         degree,
+        int                         xdegree, // X-disp degree for 2D
         double                      wl_start,
         double                      wl_end,
         double                      wl_err,
@@ -426,7 +428,8 @@ int cr2res_wave_apply(
         /* 2D Calibration */
         if ((wave_sol_2d=cr2res_wave_2d(spectra, spectra_err, wavesol_init,
                         wavesol_init_error, orders, traces_nb, nb_traces,
-                        catalog_fname, degree, 3, -1, 1, zp_order, display,
+                        catalog_fname, degree, xdegree, -1, 1, zp_order,
+                        display,
                         &wl_err_array,
                         &lines_diagnostics_loc)) == NULL) {
             cpl_msg_error(__func__, "Failed to compute 2d Wavelength solution");
@@ -473,7 +476,7 @@ int cr2res_wave_apply(
         if ((wave_sol_2d = cr2res_etalon_wave_2d(
                         spectra, spectra_err, wavesol_init,
                         wavesol_init_error, orders, traces_nb, nb_traces,
-                        degree, 5, zp_order, display,
+                        degree, xdegree, zp_order, display,
                         &wl_err_array, &lines_diagnostics_loc)) == NULL) {
             cpl_msg_error(__func__, "Failed to compute 2d Etalon solution");
             /* De-allocate */
@@ -856,7 +859,7 @@ cpl_polynomial * cr2res_wave_1d(
   @param    trace_nb        List of traces IDs of the various spectra
   @param    ninputs         Number of entries in the previous parameters
   @param    catalog         Catalog file
-  @param    degree_x        The polynomial degree in x
+  @param    degree        The polynomial degree in x
   @param    degree_y        The polynomial degree in y
   @param    display         Flag to display results
   @param    wavelength_error    [out] array of wave_mean_error, wave_max_error
@@ -884,7 +887,7 @@ cpl_polynomial * cr2res_wave_2d(
         int                 *   traces_nb,
         int                     ninputs,
         const char          *   catalog,
-        cpl_size                degree_x,
+        cpl_size                degree,
         cpl_size                degree_y,
         double                  threshold,
         int                     n_iterations,
@@ -1046,7 +1049,7 @@ cpl_polynomial * cr2res_wave_2d(
 
         n = cpl_vector_get_size(py);
         for (i = 0; i < n - 1; i++){
-            degree_2d[0] = degree_x ;
+            degree_2d[0] = degree ;
             degree_2d[1] = degree_y ;
             // error = cpl_polynomial_fit(result, px, NULL, py, NULL, TRUE, NULL,
             //         degree_2d);
@@ -1665,7 +1668,7 @@ hdrl_image * cr2res_wave_gen_wave_map(
   @param    poly_1ds    List of 1d wavelength polynomials
   @param    orders      List of the order values
   @param    npolys      Number of passed polynomials
-  @param    degree      Polynomial degree in vertical direction along the orders
+  @param    xdegree     Polynomial degree in vertical direction (cross-dispers)
   @return   The newly allocated 2D polynomial or NULL in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -1673,13 +1676,13 @@ cpl_polynomial * cr2res_wave_polys_1d_to_2d(
         cpl_polynomial  **  poly_1ds,
         int             *   orders,
         int                 npolys,
-        cpl_size            degree)
+        cpl_size            xdegree)
 {
     cpl_polynomial  *   out ;
     cpl_polynomial  *   fit;
     cpl_matrix      *   samppos;
     cpl_vector      *   values;
-    int                 degree_x;
+    int                 degree;
     cpl_size        *   coef_pos;
     cpl_error_code      error;
 
@@ -1687,11 +1690,11 @@ cpl_polynomial * cr2res_wave_polys_1d_to_2d(
     if (poly_1ds == NULL || orders == NULL) return NULL ;
     if (npolys <= 0) return NULL ;
 
-    degree_x = cpl_polynomial_get_degree(poly_1ds[0]);
+    degree = cpl_polynomial_get_degree(poly_1ds[0]);
     // Check that all polynomials have the same degree
     for (int i = 1; i < npolys; i++)
     {
-        if (degree_x != cpl_polynomial_get_degree(poly_1ds[0]))
+        if (degree != cpl_polynomial_get_degree(poly_1ds[0]))
         {
             return NULL;
         }
@@ -1703,7 +1706,7 @@ cpl_polynomial * cr2res_wave_polys_1d_to_2d(
     values = cpl_vector_new(npolys);
     coef_pos = cpl_malloc(2 * sizeof(cpl_size));
     
-    for (cpl_size i = 0; i <= degree_x; i++)
+    for (cpl_size i = 0; i <= degree; i++)
     {
         for (cpl_size j = 0; j < npolys; j++)
         {
@@ -1712,11 +1715,11 @@ cpl_polynomial * cr2res_wave_polys_1d_to_2d(
         }
 
         error = cpl_polynomial_fit(fit, samppos, NULL, values, NULL, FALSE,
-                                                             NULL, &degree);
+                                                             NULL, &xdegree);
 
         if (error != CPL_ERROR_NONE) printf("%i", error);
 
-        for (cpl_size j = 0; j <= degree; j++)
+        for (cpl_size j = 0; j <= xdegree; j++)
         {
             coef_pos[0] = (cpl_size) i;
             coef_pos[1] = (cpl_size) j;
