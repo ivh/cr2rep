@@ -80,7 +80,7 @@ if __name__ == "__main__":
             if isinstance(value, Integral):
                 value = str(value)
             elif isinstance(value, Number):
-                value = f"{value:.2f}"                
+                value = f"{value:.2f}"
             values += [value]
         line = "\t".join(values)
         text += [line]
