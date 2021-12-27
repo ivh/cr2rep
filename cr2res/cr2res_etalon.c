@@ -970,6 +970,60 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_vector_delete(corr);
     cpl_polynomial_delete(poly);
 
+    // In a second step we assume that m*wave varies linearly across all orders
+    // and then correct for that
+    npoints = 0;
+    pad = 2;
+    for (i = pad; i < ninputs - pad; i++)
+    {
+        if (fpe_mord[i] == NULL) continue;
+        npoints += cpl_vector_get_size(fpe_mord[i]);
+    }
+    
+    py = cpl_vector_new(npoints);
+    px = cpl_matrix_new(1, npoints);
+    k = 0;
+    for (i = pad; i < ninputs - pad; i++)
+    {
+        if (fpe_mord[i] == NULL) continue;
+        for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
+        {
+            wave = cpl_vector_get(fpe_wobs[i], j);
+            m = cpl_vector_get(fpe_mord[i], j);
+            cpl_matrix_set(px, 0, k, m);
+            cpl_vector_set(py, k, m * wave);
+            k++;
+        }
+    }
+    poly = cpl_polynomial_new(1);
+    deg = 1;
+    cpl_polynomial_fit(poly, px, NULL, py, NULL, CPL_FALSE, NULL, &deg);
+    cpl_matrix_delete(px);
+    cpl_vector_delete(py);
+
+    // Calculate and apply the correction
+    corr = cpl_vector_new(ninputs);
+    for (i = 0; i < ninputs; i++)
+    {
+        if (fpe_mord[i] == NULL) continue;
+        npeaks = cpl_vector_get_size(fpe_mord[i]);
+        tmp_vec = cpl_vector_new(npeaks);
+        for (j = 0; j < npeaks; j++)
+        {
+            m = cpl_vector_get(fpe_mord[i], j);
+            wave = cpl_vector_get(fpe_wobs[i], j);
+            gap = cpl_polynomial_eval_1d(poly, m, NULL);
+            tmp = gap / wave - m;
+            cpl_vector_set(tmp_vec, j, tmp);
+        }
+        cpl_vector_set(corr, i, round(cpl_vector_get_median(tmp_vec)));
+        cpl_vector_delete(tmp_vec);
+        // Apply the correction
+        cpl_vector_add_scalar(fpe_mord[i], cpl_vector_get(corr, i));
+    }
+    cpl_vector_delete(corr);
+    cpl_polynomial_delete(poly);
+
     /*
     Fit m * wave of all orders with a linear fit, i.e. assuming it only varies
     slowly between orders. Then determine new wavelengths based on that.
