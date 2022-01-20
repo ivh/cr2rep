@@ -39,6 +39,16 @@
 #define SPEED_OF_LIGHT 299792.458
 #define modulo(x, y) ((x) - ((y) * trunc((x)/(y))))
 
+#define CR2RES_ETALON_GAP_H 9.9950e6
+#define CR2RES_ETALON_GAP_J 9.9900e6
+#define CR2RES_ETALON_GAP_K 9.9999e6
+#define CR2RES_ETALON_GAP_Y 9.9913e6
+
+#define CR2RES_ETALON_DEGREE_H 2
+#define CR2RES_ETALON_DEGREE_J 1
+#define CR2RES_ETALON_DEGREE_K 1
+#define CR2RES_ETALON_DEGREE_Y 2
+
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
@@ -568,6 +578,137 @@ static cpl_vector * cr2res_etalon_get_peaks_gaussian(
     return new_peaks;
 }
 
+#define signum(x) ((x > 0) ? 1 : ((x < 0) ? -1 : 0))
+
+double rofunc(
+    double * x, 
+    double * y, 
+    int ndata, 
+    double * a, 
+    double * abdev, 
+    const double b) 
+{
+    // Evaluates the right-hand side of equation (15.7.16) for a given value of b.
+    int j;
+    double d, sum=0.0;
+    double arr[ndata];
+    cpl_vector * tmp_vec;
+
+    for (j=0;j<ndata;j++) arr[j]=y[j]-b*x[j];
+    tmp_vec = cpl_vector_wrap(ndata, arr);
+    *a = cpl_vector_get_median(tmp_vec);
+    cpl_vector_unwrap(tmp_vec);
+
+    *abdev=0.0;
+    for (j=0;j<ndata;j++) 
+    {
+        d=y[j]-(b*x[j]+*a);
+        *abdev += *abdev + fabs(d);
+        if (y[j] != 0.0) 
+            d /= fabs(y[j]);
+        if (fabs(d) > DBL_EPSILON) 
+            sum += (d >= 0.0 ? x[j] : -x[j]);
+    }
+    return sum;
+}
+
+// This is taken from Numerical Recipes Chapter 15.7
+// with some minor changes to make it work in C instead of C++
+cpl_polynomial * cr2res_robust_polynomial_fit(cpl_matrix *px, cpl_vector *py)
+{
+    // Object for fitting a straight line y = a+bx to a set of points .xi ; yi /, by the criterion of least
+    // absolute deviations. Call the constructor to calculate the fit. The answers are then available as
+    // the variables a, b, and abdev (the mean absolute deviation of the points from the line).
+    // Constructor. Given a set of data points xx[0..ndata-1], yy[0..ndata-1], sets a, b, and abdev.
+
+    double a, b, abdev;
+    int j;
+    double b1, b2, del, f, f1, f2, sigb, temp;
+    double sx=0.0, sy=0.0, sxy=0.0, sxx=0.0, chisq=0.0;
+    double *x, *y;
+    int ndata;
+    cpl_polynomial * poly;
+    cpl_size deg;
+
+    x = cpl_matrix_get_data(px);
+    y = cpl_vector_get_data(py);
+    ndata = cpl_vector_get_size(py);
+
+    // As a first guess for a and b, we will find the
+    // least-squares fitting line.
+    for (j=0;j<ndata;j++) 
+    { 
+        sx += x[j];
+        sy += y[j];
+        sxy += x[j] * y[j];
+        sxx += x[j] * x[j];
+    }
+    del = ndata * sxx - sx * sx;
+    a = (sxx * sy - sx * sxy) / del; // Least-squares solutions.
+    b = (ndata * sxy - sx * sy) / del;
+
+    for (j = 0; j < ndata; j++){
+        temp = y[j] - (a + b * x[j]);
+        chisq += temp * temp;
+    }
+    sigb = sqrt(chisq / del); 
+    // The standard deviation will give some idea of
+    // how big an iteration step to take.
+    b1 = b;
+    f1 = rofunc(x, y, ndata, &a, &abdev, b1);
+    if (sigb > 0.0) 
+    {
+        //Guess bracket as 3-sigma away, in the downhill direction known from f1.
+        b2 = b + 3.0 * sigb * signum(f1); 
+        f2 = rofunc(x, y, ndata, &a, &abdev, b2);
+        if (b2 == b1) 
+        {
+            abdev /= ndata;
+            poly = cpl_polynomial_new(1);
+            deg = 0;
+            cpl_polynomial_set_coeff(poly, &deg, a);
+            deg = 1;
+            cpl_polynomial_set_coeff(poly, &deg, b);
+            return poly;
+        }
+        //Bracketing
+        while (f1 * f2 > 0.0) 
+        { 
+            b = b2 + 1.6 * (b2-b1);
+            b1 = b2;
+            f1 = f2;
+            b2 = b;
+            f2 = rofunc(x, y, ndata, &a, &abdev, b2);
+        }
+        sigb = 0.01 * sigb;
+        while (fabs(b2 - b1) > sigb) 
+        {
+            b = b1 + 0.5 * (b2 - b1); //Bisection.
+            if (b == b1 || b == b2) 
+                break;
+            f=rofunc(x, y, ndata, &a, &abdev, b);
+            if (f * f1 >= 0.0) 
+            {
+                f1 = f;
+                b1 = b;
+            } else {
+                f2 = f;
+                b2 = b;
+            }
+        }
+    }
+    abdev /= ndata;
+
+    poly = cpl_polynomial_new(1);
+    deg = 0;
+    cpl_polynomial_set_coeff(poly, &deg, a);
+    deg = 1;
+    cpl_polynomial_set_coeff(poly, &deg, b);
+
+    return poly;
+}
+
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Create the 2d wavecal fit using etalon peaks
@@ -610,6 +751,8 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_vector * pxa;
     cpl_vector * pxb;
     cpl_vector * py;
+    cpl_matrix * px_tmp;
+    cpl_vector * py_tmp;
     cpl_vector ** heights;
     cpl_vector ** sigmas;
     cpl_vector ** fit_errors;
@@ -629,9 +772,9 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_vector * corr;
     cpl_vector * pw;
     cpl_size degree, degree_2d[2];
-    cpl_size i, j, k, deg, npeaks, npeaks_total, npoints;
-    double wave, gap, tmp, wcen0;
-    double f0, fr, m;
+    cpl_size i, j, k, deg, npeaks, npeaks_total, npoints, setting_deg;
+    double wave, gap, tmp, wcen0, tmp1, tmp2;
+    double f0, fr, m, m0, ymax, ymin;
     char * path;
     FILE * file;
     cpl_error_code error;
@@ -647,6 +790,41 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         return NULL ;
 
     *wavelength_error = NULL;
+
+    // Determine the setting based on the initial wavelength guess
+    deg = 0;
+    tmp = cpl_polynomial_get_coeff(wavesol_init[0], &deg);
+    switch ((int)(tmp/100))
+    {
+    case 9:
+    case 10:
+    case 11:
+        gap = CR2RES_ETALON_GAP_Y;
+        setting_deg = CR2RES_ETALON_DEGREE_Y;
+        break;
+    case 12:
+    case 13:
+    case 14:
+        gap = CR2RES_ETALON_GAP_J;
+        setting_deg = CR2RES_ETALON_DEGREE_J;
+        break;
+    case 16:
+    case 17:
+    case 18:
+        gap = CR2RES_ETALON_GAP_H;
+        setting_deg = CR2RES_ETALON_DEGREE_H;
+        break;
+    case 23:
+    case 24:
+    case 25:
+        gap = CR2RES_ETALON_GAP_K;
+        setting_deg = CR2RES_ETALON_DEGREE_K;
+        break;
+    default:
+        gap = -1;
+        setting_deg = 2;
+        break;
+    }
 
 
     fpe_xobs = cpl_malloc(ninputs * sizeof(cpl_vector *));
@@ -876,26 +1054,26 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     Here with find the offsets using eq. 1 and apply them:
     */
     // gap here is the constant m * w
-    k = 0;
-    fpe_gap = cpl_vector_new(npeaks_total);
-    for (i = 0; i < ninputs; i++)
-    {
-        if (fpe_mord[i] == NULL) continue;
-        for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
+    if (gap < 0)
+    { 
+        k = 0;
+        fpe_gap = cpl_vector_new(npeaks_total);
+        for (i = 0; i < ninputs; i++)
         {
-            cpl_vector_set(fpe_gap, k,
-                cpl_vector_get(fpe_mord[i], j)
-                * cpl_vector_get(fpe_wobs[i], j));
-            k++;
+            if (fpe_mord[i] == NULL) continue;
+            for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
+            {
+                cpl_vector_set(fpe_gap, k,
+                    cpl_vector_get(fpe_mord[i], j)
+                    * cpl_vector_get(fpe_wobs[i], j));
+                k++;
+            }
         }
+        gap = cpl_vector_get_median(fpe_gap);
+        cpl_vector_delete(fpe_gap);
+        cpl_msg_debug(__func__, "Median gap is: %g", gap);
     }
-    gap = cpl_vector_get_median(fpe_gap);
-    cpl_vector_delete(fpe_gap);
-    cpl_msg_debug(__func__, "Median gap is: %g", gap);
-
-    // Setting the gap manually
-    //gap = 1e7;
-
+    
     // Calculate and apply the correction
     corr = cpl_vector_new(ninputs);
     for (i = 0; i < ninputs; i++)
@@ -970,60 +1148,6 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_vector_delete(corr);
     cpl_polynomial_delete(poly);
 
-    // In a second step we assume that m*wave varies linearly across all orders
-    // and then correct for that
-    npoints = 0;
-    pad = 2;
-    for (i = pad; i < ninputs - pad; i++)
-    {
-        if (fpe_mord[i] == NULL) continue;
-        npoints += cpl_vector_get_size(fpe_mord[i]);
-    }
-    
-    py = cpl_vector_new(npoints);
-    px = cpl_matrix_new(1, npoints);
-    k = 0;
-    for (i = pad; i < ninputs - pad; i++)
-    {
-        if (fpe_mord[i] == NULL) continue;
-        for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
-        {
-            wave = cpl_vector_get(fpe_wobs[i], j);
-            m = cpl_vector_get(fpe_mord[i], j);
-            cpl_matrix_set(px, 0, k, m);
-            cpl_vector_set(py, k, m * wave);
-            k++;
-        }
-    }
-    poly = cpl_polynomial_new(1);
-    deg = 1;
-    cpl_polynomial_fit(poly, px, NULL, py, NULL, CPL_FALSE, NULL, &deg);
-    cpl_matrix_delete(px);
-    cpl_vector_delete(py);
-
-    // Calculate and apply the correction
-    corr = cpl_vector_new(ninputs);
-    for (i = 0; i < ninputs; i++)
-    {
-        if (fpe_mord[i] == NULL) continue;
-        npeaks = cpl_vector_get_size(fpe_mord[i]);
-        tmp_vec = cpl_vector_new(npeaks);
-        for (j = 0; j < npeaks; j++)
-        {
-            m = cpl_vector_get(fpe_mord[i], j);
-            wave = cpl_vector_get(fpe_wobs[i], j);
-            gap = cpl_polynomial_eval_1d(poly, m, NULL);
-            tmp = gap / wave - m;
-            cpl_vector_set(tmp_vec, j, tmp);
-        }
-        cpl_vector_set(corr, i, round(cpl_vector_get_median(tmp_vec)));
-        cpl_vector_delete(tmp_vec);
-        // Apply the correction
-        cpl_vector_add_scalar(fpe_mord[i], cpl_vector_get(corr, i));
-    }
-    cpl_vector_delete(corr);
-    cpl_polynomial_delete(poly);
-
     /*
     Fit m * wave of all orders with a linear fit, i.e. assuming it only varies
     slowly between orders. Then determine new wavelengths based on that.
@@ -1043,10 +1167,75 @@ cpl_polynomial * cr2res_etalon_wave_2d(
             k++;
         }
     }
-    poly = cpl_polynomial_new(1);
-    deg = 3;
-    cpl_polynomial_fit(poly, px, NULL, py, NULL, CPL_FALSE, NULL, &deg);
 
+    if (setting_deg == 1){
+        // Do a robust (L1 norm) fit to the data
+        // use robust to avoid outliers
+        // However the method is not as numerically stable
+        // so we normalize the x and y data first
+        px_tmp = cpl_matrix_duplicate(px);
+        py_tmp = cpl_vector_duplicate(py);
+
+        m0 = cpl_matrix_get_min(px_tmp);
+        cpl_matrix_subtract_scalar(px_tmp, m0);
+        ymin = cpl_vector_get_min(py_tmp);
+        cpl_vector_subtract_scalar(py_tmp, ymin);
+        ymax = cpl_vector_get_max(py_tmp);
+        cpl_vector_divide_scalar(py_tmp, ymax);
+        poly = cr2res_robust_polynomial_fit(px_tmp, py_tmp);
+
+        cpl_matrix_delete(px_tmp);
+        cpl_vector_delete(py_tmp);
+
+        // Fix orders to be on the same linear fit
+        k = 0;
+        for (i = 0; i < ninputs; i++)
+        {
+            if (fpe_mord[i] == NULL) continue;
+            // mean(mord * wobs)
+            tmp1 = 0;
+            for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
+            {
+                m = cpl_vector_get(fpe_mord[i], j);
+                wave = cpl_vector_get(fpe_wobs[i], j);
+                tmp1 += m * wave;
+            }
+            tmp1 /= cpl_vector_get_size(fpe_mord[i]);
+
+            // mean(poly(mord))
+            tmp2 = 0;
+            for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
+            {
+                m = cpl_vector_get(fpe_mord[i], j);
+                // Remember to use the normalization factors created above
+                tmp2 += cpl_polynomial_eval_1d(poly, m - m0, NULL) * ymax + ymin;
+            }
+            tmp2 /= cpl_vector_get_size(fpe_mord[i]);
+
+            cpl_msg_debug(__func__, 
+                "Difference between measured and expected in order %lli: %f", 
+                i, fabs(tmp1 - tmp2));
+
+            for (j = 0; j < cpl_vector_get_size(fpe_mord[i]); j++)
+            {
+                wave = cpl_vector_get(fpe_wobs[i], j);
+                m = cpl_vector_get(fpe_mord[i], j);
+                wave += (tmp2 - tmp1) / m;
+                cpl_vector_set(py, k, m * wave);
+                cpl_vector_set(fpe_wobs[i], j, wave);
+                cpl_vector_set(fpe_freq[i], j, SPEED_OF_LIGHT / wave);
+                k++;
+            }
+        }
+        cpl_polynomial_delete(poly);
+    }
+
+    // Do yet another fit to the points
+    // and recalculate the wavelength on now (hopefully) consistent data
+    deg = setting_deg;
+    poly = cpl_polynomial_new(1);
+    cpl_polynomial_fit(poly, px, NULL, py, NULL, CPL_FALSE, NULL, &deg);
+    
     cpl_matrix_delete(px);
     cpl_vector_delete(py);
     
