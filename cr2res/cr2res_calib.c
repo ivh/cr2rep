@@ -39,7 +39,8 @@
  -----------------------------------------------------------------------------*/
 
 int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip);
-int cr2res_calib_subtract_background_scatter(hdrl_image * in, const hdrl_image * flat);
+int cr2res_calib_subtract_interorder_column(hdrl_image * in,
+    const hdrl_image * flat, cpl_size degree);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -72,7 +73,7 @@ hdrl_imagelist * cr2res_calib_imagelist(
         int                         chip,
         int                         clean_bad,
         int                         subtract_nolight_rows,
-        int                         subtract_background_scatter,
+        int                         subtract_interorder_column,
         int                         cosmics_corr,
         const cpl_frame         *   flat,
         const cpl_frame         *   dark,
@@ -106,7 +107,7 @@ hdrl_imagelist * cr2res_calib_imagelist(
 
         /* Calibrate */
         if ((cur_ima_calib = cr2res_calib_image(cur_ima, chip, clean_bad, 
-                        subtract_nolight_rows, subtract_background_scatter,
+                        subtract_nolight_rows, subtract_interorder_column,
                         cosmics_corr, flat, dark, bpm, 
                         detlin, dit, ndit)) == NULL) {
             cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
@@ -143,7 +144,7 @@ hdrl_image * cr2res_calib_image(
         int                     chip,
         int                     clean_bad,
         int                     subtract_nolight_rows,
-        int                     subtract_background_scatter,
+        int                     subtract_interorder_column,
         int                     cosmics_corr,
         const cpl_frame     *   flat,
         const cpl_frame     *   dark,
@@ -255,6 +256,8 @@ hdrl_image * cr2res_calib_image(
 
     /* Subtract residual bias/dark from vignetted rows at bottom */
     if (subtract_nolight_rows) {
+        cpl_msg_info(__func__, "Subtract median of bottom rows");
+
         img_tmp = cpl_image_collapse_median_create(
                 hdrl_image_get_image(out), 0, CR2RES_NB_BPM_EDGEPIX, 
                 CR2RES_DETECTOR_SIZE-CR2RES_NB_BPM_VIGN_BOTTOM);
@@ -267,24 +270,29 @@ hdrl_image * cr2res_calib_image(
         cpl_image_delete(img_tmp);
     }
 
-    if (subtract_background_scatter && flat != NULL) {
-        cpl_msg_info(__func__, "Correct for the background scatter");
+    if (subtract_interorder_column) {
+        if (flat == NULL) {
+        cpl_msg_info(__func__, "Skip subtracting fit to inter-order pixels, "
+                "no flat-field given");
+        } else {
+            cpl_msg_info(__func__, "Subtract fit to inter-order pixels");
 
-        /* Load the flat */
-        cpl_msg_info(__func__, "Load the flat field") ;
-        if ((calib = cr2res_io_load_MASTER_FLAT(
-                        cpl_frame_get_filename(flat), chip)) == NULL) {
-            cpl_msg_error(__func__, "Cannot load the flat field") ;
-            hdrl_image_delete(out);
-            return NULL ;
+            /* Load the flat */
+            cpl_msg_info(__func__, "Load the flat field") ;
+            if ((calib = cr2res_io_load_MASTER_FLAT(
+                            cpl_frame_get_filename(flat), chip)) == NULL) {
+                cpl_msg_error(__func__, "Cannot load the flat field") ;
+                hdrl_image_delete(out);
+                return NULL ;
+            }
+
+            // Run calibratrion
+            if (cr2res_calib_subtract_interorder_column(out, calib, 3)){
+                cpl_msg_error(__func__, "Could not subtract inter-order fit");
+            }
+
+            hdrl_image_delete(calib);
         }
-
-        // Run calibratrion
-        if (cr2res_calib_subtract_background_scatter(out, calib)){
-            cpl_msg_error(__func__, "Could not remove background scatter");
-        }
-
-        hdrl_image_delete(calib);
     }
 
     /* Apply the flatfield */
@@ -371,19 +379,19 @@ int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip){
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Remove background scatter column by column
+  @brief    Remove background column by column
   @param    in          the input hdrl image, gets modified
   @return   0 if ok, -1 in error case
 
-  Fits the background scatter in each column, using a 1d polynomial of degree ?
+  Fits the background in each column, using a 1d polynomial with given degree 
   to the out of order pixels.
 
-  Here the orders are defined by the flat-field
+  Here the orders are defined by the flat-field.
 
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_calib_subtract_background_scatter(hdrl_image * in, 
-                                                const hdrl_image * flat)
+int cr2res_calib_subtract_interorder_column(hdrl_image * in, 
+                                    const hdrl_image * flat, cpl_size degree)
 {
     // Define Parameters
     cpl_image * img;
@@ -392,9 +400,10 @@ int cr2res_calib_subtract_background_scatter(hdrl_image * in,
     cpl_matrix * px;
     cpl_vector * py;
     cpl_vector * tmp;
-    cpl_size deg, ncolumns, nrow, npixel;
+    cpl_size ncolumns, nrow, npixel;
     cpl_size i, j;
     int badpix;
+    int badcols = 0;
     double value;
 
     // Check Input 
@@ -429,7 +438,8 @@ int cr2res_calib_subtract_background_scatter(hdrl_image * in,
             }
         }
         if (npixel == 0){
-            cpl_msg_warning(__func__,
+            badcols += 1;
+            cpl_msg_debug(__func__,
               "Could not find any valid points for column %"CPL_SIZE_FORMAT, i);
             cpl_matrix_delete(px);
             cpl_vector_delete(py);
@@ -451,9 +461,10 @@ int cr2res_calib_subtract_background_scatter(hdrl_image * in,
 
         // Fit polynomial
         poly = cpl_polynomial_new(1);
-        deg = 3;
-        if (cpl_polynomial_fit(poly, px, NULL, py, NULL, CPL_FALSE, NULL, &deg)
+        if (cpl_polynomial_fit(poly, px, NULL, py, NULL, CPL_FALSE, NULL,
+                                                                    &degree)
                 != CPL_ERROR_NONE) {
+            badcols += 1;
             cpl_msg_warning(__func__,
             "Could not fit the background of column %"CPL_SIZE_FORMAT, i);
             cpl_error_reset();
@@ -478,8 +489,12 @@ int cr2res_calib_subtract_background_scatter(hdrl_image * in,
         cpl_vector_delete(py);
         cpl_polynomial_delete(poly);
     }
-    
 
+    if (badcols){
+        cpl_msg_warning(__func__, 
+        "%d columns could not be background-ubtracted from inter-order gaps",
+            badcols);
+    }
     return 0;
 }
 

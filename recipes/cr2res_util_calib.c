@@ -200,9 +200,21 @@ static int cr2res_util_calib_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value(
             "cr2res.cr2res_util_calib.subtract_nolight_rows",
-            CPL_TYPE_BOOL, "Subtract the no-light rows",
+            CPL_TYPE_BOOL, 
+            "Subtract median row from baffled region at detector bottom",
             "cr2res.cr2res_util_calib", FALSE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "subtract_nolight_rows");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+    
+    p = cpl_parameter_new_value(
+            "cr2res.cr2res_util_calib.subtract_interorder_column",
+            CPL_TYPE_BOOL,
+            "Subtract column-by column fit to the pixel values between"
+            " spectral orders",
+            "cr2res.cr2res_util_calib", TRUE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, 
+                                                "subtract_interorder_column");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -276,7 +288,7 @@ static int cr2res_util_calib(
 {
     const cpl_parameter *   param ;
     int                     clean_bad, calib_cosmics_corr, reduce_det, 
-                            subtract_nolight_rows ;
+                            subtract_nolight_rows, subtract_interorder_column ;
     cr2res_collapse         collapse ;
     const char          *   sval ;
     cpl_frameset        *   rawframes ;
@@ -316,6 +328,9 @@ static int cr2res_util_calib(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_calib.subtract_nolight_rows");
     subtract_nolight_rows = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_calib.subtract_interorder_column");
+    subtract_interorder_column = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_calib.calib_cosmics_corr");
     calib_cosmics_corr = cpl_parameter_get_bool(param);
@@ -398,7 +413,9 @@ static int cr2res_util_calib(
         /* Calibrate the images */
         cpl_msg_info(__func__, "Calibrate the input images") ;
         if ((calibrated[det_nr-1] = cr2res_calib_imagelist(in, det_nr,
-                        clean_bad, subtract_nolight_rows, 1, 0, master_flat_frame,
+                        clean_bad, subtract_nolight_rows,
+                        subtract_interorder_column, calib_cosmics_corr,
+                        master_flat_frame,
                         master_dark_frame, bpm_frame, detlin_frame, 
                         dits, ndits)) == NULL) {
             cpl_msg_warning(__func__, "Failed to apply the calibrations") ;
