@@ -210,7 +210,7 @@ static int cr2res_util_calib_create(cpl_plugin * plugin)
     p = cpl_parameter_new_value(
             "cr2res.cr2res_util_calib.subtract_interorder_column",
             CPL_TYPE_BOOL,
-            "Subtract column-by column fit to the pixel values between"
+            "Subtract column-by-column fit to the pixel values between"
             " spectral orders",
             "cr2res.cr2res_util_calib", TRUE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, 

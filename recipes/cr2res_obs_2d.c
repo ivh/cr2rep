@@ -62,6 +62,7 @@ static int cr2res_obs_2d_reduce(
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
         int                     subtract_nolight_rows,
+        int                     subtract_interorder_column,
         int                     calib_cosmics_corr,
         int                     reduce_det,
         int                     reduce_order,
@@ -203,9 +204,21 @@ static int cr2res_obs_2d_create(cpl_plugin * plugin)
 
     /* Fill the parameters list */
     p = cpl_parameter_new_value("cr2res.cr2res_obs_2d.subtract_nolight_rows",
-            CPL_TYPE_BOOL, "Subtract the no-light rows",
+            CPL_TYPE_BOOL,
+            "Subtract median row from baffled region at detector bottom",
             "cr2res.cr2res_obs_2d", FALSE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "subtract_nolight_rows");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value(
+            "cr2res.cr2res_obs_2d.subtract_interorder_column",
+            CPL_TYPE_BOOL,
+            "Subtract column-by-column fit to the pixel values between"
+            " spectral orders",
+            "cr2res.cr2res_obs_2d", TRUE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, 
+                                                "subtract_interorder_column");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -286,7 +299,7 @@ static int cr2res_obs_2d(
 {
     const cpl_parameter *   param ;
     int                     reduce_det, reduce_order, reduce_trace, 
-                            subtract_nolight_rows ;
+                            subtract_nolight_rows, subtract_interorder_column ;
     cpl_frameset        *   rawframes ;
     cpl_frame           *   rawframe ;
     const cpl_frame     *   detlin_frame ;
@@ -307,6 +320,9 @@ static int cr2res_obs_2d(
     reduce_det = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_2d.subtract_nolight_rows");
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_2d.subtract_interorder_column");
+    subtract_interorder_column = cpl_parameter_get_bool(param);
     subtract_nolight_rows = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_2d.order");
@@ -367,7 +383,8 @@ static int cr2res_obs_2d(
             /* Call the reduction function */
             if (cr2res_obs_2d_reduce(rawframe, trace_wave_frame, detlin_frame, 
                         master_dark_frame, master_flat_frame, bpm_frame,
-                        subtract_nolight_rows, 0, det_nr, reduce_order, 
+                        subtract_nolight_rows, subtract_interorder_column, 
+                        0, det_nr, reduce_order, 
                         reduce_trace,
                         &(extract[det_nr-1]),
                         &(ext_plist[det_nr-1])) == -1) {
@@ -428,6 +445,7 @@ static int cr2res_obs_2d_reduce(
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
         int                     subtract_nolight_rows,
+        int                     subtract_interorder_column,
         int                     calib_cosmics_corr,
         int                     reduce_det,
         int                     reduce_order,
@@ -493,8 +511,8 @@ static int cr2res_obs_2d_reduce(
 
     /* Calibrate the image */
     if ((in_calib = cr2res_calib_image(in, reduce_det, 0,
-            subtract_nolight_rows, 1, 0, master_flat_frame, 
-            master_dark_frame, bpm_frame, detlin_frame, dit, ndit)) == NULL) {
+        subtract_nolight_rows, subtract_interorder_column, 0, master_flat_frame, 
+        master_dark_frame, bpm_frame, detlin_frame, dit, ndit)) == NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         hdrl_image_delete(in) ;
         return -1 ;

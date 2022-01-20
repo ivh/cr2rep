@@ -66,6 +66,7 @@ static int cr2res_obs_staring_reduce(
         const cpl_frame     *   bpm_frame,
         const cpl_array     *   slit_frac,
         int                     subtract_nolight_rows,
+        int                     subtract_interorder_column,
         int                     calib_cosmics_corr,
         int                     extract_oversample,
         int                     extract_swath_width,
@@ -227,9 +228,21 @@ static int cr2res_obs_staring_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value(
             "cr2res.cr2res_obs_staring.subtract_nolight_rows",
-            CPL_TYPE_BOOL, "Subtract the no-light rows",
+            CPL_TYPE_BOOL,
+            "Subtract median row from baffled region at detector bottom",
             "cr2res.cr2res_obs_staring", FALSE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "subtract_nolight_rows");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value(
+            "cr2res.cr2res_obs_staring.subtract_interorder_column",
+            CPL_TYPE_BOOL,
+            "Subtract column-by-column fit to the pixel values between"
+            " spectral orders",
+            "cr2res.cr2res_obs_staring", TRUE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, 
+                                                "subtract_interorder_column");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -351,7 +364,8 @@ static int cr2res_obs_staring(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     subtract_nolight_rows, extract_oversample, 
+    int                     subtract_nolight_rows, subtract_interorder_column,
+                            extract_oversample, 
                             extract_swath_width, extract_height, reduce_det, 
                             ndit, nexp, disp_order, disp_trace ;
     double                  extract_smooth_slit, extract_smooth_spec, ra, dec, 
@@ -376,6 +390,9 @@ static int cr2res_obs_staring(
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.subtract_nolight_rows");
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_staring.subtract_interorder_column");
+    subtract_interorder_column = cpl_parameter_get_bool(param);
     subtract_nolight_rows = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.extract_oversample");
@@ -470,7 +487,8 @@ static int cr2res_obs_staring(
         if (cr2res_obs_staring_reduce(rawframes, 
                     trace_wave_frame, detlin_frame, master_dark_frame, 
                     master_flat_frame, bpm_frame, slit_frac, 
-                    subtract_nolight_rows, 0, extract_oversample, 
+                    subtract_nolight_rows, subtract_interorder_column,
+                    0, extract_oversample, 
                     extract_swath_width, extract_height, extract_smooth_slit, 
                     extract_smooth_spec, det_nr,
                     &(extract[det_nr-1]),
@@ -554,6 +572,7 @@ static int cr2res_obs_staring_reduce(
         const cpl_frame     *   bpm_frame,
         const cpl_array     *   slit_frac,
         int                     subtract_nolight_rows,
+        int                     subtract_interorder_column,
         int                     calib_cosmics_corr,
         int                     extract_oversample,
         int                     extract_swath_width,
@@ -643,7 +662,7 @@ static int cr2res_obs_staring_reduce(
 
     /* Calibrate the images */
     if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
-            subtract_nolight_rows, 1, 0, master_flat_frame, 
+            subtract_nolight_rows, subtract_interorder_column, 0, master_flat_frame, 
             master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         if (dits != NULL) cpl_vector_delete(dits) ;

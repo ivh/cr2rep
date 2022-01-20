@@ -72,6 +72,7 @@ static int cr2res_obs_nodding_reduce(
         const cpl_frame     *   bpm_frame,
         int                     nodding_invert,
         int                     subtract_nolight_rows,
+        int                     subtract_interorder_column,
         int                     calib_cosmics_corr,
         int                     extract_oversample,
         int                     extract_swath_width,
@@ -292,9 +293,21 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     /* Fill the parameters list */
     p = cpl_parameter_new_value(
             "cr2res.cr2res_obs_nodding.subtract_nolight_rows",
-            CPL_TYPE_BOOL, "Subtract the no-light rows",
+            CPL_TYPE_BOOL, 
+            "Subtract median row from baffled region at detector bottom",
             "cr2res.cr2res_obs_nodding", FALSE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "subtract_nolight_rows");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+    
+    p = cpl_parameter_new_value(
+            "cr2res.cr2res_obs_nodding.subtract_interorder_column",
+            CPL_TYPE_BOOL,
+            "Subtract column-by-column fit to the pixel values between"
+            " spectral orders",
+            "cr2res.cr2res_obs_nodding", TRUE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, 
+                                                "subtract_interorder_column");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -434,7 +447,8 @@ static int cr2res_obs_nodding(
     int                     extract_oversample, extract_swath_width,
                             extract_height, reduce_det, 
                             disp_order_idx, disp_trace, disp_det, 
-                            nodding_invert, create_idp, subtract_nolight_rows ;
+                            nodding_invert, create_idp, subtract_nolight_rows,
+                            subtract_interorder_column ;
     double                  extract_smooth_slit, extract_smooth_spec;
     double                  ra, dec, dit, gain ;
     cpl_frameset        *   rawframes ;
@@ -469,6 +483,9 @@ static int cr2res_obs_nodding(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.subtract_nolight_rows");
     subtract_nolight_rows = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_nodding.subtract_interorder_column");
+    subtract_interorder_column = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.nodding_invert");
     nodding_invert = cpl_parameter_get_bool(param);
@@ -567,7 +584,8 @@ static int cr2res_obs_nodding(
         if (cr2res_obs_nodding_reduce(rawframes, raw_flat_frames, 
                     trace_wave_frame, detlin_frame, master_dark_frame, 
                     master_flat_frame, bpm_frame, nodding_invert,
-                    subtract_nolight_rows, 0, extract_oversample, 
+                    subtract_nolight_rows, subtract_interorder_column,
+                    0, extract_oversample, 
                     extract_swath_width, extract_height, extract_smooth_slit, 
                     extract_smooth_spec, det_nr, disp_det, disp_order_idx, 
                     disp_trace,
@@ -788,6 +806,7 @@ static int cr2res_obs_nodding_reduce(
         const cpl_frame     *   bpm_frame,
         int                     nodding_invert,
         int                     subtract_nolight_rows,
+        int                     subtract_interorder_column,
         int                     calib_cosmics_corr,
         int                     extract_oversample,
         int                     extract_swath_width,
@@ -934,8 +953,8 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_info(__func__, "Apply the Calibrations") ;
     cpl_msg_indent_more() ;
     if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
-            subtract_nolight_rows, 1, 0, master_flat_frame, 
-            master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
+        subtract_nolight_rows, subtract_interorder_column, 0, master_flat_frame, 
+        master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         cpl_msg_indent_less() ;
         cpl_free(nod_positions) ;    
