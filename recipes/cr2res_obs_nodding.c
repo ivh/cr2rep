@@ -137,14 +137,18 @@ Nodding Observation                                                     \n\
     master_flat.fits " CR2RES_CAL_FLAT_MASTER_PROCATG " [0 to 1]        \n\
                                                                         \n\
   Outputs                                                               \n\
-    cr2res_obs_nodding_extractA.fits " 
+    cr2res_obs_nodding_extractedA.fits " 
     CR2RES_OBS_NODDING_EXTRACTA_PROCATG "\n\
-    cr2res_obs_nodding_extractB.fits " 
+    cr2res_obs_nodding_extractedB.fits " 
     CR2RES_OBS_NODDING_EXTRACTB_PROCATG "\n\
     cr2res_obs_nodding_combinedA.fits " 
     CR2RES_OBS_NODDING_COMBINEDA_PROCATG "\n\
     cr2res_obs_nodding_combinedB.fits " 
     CR2RES_OBS_NODDING_COMBINEDB_PROCATG "\n\
+    cr2res_obs_nodding_trace_wave_A.fits "
+    CR2RES_OBS_NODDING_TWA_PROCATG "\n\
+    cr2res_obs_nodding_trace_wave_B.fits "
+    CR2RES_OBS_NODDING_TWB_PROCATG "\n\
     cr2res_obs_nodding_modelA.fits " 
     CR2RES_OBS_NODDING_SLITMODELA_PROCATG "\n\
     cr2res_obs_nodding_modelB.fits " 
