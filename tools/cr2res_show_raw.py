@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import os
 import sys
-from astropy.io import fits
 import numpy as np
+import numpy.ma as ma
 import matplotlib.pyplot as plt
+from astropy.io import fits
 
 FIG = plt.figure(figsize=(10, 3.5))
 
@@ -33,8 +34,9 @@ for fname_img in sys.argv[1+offs:]:
         imgdata = img['CHIP%d.INT1'%i].data
         imgdata = np.nan_to_num(imgdata)
         #imgdata /= float(dit)
-        vmin = vmi or np.percentile(imgdata,5)
-        vmax = vma or np.percentile(imgdata,98)
+        vmin = vmi or np.percentile(imgdata,10)
+        vmax = vma or np.percentile(imgdata,90)
+
         axs[i-1].imshow(imgdata, origin='lower', cmap='plasma',
             vmin=vmin, vmax=vmax)
 
