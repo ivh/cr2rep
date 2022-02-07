@@ -394,7 +394,7 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_smooth_spec",
             CPL_TYPE_DOUBLE,
             "Smoothing along the spectrum",
-            "cr2res.cr2res_cal_flat", 2.0E-7) ;
+            "cr2res.cr2res_cal_flat", 2.0) ;
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_spec");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);

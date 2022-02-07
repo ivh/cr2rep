@@ -3589,12 +3589,7 @@ static int cr2res_extract_slit_func_curved(
         for (x = 0; x < ncols; x++) sP_old[x] = sP[x];
         lambda = 1;
         if (lambda_sP > 0.e0) {
-            norm = 0.e0;
-            for (x = 0; x < ncols; x++) {
-                norm += sP[x];
-            }
-            norm /= ncols;
-            lambda = lambda_sP * norm; /* Scale regularization parameter */
+            lambda = lambda_sP; /* Scale regularization parameter */
             p_Aij[ncols * (2 * delta_x)] += lambda; /* Main diagonal  */
             p_Aij[ncols * (2 * delta_x + 1)] -= lambda; /* Upper diagonal */
             for (x = 1; x < ncols - 1; x++) {
