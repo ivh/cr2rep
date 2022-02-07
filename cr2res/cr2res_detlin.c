@@ -29,6 +29,7 @@
 #include <cpl.h>
 #include "cr2res_detlin.h"
 #include "cr2res_pfits.h"
+#include "cr2res_qc.h"
 
 /*-----------------------------------------------------------------------------
                                    	Defines
@@ -243,7 +244,7 @@ int cr2res_detlin_compute(
     }
 
     /* Sanity check */
-    aduPsec=cpl_polynomial_eval_1d(fitted_local,20000.0,NULL);
+    aduPsec=cpl_polynomial_eval_1d(fitted_local,CR2RES_NONLIN_LEVEL,NULL);
     if (aduPsec<0.99 || aduPsec>1.2){
         cpl_matrix_unwrap(samppos);
         cpl_vector_delete(y_tofit);

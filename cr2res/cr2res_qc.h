@@ -26,6 +26,13 @@
 
 #include <cpl.h>
 
+#define CR2RES_NONLIN_LEVEL 20000
+#define CR2RES_QC_ORDER 4
+#define CR2RES_QC_TRACE 1
+#define CR2RES_QC_SIZE  100
+#define CR2RES_QC_WINDOW 20
+
+
 /*-----------------------------------------------------------------------------
                            Functions prototypes
  -----------------------------------------------------------------------------*/

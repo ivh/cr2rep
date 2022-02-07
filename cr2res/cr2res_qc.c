@@ -39,12 +39,6 @@
 #include "cr2res_detlin.h"
 #include "cr2res_wave.h"
 
-#define CR2RES_NONLIN_LEVEL 15000
-#define CR2RES_QC_ORDER 4
-#define CR2RES_QC_TRACE 1
-#define CR2RES_QC_SIZE  100
-#define CR2RES_QC_WINDOW 20
-
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
@@ -134,6 +128,13 @@ double cr2res_qc_detlin_median(
     // mask the Nan values, that exist in the out of order pixels
     // as well as bad pixels and wherever detlin failed
     hdrl_image_reject_value(img, CPL_VALUE_NAN);
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG){ 
+        cpl_image_save(
+            hdrl_image_get_image(img), "debug_qccorrection.fits",
+        CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+    }
+
 
     // Then determine the median of that corrected image
     qc_detlin_median = cpl_image_get_median(hdrl_image_get_image(img));
