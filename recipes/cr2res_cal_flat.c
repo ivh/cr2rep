@@ -623,10 +623,10 @@ static int cr2res_cal_flat(
         return -1 ;
     }
 
-    /* Labelise the raw frames with the different settings */
+    /* Label the raw frames with the different settings */
     if ((labels = cpl_frameset_labelise(rawframes, cr2res_cal_flat_compare,
                 &nlabels)) == NULL) {
-        cpl_msg_error(__func__, "Cannot labelise input frames") ;
+        cpl_msg_error(__func__, "Cannot label input frames") ;
         cpl_frameset_delete(rawframes) ;
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
