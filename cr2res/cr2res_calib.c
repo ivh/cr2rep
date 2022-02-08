@@ -328,7 +328,6 @@ hdrl_image * cr2res_calib_image(
     return out ;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Add shot-noise to errors in HDRL-image
@@ -337,7 +336,6 @@ hdrl_image * cr2res_calib_image(
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip){
-
     double gain_sqrt;
     cpl_image * error = hdrl_image_get_error(in);
     cpl_image * adu  = hdrl_image_get_image(in);
@@ -372,6 +370,11 @@ int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip){
     }
     cpl_image_divide_scalar(tmp_im, gain_sqrt);
     cpl_image_divide_scalar(tmp_im, sqrt((float)ndit));
+
+    /* The BPM should not be stored in the error image */
+    /* Therefore it is removed from tmp_im before the addition to error */
+    cpl_image_accept_all(tmp_im) ;
+
     cpl_image_add(error, tmp_im);
     cpl_image_delete(tmp_im);
     return 0;
