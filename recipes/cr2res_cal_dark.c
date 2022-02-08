@@ -169,6 +169,7 @@ static int cr2res_cal_dark_create(cpl_plugin * plugin)
     cpl_parameterlist   *   collapse_par ;
     hdrl_parameter      *   sigclip_def ;
     hdrl_parameter      *   minmax_def ;
+    hdrl_parameter      *   mode_def ;
 
     /* Check that the plugin is part of a valid recipe */
     if (cpl_plugin_get_type(plugin) == CPL_PLUGIN_TYPE_RECIPE)
@@ -238,10 +239,13 @@ static int cr2res_cal_dark_create(cpl_plugin * plugin)
     /* Collapsing related parameters */
     sigclip_def = hdrl_collapse_sigclip_parameter_create(3., 3., 5);
     minmax_def = hdrl_collapse_minmax_parameter_create(1., 1.);
+    mode_def = hdrl_collapse_mode_parameter_create(10., 1., 0., 
+            HDRL_MODE_MEDIAN, 0);
     collapse_par = hdrl_collapse_parameter_create_parlist("cr2res_cal_dark", 
-            "collapse", "MEAN", sigclip_def, minmax_def) ;
+            "collapse", "MEAN", sigclip_def, minmax_def, mode_def) ;
     hdrl_parameter_delete(sigclip_def);
     hdrl_parameter_delete(minmax_def);
+    hdrl_parameter_delete(mode_def);
     for (p = cpl_parameterlist_get_first(collapse_par) ;
             p != NULL; p = cpl_parameterlist_get_next(collapse_par))
         cpl_parameterlist_append(recipe->parameters,cpl_parameter_duplicate(p));
