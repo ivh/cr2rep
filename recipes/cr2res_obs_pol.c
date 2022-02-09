@@ -773,7 +773,7 @@ static int cr2res_obs_pol_reduce_one(
     nframes = cpl_frameset_get_size(rawframes) ;
     if (nframes == 0 || nframes % CR2RES_POLARIMETRY_GROUP_SIZE) {
         cpl_msg_error(__func__, 
-            "Input number of frames is %"CPL_SIZE_FORMAT" and should be multiple of %d",
+    "Input number of frames is %"CPL_SIZE_FORMAT" and should be multiple of %d",
             nframes, CR2RES_POLARIMETRY_GROUP_SIZE) ;
         return -1 ;
     }
@@ -815,27 +815,35 @@ static int cr2res_obs_pol_reduce_one(
 
     /* Calibrate the images */
     cpl_msg_info(__func__, "Apply the calibrations") ;
+    cpl_msg_indent_more() ;
     if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
             subtract_nolight_rows, subtract_interorder_column,
             0, master_flat_frame, 
             master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
+        cpl_msg_indent_less() ;
         if (dits != NULL) cpl_vector_delete(dits) ;
         if (ndits != NULL) cpl_vector_delete(ndits) ;
         cpl_free(decker_positions) ;
         hdrl_imagelist_delete(in) ;
         return -1 ;
     }
+    cpl_msg_indent_less() ;
     hdrl_imagelist_delete(in) ;
     if (dits != NULL) cpl_vector_delete(dits) ;
     if (ndits != NULL) cpl_vector_delete(ndits) ;
 
+    /* Apply Background Correction using the other nodding position */
     if (cpl_frameset_get_size(raw_background_frames) > 1 ) {
+        cpl_msg_info(__func__, "Apply the background Correction") ;
+        cpl_msg_indent_more() ;
+
         /* Load image list for BACKGROUND frames */
         cpl_msg_info(__func__, "Load the background images") ;
         if ((in = cr2res_io_load_image_list_from_set(raw_background_frames, 
                         reduce_det)) == NULL) {
             cpl_msg_error(__func__, "Cannot load background images") ;
+            cpl_msg_indent_less() ;
             cpl_free(decker_positions) ;
             hdrl_imagelist_delete(in_calib) ;
             return -1 ;
@@ -847,12 +855,15 @@ static int cr2res_obs_pol_reduce_one(
 
         /* Calibrate the background same as science images */
         cpl_msg_info(__func__, "Apply the calibrations to background") ;
+        cpl_msg_indent_more() ;
         if ((in_backgr = cr2res_calib_imagelist(in, reduce_det, 0, 
                         subtract_nolight_rows, 1, 0, master_flat_frame, 
                         master_dark_frame, bpm_frame, detlin_frame, 
                         dits, ndits)) == NULL) {
             cpl_msg_error(__func__,
                             "Failed to apply the calibrations to background") ;
+            cpl_msg_indent_less() ;
+            cpl_msg_indent_less() ;
             if (dits != NULL) cpl_vector_delete(dits) ;
             if (ndits != NULL) cpl_vector_delete(ndits) ;
             cpl_free(decker_positions) ;
@@ -860,13 +871,14 @@ static int cr2res_obs_pol_reduce_one(
             hdrl_imagelist_delete(in_calib) ;
             return -1 ;
         }
+        cpl_msg_indent_less() ;
         hdrl_imagelist_delete(in) ;
 
         /* Collapse background images */
         if (hdrl_imagelist_collapse_mean(in_backgr, &backgr, &contrib) != \
                         CPL_ERROR_NONE) {
-            cpl_msg_error(__func__,
-                            "Failed to collapse background") ;
+            cpl_msg_error(__func__, "Failed to collapse background") ;
+            cpl_msg_indent_less() ;
             if (dits != NULL) cpl_vector_delete(dits) ;
             if (ndits != NULL) cpl_vector_delete(ndits) ;
             cpl_free(decker_positions) ;
@@ -881,6 +893,7 @@ static int cr2res_obs_pol_reduce_one(
         if (hdrl_imagelist_sub_image(in_calib, backgr) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__,
                             "Failed to subtract background") ;
+            cpl_msg_indent_less() ;
             if (dits != NULL) cpl_vector_delete(dits) ;
             if (ndits != NULL) cpl_vector_delete(ndits) ;
             cpl_free(decker_positions) ;
@@ -889,7 +902,8 @@ static int cr2res_obs_pol_reduce_one(
             return -1;
         }
         hdrl_image_delete(backgr);
-    } else{
+        cpl_msg_indent_less() ;
+    } else {
         cpl_msg_warning(__func__, "No background subtraction");
     }
     if (dits != NULL) cpl_vector_delete(dits) ;
