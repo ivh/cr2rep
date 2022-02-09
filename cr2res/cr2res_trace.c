@@ -210,6 +210,11 @@ cpl_table * cr2res_trace(
         cpl_mask_delete(mask_clean);
         return NULL ;
     }
+    if (nlabels == 0) {
+        cpl_msg_error(__func__, "Found no labels");
+        cpl_mask_delete(mask_clean);
+        return NULL;
+    }
     cpl_mask_delete(mask_clean);
 
     /* Analyse and dump traces */
@@ -2406,9 +2411,12 @@ static cpl_table * cr2res_trace_fit_traces(
     /* Check entries */
     if (clustertable == NULL) return NULL ;
     if (degree < 0) return NULL;
+    if (cpl_table_get_nrow(clustertable) == 0) return NULL;
+    if (cpl_table_has_column(clustertable, CR2RES_COL_CLUSTERS) == 0) return NULL;
 
     /* Create the output table */
     nclusters = cpl_table_get_column_max(clustertable, CR2RES_COL_CLUSTERS);
+
     traces_table = cpl_table_new(nclusters);
     cpl_table_new_column_array(traces_table, CR2RES_COL_ALL, CPL_TYPE_DOUBLE,
             degree+1) ;
