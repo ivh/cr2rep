@@ -303,11 +303,10 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     p = cpl_parameter_new_value(
             "cr2res.cr2res_obs_nodding.subtract_interorder_column",
             CPL_TYPE_BOOL,
-            "Subtract column-by-column fit to the pixel values between"
-            " spectral orders",
+            "Subtract column-by-column fit to the pixel values between orders",
             "cr2res.cr2res_obs_nodding", TRUE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, 
-                                                "subtract_interorder_column");
+            "subtract_interorder_column");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -332,23 +331,20 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.extract_height",
-            CPL_TYPE_INT, "Extraction height",
-            "cr2res.cr2res_obs_nodding", -1);
+            CPL_TYPE_INT, "Extraction height", "cr2res.cr2res_obs_nodding", -1);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_height");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.extract_smooth_slit",
-            CPL_TYPE_DOUBLE,
-            "Smoothing along the slit",
+            CPL_TYPE_DOUBLE, "Smoothing along the slit",
             "cr2res.cr2res_obs_nodding", 1.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_slit");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.extract_smooth_spec",
-            CPL_TYPE_DOUBLE,
-            "Smoothing along spectrum",
+            CPL_TYPE_DOUBLE, "Smoothing along spectrum",
             "cr2res.cr2res_obs_nodding", 8e-8);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_spec");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
@@ -953,7 +949,7 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_info(__func__, "Apply the Calibrations") ;
     cpl_msg_indent_more() ;
     if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
-        subtract_nolight_rows, subtract_interorder_column, 0, master_flat_frame, 
+        subtract_nolight_rows, subtract_interorder_column, 0, master_flat_frame,
         master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         cpl_msg_indent_less() ;

@@ -61,7 +61,8 @@ static int * cr2res_obs_pol_get_order_numbers(
         int                 next,
         int             *   norders) ;
 static int cr2res_obs_pol_check_inputs_validity(
-        const cpl_frameset  *   rawframes) ;
+        const cpl_frameset  *   rawframes,
+        cpl_size            *   ngroups) ;
 static int cr2res_obs_pol_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frameset  *   raw_flat_frames,
@@ -78,9 +79,50 @@ static int cr2res_obs_pol_reduce(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        int                     save_group,
         int                     reduce_det,
-        cpl_table           **  pol_spec_a,
-        cpl_table           **  pol_spec_b,
+        hdrl_image          **  in_calib_1_a,
+        hdrl_image          **  in_calib_2_a,
+        hdrl_image          **  in_calib_3_a,
+        hdrl_image          **  in_calib_4_a,
+        cpl_table           **  trace_wave_1u_a,
+        cpl_table           **  trace_wave_1d_a,
+        cpl_table           **  trace_wave_2u_a,
+        cpl_table           **  trace_wave_2d_a,
+        cpl_table           **  trace_wave_3u_a,
+        cpl_table           **  trace_wave_3d_a,
+        cpl_table           **  trace_wave_4u_a,
+        cpl_table           **  trace_wave_4d_a,
+        cpl_table           **  extract1D_1u_a,
+        cpl_table           **  extract1D_1d_a,
+        cpl_table           **  extract1D_2u_a,
+        cpl_table           **  extract1D_2d_a,
+        cpl_table           **  extract1D_3u_a,
+        cpl_table           **  extract1D_3d_a,
+        cpl_table           **  extract1D_4u_a,
+        cpl_table           **  extract1D_4d_a,
+        cpl_table           **  pol_speca,
+        hdrl_image          **  in_calib_1_b,
+        hdrl_image          **  in_calib_2_b,
+        hdrl_image          **  in_calib_3_b,
+        hdrl_image          **  in_calib_4_b,
+        cpl_table           **  trace_wave_1u_b,
+        cpl_table           **  trace_wave_1d_b,
+        cpl_table           **  trace_wave_2u_b,
+        cpl_table           **  trace_wave_2d_b,
+        cpl_table           **  trace_wave_3u_b,
+        cpl_table           **  trace_wave_3d_b,
+        cpl_table           **  trace_wave_4u_b,
+        cpl_table           **  trace_wave_4d_b,
+        cpl_table           **  extract1D_1u_b,
+        cpl_table           **  extract1D_1d_b,
+        cpl_table           **  extract1D_2u_b,
+        cpl_table           **  extract1D_2d_b,
+        cpl_table           **  extract1D_3u_b,
+        cpl_table           **  extract1D_3d_b,
+        cpl_table           **  extract1D_4u_b,
+        cpl_table           **  extract1D_4d_b,
+        cpl_table           **  pol_specb,
         cpl_propertylist    **  ext_plista,
         cpl_propertylist    **  ext_plistb) ;
 static int cr2res_obs_pol_reduce_one(
@@ -100,7 +142,11 @@ static int cr2res_obs_pol_reduce_one(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        int                     save_group,
         int                     reduce_det,
+        hdrl_image          *** in_calib,
+        cpl_table           *** tw,
+        cpl_table           *** extract1D,
         cpl_table           **  pol_spec,
         cpl_propertylist    **  ext_plist) ;
 static int cr2res_obs_pol_create(cpl_plugin *);
@@ -283,7 +329,7 @@ static int cr2res_obs_pol_create(cpl_plugin * plugin)
 
     /* Fill the parameters list */
     p = cpl_parameter_new_value("cr2res.cr2res_obs_pol.subtract_nolight_rows",
-            CPL_TYPE_BOOL,
+            CPL_TYPE_BOOL, 
             "Subtract median row from baffled region at detector bottom",
             "cr2res.cr2res_obs_pol", FALSE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "subtract_nolight_rows");
@@ -291,13 +337,11 @@ static int cr2res_obs_pol_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value(
-            "cr2res.cr2res_obs_pol.subtract_interorder_column",
-            CPL_TYPE_BOOL,
-            "Subtract column-by-column fit to the pixel values between"
-            " spectral orders",
+            "cr2res.cr2res_obs_pol.subtract_interorder_column", CPL_TYPE_BOOL,
+            "Subtract column-by-column fit to the pixel values between orderѕ",
             "cr2res.cr2res_obs_pol", TRUE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, 
-                                                "subtract_interorder_column");
+            "subtract_interorder_column");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -315,8 +359,7 @@ static int cr2res_obs_pol_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_obs_pol.extract_height",
-            CPL_TYPE_INT, "Extraction height",
-            "cr2res.cr2res_obs_pol", -1);
+            CPL_TYPE_INT, "Extraction height", "cr2res.cr2res_obs_pol", -1);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_height");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -335,10 +378,17 @@ static int cr2res_obs_pol_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_pol.detector",
-            CPL_TYPE_INT, "Only reduce the specified detector",
-            "cr2res.cr2res_obs_pol", 0);
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_pol.detector", CPL_TYPE_INT,
+            "Only reduce the specified detector", "cr2res.cr2res_obs_pol", 0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "detector");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_pol.save_group",
+            CPL_TYPE_INT, 
+            "Save extra files for the specified group number (0: no save)",
+            "cr2res.cr2res_obs_pol", 0);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "save_group");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -399,7 +449,7 @@ static int cr2res_obs_pol(
     const cpl_parameter *   param ;
     int                     extract_oversample, extract_swath_width,
                             extract_height, reduce_det, subtract_nolight_rows,
-                            subtract_interorder_column ;
+                            subtract_interorder_column, save_group ;
     double                  extract_smooth_slit, extract_smooth_spec ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_flat_frames ;
@@ -408,12 +458,52 @@ static int cr2res_obs_pol(
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
+    hdrl_image          *   in_calib_1_a[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   in_calib_2_a[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   in_calib_3_a[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   in_calib_4_a[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   in_calib_1_b[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   in_calib_2_b[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   in_calib_3_b[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   in_calib_4_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_1u_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_1d_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_2u_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_2d_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_3u_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_3d_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_4u_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_4d_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_1u_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_1d_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_2u_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_2d_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_3u_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_3d_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_4u_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	tw_4d_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_1u_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_1d_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_2u_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_2d_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_3u_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_3d_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_4u_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_4d_a[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_1u_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_1d_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_2u_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_2d_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_3u_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_3d_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_4u_b[CR2RES_NB_DETECTORS] ;
+    cpl_table           *  	extract1D_4d_b[CR2RES_NB_DETECTORS] ;
     cpl_table           *   pol_speca[CR2RES_NB_DETECTORS] ;
     cpl_table           *   pol_specb[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plista[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plistb[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
-    int                     i, det_nr; 
+    int                     det_nr; 
 
     /* Initialise */
 
@@ -442,6 +532,9 @@ static int cr2res_obs_pol(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_pol.detector");
     reduce_det = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_pol.save_group");
+    save_group = cpl_parameter_get_int(param);
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
@@ -478,6 +571,46 @@ static int cr2res_obs_pol(
     /* Loop on the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         /* Initialise */
+        in_calib_1_a[det_nr-1] = NULL ;
+        in_calib_2_a[det_nr-1] = NULL ;
+        in_calib_3_a[det_nr-1] = NULL ;
+        in_calib_4_a[det_nr-1] = NULL ;
+        in_calib_1_b[det_nr-1] = NULL ;
+        in_calib_2_b[det_nr-1] = NULL ;
+        in_calib_3_b[det_nr-1] = NULL ;
+        in_calib_4_b[det_nr-1] = NULL ;
+        tw_1u_a[det_nr-1] = NULL ;
+        tw_1d_a[det_nr-1] = NULL ;
+        tw_2u_a[det_nr-1] = NULL ;
+        tw_2d_a[det_nr-1] = NULL ;
+        tw_3u_a[det_nr-1] = NULL ;
+        tw_3d_a[det_nr-1] = NULL ;
+        tw_4u_a[det_nr-1] = NULL ;
+        tw_4d_a[det_nr-1] = NULL ;
+        tw_1u_b[det_nr-1] = NULL ;
+        tw_1d_b[det_nr-1] = NULL ;
+        tw_2u_b[det_nr-1] = NULL ;
+        tw_2d_b[det_nr-1] = NULL ;
+        tw_3u_b[det_nr-1] = NULL ;
+        tw_3d_b[det_nr-1] = NULL ;
+        tw_4u_b[det_nr-1] = NULL ;
+        tw_4d_b[det_nr-1] = NULL ;
+        extract1D_1u_a[det_nr-1] = NULL ;
+        extract1D_1d_a[det_nr-1] = NULL ;
+        extract1D_2u_a[det_nr-1] = NULL ;
+        extract1D_2d_a[det_nr-1] = NULL ;
+        extract1D_3u_a[det_nr-1] = NULL ;
+        extract1D_3d_a[det_nr-1] = NULL ;
+        extract1D_4u_a[det_nr-1] = NULL ;
+        extract1D_4d_a[det_nr-1] = NULL ;
+        extract1D_1u_b[det_nr-1] = NULL ;
+        extract1D_1d_b[det_nr-1] = NULL ;
+        extract1D_2u_b[det_nr-1] = NULL ;
+        extract1D_2d_b[det_nr-1] = NULL ;
+        extract1D_3u_b[det_nr-1] = NULL ;
+        extract1D_3d_b[det_nr-1] = NULL ;
+        extract1D_4u_b[det_nr-1] = NULL ;
+        extract1D_4d_b[det_nr-1] = NULL ;
         pol_speca[det_nr-1] = NULL ;
         pol_specb[det_nr-1] = NULL ;
         ext_plista[det_nr-1] = NULL ;
@@ -495,8 +628,48 @@ static int cr2res_obs_pol(
                     bpm_frame, subtract_nolight_rows,subtract_interorder_column,
                     0, extract_oversample, 
                     extract_swath_width, extract_height, extract_smooth_slit, 
-                    extract_smooth_spec, det_nr,
+                    extract_smooth_spec, save_group, det_nr,
+                    &(in_calib_1_a[det_nr-1]),
+                    &(in_calib_2_a[det_nr-1]),
+                    &(in_calib_3_a[det_nr-1]),
+                    &(in_calib_4_a[det_nr-1]),
+                    &(tw_1u_a[det_nr-1]),
+                    &(tw_1d_a[det_nr-1]),
+                    &(tw_2u_a[det_nr-1]),
+                    &(tw_2d_a[det_nr-1]),
+                    &(tw_3u_a[det_nr-1]),
+                    &(tw_3d_a[det_nr-1]),
+                    &(tw_4u_a[det_nr-1]),
+                    &(tw_4d_a[det_nr-1]),
+                    &(extract1D_1u_a[det_nr-1]),
+                    &(extract1D_1d_a[det_nr-1]),
+                    &(extract1D_2u_a[det_nr-1]),
+                    &(extract1D_2d_a[det_nr-1]),
+                    &(extract1D_3u_a[det_nr-1]),
+                    &(extract1D_3d_a[det_nr-1]),
+                    &(extract1D_4u_a[det_nr-1]),
+                    &(extract1D_4d_a[det_nr-1]),
                     &(pol_speca[det_nr-1]),
+                    &(in_calib_1_b[det_nr-1]),
+                    &(in_calib_2_b[det_nr-1]),
+                    &(in_calib_3_b[det_nr-1]),
+                    &(in_calib_4_b[det_nr-1]),
+                    &(tw_1u_b[det_nr-1]),
+                    &(tw_1d_b[det_nr-1]),
+                    &(tw_2u_b[det_nr-1]),
+                    &(tw_2d_b[det_nr-1]),
+                    &(tw_3u_b[det_nr-1]),
+                    &(tw_3d_b[det_nr-1]),
+                    &(tw_4u_b[det_nr-1]),
+                    &(tw_4d_b[det_nr-1]),
+                    &(extract1D_1u_b[det_nr-1]),
+                    &(extract1D_1d_b[det_nr-1]),
+                    &(extract1D_2u_b[det_nr-1]),
+                    &(extract1D_2d_b[det_nr-1]),
+                    &(extract1D_3u_b[det_nr-1]),
+                    &(extract1D_3d_b[det_nr-1]),
+                    &(extract1D_4u_b[det_nr-1]),
+                    &(extract1D_4d_b[det_nr-1]),
                     &(pol_specb[det_nr-1]),
                     &(ext_plista[det_nr-1]),
                     &(ext_plistb[det_nr-1])) == -1) {
@@ -507,6 +680,204 @@ static int cr2res_obs_pol(
     }
 
     /* Save Products */
+
+    /* Calibrated images a */
+	out_file = cpl_sprintf("%s_in_caliba_1.fits", RECIPE_STRING) ;
+    cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+            in_calib_1_a, NULL, ext_plista, CR2RES_OBS_POL_CALIB_A_PROCATG, 
+            RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_in_caliba_2.fits", RECIPE_STRING) ;
+    cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+            in_calib_2_a, NULL, ext_plista, CR2RES_OBS_POL_CALIB_A_PROCATG, 
+            RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_in_caliba_3.fits", RECIPE_STRING) ;
+    cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+            in_calib_3_a, NULL, ext_plista, CR2RES_OBS_POL_CALIB_A_PROCATG, 
+            RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_in_caliba_4.fits", RECIPE_STRING) ;
+    cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+            in_calib_4_a, NULL, ext_plista, CR2RES_OBS_POL_CALIB_A_PROCATG, 
+            RECIPE_STRING);
+	cpl_free(out_file);
+
+    /* TW Nodding a */
+	out_file = cpl_sprintf("%s_twA_1u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_1u_a, 
+            NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twA_1d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_1d_a, 
+            NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twA_2u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_2u_a, 
+            NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twA_2d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_2d_a, 
+            NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twA_3u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_3u_a, 
+            NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twA_3d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_3d_a, 
+            NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twA_4u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_4u_a, 
+            NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twA_4d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_4d_a, 
+            NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+
+    /* Extracted Nodding A */
+	out_file = cpl_sprintf("%s_extractedA_1u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_1u_a, NULL, ext_plista, 
+            CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedA_1d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_1d_a, NULL, ext_plista, 
+            CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedA_2u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_2u_a, NULL, ext_plista, 
+            CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedA_2d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_2d_a, NULL, ext_plista, 
+            CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedA_3u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_3u_a, NULL, ext_plista, 
+            CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedA_3d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_3d_a, NULL, ext_plista, 
+            CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedA_4u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_4u_a, NULL, ext_plista, 
+            CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedA_4d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_4d_a, NULL, ext_plista, 
+            CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+
+    /* Calibrated images b */
+    out_file = cpl_sprintf("%s_in_calibb_1.fits", RECIPE_STRING) ;
+    cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+            in_calib_1_b, NULL, ext_plista, CR2RES_OBS_POL_CALIB_B_PROCATG, 
+            RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_in_calibb_2.fits", RECIPE_STRING) ;
+    cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+            in_calib_2_b, NULL, ext_plista, CR2RES_OBS_POL_CALIB_B_PROCATG, 
+            RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_in_calibb_3.fits", RECIPE_STRING) ;
+    cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+            in_calib_3_b, NULL, ext_plista, CR2RES_OBS_POL_CALIB_B_PROCATG, 
+            RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_in_calibb_4.fits", RECIPE_STRING) ;
+    cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+            in_calib_4_b, NULL, ext_plista, CR2RES_OBS_POL_CALIB_B_PROCATG, 
+            RECIPE_STRING);
+	cpl_free(out_file);
+
+    /* TW Nodding b */
+	out_file = cpl_sprintf("%s_twB_1u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_1u_b, 
+            NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twB_1d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_1d_b, 
+            NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twB_2u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_2u_b, 
+            NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twB_2d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_2d_b, 
+            NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twB_3u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_3u_b, 
+            NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twB_3d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_3d_b, 
+            NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twB_4u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_4u_b, 
+            NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_twB_4d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, tw_4d_b, 
+            NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+
+    /* Extracted Nodding B */
+	out_file = cpl_sprintf("%s_extractedB_1u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_1u_b, NULL, ext_plistb, 
+            CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedB_1d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_1d_b, NULL, ext_plistb, 
+            CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedB_2u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_2u_b, NULL, ext_plistb, 
+            CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedB_2d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_2d_b, NULL, ext_plistb, 
+            CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedB_3u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_3u_b, NULL, ext_plistb, 
+            CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedB_3d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_3d_b, NULL, ext_plistb, 
+            CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedB_4u.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_4u_b, NULL, ext_plistb, 
+            CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+	out_file = cpl_sprintf("%s_extractedB_4d.fits", RECIPE_STRING) ;
+	cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+            extract1D_4d_b, NULL, ext_plistb, 
+            CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+	cpl_free(out_file);
+
+    /* Polarimetry Spectra */
     out_file = cpl_sprintf("%s_pol_specA.fits", RECIPE_STRING) ;
     cr2res_io_save_POL_SPEC(out_file, frameset, rawframes, parlist,
             pol_speca, NULL, ext_plista, CR2RES_OBS_POL_SPECA_PROCATG, 
@@ -523,10 +894,73 @@ static int cr2res_obs_pol(
     cpl_frameset_delete(rawframes) ;
     if (raw_flat_frames != NULL) cpl_frameset_delete(raw_flat_frames) ;
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        if (pol_speca[det_nr-1] != NULL) 
-            cpl_table_delete(pol_speca[det_nr-1]) ;
-        if (pol_specb[det_nr-1] != NULL) 
-            cpl_table_delete(pol_specb[det_nr-1]) ;
+        if (in_calib_1_a[det_nr-1] != NULL) 
+            hdrl_image_delete(in_calib_1_a[det_nr-1]) ;
+        if (in_calib_2_a[det_nr-1] != NULL) 
+            hdrl_image_delete(in_calib_2_a[det_nr-1]) ;
+        if (in_calib_3_a[det_nr-1] != NULL) 
+            hdrl_image_delete(in_calib_3_a[det_nr-1]) ;
+        if (in_calib_4_a[det_nr-1] != NULL) 
+            hdrl_image_delete(in_calib_4_a[det_nr-1]) ;
+        if (in_calib_1_b[det_nr-1] != NULL) 
+            hdrl_image_delete(in_calib_1_b[det_nr-1]) ;
+        if (in_calib_2_b[det_nr-1] != NULL) 
+            hdrl_image_delete(in_calib_2_b[det_nr-1]) ;
+        if (in_calib_3_b[det_nr-1] != NULL) 
+            hdrl_image_delete(in_calib_3_b[det_nr-1]) ;
+        if (in_calib_4_b[det_nr-1] != NULL) 
+            hdrl_image_delete(in_calib_4_b[det_nr-1]) ;
+        if (tw_1u_a[det_nr-1] != NULL) cpl_table_delete(tw_1u_a[det_nr-1]) ;
+        if (tw_1d_a[det_nr-1] != NULL) cpl_table_delete(tw_1d_a[det_nr-1]) ;
+        if (tw_2u_a[det_nr-1] != NULL) cpl_table_delete(tw_2u_a[det_nr-1]) ;
+        if (tw_2d_a[det_nr-1] != NULL) cpl_table_delete(tw_2d_a[det_nr-1]) ;
+        if (tw_3u_a[det_nr-1] != NULL) cpl_table_delete(tw_3u_a[det_nr-1]) ;
+        if (tw_3d_a[det_nr-1] != NULL) cpl_table_delete(tw_3d_a[det_nr-1]) ;
+        if (tw_4u_a[det_nr-1] != NULL) cpl_table_delete(tw_4u_a[det_nr-1]) ;
+        if (tw_4d_a[det_nr-1] != NULL) cpl_table_delete(tw_4d_a[det_nr-1]) ;
+        if (tw_1u_b[det_nr-1] != NULL) cpl_table_delete(tw_1u_b[det_nr-1]) ;
+        if (tw_1d_b[det_nr-1] != NULL) cpl_table_delete(tw_1d_b[det_nr-1]) ;
+        if (tw_2u_b[det_nr-1] != NULL) cpl_table_delete(tw_2u_b[det_nr-1]) ;
+        if (tw_2d_b[det_nr-1] != NULL) cpl_table_delete(tw_2d_b[det_nr-1]) ;
+        if (tw_3u_b[det_nr-1] != NULL) cpl_table_delete(tw_3u_b[det_nr-1]) ;
+        if (tw_3d_b[det_nr-1] != NULL) cpl_table_delete(tw_3d_b[det_nr-1]) ;
+        if (tw_4u_b[det_nr-1] != NULL) cpl_table_delete(tw_4u_b[det_nr-1]) ;
+        if (tw_4d_b[det_nr-1] != NULL) cpl_table_delete(tw_4d_b[det_nr-1]) ;
+ 
+        if (extract1D_1u_a[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_1u_a[det_nr-1]) ;
+        if (extract1D_1d_a[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_1d_a[det_nr-1]) ;
+        if (extract1D_2u_a[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_2u_a[det_nr-1]) ;
+        if (extract1D_2d_a[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_2d_a[det_nr-1]) ;
+        if (extract1D_3u_a[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_3u_a[det_nr-1]) ;
+        if (extract1D_3d_a[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_3d_a[det_nr-1]) ;
+        if (extract1D_4u_a[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_4u_a[det_nr-1]) ;
+        if (extract1D_4d_a[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_4d_a[det_nr-1]) ;
+        if (extract1D_1u_b[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_1u_b[det_nr-1]) ;
+        if (extract1D_1d_b[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_1d_b[det_nr-1]) ;
+        if (extract1D_2u_b[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_2u_b[det_nr-1]) ;
+        if (extract1D_2d_b[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_2d_b[det_nr-1]) ;
+        if (extract1D_3u_b[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_3u_b[det_nr-1]) ;
+        if (extract1D_3d_b[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_3d_b[det_nr-1]) ;
+        if (extract1D_4u_b[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_4u_b[det_nr-1]) ;
+        if (extract1D_4d_b[det_nr-1] != NULL)
+            cpl_table_delete(extract1D_4d_b[det_nr-1]) ;
+        if (pol_speca[det_nr-1] != NULL) cpl_table_delete(pol_speca[det_nr-1]) ;
+        if (pol_specb[det_nr-1] != NULL) cpl_table_delete(pol_specb[det_nr-1]) ;
         if (ext_plista[det_nr-1] != NULL) 
             cpl_propertylist_delete(ext_plista[det_nr-1]) ;
         if (ext_plistb[det_nr-1] != NULL) 
@@ -553,8 +987,15 @@ static int cr2res_obs_pol(
   @param extract_height         Extraction related
   @param extract_smooth_slit    Extraction related
   @param extract_smooth_spec    Extraction related
+  @param save_group             Group for which extra products will be saved
   @param reduce_det             The detector to compute
+  @param in_calib_[1-4]_a       [out] the calibrated image (A)
+  @param trace_wave_[1u-4d]_a   [out] the TW tables used for extraction (A)
+  @param extract1D_[1u-4d]_a    [out] the ectracted table (A)
   @param pol_speca              [out] polarimetry spectrum (A)
+  @param in_calib_[1-4]_b       [out] the calibrated image (B)
+  @param trace_wave_[1u-4d]_b   [out] the TW tables used for extraction (B)
+  @param extract1D_[1u-4d]_b    [out] the ectracted table (B)
   @param pol_specb              [out] polarimetry spectrum (B)
   @param ext_plista             [out] the header for saving the products (A)
   @param ext_plistb             [out] the header for saving the products (B)
@@ -577,8 +1018,49 @@ static int cr2res_obs_pol_reduce(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        int                     save_group,
         int                     reduce_det,
+        hdrl_image          **  in_calib_1_a,
+        hdrl_image          **  in_calib_2_a,
+        hdrl_image          **  in_calib_3_a,
+        hdrl_image          **  in_calib_4_a,
+        cpl_table           **  trace_wave_1u_a,
+        cpl_table           **  trace_wave_1d_a,
+        cpl_table           **  trace_wave_2u_a,
+        cpl_table           **  trace_wave_2d_a,
+        cpl_table           **  trace_wave_3u_a,
+        cpl_table           **  trace_wave_3d_a,
+        cpl_table           **  trace_wave_4u_a,
+        cpl_table           **  trace_wave_4d_a,
+        cpl_table           **  extract1D_1u_a,
+        cpl_table           **  extract1D_1d_a,
+        cpl_table           **  extract1D_2u_a,
+        cpl_table           **  extract1D_2d_a,
+        cpl_table           **  extract1D_3u_a,
+        cpl_table           **  extract1D_3d_a,
+        cpl_table           **  extract1D_4u_a,
+        cpl_table           **  extract1D_4d_a,
         cpl_table           **  pol_speca,
+        hdrl_image          **  in_calib_1_b,
+        hdrl_image          **  in_calib_2_b,
+        hdrl_image          **  in_calib_3_b,
+        hdrl_image          **  in_calib_4_b,
+        cpl_table           **  trace_wave_1u_b,
+        cpl_table           **  trace_wave_1d_b,
+        cpl_table           **  trace_wave_2u_b,
+        cpl_table           **  trace_wave_2d_b,
+        cpl_table           **  trace_wave_3u_b,
+        cpl_table           **  trace_wave_3d_b,
+        cpl_table           **  trace_wave_4u_b,
+        cpl_table           **  trace_wave_4d_b,
+        cpl_table           **  extract1D_1u_b,
+        cpl_table           **  extract1D_1d_b,
+        cpl_table           **  extract1D_2u_b,
+        cpl_table           **  extract1D_2d_b,
+        cpl_table           **  extract1D_3u_b,
+        cpl_table           **  extract1D_3d_b,
+        cpl_table           **  extract1D_4u_b,
+        cpl_table           **  extract1D_4d_b,
         cpl_table           **  pol_specb,
         cpl_propertylist    **  ext_plista,
         cpl_propertylist    **  ext_plistb)
@@ -586,10 +1068,17 @@ static int cr2res_obs_pol_reduce(
     cpl_frameset        *   rawframes_a ;
     cpl_frameset        *   rawframes_b ;
     cr2res_nodding_pos  *   nod_positions ;
+    hdrl_image          **  in_calib_a_loc ;
+    hdrl_image          **  in_calib_b_loc ;
+    cpl_table           **  trace_wave_a_loc ;
+    cpl_table           **  trace_wave_b_loc ;
+    cpl_table           **  extract1D_a_loc ;
+    cpl_table           **  extract1D_b_loc ;
     cpl_table           *   pol_speca_loc ;
     cpl_table           *   pol_specb_loc ;
     cpl_propertylist    *   ext_plista_loc ;
     cpl_propertylist    *   ext_plistb_loc ;
+    cpl_size                ngroups ;
     int                     i ;
 
     /* Check Inputs */
@@ -597,16 +1086,13 @@ static int cr2res_obs_pol_reduce(
             ext_plistb == NULL || rawframes == NULL || 
             trace_wave_frame == NULL) return -1 ;
 
+    if (cr2res_obs_pol_check_inputs_validity(rawframes, &ngroups) != 1) {
+        cpl_msg_error(__func__, "Validity Checks failed") ;
+        return -1 ;
+    }
+
     /* Get the Nodding positions */
     nod_positions = cr2res_nodding_read_positions(rawframes) ;
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
-            cpl_msg_debug(__func__, "Frame %s - Nodding %c",
-                    cpl_frame_get_filename(
-                        cpl_frameset_get_position_const(rawframes,i)),
-                    cr2res_nodding_position_char(nod_positions[i])) ;
-        }
-    }
 
     /* Split the frames */
     if (cr2res_combine_nodding_split_frames(rawframes, nod_positions, 
@@ -617,10 +1103,6 @@ static int cr2res_obs_pol_reduce(
     }
     cpl_free(nod_positions) ;    
 
-    cpl_msg_debug(__func__,"Number of frames posA:posB %lld:%lld",
-                    cpl_frameset_get_size(rawframes_a),
-                    cpl_frameset_get_size(rawframes_b));
-
     /* Reduce A position */
     cpl_msg_info(__func__, "Compute Polarimetry for nodding A position") ;
     cpl_msg_indent_more() ;
@@ -629,9 +1111,11 @@ static int cr2res_obs_pol_reduce(
                 master_flat_frame, bpm_frame, subtract_nolight_rows,
                 subtract_interorder_column, 0, 
                 extract_oversample, extract_swath_width, extract_height, 
-                extract_smooth_slit, extract_smooth_spec, reduce_det, 
+                extract_smooth_slit, extract_smooth_spec, save_group,
+                reduce_det, 
+                &in_calib_a_loc, &trace_wave_a_loc, &extract1D_a_loc, 
                 &pol_speca_loc, &ext_plista_loc) == -1) {
-        cpl_msg_error(__func__, "Failed to Reduce A nodding frames") ;
+        cpl_msg_warning(__func__, "Failed to Reduce A nodding frames") ;
     }
     cpl_msg_indent_less() ;
 
@@ -643,14 +1127,62 @@ static int cr2res_obs_pol_reduce(
                 master_flat_frame, bpm_frame,
                 subtract_nolight_rows, subtract_interorder_column, 0,
                 extract_oversample, extract_swath_width, extract_height,
-                extract_smooth_slit, extract_smooth_spec, reduce_det, 
+                extract_smooth_slit, extract_smooth_spec, save_group, 
+                reduce_det, 
+                &in_calib_b_loc, &trace_wave_b_loc, &extract1D_b_loc, 
                 &pol_specb_loc, &ext_plistb_loc) == -1) {
-        cpl_msg_error(__func__, "Failed to Reduce B nodding frames") ;
+        cpl_msg_warning(__func__, "Failed to Reduce B nodding frames") ;
     }
     cpl_msg_indent_less() ;
     if (rawframes_a != NULL) cpl_frameset_delete(rawframes_a);
     if (rawframes_b != NULL) cpl_frameset_delete(rawframes_b);
 
+    *in_calib_1_a = in_calib_a_loc[0] ;
+    *in_calib_2_a = in_calib_a_loc[1] ;
+    *in_calib_3_a = in_calib_a_loc[2] ;
+    *in_calib_4_a = in_calib_a_loc[3] ;
+    cpl_free(in_calib_a_loc) ;
+    *trace_wave_1u_a = trace_wave_a_loc[0] ;
+    *trace_wave_1d_a = trace_wave_a_loc[1] ;
+    *trace_wave_2u_a = trace_wave_a_loc[2] ;
+    *trace_wave_2d_a = trace_wave_a_loc[3] ;
+    *trace_wave_3u_a = trace_wave_a_loc[4] ;
+    *trace_wave_3d_a = trace_wave_a_loc[5] ;
+    *trace_wave_4u_a = trace_wave_a_loc[6] ;
+    *trace_wave_4d_a = trace_wave_a_loc[7] ;
+    cpl_free(trace_wave_a_loc) ;
+    *extract1D_1u_a = extract1D_a_loc[0] ;
+    *extract1D_1d_a = extract1D_a_loc[1] ;
+    *extract1D_2u_a = extract1D_a_loc[2] ;
+    *extract1D_2d_a = extract1D_a_loc[3] ;
+    *extract1D_3u_a = extract1D_a_loc[4] ;
+    *extract1D_3d_a = extract1D_a_loc[5] ;
+    *extract1D_4u_a = extract1D_a_loc[6] ;
+    *extract1D_4d_a = extract1D_a_loc[7] ;
+    cpl_free(extract1D_a_loc) ;
+    *in_calib_1_b = in_calib_b_loc[0] ;
+    *in_calib_2_b = in_calib_b_loc[1] ;
+    *in_calib_3_b = in_calib_b_loc[2] ;
+    *in_calib_4_b = in_calib_b_loc[3] ;
+    cpl_free(in_calib_b_loc) ;
+    *trace_wave_1u_b = trace_wave_b_loc[0] ;
+    *trace_wave_1d_b = trace_wave_b_loc[1] ;
+    *trace_wave_2u_b = trace_wave_b_loc[2] ;
+    *trace_wave_2d_b = trace_wave_b_loc[3] ;
+    *trace_wave_3u_b = trace_wave_b_loc[4] ;
+    *trace_wave_3d_b = trace_wave_b_loc[5] ;
+    *trace_wave_4u_b = trace_wave_b_loc[6] ;
+    *trace_wave_4d_b = trace_wave_b_loc[7] ;
+    cpl_free(trace_wave_b_loc) ;
+    *extract1D_1u_b = extract1D_b_loc[0] ;
+    *extract1D_1d_b = extract1D_b_loc[1] ;
+    *extract1D_2u_b = extract1D_b_loc[2] ;
+    *extract1D_2d_b = extract1D_b_loc[3] ;
+    *extract1D_3u_b = extract1D_b_loc[4] ;
+    *extract1D_3d_b = extract1D_b_loc[5] ;
+    *extract1D_4u_b = extract1D_b_loc[6] ;
+    *extract1D_4d_b = extract1D_b_loc[7] ;
+    cpl_free(extract1D_b_loc) ;
     *pol_speca = pol_speca_loc ;
     *pol_specb = pol_specb_loc ;
     *ext_plista = ext_plista_loc ;
@@ -675,9 +1207,13 @@ static int cr2res_obs_pol_reduce(
   @param extract_height         Extraction related
   @param extract_smooth_slit    Extraction related
   @param extract_smooth_spec    Extraction related
+  @param save_group             Group for which extra products will be saved
   @param reduce_det             The detector to compute
-  @param pol_spec               [out] polarimetry spectrum
-  @param ext_plist              [out] the header for saving the products
+  @param in_calib   [out] the array of the 4 calibrated images of a group 
+  @param tw         [out] the array of the 8 TW tables (1u, 1d, ..., 4d)
+  @param extract1D  [out] the array of the 8 extracted tables (1u, ... 4d)
+  @param pol_spec   [out] polarimetry spectrum
+  @param ext_plist  [out] the header for saving the products
   @return  0 if ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
@@ -698,7 +1234,11 @@ static int cr2res_obs_pol_reduce_one(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        int                     save_group,
         int                     reduce_det,
+        hdrl_image          *** in_calib,
+        cpl_table           *** tw,
+        cpl_table           *** extract1D,
         cpl_table           **  pol_spec,
         cpl_propertylist    **  ext_plist)
 {
@@ -706,19 +1246,20 @@ static int cr2res_obs_pol_reduce_one(
     cpl_vector          *   ndits ;
     cr2res_decker       *   decker_positions ;
     hdrl_imagelist      *   in ;
-    hdrl_imagelist      *   in_calib ;
+    hdrl_imagelist      *   in_calib_loc ;
     hdrl_imagelist      *   in_backgr ;
     cpl_image           *   contrib;
     hdrl_image          *   backgr;
     int                 *   pol_sorting ;
     cpl_table           *   trace_wave ;
     cpl_table           *   trace_wave_corrected ;
-    cpl_table           *   trace_wave_loc ;
+    cpl_table           **  trace_wave_extract ;
     cpl_array           *   slit_frac ;
     const char          *   fname ;
     char                *   decker_name ;
     cpl_table           *   slit_func ;
     hdrl_image          *   model_master ;
+    hdrl_image          **  input_images ;
     cpl_table           **  pol_spec_one_group ;
     cpl_table           **  extract_1d ;
     char                *   colname ;
@@ -744,15 +1285,20 @@ static int cr2res_obs_pol_reduce_one(
     int                     nb_order_idx_values, order_real, order_zp, 
                             order_idx, order_idxp ;
 
+    /* Check Inputs */
+    if (in_calib == NULL || tw == NULL || extract1D == NULL || 
+            pol_spec == NULL || ext_plist == NULL || rawframes == NULL || 
+            trace_wave_frame == NULL)
+        return -1 ;
+
     /* Initialise */
+    *in_calib = NULL ;
+    *tw = NULL ;
+    *extract1D = NULL ;
     *pol_spec = NULL ;
     *ext_plist = NULL ;
     first_fname = cpl_frame_get_filename(
             cpl_frameset_get_position_const(rawframes, 0)) ;
-
-    /* Check Inputs */
-    if (pol_spec == NULL || ext_plist == NULL || rawframes == NULL || 
-            trace_wave_frame == NULL) return -1 ;
 
     /* Get the order zeropoint */
     if ((plist = cpl_propertylist_load(cpl_frame_get_filename(trace_wave_frame),
@@ -816,7 +1362,7 @@ static int cr2res_obs_pol_reduce_one(
     /* Calibrate the images */
     cpl_msg_info(__func__, "Apply the calibrations") ;
     cpl_msg_indent_more() ;
-    if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
+    if ((in_calib_loc = cr2res_calib_imagelist(in, reduce_det, 0,
             subtract_nolight_rows, subtract_interorder_column,
             0, master_flat_frame, 
             master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
@@ -845,7 +1391,7 @@ static int cr2res_obs_pol_reduce_one(
             cpl_msg_error(__func__, "Cannot load background images") ;
             cpl_msg_indent_less() ;
             cpl_free(decker_positions) ;
-            hdrl_imagelist_delete(in_calib) ;
+            hdrl_imagelist_delete(in_calib_loc) ;
             return -1 ;
         }
         /* Load the DITs & NDITs */
@@ -868,7 +1414,7 @@ static int cr2res_obs_pol_reduce_one(
             if (ndits != NULL) cpl_vector_delete(ndits) ;
             cpl_free(decker_positions) ;
             hdrl_imagelist_delete(in) ;
-            hdrl_imagelist_delete(in_calib) ;
+            hdrl_imagelist_delete(in_calib_loc) ;
             return -1 ;
         }
         cpl_msg_indent_less() ;
@@ -882,7 +1428,7 @@ static int cr2res_obs_pol_reduce_one(
             if (dits != NULL) cpl_vector_delete(dits) ;
             if (ndits != NULL) cpl_vector_delete(ndits) ;
             cpl_free(decker_positions) ;
-            hdrl_imagelist_delete(in_calib) ;
+            hdrl_imagelist_delete(in_calib_loc) ;
             hdrl_imagelist_delete(in_backgr) ;
             return -1;
         }
@@ -890,14 +1436,13 @@ static int cr2res_obs_pol_reduce_one(
         if (in_backgr != NULL) hdrl_imagelist_delete(in_backgr) ;
 
         /* Subtract background from calibrated images */
-        if (hdrl_imagelist_sub_image(in_calib, backgr) != CPL_ERROR_NONE) {
-            cpl_msg_error(__func__,
-                            "Failed to subtract background") ;
+        if (hdrl_imagelist_sub_image(in_calib_loc, backgr) != CPL_ERROR_NONE) {
+            cpl_msg_error(__func__, "Failed to subtract background") ;
             cpl_msg_indent_less() ;
             if (dits != NULL) cpl_vector_delete(dits) ;
             if (ndits != NULL) cpl_vector_delete(ndits) ;
             cpl_free(decker_positions) ;
-            hdrl_imagelist_delete(in_calib);
+            hdrl_imagelist_delete(in_calib_loc);
             hdrl_image_delete(backgr);
             return -1;
         }
@@ -915,7 +1460,7 @@ static int cr2res_obs_pol_reduce_one(
                         trace_wave_frame), reduce_det)) == NULL) {
         cpl_msg_error(__func__, "Failed to Load the traces file") ;
         cpl_free(decker_positions) ;
-        hdrl_imagelist_delete(in_calib) ;
+        hdrl_imagelist_delete(in_calib_loc) ;
         return -1 ;
     }
 
@@ -969,15 +1514,29 @@ static int cr2res_obs_pol_reduce_one(
             }
         }
 
+        /* Container for the current group calibrated images 1 2 3 4 */ 
+        input_images = cpl_malloc(CR2RES_POLARIMETRY_GROUP_SIZE * 
+                sizeof(hdrl_image*));
+        for (j = 0; j < CR2RES_POLARIMETRY_GROUP_SIZE; j++)
+            input_images[j] = NULL ;
+
         /* Container for extracted tables: 1u, 1d, 2u, 2d, 3u, 3d, 4u, 4d */
         extract_1d = cpl_malloc(nspec_group * sizeof(cpl_table*));
-        for (j = 0; j < nspec_group; j++) extract_1d[j] = NULL;
+        trace_wave_extract = cpl_malloc(nspec_group * sizeof(cpl_table*));
+        for (j = 0; j < nspec_group; j++) {
+            extract_1d[j] = NULL;
+            trace_wave_extract[j] = NULL;
+        }
 
         /* Loop on the frames */
         for (j=0 ; j<CR2RES_POLARIMETRY_GROUP_SIZE ; j++) {
             frame_idx = i * CR2RES_POLARIMETRY_GROUP_SIZE + pol_sorting[j] ;
             fname = cpl_frame_get_filename(cpl_frameset_get_position_const(
                         rawframes,frame_idx)) ;
+
+            /* Store the input image */
+            input_images[j] = hdrl_image_duplicate(
+                    hdrl_imagelist_get_const(in_calib_loc, frame_idx)) ;
 
             /* Extract up */
             decker_name = cr2res_decker_print_position(
@@ -993,41 +1552,25 @@ static int cr2res_obs_pol_reduce_one(
                     decker_positions[frame_idx], 1) ;
 
             /* Compute the new trace_wave for the extraction */
-            trace_wave_loc = cr2res_trace_new_slit_fraction(trace_wave,
-                            slit_frac) ;
+            trace_wave_extract[2*j] = cr2res_trace_new_slit_fraction(trace_wave,
+                    slit_frac) ;
             cpl_array_delete(slit_frac) ;
 
             /* Execute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
-            if (cr2res_extract_traces(
-                        hdrl_imagelist_get_const(in_calib, frame_idx),
-                        trace_wave_loc, NULL, -1, -1, CR2RES_EXTR_OPT_CURV, 
-                        extract_height, extract_swath_width, extract_oversample,
+            if (cr2res_extract_traces(input_images[j], trace_wave_extract[2*j],
+                        NULL, -1, -1, CR2RES_EXTR_OPT_CURV, extract_height, 
+                        extract_swath_width, extract_oversample,
                         extract_smooth_slit, extract_smooth_spec, 0, 0, 0, 
                         &(extract_1d[2*j]), &slit_func, &model_master) == -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j] = NULL ;
+                cpl_table_delete(trace_wave_extract[2*j]) ;
+                trace_wave_extract[2*j] = NULL ;
             } else {
                 cpl_table_delete(slit_func) ;
                 hdrl_image_delete(model_master) ;
-                
-                /* Save the table and the trace for debug */
-                if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-                    out_file = cpl_sprintf(
-                            "debug_ext_spec_det%d_group%d_%du.fits", 
-                            reduce_det, i+1, j+1) ;
-                    cpl_table_save(extract_1d[2*j], NULL, NULL,
-                            out_file, CPL_IO_CREATE) ;
-                    cpl_free(out_file) ; 
-                    out_file = cpl_sprintf(
-                            "debug_ext_trace_det%d_group%d_%du.fits", 
-                            reduce_det, i+1, j+1) ;
-                    cpl_table_save(trace_wave_loc, NULL, NULL,
-                            out_file, CPL_IO_CREATE) ;
-                    cpl_free(out_file) ; 
-                }
             }
-            cpl_table_delete(trace_wave_loc) ;
             cpl_msg_indent_less() ;
 
             /* Extract Down */
@@ -1044,42 +1587,26 @@ static int cr2res_obs_pol_reduce_one(
                     decker_positions[frame_idx], 2) ;
 
             /* Compute the new trace_wave for the extraction */
-            trace_wave_loc = cr2res_trace_new_slit_fraction(trace_wave,
-                            slit_frac) ;
+            trace_wave_extract[2*j+1] = cr2res_trace_new_slit_fraction(
+                    trace_wave, slit_frac) ;
             cpl_array_delete(slit_frac) ;
 
             /* Execute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
-            if (cr2res_extract_traces(
-                        hdrl_imagelist_get_const(in_calib, frame_idx),
-                        trace_wave_loc, NULL, -1, -1, CR2RES_EXTR_OPT_CURV, 
-                        extract_height, extract_swath_width, extract_oversample,
+            if (cr2res_extract_traces(input_images[j],
+                        trace_wave_extract[2*j+1], NULL, -1, -1, 
+                        CR2RES_EXTR_OPT_CURV, extract_height, 
+                        extract_swath_width, extract_oversample,
                         extract_smooth_slit, extract_smooth_spec, 0, 0, 0, 
                         &(extract_1d[2*j+1]), &slit_func, &model_master)== -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j+1] = NULL ;
+                cpl_table_delete(trace_wave_extract[2*j+1]) ;
+                trace_wave_extract[2*j+1] = NULL ;
             } else {
                 cpl_table_delete(slit_func) ;
                 hdrl_image_delete(model_master) ;
-
-                /* Save the table and the trace for debug */
-                if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-                    out_file = cpl_sprintf(
-                            "debug_ext_spec_det%d_group%d_%dd.fits", 
-                            reduce_det, i+1, j+1) ;
-                    cpl_table_save(extract_1d[2*j+1], NULL, NULL,
-                            out_file, CPL_IO_CREATE) ;
-                    cpl_free(out_file) ; 
-                    out_file = cpl_sprintf(
-                            "debug_ext_trace_det%d_group%d_%dd.fits", 
-                            reduce_det, i+1, j+1) ;
-                    cpl_table_save(trace_wave_loc, NULL, NULL,
-                            out_file, CPL_IO_CREATE) ;
-                    cpl_free(out_file) ; 
-                }
             }
-
-            cpl_table_delete(trace_wave_loc) ;
             cpl_msg_indent_less() ;
         }
         cpl_free(pol_sorting) ;
@@ -1090,9 +1617,19 @@ static int cr2res_obs_pol_reduce_one(
                         nspec_group, 
                         &norders)) == NULL) {
             cpl_msg_warning(__func__, "No Order found in the extracted tables");
-            for (j=0 ; j<nspec_group ; j++) 
-                if (extract_1d[j] != NULL) cpl_table_delete(extract_1d[j]) ;
+            for (j = 0; j < CR2RES_POLARIMETRY_GROUP_SIZE; j++) {
+                hdrl_image_delete(input_images[j]) ;
+                input_images[j] = NULL ;
+            }
+            cpl_free(input_images) ;
+            for (j=0 ; j<nspec_group ; j++) {
+                if (extract_1d[j] != NULL) 
+                    cpl_table_delete(extract_1d[j]) ;
+                if (trace_wave_extract[j] != NULL) 
+                    cpl_table_delete(trace_wave_extract[j]) ;
+            }
             cpl_free(extract_1d) ;
+            cpl_free(trace_wave_extract) ;
             continue ;
         }
         cpl_msg_debug(__func__, "%d different orders found", norders) ;
@@ -1203,11 +1740,27 @@ static int cr2res_obs_pol_reduce_one(
         cpl_free(wl) ;
         cpl_free(errors) ;
 
-        /* Free the extracted tables */
-        for (j=0 ; j<nspec_group ; j++){ 
-            if (extract_1d[j] != NULL) cpl_table_delete(extract_1d[j]) ;
+        /* Save the extra products for this group */
+        if (i+1==save_group) {
+            *in_calib = input_images ;
+            *tw = trace_wave_extract ; 
+            *extract1D = extract_1d ; 
+        } else {
+
+            /* Free the input images */
+            for (j = 0; j < CR2RES_POLARIMETRY_GROUP_SIZE; j++) 
+                if (input_images[j] != NULL) 
+                    hdrl_image_delete(input_images[j]) ;
+            cpl_free(input_images) ;
+            /* Free the extracted tables / the TW */
+            for (j=0 ; j<nspec_group ; j++) {
+                if (trace_wave_extract[j] != NULL) 
+                    cpl_table_delete(trace_wave_extract[j]) ;
+                if (extract_1d[j] != NULL) cpl_table_delete(extract_1d[j]) ;
+            }
+            cpl_free(trace_wave_extract) ;
+            cpl_free(extract_1d) ;
         }
-        cpl_free(extract_1d) ;
 
         /* Create the pol_spec table */
         cpl_msg_info(__func__, "Create the POL_SPEC table for this group");
@@ -1229,7 +1782,7 @@ static int cr2res_obs_pol_reduce_one(
         cpl_msg_indent_less() ;
     }
     cpl_free(decker_positions) ;
-    hdrl_imagelist_delete(in_calib) ;
+    hdrl_imagelist_delete(in_calib_loc) ;
 
     /* Merge the groups together */
     if (ngroups > 1) {
@@ -1253,6 +1806,12 @@ static int cr2res_obs_pol_reduce_one(
     if (pol_spec_merged == NULL) {
         cpl_msg_error(__func__, "Cannot create the POL_SPEC table");
         cpl_table_delete(trace_wave) ;
+        for (j=0 ; j<nspec_group ; j++) {
+            if (*extract1D[j] != NULL) cpl_table_delete(*extract1D[j]) ;
+            if (*tw[j] != NULL) cpl_table_delete(*tw[j]) ;
+        }
+        cpl_free(*tw) ; *tw = NULL ;
+        cpl_free(*extract1D) ; *extract1D = NULL ;
         return -1 ;
     }
 
@@ -1365,28 +1924,65 @@ static int * cr2res_obs_pol_get_order_numbers(
 /**
   @brief  Run basic checks for the rawframes consistency
   @param    rawframes   The input rawframes
+  @param    ngroups     The number of groups
   @return   1 if valid, 0 if not, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_obs_pol_check_inputs_validity(
-        const cpl_frameset  *   rawframes)
+        const cpl_frameset  *   rawframes,
+        cpl_size            *   ngroups)
 {
-    cpl_size                    nframes ;
+    cr2res_nodding_pos  *       nod_positions ;
+    cpl_frameset        *       raw_a ;
+    cpl_frameset        *       raw_b ;
+    cpl_size                    nframes, nframes_a, nframes_b, i ;
 
     /* Check Inputs */
-    if (rawframes == NULL) return -1 ;
+    if (rawframes == NULL || ngroups == NULL) return -1 ;
+    nframes = cpl_frameset_get_size(rawframes) ;
+     
+    /* Get the nodding positions */
+    nod_positions = cr2res_nodding_read_positions(rawframes) ;
+    if (nod_positions == NULL) {
+        cpl_msg_error(__func__, "Cannot read nodding positions") ;
+        return -1 ;
+    }
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG)
+        for (i=0 ; i<nframes ; i++) 
+            cpl_msg_debug(__func__, "Frame %s - Nodding %c",
+                    cpl_frame_get_filename(
+                        cpl_frameset_get_position_const(rawframes,i)),
+                    cr2res_nodding_position_char(nod_positions[i])) ;
+
+    /* Split the frames */
+    if (cr2res_combine_nodding_split_frames(rawframes, nod_positions, 
+                &raw_a, &raw_b)) {
+        cpl_msg_error(__func__, "Cannot split the nodding positions") ;
+        cpl_free(nod_positions) ;    
+        return -1 ;
+    }
+    cpl_free(nod_positions) ;    
+
+    /* Check the sizes of A and B */
+    nframes_a = cpl_frameset_get_size(raw_a) ;
+    nframes_b = cpl_frameset_get_size(raw_b) ;
+    if (nframes_a != nframes_b) {
+        cpl_msg_error(__func__, "Number of A and B positions differ") ;
+        cpl_frameset_delete(raw_a);
+        cpl_frameset_delete(raw_b);
+        return 0 ;
+    }
+    cpl_frameset_delete(raw_a);
+    cpl_frameset_delete(raw_b);
 
     /* number of frames must be modulo 4 */
-    nframes = cpl_frameset_get_size(rawframes) ;
-    if (nframes % 4) {
+    if (nframes_a % CR2RES_POLARIMETRY_GROUP_SIZE) {
         cpl_msg_error(__func__, "Require a multiple of 4 raw frames") ;
         return 0 ;
     }
 
-    /* TODO : use cr2res_combine_nodding_split_frames() */
-
-    /* TODO : Check that all frames are decker 1_3 or 2_4 */
-
+    /* Return */
+    *ngroups = nframes_a/CR2RES_POLARIMETRY_GROUP_SIZE ;
     return 1 ;
 }
 

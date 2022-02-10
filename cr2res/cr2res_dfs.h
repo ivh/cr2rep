@@ -146,6 +146,8 @@
 /*      CR2RES_OBS_NODDING_EXTRACTB_PROCATG */
 /*      CR2RES_OBS_NODDING_EXTRACTC_PROCATG */
 /* 		CR2RES_OBS_STARING_EXTRACT_PROCATG */
+/*      CR2RES_OBS_POL_EXTRACTA_PROCATG */
+/*      CR2RES_OBS_POL_EXTRACTB_PROCATG */
 /* Table with columns cr2res_dfs_SPEC_colname() */
 /*                    cr2res_dfs_WAVELENGTH_colname() */
 /*                    cr2res_dfs_SPEC_ERR_colname() */
@@ -217,6 +219,8 @@
 /*      CR2RES_UTIL_SLIT_CURV_TW_PROCATG */
 /*      CR2RES_OBS_NODDING_TWA_PROCATG */
 /*      CR2RES_OBS_NODDING_TWB_PROCATG */
+/*      CR2RES_OBS_POL_TWA_PROCATG */
+/*      CR2RES_OBS_POL_TWB_PROCATG */
 /* Table with Traces polynomials, orders, trace_nb wavelengths */
 /*                  1 trace per Row */
 #define CR2RES_TW_PROTYPE                   "TW"
@@ -227,6 +231,8 @@
 #define CR2RES_MASTER_FLAT_PROTYPE          "MASTER_FLAT"
 
 /* For CR2RES_UTIL_CALIB_PROCATG */
+/*     CR2RES_OBS_POL_CALIB_A_PROCATG */
+/*     CR2RES_OBS_POL_CALIB_B_PROCATG */
 #define CR2RES_CALIBRATED_PROTYPE           "CALIBRATED"
 
 /* For  CR2RES_UTIL_SLIT_CURV_PROCATG  */
@@ -302,8 +308,14 @@
 #define CR2RES_OBS_2D_EXTRACT_PROCATG       "OBS_2D_EXTRACT"
 
 /* Produced by cr2res_obs_pol */
+#define CR2RES_OBS_POL_EXTRACTA_PROCATG     "OBS_POL_EXTRACTA"
+#define CR2RES_OBS_POL_EXTRACTB_PROCATG     "OBS_POL_EXTRACTB"
+#define CR2RES_OBS_POL_TWA_PROCATG          "OBS_POL_TWA"
+#define CR2RES_OBS_POL_TWB_PROCATG          "OBS_POL_TWB"
 #define CR2RES_OBS_POL_SPECA_PROCATG        "OBS_POL_SPECA"
 #define CR2RES_OBS_POL_SPECB_PROCATG        "OBS_POL_SPECB"
+#define CR2RES_OBS_POL_CALIB_A_PROCATG      "OBS_POL_CALIBA"
+#define CR2RES_OBS_POL_CALIB_B_PROCATG      "OBS_POL_CALIBB"
 
 /* Produced by cr2res_util_genlines */
 #define CR2RES_EMISSION_LINES_PROCATG       "EMISSION_LINES"

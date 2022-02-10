@@ -208,6 +208,10 @@ const cpl_frame * cr2res_io_find_TRACE_WAVE(const cpl_frameset * in)
         out=cpl_frameset_find_const(in, CR2RES_OBS_NODDING_TWA_PROCATG);
     if (out == NULL) 
         out=cpl_frameset_find_const(in, CR2RES_OBS_NODDING_TWB_PROCATG);
+    if (out == NULL) 
+        out=cpl_frameset_find_const(in, CR2RES_OBS_POL_TWA_PROCATG);
+    if (out == NULL) 
+        out=cpl_frameset_find_const(in, CR2RES_OBS_POL_TWB_PROCATG);
     return out ;
 }
 
@@ -254,7 +258,7 @@ cpl_frameset * cr2res_io_find_TRACE_WAVE_all(const cpl_frameset  * in)
     if (in == NULL) return NULL ;
 
     /* Create the tags list */
-    ntags = 6 ;
+    ntags = 10 ;
     tags = cpl_malloc(ntags * sizeof(char *)) ;
     tags[0] = cpl_sprintf(CR2RES_CAL_FLAT_TW_PROCATG) ;
     tags[1] = cpl_sprintf(CR2RES_CAL_FLAT_TW_MERGED_PROCATG) ;
@@ -262,7 +266,11 @@ cpl_frameset * cr2res_io_find_TRACE_WAVE_all(const cpl_frameset  * in)
     tags[3] = cpl_sprintf(CR2RES_UTIL_WAVE_TW_PROCATG) ;
     tags[4] = cpl_sprintf(CR2RES_CAL_WAVE_TW_PROCATG) ;
     tags[5] = cpl_sprintf(CR2RES_UTIL_SLIT_CURV_TW_PROCATG) ;
-
+    tags[6] = cpl_sprintf(CR2RES_OBS_NODDING_TWA_PROCATG) ;
+    tags[7] = cpl_sprintf(CR2RES_OBS_NODDING_TWB_PROCATG) ;
+    tags[8] = cpl_sprintf(CR2RES_OBS_POL_TWA_PROCATG) ;
+    tags[9] = cpl_sprintf(CR2RES_OBS_POL_TWB_PROCATG) ;
+ 
     /* Get the frameset */
     out = cr2res_extract_frameset_several_tags(in, (const char**)tags, ntags) ;
 
@@ -288,7 +296,7 @@ cpl_frameset * cr2res_io_find_EXTRACT_1D_all(const cpl_frameset  * in)
     if (in == NULL) return NULL ;
 
     /* Create the tags list */
-    ntags = 8 ;
+    ntags = 10 ;
     tags = cpl_malloc(ntags * sizeof(char *)) ;
     tags[0] = cpl_sprintf(CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG) ;
     tags[1] = cpl_sprintf(CR2RES_UTIL_EXTRACT_1D_PROCATG) ;
@@ -298,6 +306,8 @@ cpl_frameset * cr2res_io_find_EXTRACT_1D_all(const cpl_frameset  * in)
     tags[5] = cpl_sprintf(CR2RES_OBS_NODDING_EXTRACTB_PROCATG) ;
     tags[6] = cpl_sprintf(CR2RES_OBS_NODDING_EXTRACTC_PROCATG) ;
     tags[7] = cpl_sprintf(CR2RES_OBS_STARING_EXTRACT_PROCATG) ;
+    tags[8] = cpl_sprintf(CR2RES_OBS_POL_EXTRACTA_PROCATG) ;
+    tags[9] = cpl_sprintf(CR2RES_OBS_POL_EXTRACTB_PROCATG) ;
 
     /* Get the frameset */
     out = cr2res_extract_frameset_several_tags(in, (const char**)tags, ntags) ;

@@ -145,8 +145,14 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 /* Produced by cr2res_obs_2d */
                 !strcmp(tag, CR2RES_OBS_2D_EXTRACT_PROCATG) ||
                 /* Produced by cr2res_obs_pol */
+                !strcmp(tag, CR2RES_OBS_POL_EXTRACTA_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_POL_TWA_PROCATG) ||
                 !strcmp(tag, CR2RES_OBS_POL_SPECA_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_POL_EXTRACTB_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_POL_TWB_PROCATG) ||
                 !strcmp(tag, CR2RES_OBS_POL_SPECB_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_POL_CALIB_A_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_POL_CALIB_B_PROCATG) ||
                 /* Produced by cr2res_util_genlines */
                 !strcmp(tag, CR2RES_EMISSION_LINES_PROCATG) ||
                 /* Produced by cr2res_util_genstd */

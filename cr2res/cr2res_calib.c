@@ -106,17 +106,22 @@ hdrl_imagelist * cr2res_calib_imagelist(
         if (ndits != NULL) ndit = (int)cpl_vector_get(ndits, i) ;
 
         /* Calibrate */
+        cpl_msg_info(__func__, 
+                "Apply calibrations for image #%"CPL_SIZE_FORMAT, i+1) ;
+        cpl_msg_indent_more() ;
         if ((cur_ima_calib = cr2res_calib_image(cur_ima, chip, clean_bad, 
                         subtract_nolight_rows, subtract_interorder_column,
                         cosmics_corr, flat, dark, bpm, 
                         detlin, dit, ndit)) == NULL) {
             cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
             hdrl_imagelist_delete(out) ;
+            cpl_msg_indent_less() ;
             return NULL ;
         } else {
             /* All the calibrated image in the list */
             hdrl_imagelist_set(out, cur_ima_calib, i);
         }
+        cpl_msg_indent_less() ;
     }
     return out ;
 }
@@ -181,17 +186,14 @@ hdrl_image * cr2res_calib_image(
 
     /* Apply the non linearity correction */
     if (detlin != NULL) {
-        /* Load the detlin coeffs */
-        cpl_msg_info(__func__, "Load the Non-Linearity coefficients") ;
+        cpl_msg_info(__func__, "Correct for the Non-Linearity") ;
         if ((calib_list = cr2res_io_load_DETLIN_COEFFS(
                         cpl_frame_get_filename(detlin), chip)) == NULL) {
             cpl_msg_error(__func__, "Cannot load the detlin") ;
             hdrl_image_delete(out);
             return NULL ;
         }
-
         /* Detlin correction */
-        cpl_msg_info(__func__, "Correct for the Non-Linearity") ;
         if (cr2res_detlin_correct(out, calib_list)) {
             hdrl_imagelist_delete(calib_list) ;
             hdrl_image_delete(out);
@@ -201,6 +203,7 @@ hdrl_image * cr2res_calib_image(
     }
 
     /* Add shot-noise */
+    cpl_msg_info(__func__, "Add shot-noise") ;
     if (cr2res_add_shotnoise(out, ndit, chip)){
         cpl_msg_error(__func__, "Cannot add shot-noise") ;
         hdrl_imagelist_delete(calib_list) ;
@@ -219,16 +222,18 @@ hdrl_image * cr2res_calib_image(
             hdrl_image_delete(out);
             return NULL ;
         }
-
         if (detlin != NULL) {
+            cpl_msg_indent_more() ;
             cpl_msg_info(__func__, "Correct DARK for Non-Linearity") ;
             if (cr2res_detlin_correct(calib, calib_list)) {
                 hdrl_imagelist_delete(calib_list) ;
                 hdrl_image_delete(calib) ;
                 hdrl_image_delete(out);
-                cpl_msg_error(__func__,"Cannot correct DARK for Non-Linearity") ;
+                cpl_msg_error(__func__,"Cannot correct DARK for Non-Linearity");
+                cpl_msg_indent_less() ;
                 return NULL ;
             }
+            cpl_msg_indent_less() ;
         }
 
         /* Get the dark DIT */
@@ -248,8 +253,6 @@ hdrl_image * cr2res_calib_image(
         }
         hdrl_image_delete(calib) ;
     }
-
-
     if (detlin != NULL) {
        hdrl_imagelist_delete(calib_list) ;
     }
@@ -270,35 +273,30 @@ hdrl_image * cr2res_calib_image(
         cpl_image_delete(img_tmp);
     }
 
+    /* Apply the interorder correction */
     if (subtract_interorder_column) {
         if (flat == NULL) {
-        cpl_msg_info(__func__, "Skip subtracting fit to inter-order pixels, "
-                "no flat-field given");
+            cpl_msg_info(__func__, 
+                "Skip subtracting fit to inter-order pixels (no flat-field)");
         } else {
             cpl_msg_info(__func__, "Subtract fit to inter-order pixels");
-
-            /* Load the flat */
-            cpl_msg_info(__func__, "Load the flat field") ;
             if ((calib = cr2res_io_load_MASTER_FLAT(
                             cpl_frame_get_filename(flat), chip)) == NULL) {
                 cpl_msg_error(__func__, "Cannot load the flat field") ;
                 hdrl_image_delete(out);
                 return NULL ;
             }
-
-            // Run calibratrion
             if (cr2res_calib_subtract_interorder_column(out, calib, 3)){
                 cpl_msg_error(__func__, "Could not subtract inter-order fit");
             }
-
             hdrl_image_delete(calib);
         }
     }
 
     /* Apply the flatfield */
     if (flat != NULL) {
+        cpl_msg_info(__func__, "Correct for the flat field") ;
         /* Load the flat */
-        cpl_msg_info(__func__, "Load the flat field") ;
         if ((calib = cr2res_io_load_MASTER_FLAT(
                         cpl_frame_get_filename(flat), chip)) == NULL) {
             cpl_msg_error(__func__, "Cannot load the flat field") ;
@@ -307,7 +305,6 @@ hdrl_image * cr2res_calib_image(
         }
         
         /* Divide */
-        cpl_msg_info(__func__, "Correct for the flat field") ;
         if (hdrl_image_div_image(out, calib) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Cannot apply the flat field") ;
             hdrl_image_delete(calib) ;
@@ -316,8 +313,6 @@ hdrl_image * cr2res_calib_image(
         }
         hdrl_image_delete(calib) ;
     }
-
-
 
     /* Comics correction */
     if (cosmics_corr) {
