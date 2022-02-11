@@ -322,7 +322,7 @@ hdrl_image * cr2res_calib_image(
     }
 
     // remove non finite elements, this prevents weird behaviour later
-    hdrl_image_reject_value(out, CPL_VALUE_NOTFINITE);
+//    hdrl_image_reject_value(out, CPL_VALUE_NOTFINITE);
 
     return out ;
 }

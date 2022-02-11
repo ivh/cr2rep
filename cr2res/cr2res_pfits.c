@@ -153,6 +153,18 @@ double cr2res_pfits_get_ra(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    find out the DROT POSANG value
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_pfits_get_drot_posang(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_double(plist, CR2RES_HEADER_DROT_POSANG)  ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    find out the NODTHROW value
   @param    plist       property list to read from
   @return   the requested value

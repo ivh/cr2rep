@@ -42,6 +42,7 @@
 #define CR2RES_HEADER_NEXP              "ESO TPL NEXP"
 #define CR2RES_HEADER_DECKER_POS        "ESO INS OPTI8 NO"
 #define CR2RES_HEADER_NODPOS            "ESO SEQ NODPOS"
+#define CR2RES_HEADER_DROT_POSANG       "ESO INS1 DROT POSANG"
 #define CR2RES_HEADER_NODTHROW          "ESO SEQ NODTHROW"
 #define CR2RES_HEADER_ARCFILE           "ARCFILE"
 #define CR2RES_HEADER_MJDOBS            "MJD-OBS"
@@ -110,6 +111,7 @@ const char * cr2res_pfits_get_progid(const cpl_propertylist *) ;
 
 
 double cr2res_pfits_get_ra(const cpl_propertylist *) ;
+double cr2res_pfits_get_drot_posang(const cpl_propertylist *) ;
 double cr2res_pfits_get_dec(const cpl_propertylist *) ;
 double cr2res_pfits_get_nodthrow(const cpl_propertylist *) ;
 double cr2res_pfits_get_dit(const cpl_propertylist *) ;
