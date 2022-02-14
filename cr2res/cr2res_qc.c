@@ -29,6 +29,7 @@
 #include <math.h>
 
 #include <cpl.h>
+#include "hdrl.h"
 
 #include "cr2res_qc.h"
 #include "cr2res_qc_lines.h"
@@ -97,21 +98,23 @@ double cr2res_dark_qc_ron(
   @return   The computed median or -1.0 in error case
  */
 /*----------------------------------------------------------------------------*/
-double cr2res_qc_detlin_median(
-        const cpl_imagelist     *   coeffs,
+double cr2res_qc_detlin(
+        const hdrl_imagelist    *   hdrl_coeffs,
+        double                      bpm_thresh,
+        cpl_mask               **   outmask,
         double                  *   min_level,
         double                  *   max_level) 
 {
     double      qc_detlin_median, qc_detlin_min, qc_detlin_max ;
     double      level;
     int         nimgs = 3, width, height;
-    hdrl_imagelist * hdrl_coeffs;
     hdrl_image * img;
     hdrl_value value = {CR2RES_NONLIN_LEVEL, 0};
+    cpl_mask * tmpmask;
 
 
     /* Check Entries */
-    if (coeffs==NULL || min_level==NULL || max_level==NULL) return -1.0 ;
+    if (hdrl_coeffs==NULL || min_level==NULL || max_level==NULL) return -1.0 ;
 
     /* Initialise */
     qc_detlin_median = -1.0 ;
@@ -119,12 +122,15 @@ double cr2res_qc_detlin_median(
     qc_detlin_max = -1.0 ;
 
     // Apply detlin correction on an image with constant value
-    hdrl_coeffs = hdrl_imagelist_create((cpl_imagelist*) coeffs, NULL);
+    cpl_msg_info(__func__,"Error: %d %s", cpl_error_get_code(), cpl_error_get_where());
     width = hdrl_image_get_size_x(hdrl_imagelist_get(hdrl_coeffs, 0));
     height = hdrl_image_get_size_y(hdrl_imagelist_get(hdrl_coeffs, 0));
     img = hdrl_image_new(width, height); 
     hdrl_image_add_scalar(img, value);
+    cpl_msg_info(__func__,"Error: %d %s", cpl_error_get_code(), cpl_error_get_where());
+    cpl_msg_info(__func__,"w h: %d %d", width, height);
     cr2res_detlin_correct(img, hdrl_coeffs);
+    cpl_msg_info(__func__,"Error: %d %s", cpl_error_get_code(), cpl_error_get_where());
     // mask the Nan values, that exist in the out of order pixels
     // as well as bad pixels and wherever detlin failed
     hdrl_image_reject_value(img, CPL_VALUE_NAN);
@@ -135,13 +141,21 @@ double cr2res_qc_detlin_median(
         CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
     }
 
+    cpl_msg_info(__func__,"Error: %d %s", cpl_error_get_code(), cpl_error_get_where());
 
     // Then determine the median of that corrected image
     qc_detlin_median = cpl_image_get_median(hdrl_image_get_image(img));
     qc_detlin_min = cpl_image_get_min(hdrl_image_get_image(img)) ;
     qc_detlin_max = cpl_image_get_max(hdrl_image_get_image(img)) ;
 
-    hdrl_imagelist_delete(hdrl_coeffs);
+    cpl_msg_info(__func__,"Error: %d %s", cpl_error_get_code(), cpl_error_get_where());
+    tmpmask = cpl_mask_threshold_image_create(hdrl_image_get_image(img),
+                (double)CR2RES_NONLIN_LEVEL,
+                (double)CR2RES_NONLIN_LEVEL * (1.0 + (bpm_thresh/100)));
+    cpl_msg_info(__func__,"Error: %d %s", cpl_error_get_code(), cpl_error_get_where());
+    cpl_msg_info(__func__, "mask has %d pix rejected",
+                                (int)cpl_mask_count(tmpmask));
+    cpl_msg_info(__func__,"Error: %d %s", cpl_error_get_code(), cpl_error_get_where());
     hdrl_image_delete(img);
 
     if (isnan(qc_detlin_median) || 
@@ -150,6 +164,8 @@ double cr2res_qc_detlin_median(
 
     *min_level = qc_detlin_min ;
     *max_level = qc_detlin_max ;
+    cpl_mask_and(tmpmask,hdrl_image_get_mask(img));
+    *outmask = tmpmask;
     return qc_detlin_median ;
 }
 

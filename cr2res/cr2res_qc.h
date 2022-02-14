@@ -46,8 +46,10 @@ double cr2res_dark_qc_ron(
         int                     ndit) ;
 
 /* DETLIN */
-double cr2res_qc_detlin_median(
-        const cpl_imagelist     *   coeffs,
+double cr2res_qc_detlin(
+        const hdrl_imagelist    *   hdrl_coeffs,
+        double                      bpm_thresh,
+        cpl_mask               **  outmask,
         double                  *   min_level,
         double                  *   max_level) ;
 

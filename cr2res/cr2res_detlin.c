@@ -243,18 +243,6 @@ int cr2res_detlin_compute(
         return -1 ;
     }
 
-    /* Sanity check */
-    aduPsec=cpl_polynomial_eval_1d(fitted_local,CR2RES_NONLIN_LEVEL,NULL);
-    if (aduPsec<0.99 || aduPsec>1.2){
-        cpl_matrix_unwrap(samppos);
-        cpl_vector_delete(y_tofit);
-        cpl_vector_delete(dits_loc);
-        cpl_vector_delete(adus_loc);
-        cpl_polynomial_delete(fitted_local) ;
-        cpl_error_reset() ;
-        return -1 ; 
-    }
-
     /* Compute the error */
     error_local = cpl_vector_new(max_degree+1) ;
     cpl_size nc = max_degree + 1;

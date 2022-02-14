@@ -64,7 +64,7 @@ static int cr2res_cal_detlin_compare(
 static int cr2res_cal_detlin_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frameset  *   darkframes,
-        double                  bpm_kappa,
+        double                  bpm_thresh,
         int                     trace_degree,
         int                     trace_min_cluster,
         int                     trace_smooth_x,
@@ -195,6 +195,7 @@ static int cr2res_cal_detlin_create(cpl_plugin * plugin)
 {
     cpl_recipe          *   recipe ;
     cpl_parameter       *   p ;
+    char                *   tmpstring;
 
     /* Check that the plugin is part of a valid recipe */
     if (cpl_plugin_get_type(plugin) == CPL_PLUGIN_TYPE_RECIPE)
@@ -206,10 +207,12 @@ static int cr2res_cal_detlin_create(cpl_plugin * plugin)
     recipe->parameters = cpl_parameterlist_new();
 
     /* Fill the parameters list */
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.bpm_kappa",
-            CPL_TYPE_DOUBLE, "Kappa threshold for BPM detection",
-            "cr2res.cr2res_cal_detlin", 8.0);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_kappa");
+    tmpstring = cpl_sprintf("BPM threshold, max %% non-linear at %d ADU",
+                             CR2RES_NONLIN_LEVEL);
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_detlin.bpm_thresh",
+            CPL_TYPE_DOUBLE, tmpstring, "cr2res.cr2res_cal_detlin", 15.0);
+    cpl_free(tmpstring);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "bpm_thresh");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -348,7 +351,10 @@ static int cr2res_cal_detlin(
     int                     trace_degree, trace_min_cluster, trace_collapse,
                             trace_opening, single_settings, reduce_det, 
                             trace_smooth_x, trace_smooth_y, plot_x, plot_y ;
-    double                  bpm_kappa, trace_threshold ;
+    double                  bpm_thresh, trace_threshold;
+    double                  low_thresh, high_thresh, median, sigma ;
+    double                  qc_median, qc_gain, qc_min_level, qc_max_level;
+    cpl_size                qc_nb_bad;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   darkframes ;
     cpl_size            *   labels ;
@@ -367,13 +373,15 @@ static int cr2res_cal_detlin(
     int                     i, l, det_nr; 
     cpl_size                x, y;
     hdrl_value              pixel;
+    cpl_image           *   cur_coeffs;
+    cpl_mask            *   cur_mask;
 
     /* Initialise */
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_detlin.bpm_kappa");
-    bpm_kappa = cpl_parameter_get_double(param);
+            "cr2res.cr2res_cal_detlin.bpm_thresh");
+    bpm_thresh = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_detlin.trace_degree");
     trace_degree = cpl_parameter_get_int(param);
@@ -473,7 +481,7 @@ static int cr2res_cal_detlin(
     
             /* Call the reduction function */
             cpl_msg_indent_more() ;
-            if (cr2res_cal_detlin_reduce(raw_one, darkframes, bpm_kappa,
+            if (cr2res_cal_detlin_reduce(raw_one, darkframes, bpm_thresh,
                         trace_degree, trace_min_cluster, trace_smooth_x,
                         trace_smooth_y, trace_threshold, trace_opening, 
                         trace_collapse, det_nr, plot_x, plot_y,
@@ -536,11 +544,14 @@ static int cr2res_cal_detlin(
         cpl_msg_indent_less() ;
     }
     cpl_free(labels);
+    if (darkframes!= NULL) cpl_frameset_delete(darkframes) ;
 
     // Complete the merging
     // This completes the weighted mean as described in cr2res_cal_detlin_update
     for (det_nr = 1; det_nr <= CR2RES_NB_DETECTORS; det_nr++)
     {
+        if (reduce_det != 0 && det_nr != reduce_det) continue ;
+        
         for (i = 0; i < hdrl_imagelist_get_size(coeffs_merged[det_nr - 1]); i++)
         {
             img = hdrl_imagelist_get(coeffs_merged[det_nr - 1], i);
@@ -556,8 +567,35 @@ static int cr2res_cal_detlin(
             }
             hdrl_image_reject_value(img, CPL_VALUE_NAN);
         }
-    }
-	if (darkframes!= NULL) cpl_frameset_delete(darkframes) ;
+
+
+        cpl_msg_info(__func__, "BPM detection & QCs") ;
+
+        /* Compute the QC parameters */
+        qc_median = cr2res_qc_detlin(coeffs_merged[det_nr -1], 
+                bpm_thresh,
+                &cur_mask,
+                &qc_min_level,
+                &qc_max_level) ;
+        if (qc_median == -1.0) continue;
+
+        /* Apply mask*/
+        cr2res_bpm_add_mask(bpm_merged[det_nr -1], cur_mask, CR2RES_BPM_DETLIN);
+        qc_nb_bad = cpl_mask_count(cur_mask);
+        cpl_mask_delete(cur_mask);
+
+        /* Store the QC parameters in the plist */
+        cpl_propertylist_append_int(ext_plist_merged[det_nr-1],
+                CR2RES_HEADER_QC_DETLIN_NBAD, qc_nb_bad) ;
+        cpl_propertylist_append_double(ext_plist_merged[det_nr-1],  
+                CR2RES_HEADER_QC_DETLIN_MEDIAN, qc_median) ;
+        cpl_propertylist_append_double(ext_plist_merged[det_nr-1], 
+                CR2RES_HEADER_QC_DETLIN_MINLEVEL, qc_min_level) ;
+        cpl_propertylist_append_double(ext_plist_merged[det_nr-1],
+                CR2RES_HEADER_QC_DETLIN_MAXLEVEL, qc_max_level) ;
+
+    } // End loop on detectors
+
 
     /* Save the merged products */
     /* BPM */
@@ -592,7 +630,7 @@ static int cr2res_cal_detlin(
   @brief  Compute the non-linearity for a single setting, single detector
   @param rawframes          Raw frames from a single setting
   @param darkframes         Darkframes (null or as many as rawframes)
-  @param bpm_kappa          Kappa value for BPM detection
+  @param bpm_thresh          thresh value for BPM detection
   @param trace_degree
   @param trace_min_cluster
   @param trace_smooth_x
@@ -612,7 +650,7 @@ static int cr2res_cal_detlin(
 static int cr2res_cal_detlin_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frameset  *   darkframes,
-        double                  bpm_kappa,
+        double                  bpm_thresh,
         int                     trace_degree,
         int                     trace_min_cluster,
         int                     trace_smooth_x,
@@ -657,7 +695,6 @@ static int cr2res_cal_detlin_reduce(
     cpl_mask            *   bpm_mask ;
     int                     i, j, k, idx, ext_nr_data, order, trace_id, nx, ny;
     cpl_size                max_degree, l ;
-    double                  low_thresh, high_thresh, median, sigma ;
     int                     qc_nb_bad, qc_nbfailed, qc_nbsuccess ;
     double                  qc_median, qc_gain, qc_min_level, qc_max_level ;
     
@@ -903,68 +940,13 @@ static int cr2res_cal_detlin_reduce(
     }
     cpl_mask_delete(bpm_mask); 
 
-    /* Use the second coefficient stats for the BPM detection */
-    cpl_msg_info(__func__, "BPM detection") ;
-    cur_coeffs = cpl_imagelist_get(coeffs_loc, 1) ;
-
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_mask_save(cpl_image_get_bpm(cur_coeffs),"debug_mask.fits",
-            NULL,CPL_IO_CREATE);
-        cpl_image_save(cur_coeffs,"debug_coef1.fits",
-            CPL_TYPE_DOUBLE,NULL,CPL_IO_CREATE);
-    }
-
-    median = cpl_image_get_median_dev(cur_coeffs, &sigma) ;
-    low_thresh = median - bpm_kappa * sigma ;
-    high_thresh = median + bpm_kappa * sigma ;
-    cpl_msg_debug(__func__, "Low & high threshold for linear coeff: %.2e %.2e",
-           low_thresh, high_thresh );
-    cpl_msg_debug(__func__, "Median, sigma: %.2e %.2e", median, sigma );
-    qc_nb_bad = 0;
-    for (j=0 ; j<ny ; j++) {
-        for (i=0 ; i<nx ; i++) {
-            idx = i + j*nx ;
-            if (pbpm_loc[idx] == 0  && 
-                    (pcur_coeffs[idx] < low_thresh || 
-                     pcur_coeffs[idx] > high_thresh)) {
-                pbpm_loc[idx] = CR2RES_BPM_DETLIN ;
-                qc_nb_bad++; 
-            }
-        }
-    }
-    cpl_msg_info(__func__, "%d bad pixels found, %g percent", qc_nb_bad,
-                            (double)qc_nb_bad/ny/nx*100 );
-    /* Reject *again* the bad pixels in the image lists */
-    /* Get Mask */
-    bpm_mask = cpl_mask_threshold_image_create(bpm_loc,-0.5,0.5) ;
-    cpl_mask_not(bpm_mask) ;
-
-    /* Set the Bad pixels in coeffs / errors */
-    for (l=0 ; l<=max_degree ; l++) {
-        cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
-        cpl_image_reject_from_mask(cur_coeffs, bpm_mask) ;
-        cur_errors = cpl_imagelist_get(errors_loc, l) ;
-        cpl_image_reject_from_mask(cur_errors, bpm_mask) ;
-    }
-    cpl_mask_delete(bpm_mask); 
-
-    /* Compute the QC parameters */
-    qc_median = cr2res_qc_detlin_median(coeffs_loc, &qc_min_level,
-            &qc_max_level) ;
-
-    /* Store the QC parameters in the plist */
-    cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_DETLIN_NBAD, 
-            qc_nb_bad) ;
+    /* Save the QC that make sense for each setting */
+    /* Note that these get overwritten for each setting in final product */
+    /* but remains in outputs with --save_settings */
     cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_DETLIN_NBFAILED, 
             qc_nbfailed) ;
     cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_DETLIN_NBSUCCESS,
             qc_nbsuccess) ;
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_DETLIN_MEDIAN, 
-            qc_median) ;
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_DETLIN_MINLEVEL,
-            qc_min_level) ;
-    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_DETLIN_MAXLEVEL,
-            qc_max_level) ;
 
     /* Return the results */
     *coeffs = hdrl_imagelist_create(coeffs_loc, errors_loc) ;
