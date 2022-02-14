@@ -212,7 +212,7 @@ int cr2res_detlin_compute(
     
     adusPsec = cpl_vector_duplicate(adus_loc);
     cpl_vector_divide(adusPsec, dits_loc);
-    tmp = cpl_vector_extract(adusPsec,0,count_linear,1);
+    tmp = cpl_vector_extract(adusPsec,0,count_linear-1,1);
     aduPsec = cpl_vector_get_median(tmp);
     cpl_vector_delete(tmp);
 

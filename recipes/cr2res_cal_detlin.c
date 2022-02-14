@@ -568,9 +568,7 @@ static int cr2res_cal_detlin(
             hdrl_image_reject_value(img, CPL_VALUE_NAN);
         }
 
-
         cpl_msg_info(__func__, "BPM detection & QCs") ;
-
         /* Compute the QC parameters */
         qc_median = cr2res_qc_detlin(coeffs_merged[det_nr -1], 
                 bpm_thresh,
