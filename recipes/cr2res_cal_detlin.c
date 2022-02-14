@@ -896,12 +896,10 @@ static int cr2res_cal_detlin_reduce(
     bpm_mask = cpl_mask_threshold_image_create(bpm_loc,-0.5,0.5) ;
     cpl_mask_not(bpm_mask) ;
 
-    /* Set the Bad pixels in coeffs / errors */
+    /* Set the Bad pixels in coeffs */
     for (l=0 ; l<=max_degree ; l++) {
         cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
         cpl_image_reject_from_mask(cur_coeffs, bpm_mask) ;
-        cur_errors = cpl_imagelist_get(errors_loc, l) ;
-        cpl_image_reject_from_mask(cur_errors, bpm_mask) ;
     }
     cpl_mask_delete(bpm_mask); 
 
@@ -1036,7 +1034,7 @@ static int cr2res_cal_detlin_compare(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief Only pixels not yet computed (CR2RES_BPM_OUTOFORDER) are updated
+  @brief Update previous result with result from current setting.
   @param 
   @return   0 if ok
 
