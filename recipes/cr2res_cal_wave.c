@@ -1342,10 +1342,10 @@ static int cr2res_cal_wave_reduce(
        
         cpl_msg_info(__func__, "Compute the Wavelength for FPET") ;
         cpl_msg_indent_more() ;
-        cpl_msg_info(__func__, "Running FPET with both degrees=5") ;
+        cpl_msg_info(__func__, "Running FPET with degrees=4,6") ;
 
         if (cr2res_wave_apply(tw_in, extracted_fpet, NULL, reduce_order, 
-                    reduce_trace, CR2RES_ETALON, 5, 5, wl_start, wl_end, 
+                    reduce_trace, CR2RES_ETALON, 4, 6, wl_start, wl_end, 
                     wl_err, wl_shift, log_flag, fallback_input_wavecal_flag, 
                     FALSE, // --keep=FALSE 
                     clean_spectrum, 

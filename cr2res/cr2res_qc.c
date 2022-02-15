@@ -126,7 +126,6 @@ double cr2res_qc_detlin(
     height = hdrl_image_get_size_y(hdrl_imagelist_get(hdrl_coeffs, 0));
     img = hdrl_image_new(width, height); 
     hdrl_image_add_scalar(img, value);
-    cpl_msg_info(__func__,"w h: %d %d", width, height);
     cr2res_detlin_correct(img, hdrl_coeffs);
     // mask the Nan values, that exist in the out of order pixels
     // as well as bad pixels and wherever detlin failed
