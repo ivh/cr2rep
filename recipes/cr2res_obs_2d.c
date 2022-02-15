@@ -400,7 +400,7 @@ static int cr2res_obs_2d(
         /* Extracted */
         out_file = cpl_sprintf("%s_frame_%d_extracted.fits", 
                 RECIPE_STRING, i+1) ;
-        cr2res_io_save_EXTRACT_2D(out_file, frameset, rawframes, parlist, 
+        cr2res_io_save_EXTRACT_2D(out_file, frameset, frameset, parlist, 
                 extract, NULL, ext_plist, CR2RES_OBS_2D_EXTRACT_PROCATG, 
                 RECIPE_STRING) ;
         cpl_free(out_file);

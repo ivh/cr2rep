@@ -502,28 +502,28 @@ static int cr2res_obs_staring(
         cpl_msg_indent_less() ;
     }
     if (slit_frac != NULL) cpl_array_delete(slit_frac) ;
+    cpl_frameset_delete(rawframes) ;
 
     /* Save Products */
     out_file = cpl_sprintf("%s_slitfunc.fits", RECIPE_STRING) ;
-    cr2res_io_save_SLIT_FUNC(out_file, frameset, rawframes, parlist,
+    cr2res_io_save_SLIT_FUNC(out_file, frameset, frameset, parlist,
             slitfunc, NULL, ext_plist, CR2RES_OBS_STARING_SLITFUNC_PROCATG,
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_model.fits", RECIPE_STRING) ;
-    cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist,
+    cr2res_io_save_SLIT_MODEL(out_file, frameset, frameset, parlist,
             model, NULL, ext_plist, CR2RES_OBS_STARING_SLITMODEL_PROCATG,
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_extracted.fits", RECIPE_STRING) ;
-    cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extract,
+    cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, extract,
             NULL, ext_plist, CR2RES_OBS_STARING_EXTRACT_PROCATG,
             RECIPE_STRING);
     cpl_free(out_file);
 
     /* Free */
-    cpl_frameset_delete(rawframes) ;
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         if (extract[det_nr-1] != NULL) 
             cpl_table_delete(extract[det_nr-1]) ;

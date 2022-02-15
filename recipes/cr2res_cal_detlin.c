@@ -517,14 +517,22 @@ static int cr2res_cal_detlin(
             /* BPM */
             out_file = cpl_sprintf("%s_%s_bpm.fits", RECIPE_STRING,
                     setting_id) ;
-            cr2res_io_save_BPM(out_file, frameset, raw_one, parlist, bpm, NULL, 
-                    ext_plist, CR2RES_CAL_DETLIN_BPM_PROCATG, RECIPE_STRING) ;
+
+            /* Save only the used RAW ? : raw_one instead of 2nd frameset */
+            /* Beware that the calibration PRO RECi CAL will be missing */
+
+            cr2res_io_save_BPM(out_file, frameset, frameset, parlist, bpm, 
+                    NULL, ext_plist, CR2RES_CAL_DETLIN_BPM_PROCATG, 
+                    RECIPE_STRING) ;
             cpl_free(out_file);
 
             /* COEFFS */
             out_file = cpl_sprintf("%s_%s_coeffs.fits", RECIPE_STRING,
                     setting_id) ;
-            cr2res_io_save_DETLIN_COEFFS(out_file, frameset, raw_one, parlist, 
+            /* Save only the used RAW ? : raw_one instead of 2nd frameset */
+            /* Beware that the calibration PRO RECi CAL will be missing */
+
+            cr2res_io_save_DETLIN_COEFFS(out_file, frameset, frameset, parlist, 
                     coeffs, NULL, ext_plist, CR2RES_CAL_DETLIN_COEFFS_PROCATG, 
                     RECIPE_STRING) ;
             cpl_free(out_file);

@@ -762,31 +762,33 @@ static int cr2res_cal_wave(
         cpl_msg_indent_less() ;
     }
 
+    /* Save only the used RAW ? : rawframes_xxx instead of 2nd frameset */
+    /* Beware that the calibration PRO RECi CAL will be missing */ 
+
     /* Save Products UNE */
     if (rawframes_une != NULL) {
         out_file = cpl_sprintf("%s_tw_une.fits", RECIPE_STRING) ;
-        cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes_une, parlist, 
+        cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
                 out_trace_wave_une, NULL, ext_plist_une, 
                 CR2RES_CAL_WAVE_TW_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
         out_file = cpl_sprintf("%s_wave_map_une.fits", RECIPE_STRING) ;
-        cr2res_io_save_WAVE_MAP(out_file, frameset, rawframes_une, parlist, 
+        cr2res_io_save_WAVE_MAP(out_file, frameset, frameset, parlist, 
                 out_wave_map_une, NULL, ext_plist_une, 
                 CR2RES_CAL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
         out_file = cpl_sprintf("%s_extracted_une.fits", RECIPE_STRING) ;
-        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes_une, parlist, 
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
                 out_extracted_une, NULL, ext_plist_une, 
                 CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
         out_file = cpl_sprintf("%s_lines_diagnostics_une.fits", 
                 RECIPE_STRING);
-        cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset,
-                rawframes_une, parlist,
-                lines_diagnostics_une, NULL, ext_plist_une,
+        cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset, frameset, 
+                parlist, lines_diagnostics_une, NULL, ext_plist_une,
                 CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
     }
@@ -794,27 +796,26 @@ static int cr2res_cal_wave(
     if (rawframes_fpet != NULL) {
         /* Save Products UNE */
         out_file = cpl_sprintf("%s_tw_fpet.fits", RECIPE_STRING) ;
-        cr2res_io_save_TRACE_WAVE(out_file, frameset, rawframes_fpet, parlist, 
+        cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
                 out_trace_wave_fpet, NULL, ext_plist_fpet, 
                 CR2RES_CAL_WAVE_TW_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
         out_file = cpl_sprintf("%s_wave_map_fpet.fits", RECIPE_STRING) ;
-        cr2res_io_save_WAVE_MAP(out_file, frameset, rawframes_fpet, parlist, 
+        cr2res_io_save_WAVE_MAP(out_file, frameset, frameset, parlist, 
                 out_wave_map_fpet, NULL, ext_plist_fpet, 
                 CR2RES_CAL_WAVE_MAP_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
         out_file = cpl_sprintf("%s_extracted_fpet.fits", RECIPE_STRING) ;
-        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes_fpet, parlist, 
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
                 out_extracted_fpet, NULL, ext_plist_fpet, 
                 CR2RES_CAL_WAVE_EXTRACT_1D_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
         out_file = cpl_sprintf("%s_lines_diagnostics_fpet.fits", 
                 RECIPE_STRING);
-        cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset,
-                rawframes_fpet, parlist,
+        cr2res_io_save_LINES_DIAGNOSTICS(out_file, frameset, frameset, parlist,
                 lines_diagnostics_fpet, NULL, ext_plist_fpet,
                 CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);

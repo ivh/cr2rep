@@ -685,51 +685,54 @@ static int cr2res_obs_nodding(
         else                product_name_addon = cpl_sprintf("_%g.fits",
                 drot_posang);
 
+        /* Save only the used RAW ? : raw_one_angle instead of 2nd frameset */
+        /* Beware that the calibration PRO RECi CAL will be missing */
+
 		out_file = cpl_sprintf("%s_combinedA%s", RECIPE_STRING, 
                 product_name_addon) ;
-		cr2res_io_save_COMBINED(out_file, frameset, raw_one_angle, parlist,
+		cr2res_io_save_COMBINED(out_file, frameset, frameset, parlist,
 				combineda, NULL, ext_plist, 
                 CR2RES_OBS_NODDING_COMBINEDA_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_extractedA%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, raw_one_angle, parlist, 
+		cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
                 extracta, NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTA_PROCATG,
 				RECIPE_STRING);
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_slitfuncA%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_SLIT_FUNC(out_file, frameset, raw_one_angle, parlist,
+		cr2res_io_save_SLIT_FUNC(out_file, frameset, frameset, parlist,
 				slitfunca, NULL, ext_plist, 
                 CR2RES_OBS_NODDING_SLITFUNCA_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_modelA%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_SLIT_MODEL(out_file, frameset, raw_one_angle, parlist,
+		cr2res_io_save_SLIT_MODEL(out_file, frameset, frameset, parlist,
 				modela, NULL, ext_plist, CR2RES_OBS_NODDING_SLITMODELA_PROCATG,
 				RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_trace_wave_A%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_TRACE_WAVE(out_file, frameset, raw_one_angle, parlist,
+		cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist,
 				twa, NULL, ext_plist, CR2RES_OBS_NODDING_TWA_PROCATG,
 				RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_combinedB%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_COMBINED(out_file, frameset, raw_one_angle, parlist,
+		cr2res_io_save_COMBINED(out_file, frameset, frameset, parlist,
 				combinedb, NULL, ext_plist, 
                 CR2RES_OBS_NODDING_COMBINEDB_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_extractedB%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, raw_one_angle, parlist, 
+		cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
                 extractb, NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTB_PROCATG,
 				RECIPE_STRING);
 		if (create_idp) {
@@ -740,28 +743,28 @@ static int cr2res_obs_nodding(
 
 		out_file = cpl_sprintf("%s_slitfuncB%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_SLIT_FUNC(out_file, frameset, raw_one_angle, parlist,
+		cr2res_io_save_SLIT_FUNC(out_file, frameset, frameset, parlist,
 				slitfuncb, NULL, ext_plist, 
                 CR2RES_OBS_NODDING_SLITFUNCB_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_modelB%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_SLIT_MODEL(out_file, frameset, raw_one_angle, parlist,
+		cr2res_io_save_SLIT_MODEL(out_file, frameset, frameset, parlist,
 				modelb, NULL, ext_plist, CR2RES_OBS_NODDING_SLITMODELB_PROCATG,
 				RECIPE_STRING) ;
 		cpl_free(out_file);
 		
 		out_file = cpl_sprintf("%s_trace_wave_B%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_TRACE_WAVE(out_file, frameset, raw_one_angle, parlist,
+		cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist,
 				twb, NULL, ext_plist, CR2RES_OBS_NODDING_TWB_PROCATG,
 				RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_extracted_combined%s", RECIPE_STRING, 
                 product_name_addon) ;
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, raw_one_angle, parlist, 
+		cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
                 extractc, NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTC_PROCATG,
 				RECIPE_STRING);
 		if (create_idp) {
@@ -773,7 +776,7 @@ static int cr2res_obs_nodding(
 		if (type == 2) {
 			out_file = cpl_sprintf("%s_throughput%s", RECIPE_STRING,
                     product_name_addon) ;
-			cr2res_io_save_THROUGHPUT(out_file, frameset, raw_one_angle, 
+			cr2res_io_save_THROUGHPUT(out_file, frameset, frameset, 
                     parlist, throughput, NULL, ext_plist, 
 					CR2RES_OBS_NODDING_THROUGHPUT_PROCATG, RECIPE_STRING) ;
 			cpl_free(out_file);
