@@ -690,7 +690,7 @@ double cr2res_qc_wave_resol_fwhm(
             min_fwhm_val, min_fwhm_pos) ;
 
     /* Return */
-    *wl = min_fwhm_val ;
+    *wl = min_fwhm_pos ;
     return min_fwhm_val ;
 }
 
