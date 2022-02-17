@@ -205,6 +205,8 @@ int cr2res_detlin_compute(
 
     // in case no adus above threshold
     if (first_satur==-1) first_satur= cpl_vector_get_size(dits);
+    // in case, we have more linear points than the saturation
+    if (count_linear > first_satur-1) count_linear = first_satur-1;
 
     adus_loc = cpl_vector_extract(adus, 0, first_satur-1, 1);
     dits_loc = cpl_vector_extract(dits, 0, first_satur-1, 1);
