@@ -554,12 +554,12 @@ static int cr2res_cal_detlin(
     cpl_free(labels);
     if (darkframes!= NULL) cpl_frameset_delete(darkframes) ;
 
-    // Complete the merging
-    // This completes the weighted mean as described in cr2res_cal_detlin_update
     for (det_nr = 1; det_nr <= CR2RES_NB_DETECTORS; det_nr++)
     {
         if (reduce_det != 0 && det_nr != reduce_det) continue ;
         
+        // Complete the merging
+        // This completes the weighted mean as described in cr2res_cal_detlin_update
         for (i = 0; i < hdrl_imagelist_get_size(coeffs_merged[det_nr - 1]); i++)
         {
             img = hdrl_imagelist_get(coeffs_merged[det_nr - 1], i);
@@ -585,8 +585,14 @@ static int cr2res_cal_detlin(
                 &qc_max_level) ;
         if (qc_median == -1.0) continue;
 
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG){ 
+            cpl_mask_save(
+                cur_mask, "debug_qcmask.fits",
+                NULL, CPL_IO_CREATE);
+        }
+
         /* Apply mask*/
-        cr2res_bpm_add_mask(bpm_merged[det_nr -1], cur_mask, CR2RES_BPM_DETLIN);
+        //cr2res_bpm_add_mask(bpm_merged[det_nr -1], cur_mask, CR2RES_BPM_DETLIN);
         qc_nb_bad = cpl_mask_count(cur_mask);
         cpl_mask_delete(cur_mask);
 
