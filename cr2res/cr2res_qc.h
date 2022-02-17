@@ -25,6 +25,7 @@
  -----------------------------------------------------------------------------*/
 
 #include <cpl.h>
+#include <hdrl.h>
 
 #define CR2RES_NONLIN_LEVEL 20000
 #define CR2RES_QC_ORDER 4
@@ -82,9 +83,11 @@ double cr2res_qc_wave_lamp_effic(
 
 double cr2res_qc_wave_line_fwhm(
         const cpl_bivector  *   spec,
-        double                  wl) ;
+        double                  wl,
+        double              *   peak_height) ;
 double cr2res_qc_wave_resol_fwhm(
-        const cpl_bivector  *   spec) ;
+        const cpl_bivector  *   spec,
+        double              *   wl) ;
 
 /* OBS */
 double cr2res_qc_overexposed(

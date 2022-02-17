@@ -198,8 +198,9 @@ int cr2res_wave_apply(
     cpl_polynomial      *   wave_sol_1d ;
     cpl_array           *   wl_err_array ;
     int                     trace_id, order, i, j ;
-    double                  best_xcorr, lines_resol_fwhm, lines_resol,
-                            lines_intens, qc_wlen_central, qc_wlen_disp ;
+    double                  best_xcorr, lines_resol_fwhm, lines_pos, 
+                            lines_resol, lines_intens, qc_wlen_central, 
+                            qc_wlen_disp ;
     int                     out_wl_array_size, init_wl_array_size, order_idx, 
                             degree_out ;
 
@@ -548,7 +549,8 @@ int cr2res_wave_apply(
                             degree, clean_spectrum, log_flag,
                             keep_higher_degrees_flag,
                             display, display_wmin, display_wmax, &best_xcorr,
-                            &lines_resol_fwhm, &lines_resol, &lines_intens, 
+                            &lines_resol_fwhm, &lines_pos, &lines_resol, 
+                            &lines_intens, 
                             &wl_err_array, &lines_diagnostics_tmp)) == NULL) {
                 cpl_msg_warning(__func__, "Cannot calibrate in Wavelength") ;
                 cpl_error_reset() ;
@@ -581,6 +583,13 @@ int cr2res_wave_apply(
                         CR2RES_HEADER_QC_WAVE_RESOL_FWHM, order, trace_id) ;
                 cpl_propertylist_append_double(qcs_plist, qc_name,
                         lines_resol_fwhm);
+                cpl_free(qc_name) ;
+            }
+            if (lines_pos > 0.0) {
+                char * qc_name = cpl_sprintf("%s-%02d-%02d",
+                        CR2RES_HEADER_QC_WAVE_POS, order, trace_id) ;
+                cpl_propertylist_append_double(qcs_plist, qc_name,
+                        lines_pos);
                 cpl_free(qc_name) ;
             }
             //CR2RES_HEADER_QC_WAVE_LAMP_EFFIC ?
@@ -669,8 +678,9 @@ int cr2res_wave_apply(
   @param    display_wmin    Minimum Wavelength to display or -1.0
   @param    display_wmax    Maximum Wavelength to display or -1.0
   @param    best_xcorr          [out] Best XCORR value when applicable
-  @param    lines_resol_fwhm    [out] Lines Fwhm median in pix
-  @param    lines_resol         [out] Lines Fwhm median in nm
+  @param    lines_resol_fwhm    [out] Lines Fwhm min in pix
+  @param    lines_pos           [out] min fwhm line posision in nm
+  @param    lines_resol         [out] Lines Fwhm min in nm
   @param    lines_intens        [out] Lines intensities median 
   @param    wavelength_error    [out] array of wave_mean_error, wave_max_error
   @param    lines_diagnostics   [out] table with lines diagnostics
@@ -696,6 +706,7 @@ cpl_polynomial * cr2res_wave_1d(
         double                  display_wmax,
         double              *   best_xcorr,
         double              *   lines_resol_fwhm,
+        double              *   lines_pos,
         double              *   lines_resol,
         double              *   lines_intens,
         cpl_array           **  wavelength_error,
@@ -709,7 +720,7 @@ cpl_polynomial * cr2res_wave_1d(
     cpl_bivector        *   ref_spectrum ;
     cpl_bivector        *   simple_ref_spectrum ;
     const cpl_bivector  **  plot;
-    double                  wl_error_nm, disp, lamb0 ;
+    double                  wl_error_nm, disp, lamb0, pos ;
     int                     i ;
 
     /* Check Inputs */
@@ -726,6 +737,7 @@ cpl_polynomial * cr2res_wave_1d(
     *lines_diagnostics = NULL ;
     if (lines_resol_fwhm != NULL) *lines_resol_fwhm = -1.0 ;
     if (lines_resol != NULL) *lines_resol = -1.0 ;
+    if (lines_pos != NULL) *lines_pos = -1.0 ;
     if (lines_intens != NULL) *lines_intens = -1.0 ;
 
     /* Create the lines spectrum from the lines list */
@@ -813,7 +825,7 @@ cpl_polynomial * cr2res_wave_1d(
             /* Compute QC.RESOLFWHM */
             if (lines_resol_fwhm != NULL) 
                 *lines_resol_fwhm = 
-                    cr2res_qc_wave_resol_fwhm(spectrum_corrected) ;
+                    cr2res_qc_wave_resol_fwhm(spectrum_corrected, &pos) ;
             lamb0 = cpl_vector_get(cpl_bivector_get_x(spectrum_corrected), 0);
             disp = (cpl_vector_get(cpl_bivector_get_x(spectrum_corrected),
                     cpl_bivector_get_size(spectrum_corrected)-1) - lamb0) 
@@ -823,8 +835,7 @@ cpl_polynomial * cr2res_wave_1d(
             /* Compute QC.RESOL */
             if (lines_resol != NULL) 
                 *lines_resol = lamb0 / ( *lines_resol_fwhm * disp  );
-                ;
-
+            if (lines_pos != NULL) *lines_pos = pos ;
 
 // TODO : GENERATE THE LINES STATISTICS ---> *lines_diagnostics
         }

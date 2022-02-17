@@ -454,7 +454,7 @@ double cr2res_qc_wave_line_intens(
     cpl_vector_delete(tmp);
 
     // If the wavelength value is outside the spectrum
-    if (pixel_pos == 0 | pixel_pos == cpl_vector_get_size(wave)) return -1.0;
+    if (pixel_pos == 0 || pixel_pos == cpl_vector_get_size(wave)) return -1.0;
 
     // Sum up the values of the spectrum
     // inside the window and outside the window
@@ -500,12 +500,14 @@ double cr2res_qc_wave_line_intens(
   @brief    Computes one line Fwhm 
   @param    spec        spectrum
   @param    wl          line position
+  @param    peak_height [out] Fitted Peak height
   @return   the computed fwhm
  */
 /*----------------------------------------------------------------------------*/
 double cr2res_qc_wave_line_fwhm(
         const cpl_bivector  *   spec,
-        double                  wl)
+        double                  wl,
+        double              *   peak_height)
 {
     // TODO Thomas / Ansgar
     //cpl_plot_bivector("set grid;set xlabel 'Wavelength (nm)';
@@ -519,7 +521,11 @@ double cr2res_qc_wave_line_fwhm(
     cpl_size window_width;
     double fwhm ;
 
-    if (spec == NULL) return -1.0;
+    /* Check Entries */
+    if (spec == NULL || peak_height == NULL) return -1.0;
+
+    /* Initialise */
+    *peak_height = -1.0 ;
 
     wave = cpl_bivector_get_x_const(spec);
     flux = cpl_bivector_get_y_const(spec);
@@ -536,7 +542,7 @@ double cr2res_qc_wave_line_fwhm(
     cpl_vector_delete(tmp);
 
     // If the wavelength value is outside the spectrum
-    if (pixel_pos == 0 | pixel_pos == cpl_vector_get_size(wave)) return -1.0;
+    if (pixel_pos == 0 || pixel_pos == cpl_vector_get_size(wave)) return -1.0;
 
     // Fit the line with a gaussian
     if (cr2res_wave_fit_single_line(flux, unc, pixel_pos, window_width, 1, 0, 
@@ -553,6 +559,7 @@ double cr2res_qc_wave_line_fwhm(
 
     cpl_vector_delete(result);
 
+    *peak_height = cpl_vector_get(result, 2) ;
     return fwhm ;
 }
 
@@ -610,18 +617,29 @@ double cr2res_qc_wave_lamp_effic(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Computes the lines Fwhm median
+  @brief    Computes the lines Fwhm and return the smallest
   @param    extracted   extracted spectrum
-  @return   the computed resolution
+  @param    wl          [out] the wavelength of the thinest line
+  @return   the thinest fwhm
  */
 /*----------------------------------------------------------------------------*/
 double cr2res_qc_wave_resol_fwhm(
-        const cpl_bivector  *   spec)
+        const cpl_bivector  *   spec,
+        double              *   wl)
 {
     cpl_vector  *   ref_lines ;
     cpl_vector  *   ref_lines_fwhm ;
-    double          wmin, wmax, fwhm_med, fwhm;
+    cpl_vector  *   ref_lines_pos ;
+    double          wmin, wmax, fwhm_med, fwhm, peak_height, min_fwhm_val, 
+                    min_fwhm_pos;
+    cpl_size        idx ;
     int             i, n, nall;
+
+    /* Check Entries */
+    if (spec == NULL || wl == NULL) return -1.0 ;
+
+    /* Initialise */
+    *wl = -1.0 ;
 
     /* Get the reference lines */
     wmin = cpl_vector_get(cpl_bivector_get_x_const(spec), 0);
@@ -636,26 +654,44 @@ double cr2res_qc_wave_resol_fwhm(
     n = 0;
     nall = cpl_vector_get_size(ref_lines);
     ref_lines_fwhm = cpl_vector_new(nall) ;
+    ref_lines_pos = cpl_vector_new(nall) ;
     for (i=0 ; i<cpl_vector_get_size(ref_lines) ; i++) {
-        fwhm = cr2res_qc_wave_line_fwhm(spec, cpl_vector_get(ref_lines, i));
-        if (fwhm > 0.1 && fwhm < CR2RES_QC_WINDOW){
+        fwhm = cr2res_qc_wave_line_fwhm(spec, cpl_vector_get(ref_lines, i), 
+                &peak_height);
+        if (fwhm > 0.1 && fwhm < CR2RES_QC_WINDOW && peak_height > 0 
+                && peak_height<CR2RES_DETECTOR_OVEREXP_THRESH) {
             cpl_vector_set(ref_lines_fwhm, n, fwhm); 
+            cpl_vector_set(ref_lines_pos, n, cpl_vector_get(ref_lines, i)); 
             n++;
         }
     }
     cpl_vector_delete(ref_lines) ;
     if (n == 0){
         cpl_vector_delete(ref_lines_fwhm) ;
+        cpl_vector_delete(ref_lines_pos) ;
         return -1.0;
     }
     cpl_vector_set_size(ref_lines_fwhm, n);
-    cpl_msg_info(__func__, "Using %i of %i lines to estimate FWHM", n, nall);
+    cpl_vector_set_size(ref_lines_pos, n);
 
-    /* Compute the median */
-    fwhm_med = cpl_vector_get_median(ref_lines_fwhm) ;
+    /* Return the smallest FWHM and its position */
+    idx = cpl_vector_get_minpos(ref_lines_fwhm) ;
+    if (idx < 0) {
+        cpl_vector_delete(ref_lines_fwhm) ;
+        cpl_vector_delete(ref_lines_pos) ;
+        return -1.0 ;
+    } 
+    min_fwhm_val = cpl_vector_get(ref_lines_fwhm, idx) ;
+    min_fwhm_pos = cpl_vector_get(ref_lines_pos, idx) ;
     cpl_vector_delete(ref_lines_fwhm) ;
+    cpl_vector_delete(ref_lines_pos) ;
 
-    return fwhm_med ;
+    cpl_msg_info(__func__, "Using the smallest FWHM %g of line at %g nm",
+            min_fwhm_val, min_fwhm_pos) ;
+
+    /* Return */
+    *wl = min_fwhm_val ;
+    return min_fwhm_val ;
 }
 
 /*----------------------------------------------------------------------------*/
