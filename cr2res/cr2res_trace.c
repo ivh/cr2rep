@@ -191,9 +191,10 @@ cpl_table * cr2res_trace(
     }
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_mask_save(mask, "debug_mask_before_cleaning.fits", NULL,
-                    CPL_IO_CREATE);
-        }
+        if (cpl_mask_save(mask, "debug_mask_before_cleaning.fits", NULL,
+                    CPL_IO_CREATE) != CPL_ERROR_NONE)
+            cpl_error_reset();
+    }
     /* Clean the traces in the image */
     cpl_msg_info(__func__, "Traces cleaning") ;
     if ((mask_clean = cr2res_trace_clean(mask, opening, min_cluster)) == NULL) {
@@ -233,10 +234,12 @@ cpl_table * cr2res_trace(
 
     /* Debug Saving */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-		cpl_image_save(labels, "debug_labels.fits",
-				CPL_TYPE_INT, NULL, CPL_IO_CREATE);
-        cpl_table_save(clustertable, NULL, NULL, "debug_cluster_table.fits",
-                CPL_IO_CREATE);
+		if (cpl_image_save(labels, "debug_labels.fits",
+				CPL_TYPE_INT, NULL, CPL_IO_CREATE) != CPL_ERROR_NONE) 
+                cpl_error_reset();
+        if (cpl_table_save(clustertable, NULL, NULL, "debug_cluster_table.fits",
+                CPL_IO_CREATE) != CPL_ERROR_NONE) 
+                cpl_error_reset();
     }
     cpl_image_delete(labels) ;
 
@@ -250,8 +253,9 @@ cpl_table * cr2res_trace(
 
     /* Debug Saving */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_table_save(trace_table, NULL, NULL, 
-                "debug_trace_table.fits", CPL_IO_CREATE);
+        if (cpl_table_save(trace_table, NULL, NULL, 
+                "debug_trace_table.fits", CPL_IO_CREATE) != CPL_ERROR_NONE)
+                cpl_error_reset();
     }
 
     /* Detect and restore the edge traces */
@@ -268,8 +272,10 @@ cpl_table * cr2res_trace(
 
     /* Debug Saving */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_table_save(restored_trace_table, NULL, NULL, 
-                "debug_restored_trace_table.fits", CPL_IO_CREATE);
+        if (cpl_table_save(restored_trace_table, NULL, NULL, 
+                "debug_restored_trace_table.fits", CPL_IO_CREATE) 
+                != CPL_ERROR_NONE)
+                cpl_error_reset();
     }
     return restored_trace_table ;
 }
@@ -311,8 +317,9 @@ cpl_mask * cr2res_trace_clean(
         diff_mask = cpl_mask_duplicate(mask) ;
         cpl_mask_xor(diff_mask, new_mask) ;
         if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-            cpl_mask_save(diff_mask, "debug_diff_mask.fits", NULL,
-                    CPL_IO_CREATE);
+            if (cpl_mask_save(diff_mask, "debug_diff_mask.fits", NULL,
+                    CPL_IO_CREATE) != CPL_ERROR_NONE)
+                cpl_error_reset();
         }
         cpl_mask_delete(diff_mask) ;
     } else {
@@ -331,7 +338,9 @@ cpl_mask * cr2res_trace_clean(
 
     /* Debug Saving */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_mask_save(clean_mask, "debug_mask.fits", NULL, CPL_IO_CREATE);
+        if (cpl_mask_save(clean_mask, "debug_mask.fits", 
+                NULL, CPL_IO_CREATE) != CPL_ERROR_NONE)
+            cpl_error_reset();
     }
     return clean_mask ;
 }
@@ -2251,10 +2260,12 @@ static cpl_mask * cr2res_trace_signal_detect(
     cpl_image_subtract(smx_image, smxy_image);
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_image_save(smxy_image, "debug_smxyimage.fits", CPL_TYPE_DOUBLE, NULL,
-                CPL_IO_CREATE);
-        cpl_image_save(smx_image, "debug_smximage.fits", CPL_TYPE_DOUBLE, NULL,
-                CPL_IO_CREATE);
+        if (cpl_image_save(smxy_image, "debug_smxyimage.fits", CPL_TYPE_DOUBLE, 
+            NULL, CPL_IO_CREATE) != CPL_ERROR_NONE) 
+            cpl_error_reset();
+        if (cpl_image_save(smx_image, "debug_smximage.fits", CPL_TYPE_DOUBLE, 
+            NULL, CPL_IO_CREATE) != CPL_ERROR_NONE)
+            cpl_error_reset();
     }
 
     /* Wanted pixels are where input image exceeds sm_image by thresh */
