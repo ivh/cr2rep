@@ -592,7 +592,7 @@ static int cr2res_cal_detlin(
         }
 
         /* Apply mask*/
-        //cr2res_bpm_add_mask(bpm_merged[det_nr -1], cur_mask, CR2RES_BPM_DETLIN);
+        cr2res_bpm_add_mask(bpm_merged[det_nr -1], cur_mask, CR2RES_BPM_DETLIN);
         qc_nb_bad = cpl_mask_count(cur_mask);
         cpl_mask_delete(cur_mask);
 
