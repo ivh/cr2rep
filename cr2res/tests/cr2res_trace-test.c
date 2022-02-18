@@ -308,7 +308,7 @@ static void test_cr2res_trace(void)
     cpl_test_null(cr2res_trace(trace_ima, 1.0, 1.0, threshold, -1, 2, 10));
     cpl_test_null(cr2res_trace(trace_ima, 1.0, 1.0, threshold, 1, 2, -10));
 
-    cpl_test(out = cr2res_trace(trace_ima, 1.0, 1.0, threshold, 1, 2, 10));
+    cpl_test(out = cr2res_trace(trace_ima, 1.0, 5.0, threshold, 1, 2, 10));
 
     all = cpl_table_get_array(out, CR2RES_COL_ALL, 0);
 

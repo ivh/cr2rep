@@ -690,7 +690,7 @@ static void test_cr2res_slitdec_curved(void)
     int order = 1;
     int trace = 1;
     int swath = 400;
-    int oversample = 2;
+    int oversample = 3;
     double smooth_slit = 10;
     double spec_in[width];
     double const_shear = 1;

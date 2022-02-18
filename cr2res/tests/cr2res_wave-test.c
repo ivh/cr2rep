@@ -259,8 +259,8 @@ static void test_cr2res_wave_1d()
 
     cpl_test_null(wavelength);
     cpl_test_null(wavelength_error);
-    cpl_test_nonnull(diagnostics);
-    cpl_table_delete(diagnostics);
+    cpl_test_null(diagnostics);
+
 
     // regular run
     cpl_test(wavelength = cr2res_wave_1d(spectrum, spectrum_err, initial_guess,
@@ -702,8 +702,8 @@ static void test_cr2res_wave_etalon_2d(){
     cpl_table           *  line_diagnostics = NULL;
     cpl_array           *  wavelength_error = NULL;
     int ninputs = 2;
-    cpl_size degree_x = 1;
-    cpl_size degree_y = 1;
+    cpl_size degree_x = 2;
+    cpl_size degree_y = 2;
     cpl_polynomial * result = NULL;
     cpl_size degree, degree2d[2];
     double c00, c01, c10, c11;

@@ -38,6 +38,8 @@
 
 #define SPEED_OF_LIGHT 299792.458
 #define modulo(x, y) ((x) - ((y) * trunc((x)/(y))))
+#define min(a,b) (((a)<(b))?(a):(b))
+#define max(a,b) (((a)>(b))?(a):(b))
 
 #define CR2RES_ETALON_GAP_H 9.9950e6
 #define CR2RES_ETALON_GAP_J 9.9900e6
@@ -822,7 +824,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         break;
     default:
         gap = -1;
-        setting_deg = 2;
+        setting_deg = 1;
         break;
     }
 
@@ -1097,7 +1099,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     // In a second step we assume that m*wave varies linearly across all orders
     // and then correct for that
     npoints = 0;
-    pad = 2;
+    pad = min(2, ninputs-2);
     for (i = pad; i < ninputs - pad; i++)
     {
         if (fpe_mord[i] == NULL) continue;

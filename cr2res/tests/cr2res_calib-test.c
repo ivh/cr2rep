@@ -789,10 +789,22 @@ static void test_cr2res_calib_bpm()
     cpl_image_add(hdrl_image_get_error(cmp), tmp);
     cpl_image_delete(tmp);
 
-
     cpl_test_eq(hdrl_image_count_rejected(out), 1);
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
-    cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
+    // cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
+
+    for (size_t i = 1; i <= nx; i++)
+    {
+        for (size_t j = 1; j <= ny; j++)
+        {
+            if (!hdrl_image_is_rejected(out, i, j)){
+                cpl_test_abs(cpl_image_get(hdrl_image_get_error(out), i, j, &badpix), 
+                        cpl_image_get(hdrl_image_get_error(cmp), i, j, &badpix),
+                        DBL_EPSILON);
+            }
+        }       
+        
+    }
 
     cpl_frame_delete(bpm);
     hdrl_image_delete(out);
@@ -818,8 +830,22 @@ static void test_cr2res_calib_bpm()
     cpl_image_delete(tmp);
 
     cpl_test_eq(hdrl_image_count_rejected(out), nx*ny - 1);
-    cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
-    cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
+    cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);    
+    // cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
+
+    for (size_t i = 1; i <= nx; i++)
+    {
+        for (size_t j = 1; j <= ny; j++)
+        {
+            if (!hdrl_image_is_rejected(out, i, j)){
+                cpl_test_abs(cpl_image_get(hdrl_image_get_error(out), i, j, &badpix), 
+                        cpl_image_get(hdrl_image_get_error(cmp), i, j, &badpix),
+                        DBL_EPSILON);
+            }
+        }       
+        
+    }
+    
 
     cpl_frame_delete(bpm);
     hdrl_image_delete(out);
