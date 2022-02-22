@@ -869,13 +869,13 @@ static void test_cr2res_optimal_filter_2d(void)
 static void test_cr2res_polyfit_2d(void)
 {
     cpl_vector *x, *y, *z;
-    cpl_matrix *degree;
     cpl_polynomial * poly;
     
     cpl_size npoints = 5 * 5;
     cpl_size ngrid = npoints * npoints;
     cpl_size i, j, k;
     cpl_size power[2];
+    cpl_size degree[2];
 
     x = cpl_vector_new(ngrid);
     y = cpl_vector_new(ngrid);
@@ -893,21 +893,13 @@ static void test_cr2res_polyfit_2d(void)
     }
 
     // Define the degrees that should be fitted
-    degree = cpl_matrix_new(3, 2);
-    // Fit constant
-    cpl_matrix_set(degree, 0, 0, 0);
-    cpl_matrix_set(degree, 0, 1, 0);
-
-    // Fit x linear
-    cpl_matrix_set(degree, 1, 0, 1);
-    cpl_matrix_set(degree, 1, 1, 0);
-
-    // Fit x y^2
-    cpl_matrix_set(degree, 2, 0, 1);
-    cpl_matrix_set(degree, 2, 1, 2);
+    // These are always one larger than the actual degree
+    // since it includes degree 0
+    degree[0] = 2;
+    degree[1] = 3;
 
     // Do the fit
-    cpl_test(poly = cr2res_polyfit_2d(x, y, z, degree));
+    cpl_test_nonnull(poly = cr2res_polyfit_2d(x, y, z, degree));
 
     // Check results
     cpl_test_eq(cpl_polynomial_get_dimension(poly), 2);
@@ -928,7 +920,6 @@ static void test_cr2res_polyfit_2d(void)
     cpl_vector_delete(x);
     cpl_vector_delete(y);
     cpl_vector_delete(z);
-    cpl_matrix_delete(degree);
     cpl_polynomial_delete(poly);
 }
 
