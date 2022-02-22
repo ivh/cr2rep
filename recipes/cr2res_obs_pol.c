@@ -338,7 +338,7 @@ static int cr2res_obs_pol_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value(
             "cr2res.cr2res_obs_pol.subtract_interorder_column", CPL_TYPE_BOOL,
-            "Subtract column-by-column fit to the pixel values between orderѕ",
+            "Subtract column-by-column fit to the pixel values between orders",
             "cr2res.cr2res_obs_pol", TRUE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, 
             "subtract_interorder_column");

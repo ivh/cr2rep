@@ -734,7 +734,7 @@ static hdrl_image ** cr2res_obs_2d_average_sky(
         hdrl_imagelist_delete(sky_list) ;
         cpl_image_delete(contrib) ;
 
-        /* Store the reѕult */
+        /* Store the result */
         if (cpl_error_get_code() == CPL_ERROR_NONE) {
             sky_average[det_nr-1] = avg ;
         } 
