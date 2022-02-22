@@ -29,6 +29,7 @@
 
 #include "cr2res_utils.h"
 #include "cr2res_calib.h"
+
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
 #include "cr2res_bpm.h"
@@ -52,10 +53,14 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static hdrl_image ** cr2res_obs_2d_average_sky(
+        const cpl_frameset  *   skyframes) ;
 static int cr2res_obs_2d_check_inputs_validity(
         const cpl_frame *   rawframe) ;
 static int cr2res_obs_2d_reduce(
-        const cpl_frame     *   rawframe,
+        const cpl_frame     *   rawframe_obj,
+        const cpl_frame     *   rawframe_sky,
+        const hdrl_image    **  sky_average,
         const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
@@ -69,7 +74,6 @@ static int cr2res_obs_2d_reduce(
         int                     reduce_trace,
         cpl_table           **  extract,
         cpl_propertylist    **  ext_plist) ;
-
 static int cr2res_obs_2d_create(cpl_plugin *);
 static int cr2res_obs_2d_exec(cpl_plugin *);
 static int cr2res_obs_2d_destroy(cpl_plugin *);
@@ -300,16 +304,20 @@ static int cr2res_obs_2d(
     const cpl_parameter *   param ;
     int                     reduce_det, reduce_order, reduce_trace, 
                             subtract_nolight_rows, subtract_interorder_column ;
-    cpl_frameset        *   rawframes ;
-    cpl_frame           *   rawframe ;
+    cpl_frameset        *   rawframes_obj ;
+    cpl_frameset        *   rawframes_sky ;
+    cpl_frame           *   rawframe_obj ;
+    cpl_frame           *   rawframe_sky ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
     const cpl_frame     *   trace_wave_frame ;
+    hdrl_image          **  sky_average ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extract[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
+    cpl_size                nsky, nobj ;
     int                     i, det_nr; 
 
     /* Initialise */
@@ -352,21 +360,58 @@ static int cr2res_obs_2d(
             CR2RES_CAL_FLAT_MASTER_PROCATG) ; 
     bpm_frame = cr2res_io_find_BPM(frameset) ;
 
-    /* Get the Frames for the current decker position */
-    rawframes = cr2res_extract_frameset(frameset, CR2RES_OBS_2D_OBJECT_RAW) ;
-    if (rawframes == NULL) {
+    /* Get the Object Frames */
+    rawframes_obj = cr2res_extract_frameset(frameset, CR2RES_OBS_2D_OBJECT_RAW);
+    if (rawframes_obj == NULL) {
         cpl_msg_error(__func__, "Could not find RAW frames") ;
         return -1 ;
     }
-    cpl_msg_indent_more() ;
+    nobj = cpl_frameset_get_size(rawframes_obj) ;
     
-    cpl_msg_info(__func__, "TODO : Add support for SKY frames !") ;
-
+    /* Get the Sky Frames */
+    //  rawframes_sky       sky_average         Effect
+    //  NULL                NULL                No correction
+    //  NULL                not NULL            Use sky average
+    //  not NULL            NULL                Use individual Sky frames
+    //  not NULL            not NULL            Not allowed
+    rawframes_sky = cr2res_extract_frameset(frameset, CR2RES_OBS_2D_SKY_RAW);
+    nsky = cpl_frameset_get_size(rawframes_sky) ;
+    if (nsky == 0) {
+        cpl_msg_info(__func__, "No Sky Correction") ;
+        if (rawframes_sky != NULL)  cpl_frameset_delete(rawframes_sky) ;
+        rawframes_sky = NULL ;
+        sky_average = NULL ;
+    } else if (nsky > 0 && nsky != nobj) {
+        cpl_msg_info(__func__, "Sky Correction using Average") ;
+        // Compute sky_average TODO
+        sky_average = cr2res_obs_2d_average_sky(rawframes_sky) ;
+        if (rawframes_sky != NULL)  cpl_frameset_delete(rawframes_sky) ;
+        rawframes_sky = NULL ;
+    } else if (nsky == nobj) {
+        cpl_msg_info(__func__, "Sky Correction using Individual Frames") ;
+        sky_average = NULL ;
+    } else {
+        // Should never happen
+        if (rawframes_sky != NULL)  cpl_frameset_delete(rawframes_sky) ;
+        rawframes_sky = NULL ;
+    }
     /* Loop on the RAW files */
-    for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
-        
+    for (i=0 ; i<cpl_frameset_get_size(rawframes_obj) ; i++) {
         /* Current frame */
-        rawframe = cpl_frameset_get_position(rawframes, i);
+        rawframe_obj = cpl_frameset_get_position(rawframes_obj, i);
+
+        cpl_msg_info(__func__, "Process Frame %s", 
+                cpl_frame_get_filename(rawframe_obj)) ;
+        cpl_msg_indent_more() ;
+
+        /* Current SKY frame if 1 per OBJ */
+        if (rawframes_sky != NULL) {
+            rawframe_sky = cpl_frameset_get_position(rawframes_sky, i);
+            cpl_msg_info(__func__, "Use SKY Frame %s", 
+                    cpl_frame_get_filename(rawframe_sky)) ;
+        } else {
+            rawframe_sky = NULL ;
+        }
 
         /* Loop on the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
@@ -381,10 +426,11 @@ static int cr2res_obs_2d(
             cpl_msg_indent_more() ;
             
             /* Call the reduction function */
-            if (cr2res_obs_2d_reduce(rawframe, trace_wave_frame, detlin_frame, 
-                        master_dark_frame, master_flat_frame, bpm_frame,
-                        subtract_nolight_rows, subtract_interorder_column, 
-                        0, det_nr, reduce_order, 
+            if (cr2res_obs_2d_reduce(rawframe_obj, rawframe_sky, 
+                        (const hdrl_image**)sky_average, 
+                        trace_wave_frame, detlin_frame, master_dark_frame, 
+                        master_flat_frame, bpm_frame, subtract_nolight_rows, 
+                        subtract_interorder_column, 0, det_nr, reduce_order, 
                         reduce_trace,
                         &(extract[det_nr-1]),
                         &(ext_plist[det_nr-1])) == -1) {
@@ -394,6 +440,7 @@ static int cr2res_obs_2d(
             }
             cpl_msg_indent_less() ;
         }
+        cpl_msg_indent_less() ;
 
         /* Save Products */
 
@@ -414,14 +461,24 @@ static int cr2res_obs_2d(
         }
         cpl_msg_indent_less() ;
     }
-    cpl_frameset_delete(rawframes) ;
+    cpl_frameset_delete(rawframes_obj) ;
+    if (sky_average != NULL) {
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++)
+            if (sky_average[det_nr-1] != NULL)
+                hdrl_image_delete(sky_average[det_nr-1]) ;
+        cpl_free(sky_average) ;
+    }
+    if (rawframes_sky != NULL)  cpl_frameset_delete(rawframes_sky) ;
+
     return (int)cpl_error_get_code();
 }
  
 /*----------------------------------------------------------------------------*/
 /**
   @brief  Execute the 2d observation on one detector
-  @param rawframe               Raw science frame
+  @param rawframe_obj           Raw science OBJ frame
+  @param rawframe_sky           Raw science SKY frame or NULL
+  @param sky_average            CR2RES_NB_DETECTORS averaged SKY images or NULL
   @param trace_wave_frame       Trace Wave file
   @param detlin_frame           Associated detlin coefficients
   @param master_dark_frame      Associated master dark
@@ -438,7 +495,9 @@ static int cr2res_obs_2d(
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_obs_2d_reduce(
-        const cpl_frame     *   rawframe,
+        const cpl_frame     *   rawframe_obj,
+        const cpl_frame     *   rawframe_sky,
+        const hdrl_image    **  sky_average,
         const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
@@ -455,10 +514,12 @@ static int cr2res_obs_2d_reduce(
 {
     hdrl_image          *   in ;
     hdrl_image          *   in_calib ;
+    hdrl_image          *   in_sky ;
+    hdrl_image          *   in_sky_calib ;
     cpl_table           *   trace_wave ;
     cpl_propertylist    *   plist ;
-    double                  dit ;
-    int                     ndit ;
+    double                  dit, dit_sky ;
+    int                     ndit, ndit_sky ;
     cpl_table           *   extracted ;
     cpl_size                i ;
     char                *   key_name ;
@@ -467,11 +528,11 @@ static int cr2res_obs_2d_reduce(
                             order_zp, order_idx, order_idxp ;
 
     /* Check Inputs */
-    if (extract == NULL || ext_plist == NULL || rawframe == NULL || 
+    if (extract == NULL || ext_plist == NULL || rawframe_obj == NULL || 
             trace_wave_frame == NULL) return -1 ;
 
     /* Check raw frames consistency */
-    if (cr2res_obs_2d_check_inputs_validity(rawframe) != 1) {
+    if (cr2res_obs_2d_check_inputs_validity(rawframe_obj) != 1) {
         cpl_msg_error(__func__, "Invalid Inputs") ;
         return -1 ;
     }
@@ -492,7 +553,7 @@ static int cr2res_obs_2d_reduce(
     }
 
     /* Get the DIT */
-    plist = cpl_propertylist_load(cpl_frame_get_filename(rawframe), 0) ;
+    plist = cpl_propertylist_load(cpl_frame_get_filename(rawframe_obj), 0) ;
     dit = cr2res_pfits_get_dit(plist) ;
     ndit = cr2res_pfits_get_ndit(plist) ;
     cpl_propertylist_delete(plist); 
@@ -503,7 +564,7 @@ static int cr2res_obs_2d_reduce(
     cpl_msg_debug(__func__, "DIT value : %g", dit) ;
 
     /* Load the input image */
-    if ((in = cr2res_io_load_image(cpl_frame_get_filename(rawframe),
+    if ((in = cr2res_io_load_image(cpl_frame_get_filename(rawframe_obj),
                     reduce_det)) == NULL) {
         cpl_msg_error(__func__, "Cannot load image") ;
         return -1 ;
@@ -518,6 +579,53 @@ static int cr2res_obs_2d_reduce(
         return -1 ;
     }
     hdrl_image_delete(in) ;
+
+    /* Correct for the sky */
+    if (sky_average != NULL && sky_average[reduce_det-1] != NULL) {
+        /* Average SKY correction */
+        hdrl_image_sub_image(in_calib, sky_average[reduce_det-1]) ;
+    } else if (rawframe_sky != NULL) {
+        /* Individual SKY correction */
+
+        /* Get the DIT */
+        plist = cpl_propertylist_load(cpl_frame_get_filename(rawframe_sky), 0) ;
+        dit_sky = cr2res_pfits_get_dit(plist) ;
+        ndit_sky = cr2res_pfits_get_ndit(plist) ;
+        cpl_propertylist_delete(plist); 
+        if (cpl_error_get_code()) {
+            cpl_msg_error(__func__, "Cannot read the DIT from the sky") ;
+            hdrl_image_delete(in_calib) ;
+            return -1 ;
+        }
+        cpl_msg_debug(__func__, "SKY DIT value : %g", dit) ;
+
+        /* Load the input image */
+        if ((in_sky = cr2res_io_load_image(cpl_frame_get_filename(rawframe_sky),
+                        reduce_det)) == NULL) {
+            cpl_msg_error(__func__, "Cannot load sky image") ;
+            hdrl_image_delete(in_calib) ;
+            return -1 ;
+        }
+
+        /* Calibrate the image */
+        if ((in_sky_calib = cr2res_calib_image(in_sky, reduce_det, 0,
+            subtract_nolight_rows, subtract_interorder_column, 0, 
+            master_flat_frame, master_dark_frame, bpm_frame, detlin_frame, 
+            dit_sky, ndit_sky)) == NULL) {
+            cpl_msg_error(__func__, 
+                    "Failed to apply the calibrations to SKY") ;
+            hdrl_image_delete(in_calib) ;
+            hdrl_image_delete(in_sky) ;
+            return -1 ;
+        }
+        hdrl_image_delete(in_sky) ;
+
+        /* Subtract the SKY */
+        hdrl_image_sub_image(in_calib, in_sky_calib) ;
+        hdrl_image_delete(in_sky_calib) ;
+    } else {
+        cpl_msg_warning(__func__, "No Sky Correction") ;
+    }
 
     /* Load the trace wave */
     cpl_msg_info(__func__, "Load the TRACE WAVE") ;
@@ -542,8 +650,8 @@ static int cr2res_obs_2d_reduce(
 
     /* Extension header for products */
     plist = cpl_propertylist_load(
-            cpl_frame_get_filename(rawframe),
-            cr2res_io_get_ext_idx(cpl_frame_get_filename(rawframe), 
+            cpl_frame_get_filename(rawframe_obj),
+            cr2res_io_get_ext_idx(cpl_frame_get_filename(rawframe_obj), 
                 reduce_det, 1)) ;
 
     /* Compute the QC parameters */
@@ -589,6 +697,49 @@ static int cr2res_obs_2d_check_inputs_validity(
     /* Check Inputs */
     if (rawframe == NULL) return -1 ;
     return 1 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Average the Sky frames
+  @param    skyframes   The input SKY frames
+  @return   The newly allocated sky frames
+ */
+/*----------------------------------------------------------------------------*/
+static hdrl_image ** cr2res_obs_2d_average_sky(
+        const cpl_frameset  *   skyframes)
+{
+    hdrl_image      **  sky_average ;
+    hdrl_imagelist  *   sky_list ;
+    hdrl_image      *   avg ;
+    cpl_image       *   contrib ;
+    int                 det_nr ;
+
+    /* Check Inputs */
+    if (skyframes == NULL) return NULL ;
+
+    /* Allocate and Initialise */
+    sky_average = cpl_malloc(CR2RES_NB_DETECTORS * sizeof(hdrl_image *)) ;
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) 
+        sky_average[det_nr-1] = NULL ;
+
+    /* Loop on the detectors */
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+
+        /* Load the images */
+        sky_list = cr2res_io_load_image_list_from_set(skyframes, det_nr) ;
+
+        /* Compute the average */
+        hdrl_imagelist_collapse_mean(sky_list, &avg, &contrib) ;
+        hdrl_imagelist_delete(sky_list) ;
+        cpl_image_delete(contrib) ;
+
+        /* Store the reѕult */
+        if (cpl_error_get_code() == CPL_ERROR_NONE) {
+            sky_average[det_nr-1] = avg ;
+        } 
+    }
+    return sky_average ;
 }
 
 
