@@ -73,10 +73,12 @@ BPM merging                                                             \n\
     <recipe_name>.fits " 
     CR2RES_UTIL_BPM_MERGE_PROCATG "\n\
                                                                         \n\
-  Algorithm         TODO                                                \n\
+  Algorithm                                                             \n\
+        read input BPMs and merge their types by adding the             \n\
+        integers, in powers of 2.                                       \n\
                                                                         \n\
   Library functions used:                                               \n\
-    cr2res_io_load_BPM()        TODO                                    \n\
+    cr2res_io_load_BPM()                                                \n\
     cr2res_io_save_BPM()                                                \n\
 ";
 

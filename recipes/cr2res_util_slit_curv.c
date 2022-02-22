@@ -64,8 +64,7 @@ static int cr2res_util_slit_curv(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_util_slit_curv_description[] = "\
 Slit curvature computation                                              \n\
-  For each input trace_wave file, the slit curvature is derived from    \n\
-  each order that has at least 2 traces.                                \n\
+  For each input trace_wave file, the slit curvature is derived.        \n\
                                                                         \n\
   Inputs                                                                \n\
     trace.fits " CR2RES_CAL_FLAT_TW_PROCATG " [1 to n]                  \n\
@@ -81,7 +80,6 @@ Slit curvature computation                                              \n\
     <input_lamp_name>_slit_curv.fits " CR2RES_UTIL_SLIT_CURV_PROCATG "  \n\
     <input_lamp_name>_tw.fits " CR2RES_UTIL_SLIT_CURV_TW_PROCATG"       \n\
                                                                         \n\
-                     TODO\n\
   Algorithm                                                             \n\
     loop on input raw files pairs (t,l):                                \n\
       loop on detectors d:                                              \n\
