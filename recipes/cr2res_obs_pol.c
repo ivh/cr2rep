@@ -683,22 +683,22 @@ static int cr2res_obs_pol(
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         if (in_calib_1_a[det_nr-1] != NULL) {
             /* Calibrated images a */
-            out_file = cpl_sprintf("%s_in_caliba_1.fits", RECIPE_STRING) ;
+            out_file = cpl_sprintf("%s_in_calibA_1.fits", RECIPE_STRING) ;
             cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
                     in_calib_1_a, NULL, ext_plista, 
                     CR2RES_OBS_POL_CALIB_A_PROCATG, RECIPE_STRING);
             cpl_free(out_file);
-            out_file = cpl_sprintf("%s_in_caliba_2.fits", RECIPE_STRING) ;
+            out_file = cpl_sprintf("%s_in_calibA_2.fits", RECIPE_STRING) ;
             cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
                     in_calib_2_a, NULL, ext_plista, 
                     CR2RES_OBS_POL_CALIB_A_PROCATG, RECIPE_STRING);
             cpl_free(out_file);
-            out_file = cpl_sprintf("%s_in_caliba_3.fits", RECIPE_STRING) ;
+            out_file = cpl_sprintf("%s_in_calibA_3.fits", RECIPE_STRING) ;
             cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
                     in_calib_3_a, NULL, ext_plista, 
                     CR2RES_OBS_POL_CALIB_A_PROCATG, RECIPE_STRING);
             cpl_free(out_file);
-            out_file = cpl_sprintf("%s_in_caliba_4.fits", RECIPE_STRING) ;
+            out_file = cpl_sprintf("%s_in_calibA_4.fits", RECIPE_STRING) ;
             cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
                     in_calib_4_a, NULL, ext_plista, 
                     CR2RES_OBS_POL_CALIB_A_PROCATG, RECIPE_STRING);
@@ -789,22 +789,22 @@ static int cr2res_obs_pol(
             cpl_free(out_file);
 
             /* Calibrated images b */
-            out_file = cpl_sprintf("%s_in_calibb_1.fits", RECIPE_STRING) ;
+            out_file = cpl_sprintf("%s_in_calibB_1.fits", RECIPE_STRING) ;
             cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
                     in_calib_1_b, NULL, ext_plista, 
                     CR2RES_OBS_POL_CALIB_B_PROCATG, RECIPE_STRING);
             cpl_free(out_file);
-            out_file = cpl_sprintf("%s_in_calibb_2.fits", RECIPE_STRING) ;
+            out_file = cpl_sprintf("%s_in_calibB_2.fits", RECIPE_STRING) ;
             cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
                     in_calib_2_b, NULL, ext_plista, 
                     CR2RES_OBS_POL_CALIB_B_PROCATG, RECIPE_STRING);
             cpl_free(out_file);
-            out_file = cpl_sprintf("%s_in_calibb_3.fits", RECIPE_STRING) ;
+            out_file = cpl_sprintf("%s_in_calibB_3.fits", RECIPE_STRING) ;
             cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
                     in_calib_3_b, NULL, ext_plista, 
                     CR2RES_OBS_POL_CALIB_B_PROCATG, RECIPE_STRING);
             cpl_free(out_file);
-            out_file = cpl_sprintf("%s_in_calibb_4.fits", RECIPE_STRING) ;
+            out_file = cpl_sprintf("%s_in_calibB_4.fits", RECIPE_STRING) ;
             cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
                     in_calib_4_b, NULL, ext_plista, 
                     CR2RES_OBS_POL_CALIB_B_PROCATG, RECIPE_STRING);
