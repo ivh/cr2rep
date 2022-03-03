@@ -1025,7 +1025,7 @@ static int cr2res_cal_flat_reduce(
     cpl_msg_info(__func__, "Calibrate the input images") ;
     cpl_msg_indent_more() ;
     if ((imlist_calibrated = cr2res_calib_imagelist(imlist, reduce_det, 
-            0, subtract_nolight_rows, 1, calib_cosmics_corr, NULL, 
+            0, subtract_nolight_rows, 0, calib_cosmics_corr, NULL, 
             master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
         cpl_vector_delete(dits) ;
