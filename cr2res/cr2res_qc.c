@@ -557,9 +557,8 @@ double cr2res_qc_wave_line_fwhm(
     fwhm = cpl_vector_get(result, 1);
     fwhm = fwhm * 2.355;
 
-    cpl_vector_delete(result);
-
     *peak_height = cpl_vector_get(result, 2) ;
+    cpl_vector_delete(result);
     return fwhm ;
 }
 
