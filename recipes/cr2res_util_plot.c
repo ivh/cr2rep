@@ -56,7 +56,8 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
 static int cr2res_util_plot_slit_func(cpl_table *, int, int, int) ;
 static int cr2res_util_plot_slit_func_one(cpl_table *, const char *,
         int, const char *, const char *) ;
-static int cr2res_util_plot_spec_1d(cpl_table *, cpl_table *, int, int, int);
+static int cr2res_util_plot_spec_1d(cpl_table *, cpl_table *, int, int,
+        int, double, double);
 static int cr2res_util_plot_spec_1d_one(cpl_table *, cpl_table *, 
         const char *, int, const char *, const char *, const char *) ;
 static int cr2res_util_plot_create(cpl_plugin *);
@@ -334,7 +335,7 @@ static int cr2res_util_plot(
         tab1 = cr2res_io_load_EXTRACT_1D(fname1, reduce_det) ;
         if (fname2 == NULL) {
             cr2res_util_plot_spec_1d(tab1, NULL, adjust, reduce_order, 
-                    reduce_trace) ;
+                    reduce_trace, xmin, xmax) ;
         } else {
             if (reduce_order < 1 || reduce_trace < 1) {
                 cpl_msg_error(__func__, "Please specify a order/trace - abort");
@@ -450,11 +451,15 @@ static int cr2res_util_plot_spec_1d(
         cpl_table   *       tab_opt,
         int                 adjust,
         int                 order,
-        int                 trace) 
+        int                 trace,
+        double              xmin,
+        double              xmax) 
 {
-    char    *   wl_col ;
-    char    *   spec_col ;
-    char    *   err_col ;
+    char        *   wl_col ;
+    char        *   spec_col ;
+    char        *   err_col ;
+    cpl_table   *   tab_loc ;
+    cpl_table   *   sel_tab ;
 
     /* Check entries */
     if (cpl_table_get_nrow(tab) == 0) return -1 ;
@@ -468,16 +473,30 @@ static int cr2res_util_plot_spec_1d(
     err_col = cr2res_dfs_SPEC_ERR_colname(order, trace) ;
     wl_col = cr2res_dfs_WAVELENGTH_colname(order, trace) ;
 
+    tab_loc = cpl_table_duplicate(tab) ;
+
+    /* Table Selection */
+    if (xmin > 0.0 && xmax >.0) {
+        cpl_table_and_selected_double(tab_loc, wl_col, CPL_GREATER_THAN, xmin) ;
+        cpl_table_and_selected_double(tab_loc, wl_col, CPL_LESS_THAN, xmax) ;
+        sel_tab = cpl_table_extract_selected(tab_loc) ;
+        cpl_table_delete(tab_loc) ;
+        tab_loc = sel_tab ;
+    } else {
+        tab_loc = cpl_table_duplicate(tab) ;
+    }
+
     /* SPECTRUM */
-    cr2res_util_plot_spec_1d_one(tab, tab_opt, wl_col, adjust, spec_col,
+    cr2res_util_plot_spec_1d_one(tab_loc, tab_opt, wl_col, adjust, spec_col,
 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Intensity (ADU/sec)';",
             "t 'Extracted Spectrum' w lines") ;
 
     /* ERROR */
-    cr2res_util_plot_spec_1d_one(tab, tab_opt, wl_col, adjust, err_col,
+    cr2res_util_plot_spec_1d_one(tab_loc, tab_opt, wl_col, adjust, err_col,
 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Intensity (ADU/sec)';",
             "t 'Error Spectrum' w lines") ;
 
+    cpl_table_delete(tab_loc) ;
     cpl_free(spec_col);
     cpl_free(err_col);
     cpl_free(wl_col);
