@@ -252,8 +252,8 @@ static int cr2res_util_plot(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param;
-    int                     xmin, xmax, reduce_det, reduce_trace,
-                            reduce_order, adjust ;
+    int                     reduce_det, reduce_trace, reduce_order, adjust ;
+    double                  xmin, xmax ;
     const char          *   fname1 ;
     const char          *   fname2 ;
     const char          *   title ;
