@@ -657,6 +657,9 @@ double cr2res_qc_wave_resol_fwhm(
     for (i=0 ; i<cpl_vector_get_size(ref_lines) ; i++) {
         fwhm = cr2res_qc_wave_line_fwhm(spec, cpl_vector_get(ref_lines, i), 
                 &peak_height);
+        printf("---> Line %g nm / PEAK %g / FWHM %g\n",
+                cpl_vector_get(ref_lines, i), peak_height, fwhm) ;
+
         if (fwhm > 0.1 && fwhm < CR2RES_QC_WINDOW && peak_height > 0 
                 && peak_height<CR2RES_DETECTOR_OVEREXP_THRESH) {
             cpl_vector_set(ref_lines_fwhm, n, fwhm); 
