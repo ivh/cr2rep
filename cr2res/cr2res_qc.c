@@ -545,6 +545,7 @@ double cr2res_qc_wave_line_fwhm(
     if (pixel_pos == 0 || pixel_pos == cpl_vector_get_size(wave)) return -1.0;
 
     // Fit the line with a gaussian
+    //if (cr2res_wave_fit_single_line(flux, unc, pixel_pos, window_width, 1, 1, 
     if (cr2res_wave_fit_single_line(flux, unc, pixel_pos, window_width, 1, 0, 
                 &result)){
         // Could not determine the line fit
