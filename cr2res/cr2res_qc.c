@@ -664,7 +664,7 @@ double cr2res_qc_wave_resol_fwhm(
                 */
 
         if (fwhm > 0.1 && fwhm < CR2RES_QC_WINDOW && peak_height > 0 
-                && peak_height<CR2RES_DETECTOR_OVEREXP_THRESH) {
+                && peak_height<CR2RES_SATURATED_LINES_THRESH) {
             cpl_vector_set(ref_lines_fwhm, n, fwhm); 
             cpl_vector_set(ref_lines_pos, n, cpl_vector_get(ref_lines, i)); 
             n++;

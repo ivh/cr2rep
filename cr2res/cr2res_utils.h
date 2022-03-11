@@ -38,6 +38,7 @@
 #define CR2RES_NB_DECKER_POSITIONS      3
 #define CR2RES_DETECTOR_SIZE            2048
 #define CR2RES_DETECTOR_OVEREXP_THRESH  37000
+#define CR2RES_SATURATED_LINES_THRESH   4000000
 
 /* Provided by Paul Bristow (email 10/09/2020) */
 #define CR2RES_GAIN_CHIP1                       2.15
