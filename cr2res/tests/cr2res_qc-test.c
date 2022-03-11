@@ -290,9 +290,10 @@ static void test_cr2res_qc_obs_nodding_slit_psf()
         cpl_table_set_double(slitfu, col2, i, value);
     }
 
-    cpl_test_abs(-1, cr2res_qc_obs_nodding_slit_psf(NULL,1), DBL_EPSILON);
-    cpl_test(fwhm = cr2res_qc_obs_nodding_slit_psf(slitfu,2));
-    cpl_test_abs(fwhm, 2.355 * sigma, FLT_EPSILON);
+    cpl_test_abs(-1, cr2res_qc_obs_slit_psf(NULL,1,1), DBL_EPSILON);
+    cpl_test(fwhm = cr2res_qc_obs_slit_psf(slitfu,2,1));
+    // oversample correction: 102/100
+    cpl_test_abs(fwhm, 2.355 * sigma / 1.02, 0.01);
 
     cpl_table_delete(slitfu);
 }

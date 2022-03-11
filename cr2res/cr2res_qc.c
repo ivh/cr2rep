@@ -983,9 +983,10 @@ double * cr2res_qc_snr(
   @return   The computed FWHM for this order
  */
 /*----------------------------------------------------------------------------*/
-double cr2res_qc_obs_nodding_slit_psf(
+double cr2res_qc_obs_slit_psf(
         const cpl_table     *   slitfu,
-        int                     order_idxp)
+        int                     order_idxp,
+        int                     oversample)
 {
     cpl_vector      *   x ;
     cpl_vector      *   y ;
@@ -995,7 +996,7 @@ double cr2res_qc_obs_nodding_slit_psf(
     cpl_fit_mode        fit_pars ;
     cpl_error_code      err;
     int                 nrow ;
-    double              qc_fwhm, x0, sigma, area, offset;
+    double              qc_fwhm, x0, sigma, area, offset, extr_height;
 
     /* Check Entries */
     if (slitfu == NULL) return -1 ;
@@ -1045,6 +1046,13 @@ double cr2res_qc_obs_nodding_slit_psf(
     }
     qc_fwhm = 2.355 * sigma; // 2.355 = 2 * sqrt(2 * ln(2))
  
+    /* Correct for oversampling */
+    /* nrow is 1+ (extr_height+1)*oversample */
+    /* and we want the ratio of extr_height/nrow */
+    extr_height = (nrow-1) / oversample -1;
+    qc_fwhm *= extr_height / nrow;
+    cpl_msg_debug(__func__,"extr_height / nrow = %g",extr_height / nrow);
+
     /* Free Memory */
     cpl_vector_delete(x);
     cpl_vector_delete(y);

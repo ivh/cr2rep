@@ -214,7 +214,7 @@ Nodding Observation                                                     \n\
     cr2res_extract_traces()                                             \n\
     cr2res_qc_obs_nodding_signal()                                      \n\
     cr2res_qc_obs_nodding_transmission()                                \n\
-    cr2res_qc_obs_nodding_slit_psf()                                    \n\
+    cr2res_qc_obs_slit_psf()                                    \n\
     cr2res_photom_engine()                                              \n\
     cr2res_io_save_COMBINED()                                           \n\
     cr2res_io_save_EXTRACT_1D()                                         \n\
@@ -1318,8 +1318,10 @@ static int cr2res_obs_nodding_reduce(
     for (i=0 ; i<nb_order_idx_values ; i++) {
         order_idx = order_idx_values[i] ;
         order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
-        qc_fwhm_a = cr2res_qc_obs_nodding_slit_psf(slit_func_a, order_idxp);
-        qc_fwhm_b = cr2res_qc_obs_nodding_slit_psf(slit_func_b, order_idxp);
+        qc_fwhm_a = cr2res_qc_obs_slit_psf(slit_func_a, order_idxp,
+            extract_oversample);
+        qc_fwhm_b = cr2res_qc_obs_slit_psf(slit_func_b, order_idxp,
+            extract_oversample);
 
         key_name = cpl_sprintf(CR2RES_HEADER_QC_SLITFWHM_ORDER, order_idxp) ;
         cpl_propertylist_append_double(plist, key_name,

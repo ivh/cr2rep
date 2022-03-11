@@ -99,9 +99,10 @@ double cr2res_qc_obs_nodding_signal(
 double cr2res_qc_obs_nodding_standard_flux(
         const cpl_table     *   extracted,
         char                *   setting) ;
-double cr2res_qc_obs_nodding_slit_psf(
+double cr2res_qc_obs_slit_psf(
         const cpl_table     *   slitfu,
-        int                     order_idxp) ;
+        int                     order_idxp,
+        int                     oversample) ;
 double * cr2res_qc_snr(
     const cpl_table *   tw,
     const cpl_table *   extracted,

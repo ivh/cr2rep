@@ -754,7 +754,8 @@ static int cr2res_obs_staring_reduce(
     for (i=0 ; i<nb_order_idx_values ; i++) {
         order_idx = order_idx_values[i] ;
         order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
-        qc_fwhm = cr2res_qc_obs_nodding_slit_psf(slit_func, order_idxp);
+        qc_fwhm = cr2res_qc_obs_slit_psf(slit_func, order_idxp,
+            extract_oversample);
 
         key_name = cpl_sprintf(CR2RES_HEADER_QC_SLITFWHM_ORDER, order_idxp) ;
         cpl_propertylist_append_double(plist, key_name, qc_fwhm) ;
