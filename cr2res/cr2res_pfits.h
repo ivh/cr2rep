@@ -97,6 +97,7 @@
 #define CR2RES_HEADER_QC_SLITFWHM_ORDER     "ESO QC SLITFWHM%d"
 #define CR2RES_HEADER_QC_SLITFWHM_MED       "ESO QC SLITFWHM MED"
 #define CR2RES_HEADER_QC_REAL_ORDER         "ESO QC REALORDER%d"
+#define CR2RES_HEADER_QC_THROUGHPUT         "ESO QC THROUGHPUT"
 
 /*-----------------------------------------------------------------------------
                                    Functions prototypes

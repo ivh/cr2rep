@@ -36,7 +36,7 @@
    							        Prototypes
  -----------------------------------------------------------------------------*/
 
-int cr2res_photom_engine(
+int cr2res_photom_engine(   
         const cpl_table     *   extr,
         const char          *   std_star_file,
         double                  ra,
@@ -46,7 +46,8 @@ int cr2res_photom_engine(
         int                     display,
         int                     display_order,
         int                     display_trace,
-        cpl_table           **  throughput) ;
+        cpl_table           **  throughput,
+        cpl_propertylist    **  ext_plist) ;
 
 cpl_bivector * cr2res_photom_conv_get_star(
         const cpl_table     *   tab,

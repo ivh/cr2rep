@@ -476,6 +476,7 @@ static int cr2res_obs_nodding(
     cpl_table           *   throughput[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   plist ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   ext_plist_photom[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
     int                     i, det_nr, type; 
 
@@ -609,6 +610,7 @@ static int cr2res_obs_nodding(
 			twb[det_nr-1] = NULL ;
 			extractc[det_nr-1] = NULL ;
 			ext_plist[det_nr-1] = NULL ;
+			ext_plist_photom[det_nr-1] = NULL ;
 			throughput[det_nr-1] = NULL ;
 
 			/* Compute only one detector */
@@ -669,7 +671,8 @@ static int cr2res_obs_nodding(
 								cpl_frame_get_filename(photo_flux_frame),
 								ra, dec, gain, dit,
 								disp_det==det_nr, disp_order_idx,
-								disp_trace, &(throughput[det_nr-1]))) {
+								disp_trace, &(throughput[det_nr-1]),
+                                &(ext_plist_photom[det_nr-1])) == -1) {
 						cpl_msg_warning(__func__, 
 								"Failed to reduce detector %d", det_nr);
 						cpl_error_reset() ;
@@ -687,6 +690,15 @@ static int cr2res_obs_nodding(
 
         /* Save only the used RAW ? : raw_one_angle instead of 2nd frameset */
         /* Beware that the calibration PRO RECi CAL will be missing */
+
+        /* Add the photom QC to the std ones */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            if (ext_plist_photom[det_nr-1] != NULL &&
+                    ext_plist[det_nr-1] != NULL) {
+                cpl_propertylist_append(ext_plist[det_nr-1],
+                        ext_plist_photom[det_nr-1]) ;
+            } 
+        }
 
 		out_file = cpl_sprintf("%s_combinedA%s", RECIPE_STRING, 
                 product_name_addon) ;
@@ -811,6 +823,8 @@ static int cr2res_obs_nodding(
 				cpl_table_delete(throughput[det_nr-1]) ;
 			if (ext_plist[det_nr-1] != NULL) 
 				cpl_propertylist_delete(ext_plist[det_nr-1]) ;
+			if (ext_plist_photom[det_nr-1] != NULL) 
+				cpl_propertylist_delete(ext_plist_photom[det_nr-1]) ;
 		}
         cpl_frameset_delete(raw_one_angle) ;
         cpl_msg_indent_less() ;

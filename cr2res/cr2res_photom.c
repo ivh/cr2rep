@@ -39,6 +39,8 @@
                             Functions Prototypes
  -----------------------------------------------------------------------------*/
 
+static double cr2res_photom_throughput_avg(const cpl_vector *) ;
+
 static cpl_vector * cr2res_photom_conversion(
         const cpl_bivector  *   star,
         const cpl_bivector  *   photflux,
@@ -89,6 +91,7 @@ static double cr2res_photom_great_circle_dist(
   @param    display_order   Order to display
   @param    display_trace   Trace to display 
   @param    throughput  [out]   the throughput table
+  @param    ext_plist   [out]   the QCs
   @return   0 if ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
@@ -102,7 +105,8 @@ int cr2res_photom_engine(
         int                     display,
         int                     display_order,
         int                     display_trace,
-        cpl_table           **  throughput)
+        cpl_table           **  throughput,
+        cpl_propertylist    **  ext_plist)
 {
     cpl_table       *   std_star_tab ;
     cpl_bivector    *   std_star_biv ;
@@ -119,12 +123,20 @@ int cr2res_photom_engine(
     cpl_vector      *   conversion_vec ;
     cpl_vector      *   throughput_vec ;
     cpl_vector      *   sensitivity_vec ;
+    double              throughput_avg_val, throughput_center ;
+    int                 throughput_avg_nb ;
+    cpl_propertylist *  plist ;
     const double    *   pdata ;
     cpl_size            j, ncols ;
     int                 order, trace_nb ;
 
     /* Test entries */
-    if (extr==NULL || std_star_file==NULL || throughput==NULL) return -1 ;
+    if (extr==NULL || std_star_file==NULL || throughput==NULL || 
+            ext_plist == NULL) return -1 ;
+
+    /* Initialise */
+    throughput_avg_val = 0.0 ;
+    throughput_avg_nb = 0 ;
 
     /* Load the std stars table */
     if ((std_star_tab = cpl_table_load(std_star_file, 1, 0)) == NULL) {
@@ -225,6 +237,13 @@ int cr2res_photom_engine(
             pdata = cpl_vector_get_data_const(throughput_vec) ;
 			cpl_table_copy_data_double(throughput_loc, ctname, pdata) ;
 
+            /* Compute QCs */
+            throughput_center = cr2res_photom_throughput_avg(throughput_vec) ;
+            if (fabs(throughput_center+1.0) > 1e-3) {
+                throughput_avg_nb ++ ;
+                throughput_avg_val += throughput_center ;
+            }
+
             cpl_vector_delete(conversion_vec) ;
             cpl_vector_delete(sensitivity_vec) ;
             cpl_vector_delete(throughput_vec) ;
@@ -256,7 +275,13 @@ int cr2res_photom_engine(
 	cpl_array_delete(col_names) ;
     cpl_bivector_delete(std_star_biv) ;
 
+    plist = cpl_propertylist_new() ;
+    if (throughput_avg_nb > 0) {
+        cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_THROUGHPUT, 
+                throughput_avg_val / throughput_avg_nb) ;
+    } 
     *throughput = throughput_loc ;
+    *ext_plist = plist ;
     return 0 ;
 }
 
@@ -330,6 +355,36 @@ cpl_bivector * cr2res_photom_conv_get_star(
 }
 
 /**@}*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Compute the Central avg value of a vector
+  @param    vec     Input vector
+  @return   the avg or -1.0 in error case
+    200 central values 
+ */
+/*----------------------------------------------------------------------------*/
+static double cr2res_photom_throughput_avg(const cpl_vector * vec)
+{
+    cpl_vector  *       extracted ;
+    cpl_size            hsize = 100 ;
+    double              avg ; 
+    cpl_size            nelem ;
+
+    /* Check entries */
+    if (vec == NULL) return -1.0 ;
+    nelem = cpl_vector_get_size(vec) ;
+    if (nelem <= 2*hsize) return -1.0 ;
+
+    /* Extract */
+    extracted = cpl_vector_extract(vec, (cpl_size)(nelem/2-hsize),
+            (cpl_size)(nelem/2+hsize), 1) ;
+
+    avg = cpl_vector_get_mean(extracted) ;
+    cpl_vector_delete(extracted) ;
+
+    return avg ;
+}
 
 /*----------------------------------------------------------------------------*/
 /**
