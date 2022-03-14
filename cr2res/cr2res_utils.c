@@ -2165,6 +2165,81 @@ cpl_polynomial * cr2res_polyfit_2d(
     return result;
 }
 
+#define SECONDS_TO_DAYS 1.157407e-5
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Calculate the middle of the exposures in the frameset
+  @param    frameset - the input frames
+  @return   The center of the exposures in MJD
+
+  The calculation is a weighted arithmetic mean of the midpoints in mjd, 
+  weigted by the exposure times.
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_utils_get_center_mjd(const cpl_frameset * frameset)
+{
+    cpl_size nframes = 0;
+    cpl_size i;
+    const cpl_frame * frame;
+    cpl_propertylist * pl;
+    double exptime, mjd;
+    double total, total_weight;
+
+    const char * fname;
+    const char exptime_name[] = "EXPTIME";
+    const char mjd_mid_name[] = "MJD-OBS";
+
+    if (frameset == NULL) return -1;
+
+
+    total = 0;
+    total_weight = 0;
+
+    // Iterate over all frames in the framelist
+    nframes = cpl_frameset_get_size(frameset);
+    for ( i = 0; i < nframes; i++)
+    {
+        // load the header from the frame
+        frame = cpl_frameset_get_position_const(frameset, i);
+        fname = cpl_frame_get_filename(frame);
+        pl = cpl_propertylist_load(fname, 0);
+        if (pl == NULL){
+            cpl_msg_error(__func__, "Could not read file %s", fname);
+            cpl_error_reset();
+            return -1;
+        }
+
+        // load the two properties from the header we care about
+        // abort the whole function if we can't find them
+        mjd = cpl_propertylist_get_double(pl, mjd_mid_name);
+        if (mjd == 0){
+            cpl_msg_error(__func__, "Property %s not found in file %s", mjd_mid_name, fname);
+            cpl_propertylist_delete(pl);
+            cpl_error_reset();
+            return -1;
+        }
+        exptime = cpl_propertylist_get_double(pl, exptime_name);
+        if (exptime <= 0){
+            cpl_msg_error(__func__, "Property %s not found in file %s", exptime_name, fname);
+            cpl_propertylist_delete(pl);
+            cpl_error_reset();
+            return -1;
+        }
+        cpl_propertylist_delete(pl);
+
+        // MJD is the start of the observation, but we want the middle
+        mjd += exptime / 2.0 * SECONDS_TO_DAYS;
+
+        // weighted mean maths
+        total += mjd * exptime;
+        total_weight += exptime;
+    }
+
+    // normalize by total weights
+    total /= total_weight;
+    return total;
+}
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the pipeline copyright and license
