@@ -2500,6 +2500,8 @@ int cr2res_extract2d_trace(
     {
         for (j = cpl_vector_get(lower, i); j < cpl_vector_get(upper, i); j++)
         {
+            /* Protect the case where the trace goes out of the det */
+            if (j<1 || j>CR2RES_DETECTOR_SIZE) continue ;
             row++;
             cpl_vector_set(position_x, row, i +1);
             cpl_vector_set(position_y, row, j);
