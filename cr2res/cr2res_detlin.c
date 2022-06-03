@@ -307,6 +307,16 @@ int cr2res_detlin_compute(
         }
     }
 
+    /* Catch an error in CPL */
+    if (cpl_error_get_code()) {
+        cpl_error_reset() ;
+        cpl_polynomial_delete(fitted_local) ;
+        cpl_vector_delete(error_local) ;
+        *fitted = NULL ;
+        *error = NULL ;
+        return -1 ;
+    }
+
     /* Return */
     *fitted = fitted_local ;
     if (error != NULL) *error = error_local ;
