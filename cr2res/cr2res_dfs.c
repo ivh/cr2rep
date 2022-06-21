@@ -89,6 +89,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_OBS_ASTROMETRY_JITTER_RAW) ||
                 !strcmp(tag, CR2RES_OBS_STARING_OTHER_RAW) ||
                 !strcmp(tag, CR2RES_OBS_STARING_JITTER_RAW) ||
+                !strcmp(tag, CR2RES_OBS_STARING_WAVE_SKY_RAW) ||
                 !strcmp(tag, CR2RES_OBS_POLARIMETRY_OTHER_RAW) ||
                 !strcmp(tag, CR2RES_OBS_2D_OBJECT_RAW) ||
                 !strcmp(tag, CR2RES_OBS_2D_SKY_RAW) ||

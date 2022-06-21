@@ -82,6 +82,7 @@ Frames Calibration                                                      \n\
           or " CR2RES_OBS_ASTROMETRY_JITTER_RAW"                        \n\
           or " CR2RES_OBS_STARING_OTHER_RAW"                            \n\
           or " CR2RES_OBS_STARING_JITTER_RAW"                           \n\
+          or " CR2RES_OBS_STARING_WAVE_SKY_RAW"                         \n\
           or " CR2RES_OBS_POLARIMETRY_OTHER_RAW"                        \n\
           or " CR2RES_OBS_2D_OBJECT_RAW"                                \n\
           or " CR2RES_OBS_2D_SKY_RAW"                                   \n\
@@ -546,6 +547,7 @@ static int cr2res_util_calib(
                         CR2RES_OBS_ASTROMETRY_JITTER_RAW
                         CR2RES_OBS_STARING_OTHER_RAW
                         CR2RES_OBS_STARING_JITTER_RAW
+                        CR2RES_OBS_STARING_WAVE_SKY_RAW
                         CR2RES_OBS_POLARIMETRY_OTHER_RAW
                         CR2RES_OBS_2D_OBJECT_RAW
                         CR2RES_OBS_2D_SKY_RAW
@@ -561,7 +563,7 @@ static cpl_frameset * cr2res_util_calib_find_RAW(const cpl_frameset * in)
     if (in == NULL) return NULL ;
 
     /* Create the tags list */
-    ntags = 14 ;
+    ntags = 15 ;
     tags = cpl_malloc(ntags * sizeof(char *)) ;
     tags[0] = cpl_sprintf(CR2RES_FLAT_RAW) ;
     tags[1] = cpl_sprintf(CR2RES_WAVE_UNE_RAW) ;
@@ -574,9 +576,10 @@ static cpl_frameset * cr2res_util_calib_find_RAW(const cpl_frameset * in)
     tags[8] = cpl_sprintf(CR2RES_OBS_ASTROMETRY_JITTER_RAW) ;
     tags[9] = cpl_sprintf(CR2RES_OBS_STARING_OTHER_RAW) ;
     tags[10] = cpl_sprintf(CR2RES_OBS_STARING_JITTER_RAW) ;
-    tags[11] = cpl_sprintf(CR2RES_OBS_POLARIMETRY_OTHER_RAW) ;
-    tags[12] = cpl_sprintf(CR2RES_OBS_2D_OBJECT_RAW) ;
-    tags[13] = cpl_sprintf(CR2RES_OBS_2D_SKY_RAW) ;
+    tags[11] = cpl_sprintf(CR2RES_OBS_STARING_WAVE_SKY_RAW) ;
+    tags[12] = cpl_sprintf(CR2RES_OBS_POLARIMETRY_OTHER_RAW) ;
+    tags[13] = cpl_sprintf(CR2RES_OBS_2D_OBJECT_RAW) ;
+    tags[14] = cpl_sprintf(CR2RES_OBS_2D_SKY_RAW) ;
 
     /* Get the frameset */
     out = cr2res_extract_frameset_several_tags(in, (const char**)tags, ntags) ;
