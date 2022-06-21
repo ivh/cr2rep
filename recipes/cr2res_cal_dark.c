@@ -671,10 +671,7 @@ static int cr2res_cal_dark(
                     RECIPE_STRING, setting_id, dit, ndit); 
         }
 
-        /* Save only the used RAW ? : raw_one instead of 2nd frameset */
-        /* Beware that the calibration PRO RECi CAL will be missing */
-
-        if (cr2res_io_save_MASTER_DARK(filename, frameset, frameset, parlist, 
+        if (cr2res_io_save_MASTER_DARK(filename, frameset, raw_one, parlist, 
                     master_darks, NULL, ext_plist, 
                     CR2RES_CAL_DARK_MASTER_PROCATG, RECIPE_STRING) != 0) {
             cpl_frameset_delete(rawframes) ;
@@ -707,10 +704,7 @@ static int cr2res_cal_dark(
                         RECIPE_STRING, setting_id, dit, ndit); 
         }
 
-        /* Save only the used RAW ? : raw_one instead of 2nd frameset */
-        /* Beware that the calibration PRO RECi CAL will be missing */
-
-        if (cr2res_io_save_BPM(filename, frameset, frameset, parlist, bpms, 
+        if (cr2res_io_save_BPM(filename, frameset, raw_one, parlist, bpms, 
                     NULL, ext_plist, CR2RES_CAL_DARK_BPM_PROCATG, 
                     RECIPE_STRING) != 0) {
             cpl_frameset_delete(rawframes) ;
