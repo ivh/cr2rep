@@ -1380,6 +1380,7 @@ int cr2res_io_save_PHOTO_FLUX(
     mjd_obs = cr2res_mjd_obs_now() ;
 	cpl_propertylist_append_double(plist, CR2RES_HEADER_MJD_OBS, mjd_obs) ;
 
+
     if (cpl_dfs_save_table(set, NULL, parlist, set, NULL, out_table,
                 NULL, recipe, plist, NULL,
                 PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
@@ -2149,6 +2150,7 @@ static int cr2res_io_save_table(
     cpl_propertylist    *   pro_list ;
     cpl_propertylist    *   ext_head ;
     char                *   wished_extname ;
+    char                *   to_remove ;
     int                     i ;
 
     /* Test entries */
@@ -2175,27 +2177,33 @@ static int cr2res_io_save_table(
     cpl_propertylist_update_string(ext_head, "EXTNAME", wished_extname) ;
     cpl_free(wished_extname) ;
 
+    /* Remove keywords in the primary header matching NODPOS (PIPE-9952) */
+    to_remove = cpl_sprintf("NODPOS") ;
+
     /* Save the first extension */
     if (tab[0] != NULL) {
         if (cpl_dfs_save_table(allframes, NULL, parlist, inframes, NULL,
-                    tab[0], ext_head, recipe, pro_list, NULL,
+                    tab[0], ext_head, recipe, pro_list, to_remove,
                     PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Cannot save the first extension table") ;
             cpl_propertylist_delete(ext_head) ;
             cpl_propertylist_delete(pro_list) ;
+            cpl_free(to_remove) ;
             return -1 ;
         }
     } else {
         if (cpl_dfs_save_propertylist(allframes, NULL, parlist,
-                    inframes, NULL, recipe, pro_list, NULL, PACKAGE "/"
+                    inframes, NULL, recipe, pro_list, to_remove, PACKAGE "/"
                     PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Cannot save the empty HDU") ;
             cpl_propertylist_delete(ext_head) ;
             cpl_propertylist_delete(pro_list) ;
+            cpl_free(to_remove) ;
             return -1 ;
         }
         cpl_propertylist_save(ext_head, filename, CPL_IO_EXTEND) ;
     }
+    cpl_free(to_remove) ;
     cpl_propertylist_delete(ext_head) ;
     cpl_propertylist_delete(pro_list) ;
 
@@ -2322,6 +2330,7 @@ static int cr2res_io_save_image(
     cpl_propertylist    *   qclist_loc ;
     cpl_image           *   to_save ;
     char          		*   wished_extname ;
+    char                *   to_remove ;
     int                     det_nr ;
 
     /* Create a local QC list and add the PRO.CATG */
@@ -2333,14 +2342,20 @@ static int cr2res_io_save_image(
     cpl_propertylist_update_string(qclist_loc, CPL_DFS_PRO_CATG, procatg);
     cpl_propertylist_update_string(qclist_loc, CPL_DFS_PRO_TYPE, protype);
 
+    /* Remove keywords in the primary header matching NODPOS (PIPE-9952) */
+    to_remove = cpl_sprintf("NODPOS") ;
+
     /* Create the Primary Data Unit without data */
     if (cpl_dfs_save_propertylist(allframes, NULL, parlist, inframes, NULL, 
-                recipe, qclist_loc, NULL,
+                recipe, qclist_loc, to_remove,
                 PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot save the empty primary HDU") ;
         cpl_propertylist_delete(qclist_loc) ;
+        cpl_free(to_remove) ;
         return -1 ;
     }
+    cpl_free(to_remove) ;
+
     /* Delete PRO LIST */
     cpl_propertylist_delete(qclist_loc) ;
 
