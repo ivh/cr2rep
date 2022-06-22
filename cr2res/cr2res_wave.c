@@ -1351,12 +1351,16 @@ cpl_polynomial * cr2res_wave_xcorr(
         cpl_polynomial_eval_1d(sol, x_max, NULL) -
         cpl_polynomial_eval_1d(sol_guess, x_max, NULL) ;
     double delta_pix = delta_lambda * CR2RES_DETECTOR_SIZE / (wl_max-wl_min) ;
-    cpl_msg_debug(__func__, "First Pass correction : %g nm / %g pixels",
+    cpl_msg_debug(__func__, "Correction : %g nm / %g pixels",
             delta_lambda, delta_pix) ;
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_polynomial_dump(sol, stdout);
+        cpl_polynomial_dump(sol_guess, stdout);
+    }
 
     /* Plot the correlation values */
     if (display) {
-        cpl_plot_vector("set grid;", "t 'Correlation values (Pass #1)' w lines",
+        cpl_plot_vector("set grid;", "t 'Correlation values' w lines",
                 "", xcorrs) ;
     }
     if (xcorrs != NULL) cpl_vector_delete(xcorrs) ;
