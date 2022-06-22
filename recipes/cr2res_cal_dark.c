@@ -314,6 +314,7 @@ static int cr2res_cal_dark(
     hdrl_parameter      *   collapse_params ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_one ;
+    cpl_frameset        *   raw_one_calib ;
     cpl_size            *   labels ;
     cpl_size                nlabels ;
     cpl_propertylist    *   plist ;
@@ -337,6 +338,7 @@ static int cr2res_cal_dark(
     cpl_mask            *   bpm ;
     const char          *   first_fname ;
     char                *   filename ;
+    cpl_frame           *   frame ;
     int                     nb_frames, i, l, det_nr, nb_bad ;
     int                     single_dit_ndit_setting ;
     int                     original_ndit ;
@@ -663,6 +665,18 @@ static int cr2res_cal_dark(
         }
 
         /* Save the results */
+
+        /* Add the Calibrations (if any) to the frameset */
+        raw_one_calib = cpl_frameset_duplicate(raw_one) ;
+        cpl_frameset_delete(raw_one) ;
+        for (i=0 ; i<cpl_frameset_get_size(frameset) ; i++) {
+            frame = cpl_frameset_get_position(frameset, i);
+            if (cpl_frame_get_group(frame) == CPL_FRAME_GROUP_CALIB) {
+                cpl_frameset_insert(raw_one_calib,
+                        cpl_frame_duplicate(frame)) ;
+            }
+        }
+
         /* MASTER DARK */
         if (single_dit_ndit_setting) {
             filename = cpl_sprintf("%s_master.fits", RECIPE_STRING);
@@ -671,11 +685,11 @@ static int cr2res_cal_dark(
                     RECIPE_STRING, setting_id, dit, ndit); 
         }
 
-        if (cr2res_io_save_MASTER_DARK(filename, frameset, raw_one, parlist, 
-                    master_darks, NULL, ext_plist, 
+        if (cr2res_io_save_MASTER_DARK(filename, frameset, raw_one_calib, 
+                    parlist, master_darks, NULL, ext_plist, 
                     CR2RES_CAL_DARK_MASTER_PROCATG, RECIPE_STRING) != 0) {
             cpl_frameset_delete(rawframes) ;
-            cpl_frameset_delete(raw_one) ;
+            cpl_frameset_delete(raw_one_calib) ;
             for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
                 if (bpms[det_nr-1] != NULL) 
                     cpl_image_delete(bpms[det_nr-1]);
@@ -704,11 +718,11 @@ static int cr2res_cal_dark(
                         RECIPE_STRING, setting_id, dit, ndit); 
         }
 
-        if (cr2res_io_save_BPM(filename, frameset, raw_one, parlist, bpms, 
-                    NULL, ext_plist, CR2RES_CAL_DARK_BPM_PROCATG, 
-                    RECIPE_STRING) != 0) {
+        if (cr2res_io_save_BPM(filename, frameset, raw_one_calib,
+                    parlist, bpms, NULL, ext_plist, 
+                    CR2RES_CAL_DARK_BPM_PROCATG, RECIPE_STRING) != 0) {
             cpl_frameset_delete(rawframes) ;
-            cpl_frameset_delete(raw_one) ;
+            cpl_frameset_delete(raw_one_calib) ;
             for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
                 if (bpms[det_nr-1] != NULL) 
                     cpl_image_delete(bpms[det_nr-1]);
@@ -731,7 +745,7 @@ static int cr2res_cal_dark(
 
         /* Free */
         cpl_free(setting_id);
-        cpl_frameset_delete(raw_one) ;
+        cpl_frameset_delete(raw_one_calib) ;
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             if (bpms[det_nr-1] != NULL) 
                 cpl_image_delete(bpms[det_nr-1]);
