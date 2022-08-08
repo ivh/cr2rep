@@ -139,6 +139,7 @@ Nodding Observation                                                     \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
     master_dark.fits " CR2RES_CAL_DARK_MASTER_PROCATG " [0 to 1]        \n\
     master_flat.fits " CR2RES_CAL_FLAT_MASTER_PROCATG " [0 to 1]        \n\
+    photo_flux.fits " CR2RES_PHOTO_FLUX_PROTYPE " [0 to 1]              \n\
                                                                         \n\
   Outputs                                                               \n\
     cr2res_obs_nodding_extractedA.fits " 
