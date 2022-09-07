@@ -66,6 +66,9 @@ int cr2res_pol_resample(cpl_vector ** intens,
                   CR2RES_POL_MODE_ERROR    \
     ))))))))
 
+#define CR2RES_POL_TRACECORR_YJ 0.0
+#define CR2RES_POL_TRACECORR_HK 0.023
+
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/

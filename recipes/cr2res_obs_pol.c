@@ -1313,7 +1313,7 @@ static int cr2res_obs_pol_reduce_one(
     cpl_table           **  extract_1d ;
     char                *   colname ;
     const double        *   pcol_data ;
-    double              *   pvec_data ;
+    double              *   pvec_data, coeff ;
     cpl_vector          **  intens ;
     cpl_vector          **  wl ;
     cpl_vector          **  errors ;
@@ -1327,7 +1327,7 @@ static int cr2res_obs_pol_reduce_one(
     cpl_propertylist    *   ext_plist_loc ;
     const char          *   first_fname ;
     char                *   out_file;
-    cpl_size                nframes, nspec_group, spec_size ;
+    cpl_size                nframes, nspec_group, spec_size, pow ;
     int                     ngroups, i, j, k, l, o, norders, frame_idx ;
     char                *   key_name ;
     int                 *   order_idx_values ;
@@ -1601,9 +1601,16 @@ static int cr2res_obs_pol_reduce_one(
                     decker_positions[frame_idx], 1) ;
 
             /* Compute the new trace_wave for the extraction */
-            trace_wave_extract[2*j] = cr2res_trace_new_slit_fraction(trace_wave,
+            trace_wave_corrected = cr2res_trace_new_slit_fraction(trace_wave,
                     slit_frac) ;
             cpl_array_delete(slit_frac) ;
+            
+            /* Correct for diverging beams */
+            pow = 1;
+            coeff = cpl_polynomial_get_coeff(trace_wave_corrected, pow);
+            cpl_polynomial_add(trace_wave_corrected, trace_wave_corrected,
+                    corrpoly_HK);
+            trace_wave_extract[2*j] = trace_wave_corrected ;
 
             /* Execute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
