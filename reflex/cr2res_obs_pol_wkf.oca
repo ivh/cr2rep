@@ -30,48 +30,10 @@ if DPR.CATG like "%CALIB%" and DPR.TYPE like "%WAVE%" and DPR.TYPE like "%FPET%"
     CATG = "CALIB";
 }
 
-
-if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%OTHER%" then
+if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%OTHER%" and DPR.TECH like "%POLA%" then
 {
-    RAW.TYPE = "OBS_NODDING_OTHER";
-    REFLEX.CATG = "OBS_NODDING_OTHER";
-    CATG = "SCIENCE";
-    REFLEX.TARGET = "T";
-}
-if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%JITTER%" then
-{
-    RAW.TYPE = "OBS_NODDING_JITTER";
-    REFLEX.CATG = "OBS_NODDING_JITTER";
-    CATG = "SCIENCE";
-    REFLEX.TARGET = "T";
-}
-
-if DPR.CATG like "%CALIB%" and DPR.TYPE like "%STD%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%OTHER%" then
-{
-    RAW.TYPE = "CAL_NODDING_OTHER";
-    REFLEX.CATG = "CAL_NODDING_OTHER";
-    CATG = "SCIENCE";
-    REFLEX.TARGET = "T";
-}
-if DPR.CATG like "%CALIB%" and DPR.TYPE like "%STD%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%JITTER%" then
-{
-    RAW.TYPE = "CAL_NODDING_JITTER";
-    REFLEX.CATG = "CAL_NODDING_JITTER";
-    CATG = "SCIENCE";
-    REFLEX.TARGET = "T";
-}
-
-if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%OTHER%" and DPR.TECH like "%ASTR%" then
-{
-    RAW.TYPE = "OBS_ASTROMETRY_OTHER";
-    REFLEX.CATG = "OBS_ASTROMETRY_OTHER";
-    CATG = "SCIENCE";
-    REFLEX.TARGET = "T";
-}
-if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%JITTER%" and DPR.TECH like "%ASTR%" then
-{
-    RAW.TYPE = "OBS_ASTROMETRY_JITTER";
-    REFLEX.CATG = "OBS_ASTROMETRY_JITTER";
+    RAW.TYPE = "OBS_POLARIMETRY_OTHER";
+    REFLEX.CATG = "OBS_POLARIMETRY_OTHER";
     CATG = "SCIENCE";
     REFLEX.TARGET = "T";
 }
@@ -96,13 +58,8 @@ select execute(WAVE_action) from inputFiles
     where REFLEX.CATG=="WAVE_UNE" or REFLEX.CATG=="WAVE_FPET"
   	group by TPL.START as (TPL_A,tpl);
 
-select execute(NODDING_action) from inputFiles 
-    where REFLEX.CATG=="OBS_NODDING_JITTER" or
-          REFLEX.CATG=="OBS_NODDING_OTHER" or
-          REFLEX.CATG=="CAL_NODDING_OTHER" or
-          REFLEX.CATG=="CAL_NODDING_JITTER" or
-          REFLEX.CATG=="OBS_ASTROMETRY_OTHER" or
-          REFLEX.CATG=="OBS_ASTROMETRY_JITTER"
+select execute(POL_action) from inputFiles 
+    where REFLEX.CATG=="OBS_POLARIMETRY_OTHER"
   	group by TPL.START as (TPL_A,tpl);
 
 // Action rules
@@ -186,13 +143,8 @@ action WAVE_action
 
     product CAL_WAVE_TW_WKF { PRO.CATG="CAL_WAVE_TW_WKF"; PRO.EXT="tpl_0000.fits";}
 }
-action NODDING_action
+action POL_action
 {
-	minRet = 1; maxRet = 1;
-    select file as PHOTO_FLUX from calibFiles where
-        PRO.CATG=="PHOTO_FLUX"
-        and inputFile.INSTRUME==INSTRUME ;
-
 	minRet = 0; maxRet = 1;
     select file as CAL_DARK_BPM_WKF from calibFiles where
         PRO.CATG=="CAL_DARK_BPM_WKF"
@@ -222,11 +174,9 @@ action NODDING_action
         and inputFile.INSTRUME==INSTRUME        
         and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
 
-    recipe cr2res_obs_nodding;
+    recipe cr2res_obs_pol;
 
-    product NODDING_EXTRACTA_WKF { PRO.CATG="NODDING_EXTRACTA_WKF"; PRO.EXT="tpl_0000.fits";}
-    product NODDING_EXTRACTB_WKF { PRO.CATG="NODDING_EXTRACTB_WKF"; PRO.EXT="tpl_0001.fits";}
-    product NODDING_COMBINEDA_WKF { PRO.CATG="NODDING_COMBINEDA_WKF"; PRO.EXT="tpl_0002.fits";}
-    product NODDING_COMBINEDB_WKF { PRO.CATG="NODDING_COMBINEDB_WKF"; PRO.EXT="tpl_0003.fits";}
+    product OBS_POL_SPECA_WKF { PRO.CATG="OBS_POL_SPECA_WKF"; PRO.EXT="tpl_0000.fits";}
+    product OBS_POL_SPECB_WKF { PRO.CATG="OBS_POL_SPECB_WKF"; PRO.EXT="tpl_0001.fits";}
 }
 

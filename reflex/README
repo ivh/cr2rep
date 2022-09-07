@@ -22,10 +22,30 @@ SCIENCE_config : "OBS_NODDING_OTHER,OBS_NODDING_JITTER,CAL_NODDING_OTHER,CAL_NOD
 cr2res_obs_staring Workflow Description
 ----------------------------------------
 * cr2res_obs_staring 'Input File Category'
-     OBS_STARING_OTHER,OBS_STARING_JITTER,OBS_WAVE_SKY CAL_WAVE_TW CAL_DARK_BPM CAL_FLAT_MASTER UTIL_TRACE_TW
+     OBS_STARING_OTHER OBS_STARING_JITTER OBS_WAVE_SKY CAL_WAVE_TW CAL_DARK_BPM CAL_FLAT_MASTER UTIL_TRACE_TW
 
 FitsRouter Config:
 SCIENCE_config : "OBS_STARING_OTHER,OBS_STARING_JITTER,OBS_WAVE_SKY"
+
+
+cr2res_obs_pol Workflow Description
+----------------------------------------
+* cr2res_obs_pol 'Input File Category'
+     OBS_POLARIMETRY_OTHER CAL_WAVE_TW CAL_DARK_BPM CAL_FLAT_MASTER UTIL_TRACE_TW
+
+FitsRouter Config:
+SCIENCE_config : "OBS_POLARIMETRY_OTHER"
+
+
+cr2res_obs_2d Workflow Description
+----------------------------------------
+* cr2res_obs_2d 'Input File Category'
+     OBS_2D_SKY OBS_2D_OBJECT CAL_WAVE_TW CAL_DARK_BPM CAL_FLAT_MASTER UTIL_TRACE_TW
+
+FitsRouter Config:
+SCIENCE_config : "OBS_2D_SKY,OBS_2D_OBJECT"
+
+
 
 
 
