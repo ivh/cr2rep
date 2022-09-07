@@ -1303,6 +1303,8 @@ static int cr2res_obs_pol_reduce_one(
     cpl_table           *   trace_wave ;
     cpl_table           *   trace_wave_corrected ;
     cpl_table           **  trace_wave_extract ;
+    cpl_polynomial      *   wlpoly;
+    cpl_array           *   tracearray ;
     cpl_array           *   slit_frac ;
     const char          *   fname ;
     char                *   decker_name ;
@@ -1607,9 +1609,19 @@ static int cr2res_obs_pol_reduce_one(
             
             /* Correct for diverging beams */
             pow = 1;
-            coeff = cpl_polynomial_get_coeff(trace_wave_corrected, pow);
-            cpl_polynomial_add(trace_wave_corrected, trace_wave_corrected,
-                    corrpoly_HK);
+            tracearray = (cpl_array*)cpl_table_get_array(trace_wave_corrected, 
+                        CR2RES_COL_ALL, 2*j);
+            wlpoly = cr2res_convert_array_to_poly(
+                cpl_table_get_array(trace_wave_corrected, 
+                        CR2RES_COL_WAVELENGTH, 2*j));
+            coeff = cpl_array_get(tracearray, pow, NULL);
+            coeff += CR2RES_POL_TRACECORR_HK * 
+                ( cpl_polynomial_eval_1d(wlpoly, 1.0, NULL) - 
+                cpl_polynomial_eval_1d(wlpoly, CR2RES_DETECTOR_SIZE, NULL) );
+            cpl_array_set(tracearray, pow, coeff);
+            cpl_table_set_array(trace_wave_corrected, 
+                        CR2RES_COL_ALL, 2*j, tracearray);
+            
             trace_wave_extract[2*j] = trace_wave_corrected ;
 
             /* Execute the extraction */

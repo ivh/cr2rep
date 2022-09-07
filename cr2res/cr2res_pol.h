@@ -33,6 +33,8 @@
 
 #define     CR2RES_POLARIMETRY_GROUP_SIZE   4
 
+#define CR2RES_POL_TRACECORR_YJ 0.0
+#define CR2RES_POL_TRACECORR_HK 0.023
 
 /*-----------------------------------------------------------------------------
                                        Prototypes
