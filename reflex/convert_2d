@@ -1,0 +1,39 @@
+#!/bin/sh
+set -e
+
+wkf_file=cr2res_obs_2d.xml.in
+cp cr2res_obs_2d.xml $wkf_file
+
+# Input directories
+sed -i -e 's#\(<property name="ROOT_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1ROOT_DATA_PATH_TO_REPLACE/">#' $wkf_file
+sed -i -e 's#\(<property name="RAW_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/reflex_input/cr2res_obs_2d">#' $wkf_file
+sed -i -e 's#\(<property name="CALIB_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1CALIB_DATA_PATH_TO_REPLACE/cr2re-@VERSION@/">#' $wkf_file
+
+# Working directories
+sed -i -e 's#\(<property name="BOOKKEEPING_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/reflex_book_keeping/cr2res_obs_2d">#' $wkf_file
+sed -i -e 's#\(<property name="LOGS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/reflex_logs/cr2res_obs_2d">#' $wkf_file
+sed -i -e 's#\(<property name="TMP_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/reflex_tmp_products/cr2res_obs_2d">#' $wkf_file
+
+# Output directories
+sed -i -e 's#\(<property name="END_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/reflex_end_products">#' $wkf_file
+
+# OCA rule file location
+sed -i -e 's#\(<property name="OCA File" class="ptolemy.data.expr.FileParameter" value="\).*">#\1@prefix@/share/esopipes/cr2re-@VERSION@/reflex/cr2res_obs_2d_wkf.oca">#' $wkf_file
+
+# Python scripts location
+sed -i -e 's#\(<property name="Python script" class="ptolemy.data.expr.FileParameter" value="\).*interactive_window.py">#\1@prefix@/share/esopipes/cr2re-@VERSION@/reflex/interactive_window.py">#' $wkf_file
+
+# Workflow title 
+sed -i -e "s%CRIRES+ OBS 2D Workflow (v\..*\?)%CRIRES+ OBS 2D Workflow (v\. @VERSION@)%g" $wkf_file
+
+# Leftover hardcoded paths
+#sed -i -e 's#\(===\).*">#\1===">#' $wkf_file
+sed -i -e 's#\(<property name="Directory name" class="ptolemy.actor.parameters.PortParameter" value="\).*">#\1">#' $wkf_file
+
+# FOR THIS ONE, manually set value="" !! The following sed command does not work
+sed -i -e 's#\(<entity name="Write README" class="org.geon.FileWrite">\n<property name="fileName" class="ptolemy.actor.parameters.FilePortParameter" value="\).*">#\1">#' $wkf_file
+
+
+echo "Check the svn diff to see the differences with respect to SVN"
+echo "If you are satisfied, execute the following commands:"
+echo "svn ci $wkf_file"

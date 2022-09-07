@@ -94,7 +94,10 @@ AC_CONFIG_FILES(Makefile
                 cr2res/tests/Makefile
                 tools/Makefile
                 reflex/Makefile
-                reflex/cr2res.xml
+                reflex/cr2res_obs_nodding.xml
+                reflex/cr2res_obs_2d.xml
+                reflex/cr2res_obs_staring.xml
+                reflex/cr2res_obs_pol.xml
                 recipes/Makefile
                 regtests/Makefile
                 regtests/tests/Makefile

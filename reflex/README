@@ -1,6 +1,6 @@
-Workflow Description
---------------------
 
+General
+-------
 The TW files from the static calibration are:
  - UTIL_TRACE_TW for LW
  - UTIL_WAVE_TW for SW
@@ -8,12 +8,28 @@ The TW files from the static calibration are:
 In case of LW, cr2res_cal_wave needs to be skipped. The cr2res_cal_wave Composite Actor checks if UTIL_WAVE_TW is present as
 input (SW case), if yes, it runs as normal, if no, it skips the recipe and returns an empty SOF (with the proper DatasetName <- Global parameter set in the Initialise Actor).
 
-The following RecipeExecuters have 'Input File Category' set.
-Therefore the list of values needs to be copied the new actor instance when re-instantiating.
-* cr2res_cal_wave
+* cr2res_cal_wave 'Input File Category'
     CAL_DARK_BPM CAL_DARK_MASTER CAL_FLAT_MASTER EMISSION_LINES UTIL_WAVE_TW WAVE_UNE WAVE_FPET
-* cr2res_obs_nodding
+
+cr2res_obs_nodding Workflow Description
+----------------------------------------
+* cr2res_obs_nodding 'Input File Category'
      CAL_NODDING_OTHER CAL_NODDING_JITTER OBS_NODDING_OTHER OBS_NODDING_JITTER OBS_ASTROMETRY_OTHER OBS_ASTROMETRY_JITTER CAL_WAVE_TW CAL_DARK_BPM CAL_FLAT_MASTER PHOTO_FLUX UTIL_TRACE_TW
+
+FitsRouter Config:
+SCIENCE_config : "OBS_NODDING_OTHER,OBS_NODDING_JITTER,CAL_NODDING_OTHER,CAL_NODDING_JITTER,OBS_ASTROMETRY_OTHER,OBS_ASTROMETRY_JITTER"
+
+cr2res_obs_staring Workflow Description
+----------------------------------------
+* cr2res_obs_staring 'Input File Category'
+     OBS_STARING_OTHER,OBS_STARING_JITTER,OBS_WAVE_SKY CAL_WAVE_TW CAL_DARK_BPM CAL_FLAT_MASTER UTIL_TRACE_TW
+
+FitsRouter Config:
+SCIENCE_config : "OBS_STARING_OTHER,OBS_STARING_JITTER,OBS_WAVE_SKY"
+
+
+
+
 
 
 
