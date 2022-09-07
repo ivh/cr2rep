@@ -1,7 +1,7 @@
 #!/bin/sh
 
-./setup_nodding
-./setup_staring
-./setup_2d
-./setup_pol
+./setup_yves_nodding
+./setup_yves_staring
+./setup_yves_2d
+./setup_yves_pol
 
