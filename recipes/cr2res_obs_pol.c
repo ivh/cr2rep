@@ -1616,11 +1616,11 @@ static int cr2res_obs_pol_reduce_one(
                         CR2RES_COL_WAVELENGTH, 2*j));
             coeff = cpl_array_get(tracearray, pow, NULL);
             coeff += CR2RES_POL_TRACECORR_HK * 
-                ( cpl_polynomial_eval_1d(wlpoly, 1.0, NULL) - 
-                cpl_polynomial_eval_1d(wlpoly, CR2RES_DETECTOR_SIZE, NULL) );
+                ( cpl_polynomial_eval_1d(wlpoly, CR2RES_DETECTOR_SIZE, NULL) - 
+                    cpl_polynomial_eval_1d(wlpoly, 1.0, NULL) );
             cpl_array_set(tracearray, pow, coeff);
-            cpl_table_set_array(trace_wave_corrected, 
-                        CR2RES_COL_ALL, 2*j, tracearray);
+            //cpl_table_set_array(trace_wave_corrected, 
+            //            CR2RES_COL_ALL, 2*j, tracearray);
             
             trace_wave_extract[2*j] = trace_wave_corrected ;
 
