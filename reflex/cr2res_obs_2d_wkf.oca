@@ -66,7 +66,7 @@ select execute(WAVE_action) from inputFiles
     where REFLEX.CATG=="WAVE_UNE" or REFLEX.CATG=="WAVE_FPET"
   	group by TPL.START as (TPL_A,tpl);
 
-select execute(2D_action) from inputFiles 
+select execute(OBS_2D_action) from inputFiles 
     where REFLEX.CATG=="OBS_2D_SKY" or
           REFLEX.CATG=="OBS_2D_OBJECT"
   	group by TPL.START as (TPL_A,tpl);
@@ -152,7 +152,7 @@ action WAVE_action
 
     product CAL_WAVE_TW_WKF { PRO.CATG="CAL_WAVE_TW_WKF"; PRO.EXT="tpl_0000.fits";}
 }
-action 2D_action
+action OBS_2D_action
 {
 	minRet = 0; maxRet = 1;
     select file as CAL_DARK_BPM_WKF from calibFiles where
