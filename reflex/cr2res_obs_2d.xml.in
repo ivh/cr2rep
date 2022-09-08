@@ -18,7 +18,7 @@
     </property>
     <property name="_vergilCenter" class="ptolemy.data.expr.ExpertParameter" value="{1144.933031690853, 569.8330980292909}">
     </property>
-    <property name="RAW_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="$ROOT_DATA_DIR/reflex_input/cr2res_obs_2d">
+    <property name="RAW_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="$ROOT_DATA_DIR/reflex_input/cr2re/cr2res_obs_2d">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
 <property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>none</configure></property>
 <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>yang zhao, edward lee</configure></property>
@@ -93,7 +93,7 @@
         <property name="_location" class="ptolemy.kernel.util.Location" value="[70.0, -115.0]">
         </property>
     </property>
-    <property name="TMP_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="$ROOT_DATA_DIR/reflex_tmp_products/cr2res_obs_2d">
+    <property name="TMP_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="$ROOT_DATA_DIR/reflex_tmp_products/cr2re/cr2res_obs_2d">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
 <property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>none</configure></property>
 <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>yang zhao, edward lee</configure></property>
@@ -140,7 +140,7 @@
         <property name="allowDirectories" class="ptolemy.data.expr.Parameter" value="true">
         </property>
     </property>
-    <property name="BOOKKEEPING_DIR" class="ptolemy.data.expr.FileParameter" value="$ROOT_DATA_DIR/reflex_book_keeping/cr2res_obs_2d">
+    <property name="BOOKKEEPING_DIR" class="ptolemy.data.expr.FileParameter" value="$ROOT_DATA_DIR/reflex_book_keeping/cr2re/cr2res_obs_2d">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
 <property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>none</configure></property>
 <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>yang zhao, edward lee</configure></property>
@@ -187,7 +187,7 @@
         <property name="allowDirectories" class="ptolemy.data.expr.Parameter" value="true">
         </property>
     </property>
-    <property name="LOGS_DIR" class="ptolemy.data.expr.FileParameter" value="$ROOT_DATA_DIR/reflex_logs/cr2res_obs_2d">
+    <property name="LOGS_DIR" class="ptolemy.data.expr.FileParameter" value="$ROOT_DATA_DIR/reflex_logs/cr2re/cr2res_obs_2d">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
 <property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>none</configure></property>
 <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>yang zhao, edward lee</configure></property>
@@ -234,7 +234,7 @@
         <property name="allowDirectories" class="ptolemy.data.expr.Parameter" value="true">
         </property>
     </property>
-    <property name="END_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="$ROOT_DATA_DIR/reflex_end_products">
+    <property name="END_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="$ROOT_DATA_DIR/reflex_end_products/cr2re/cr2res_obs_2d">
 <property name="KeplerDocumentation" class="ptolemy.vergil.basic.KeplerDocumentationAttribute">
 <property name="description" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>none</configure></property>
 <property name="author" class="ptolemy.kernel.util.ConfigurableAttribute"><configure>yang zhao, edward lee</configure></property>

@@ -4,11 +4,11 @@ set -e
 wkf_file=cr2res_obs_pol.xml
 
 sed -i -e 's#\(<property name="ROOT_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1/home/yjung/P_cr2res/reflex/">#' $wkf_file
-
-sed -i -e 's#\(<property name="RAW_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/RAW/cr2res_obs_pol">#' $wkf_file
 sed -i -e 's#\(<property name="CALIB_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1/home/yjung/P_cr2res/cr2re/cr2re-calib/">#' $wkf_file
-sed -i -e 's#\(<property name="BOOKKEEPING_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/BOOK/cr2res_obs_pol">#' $wkf_file
-sed -i -e 's#\(<property name="LOGS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/LOGS/cr2res_obs_pol">#' $wkf_file
-sed -i -e 's#\(<property name="TMP_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/TMP/cr2res_obs_pol">#' $wkf_file
-sed -i -e 's#\(<property name="END_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/OUT/cr2res_obs_pol">#' $wkf_file
+
+#sed -i -e 's#\(<property name="RAW_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/RAW/cr2res_obs_pol">#' $wkf_file
+#sed -i -e 's#\(<property name="BOOKKEEPING_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/BOOK/cr2res_obs_pol">#' $wkf_file
+#sed -i -e 's#\(<property name="LOGS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/LOGS/cr2res_obs_pol">#' $wkf_file
+#sed -i -e 's#\(<property name="TMP_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/TMP/cr2res_obs_pol">#' $wkf_file
+#sed -i -e 's#\(<property name="END_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/OUT/cr2res_obs_pol">#' $wkf_file
 
