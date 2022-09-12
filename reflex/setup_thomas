@@ -1,0 +1,7 @@
+#!/bin/sh
+
+./setup_thomas_nodding
+./setup_thomas_staring
+./setup_thomas_2d
+./setup_thomas_pol
+

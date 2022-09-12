@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-wkf_file=cr2res.xml
+wkf_file=cr2res_obs_pol.xml
 
 sed -i -e 's#\(<property name="ROOT_DATA_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1/home/tom/pipes/reflex/">#' $wkf_file
 
@@ -11,4 +11,3 @@ sed -i -e 's#\(<property name="BOOKKEEPING_DIR" class="ptolemy.data.expr.FilePar
 sed -i -e 's#\(<property name="LOGS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/LOGS">#' $wkf_file
 sed -i -e 's#\(<property name="TMP_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/TMP">#' $wkf_file
 sed -i -e 's#\(<property name="END_PRODUCTS_DIR" class="ptolemy.data.expr.FileParameter" value="\).*">#\1$ROOT_DATA_DIR/OUT">#' $wkf_file
-
