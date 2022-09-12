@@ -24,7 +24,7 @@ aclocal.m4
 config.*
 stamp-h1
 regtests
-reflex/cr2res.xml
+reflex/cr2res_obs_*.xml
 doxygen/Doxyfile
 html
 .vscode
