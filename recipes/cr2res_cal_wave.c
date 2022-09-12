@@ -298,7 +298,7 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.subtract_nolight_rows",
             CPL_TYPE_BOOL, "Subtract the no-light rows.",
             "cr2res.cr2res_cal_wave", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "keep");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "subtract_nolight_rows");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -1232,7 +1232,7 @@ static int cr2res_cal_wave_reduce(
 
         /* Calibrate the FPET images */
         if ((in_fpet_calib = cr2res_calib_imagelist(in_fpet, reduce_det, 0, 
-                        subtract_nolight_rows, 1, 0, master_flat_frame, NULL, 
+                        subtract_nolight_rows, 0, 0, master_flat_frame, NULL, 
                         bpm_frame, detlin_frame, NULL, ndits_fpet)) == NULL) {
             cpl_msg_error(__func__, "Failed to apply the calibrations") ;
             cpl_msg_indent_less() ;
