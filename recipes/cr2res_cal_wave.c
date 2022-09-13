@@ -402,6 +402,14 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.save_intermediate",
+            CPL_TYPE_BOOL,
+            "Flag to save UNE results (if UNE and FPET are used as inputs)",
+            "cr2res.cr2res_cal_wave", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "save");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.clean_spectrum",
             CPL_TYPE_BOOL, "Flag to automatically clean the missing lines",
             "cr2res.cr2res_cal_wave", TRUE);
@@ -483,6 +491,7 @@ static int cr2res_cal_wave(
                             ext_oversample, ext_swath_width, ext_height,
                             wl_degree, display, log_flag,
                             fallback_input_wavecal_flag,
+                            save_intermediate_flag,
                             keep_higher_degrees_flag, 
                             clean_spectrum, subtract_nolight_rows ;
     double                  ext_smooth_slit, ext_smooth_spec, wl_start, wl_end,
@@ -594,6 +603,9 @@ static int cr2res_cal_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.keep_higher_degrees");
     keep_higher_degrees_flag = cpl_parameter_get_bool(param) ;
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_wave.save_intermediate");
+    save_intermediate_flag = cpl_parameter_get_bool(param) ;
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.clean_spectrum");
     clean_spectrum = cpl_parameter_get_bool(param) ;
@@ -766,7 +778,9 @@ static int cr2res_cal_wave(
     /* Beware that the calibration PRO RECi CAL will be missing */ 
 
     /* Save Products UNE */
-    if (rawframes_une != NULL) {
+    if (rawframes_une != NULL &&
+            (rawframes_fpet == NULL ||   // UNE is the main product
+             (rawframes_fpet != NULL && save_intermediate_flag))) { 
         out_file = cpl_sprintf("%s_tw_une.fits", RECIPE_STRING) ;
         cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
                 out_trace_wave_une, NULL, ext_plist_une, 
@@ -794,7 +808,7 @@ static int cr2res_cal_wave(
     }
 
     if (rawframes_fpet != NULL) {
-        /* Save Products UNE */
+        /* Save Products FPET */
         out_file = cpl_sprintf("%s_tw_fpet.fits", RECIPE_STRING) ;
         cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
                 out_trace_wave_fpet, NULL, ext_plist_fpet, 
