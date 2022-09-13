@@ -713,7 +713,10 @@ static int cr2res_obs_nodding(
 		cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
                 extracta, NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTA_PROCATG,
 				RECIPE_STRING);
-		cpl_free(out_file);
+		if (create_idp) {
+			cr2res_idp_save(out_file, frameset, raw_one_angle, parlist, 
+                    extracta, RECIPE_STRING) ;
+		}cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_slitfuncA%s", RECIPE_STRING,
                 product_name_addon) ;

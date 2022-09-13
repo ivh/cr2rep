@@ -51,12 +51,14 @@
 #define CR2RES_COL_SLIT_FRACTION    "SlitFraction"  /* Position on the Slit */
 
 /*** CR2RES_OBS_NODDING_IDP_PROCATG  ***/
-#define CR2RES_COL_SPECTRUM         "Spectrum_Intensity" /* Intensity */
-#define CR2RES_COL_ERROR            "Error"         /* Error */
-#define CR2RES_COL_QUALITY          "Quality"       /* Quality */
-#define CR2RES_COL_ORDER            "Order"         /* Order Number */
-#define CR2RES_COL_DETECTOR         "Detector"      /* Detector */
-#define CR2RES_COL_XPOS             "Xpos"          /* Original X position */
+#define CR2RES_IDP_COL_FLUX         "FLUX"       /* Intensity */
+#define CR2RES_IDP_COL_ERR            "ERR"        /* Error */
+#define CR2RES_IDP_COL_WAVE             "WAVE"       /* wavelength */
+#define CR2RES_IDP_COL_QUAL          "QUAL"    /* Quality */
+#define CR2RES_IDP_COL_ORDER            "ORDER"      /* Order Number */
+#define CR2RES_IDP_COL_TRACE            "TRACE"      /* Order Number */
+#define CR2RES_IDP_COL_DETEC         "DETEC"   /* Detector */
+#define CR2RES_IDP_COL_XPOS             "XPOS"       /* Original X position */
 
 /*** LINES_DIAGNOSTICS Table ***/
 #define CR2RES_COL_MEASURED_LAMBDA  "Measured_WL"   /* In Nanometers */

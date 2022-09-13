@@ -96,19 +96,19 @@ int cr2res_idp_save(
     idp_tab = cr2res_idp_create_table(tables) ;
 
     /* Set the units */
-    cpl_table_set_column_unit(idp_tab, CR2RES_COL_WAVELENGTH, "nm") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_COL_SPECTRUM, "ADU/sec") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_COL_ERROR, "") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_COL_QUALITY, "") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_COL_ORDER, "Nb Order") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_COL_TRACENB, "Nb Trace") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_COL_DETECTOR, "Nb Detector") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_COL_XPOS, "pixels") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_WAVE, "nm") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_FLUX, "ADU") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_ERR, "ADU") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_QUAL, "") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_ORDER, "Nb Order") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_TRACE, "Nb Trace") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_DETEC, "Nb Detector") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_XPOS, "pixels") ;
 
     /* Get wmin / wmax */
     nrows = cpl_table_get_nrow(idp_tab) ;
-    wmin = cpl_table_get(idp_tab, CR2RES_COL_WAVELENGTH, 0, NULL) ;
-    wmax = cpl_table_get(idp_tab, CR2RES_COL_WAVELENGTH, nrows-1, NULL) ;
+    wmin = cpl_table_get(idp_tab, CR2RES_IDP_COL_WAVE, 0, NULL) ;
+    wmax = cpl_table_get(idp_tab, CR2RES_IDP_COL_WAVE, nrows-1, NULL) ;
 
 	/* Prepare frame */
 	out_frame = cpl_frame_new();
@@ -202,8 +202,9 @@ int cr2res_idp_save(
     cpl_propertylist_update_string(pri_head, "PRODCATG", "SCIENCE.SPECTRUM") ;
     cpl_propertylist_set_comment(pri_head, "PRODCATG", "Data product category");
 
-// DATE-OBS ?
- 
+    /* Remove some keys */
+    cpl_propertylist_erase(pri_head, "RADECSYS");
+    
     /* Remove the ASSON keywords */
     //cpl_propertylist_erase_regexp(pri_head, "ASSO*", 0);
 
@@ -285,13 +286,16 @@ cpl_table * cr2res_idp_create_table(
         cpl_table               **  tables)
 {
     cpl_table           *   idp_tab ;
+    cpl_table           *   tmp_tab ;
     cpl_array           *   col_names ;
+    cpl_array           *   tmp_arr ;
     const char          *   col_name ;
-    char                *   col_type ;
+    char                *   col_kind ;
+    cpl_type                col_type;
     cpl_propertylist    *   sort_list ;
     int                     order, trace_nb ;
     double                  cur_val, pre_val ;
-    cpl_size                i, j, ntot, ncols, nb_selected ;
+    cpl_size                i, j, ntot, ncols, nrows, nb_selected ;
 
     /* Check Inputs */
     if (tables == NULL) return NULL ;
@@ -304,29 +308,29 @@ cpl_table * cr2res_idp_create_table(
             ncols = cpl_table_get_ncol(tables[i]) ;
             for (j=0 ; j<ncols ; j++) {
                 col_name = cpl_array_get_string(col_names, j);
-                col_type = cr2res_dfs_SPEC_colname_parse(col_name, 
+                col_kind = cr2res_dfs_SPEC_colname_parse(col_name, 
                         &order, &trace_nb) ;
-                if (col_type != NULL && 
-                        !strcmp(col_type, CR2RES_COL_SPEC_SUFFIX)) {
+                if (col_kind != NULL && 
+                        !strcmp(col_kind, CR2RES_COL_SPEC_SUFFIX)) {
                     /* Handle this extracted spectrum */
                     ntot += cpl_table_get_nrow(tables[i]) ;
                 }
-                if (col_type != NULL) cpl_free(col_type) ;
+                if (col_kind != NULL) cpl_free(col_kind) ;
             }
             cpl_array_delete(col_names) ;
         }
     }
  
     /* Create the table */
-    idp_tab = cpl_table_new(ntot) ;
-    cpl_table_new_column(idp_tab, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE);
-    cpl_table_new_column(idp_tab, CR2RES_COL_SPECTRUM, CPL_TYPE_DOUBLE);
-    cpl_table_new_column(idp_tab, CR2RES_COL_ERROR, CPL_TYPE_DOUBLE);
-    cpl_table_new_column(idp_tab, CR2RES_COL_QUALITY, CPL_TYPE_DOUBLE);
-    cpl_table_new_column(idp_tab, CR2RES_COL_ORDER, CPL_TYPE_INT);
-    cpl_table_new_column(idp_tab, CR2RES_COL_TRACENB, CPL_TYPE_INT);
-    cpl_table_new_column(idp_tab, CR2RES_COL_DETECTOR, CPL_TYPE_INT);
-    cpl_table_new_column(idp_tab, CR2RES_COL_XPOS, CPL_TYPE_INT);
+    tmp_tab = cpl_table_new(ntot) ;
+    cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_WAVE, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_FLUX, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_ERR, CPL_TYPE_DOUBLE);
+    cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_QUAL, CPL_TYPE_INT);
+    cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_ORDER, CPL_TYPE_INT);
+    cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_TRACE, CPL_TYPE_INT);
+    cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_DETEC, CPL_TYPE_INT);
+    cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_XPOS, CPL_TYPE_INT);
 
     /* Fill the table */
     ntot = 0 ;
@@ -336,16 +340,16 @@ cpl_table * cr2res_idp_create_table(
             ncols = cpl_table_get_ncol(tables[i]) ;
             for (j=0 ; j<ncols ; j++) {
                 col_name = cpl_array_get_string(col_names, j);
-                col_type = cr2res_dfs_SPEC_colname_parse(col_name, 
+                col_kind = cr2res_dfs_SPEC_colname_parse(col_name, 
                         &order, &trace_nb) ;
-                if (col_type != NULL && 
-                        !strcmp(col_type, CR2RES_COL_SPEC_SUFFIX)) {
+                if (col_kind != NULL && 
+                        !strcmp(col_kind, CR2RES_COL_SPEC_SUFFIX)) {
                     /* Handle this extracted spectrum */
-                    cr2res_idp_copy(idp_tab, tables[i], ntot, i+1, order, 
+                    cr2res_idp_copy(tmp_tab, tables[i], ntot, i+1, order, 
                             trace_nb) ;
                     ntot += cpl_table_get_nrow(tables[i]) ;
                 }
-                if (col_type != NULL) cpl_free(col_type) ;
+                if (col_kind != NULL) cpl_free(col_kind) ;
             }
             cpl_array_delete(col_names) ;
         }
@@ -353,29 +357,53 @@ cpl_table * cr2res_idp_create_table(
 
     /* Sort by the wavelengths */
     sort_list = cpl_propertylist_new() ;
-    cpl_propertylist_append_bool(sort_list, CR2RES_COL_WAVELENGTH, 0) ;
-    cpl_propertylist_append_bool(sort_list, CR2RES_COL_XPOS, 1) ;
-    cpl_table_sort(idp_tab, sort_list) ;
+    cpl_propertylist_append_bool(sort_list, CR2RES_IDP_COL_WAVE, 0) ;
+    cpl_propertylist_append_bool(sort_list, CR2RES_IDP_COL_XPOS, 1) ;
+    cpl_table_sort(tmp_tab, sort_list) ;
     cpl_propertylist_delete(sort_list) ;
 
     /* Identify close values */
-    cpl_table_unselect_all(idp_tab) ;
+    cpl_table_unselect_all(tmp_tab) ;
     for (i=1 ; i<ntot ; i++) {
-        pre_val = cpl_table_get_double(idp_tab,CR2RES_COL_WAVELENGTH,i-1,NULL);
-        cur_val = cpl_table_get_double(idp_tab,CR2RES_COL_WAVELENGTH,i, NULL) ;
+        pre_val = cpl_table_get_double(tmp_tab,CR2RES_IDP_COL_WAVE,i-1,NULL);
+        cur_val = cpl_table_get_double(tmp_tab,CR2RES_IDP_COL_WAVE,i, NULL) ;
         if (fabs(pre_val-cur_val) < 1e-3) {
-            cpl_table_select_row(idp_tab, i) ;
+            cpl_table_select_row(tmp_tab, i) ;
         }
     }
 
-    nb_selected = cpl_table_count_selected(idp_tab) ;
+    nb_selected = cpl_table_count_selected(tmp_tab) ;
     if (nb_selected > 0) {
         cpl_msg_info(__func__, 
                 "IDP Creation - Double defined WLs : %"CPL_SIZE_FORMAT, 
                 nb_selected) ;
     }
-    cpl_table_erase_selected(idp_tab) ;
+    cpl_table_erase_selected(tmp_tab) ;
 
+    //return tmp_tab;
+    /* Transform table to single row with arrays */
+    col_names = cpl_table_get_column_names(tmp_tab);
+    ncols = cpl_table_get_ncol(tmp_tab);
+    nrows = cpl_table_get_nrow(tmp_tab);
+    idp_tab = cpl_table_new(1);
+    for (j=0 ; j<ncols ; j++) {
+        col_name = cpl_array_get_string(col_names, j);
+        col_type = cpl_table_get_column_type(tmp_tab, col_name);
+        tmp_arr = cpl_array_new(nrows, col_type);
+        if (col_type==CPL_TYPE_DOUBLE){
+            cpl_array_copy_data_double(tmp_arr, 
+                cpl_table_get_data_double_const(tmp_tab, col_name));
+        } else if (col_type==CPL_TYPE_INT){
+            cpl_array_copy_data_int(tmp_arr, 
+                cpl_table_get_data_int_const(tmp_tab, col_name));
+        } else {continue;}
+        cpl_table_new_column_array(idp_tab, col_name, col_type, nrows);
+        cpl_table_set_array(idp_tab, col_name, 0, tmp_arr);
+        cpl_array_delete(tmp_arr);
+    }
+    //cpl_msg_info(__func__, "order %d, trace %d", order, trace_nb);
+    cpl_array_delete(col_names) ;
+    cpl_table_delete(tmp_tab);
     return idp_tab ;
 }
 
@@ -509,23 +537,23 @@ static int cr2res_idp_copy(
     for (i=0 ; i<in_size ; i++) {
         if (out_start_idx + i <out_size) {
             if (!isnan(pwave[i])) 
-                cpl_table_set_double(out, CR2RES_COL_WAVELENGTH, 
+                cpl_table_set_double(out, CR2RES_IDP_COL_WAVE, 
                         out_start_idx + i, pwave[i]) ;
             if (!isnan(pspec[i])) 
-                cpl_table_set_double(out, CR2RES_COL_SPECTRUM, 
+                cpl_table_set_double(out, CR2RES_IDP_COL_FLUX, 
                         out_start_idx + i, pspec[i]) ;
             if (!isnan(perr[i])) 
-                cpl_table_set_double(out, CR2RES_COL_ERROR, 
+                cpl_table_set_double(out, CR2RES_IDP_COL_ERR, 
                         out_start_idx + i, perr[i]) ;
-            cpl_table_set_double(out, CR2RES_COL_QUALITY, out_start_idx + i, 
+            cpl_table_set_double(out, CR2RES_IDP_COL_QUAL, out_start_idx + i, 
                     0);
-            cpl_table_set_int(out, CR2RES_COL_XPOS, out_start_idx + i, 
+            cpl_table_set_int(out, CR2RES_IDP_COL_XPOS, out_start_idx + i, 
                     i+1) ;
-            cpl_table_set_int(out, CR2RES_COL_DETECTOR, out_start_idx + i, 
+            cpl_table_set_int(out, CR2RES_IDP_COL_DETEC, out_start_idx + i, 
                     det_nr) ;
-            cpl_table_set_int(out, CR2RES_COL_ORDER, out_start_idx + i, 
+            cpl_table_set_int(out, CR2RES_IDP_COL_ORDER, out_start_idx + i, 
                     order) ;
-            cpl_table_set_int(out, CR2RES_COL_TRACENB, out_start_idx + i, 
+            cpl_table_set_int(out, CR2RES_IDP_COL_TRACE, out_start_idx + i, 
                     tracenb) ;
         }
     }
