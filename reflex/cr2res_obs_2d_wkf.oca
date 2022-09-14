@@ -164,7 +164,7 @@ action OBS_2D_action
     select file as CAL_FLAT_MASTER_WKF from calibFiles where
         PRO.CATG=="CAL_FLAT_MASTER_WKF"
         and inputFile.INSTRUME==INSTRUME        
-        and inputFile.INS.SLIT1.ID ==INS.SLIT1.ID
+        and inputFile.INS.SLIT1.ID==INS.SLIT1.ID
         and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
 
 	minRet = 0; maxRet = 1;
@@ -176,14 +176,14 @@ action OBS_2D_action
     select file as CAL_WAVE_TW_WKF from calibFiles where
         PRO.CATG=="CAL_WAVE_TW_WKF"
         and inputFile.INSTRUME==INSTRUME        
-        and inputFile.INS.SLIT1.ID ==INS.SLIT1.ID
+        and inputFile.INS.SLIT1.ID==INS.SLIT1.ID
         and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
 
     minRet = 0; maxRet = 1;
     select file as UTIL_TRACE_TW from calibFiles where
         PRO.CATG=="UTIL_TRACE_TW"
         and inputFile.INSTRUME==INSTRUME        
-        and inputFile.INS.SLIT1.ID ==INS.SLIT1.ID
+        and inputFile.INS.SLIT1.ID==INS.SLIT1.ID
         and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
 
     recipe cr2res_obs_2d;
