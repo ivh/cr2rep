@@ -76,6 +76,7 @@ int cr2res_idp_save(
         const char              *   recipe)
 {
     cpl_table           *   idp_tab ;
+    const cpl_array           *   wlen_arr;
     char                *   idp_filename ;
     cpl_frame           *   out_frame ;
     const cpl_frame     *   ref_frame ;
@@ -106,9 +107,10 @@ int cr2res_idp_save(
     cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_XPOS, "pixels") ;
 
     /* Get wmin / wmax */
-    nrows = cpl_table_get_nrow(idp_tab) ;
-    wmin = cpl_table_get(idp_tab, CR2RES_IDP_COL_WAVE, 0, NULL) ;
-    wmax = cpl_table_get(idp_tab, CR2RES_IDP_COL_WAVE, nrows-1, NULL) ;
+    wlen_arr = cpl_table_get_array(idp_tab, CR2RES_IDP_COL_WAVE, 0);
+    nrows = cpl_array_get_size(wlen_arr);
+    wmin = cpl_array_get_double(wlen_arr, 0, &err) ;
+    wmax = cpl_array_get_double(wlen_arr, nrows-1, &err) ;
 
 	/* Prepare frame */
 	out_frame = cpl_frame_new();
@@ -203,8 +205,7 @@ int cr2res_idp_save(
     cpl_propertylist_set_comment(pri_head, "PRODCATG", "Data product category");
 
     /* Remove some keys */
-    cpl_propertylist_erase(pri_head, "RADECSYS");
-    
+    //cpl_propertylist_erase(pri_head, "RADECSYS");
     /* Remove the ASSON keywords */
     //cpl_propertylist_erase_regexp(pri_head, "ASSO*", 0);
 
@@ -238,6 +239,15 @@ int cr2res_idp_save(
         cpl_propertylist_set_comment(ext_head, "TMID", 
                 "Exposure midpoint [MJD]") ;
     }
+
+
+    cpl_propertylist_update_double(ext_head, "WAVELMIN", wmin) ;
+    cpl_propertylist_set_comment(ext_head, "WAVELMIN", 
+            "Minimum Wavelength [nm]") ;
+
+    cpl_propertylist_update_double(ext_head, "WAVELMAX", wmax) ;
+    cpl_propertylist_set_comment(ext_head, "WAVELMAX", 
+            "Maximum Wavelength [nm]") ;
 
     cpl_propertylist_update_double(ext_head, "SPEC_VAL", (wmax+wmin)/2.0) ;
     cpl_propertylist_set_comment(ext_head, "SPEC_VAL", 
