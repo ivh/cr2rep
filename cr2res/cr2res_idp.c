@@ -181,8 +181,6 @@ int cr2res_idp_save(
     cpl_propertylist_set_comment(pri_head, "M_EPOCH",
             "TRUE if resulting from multiple epochs") ;
 
-// SINGLEEXP ?
-
     nraw = cpl_frameset_get_size(rawframes) ;
     cpl_propertylist_update_int(pri_head, "NCOMBINE", nraw);
 
@@ -203,6 +201,33 @@ int cr2res_idp_save(
 
     cpl_propertylist_update_string(pri_head, "PRODCATG", "SCIENCE.SPECTRUM") ;
     cpl_propertylist_set_comment(pri_head, "PRODCATG", "Data product category");
+
+
+    cpl_propertylist_update_double(pri_head, "WAVELMIN", wmin) ;
+    cpl_propertylist_set_comment(pri_head, "WAVELMIN", 
+            "Minimum Wavelength [nm]") ;
+
+    cpl_propertylist_update_double(pri_head, "WAVELMAX", wmax) ;
+    cpl_propertylist_set_comment(pri_head, "WAVELMAX", 
+            "Maximum Wavelength [nm]") ;
+
+    cpl_propertylist_update_double(pri_head, "SPEC_VAL", (wmax+wmin)/2.0) ;
+    cpl_propertylist_set_comment(pri_head, "SPEC_VAL", 
+            "Characteristic spectral coordinate value [nm]") ;
+
+    cpl_propertylist_update_double(pri_head, "SPEC_BW", wmax-wmin) ;
+    cpl_propertylist_set_comment(pri_head, "SPEC_BW", 
+            "Width of the spectrum [nm]") ;
+
+    cpl_propertylist_update_string(pri_head, "SPECSYS", "TOPOCENT") ;
+    cpl_propertylist_set_comment(pri_head, "SPECSYS", 
+            "") ;
+
+
+    cpl_propertylist_update_double(pri_head, "SPEC_BIN", (wmax-wmin)/nrows) ;
+    cpl_propertylist_set_comment(pri_head, "SPEC_BIN", 
+            "") ;
+
 
     /* Remove some keys */
     //cpl_propertylist_erase(pri_head, "RADECSYS");
@@ -239,23 +264,6 @@ int cr2res_idp_save(
         cpl_propertylist_set_comment(ext_head, "TMID", 
                 "Exposure midpoint [MJD]") ;
     }
-
-
-    cpl_propertylist_update_double(ext_head, "WAVELMIN", wmin) ;
-    cpl_propertylist_set_comment(ext_head, "WAVELMIN", 
-            "Minimum Wavelength [nm]") ;
-
-    cpl_propertylist_update_double(ext_head, "WAVELMAX", wmax) ;
-    cpl_propertylist_set_comment(ext_head, "WAVELMAX", 
-            "Maximum Wavelength [nm]") ;
-
-    cpl_propertylist_update_double(ext_head, "SPEC_VAL", (wmax+wmin)/2.0) ;
-    cpl_propertylist_set_comment(ext_head, "SPEC_VAL", 
-            "Characteristic spectral coordinate value [nm]") ;
-
-    cpl_propertylist_update_double(ext_head, "SPEC_BW", wmax-wmin) ;
-    cpl_propertylist_set_comment(ext_head, "SPEC_BW", 
-            "Width of the spectrum [nm]") ;
 
     /* Remove keywords */
     cpl_propertylist_erase(ext_head, "CRDER3");
