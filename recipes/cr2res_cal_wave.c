@@ -1088,6 +1088,11 @@ static int cr2res_cal_wave_reduce(
             return -1 ;
         }
 
+        /*Call the slit-tilt routine */
+        cpl_parameterlist * parlist = cpl_parameterlist_new();
+        cr2res_util_slit_curv(rawframes_fpet, parlist);
+        cpl_parameterlist_delete(parlist);
+
         /* Execute the extraction for UNE */
         cpl_msg_info(__func__, "Spectra Extraction UNE") ;
         cpl_msg_indent_more() ;
