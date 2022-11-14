@@ -386,12 +386,12 @@ static int cr2res_util_slit_curv(
         
                 /* Call the Slit Curvature Computation */
                 /* TODO : Should those become parameters ? */
-                int height = 180 ;
+                int height = 100 ;
                 int window = 15 ;
-                int fit_second_order = 1 ;
+                int fit_c = 0 ;
                 if (cr2res_slit_curv_compute_order_trace(lamp_image[det_nr-1], 
                             trace_wave[det_nr-1], order, trace_id,
-                            height, window, curv_degree, fit_second_order, 
+                            height, window, curv_degree, fit_c, 
                             &slit_polya, &slit_polyb, &slit_polyc)) {
                     cpl_msg_warning(__func__, 
                             "Cannot Compute Slit curvature for Order %d",
