@@ -33,11 +33,12 @@ def compare(fname_trace, fname_img=None, fname_spec=None):
 
         if fname_img:
             imgdata = img['CHIP%d.INT1'%i].data
-            #imgdata = np.ma.masked_where(np.isnan(imgdata),imgdata)
-            imgdata = np.nan_to_num(imgdata)
-            ax.imshow(imgdata, origin='lower', cmap='plasma',
-                vmin=np.percentile(imgdata,5),
-                vmax=np.percentile(imgdata,98))
+            if imgdata is not None:
+                #imgdata = np.ma.masked_where(np.isnan(imgdata),imgdata)
+                imgdata = np.nan_to_num(imgdata)
+                ax.imshow(imgdata, origin='lower', cmap='plasma',
+                    vmin=np.percentile(imgdata,5),
+                    vmax=np.percentile(imgdata,98))
 
         for t in tdata:
             upper = t['Upper']
