@@ -163,7 +163,7 @@ static cpl_table *create_test_table()
     cpl_array_set(slit_a, 2, 0);
     slit_b = cpl_array_new(3, CPL_TYPE_DOUBLE);
     cpl_array_set(slit_b, 0, 0);
-    cpl_array_set(slit_b, 1, 0);
+    cpl_array_set(slit_b, 1, -7.7e-02);
     cpl_array_set(slit_b, 2, 0);
     slit_c = cpl_array_new(3, CPL_TYPE_DOUBLE);
     cpl_array_set(slit_c, 0, 0);
