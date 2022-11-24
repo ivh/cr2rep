@@ -145,7 +145,7 @@ cpl_table * cr2res_trace_filter(
         const char      *   setting,
         int                 zp_order) ;
 
-cpl_table * cr2res_trace_shift_wavelength(
+int cr2res_trace_shift_wavelength(
     cpl_table     *   traces,
     double old_slit_fraction,
     int order,

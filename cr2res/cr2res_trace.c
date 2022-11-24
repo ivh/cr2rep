@@ -1143,9 +1143,6 @@ int cr2res_trace_add_extra_columns(
     are computed like this:
     TODO
 
-    COMMENTS / TODO
-        Currently only calculates the new position of the trace
-        Wavelength and slit curvature remain unchanged
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_new_slit_fraction(
@@ -1434,7 +1431,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
     {
         order = cpl_table_get_int(out, CR2RES_COL_ORDER, k, NULL);
         trace_id = cpl_table_get_int(out, CR2RES_COL_TRACENB, k, NULL);
-        out = cr2res_trace_shift_wavelength(out, 0.5, order, trace_id);
+        cr2res_trace_shift_wavelength(out, 0.5, order, trace_id);
     }
 
     return out ;
@@ -1483,10 +1480,17 @@ static double cr2res_trace_calculate_pixel_shift(
     *a = n + 1;
     *b -= 2 * (*c) * (*pix_shift_y + pix_all);
 
+    cpl_msg_debug(__func__,"Calculated pixel x-shift: %g px",pix_shift_x);
     return pix_shift_x;
 }
 
-cpl_table * cr2res_trace_shift_wavelength(
+/// @brief Update wavelengths according to slit tilt
+/// @param traces 
+/// @param old_slit_fraction 
+/// @param order 
+/// @param trace_id 
+/// @return 0 if no error
+int cr2res_trace_shift_wavelength(
     cpl_table     *   traces,
     double old_slit_fraction,
     int order,
@@ -1529,7 +1533,7 @@ cpl_table * cr2res_trace_shift_wavelength(
         cpl_msg_warning(__func__,
                     "Invalid input wavelength in order %d, trace %d",
                     order, trace_id);
-        return traces;
+        return -1;
     }
 
     const_wave_err = cpl_table_get_array(traces, 
@@ -1550,7 +1554,6 @@ cpl_table * cr2res_trace_shift_wavelength(
     poly_lower = cr2res_convert_array_to_poly(trace_lower_old);
     poly_upper = cr2res_convert_array_to_poly(trace_upper_old);
 
-    // TODO
     // we switch around sf_new and sf_all, since we are correcting
     // for a change that has already happened
     sf_lower = cpl_array_get_double(slit_frac_old, 0, NULL);
@@ -1600,24 +1603,20 @@ cpl_table * cr2res_trace_shift_wavelength(
         cpl_vector_delete(wave_vec);
         cpl_polynomial_delete(poly_wave);
         cpl_matrix_delete(samppos);
-        return NULL;
+        return -1;
     }
 
     wave = cr2res_convert_poly_to_array(poly_wave, 
                         cpl_array_get_size(const_wave));
 
     cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH, k, wave);
-    // TODO: change the wavelength errors
-    // This can't be the same array that was taken from the table or we segfault
-    // cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH_ERROR, k, 
-    //         const_wave_err);
 
     cpl_vector_delete(wave_vec);
     cpl_polynomial_delete(poly_wave);
     cpl_array_delete(wave);
     cpl_matrix_delete(samppos);
 
-    return traces;
+    return 0;
 }
 
 /*----------------------------------------------------------------------------*/

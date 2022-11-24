@@ -386,7 +386,7 @@ static int cr2res_util_slit_curv(
         
                 /* Call the Slit Curvature Computation */
                 /* TODO : Should those become parameters ? */
-                int height = 100 ;
+                int height = 170 ;
                 int window = 15 ;
                 int fit_c = 0 ;
                 if (cr2res_slit_curv_compute_order_trace(lamp_image[det_nr-1], 
@@ -400,7 +400,8 @@ static int cr2res_util_slit_curv(
                     cpl_msg_indent_less() ;
                     continue ;
                 }
-
+                cpl_msg_debug(__func__,"PolyC: ");
+                cpl_polynomial_dump(slit_polyc,stdout);
                 /* Fill the SLIT_CURVE_A/B/C for the current trace */
                 slit_array = cr2res_convert_poly_to_array(slit_polya, 3) ;
                 cpl_polynomial_delete(slit_polya) ;
