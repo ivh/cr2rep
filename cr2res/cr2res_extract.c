@@ -3519,7 +3519,7 @@ static int cr2res_extract_slit_func_curved(
                         }
                     }
                 }
-                diag_tot += l_Aij[iy + ny * 2 * osample];
+                diag_tot += fabs(l_Aij[iy + ny * 2 * osample]);
             }
             /* Scale regularization parameters */
             lambda = lambda_sL * diag_tot / ny;
@@ -3550,7 +3550,7 @@ static int cr2res_extract_slit_func_curved(
             norm = 0.e0;
             for (iy = 0; iy < ny; iy++) {
                 sL[iy] = l_bj[iy];
-                norm += sL[iy];
+                norm += fabs(sL[iy]);
             }
             norm /= osample;
             for (iy = 0; iy < ny; iy++) sL[iy] /= norm;
