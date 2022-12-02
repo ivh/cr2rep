@@ -1402,9 +1402,9 @@ cpl_table * cr2res_trace_new_slit_fraction(
     
 
         /* Set the new slit curvature */
-        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_A, i, slit_curv_a);
-        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_B, i, slit_curv_b);
-        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_C, i, slit_curv_c);
+        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_A, i, const_slit_curv_a);
+        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_B, i, const_slit_curv_b);
+        cpl_table_set_array(out, CR2RES_COL_SLIT_CURV_C, i, const_slit_curv_c);
         cpl_array_delete(slit_curv_a) ;
         cpl_array_delete(slit_curv_b) ;
         cpl_array_delete(slit_curv_c) ;
