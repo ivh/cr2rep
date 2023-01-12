@@ -767,6 +767,16 @@ static int cr2res_obs_staring_reduce(
     qc_fwhm = cpl_array_get_median(fwhm_array);
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SLITFWHM_MED, 
             qc_fwhm) ;
+    if (qc_fwhm < 3.5) {
+        cpl_msg_warning(__func__, "Median FWMH of the PSF along the slit "
+            "is %gpix, i.e. below the slit width. This means the slit "
+            "is likely not evenly filled with light "
+            "in the spectral direction. This can result in a "
+            "wavelength offset between A and B nodding postitions, and with "
+            "respect to calibrations."
+            , qc_fwhm);
+    }
+
     cpl_array_delete(fwhm_array) ;
 
     /* QC - Real Orders */

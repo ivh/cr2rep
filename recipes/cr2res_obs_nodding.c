@@ -946,7 +946,7 @@ static int cr2res_obs_nodding_reduce(
                             slit_frac_b_mid, slit_frac_b_top, nod_throw ;
     double                  qc_signal_a, qc_signal_b, qc_fwhm_a, 
                             qc_fwhm_b, qc_standard_flux_a,
-                            qc_standard_flux_b ;
+                            qc_standard_flux_b, qc_fwhm_med ;
     cpl_array           *   fwhm_a_array ;
     cpl_array           *   fwhm_b_array ;
     char                *   cur_setting ;
@@ -1350,8 +1350,18 @@ static int cr2res_obs_nodding_reduce(
     }
     qc_fwhm_a = cpl_array_get_median(fwhm_a_array);
     qc_fwhm_b = cpl_array_get_median(fwhm_b_array);
+    qc_fwhm_med = (qc_fwhm_a+qc_fwhm_b)/2.0 ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SLITFWHM_MED,
-            (qc_fwhm_a+qc_fwhm_b)/2.0) ;
+            qc_fwhm_med) ;
+    if (qc_fwhm_med < 3.5) {
+        cpl_msg_warning(__func__, "Median FWMH of the PSF along the slit "
+            "is %gpix, i.e. below the slit width. This means the slit "
+            "is likely not evenly filled with light "
+            "in the spectral direction. This can result in a "
+            "wavelength offset between A and B nodding postitions, and with "
+            "respect to calibrations."
+            , qc_fwhm_med);
+    }
     cpl_array_delete(fwhm_a_array) ;
     cpl_array_delete(fwhm_b_array) ;
 
