@@ -165,6 +165,7 @@ hdrl_image * cr2res_calib_image(
     double                  dark_dit ;
     cpl_image           *   img_tmp ;
     cpl_size                i;
+    cpl_size                bgdegree;
 
     /* Test entries */
     if (in == NULL) return NULL ;
@@ -275,6 +276,7 @@ hdrl_image * cr2res_calib_image(
 
     /* Apply the interorder correction */
     if (subtract_interorder_column) {
+        bgdegree = 3;
         if (flat == NULL) {
             cpl_msg_info(__func__, 
                 "Skip subtracting fit to inter-order pixels (no flat-field)");
@@ -286,8 +288,10 @@ hdrl_image * cr2res_calib_image(
                 hdrl_image_delete(out);
                 return NULL ;
             }
-            if (cr2res_calib_subtract_interorder_column(out, calib, 3)){
+            if (cr2res_calib_subtract_interorder_column(out, calib, bgdegree)){
                 cpl_msg_error(__func__, "Could not subtract inter-order fit");
+            }else{
+                cpl_msg_warning(__func__, "subtracted %lld degree interoder poly", bgdegree);
             }
             hdrl_image_delete(calib);
         }
@@ -404,9 +408,11 @@ int cr2res_calib_subtract_interorder_column(hdrl_image * in,
     cpl_vector * tmp;
     cpl_size ncolumns, nrow, npixel;
     cpl_size i, j;
+    double median, stdev;
     int badpix;
     int badcols = 0;
     double value;
+    char * fname;
 
     // Check Input 
     if (in == NULL || flat == NULL) return -1;
@@ -449,16 +455,26 @@ int cr2res_calib_subtract_interorder_column(hdrl_image * in,
         }
         cpl_matrix_set_size(px, 1, npixel);
         cpl_vector_set_size(py, npixel);
-        tmp = cpl_vector_filter_median_create(py,10);
-        cpl_vector_delete(py);
-        py=tmp;
+        median = cpl_vector_get_median(py);
+        stdev = cpl_vector_get_stdev(py);
+        for (j=0; j<npixel; j++){
+            if (fabs(cpl_vector_get(py,j)-median)> 4*stdev){
+                    cpl_vector_set(py,j,median);
+                    cpl_msg_debug(__func__,"clipping i,j: %lld %lld",i,j);
+            }
+        }
+        //tmp = cpl_vector_filter_median_create(py,10);
+        //cpl_vector_delete(py);
+        //py=tmp;
         if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+            fname = cpl_sprintf("debug_background_%lld.fits",i);
             tmp = cpl_vector_wrap(npixel, cpl_matrix_get_data(px));
-            cpl_vector_save(tmp, "debug_background.fits",
+            cpl_vector_save(tmp, fname,
                          CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
-            cpl_vector_save(py, "debug_background.fits",
+            cpl_vector_save(py, fname,
                          CPL_TYPE_DOUBLE, NULL, CPL_IO_EXTEND);
             cpl_vector_unwrap(tmp);
+            cpl_free(fname);
         }
 
         // Fit polynomial
