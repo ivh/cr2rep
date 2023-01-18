@@ -1,4 +1,3 @@
-
 /*
  * This file is part of the CR2RES Pipeline
  * Copyright (C) 2002,2003 European Southern Observatory
@@ -39,6 +38,7 @@
 #include "cr2res_dfs.h"
 #include "cr2res_io.h"
 #include "cr2res_qc.h"
+#include "cr2res_slit_curv.h"
 #include "cr2res_extract.h"
 #include "cr2res_trace.h"
 #include "cr2res_wave.h"
@@ -159,6 +159,9 @@ Spectrum Extraction and Wavelength Calibration                          \n\
     Save out_wave_map[une|fpet]                                         \n\
                                                                         \n\
     cr2res_cal_wave_reduce():                                           \n\
+      If FPET RAW frame is present, compute the slit_curvature from it, \n\
+      use it in the following, and store it in the out_trace_wave_fpet. \n\
+                                                                        \n\
       Successively for UNE and FPET RAW frames:                         \n\
         Load the raw image list                                         \n\
         Apply the calibrations to the image list                        \n\
@@ -957,6 +960,9 @@ static int cr2res_cal_wave_reduce(
     cpl_vector          *   dits_une ;
     cpl_vector          *   ndits_une ;
     cpl_vector          *   ndits_fpet ;
+    const cpl_frame     *   fpet_frame ;
+    const char          *   fpet_fname ;
+    hdrl_image          *   fpet_image ;
     hdrl_imagelist      *   in_une ;
     hdrl_imagelist      *   in_fpet ;
     hdrl_imagelist      *   in_une_calib ;
@@ -986,6 +992,10 @@ static int cr2res_cal_wave_reduce(
     cpl_propertylist    *   plist ;
     hdrl_image          *   first_image ;
     const char          *   first_file ;
+    cpl_polynomial      *   slit_polya ;
+    cpl_polynomial      *   slit_polyb ;
+    cpl_polynomial      *   slit_polyc ;
+    cpl_array           *   slit_array ;
     double                  qc_overexposed ;
     int                     i, order, trace_id, ext_nr, zp_order_une, 
                             zp_order_fpet, nb_traces, grat1_order_une, 
@@ -1001,6 +1011,91 @@ static int cr2res_cal_wave_reduce(
             ext_plist_fpet == NULL) return -1 ;
     if (collapse!=CR2RES_COLLAPSE_MEAN && collapse!=CR2RES_COLLAPSE_MEDIAN) 
         return -1 ;
+
+    /* Compute the Slit Curvature using the first passed FPET frame */
+    tw_in = NULL ;
+    if (rawframes_fpet != NULL) {
+        fpet_frame = cpl_frameset_get_position_const(rawframes_fpet, 0) ;
+        fpet_fname = cpl_frame_get_filename(fpet_frame) ;
+        cpl_msg_info(__func__, 
+                "Compute the Slit Curvature from the first FPET frame %s",
+                fpet_fname) ;
+        cpl_msg_indent_more() ;
+
+        /* Load the trace wave */
+        cpl_msg_info(__func__, "Load the TRACE WAVE") ;
+        if ((tw_in = cr2res_io_load_TRACE_WAVE(cpl_frame_get_filename(
+                            trace_wave_frame), reduce_det)) == NULL) {
+            cpl_msg_error(__func__, "Failed to Load the traces file") ;
+            cpl_msg_indent_less() ;
+            return -1 ;
+        }
+
+        /* Load the FPET image of this detector */
+        cpl_msg_info(__func__, "Load the FPET image") ;
+        if ((fpet_image = cr2res_io_load_image(fpet_fname, reduce_det))==NULL) {
+            cpl_msg_error(__func__, "Failed to load image") ;
+            cpl_table_delete(tw_in) ;
+            cpl_msg_indent_less() ;
+            return -1 ;
+        }
+
+        /* Loop over the traces and get the slit curvature */
+        nb_traces = cpl_table_get_nrow(tw_in) ;
+        for (i=0 ; i<nb_traces ; i++) {
+			/* Get Order and trace id */
+			order = cpl_table_get(tw_in, CR2RES_COL_ORDER, i, NULL) ;
+			trace_id = cpl_table_get(tw_in, CR2RES_COL_TRACENB, i, NULL) ;
+
+            /* Check if this order needs to be skipped */
+            if (reduce_order > -1 && order != reduce_order) continue ;
+
+            /* Check if this trace needs to be skipped */
+            if (reduce_trace > -1 && trace_id != reduce_trace) continue ;
+
+            cpl_msg_info(__func__, "Process Order %d/Trace %d",order,trace_id) ;
+            cpl_msg_indent_more() ;
+    
+            /* Call the Slit Curvature Computation */
+            /* TODO : Should those become parameters ? */
+            int height = 100 ;
+            int window = 15 ;
+            int curv_degree = 1;
+            int fit_c = 0 ;
+            if (cr2res_slit_curv_compute_order_trace(fpet_image, tw_in, order, 
+                        trace_id, height, window, curv_degree, fit_c, 
+                        &slit_polya, &slit_polyb, &slit_polyc)) {
+                cpl_msg_error(__func__, "Failed to compute slit curvature") ;
+                cpl_table_delete(tw_in) ;
+                hdrl_image_delete(fpet_image) ;
+                cpl_msg_indent_less() ;
+                return -1 ;
+            }
+
+            /* Fill the SLIT_CURVE_A/B/C for the current trace */
+            slit_array = cr2res_convert_poly_to_array(slit_polya, 3) ;
+            cpl_polynomial_delete(slit_polya) ;
+            cpl_table_set_array(tw_in, CR2RES_COL_SLIT_CURV_A, i, slit_array) ;
+            cpl_array_delete(slit_array) ;
+            slit_array = cr2res_convert_poly_to_array(slit_polyb, 3) ;
+            cpl_polynomial_delete(slit_polyb) ;
+            cpl_table_set_array(tw_in, CR2RES_COL_SLIT_CURV_B, i, slit_array) ;
+            cpl_array_delete(slit_array) ;
+            slit_array = cr2res_convert_poly_to_array(slit_polyc, 3) ;
+            cpl_polynomial_delete(slit_polyc) ;
+            cpl_table_set_array(tw_in, CR2RES_COL_SLIT_CURV_C, i, slit_array) ;
+            cpl_array_delete(slit_array) ;
+
+            cpl_msg_indent_less() ;
+        }
+        hdrl_image_delete(fpet_image) ;
+        cpl_msg_indent_less() ;
+    }
+
+    /*
+        At this point : tw_in is NULL or it is the input TW with the
+        newly computed slit curvature
+    */
 
     /* Reduce the UNE */
     if (rawframes_une != NULL) {
@@ -1024,6 +1119,7 @@ static int cr2res_cal_wave_reduce(
                         reduce_det)) == NULL) {
             cpl_msg_error(__func__, "Cannot load images") ;
             if (dits_une != NULL) cpl_vector_delete(dits_une) ;
+            if (tw_in != NULL) cpl_table_delete(tw_in); 
             cpl_msg_indent_less() ;
             return -1 ;
         }
@@ -1032,6 +1128,7 @@ static int cr2res_cal_wave_reduce(
             cpl_msg_error(__func__, "Inconsistent number of loaded images") ;
             if (dits_une != NULL) cpl_vector_delete(dits_une) ;
             hdrl_imagelist_delete(in_une) ;
+            if (tw_in != NULL) cpl_table_delete(tw_in); 
             cpl_msg_indent_less() ;
             return -1 ;
         }
@@ -1044,6 +1141,7 @@ static int cr2res_cal_wave_reduce(
             if (dits_une != NULL) cpl_vector_delete(dits_une) ;
             if (ndits_une != NULL) cpl_vector_delete(ndits_une) ;
             hdrl_imagelist_delete(in_une) ;
+            if (tw_in != NULL) cpl_table_delete(tw_in); 
             cpl_msg_indent_less() ;
             return -1 ;
         }
@@ -1075,18 +1173,20 @@ static int cr2res_cal_wave_reduce(
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Failed Collapse: %d",cpl_error_get_code());
             cpl_msg_indent_less() ;
+            if (tw_in != NULL) cpl_table_delete(tw_in); 
             return -1 ;
         }
 
         /* Load the trace wave */
         cpl_msg_info(__func__, "Load the TRACE WAVE") ;
-        if ((tw_in = cr2res_io_load_TRACE_WAVE(cpl_frame_get_filename(
-                            trace_wave_frame), reduce_det)) == NULL) {
-            cpl_msg_error(__func__, "Failed to Load the traces file") ;
-            hdrl_image_delete(collapsed_une) ;
-            cpl_msg_indent_less() ;
-            return -1 ;
-        }
+        if (tw_in == NULL) 
+            if ((tw_in = cr2res_io_load_TRACE_WAVE(cpl_frame_get_filename(
+                                trace_wave_frame), reduce_det)) == NULL) {
+                cpl_msg_error(__func__, "Failed to Load the traces file") ;
+                hdrl_image_delete(collapsed_une) ;
+                cpl_msg_indent_less() ;
+                return -1 ;
+            }
 
         /* Execute the extraction for UNE */
         cpl_msg_info(__func__, "Spectra Extraction UNE") ;
@@ -1185,7 +1285,6 @@ static int cr2res_cal_wave_reduce(
 			cpl_free(qc_name) ;
         }
         hdrl_image_delete(first_image) ;
-		cpl_table_delete(tw_in) ;
 
         if (qcs_une_out != NULL) {
             cpl_propertylist_append(plist_une_out, qcs_une_out) ;
@@ -1200,10 +1299,16 @@ static int cr2res_cal_wave_reduce(
         plist_une_out = NULL ;
     }
 
+    /*
+        At this point : tw_in is NULL or it is the input TW with the
+        newly computed slit curvature
+    */
+
     /* Reduce the FPET */
     if (rawframes_fpet != NULL && reduce_order != -1){
         cpl_msg_warning(__func__, 
             "Etalon wavecal requires all orders to be used, skipping it.");
+        if (tw_in != NULL) cpl_table_delete(tw_in); 
         tw_fpet_out = NULL ;
         lines_diagnostics_fpet_out = NULL ;
         extracted_fpet_out = NULL ;
@@ -1301,24 +1406,28 @@ static int cr2res_cal_wave_reduce(
         /* Get the trace wave */
         if (tw_une_out != NULL) {
             cpl_msg_info(__func__, "Use the UNE output TRACE WAVE") ;
+            if (tw_in != NULL) cpl_table_delete(tw_in); 
             tw_in = cpl_table_duplicate(tw_une_out) ;
         } else {
             cpl_msg_info(__func__, "Load the TRACE WAVE") ;
-            if ((tw_in = cr2res_io_load_TRACE_WAVE(cpl_frame_get_filename(
-                                trace_wave_frame), reduce_det)) == NULL) {
-                cpl_msg_error(__func__, "Failed to Load the traces file") ;
-                if (collapsed_fpet != NULL) hdrl_image_delete(collapsed_fpet) ;
-                if (plist_une_out != NULL) 
-                    cpl_propertylist_delete(plist_une_out) ;
-                if (tw_une_out != NULL) cpl_table_delete(tw_une_out) ;
-                if (lines_diagnostics_une_out != NULL) 
-                    cpl_table_delete(lines_diagnostics_une_out) ;
-                if (extracted_une_out != NULL) 
-                    cpl_table_delete(extracted_une_out) ;
-                if (wl_map_une_out != NULL) hdrl_image_delete(wl_map_une_out) ;
-                cpl_msg_indent_less() ;
-                return -1 ;
-            }
+            if (tw_in == NULL)
+                if ((tw_in = cr2res_io_load_TRACE_WAVE(cpl_frame_get_filename(
+                                    trace_wave_frame), reduce_det)) == NULL) {
+                    cpl_msg_error(__func__, "Failed to Load the traces file") ;
+                    if (collapsed_fpet != NULL) 
+                        hdrl_image_delete(collapsed_fpet) ;
+                    if (plist_une_out != NULL) 
+                        cpl_propertylist_delete(plist_une_out) ;
+                    if (tw_une_out != NULL) cpl_table_delete(tw_une_out) ;
+                    if (lines_diagnostics_une_out != NULL) 
+                        cpl_table_delete(lines_diagnostics_une_out) ;
+                    if (extracted_une_out != NULL) 
+                        cpl_table_delete(extracted_une_out) ;
+                    if (wl_map_une_out != NULL) 
+                        hdrl_image_delete(wl_map_une_out) ;
+                    cpl_msg_indent_less() ;
+                    return -1 ;
+                }
         }
 
         /* Execute the extraction for FPET */
@@ -1417,6 +1526,7 @@ static int cr2res_cal_wave_reduce(
         }
         cpl_msg_indent_less() ;
     } else {
+        if (tw_in != NULL) cpl_table_delete(tw_in); 
         tw_fpet_out = NULL ;
         lines_diagnostics_fpet_out = NULL ;
         extracted_fpet_out = NULL ;

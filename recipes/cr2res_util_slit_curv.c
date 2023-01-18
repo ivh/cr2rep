@@ -274,9 +274,6 @@ static int cr2res_util_slit_curv(
     cpl_array           *   curv_array ;
     int                     i, j, k ;
 
-    /* Initialise */
-    curv_degree = 1 ;
-
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_slit_curv.detector");
@@ -388,6 +385,7 @@ static int cr2res_util_slit_curv(
                 /* TODO : Should those become parameters ? */
                 int height = 100 ;
                 int window = 15 ;
+                int curv_degree = 1 ;
                 int fit_c = 0 ;
                 if (cr2res_slit_curv_compute_order_trace(lamp_image[det_nr-1], 
                             trace_wave[det_nr-1], order, trace_id,
