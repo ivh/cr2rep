@@ -73,6 +73,7 @@ static int cr2res_obs_nodding_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        const cpl_frame     *   blaze_frame,
         int                     nodding_invert,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
@@ -99,7 +100,6 @@ static int cr2res_obs_nodding_reduce(
         cpl_table           **  extractc,
         cpl_propertylist    **  ext_plist) ;
 
- 
 static int cr2res_obs_nodding_create(cpl_plugin *);
 static int cr2res_obs_nodding_exec(cpl_plugin *);
 static int cr2res_obs_nodding_destroy(cpl_plugin *);
@@ -139,7 +139,8 @@ Nodding Observation                                                     \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
     master_dark.fits " CR2RES_CAL_DARK_MASTER_PROCATG " [0 to 1]        \n\
     master_flat.fits " CR2RES_CAL_FLAT_MASTER_PROCATG " [0 to 1]        \n\
-    photo_flux.fits " CR2RES_PHOTO_FLUX_PROTYPE " [0 to 1]              \n\
+    photo_flux.fits " CR2RES_PHOTO_FLUX_PROCATG " [0 to 1]              \n\
+    blaze.fits " CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG " [0 to 1]          \n\
                                                                         \n\
   Outputs                                                               \n\
     cr2res_obs_nodding_extractedA.fits " 
@@ -458,6 +459,7 @@ static int cr2res_obs_nodding(
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   photo_flux_frame ;
+    const cpl_frame     *   blaze_frame ;
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
     cpl_size            *   labels ;
@@ -546,6 +548,8 @@ static int cr2res_obs_nodding(
         cpl_msg_warning(__func__,
                 "Providing a MASTER DARK is not recommended for this recipe") ;
     }
+    blaze_frame = cpl_frameset_find_const(frameset,
+            CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG) ; 
     photo_flux_frame = cpl_frameset_find_const(frameset,
             CR2RES_PHOTO_FLUX_PROCATG) ; 
     master_flat_frame = cpl_frameset_find_const(frameset,
@@ -623,12 +627,12 @@ static int cr2res_obs_nodding(
 			/* Call the reduction function */
 			if (cr2res_obs_nodding_reduce(raw_one_angle, raw_flat_frames, 
 						trace_wave_frame, detlin_frame, master_dark_frame, 
-						master_flat_frame, bpm_frame, nodding_invert,
-						subtract_nolight_rows, subtract_interorder_column,
-						0, extract_oversample, extract_swath_width, 
-                        extract_height, extract_smooth_slit, 
-                        extract_smooth_spec, det_nr, disp_det, disp_order_idx, 
-						disp_trace,
+						master_flat_frame, bpm_frame, blaze_frame, 
+                        nodding_invert, subtract_nolight_rows, 
+                        subtract_interorder_column, 0, extract_oversample, 
+                        extract_swath_width, extract_height, 
+                        extract_smooth_slit, extract_smooth_spec, det_nr, 
+                        disp_det, disp_order_idx, disp_trace,
 						&(combineda[det_nr-1]),
 						&(extracta[det_nr-1]),
 						&(slitfunca[det_nr-1]),
@@ -850,6 +854,7 @@ static int cr2res_obs_nodding(
   @param master_dark_frame      Associated master dark
   @param master_flat_frame      Associated master flat
   @param bpm_frame              Associated BPM
+  @param blaze_frame            Associated Blaze
   @param nodding_invert         Flag to use if A is above B
   @param subtract_nolight_rows
   @param calib_cosmics_corr     Flag to correct for cosmics
@@ -885,6 +890,7 @@ static int cr2res_obs_nodding_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        const cpl_frame     *   blaze_frame,
         int                     nodding_invert,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
@@ -928,6 +934,7 @@ static int cr2res_obs_nodding_reduce(
     cpl_table           *   trace_wave_corrected ;
     cpl_table           *   trace_wave_a ;
     cpl_table           *   trace_wave_b ;
+    cpl_table           *   blaze_table ;
     cpl_array           *   slit_frac_a ;
     cpl_array           *   slit_frac_b ;
     cpl_table           *   extracted_a ;
@@ -1240,12 +1247,28 @@ static int cr2res_obs_nodding_reduce(
         return -1 ;
     }
     cpl_array_delete(slit_frac_b) ;
-    
+   
+    /* Load Blaze */
+    blaze_table = NULL ;
+    if (blaze_frame != NULL) {
+        cpl_msg_info(__func__, "Load the BLAZE") ;
+        if ((blaze_table = cr2res_io_load_EXTRACT_1D(cpl_frame_get_filename(
+                            blaze_frame), reduce_det)) == NULL) {
+            cpl_msg_error(__func__, "Failed to Load the Blaze file") ;
+            hdrl_image_delete(collapsed_a) ;
+            hdrl_image_delete(collapsed_b) ;
+            cpl_table_delete(trace_wave) ;
+            cpl_table_delete(trace_wave_a) ;
+            cpl_table_delete(trace_wave_b) ;
+            return -1 ;
+        }
+    }
+
     /* Execute the extraction */
     cpl_msg_info(__func__, "A position Spectra Extraction") ;
     cpl_msg_indent_more() ;
-    if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, -1, -1,
-                CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
+    if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, blaze_table, -1,
+                -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth_slit, extract_smooth_spec,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_a, &slit_func_a, &model_master_a) == -1) {
@@ -1262,8 +1285,8 @@ static int cr2res_obs_nodding_reduce(
 
     cpl_msg_info(__func__, "B position Spectra Extraction") ;
     cpl_msg_indent_more() ;
-    if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, -1, -1,
-                CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
+    if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, blaze_table, -1,
+                -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth_slit, extract_smooth_spec,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_b, &slit_func_b, &model_master_b) == -1) {
@@ -1280,6 +1303,8 @@ static int cr2res_obs_nodding_reduce(
         return -1 ;
     }
     cpl_msg_indent_less() ;
+    
+    if (blaze_table != NULL) cpl_table_delete(blaze_table) ;
 
     /* Combine both a and b extracted spectra together */
     cpl_msg_info(__func__, "A and B spectra combination") ;

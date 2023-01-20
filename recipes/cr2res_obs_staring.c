@@ -64,6 +64,7 @@ static int cr2res_obs_staring_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        const cpl_frame     *   blaze_frame,
         const cpl_array     *   slit_frac,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
@@ -109,6 +110,7 @@ Staring Observation                                                     \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
     master_dark.fits " CR2RES_CAL_DARK_MASTER_PROCATG " [0 to 1]        \n\
     master_flat.fits " CR2RES_CAL_FLAT_MASTER_PROCATG " [0 to 1]        \n\
+    blaze.fits " CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG " [0 to 1]          \n\
                                                                         \n\
   Outputs                                                               \n\
 	cr2res_obs_staring_slitfunc.fits "
@@ -378,6 +380,7 @@ static int cr2res_obs_staring(
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
+    const cpl_frame     *   blaze_frame ;
     const char          *   sval ;
     cpl_table           *   extract[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slitfunc[CR2RES_NB_DETECTORS] ;
@@ -461,6 +464,8 @@ static int cr2res_obs_staring(
     master_flat_frame = cpl_frameset_find_const(frameset,
             CR2RES_CAL_FLAT_MASTER_PROCATG) ; 
     bpm_frame = cr2res_io_find_BPM(frameset) ;
+    blaze_frame = cpl_frameset_find_const(frameset,
+            CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG) ;
 
     /* Get the RAW Frames */
     rawframes = cr2res_obs_staring_find_RAW(frameset) ;
@@ -487,7 +492,7 @@ static int cr2res_obs_staring(
         /* Call the reduction function */
         if (cr2res_obs_staring_reduce(rawframes, 
                     trace_wave_frame, detlin_frame, master_dark_frame, 
-                    master_flat_frame, bpm_frame, slit_frac, 
+                    master_flat_frame, bpm_frame, blaze_frame, slit_frac, 
                     subtract_nolight_rows, subtract_interorder_column,
                     0, extract_oversample, 
                     extract_swath_width, extract_height, extract_smooth_slit, 
@@ -548,6 +553,7 @@ static int cr2res_obs_staring(
   @param master_dark_frame      Associated master dark
   @param master_flat_frame      Associated master flat
   @param bpm_frame              Associated BPM
+  @param blaze_frame            Associated Blaze
   @param slit_frac              Specified slit fraction or NULL
   @param subtract_nolight_rows
   @param calib_cosmics_corr     Flag to correct for cosmics
@@ -571,6 +577,7 @@ static int cr2res_obs_staring_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        const cpl_frame     *   blaze_frame,
         const cpl_array     *   slit_frac,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
@@ -590,6 +597,7 @@ static int cr2res_obs_staring_reduce(
     hdrl_imagelist      *   in_calib ;
     cpl_vector          *   dits ;
     cpl_vector          *   ndits ;
+    cpl_table           *   blaze_table ;
     cpl_table           *   trace_wave ;
     cpl_table           *   trace_wave_new ;
     hdrl_image          *   collapsed ;
@@ -712,9 +720,22 @@ static int cr2res_obs_staring_reduce(
 		}
 	}
 
+    /* Load Blaze */
+    blaze_table = NULL ;
+    if (blaze_frame != NULL) {
+        cpl_msg_info(__func__, "Load the BLAZE") ;
+        if ((blaze_table = cr2res_io_load_EXTRACT_1D(cpl_frame_get_filename(
+                            blaze_frame), reduce_det)) == NULL) {
+            cpl_msg_error(__func__, "Failed to Load the Blaze file") ;
+            hdrl_image_delete(collapsed) ;
+            cpl_table_delete(trace_wave) ;
+            return -1 ;
+        }
+    }
+
     /* Execute the extraction */
     cpl_msg_info(__func__, "Spectra Extraction") ;
-    if (cr2res_extract_traces(collapsed, trace_wave, NULL, -1, -1,
+    if (cr2res_extract_traces(collapsed, trace_wave, NULL, blaze_table, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth_slit, extract_smooth_spec, 
                 0, 0, 0, &extracted, &slit_func, &model_master) == -1) {
@@ -724,6 +745,7 @@ static int cr2res_obs_staring_reduce(
         return -1 ;
     }
 	hdrl_image_delete(collapsed) ;
+    if (blaze_table != NULL) cpl_table_delete(blaze_table) ;
 
     /* Store the extension header for product saving */
     plist = cpl_propertylist_load(first_fname,

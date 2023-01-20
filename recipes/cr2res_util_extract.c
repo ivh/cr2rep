@@ -540,8 +540,8 @@ static int cr2res_util_extract(
             /* Compute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(science_hdrl, trace_table,
-                        slit_func_in, reduce_order, reduce_trace, extr_method, 
-                        extr_height, swath_width, oversample,
+                        slit_func_in, NULL, reduce_order, reduce_trace, 
+                        extr_method, extr_height, swath_width, oversample,
                         smooth_slit, smooth_spec, 0, 0, 0, 
                         &(extract_tab[det_nr-1]), &(slit_func_tab[det_nr-1]), 
                         &(model_master[det_nr-1]))==-1) {

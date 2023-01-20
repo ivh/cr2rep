@@ -1191,10 +1191,10 @@ static int cr2res_cal_wave_reduce(
         /* Execute the extraction for UNE */
         cpl_msg_info(__func__, "Spectra Extraction UNE") ;
         cpl_msg_indent_more() ;
-        if (cr2res_extract_traces(collapsed_une, tw_in, NULL, reduce_order, 
-                    reduce_trace, CR2RES_EXTR_OPT_CURV, ext_height, 
-                    ext_swath_width, ext_oversample, ext_smooth_slit,
-                    ext_smooth_spec, 0, 0, 0, // display flags
+        if (cr2res_extract_traces(collapsed_une, tw_in, NULL, NULL, 
+                    reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
+                    ext_height, ext_swath_width, ext_oversample, 
+                    ext_smooth_slit, ext_smooth_spec, 0, 0, 0,
                     &extracted_une, &slit_func_une, &model_master_une) == -1) {
             cpl_msg_error(__func__, "Failed to extract");
             hdrl_image_delete(collapsed_une) ;
@@ -1433,10 +1433,10 @@ static int cr2res_cal_wave_reduce(
         /* Execute the extraction for FPET */
         cpl_msg_info(__func__, "Spectra Extraction FPET") ;
         cpl_msg_indent_more() ;
-        if (cr2res_extract_traces(collapsed_fpet, tw_in, NULL, reduce_order, 
-                    reduce_trace, CR2RES_EXTR_OPT_CURV, ext_height, 
-                    ext_swath_width, ext_oversample, ext_smooth_slit,
-                    ext_smooth_spec, 0, 0, 0, // display flags
+        if (cr2res_extract_traces(collapsed_fpet, tw_in, NULL, NULL, 
+                    reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
+                    ext_height, ext_swath_width, ext_oversample, 
+                    ext_smooth_slit, ext_smooth_spec, 0, 0, 0,
                     &extracted_fpet, &slit_func_fpet, &model_master_fpet)==-1) {
             cpl_msg_error(__func__, "Failed to extract");
             cpl_table_delete(tw_in) ;

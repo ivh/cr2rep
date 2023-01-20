@@ -160,6 +160,7 @@ static int debug_output(int         ncols,
   @param    img             Full detector image
   @param    traces          The traces table
   @param    slit_func_in    The input slit_func or NULL
+  @param    blaze_table_in  The input blaze or NULL
   @param    reduce_order    The order to extract (-1 for all)
   @param    reduce_trace    The Trace to extract (-1 for all)
   @param    extr_method     The wished extraction method
@@ -183,6 +184,7 @@ int cr2res_extract_traces(
         const hdrl_image    *   img,
         const cpl_table     *   traces,
         const cpl_table     *   slit_func_in,
+        const cpl_table     *   blaze_table_in,
         int                     reduce_order,
         int                     reduce_trace,
         cr2res_extr_method      extr_method,
@@ -199,13 +201,17 @@ int cr2res_extract_traces(
         hdrl_image          **  model_master)
 {
     cpl_bivector        **  spectrum ;
+    cpl_bivector        *   blaze_biv ;
+    cpl_bivector        *   blaze_err_biv ;
+    double              *   pblaze ;
     cpl_vector          *   slit_func_in_vec ;
     cpl_vector          **  slit_func_vec ;
     cpl_table           *   slit_func_loc ;
     cpl_table           *   extract_loc ;
     hdrl_image          *   model_loc ;
     hdrl_image          *   model_loc_one ;
-    int                     nb_traces, i, order, trace_id ;
+    double                  first_nonzero_value ;
+    int                     nb_traces, i, j, order, trace_id ;
     int                     badpix;
     cpl_size                x, y;
     hdrl_value              pixval;
@@ -331,6 +337,47 @@ int cr2res_extract_traces(
         }
         if (slit_func_in_vec != NULL) cpl_vector_delete(slit_func_in_vec) ;
 
+        /* Correct the blaze if passed */
+        if (blaze_table_in != NULL) {
+            if (cr2res_extract_EXTRACT1D_get_spectrum(blaze_table_in, order,
+                    trace_id, &blaze_biv, &blaze_err_biv)) {
+                cpl_msg_warning(__func__,
+                        "Cannot Get the Blaze for order/trace:%d/%d - skip",
+                        order, trace_id) ;
+            } else {
+                cpl_bivector_delete(blaze_err_biv) ;
+                
+                /* The Blaze needs to be 'cleaned from 0s before division */
+                pblaze = cpl_vector_get_data(cpl_bivector_get_y(blaze_biv)) ;
+                first_nonzero_value = 0.0 ;
+                for (j=0 ; j<cpl_bivector_get_size(blaze_biv) ; j++) {
+                    if (fabs(pblaze[j])>1e-3) {
+                        first_nonzero_value = pblaze[j] ; 
+                        break ;
+                    }
+                }
+                if (fabs(first_nonzero_value)<1e-3) {
+                    cpl_msg_warning(__func__, "Blaze filled with zeros - skip");
+                } else {
+                    for (j=0 ; j<cpl_bivector_get_size(blaze_biv) ; j++) {
+                        if (fabs(pblaze[j])<1e-3) 
+                            pblaze[j] = first_nonzero_value ; 
+                    }
+
+                    /* Apply division */
+                    cpl_vector_divide(cpl_bivector_get_x(spectrum[i]),
+                            cpl_bivector_get_y(blaze_biv)) ;
+                    if (cpl_error_get_code()) {
+                        cpl_error_reset(); 
+                        cpl_msg_warning(__func__,
+                            "Cannot Correct Blaze for order/trace:%d/%d - skip",
+                                order, trace_id) ;
+                    }
+                }
+                cpl_bivector_delete(blaze_biv) ;
+            }
+        }
+
         /* Update the model global image */
         if (model_loc_one != NULL) {
             //hdrl_image_add_image(model_loc, model_loc_one) ;
@@ -343,7 +390,6 @@ int cr2res_extract_traces(
                     }
                 }
             }
-
             hdrl_image_delete(model_loc_one) ;
         }
 

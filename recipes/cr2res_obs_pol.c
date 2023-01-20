@@ -71,6 +71,7 @@ static int cr2res_obs_pol_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        const cpl_frame     *   blaze_frame,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
         int                     calib_cosmics_corr,
@@ -134,6 +135,7 @@ static int cr2res_obs_pol_reduce_one(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        const cpl_frame     *   blaze_frame,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
         int                     calib_cosmics_corr,
@@ -184,6 +186,7 @@ Polarimetry Observation                                                 \n\
           or " CR2RES_UTIL_BPM_SPLIT_PROCATG "                          \n\
     master_dark.fits " CR2RES_CAL_DARK_MASTER_PROCATG " [0 to 1]        \n\
     master_flat.fits " CR2RES_CAL_FLAT_MASTER_PROCATG " [0 to 1]        \n\
+    blaze.fits " CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG " [0 to 1]          \n\
                                                                         \n\
   Outputs                                                               \n\
     cr2res_obs_pol_specA.fits " CR2RES_OBS_POL_SPECA_PROCATG "          \n\
@@ -458,6 +461,7 @@ static int cr2res_obs_pol(
     const cpl_frame     *   master_dark_frame ;
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
+    const cpl_frame     *   blaze_frame ;
     hdrl_image          *   in_calib_1_a[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   in_calib_2_a[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   in_calib_3_a[CR2RES_NB_DETECTORS] ;
@@ -556,6 +560,8 @@ static int cr2res_obs_pol(
     master_flat_frame = cpl_frameset_find_const(frameset,
             CR2RES_CAL_FLAT_MASTER_PROCATG) ; 
     bpm_frame = cr2res_io_find_BPM(frameset) ;
+    blaze_frame = cpl_frameset_find_const(frameset,
+            CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG) ;
 
     /* Get the RAW Frames */
     rawframes = cr2res_extract_frameset(frameset, 
@@ -625,8 +631,8 @@ static int cr2res_obs_pol(
         /* Call the reduction function */
         if (cr2res_obs_pol_reduce(rawframes, raw_flat_frames, trace_wave_frame, 
                     detlin_frame, master_dark_frame, master_flat_frame, 
-                    bpm_frame, subtract_nolight_rows,subtract_interorder_column,
-                    0, extract_oversample, 
+                    bpm_frame, blaze_frame, subtract_nolight_rows,
+                    subtract_interorder_column, 0, extract_oversample, 
                     extract_swath_width, extract_height, extract_smooth_slit, 
                     extract_smooth_spec, save_group, det_nr,
                     &(in_calib_1_a[det_nr-1]),
@@ -1000,6 +1006,7 @@ static int cr2res_obs_pol(
   @param master_dark_frame      Associated master dark
   @param master_flat_frame      Associated master flat
   @param bpm_frame              Associated BPM
+  @param blaze_frame            Associated Blaze
   @param subtract_nolight_rows
   @param calib_cosmics_corr     Flag to correct for cosmics
   @param extract_oversample     Extraction related
@@ -1030,6 +1037,7 @@ static int cr2res_obs_pol_reduce(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        const cpl_frame     *   blaze_frame,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
         int                     calib_cosmics_corr,
@@ -1144,8 +1152,8 @@ static int cr2res_obs_pol_reduce(
     cpl_msg_indent_more() ;
     if (cr2res_obs_pol_reduce_one(rawframes_a, raw_flat_frames, rawframes_b,
                 trace_wave_frame, detlin_frame, master_dark_frame, 
-                master_flat_frame, bpm_frame, subtract_nolight_rows,
-                subtract_interorder_column, 0, 
+                master_flat_frame, bpm_frame, blaze_frame, 
+                subtract_nolight_rows, subtract_interorder_column, 0, 
                 extract_oversample, extract_swath_width, extract_height, 
                 extract_smooth_slit, extract_smooth_spec, save_group,
                 reduce_det, 
@@ -1160,7 +1168,7 @@ static int cr2res_obs_pol_reduce(
     cpl_msg_indent_more() ;
     if (cr2res_obs_pol_reduce_one(rawframes_b, raw_flat_frames, rawframes_a,
                 trace_wave_frame, detlin_frame, master_dark_frame, 
-                master_flat_frame, bpm_frame,
+                master_flat_frame, bpm_frame, blaze_frame,
                 subtract_nolight_rows, subtract_interorder_column, 0,
                 extract_oversample, extract_swath_width, extract_height,
                 extract_smooth_slit, extract_smooth_spec, save_group, 
@@ -1249,6 +1257,7 @@ static int cr2res_obs_pol_reduce(
   @param master_dark_frame      Associated master dark
   @param master_flat_frame      Associated master flat
   @param bpm_frame              Associated BPM
+  @param blaze_frame            Associated Blaze frame
   @param subtract_nolight_rows
   @param calib_cosmics_corr     Flag to correct for cosmics
   @param extract_oversample     Extraction related
@@ -1275,6 +1284,7 @@ static int cr2res_obs_pol_reduce_one(
         const cpl_frame     *   master_dark_frame,
         const cpl_frame     *   master_flat_frame,
         const cpl_frame     *   bpm_frame,
+        const cpl_frame     *   blaze_frame,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
         int                     calib_cosmics_corr,
@@ -1300,6 +1310,7 @@ static int cr2res_obs_pol_reduce_one(
     cpl_image           *   contrib;
     hdrl_image          *   backgr;
     int                 *   pol_sorting ;
+    cpl_table           *   blaze_table ;
     cpl_table           *   trace_wave ;
     cpl_table           *   trace_wave_corrected ;
     cpl_table           **  trace_wave_extract ;
@@ -1527,6 +1538,20 @@ static int cr2res_obs_pol_reduce_one(
         cpl_msg_indent_less() ;
     }
 
+    /* Load Blaze */
+    blaze_table = NULL ;
+    if (blaze_frame != NULL) {
+        cpl_msg_info(__func__, "Load the BLAZE") ;
+        if ((blaze_table = cr2res_io_load_EXTRACT_1D(cpl_frame_get_filename(
+                            blaze_frame), reduce_det)) == NULL) {
+            cpl_msg_error(__func__, "Failed to Load the Blaze file") ;
+            cpl_free(decker_positions) ;
+            hdrl_imagelist_delete(in_calib_loc) ;
+            cpl_table_delete(trace_wave) ;
+            return -1 ;
+        }
+    }
+
     /* Compute the number of groups */
     ngroups = nframes/CR2RES_POLARIMETRY_GROUP_SIZE ;
     nspec_group = 2*CR2RES_POLARIMETRY_GROUP_SIZE ;
@@ -1608,8 +1633,8 @@ static int cr2res_obs_pol_reduce_one(
             /* Execute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(input_images[j], trace_wave_extract[2*j],
-                        NULL, -1, -1, CR2RES_EXTR_OPT_CURV, extract_height, 
-                        extract_swath_width, extract_oversample,
+                        NULL, blaze_table, -1, -1, CR2RES_EXTR_OPT_CURV,
+                        extract_height, extract_swath_width, extract_oversample,
                         extract_smooth_slit, extract_smooth_spec, 0, 0, 0, 
                         &(extract_1d[2*j]), &slit_func, &model_master) == -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
@@ -1643,7 +1668,7 @@ static int cr2res_obs_pol_reduce_one(
             /* Execute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(input_images[j],
-                        trace_wave_extract[2*j+1], NULL, -1, -1, 
+                        trace_wave_extract[2*j+1], NULL, blaze_table, -1, -1, 
                         CR2RES_EXTR_OPT_CURV, extract_height, 
                         extract_swath_width, extract_oversample,
                         extract_smooth_slit, extract_smooth_spec, 0, 0, 0, 
@@ -1829,6 +1854,7 @@ static int cr2res_obs_pol_reduce_one(
         cpl_free(orders) ;
         cpl_msg_indent_less() ;
     }
+    if (blaze_table != NULL) cpl_table_delete(blaze_table) ;
     cpl_free(decker_positions) ;
     hdrl_imagelist_delete(in_calib_loc) ;
 
@@ -1891,7 +1917,6 @@ static int cr2res_obs_pol_reduce_one(
     *ext_plist = ext_plist_loc ;
     return 0 ;
 }
-
 
 /*----------------------------------------------------------------------------*/
 /**
