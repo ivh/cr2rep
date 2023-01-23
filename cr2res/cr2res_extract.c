@@ -379,7 +379,7 @@ int cr2res_extract_traces(
                     cpl_vector_divide(cpl_bivector_get_x(spectrum[i]),
                             cpl_bivector_get_y(blaze_biv)) ;
                     /* Apply division by normalisation factor */
-                    cpl_vector_divide_scalar(cpl_bivector_get_x(spectrum[i]), 
+                    cpl_vector_multiply_scalar(cpl_bivector_get_x(spectrum[i]), 
                             norm_factor) ;
                     if (cpl_error_get_code()) {
                         cpl_error_reset(); 
