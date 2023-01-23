@@ -28,6 +28,9 @@
  -----------------------------------------------------------------------------*/
 #include <math.h>
 #include <cpl.h>
+
+#include "irplib_utils.h"
+
 #include "cr2res_dfs.h"
 #include "cr2res_trace.h"
 #include "cr2res_extract.h"
@@ -204,16 +207,17 @@ int cr2res_extract_traces(
     cpl_bivector        *   blaze_biv ;
     cpl_bivector        *   blaze_err_biv ;
     double              *   pblaze ;
+    cpl_vector          *   tmp_vec ;
     cpl_vector          *   slit_func_in_vec ;
     cpl_vector          **  slit_func_vec ;
     cpl_table           *   slit_func_loc ;
     cpl_table           *   extract_loc ;
     hdrl_image          *   model_loc ;
     hdrl_image          *   model_loc_one ;
-    double                  first_nonzero_value ;
+    double                  first_nonzero_value, norm_factor ;
     int                     nb_traces, i, j, order, trace_id ;
     int                     badpix;
-    cpl_size                x, y;
+    cpl_size                x, y, kth;
     hdrl_value              pixval;
 
     /* Check Entries */
@@ -364,9 +368,19 @@ int cr2res_extract_traces(
                             pblaze[j] = first_nonzero_value ; 
                     }
 
-                    /* Apply division */
+                    /* Normalize the Blaze */
+                    tmp_vec=cpl_vector_duplicate(cpl_bivector_get_y(blaze_biv));
+                    kth = (cpl_size)(cpl_bivector_get_size(blaze_biv)*0.95) ;
+                    irplib_vector_get_kth(tmp_vec, kth) ;
+                    norm_factor = cpl_vector_get(tmp_vec, kth) ;
+                    cpl_vector_delete(tmp_vec) ;
+
+                    /* Apply division by blaze */
                     cpl_vector_divide(cpl_bivector_get_x(spectrum[i]),
                             cpl_bivector_get_y(blaze_biv)) ;
+                    /* Apply division by normalisation factor */
+                    cpl_vector_divide_scalar(cpl_bivector_get_x(spectrum[i]), 
+                            norm_factor) ;
                     if (cpl_error_get_code()) {
                         cpl_error_reset(); 
                         cpl_msg_warning(__func__,
