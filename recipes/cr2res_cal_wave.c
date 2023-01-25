@@ -71,6 +71,7 @@ static int cr2res_cal_wave_reduce(
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
+        int                     slit_degree,
         int                     subtract_nolight_rows,
         cr2res_collapse         collapse,
         int                     ext_height,
@@ -298,6 +299,13 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.slit_degree",
+            CPL_TYPE_INT, "Slit fitting Polynomial degree (1 or 2)",
+            "cr2res.cr2res_cal_wave", 2);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "slit_degree");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.subtract_nolight_rows",
             CPL_TYPE_BOOL, "Subtract the no-light rows.",
             "cr2res.cr2res_cal_wave", FALSE);
@@ -491,11 +499,10 @@ static int cr2res_cal_wave(
 {
     const cpl_parameter *   param;
     int                     reduce_det, reduce_order, reduce_trace,
-                            ext_oversample, ext_swath_width, ext_height,
-                            wl_degree, display, log_flag,
+                            slit_degree, ext_oversample, ext_swath_width, 
+                            ext_height, wl_degree, display, log_flag,
                             fallback_input_wavecal_flag,
-                            save_intermediate_flag,
-                            keep_higher_degrees_flag, 
+                            save_intermediate_flag, keep_higher_degrees_flag, 
                             clean_spectrum, subtract_nolight_rows ;
     double                  ext_smooth_slit, ext_smooth_spec, wl_start, wl_end,
                             wl_err, wl_shift, display_wmin, display_wmax ;
@@ -543,6 +550,9 @@ static int cr2res_cal_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.trace_nb");
     reduce_trace = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_wave.slit_degree");
+    slit_degree = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.subtract_nolight_rows");
     subtract_nolight_rows = cpl_parameter_get_bool(param) ;
@@ -636,6 +646,11 @@ static int cr2res_cal_wave(
     }
     if (wl_degree == 0 && !keep_higher_degrees_flag) {
         cpl_msg_error(__func__, "The degree 0 can only be used with --keep");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
+        return -1 ;
+    }
+    if (slit_degree != 1 && slit_degree != 2) {
+        cpl_msg_error(__func__, "The slit fit degree must be 1 or 2");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
         return -1 ;
     }
@@ -754,12 +769,12 @@ static int cr2res_cal_wave(
         if (cr2res_cal_wave_reduce(rawframes_une, rawframes_fpet, detlin_frame,
                     master_dark_frame, master_flat_frame, bpm_frame,
                     trace_wave_frame, lines_frame, det_nr, reduce_order,
-                    reduce_trace, subtract_nolight_rows, collapse, ext_height, 
-                    ext_swath_width, ext_oversample, ext_smooth_slit,
-                    ext_smooth_spec, wavecal_type, wl_degree, wl_start, wl_end,
-                    wl_err, wl_shift, log_flag, fallback_input_wavecal_flag,
-                    keep_higher_degrees_flag, clean_spectrum,
-                    display, display_wmin, 
+                    reduce_trace, slit_degree, subtract_nolight_rows,
+                    collapse, ext_height, ext_swath_width, ext_oversample, 
+                    ext_smooth_slit, ext_smooth_spec, wavecal_type, wl_degree, 
+                    wl_start, wl_end, wl_err, wl_shift, log_flag, 
+                    fallback_input_wavecal_flag, keep_higher_degrees_flag, 
+                    clean_spectrum, display, display_wmin, 
                     display_wmax, 
                     &(out_trace_wave_une[det_nr-1]),
                     &(lines_diagnostics_une[det_nr-1]),
@@ -880,6 +895,7 @@ static int cr2res_cal_wave(
   @param reduce_det         The detector to compute
   @param reduce_order       The order to compute (-1 for all)
   @param reduce_trace       The trace to compute (-1 for all)
+  @param slit_degree        The polynomial degree for the slit fit 
   @param subtract_nolight_rows
   @param collapse           CR2RES_COLLAPSE_MEAN or CR2RES_COLLAPSE_MEDIAN
   @param ext_height         Extraction related
@@ -926,6 +942,7 @@ static int cr2res_cal_wave_reduce(
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
+        int                     slit_degree,
         int                     subtract_nolight_rows,
         cr2res_collapse         collapse,
         int                     ext_height, 
@@ -1060,10 +1077,9 @@ static int cr2res_cal_wave_reduce(
             /* TODO : Should those become parameters ? */
             int height = 100 ;
             int window = 15 ;
-            int curv_degree = 1;
             int fit_c = 0 ;
             if (cr2res_slit_curv_compute_order_trace(fpet_image, tw_in, order, 
-                        trace_id, height, window, curv_degree, fit_c, 
+                        trace_id, height, window, slit_degree, fit_c, 
                         &slit_polya, &slit_polyb, &slit_polyc)) {
                 cpl_msg_error(__func__, "Failed to compute slit curvature") ;
                 cpl_table_delete(tw_in) ;

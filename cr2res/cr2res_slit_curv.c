@@ -165,6 +165,10 @@ int cr2res_slit_curv_compute_order_trace(
 
     if (img == NULL || trace_wave == NULL || slit_poly_a == NULL ||
         slit_poly_b == NULL || slit_poly_c == NULL) return -1;
+    if (degree != 1 && degree != 2) {
+        cpl_msg_error(__func__, "Only degree 1 or 2 are valid") ;
+        return -1 ;
+    }
 
     img_in = hdrl_image_get_image_const(img);
     const int ncols = cpl_image_get_size_x(img_in);

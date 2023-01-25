@@ -192,6 +192,13 @@ static int cr2res_util_slit_curv_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_slit_curv.degree",
+            CPL_TYPE_INT, "Polynomial degree for the fit (1 or 2)",
+            "cr2res.cr2res_util_slit_curv", 2);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "degree");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_slit_curv.display",
             CPL_TYPE_INT, "X value to display (1->2048)",
             "cr2res.cr2res_util_slit_curv", 0);
@@ -284,6 +291,9 @@ static int cr2res_util_slit_curv(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_slit_curv.trace_nb");
     reduce_trace = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_slit_curv.degree");
+    curv_degree = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_slit_curv.display");
     display = cpl_parameter_get_int(param) ;
@@ -385,7 +395,6 @@ static int cr2res_util_slit_curv(
                 /* TODO : Should those become parameters ? */
                 int height = 100 ;
                 int window = 15 ;
-                int curv_degree = 1 ;
                 int fit_c = 0 ;
                 if (cr2res_slit_curv_compute_order_trace(lamp_image[det_nr-1], 
                             trace_wave[det_nr-1], order, trace_id,
