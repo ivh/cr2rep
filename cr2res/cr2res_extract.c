@@ -204,9 +204,12 @@ int cr2res_extract_traces(
         hdrl_image          **  model_master)
 {
     cpl_bivector        **  spectrum ;
+    double              *   pspec ;
+    double              *   pspec_err ;
     cpl_bivector        *   blaze_biv ;
     cpl_bivector        *   blaze_err_biv ;
     double              *   pblaze ;
+    double              *   pblaze_err ;
     cpl_vector          *   tmp_vec ;
     cpl_vector          *   slit_func_in_vec ;
     cpl_vector          **  slit_func_vec ;
@@ -214,7 +217,8 @@ int cr2res_extract_traces(
     cpl_table           *   extract_loc ;
     hdrl_image          *   model_loc ;
     hdrl_image          *   model_loc_one ;
-    double                  first_nonzero_value, norm_factor ;
+    double                  first_nonzero_value, first_nonzero_error, 
+                            norm_factor, val, err ;
     int                     nb_traces, i, j, order, trace_id ;
     int                     badpix;
     cpl_size                x, y, kth;
@@ -349,14 +353,16 @@ int cr2res_extract_traces(
                         "Cannot Get the Blaze for order/trace:%d/%d - skip",
                         order, trace_id) ;
             } else {
-                cpl_bivector_delete(blaze_err_biv) ;
-                
                 /* The Blaze needs to be 'cleaned from 0s before division */
-                pblaze = cpl_vector_get_data(cpl_bivector_get_y(blaze_biv)) ;
-                first_nonzero_value = 0.0 ;
+                pblaze = 
+                    cpl_vector_get_data(cpl_bivector_get_y(blaze_biv)) ;
+                pblaze_err =
+                    cpl_vector_get_data(cpl_bivector_get_y(blaze_err_biv)) ;
+                first_nonzero_value = first_nonzero_error = 0.0 ;
                 for (j=0 ; j<cpl_bivector_get_size(blaze_biv) ; j++) {
                     if (fabs(pblaze[j])>1e-3) {
                         first_nonzero_value = pblaze[j] ; 
+                        first_nonzero_error = pblaze_err[j] ; 
                         break ;
                     }
                 }
@@ -366,6 +372,7 @@ int cr2res_extract_traces(
                     for (j=0 ; j<cpl_bivector_get_size(blaze_biv) ; j++) {
                         if (fabs(pblaze[j])<1e-3) 
                             pblaze[j] = first_nonzero_value ; 
+                            pblaze_err[j] = first_nonzero_error ; 
                     }
 
                     /* Normalize the Blaze */
@@ -375,12 +382,28 @@ int cr2res_extract_traces(
                     norm_factor = cpl_vector_get(tmp_vec, kth) ;
                     cpl_vector_delete(tmp_vec) ;
 
-                    /* Apply division by blaze */
-                    cpl_vector_divide(cpl_bivector_get_x(spectrum[i]),
-                            cpl_bivector_get_y(blaze_biv)) ;
-                    /* Apply division by normalisation factor */
-                    cpl_vector_multiply_scalar(cpl_bivector_get_x(spectrum[i]), 
-                            norm_factor) ;
+                    /* Divide by the Blaze */
+                    pspec = cpl_bivector_get_x_data(spectrum[i]) ;
+                    pspec_err = cpl_bivector_get_y_data(spectrum[i]);
+                    for (j=0 ; j<cpl_bivector_get_size(blaze_biv) ; j++) {
+                        if (fabs(pspec[j]) > 1e-3) {
+                            /* Apply division by normalized blaze */
+                            val = pspec[j] / (pblaze[j]/norm_factor) ; 
+
+                            /* Error */
+                            /* err(a/b)=(a/b)sqrt((err_a/a)^2+(err_b/b)^2) */
+                            err = val * sqrt(((pspec_err[j]*pspec_err[j])/
+                                        (pspec[j]*pspec[j]))+
+                                    ((pblaze_err[j]*pblaze_err[j])/
+                                     (pblaze[j]*pblaze[j])));
+                        } else {
+                            val = err = 0.0 ;
+                        }
+
+                        /* Set Results */
+                        pspec[j] = val ;
+                        pspec_err[j] = err ;
+                    }
                     if (cpl_error_get_code()) {
                         cpl_error_reset(); 
                         cpl_msg_warning(__func__,
@@ -389,6 +412,7 @@ int cr2res_extract_traces(
                     }
                 }
                 cpl_bivector_delete(blaze_biv) ;
+                cpl_bivector_delete(blaze_err_biv) ;
             }
         }
 
