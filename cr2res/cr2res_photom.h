@@ -39,6 +39,7 @@
 int cr2res_photom_engine(   
         const cpl_table     *   extr,
         const char          *   std_star_file,
+        const char          *   setting,
         double                  ra,
         double                  dec,
         double                  gain,

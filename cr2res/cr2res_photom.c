@@ -39,7 +39,10 @@
                             Functions Prototypes
  -----------------------------------------------------------------------------*/
 
-static double cr2res_photom_throughput_avg(const cpl_vector *) ;
+static double cr2res_photom_throughput_avg(
+        const cpl_vector    *   vec,
+        const cpl_vector    *   wl,
+        const char          *   setting) ;
 
 static cpl_vector * cr2res_photom_conversion(
         const cpl_bivector  *   star,
@@ -83,6 +86,7 @@ static double cr2res_photom_great_circle_dist(
   @brief    Compute the conversion/throughput/sensitivity high level
   @param    extr        the extracted spectrum table
   @param    std_star_tab The STD STARS table
+  @param    setting     The setting
   @param    ra          RA
   @param    dec         DEC
   @param    gain        The gain
@@ -98,6 +102,7 @@ static double cr2res_photom_great_circle_dist(
 int cr2res_photom_engine(
         const cpl_table     *   extr,
         const char          *   std_star_file,
+        const char          *   setting,
         double                  ra,
         double                  dec,
         double                  gain,
@@ -131,8 +136,8 @@ int cr2res_photom_engine(
     int                 order, trace_nb ;
 
     /* Test entries */
-    if (extr==NULL || std_star_file==NULL || throughput==NULL || 
-            ext_plist == NULL) return -1 ;
+    if (extr==NULL || std_star_file==NULL || setting == NULL || 
+            throughput==NULL || ext_plist == NULL) return -1 ;
 
     /* Initialise */
     throughput_avg_val = 0.0 ;
@@ -238,7 +243,8 @@ int cr2res_photom_engine(
 			cpl_table_copy_data_double(throughput_loc, ctname, pdata) ;
 
             /* Compute QCs */
-            throughput_center = cr2res_photom_throughput_avg(throughput_vec) ;
+            throughput_center = cr2res_photom_throughput_avg(throughput_vec,
+                        cpl_bivector_get_x_const(spec_biv), setting) ;
             if (fabs(throughput_center+1.0) > 1e-3) {
                 throughput_avg_nb ++ ;
                 throughput_avg_val += throughput_center ;
@@ -364,26 +370,63 @@ cpl_bivector * cr2res_photom_conv_get_star(
     200 central values 
  */
 /*----------------------------------------------------------------------------*/
-static double cr2res_photom_throughput_avg(const cpl_vector * vec)
+static double cr2res_photom_throughput_avg(
+        const cpl_vector    *   vec,
+        const cpl_vector    *   wl,
+        const char          *   setting)
 {
-    cpl_vector  *       extracted ;
-    cpl_size            hsize = 100 ;
-    double              avg ; 
-    cpl_size            nelem ;
+    const double    *       pvec ;
+    const double    *       pwl ;
+    double                  sum, wmin, wmax ; 
+    cpl_size                nelem, i ;
+    int                     nsum ;
 
     /* Check entries */
-    if (vec == NULL) return -1.0 ;
+    if (vec == NULL || wl == NULL) return -1.0 ;
     nelem = cpl_vector_get_size(vec) ;
-    if (nelem <= 2*hsize) return -1.0 ;
+    if (cpl_vector_get_size(wl) != nelem) return -1.0 ;
 
-    /* Extract */
-    extracted = cpl_vector_extract(vec, (cpl_size)(nelem/2-hsize),
-            (cpl_size)(nelem/2+hsize), 1) ;
+    /* Initialize */
+    wmin = wmax = -1.0 ;
 
-    avg = cpl_vector_get_mean(extracted) ;
-    cpl_vector_delete(extracted) ;
+    /* Check the setting */
+    if (!strcmp(setting, "Y1028")) {
+        wmin = 1045.70 ;
+        wmax = 1047.00 ;
+    } else if (!strcmp(setting, "J1228")) {
+        wmin = 1245.50 ;
+        wmax = 1246.40 ;
+    } else if (!strcmp(setting, "H1567")) {
+        wmin = 1695.20 ;
+        wmax = 1696.20 ;
+    } else if (!strcmp(setting, "K2148")) {
+        wmin = 2312.60 ;
+        wmax = 2313.30 ;
+    } else if (!strcmp(setting, "L3377")) {
+        wmin = 3828.70 ;
+        wmax = 3829.30 ;
+    } else if (!strcmp(setting, "M4266")) {
+        wmin = 3953.00 ;
+        wmax = 3953.90 ;
+    } 
+    if (wmin < 0.0 || wmax < 0.0) return -1.0 ;
+    
+    cpl_msg_info(__func__, "Compute the QC.THROUGHPUT between %g and %g nm",
+            wmin, wmax) ;
 
-    return avg ;
+    pvec = cpl_vector_get_data_const(vec) ;
+    pwl = cpl_vector_get_data_const(wl) ;
+    sum = 0.0 ;
+    nsum = 0 ;
+
+    for (i=0 ; i<nelem ; i++) {
+        if (pwl[i]>wmin && pwl[i]<wmax) {
+            sum += pvec[i] ;
+            nsum++ ;
+        }
+    }
+    if (nsum > 0) return sum/nsum ;
+    else return -1.0 ;
 }
 
 /*----------------------------------------------------------------------------*/

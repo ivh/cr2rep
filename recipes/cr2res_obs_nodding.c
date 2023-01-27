@@ -480,6 +480,7 @@ static int cr2res_obs_nodding(
     cpl_propertylist    *   plist ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist_photom[CR2RES_NB_DETECTORS] ;
+    char                *   cur_setting ;
     char                *   out_file;
     int                     i, det_nr, type; 
 
@@ -665,6 +666,8 @@ static int cr2res_obs_nodding(
 				ra = cr2res_pfits_get_ra(plist) ;
 				dec = cr2res_pfits_get_dec(plist) ;
 				dit = cr2res_pfits_get_dit(plist) ;
+                cur_setting = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
+                cr2res_format_setting(cur_setting) ;
 				cpl_propertylist_delete(plist) ;
 				if (cpl_error_get_code()) {
 					cpl_msg_indent_less() ;
@@ -674,7 +677,7 @@ static int cr2res_obs_nodding(
 					/* Compute the photometry */
 					if (cr2res_photom_engine(extracta[det_nr-1],
 								cpl_frame_get_filename(photo_flux_frame),
-								ra, dec, gain, dit,
+								cur_setting, ra, dec, gain, dit,
 								disp_det==det_nr, disp_order_idx,
 								disp_trace, &(throughput[det_nr-1]),
                                 &(ext_plist_photom[det_nr-1])) == -1) {
@@ -683,6 +686,7 @@ static int cr2res_obs_nodding(
 						cpl_error_reset() ;
 					}
 				}
+                cpl_free(cur_setting) ;
 				cpl_msg_indent_less() ;
 			}
 			cpl_msg_indent_less() ;
@@ -720,7 +724,8 @@ static int cr2res_obs_nodding(
 		if (create_idp) {
 			cr2res_idp_save(out_file, frameset, raw_one_angle, parlist, 
                     extracta, RECIPE_STRING) ;
-		}cpl_free(out_file);
+		}
+        cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_slitfuncA%s", RECIPE_STRING,
                 product_name_addon) ;
