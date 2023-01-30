@@ -307,8 +307,7 @@ static int cr2res_cal_dark(
 {
     const cpl_parameter *   par ;
     int                     reduce_det, ron_hsize, ron_nsamples, ndit ;
-    double                  gain, dit, bpm_kappa, bpm_lines_ratio, mean, med,
-                            sigma, ron1, ron2, ron ;
+    double                  gain, dit, bpm_kappa, bpm_lines_ratio ;
     cr2res_bpm_method       bpm_method, my_bpm_method ;
     const char          *   sval ;
     hdrl_parameter      *   collapse_params ;
@@ -318,6 +317,7 @@ static int cr2res_cal_dark(
     cpl_size            *   labels ;
     cpl_size                nlabels ;
     cpl_propertylist    *   plist ;
+    cpl_propertylist    *   qc_main ;
     char                *   setting_id ;
     double                  bpm_kappa_global_default, bpm_kappa_local_default,
                             bpm_kappa_running_default, my_bpm_kappa ;
@@ -333,6 +333,13 @@ static int cr2res_cal_dark(
     hdrl_image          *   ima_data_err ;
     cpl_image           *   ima_err ;
 
+    double                  ron1, ron2, med, mean, sigma ;
+    cpl_vector          *   qc_ron1,
+                        *   qc_ron2,
+                        *   qc_nb_bad,
+                        *   qc_mean,
+                        *   qc_med,
+                        *   qc_sigma ;
     hdrl_image          *   master;
     cpl_image           *   contrib_map;
     cpl_mask            *   bpm ;
@@ -486,11 +493,25 @@ static int cr2res_cal_dark(
                 setting_id, dit, ndit) ;
         cpl_msg_indent_more() ;
 
+        /* Allocate qc values vectors */
+        qc_ron1 = cpl_vector_new(CR2RES_NB_DETECTORS); 
+        qc_ron2 = cpl_vector_new(CR2RES_NB_DETECTORS); 
+        qc_nb_bad = cpl_vector_new(CR2RES_NB_DETECTORS); 
+        qc_mean = cpl_vector_new(CR2RES_NB_DETECTORS); 
+        qc_med = cpl_vector_new(CR2RES_NB_DETECTORS); 
+        qc_sigma = cpl_vector_new(CR2RES_NB_DETECTORS); 
+
         /* Loop on the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             /* Initialise */
             master_darks[det_nr-1] = NULL ;
             bpms[det_nr-1] = NULL ;
+            cpl_vector_set(qc_ron1, det_nr-1, -1.0) ;
+            cpl_vector_set(qc_ron2, det_nr-1, -1.0) ;
+            cpl_vector_set(qc_nb_bad, det_nr-1, -1.0) ;
+            cpl_vector_set(qc_mean, det_nr-1, -1.0) ;
+            cpl_vector_set(qc_med, det_nr-1, -1.0) ;
+            cpl_vector_set(qc_sigma, det_nr-1, -1.0) ;
 
             /* Store the extension header for product saving */
             ext_plist[det_nr-1] = cpl_propertylist_load(first_fname,
@@ -525,14 +546,19 @@ static int cr2res_cal_dark(
                     cpl_free(setting_id) ;
                     cpl_frameset_delete(raw_one) ;
                     hdrl_imagelist_delete(dark_cube) ;
+                    cpl_vector_delete(qc_ron1) ;
+                    cpl_vector_delete(qc_ron2) ;
+                    cpl_vector_delete(qc_nb_bad) ;
+                    cpl_vector_delete(qc_mean) ;
+                    cpl_vector_delete(qc_med) ;
+                    cpl_vector_delete(qc_sigma) ;
                     return -1 ;
                 }
 
                 /* Create the noise image */
                 cpl_msg_info(__func__, "Create the associated Noise image");
-                ron = 0.0 ;
                 if (cr2res_detector_shotnoise_model(
-                            hdrl_image_get_image(ima_data), gain, ron,
+                            hdrl_image_get_image(ima_data), gain, 0.0,
                             &ima_err) != CPL_ERROR_NONE) {
                     cpl_free(labels);
                     cpl_msg_error(__func__, "Cannot create the Noise image") ;
@@ -546,6 +572,12 @@ static int cr2res_cal_dark(
                     cpl_frameset_delete(raw_one) ;
                     hdrl_imagelist_delete(dark_cube) ;
                     hdrl_image_delete(ima_data); 
+                    cpl_vector_delete(qc_ron1) ;
+                    cpl_vector_delete(qc_ron2) ;
+                    cpl_vector_delete(qc_nb_bad) ;
+                    cpl_vector_delete(qc_mean) ;
+                    cpl_vector_delete(qc_med) ;
+                    cpl_vector_delete(qc_sigma) ;
                     return -1 ;
                 }
 
@@ -636,7 +668,10 @@ static int cr2res_cal_dark(
                             CR2RES_HEADER_QC_DARK_RON1, ron1) ;
                     cpl_propertylist_append_double(ext_plist[det_nr-1], 
                             CR2RES_HEADER_QC_DARK_RON2, ron2) ;
+                    cpl_vector_set(qc_ron1, det_nr-1, ron1) ;
+                    cpl_vector_set(qc_ron2, det_nr-1, ron2) ;
                 }
+
             }
             hdrl_imagelist_delete(dark_cube);
 
@@ -654,16 +689,74 @@ static int cr2res_cal_dark(
                         CR2RES_HEADER_QC_DARK_MEDIAN, med) ;
                 cpl_propertylist_append_double(ext_plist[det_nr-1], 
                         CR2RES_HEADER_QC_DARK_STDEV, sigma) ;
+                cpl_vector_set(qc_mean, det_nr-1, mean) ;
+                cpl_vector_set(qc_med, det_nr-1, med) ;
+                cpl_vector_set(qc_sigma, det_nr-1, sigma) ;
             }
             /* QCs from BPM */
             if (bpms[det_nr-1] != NULL) {
                 nb_bad = cr2res_bpm_count(bpms[det_nr-1], CR2RES_BPM_DARK) ;
                 cpl_propertylist_append_int(ext_plist[det_nr-1], 
                         CR2RES_HEADER_QC_DARK_NBAD, nb_bad) ;
+                cpl_vector_set(qc_nb_bad, det_nr-1, (double)nb_bad) ;
             }
             cpl_msg_indent_less() ;
         }
 
+        /* Compute Global QCs (primary header) */
+        qc_main = NULL ;
+        if (reduce_det == 0) {
+            qc_main = cpl_propertylist_new() ;
+            cpl_propertylist_append_double(qc_main, 
+                    CR2RES_HEADER_QC_DARK_RON1_AVG,
+                    cpl_vector_get_mean(qc_ron1)) ;
+            cpl_propertylist_append_double(qc_main, 
+                    CR2RES_HEADER_QC_DARK_RON1_RMS,
+                    cpl_vector_get_stdev(qc_ron1)) ;
+
+            cpl_propertylist_append_double(qc_main, 
+                    CR2RES_HEADER_QC_DARK_RON2_AVG,
+                    cpl_vector_get_mean(qc_ron2)) ;
+            cpl_propertylist_append_double(qc_main, 
+                    CR2RES_HEADER_QC_DARK_RON2_RMS,
+                    cpl_vector_get_stdev(qc_ron2)) ;
+
+            cpl_propertylist_append_double(qc_main, 
+                    CR2RES_HEADER_QC_DARK_NBAD_AVG,
+                    cpl_vector_get_mean(qc_nb_bad)) ;
+            cpl_propertylist_append_double(qc_main, 
+                    CR2RES_HEADER_QC_DARK_NBAD_RMS,
+                    cpl_vector_get_stdev(qc_nb_bad)) ;
+
+            cpl_propertylist_append_double(qc_main, 
+                    CR2RES_HEADER_QC_DARK_MEAN_AVG,
+                    cpl_vector_get_mean(qc_mean)) ;
+            cpl_propertylist_append_double(qc_main, 
+                    CR2RES_HEADER_QC_DARK_MEAN_RMS,
+                    cpl_vector_get_stdev(qc_mean)) ;
+
+            cpl_propertylist_append_double(qc_main, 
+                    CR2RES_HEADER_QC_DARK_MEDIAN_AVG,
+                    cpl_vector_get_mean(qc_med)) ;
+            cpl_propertylist_append_double(qc_main, 
+                    CR2RES_HEADER_QC_DARK_MEDIAN_RMS,
+                    cpl_vector_get_stdev(qc_med)) ;
+
+            cpl_propertylist_append_double(qc_main, 
+                    CR2RES_HEADER_QC_DARK_STDEV_AVG,
+                    cpl_vector_get_mean(qc_sigma)) ;
+            cpl_propertylist_append_double(qc_main, 
+                    CR2RES_HEADER_QC_DARK_STDEV_RMS,
+                    cpl_vector_get_stdev(qc_sigma)) ;
+
+        }
+        cpl_vector_delete(qc_ron1) ;
+        cpl_vector_delete(qc_ron2) ;
+        cpl_vector_delete(qc_nb_bad) ;
+        cpl_vector_delete(qc_mean) ;
+        cpl_vector_delete(qc_med) ;
+        cpl_vector_delete(qc_sigma) ;
+        
         /* Save the results */
 
         /* Add the Calibrations (if any) to the frameset */
@@ -686,8 +779,9 @@ static int cr2res_cal_dark(
         }
 
         if (cr2res_io_save_MASTER_DARK(filename, frameset, raw_one_calib, 
-                    parlist, master_darks, NULL, ext_plist, 
+                    parlist, master_darks, qc_main, ext_plist, 
                     CR2RES_CAL_DARK_MASTER_PROCATG, RECIPE_STRING) != 0) {
+            if (qc_main != NULL) cpl_propertylist_delete(qc_main) ;
             cpl_frameset_delete(rawframes) ;
             cpl_frameset_delete(raw_one_calib) ;
             for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
@@ -708,6 +802,7 @@ static int cr2res_cal_dark(
             return -1 ;
 
         }
+        if (qc_main != NULL) cpl_propertylist_delete(qc_main) ;
         cpl_free(filename) ;
 
         /* BPM */
