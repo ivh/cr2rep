@@ -497,6 +497,7 @@ static int cr2res_cal_flat(
     cpl_size            *   labels ;
     cpl_size                nlabels ;
     cpl_propertylist    *   plist ;
+    cpl_propertylist    *   qc_main ;
     char                *   setting_id ;
 
     hdrl_image          *   master_flat[CR2RES_NB_DETECTORS] ;
@@ -512,6 +513,12 @@ static int cr2res_cal_flat(
     hdrl_image          *   slit_model[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
+    cpl_vector          *   qc_mean,
+                        *   qc_median,
+                        *   qc_flux,
+                        *   qc_rms,
+                        *   qc_s2n,
+                        *   qc_nbbad ;
     int                     l, i, det_nr;
 
     /* Initialise */
@@ -707,10 +714,100 @@ static int cr2res_cal_flat(
                 cpl_msg_indent_less() ;
             }
 
+            /* Compute QCs for the main header */
+            qc_main = NULL ;
+            if (reduce_det  == 0) {
+                qc_mean = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+                qc_median = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+                qc_flux = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+                qc_rms = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+                qc_s2n = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+                qc_nbbad = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+                for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+                    cpl_vector_set(qc_mean, det_nr-1, 
+                            cpl_propertylist_get_double(ext_plist[i][det_nr-1],
+                                CR2RES_HEADER_QC_FLAT_MEAN)) ;
+                    cpl_vector_set(qc_median, det_nr-1, 
+                            cpl_propertylist_get_double(ext_plist[i][det_nr-1],
+                                CR2RES_HEADER_QC_FLAT_MEDIAN)) ;
+                    cpl_vector_set(qc_flux, det_nr-1, 
+                            cpl_propertylist_get_double(ext_plist[i][det_nr-1],
+                                CR2RES_HEADER_QC_FLAT_FLUX)) ;
+                    cpl_vector_set(qc_rms, det_nr-1, 
+                            cpl_propertylist_get_double(ext_plist[i][det_nr-1],
+                                CR2RES_HEADER_QC_FLAT_RMS)) ;
+                    cpl_vector_set(qc_s2n, det_nr-1, 
+                            cpl_propertylist_get_double(ext_plist[i][det_nr-1],
+                                CR2RES_HEADER_QC_FLAT_S2N)) ;
+                    cpl_vector_set(qc_nbbad, det_nr-1, 
+                        (double)cpl_propertylist_get_int(ext_plist[i][det_nr-1],
+                                CR2RES_HEADER_QC_FLAT_NBBAD)) ;
+                }
+
+                qc_main = cpl_propertylist_new() ;
+				cpl_propertylist_append_double(qc_main,
+						CR2RES_HEADER_QC_FLAT_MEAN_AVG,
+						cpl_vector_get_mean(qc_mean)) ;
+				cpl_propertylist_append_double(qc_main,
+						CR2RES_HEADER_QC_FLAT_MEAN_RMS,
+						cpl_vector_get_stdev(qc_mean)) ;
+				cpl_propertylist_append_double(qc_main,
+						CR2RES_HEADER_QC_FLAT_MEDIAN_AVG,
+						cpl_vector_get_mean(qc_median)) ;
+				cpl_propertylist_append_double(qc_main,
+						CR2RES_HEADER_QC_FLAT_MEDIAN_RMS,
+						cpl_vector_get_stdev(qc_median)) ;
+				cpl_propertylist_append_double(qc_main,
+						CR2RES_HEADER_QC_FLAT_FLUX_AVG,
+						cpl_vector_get_mean(qc_flux)) ;
+				cpl_propertylist_append_double(qc_main,
+						CR2RES_HEADER_QC_FLAT_FLUX_RMS,
+						cpl_vector_get_stdev(qc_flux)) ;
+				cpl_propertylist_append_double(qc_main,
+						CR2RES_HEADER_QC_FLAT_RMS_AVG,
+						cpl_vector_get_mean(qc_rms)) ;
+				cpl_propertylist_append_double(qc_main,
+						CR2RES_HEADER_QC_FLAT_RMS_RMS,
+						cpl_vector_get_stdev(qc_rms)) ;
+				cpl_propertylist_append_double(qc_main,
+						CR2RES_HEADER_QC_FLAT_S2N_AVG,
+						cpl_vector_get_mean(qc_s2n)) ;
+				cpl_propertylist_append_double(qc_main,
+						CR2RES_HEADER_QC_FLAT_S2N_RMS,
+						cpl_vector_get_stdev(qc_s2n)) ;
+				cpl_propertylist_append_double(qc_main,
+						CR2RES_HEADER_QC_FLAT_NBBAD_AVG,
+						cpl_vector_get_mean(qc_nbbad)) ;
+				cpl_propertylist_append_double(qc_main,
+						CR2RES_HEADER_QC_FLAT_NBBAD_RMS,
+						cpl_vector_get_stdev(qc_nbbad)) ;
+                cpl_vector_delete(qc_mean) ;
+                cpl_vector_delete(qc_median) ;
+                cpl_vector_delete(qc_flux) ;
+                cpl_vector_delete(qc_rms) ;
+                cpl_vector_delete(qc_s2n) ;
+                cpl_vector_delete(qc_nbbad) ;
+            }
+
             /* Save Products */
 
             /* Save only the used RAW ? : raw_one_... instead of 2nd frameset */
             /* Beware that the calibration PRO RECi CAL will be missing */
+
+            /* MASTER_FLAT */
+            if (nlabels == 1) {
+                out_file = cpl_sprintf("%s_%s_master_flat.fits", 
+                        RECIPE_STRING, decker_desc[i]) ;
+            } else {
+                out_file = cpl_sprintf("%s_%s_%s_master_flat.fits", 
+                        RECIPE_STRING, setting_id, decker_desc[i]) ;
+            }
+            cr2res_io_save_MASTER_FLAT(out_file, frameset,
+                    frameset, parlist, master_flat, qc_main, 
+                    ext_plist[i], CR2RES_CAL_FLAT_MASTER_PROCATG,
+                    RECIPE_STRING);
+            cpl_free(out_file);
+            if (qc_main != NULL) cpl_propertylist_delete(qc_main) ;
 
             /* SLIT_MODEL */
             if (nlabels == 1) {
@@ -737,20 +834,6 @@ static int cr2res_cal_flat(
             cr2res_io_save_EXTRACT_1D(out_file, frameset, 
                     frameset, parlist, extract_1d, NULL, 
                     ext_plist[i], CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG,
-                    RECIPE_STRING);
-            cpl_free(out_file);
-
-            /* MASTER_FLAT */
-            if (nlabels == 1) {
-                out_file = cpl_sprintf("%s_%s_master_flat.fits", 
-                        RECIPE_STRING, decker_desc[i]) ;
-            } else {
-                out_file = cpl_sprintf("%s_%s_%s_master_flat.fits", 
-                        RECIPE_STRING, setting_id, decker_desc[i]) ;
-            }
-            cr2res_io_save_MASTER_FLAT(out_file, frameset,
-                    frameset, parlist, master_flat, NULL, 
-                    ext_plist[i], CR2RES_CAL_FLAT_MASTER_PROCATG,
                     RECIPE_STRING);
             cpl_free(out_file);
 
