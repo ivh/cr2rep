@@ -1294,8 +1294,8 @@ static int cr2res_cal_wave_reduce(
 
 			qc_overexposed = cr2res_qc_overexposed(
 					hdrl_image_get_image(first_image), tw_in, order) ;
-			char * qc_name = cpl_sprintf("%s-%02d-%02d",
-					CR2RES_HEADER_QC_OVEREXPOSED, order, trace_id) ;
+			char * qc_name = cpl_sprintf("%s%02d",
+					CR2RES_HEADER_QC_OVEREXPOSED, order) ;
 			if (qcs_une_out == NULL) qcs_une_out = cpl_propertylist_new() ;
 			cpl_propertylist_append_double(qcs_une_out, qc_name,qc_overexposed);
 			cpl_free(qc_name) ;

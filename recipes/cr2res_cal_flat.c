@@ -512,15 +512,19 @@ static int cr2res_cal_flat(
     cpl_table           *   extract_1d[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   slit_model[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
+    char                *   qc_name;
     char                *   out_file;
+    int                 *   orders ;
     cpl_vector          *   qc_mean,
                         *   qc_median,
                         *   qc_flux,
                         *   qc_rms,
                         *   qc_s2n,
                         *   qc_nbbad,
-                        *   qc_centery ;
-    int                     l, i, det_nr;
+                        *   qc_centery,
+                        *   qc_orderpos,
+                        *   qc_overexposed ;
+    int                     l, i, j, det_nr, nb_orders;
 
     /* Initialise */
     cr2res_decker decker_values[CR2RES_NB_DECKER_POSITIONS] =
@@ -799,6 +803,61 @@ static int cr2res_cal_flat(
                 cpl_vector_delete(qc_s2n) ;
                 cpl_vector_delete(qc_nbbad) ;
                 cpl_vector_delete(qc_centery) ;
+
+                /* Special treatment for ORDERPOSn and OVEREXPOSEDn */
+                /* Get all orders - Use the TW from detector 1 */
+                orders = cr2res_trace_get_order_idx_values(trace_wave[i][0], 
+                        &nb_orders) ;
+                /* Loop on the orders */
+                for (j=0 ; j<nb_orders ; j++) {
+                    qc_orderpos = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+                    qc_overexposed = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+                    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+                        // OVEREXPOSEDn
+                        qc_name = cpl_sprintf("%s%02d",
+                                CR2RES_HEADER_QC_OVEREXPOSED, orders[j]) ;
+                        cpl_vector_set(qc_overexposed, det_nr-1,
+                                cpl_propertylist_get_double(
+                                    ext_plist[i][det_nr-1], qc_name)) ;
+                        cpl_free(qc_name) ;
+                        // ORDERPOSn
+                        qc_name = cpl_sprintf("%s%02d",
+                                CR2RES_HEADER_QC_FLAT_ORDERPOS, orders[j]) ;
+                        cpl_vector_set(qc_orderpos, det_nr-1,
+                                cpl_propertylist_get_double(
+                                    ext_plist[i][det_nr-1], qc_name)) ;
+                        cpl_free(qc_name) ;
+                    }
+
+                    // OVEREXPOSEDn.AVG/RMS
+                    qc_name = cpl_sprintf("%s%02d AVG",
+                            CR2RES_HEADER_QC_OVEREXPOSED, orders[j]) ;
+                    cpl_propertylist_append_double(qc_main,
+                            qc_name, cpl_vector_get_mean(qc_overexposed)) ;
+                    cpl_free(qc_name) ;
+
+                    qc_name = cpl_sprintf("%s%02d RMS",
+                            CR2RES_HEADER_QC_OVEREXPOSED, orders[j]) ;
+                    cpl_propertylist_append_double(qc_main,
+                            qc_name, cpl_vector_get_stdev(qc_overexposed)) ;
+                    cpl_free(qc_name) ;
+                    cpl_vector_delete(qc_overexposed) ;
+
+                    // ORDERPOSn.AVG/RMS
+                    qc_name = cpl_sprintf("%s%02d AVG",
+                            CR2RES_HEADER_QC_FLAT_ORDERPOS, orders[j]) ;
+                    cpl_propertylist_append_double(qc_main,
+                            qc_name, cpl_vector_get_mean(qc_orderpos)) ;
+                    cpl_free(qc_name) ;
+
+                    qc_name = cpl_sprintf("%s%02d RMS",
+                            CR2RES_HEADER_QC_FLAT_ORDERPOS, orders[j]) ;
+                    cpl_propertylist_append_double(qc_main,
+                            qc_name, cpl_vector_get_stdev(qc_orderpos)) ;
+                    cpl_free(qc_name) ;
+                    cpl_vector_delete(qc_orderpos) ;
+                }
+                cpl_free(orders) ;
             }
 
             /* Save Products */
@@ -1083,10 +1142,11 @@ static int cr2res_cal_flat_reduce(
     char                *   setting_id ;
     int                 *   qc_order_nb ;
     double              *   qc_order_pos ;
+    int                 *   orders ;
     double                  qc_mean, qc_median, qc_flux, qc_rms, qc_s2n, 
                             qc_trace_centery, dit, qc_overexposed ;
     int                     i, j, badpix, ext_nr, nb_traces, order, trace_id,
-                            qc_nbbad, nbvals, zp_order, ngood ;
+                            nb_orders, qc_nbbad, nbvals, zp_order, ngood ;
 
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
@@ -1418,25 +1478,19 @@ static int cr2res_cal_flat_reduce(
     }
 
     /* QC.OVEREXPOSED */
-    /* Loop on the traces */
-    for (i=0 ; i<nb_traces ; i++) {
-        /* Get Order and trace id */
-        order = cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) ;
-        trace_id = cpl_table_get(traces, CR2RES_COL_TRACENB, i, NULL) ;
 
-        /* Check if this order needs to be skipped */
-        if (reduce_order > -1 && order != reduce_order) continue ;
-
-        /* Check if this trace needs to be skipped */
-        if (reduce_trace > -1 && trace_id != reduce_trace) continue ;
-
+    /* Get all orders */
+    orders = cr2res_trace_get_order_idx_values(traces, &nb_orders) ;
+    /* Loop on the orders */
+    for (i=0 ; i<nb_orders ; i++) {
         qc_overexposed = cr2res_qc_overexposed(
-                hdrl_image_get_image(first_image), traces, order) ;
-        char * qc_name = cpl_sprintf("%s-%02d-%02d",
-                CR2RES_HEADER_QC_OVEREXPOSED, order, trace_id) ;
+                hdrl_image_get_image(first_image), traces, orders[i]) ;
+        char * qc_name = cpl_sprintf("%s%02d",
+                CR2RES_HEADER_QC_OVEREXPOSED, orders[i]) ;
         cpl_propertylist_append_double(plist, qc_name, qc_overexposed);
         cpl_free(qc_name) ;
     }
+    cpl_free(orders) ;
     hdrl_image_delete(first_image) ;
 
     /* Store the QC parameters in the plist */
