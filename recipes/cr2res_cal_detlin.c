@@ -375,6 +375,18 @@ static int cr2res_cal_detlin(
     hdrl_value              pixel;
     cpl_image           *   cur_coeffs;
     cpl_mask            *   cur_mask;
+    cpl_propertylist    *   qc_main ;
+    double                  meda, medb, medc, medq ;
+    cpl_vector          *   qc_nbfailed,
+                        *   qc_nbsuccess,
+                        *   qc_nbad,
+                        *   qc_med,
+                        *   qc_min,
+                        *   qc_max,
+                        *   qc_meda,
+                        *   qc_medb,
+                        *   qc_medc,
+                        *   qc_medq ;
 
     /* Initialise */
 
@@ -505,10 +517,8 @@ static int cr2res_cal_detlin(
                 }
 
                 /* Merge */
-                cr2res_cal_detlin_update(bpm[det_nr - 1],
-                                         coeffs[det_nr - 1],
-                                         &bpm_merged[det_nr - 1],
-                                         &coeffs_merged[det_nr - 1]);
+                cr2res_cal_detlin_update(bpm[det_nr - 1], coeffs[det_nr - 1],
+                        &bpm_merged[det_nr - 1], &coeffs_merged[det_nr - 1]);
             }
         }
 
@@ -554,19 +564,17 @@ static int cr2res_cal_detlin(
     cpl_free(labels);
     if (darkframes!= NULL) cpl_frameset_delete(darkframes) ;
 
-    for (det_nr = 1; det_nr <= CR2RES_NB_DETECTORS; det_nr++)
-    {
-        if (reduce_det != 0 && det_nr != reduce_det) continue ;
+    for (det_nr = 1; det_nr <= CR2RES_NB_DETECTORS; det_nr++) {
+        if (reduce_det != 0 && det_nr != reduce_det) 
+            continue ;
         
         // Complete the merging
-        // This completes the weighted mean as described in cr2res_cal_detlin_update
-        for (i = 0; i < hdrl_imagelist_get_size(coeffs_merged[det_nr - 1]); i++)
-        {
+        // This completes the weighted mean as described in 
+        // cr2res_cal_detlin_update
+        for (i=0; i < hdrl_imagelist_get_size(coeffs_merged[det_nr - 1]); i++) {
             img = hdrl_imagelist_get(coeffs_merged[det_nr - 1], i);
-            for (x = 0; x < hdrl_image_get_size_x(img); x++)
-            {
-                for (y = 0; y < hdrl_image_get_size_y(img); y++)
-                {
+            for (x = 0; x < hdrl_image_get_size_x(img); x++) {
+                for (y = 0; y < hdrl_image_get_size_y(img); y++) {
                     pixel = hdrl_image_get_pixel(img, x + 1, y + 1, NULL);
                     pixel.data /= pixel.error;
                     pixel.error = sqrt(1.0 / pixel.error);
@@ -576,27 +584,33 @@ static int cr2res_cal_detlin(
             hdrl_image_reject_value(img, CPL_VALUE_NAN);
         }
 
-        cpl_msg_info(__func__, "BPM detection & QCs") ;
         /* Compute the QC parameters */
+        cpl_msg_info(__func__, "BPM detection & QCs") ;
         qc_median = cr2res_qc_detlin(coeffs_merged[det_nr -1], 
-                bpm_thresh,
-                &cur_mask,
-                &qc_min_level,
-                &qc_max_level) ;
+                bpm_thresh, &cur_mask, &qc_min_level, &qc_max_level) ;
         if (qc_median == -1.0) continue;
 
-        if (cpl_msg_get_level() == CPL_MSG_DEBUG){ 
-            cpl_mask_save(
-                cur_mask, "debug_qcmask.fits",
-                NULL, CPL_IO_CREATE);
-        }
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG) 
+            cpl_mask_save( cur_mask, "debug_qcmask.fits", NULL, CPL_IO_CREATE);
 
-        /* Apply mask*/
+        /* Apply mask */
         cr2res_bpm_add_mask(bpm_merged[det_nr -1], cur_mask, CR2RES_BPM_DETLIN);
         qc_nb_bad = cpl_mask_count(cur_mask);
         cpl_mask_delete(cur_mask);
 
+        meda = medb = medc = medq = 0.0 ;
+        cr2res_qc_detlin_stat(coeffs_merged[det_nr -1], &meda,
+                &medb, &medc, &medq) ;
+
         /* Store the QC parameters in the plist */
+        cpl_propertylist_append_double(ext_plist_merged[det_nr-1],
+                CR2RES_HEADER_QC_DETLIN_MEDA, meda) ;
+        cpl_propertylist_append_double(ext_plist_merged[det_nr-1],
+                CR2RES_HEADER_QC_DETLIN_MEDB, medb) ;
+        cpl_propertylist_append_double(ext_plist_merged[det_nr-1],
+                CR2RES_HEADER_QC_DETLIN_MEDC, medc) ;
+        cpl_propertylist_append_double(ext_plist_merged[det_nr-1],
+                CR2RES_HEADER_QC_DETLIN_MEDQ, medq) ;
         cpl_propertylist_append_int(ext_plist_merged[det_nr-1],
                 CR2RES_HEADER_QC_DETLIN_NBAD, qc_nb_bad) ;
         cpl_propertylist_append_double(ext_plist_merged[det_nr-1],  
@@ -608,22 +622,141 @@ static int cr2res_cal_detlin(
 
     } // End loop on detectors
 
+    /* Compute Global QCs (primary header) */
+    qc_main = NULL ;
+    if (reduce_det == 0) {
+        qc_nbfailed = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+        qc_nbsuccess = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+        qc_nbad = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+        qc_med = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+        qc_min = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+        qc_max = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+        qc_meda = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+        qc_medb = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+        qc_medc = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+        qc_medq = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            cpl_vector_set(qc_nbfailed, det_nr-1,
+                    (double)cpl_propertylist_get_int(ext_plist_merged[det_nr-1],
+                        CR2RES_HEADER_QC_DETLIN_NBFAILED)) ;
+            cpl_vector_set(qc_nbsuccess, det_nr-1,
+                    (double)cpl_propertylist_get_int(ext_plist_merged[det_nr-1],
+                        CR2RES_HEADER_QC_DETLIN_NBSUCCESS)) ;
+            cpl_vector_set(qc_nbad, det_nr-1,
+                    (double)cpl_propertylist_get_int(ext_plist_merged[det_nr-1],
+                        CR2RES_HEADER_QC_DETLIN_NBAD)) ;
+            cpl_vector_set(qc_med, det_nr-1,
+                    cpl_propertylist_get_double(ext_plist_merged[det_nr-1],
+                        CR2RES_HEADER_QC_DETLIN_MEDIAN)) ;
+            cpl_vector_set(qc_min, det_nr-1,
+                    cpl_propertylist_get_double(ext_plist_merged[det_nr-1],
+                        CR2RES_HEADER_QC_DETLIN_MINLEVEL)) ;
+            cpl_vector_set(qc_max, det_nr-1,
+                    cpl_propertylist_get_double(ext_plist_merged[det_nr-1],
+                        CR2RES_HEADER_QC_DETLIN_MAXLEVEL)) ;
+            cpl_vector_set(qc_meda, det_nr-1,
+                    cpl_propertylist_get_double(ext_plist_merged[det_nr-1],
+                        CR2RES_HEADER_QC_DETLIN_MEDA)) ;
+            cpl_vector_set(qc_medb, det_nr-1,
+                    cpl_propertylist_get_double(ext_plist_merged[det_nr-1],
+                        CR2RES_HEADER_QC_DETLIN_MEDB)) ;
+            cpl_vector_set(qc_medc, det_nr-1,
+                    cpl_propertylist_get_double(ext_plist_merged[det_nr-1],
+                        CR2RES_HEADER_QC_DETLIN_MEDC)) ;
+            cpl_vector_set(qc_medq, det_nr-1,
+                    cpl_propertylist_get_double(ext_plist_merged[det_nr-1],
+                        CR2RES_HEADER_QC_DETLIN_MEDQ)) ;
+        }
+
+        qc_main = cpl_propertylist_new() ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_NBFAILED_AVG,
+                cpl_vector_get_mean(qc_nbfailed)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_NBFAILED_RMS,
+                cpl_vector_get_stdev(qc_nbfailed)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_NBSUCCESS_AVG,
+                cpl_vector_get_mean(qc_nbsuccess)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_NBSUCCESS_RMS,
+                cpl_vector_get_stdev(qc_nbsuccess)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_NBAD_AVG,
+                cpl_vector_get_mean(qc_nbad)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_NBAD_RMS,
+                cpl_vector_get_stdev(qc_nbad)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MEDIAN_AVG,
+                cpl_vector_get_mean(qc_med)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MEDIAN_RMS,
+                cpl_vector_get_stdev(qc_med)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MINLEVEL_AVG,
+                cpl_vector_get_mean(qc_min)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MINLEVEL_RMS,
+                cpl_vector_get_stdev(qc_min)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MAXLEVEL_AVG,
+                cpl_vector_get_mean(qc_max)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MAXLEVEL_RMS,
+                cpl_vector_get_stdev(qc_max)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MEDA_AVG,
+                cpl_vector_get_mean(qc_meda)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MEDA_RMS,
+                cpl_vector_get_stdev(qc_meda)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MEDB_AVG,
+                cpl_vector_get_mean(qc_medb)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MEDB_RMS,
+                cpl_vector_get_stdev(qc_medb)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MEDC_AVG,
+                cpl_vector_get_mean(qc_medc)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MEDC_RMS,
+                cpl_vector_get_stdev(qc_medc)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MEDQ_AVG,
+                cpl_vector_get_mean(qc_medq)) ;
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_QC_DETLIN_MEDQ_RMS,
+                cpl_vector_get_stdev(qc_medq)) ;
+    }
+    cpl_vector_delete(qc_nbfailed) ;
+    cpl_vector_delete(qc_nbsuccess) ;
+    cpl_vector_delete(qc_nbad) ;
+    cpl_vector_delete(qc_med) ;
+    cpl_vector_delete(qc_min) ;
+    cpl_vector_delete(qc_max) ;
+    cpl_vector_delete(qc_meda) ;
+    cpl_vector_delete(qc_medb) ;
+    cpl_vector_delete(qc_medc) ;
+    cpl_vector_delete(qc_medq) ;
 
     /* Save the merged products */
     /* BPM */
     out_file = cpl_sprintf("%s_bpm.fits", RECIPE_STRING) ;
     cr2res_io_save_BPM(out_file, frameset, rawframes, parlist, bpm_merged, 
-            NULL, ext_plist_merged, CR2RES_CAL_DETLIN_BPM_PROCATG, 
+            qc_main, ext_plist_merged, CR2RES_CAL_DETLIN_BPM_PROCATG, 
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* COEFFS */
     out_file = cpl_sprintf("%s_coeffs.fits", RECIPE_STRING) ;
     cr2res_io_save_DETLIN_COEFFS(out_file, frameset, rawframes, parlist, 
-            coeffs_merged, NULL, ext_plist_merged, 
+            coeffs_merged, qc_main, ext_plist_merged, 
             CR2RES_CAL_DETLIN_COEFFS_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
+    if (qc_main != NULL) cpl_propertylist_delete(qc_main) ;
     cpl_frameset_delete(rawframes) ;
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         if (coeffs_merged[det_nr-1] != NULL) 
@@ -641,9 +774,7 @@ static int cr2res_cal_detlin(
 /**
   @brief  Compute the non-linearity for a single setting, single detector
   @param rawframes          Raw frames from a single setting
-  @param darkframes         Darkframes (null or as many as rawframes)
   @param bpm_thresh          thresh value for BPM detection
-  @param trace_degree
   @param trace_min_cluster
   @param trace_smooth_x
   @param trace_smooth_y
@@ -708,7 +839,8 @@ static int cr2res_cal_detlin_reduce(
     int                     i, j, k, idx, ext_nr_data, order, trace_id, nx, ny;
     cpl_size                max_degree, l ;
     int                     qc_nb_bad, qc_nbfailed, qc_nbsuccess ;
-    double                  qc_median, qc_gain, qc_min_level, qc_max_level ;
+    double                  qc_median, qc_gain, qc_min_level,
+                            qc_max_level, qc_meda, qc_medb, qc_medc, qc_medq ;
     
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;

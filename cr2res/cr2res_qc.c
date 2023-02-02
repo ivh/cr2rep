@@ -91,6 +91,53 @@ double cr2res_dark_qc_ron(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Computes the detlin coeffs statѕ
+  @param    coeffs  The detector non linearity coefficients
+  @param    meda    [out] median of a coeffs
+  @param    medb    [out] median of a coeffs
+  @param    medc    [out] median of a coeffs
+  @param    meda_err [out] median of a coeffs errors
+  @return   0 if ok
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_qc_detlin_stat(
+        const hdrl_imagelist    *   hdrl_coeffs,
+        double                  *   meda,
+        double                  *   medb,
+        double                  *   medc,
+        double                  *   meda_err)
+{
+    double      qc_meda, qc_medb, qc_medc, qc_meda_err ;
+
+    /* Check Entries */
+    if (hdrl_coeffs==NULL || meda==NULL || medb==NULL || medc==NULL || 
+            meda_err==NULL) 
+        return -1 ;
+
+    qc_meda = cpl_image_get_median(
+            hdrl_image_get_image(hdrl_imagelist_get(hdrl_coeffs, 0))) ;
+    qc_medb = cpl_image_get_median(
+            hdrl_image_get_image(hdrl_imagelist_get(hdrl_coeffs, 1))) ;
+    qc_medc = cpl_image_get_median(
+            hdrl_image_get_image(hdrl_imagelist_get(hdrl_coeffs, 2))) ;
+    qc_meda_err = cpl_image_get_median(
+            hdrl_image_get_error(hdrl_imagelist_get(hdrl_coeffs, 0))) ;
+    
+    if (cpl_error_get_code()) return -1 ;
+
+    if (isnan(qc_meda) || isnan(qc_medb) || isnan(qc_medc)) return -1 ;
+    if (isnan(qc_meda_err)) qc_meda_err = -1.0 ;
+
+    *meda = qc_meda ;
+    *medb = qc_medb ;
+    *medc = qc_medc ;
+    *meda_err = qc_meda_err ;
+    return 0 ;
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Computes the detlin median non linearity 
   @param    coeffs  The detector non linearity coefficients
   @param    min_level   [out] min level

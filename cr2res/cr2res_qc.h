@@ -53,6 +53,12 @@ double cr2res_qc_detlin(
         cpl_mask               **  outmask,
         double                  *   min_level,
         double                  *   max_level) ;
+int cr2res_qc_detlin_stat(
+        const hdrl_imagelist    *   hdrl_coeffs,
+        double                  *   meda,
+        double                  *   medb,
+        double                  *   medc,
+        double                  *   meda_err) ;
 
 /* FLAT */
 double cr2res_qc_flat_trace_center_y(
