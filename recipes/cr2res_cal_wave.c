@@ -59,6 +59,10 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_cal_wave_qc_tilt(
+        const cpl_table     **      tws,
+        double                      cwlen,
+        cpl_propertylist    *       plist) ;
 static int cr2res_cal_wave_reduce(
         const cpl_frameset  *   rawframes_une,
         const cpl_frameset  *   rawframes_fpet,
@@ -505,7 +509,8 @@ static int cr2res_cal_wave(
                             save_intermediate_flag, keep_higher_degrees_flag, 
                             clean_spectrum, subtract_nolight_rows ;
     double                  ext_smooth_slit, ext_smooth_spec, wl_start, wl_end,
-                            wl_err, wl_shift, display_wmin, display_wmax ;
+                            wl_err, wl_shift, display_wmin,
+                            display_wmax, central_wlen ;
     cr2res_collapse         collapse ;
     cr2res_wavecal_type     wavecal_type ;
     const char          *   sval ;
@@ -517,6 +522,7 @@ static int cr2res_cal_wave(
     const cpl_frame     *   bpm_frame ;
     const cpl_frame     *   trace_wave_frame ;
     const cpl_frame     *   lines_frame ;
+    cpl_propertylist    *   plist ;
     char                *   out_file;
     cpl_table           *   out_trace_wave_une[CR2RES_NB_DETECTORS] ;
     cpl_table           *   lines_diagnostics_une[CR2RES_NB_DETECTORS] ;
@@ -528,7 +534,7 @@ static int cr2res_cal_wave(
     cpl_table           *   out_extracted_fpet[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   out_wave_map_fpet[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist_fpet[CR2RES_NB_DETECTORS] ;
-    cpl_propertylist    *   plist ;
+    cpl_propertylist    *   qc_main ;
     int                     det_nr, order, i ;
 
     /* Needed for sscanf() */
@@ -792,6 +798,21 @@ static int cr2res_cal_wave(
         cpl_msg_indent_less() ;
     }
 
+    /* QC.TILT Computation */
+    qc_main = NULL ;
+    if (rawframes_fpet != NULL) {
+        plist = cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position_const(rawframes_fpet, 0)), 0) ;
+        central_wlen = cr2res_pfits_get_cwlen(plist) ;
+        cpl_propertylist_delete(plist);
+
+        qc_main = cpl_propertylist_new() ;
+        if (cr2res_cal_wave_qc_tilt((const cpl_table **)out_trace_wave_fpet,
+                    central_wlen, qc_main)) {
+            cpl_msg_warning(__func__, "QC.TILT Computation failed") ;
+        }
+    }
+
     /* Save only the used RAW ? : rawframes_xxx instead of 2nd frameset */
     /* Beware that the calibration PRO RECi CAL will be missing */ 
 
@@ -829,7 +850,7 @@ static int cr2res_cal_wave(
         /* Save Products FPET */
         out_file = cpl_sprintf("%s_tw_fpet.fits", RECIPE_STRING) ;
         cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
-                out_trace_wave_fpet, NULL, ext_plist_fpet, 
+                out_trace_wave_fpet, qc_main, ext_plist_fpet, 
                 CR2RES_CAL_WAVE_TW_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
@@ -854,6 +875,7 @@ static int cr2res_cal_wave(
     }
 
     /* Free and return */
+    if (qc_main != NULL) cpl_propertylist_delete(qc_main) ;
     cpl_frameset_delete(rawframes_une) ;
     if (rawframes_fpet!=NULL) cpl_frameset_delete(rawframes_fpet) ;
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
@@ -1564,3 +1586,89 @@ static int cr2res_cal_wave_reduce(
     *ext_plist_fpet = plist_fpet_out ;
     return 0 ;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Compute QC.TILT
+  @param    tws     3 tw tables (1 per detector)
+  @param    plist   Header for holding the QC.TILTn values
+  @return   0 if ok
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_cal_wave_qc_tilt(
+        const cpl_table     **      tws,
+        double                      cwlen,
+        cpl_propertylist    *       plist)
+{
+    const cpl_table *   ref_tw ;
+    const cpl_array *   tmp_array ;
+    cpl_polynomial  *   slit_poly_a ;
+    cpl_polynomial  *   slit_poly_b ;
+    cpl_polynomial  *   slit_poly_c ;
+    cpl_polynomial  *   upper_poly ;
+    cpl_polynomial  *   lower_poly ;
+    cpl_polynomial  *   slit_curv_poly ;
+    double              upper_x, upper_y, lower_x, lower_y;
+    int                 ref_det, cur_order, ref_x ;
+    cpl_size            nrows, k ;
+
+    /* Check Inputs */
+    if (tws==NULL) return -1 ;
+    for (k=0 ; k< CR2RES_NB_DETECTORS ; k++) 
+        if (tws[k] == NULL) return -1 ;
+
+    /* Initialize */
+    ref_x = 1024 ;
+
+    /* Detector used depends on the cwlen */
+    if (cwlen <= 1100.0)    ref_tw = tws[0] ;
+    else                    ref_tw = tws[1] ;
+
+    nrows = cpl_table_get_nrow(ref_tw) ;
+
+    /* Loop on rows */
+    for (k=0 ; k<nrows ; k++) {
+        cur_order = cpl_table_get(ref_tw, CR2RES_COL_ORDER, k, NULL) ;
+
+        /* Get the Slit curvature for the trace */
+        tmp_array = cpl_table_get_array(ref_tw, CR2RES_COL_SLIT_CURV_A, k) ;
+        slit_poly_a = cr2res_convert_array_to_poly(tmp_array) ;
+        tmp_array = cpl_table_get_array(ref_tw, CR2RES_COL_SLIT_CURV_B, k) ;
+        slit_poly_b = cr2res_convert_array_to_poly(tmp_array) ;
+        tmp_array = cpl_table_get_array(ref_tw, CR2RES_COL_SLIT_CURV_C, k) ;
+        slit_poly_c = cr2res_convert_array_to_poly(tmp_array) ;
+
+		/* Get the Upper Polynomial */
+		tmp_array = cpl_table_get_array(ref_tw, CR2RES_COL_UPPER, k) ;
+		upper_poly = cr2res_convert_array_to_poly(tmp_array) ;
+
+		/* Get the Lower Polynomial */
+		tmp_array = cpl_table_get_array(ref_tw, CR2RES_COL_LOWER, k) ;
+		lower_poly = cr2res_convert_array_to_poly(tmp_array) ;
+
+        /* Create the slit curvature polynomial at position ref_x */
+        slit_curv_poly = cr2res_slit_curv_build_poly(slit_poly_a,
+                slit_poly_b, slit_poly_c, ref_x) ;
+        cpl_polynomial_delete(slit_poly_a) ;
+        cpl_polynomial_delete(slit_poly_b) ;
+        cpl_polynomial_delete(slit_poly_c) ;
+                
+        upper_y = cpl_polynomial_eval_1d(upper_poly, ref_x, NULL) ;
+        lower_y = cpl_polynomial_eval_1d(lower_poly, ref_x, NULL) ;
+        cpl_polynomial_delete(upper_poly) ;
+        cpl_polynomial_delete(lower_poly) ;
+
+        upper_x = cpl_polynomial_eval_1d(slit_curv_poly, upper_y, NULL) ;
+        lower_x = cpl_polynomial_eval_1d(slit_curv_poly, lower_y, NULL) ;
+        cpl_polynomial_delete(slit_curv_poly) ;
+
+		/* Compute the tilt */
+        printf("Upper (x,y)=(%g,%g) Lower (x,y)=(%g,%g)\n",
+                upper_x, upper_y, lower_x, lower_y) ;
+    }
+    return 0 ;
+}
+
+
+
+

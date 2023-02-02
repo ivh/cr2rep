@@ -52,4 +52,10 @@ hdrl_image * cr2res_slit_curv_gen_map(
         int                 spacing_pixels,
         int                 full_trace) ;
 
+cpl_polynomial * cr2res_slit_curv_build_poly(
+        cpl_polynomial  *   slit_poly_a,
+        cpl_polynomial  *   slit_poly_b,
+        cpl_polynomial  *   slit_poly_c,
+        cpl_size            x) ;
+
 #endif

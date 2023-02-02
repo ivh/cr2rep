@@ -47,12 +47,6 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static cpl_polynomial * cr2res_slit_curv_build_poly(
-        cpl_polynomial  *   slit_poly_a,
-        cpl_polynomial  *   slit_poly_b,
-        cpl_polynomial  *   slit_poly_c,
-        cpl_size            x) ;
-
 static int cr2res_slit_curv_get_position(
         cpl_polynomial  *   trace,
         cpl_polynomial  *   wave,
@@ -543,7 +537,6 @@ hdrl_image * cr2res_slit_curv_gen_map(
     return out ;
 }
 
-/**@}*/
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -555,7 +548,7 @@ hdrl_image * cr2res_slit_curv_gen_map(
   @return   the slit curvture polynomial or NULL in error case
  */
 /*----------------------------------------------------------------------------*/
-static cpl_polynomial * cr2res_slit_curv_build_poly(
+cpl_polynomial * cr2res_slit_curv_build_poly(
         cpl_polynomial  *   slit_poly_a,
         cpl_polynomial  *   slit_poly_b,
         cpl_polynomial  *   slit_poly_c,
@@ -574,6 +567,8 @@ static cpl_polynomial * cr2res_slit_curv_build_poly(
             cpl_polynomial_eval_1d(slit_poly_c, x, NULL)) ;
     return out ;
 }
+
+/**@}*/
 
 /*----------------------------------------------------------------------------*/
 /**

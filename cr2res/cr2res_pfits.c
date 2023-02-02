@@ -208,6 +208,18 @@ double cr2res_pfits_get_mjd_obs(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    find out the CWLEN value 
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_pfits_get_cwlen(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_double(plist, CR2RES_HEADER_WLEN_CWLEN)  ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    find out the Start wavelength for an order_idx (current detector)
   @param    plist       property list to read from
   @param    order_idx   Order INDEX (-49 -> 50)
