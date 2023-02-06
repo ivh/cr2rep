@@ -729,17 +729,17 @@ static int cr2res_cal_detlin(
         cpl_propertylist_append_double(qc_main,
                 CR2RES_HEADER_QC_DETLIN_MEDQ_RMS,
                 cpl_vector_get_stdev(qc_medq)) ;
+        cpl_vector_delete(qc_nbfailed) ;
+        cpl_vector_delete(qc_nbsuccess) ;
+        cpl_vector_delete(qc_nbad) ;
+        cpl_vector_delete(qc_med) ;
+        cpl_vector_delete(qc_min) ;
+        cpl_vector_delete(qc_max) ;
+        cpl_vector_delete(qc_meda) ;
+        cpl_vector_delete(qc_medb) ;
+        cpl_vector_delete(qc_medc) ;
+        cpl_vector_delete(qc_medq) ;
     }
-    cpl_vector_delete(qc_nbfailed) ;
-    cpl_vector_delete(qc_nbsuccess) ;
-    cpl_vector_delete(qc_nbad) ;
-    cpl_vector_delete(qc_med) ;
-    cpl_vector_delete(qc_min) ;
-    cpl_vector_delete(qc_max) ;
-    cpl_vector_delete(qc_meda) ;
-    cpl_vector_delete(qc_medb) ;
-    cpl_vector_delete(qc_medc) ;
-    cpl_vector_delete(qc_medq) ;
 
     /* Save the merged products */
     /* BPM */
