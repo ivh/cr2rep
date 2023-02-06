@@ -152,6 +152,8 @@
 #define CR2RES_HEADER_QC_SLITFWHM_MED       "ESO QC SLITFWHM MED"
 #define CR2RES_HEADER_QC_REAL_ORDER         "ESO QC REALORDER%d"
 #define CR2RES_HEADER_QC_THROUGHPUT         "ESO QC THROUGHPUT"
+#define CR2RES_HEADER_QC_TILT               "ESO QC TILT%d"
+#define CR2RES_HEADER_QC_TILT_GLOBAL        "ESO QC TILT GLOBAL"
 
 /*-----------------------------------------------------------------------------
                                    Functions prototypes

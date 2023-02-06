@@ -48,6 +48,7 @@
  -----------------------------------------------------------------------------*/
 
 #define RECIPE_STRING "cr2res_cal_wave"
+#define CRIRES_PI       3.1415926535897932384626433832795029L
 
 /*-----------------------------------------------------------------------------
                              Plugin registration
@@ -1593,6 +1594,15 @@ static int cr2res_cal_wave_reduce(
   @param    tws     3 tw tables (1 per detector)
   @param    plist   Header for holding the QC.TILTn values
   @return   0 if ok
+  
+  Use Detector 1 if CWLEN (from input file headers) is < 1100.0,
+  detector 2 otherwse.
+
+  For each order n of the detector, evaluate the slit curvature at
+  x=1024 pixels (middle of the detector), evaluate the slit position at
+  the bottom (Xbot, Ybot) and the top (Xtop, Ytop) of the trace, and compute 
+  QC.TILTn = atan [(Xtop-Xbot)/(Ytop-Ybot)] x 180 / pi 
+ 
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_wave_qc_tilt(
@@ -1608,8 +1618,9 @@ static int cr2res_cal_wave_qc_tilt(
     cpl_polynomial  *   upper_poly ;
     cpl_polynomial  *   lower_poly ;
     cpl_polynomial  *   slit_curv_poly ;
-    double              upper_x, upper_y, lower_x, lower_y;
-    int                 ref_det, cur_order, ref_x ;
+    char            *   qc_name;
+    double              top_x, top_y, bot_x, bot_y, tilt, tilt_avg;
+    int                 ref_det, cur_order, ref_x, ntilt ;
     cpl_size            nrows, k ;
 
     /* Check Inputs */
@@ -1619,6 +1630,8 @@ static int cr2res_cal_wave_qc_tilt(
 
     /* Initialize */
     ref_x = 1024 ;
+    tilt_avg = 0.0 ;
+    ntilt = 0 ;
 
     /* Detector used depends on the cwlen */
     if (cwlen <= 1100.0)    ref_tw = tws[0] ;
@@ -1653,19 +1666,38 @@ static int cr2res_cal_wave_qc_tilt(
         cpl_polynomial_delete(slit_poly_b) ;
         cpl_polynomial_delete(slit_poly_c) ;
                 
-        upper_y = cpl_polynomial_eval_1d(upper_poly, ref_x, NULL) ;
-        lower_y = cpl_polynomial_eval_1d(lower_poly, ref_x, NULL) ;
+        top_y = cpl_polynomial_eval_1d(upper_poly, ref_x, NULL) ;
+        bot_y = cpl_polynomial_eval_1d(lower_poly, ref_x, NULL) ;
         cpl_polynomial_delete(upper_poly) ;
         cpl_polynomial_delete(lower_poly) ;
 
-        upper_x = cpl_polynomial_eval_1d(slit_curv_poly, upper_y, NULL) ;
-        lower_x = cpl_polynomial_eval_1d(slit_curv_poly, lower_y, NULL) ;
+        top_x = cpl_polynomial_eval_1d(slit_curv_poly, top_y, NULL) ;
+        bot_x = cpl_polynomial_eval_1d(slit_curv_poly, bot_y, NULL) ;
         cpl_polynomial_delete(slit_curv_poly) ;
 
 		/* Compute the tilt */
-        printf("Upper (x,y)=(%g,%g) Lower (x,y)=(%g,%g)\n",
-                upper_x, upper_y, lower_x, lower_y) ;
+        tilt = atan((top_x-bot_x)/(top_y-bot_y))*180.0/CRIRES_PI;
+        cpl_msg_debug(__func__, 
+                "TILT : %g / Upper (x,y)=(%g,%g) Lower (x,y)=(%g,%g)",
+                tilt, top_x, top_y, bot_x, bot_y) ;
+
+        /* Store the tilt */
+        qc_name = cpl_sprintf(CR2RES_HEADER_QC_TILT, cur_order) ;
+		cpl_propertylist_append_double(plist, qc_name, tilt) ;
+		cpl_free(qc_name) ;
+
+		/* update the tilt average */
+        tilt_avg += tilt ;
+        ntilt++ ;
     }
+
+    /* Store global tilt */
+    if (ntilt > 0) {
+        cpl_msg_debug(__func__, "TILT GLOBAL: %g", tilt_avg/ntilt) ;
+		cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_TILT_GLOBAL, 
+                tilt_avg/ntilt) ;
+    }
+
     return 0 ;
 }
 
