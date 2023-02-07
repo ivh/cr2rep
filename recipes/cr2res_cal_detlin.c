@@ -910,6 +910,13 @@ static int cr2res_cal_detlin_reduce(
     }
     cpl_frameset_delete(sorted_frames) ;
 
+/*
+    hdrl_imagelist_delete(imlist) ;
+    cpl_vector_delete(dits);
+    cpl_propertylist_delete(plist);
+    return -1 ;
+*/
+
     /* Collapse all input images for the traces detection (only if wished) */
     if (trace_collapse) {
         cpl_msg_info(__func__, "Collapse the input images") ;
@@ -928,6 +935,16 @@ static int cr2res_cal_detlin_reduce(
         /* Only use the first image */
         collapsed = hdrl_image_duplicate(hdrl_imagelist_get(imlist, 0)) ;
     }
+
+/*
+	printf("-- %s\n", cpl_error_get_where()) ;
+    hdrl_imagelist_delete(imlist) ;
+    cpl_vector_delete(dits);
+    cpl_propertylist_delete(plist);
+	hdrl_image_delete(collapsed) ;
+	cpl_image_delete(contrib);
+    return -1 ;
+*/
 
     /* Compute traces */
     cpl_msg_info(__func__, "Compute the traces") ;
