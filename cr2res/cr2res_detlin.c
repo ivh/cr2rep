@@ -223,8 +223,7 @@ int cr2res_detlin_compute(
                 cpl_vector_get_data(adus_loc)) ;
 
     y_tofit = cpl_vector_new(cpl_vector_get_size(dits_loc));
-    for(i = 0; i < cpl_vector_get_size(dits_loc); i++)
-    {
+    for(i = 0; i < cpl_vector_get_size(dits_loc); i++) {
         // We fit the ratio of true ADU/s over the measured ones.
         y = aduPsec / cpl_vector_get(adusPsec,i);
         cpl_vector_set(y_tofit, i, y);
@@ -238,6 +237,8 @@ int cr2res_detlin_compute(
             CPL_FALSE, NULL, &max_degree) != CPL_ERROR_NONE) {
         
         /* Failed Fit - Fill the coefficients */
+        cpl_vector_delete(adus_loc);
+        cpl_vector_delete(dits_loc);
         cpl_matrix_unwrap(samppos) ;
         cpl_vector_delete(y_tofit);
         cpl_polynomial_delete(fitted_local) ;
@@ -251,8 +252,7 @@ int cr2res_detlin_compute(
     cpl_size ndata = cpl_vector_get_size(y_tofit);
     if (nc >= ndata){
         // No uncertainty as fit should be perfectly aligned with data points
-        for (cpl_size i = 0; i < max_degree + 1; i++)
-        {
+        for (cpl_size i = 0; i < max_degree + 1; i++) {
             cpl_vector_set(error_local, i, 0);
         }
     } else {
