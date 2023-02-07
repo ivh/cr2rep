@@ -34,6 +34,7 @@
 #include "cr2res_pfits.h"
 #include "cr2res_utils.h"
 #include "cr2res_dfs.h"
+#include "cr2res_io.h"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -76,20 +77,23 @@ int cr2res_idp_save(
         const char              *   recipe)
 {
     cpl_table           *   idp_tab ;
-    const cpl_array           *   wlen_arr;
+    const cpl_array     *   wlen_arr;
+    cpl_array           *   resol_arr;
     char                *   idp_filename ;
     cpl_frame           *   out_frame ;
     const cpl_frame     *   ref_frame ;
     const char          *   ref_fname ;
+    const cpl_frame     *   tw_frame ;
+    const char          *   tw_fname ;
     cpl_propertylist    *   pri_head ;
     cpl_propertylist    *   ext_head ;
     double                  dit, exptime, texptime, mjd_start, mjd_end,
                             wmin, wmax ;
 	const char			*	progid ;
-    int                     err, i, ndit, nexp, nraw, obid, nrows ;
+    int                     err, i, ndit, nexp, nraw, obid, nrows, ord ;
+    char                *   resol_keyname;
 
     cpl_msg_info(__func__, "Create IDPs for %s", filename) ;
-    
     /* Output file name */
     idp_filename = cpl_sprintf("idp_%s", filename) ;
 
@@ -148,7 +152,7 @@ int cr2res_idp_save(
     cpl_msg_debug(__func__,"DIT=%g, NDIT=%d NEXP=%d",dit,ndit,nexp);
     
     // This seems wrong to me. /TM
-    //cpl_propertylist_update_double(pri_head, "DIT", dit);
+    //cpl_propertylist_update_double(pri_head, "DIT", dit*ndit);
 
     exptime = dit * ndit * nexp ;
     cpl_propertylist_update_double(pri_head, "EXPTIME", exptime);
@@ -171,6 +175,12 @@ int cr2res_idp_save(
         cpl_propertylist_set_comment(pri_head, "MJD-END", 
                 "[d] End of observations (days)");
     }
+    if (mjd_start > 0.0 && mjd_end > 0.0) {
+        cpl_propertylist_update_double(pri_head, "TELAPSE",
+                                                (mjd_end-mjd_start)*24*3600) ;
+        cpl_propertylist_set_comment(pri_head, "TELAPSE", 
+                    "Total elapsed time [s], MJD-END - MJD-OBS");
+    }
 
     progid = cr2res_pfits_get_progid(pri_head) ;
     cpl_propertylist_update_string(pri_head, "PROG_ID", progid) ;
@@ -192,9 +202,13 @@ int cr2res_idp_save(
 	cpl_propertylist_set_comment(pri_head, "OBSTECH",
 			"Technique of observation") ;
 
-	cpl_propertylist_update_string(pri_head, "FLUXCAL", "ABSOLUTE") ;
+	cpl_propertylist_update_string(pri_head, "FLUXCAL", "UNCALIBRATED") ;
 	cpl_propertylist_set_comment(pri_head, "FLUXCAL", 
             "Type of flux calibration");
+
+    cpl_propertylist_update_string(pri_head, "SPECSYS", "TOPOCENT") ;
+	cpl_propertylist_set_comment(pri_head, "SPECSYS", 
+            "Frame of reference for spectral coordinates");    
 
     cpl_propertylist_update_string(pri_head, "PROCSOFT",
             PACKAGE "/" PACKAGE_VERSION) ;
@@ -232,11 +246,29 @@ int cr2res_idp_save(
     cpl_propertylist_set_comment(pri_head, "SPEC_BIN", 
             "") ;
 
+    /* Get the TW frame and its headers, for some key values */
+    tw_frame = cr2res_io_find_TRACE_WAVE(allframes);
+    tw_fname = cpl_frame_get_filename(tw_frame) ;
+    resol_arr = cpl_array_new(12*CR2RES_NB_DETECTORS, CPL_TYPE_DOUBLE);
+    for (i=0; i < CR2RES_NB_DETECTORS; i++ ){
+        ext_head = cpl_propertylist_load_regexp(tw_fname, i,
+                                            "ESO QC WAVE RESOL-*", 0);
+        for (ord=0; ord < cpl_propertylist_get_size(ext_head); ord++){
+            resol_keyname = cpl_sprintf("%s-%02d-01", 
+                            CR2RES_HEADER_QC_WAVE_RESOL, ord+1);
+            cpl_array_set_double(resol_arr, ord + (i*12),
+                cpl_propertylist_get_double(ext_head, resol_keyname));
+            cpl_free(resol_keyname);
+        }
+        cpl_propertylist_delete(ext_head);
+    }
+    printf("Hello : %g\n", cpl_array_get_median(resol_arr)) ;
+    cpl_array_delete(resol_arr);
 
     /* Remove some keys */
-    //cpl_propertylist_erase(pri_head, "RADECSYS");
+    cpl_propertylist_erase(pri_head, "RADECSYS");
     /* Remove the ASSON keywords */
-    //cpl_propertylist_erase_regexp(pri_head, "ASSO*", 0);
+    cpl_propertylist_erase_regexp(pri_head, "ASSO*", 0);
 
 	/* Save the main header */
 	cpl_propertylist_save(pri_head, idp_filename, CPL_IO_CREATE);
@@ -554,7 +586,7 @@ static int cr2res_idp_copy(
         return -1 ;
     }
     cpl_free(err_name) ;
-    
+
     /* copy line by line */
     for (i=0 ; i<in_size ; i++) {
         if (out_start_idx + i <out_size) {
@@ -567,7 +599,7 @@ static int cr2res_idp_copy(
             if (!isnan(perr[i])) 
                 cpl_table_set_double(out, CR2RES_IDP_COL_ERR, 
                         out_start_idx + i, perr[i]) ;
-            cpl_table_set_double(out, CR2RES_IDP_COL_QUAL, out_start_idx + i, 
+            cpl_table_set_int(out, CR2RES_IDP_COL_QUAL, out_start_idx + i, 
                     0);
             cpl_table_set_int(out, CR2RES_IDP_COL_XPOS, out_start_idx + i, 
                     i+1) ;
