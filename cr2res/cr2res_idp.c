@@ -86,7 +86,7 @@ int cr2res_idp_save(
     double                  dit, exptime, texptime, mjd_start, mjd_end,
                             wmin, wmax ;
 	const char			*	progid ;
-    int                     err, i, nexp, nraw, obid, nrows ;
+    int                     err, i, ndit, nexp, nraw, obid, nrows ;
 
     cpl_msg_info(__func__, "Create IDPs for %s", filename) ;
     
@@ -142,11 +142,15 @@ int cr2res_idp_save(
     }
 
     /* Collect data from main header */
-    dit = cr2res_pfits_get_dit(pri_head) * cr2res_pfits_get_ndit(pri_head) ; 
-    cpl_propertylist_update_double(pri_head, "DIT", dit);
-
+    dit = cr2res_pfits_get_dit(pri_head);
+    ndit = cr2res_pfits_get_ndit(pri_head) ; 
     nexp = cr2res_pfits_get_nexp(pri_head) ;
-    exptime = dit * nexp ;
+    cpl_msg_debug(__func__,"DIT=%g, NDIT=%d NEXP=%d",dit,ndit,nexp);
+    
+    // This seems wrong to me. /TM
+    //cpl_propertylist_update_double(pri_head, "DIT", dit);
+
+    exptime = dit * ndit * nexp ;
     cpl_propertylist_update_double(pri_head, "EXPTIME", exptime);
     cpl_propertylist_set_comment(pri_head, "EXPTIME", 
             "[s] Total integration time per pixel");
