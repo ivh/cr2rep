@@ -199,9 +199,23 @@ int cr2res_idp_save(
     nraw = cpl_frameset_get_size(rawframes) ;
     cpl_propertylist_update_int(pri_head, "NCOMBINE", nraw);
 
-    cpl_propertylist_update_string(pri_head, "OBSTECH", "NODDING") ;
+    if (!strcmp(recipe, "cr2res_obs_nodding"))
+        cpl_propertylist_update_string(pri_head, "OBSTECH", "NODDING") ;
+    else if (!strcmp(recipe, "cr2res_obs_staring"))
+        cpl_propertylist_update_string(pri_head, "OBSTECH", "STARING") ;
+    else if (!strcmp(recipe, "cr2res_obs_2d"))
+        cpl_propertylist_update_string(pri_head, "OBSTECH", "GENERIC_OFFSET") ;
+    else if (!strcmp(recipe, "cr2res_obs_pol"))
+        cpl_propertylist_update_string(pri_head, "OBSTECH", "POLARIMETRY") ;
 	cpl_propertylist_set_comment(pri_head, "OBSTECH",
 			"Technique of observation") ;
+
+    if (!strcmp(recipe, "cr2res_obs_2d"))
+        cpl_propertylist_update_bool(pri_head, "EXT_OBJ", 1) ;
+    else
+        cpl_propertylist_update_bool(pri_head, "EXT_OBJ", 0) ;
+    cpl_propertylist_set_comment(pri_head, "EXT_OBJ",
+			"True for extended objects, cr2res_obs_2d was used") ;
 
 	cpl_propertylist_update_string(pri_head, "FLUXCAL", "UNCALIBRATED") ;
 	cpl_propertylist_set_comment(pri_head, "FLUXCAL", 
@@ -294,10 +308,9 @@ int cr2res_idp_save(
     /* Get some keys from the extension headers*/
     tmp_arr = cpl_array_new(12*CR2RES_NB_DETECTORS, CPL_TYPE_DOUBLE);
     for (i=0; i<CR2RES_NB_DETECTORS; i++){
-        ext_head = ext_plist[i];
         for (ord=0; ord < 12; ord++){
             tmp_keyname = cpl_sprintf(CR2RES_HEADER_QC_SNR, ord+1);
-            resol = cpl_propertylist_get_double(ext_head, tmp_keyname);
+            resol = cpl_propertylist_get_double(ext_plist[i], tmp_keyname);
             if (resol==0){
                 cpl_error_reset();
             } else {
@@ -327,6 +340,15 @@ int cr2res_idp_save(
     /* Add Keywords to extension header */
     cpl_propertylist_update_string(ext_head, "EXTNAME", "IDP_SPECTRUM") ;
 
+    cpl_propertylist_update_double(ext_head, "RA",
+                    cpl_propertylist_get_double(pri_head, "RA"));
+    cpl_propertylist_update_double(ext_head, "DEC",
+                    cpl_propertylist_get_double(pri_head, "DEC"));
+    cpl_propertylist_set_comment(ext_head, "RA",
+                    cpl_propertylist_get_comment(pri_head, "RA"));
+    cpl_propertylist_set_comment(ext_head, "DEC",
+                    cpl_propertylist_get_comment(pri_head, "DEC"));
+                    
     cpl_propertylist_update_string(ext_head, "VOPUB", "ESO/SAF") ;
     cpl_propertylist_set_comment(ext_head, "VOPUB", "VO Publishing Authority") ;
     cpl_propertylist_update_string(ext_head, "VOCLASS", "SPECTRUM V1.0") ;
