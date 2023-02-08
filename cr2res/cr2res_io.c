@@ -1375,6 +1375,7 @@ int cr2res_io_save_PHOTO_FLUX(
     cpl_propertylist_append_string(plist, CR2RES_HEADER_INSTRUMENT, "CRIRES") ;
     cpl_propertylist_append_string(plist, CPL_DFS_PRO_CATG,
             CR2RES_PHOTO_FLUX_PROCATG) ;
+    cpl_propertylist_append_string(plist, CPL_DFS_PRO_TYPE, "STATIC") ;
     cpl_propertylist_append_string(plist, CR2RES_HEADER_DRS_TYPE,
             CR2RES_PHOTO_FLUX_DRSTYPE) ;
     mjd_obs = cr2res_mjd_obs_now() ;
@@ -1421,6 +1422,7 @@ int cr2res_io_save_EMISSION_LINES(
     cpl_propertylist_append_string(plist, CR2RES_HEADER_INSTRUMENT, "CRIRES") ;
     cpl_propertylist_append_string(plist, CPL_DFS_PRO_CATG,
             CR2RES_EMISSION_LINES_PROCATG) ;
+    cpl_propertylist_append_string(plist, CPL_DFS_PRO_TYPE, "STATIC") ;
     cpl_propertylist_append_string(plist, CR2RES_HEADER_DRS_TYPE,
             CR2RES_DRSTYPE_CATALOG) ;
 
