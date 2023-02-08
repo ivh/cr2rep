@@ -206,6 +206,10 @@ int cr2res_idp_save(
 	cpl_propertylist_set_comment(pri_head, "FLUXCAL", 
             "Type of flux calibration");
 
+	cpl_propertylist_update_int(pri_head, "FLUXERR", -1) ;
+	cpl_propertylist_set_comment(pri_head, "FLUXERR", 
+            "Fractional uncertainty [%%] on the flux scale");
+
     cpl_propertylist_update_string(pri_head, "SPECSYS", "TOPOCENT") ;
 	cpl_propertylist_set_comment(pri_head, "SPECSYS", 
             "Frame of reference for spectral coordinates");    
@@ -244,7 +248,7 @@ int cr2res_idp_save(
 
     cpl_propertylist_update_double(pri_head, "SPEC_BIN", (wmax-wmin)/nrows) ;
     cpl_propertylist_set_comment(pri_head, "SPEC_BIN", 
-            "") ;
+            "Average spectral bin width [nm]") ;
 
     /* Get the TW frame and its headers, for some key values */
     tw_frame = cr2res_io_find_TRACE_WAVE(allframes);
@@ -262,7 +266,11 @@ int cr2res_idp_save(
         }
         cpl_propertylist_delete(ext_head);
     }
-    printf("Hello : %g\n", cpl_array_get_median(resol_arr)) ;
+    cpl_propertylist_update_double(pri_head, "SPEC_RES",
+                                cpl_array_get_median(resol_arr)) ;
+    cpl_propertylist_set_comment(pri_head, "SPEC_RES",
+                "Median resolving power"); 
+                            
     cpl_array_delete(resol_arr);
 
     /* Remove some keys */
@@ -273,7 +281,8 @@ int cr2res_idp_save(
 	/* Save the main header */
 	cpl_propertylist_save(pri_head, idp_filename, CPL_IO_CREATE);
 
-    /* Create the first extension header */
+
+    /* Create the first EXTENSION header */
     ext_head = cpl_propertylist_new() ;
 
     /* Add Keywords to extension header */
@@ -291,7 +300,8 @@ int cr2res_idp_save(
             "Slit width in deg") ;
 
     if (mjd_end > 0 && mjd_start > 0) {
-        cpl_propertylist_update_double(ext_head, "TELAPSE", mjd_end-mjd_start) ;
+        cpl_propertylist_update_double(ext_head, "TELAPSE",
+                (mjd_end-mjd_start)*24*3600) ;
         cpl_propertylist_set_comment(ext_head, "TELAPSE", 
                 "Total elapsed time in seconds [s]") ;
 
