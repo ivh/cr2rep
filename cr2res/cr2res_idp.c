@@ -74,11 +74,12 @@ int cr2res_idp_save(
         cpl_frameset            *   rawframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
+        cpl_propertylist        *  ext_plist[3],
         const char              *   recipe)
 {
     cpl_table           *   idp_tab ;
     const cpl_array     *   wlen_arr;
-    cpl_array           *   resol_arr;
+    cpl_array           *   tmp_arr;
     char                *   idp_filename ;
     cpl_frame           *   out_frame ;
     const cpl_frame     *   ref_frame ;
@@ -88,10 +89,10 @@ int cr2res_idp_save(
     cpl_propertylist    *   pri_head ;
     cpl_propertylist    *   ext_head ;
     double                  dit, exptime, texptime, mjd_start, mjd_end,
-                            wmin, wmax ;
+                            wmin, wmax, resol ;
 	const char			*	progid ;
     int                     err, i, ndit, nexp, nraw, obid, nrows, ord ;
-    char                *   resol_keyname;
+    char                *   tmp_keyname;
 
     cpl_msg_info(__func__, "Create IDPs for %s", filename) ;
     /* Output file name */
@@ -210,6 +211,21 @@ int cr2res_idp_save(
 	cpl_propertylist_set_comment(pri_head, "FLUXERR", 
             "Fractional uncertainty [%%] on the flux scale");
 
+	cpl_propertylist_update_bool(pri_head, "TOT_FLUX", 0) ;
+	cpl_propertylist_set_comment(pri_head, "TOT_FLUX", 
+            "True if flux data represent the total source flux.");
+
+    /* Find blaze to decide if continuum normalized or not */
+    if ( cpl_frameset_find_const(allframes, 
+            CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG) != NULL) {
+        cpl_propertylist_update_bool(pri_head, "CONTNORM", 1) ;
+    } else {
+        cpl_propertylist_update_bool(pri_head, "CONTNORM", 0) ;
+    }
+    cpl_propertylist_set_comment(pri_head, "CONTNORM",
+            "TRUE if the spectrum has been divided by the blaze") ;
+
+
     cpl_propertylist_update_string(pri_head, "SPECSYS", "TOPOCENT") ;
 	cpl_propertylist_set_comment(pri_head, "SPECSYS", 
             "Frame of reference for spectral coordinates");    
@@ -245,7 +261,6 @@ int cr2res_idp_save(
     cpl_propertylist_set_comment(pri_head, "SPECSYS", 
             "") ;
 
-
     cpl_propertylist_update_double(pri_head, "SPEC_BIN", (wmax-wmin)/nrows) ;
     cpl_propertylist_set_comment(pri_head, "SPEC_BIN", 
             "Average spectral bin width [nm]") ;
@@ -253,25 +268,49 @@ int cr2res_idp_save(
     /* Get the TW frame and its headers, for some key values */
     tw_frame = cr2res_io_find_TRACE_WAVE(allframes);
     tw_fname = cpl_frame_get_filename(tw_frame) ;
-    resol_arr = cpl_array_new(12*CR2RES_NB_DETECTORS, CPL_TYPE_DOUBLE);
+    tmp_arr = cpl_array_new(12*CR2RES_NB_DETECTORS, CPL_TYPE_DOUBLE);
     for (i=0; i < CR2RES_NB_DETECTORS; i++ ){
         ext_head = cpl_propertylist_load_regexp(tw_fname, i,
                                             "ESO QC WAVE RESOL-*", 0);
         for (ord=0; ord < cpl_propertylist_get_size(ext_head); ord++){
-            resol_keyname = cpl_sprintf("%s-%02d-01", 
+            tmp_keyname = cpl_sprintf("%s-%02d-01", 
                             CR2RES_HEADER_QC_WAVE_RESOL, ord+1);
-            cpl_array_set_double(resol_arr, ord + (i*12),
-                cpl_propertylist_get_double(ext_head, resol_keyname));
-            cpl_free(resol_keyname);
+            resol = cpl_propertylist_get_double(ext_head, tmp_keyname);
+            if (resol==0){
+                cpl_error_reset();
+            } else {
+                cpl_array_set_double(tmp_arr, ord + (i*12),resol);
+            }
+            cpl_free(tmp_keyname);
         }
         cpl_propertylist_delete(ext_head);
     }
     cpl_propertylist_update_double(pri_head, "SPEC_RES",
-                                cpl_array_get_median(resol_arr)) ;
+                                cpl_array_get_median(tmp_arr)) ;
     cpl_propertylist_set_comment(pri_head, "SPEC_RES",
                 "Median resolving power"); 
-                            
-    cpl_array_delete(resol_arr);
+    cpl_array_delete(tmp_arr);
+
+    /* Get some keys from the extension headers*/
+    tmp_arr = cpl_array_new(12*CR2RES_NB_DETECTORS, CPL_TYPE_DOUBLE);
+    for (i=0; i<CR2RES_NB_DETECTORS; i++){
+        ext_head = ext_plist[i];
+        for (ord=0; ord < 12; ord++){
+            tmp_keyname = cpl_sprintf(CR2RES_HEADER_QC_SNR, ord+1);
+            resol = cpl_propertylist_get_double(ext_head, tmp_keyname);
+            if (resol==0){
+                cpl_error_reset();
+            } else {
+                cpl_array_set_double(tmp_arr, ord + (i*12),resol);
+            }
+            cpl_free(tmp_keyname);
+        }
+    }
+    cpl_propertylist_update_double(pri_head, "SNR",
+                                cpl_array_get_median(tmp_arr)) ;
+    cpl_propertylist_set_comment(pri_head, "SNR",
+                "Median signal-to-noise in all detector-orders"); 
+    cpl_array_delete(tmp_arr);
 
     /* Remove some keys */
     cpl_propertylist_erase(pri_head, "RADECSYS");
