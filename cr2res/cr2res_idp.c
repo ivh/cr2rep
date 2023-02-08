@@ -132,7 +132,7 @@ int cr2res_idp_save(
     cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_CATG,
             CR2RES_OBS_NODDING_IDP_PROCATG) ;
     cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_TYPE,
-            CR2RES_EXTRACT_1D_IDP_PROTYPE) ;
+            CR2RES_EXTRACT_1D_IDP_DRSTYPE) ;
     cpl_dfs_setup_product_header(pri_head, out_frame, allframes,
             parlist, recipe, VERSION, "PRO-1.16", ref_frame);
 

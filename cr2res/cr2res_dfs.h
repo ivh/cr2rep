@@ -52,8 +52,8 @@
 
 /*** CR2RES_OBS_NODDING_IDP_PROCATG  ***/
 #define CR2RES_IDP_COL_FLUX         "FLUX"       /* Intensity */
-#define CR2RES_IDP_COL_ERR            "ERR"        /* Error */
-#define CR2RES_IDP_COL_WAVE             "WAVE"       /* wavelength */
+#define CR2RES_IDP_COL_ERR          "ERR"        /* Error */
+#define CR2RES_IDP_COL_WAVE         "WAVE"       /* wavelength */
 #define CR2RES_IDP_COL_QUAL          "QUAL"    /* Quality */
 #define CR2RES_IDP_COL_ORDER            "ORDER"      /* Order Number */
 #define CR2RES_IDP_COL_TRACE            "TRACE"      /* Order Number */
@@ -112,21 +112,21 @@
 /******************************************/
 
 /*************************************/
-/* Define here the PRO.TYPE keywords */
+/* Define here the DRS.TYPE keywords */
 
 /* For  CR2RES_EMISSION_LINES_PROCATG */
 /* Table with columns CR2RES_COL_EMISSION / CR2RES_COL_WAVELENGTH */
-#define CR2RES_PROTYPE_CATALOG              "CATALOG"
+#define CR2RES_DRSTYPE_CATALOG              "CATALOG"
 
 /* For  CR2RES_PHOTO_FLUX_PROCATG */
 /* Col: CR2RES_COL_STDNAME      */
 /*      CR2RES_COL_RA           */
 /*      CR2RES_COL_DEC          */
 /*      CR2RES_COL_PHOTOFLUX    */
-#define CR2RES_PHOTO_FLUX_PROTYPE       	"PHOTO_FLUX"
+#define CR2RES_PHOTO_FLUX_DRSTYPE           "PHOTO_FLUX"
 
 /* For CR2RES_CAL_DETLIN_COEFFS_PROCATG */
-#define CR2RES_DETLIN_COEFFS_PROTYPE        "DETLIN_COEFFS"
+#define CR2RES_DETLIN_COEFFS_DRSTYPE        "DETLIN_COEFFS"
 
 /* For  CR2RES_CAL_FLAT_BPM_PROCATG */
 /*      CR2RES_CAL_DETLIN_BPM_PROCATG */
@@ -135,10 +135,10 @@
 /*      CR2RES_UTIL_BPM_SPLIT_PROCATG */
 /*      CR2RES_UTIL_NORM_BPM_PROCATG */
 /* BPM Image with values CR2RES_BPM_DARK / CR2RES_BPM_FLAT... */
-#define CR2RES_BPM_PROTYPE                  "BPM"
+#define CR2RES_BPM_DRSTYPE                  "BPM"
 
 /* For CR2RES_CAL_DARK_MASTER_PROCATG */
-#define CR2RES_MASTER_DARK_PROTYPE          "MASTER_DARK"
+#define CR2RES_MASTER_DARK_DRSTYPE          "MASTER_DARK"
 
 /* For  CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG */
 /*      CR2RES_UTIL_EXTRACT_1D_PROCATG */
@@ -147,13 +147,13 @@
 /*      CR2RES_OBS_NODDING_EXTRACTA_PROCATG */
 /*      CR2RES_OBS_NODDING_EXTRACTB_PROCATG */
 /*      CR2RES_OBS_NODDING_EXTRACTC_PROCATG */
-/* 		CR2RES_OBS_STARING_EXTRACT_PROCATG */
+/*         CR2RES_OBS_STARING_EXTRACT_PROCATG */
 /*      CR2RES_OBS_POL_EXTRACTA_PROCATG */
 /*      CR2RES_OBS_POL_EXTRACTB_PROCATG */
 /* Table with columns cr2res_dfs_SPEC_colname() */
 /*                    cr2res_dfs_WAVELENGTH_colname() */
 /*                    cr2res_dfs_SPEC_ERR_colname() */
-#define CR2RES_EXTRACT_1D_PROTYPE           "EXTRACT_1D"
+#define CR2RES_EXTRACT_1D_DRSTYPE           "EXTRACT_1D"
 
 /* For  CR2RES_OBS_NODDING_IDP_PROCATG */
 /* Table with columns CR2RES_COL_WAVELENGTH */
@@ -162,14 +162,14 @@
 /*                    CR2RES_COL_QUALITY */
 /*                    CR2RES_COL_ORDER */
 /*                    CR2RES_COL_DETECTOR */
-#define CR2RES_EXTRACT_1D_IDP_PROTYPE       "EXTRACT_1D_IDP"
+#define CR2RES_EXTRACT_1D_IDP_DRSTYPE       "EXTRACT_1D_IDP"
 
 /* For  CR2RES_OBS_NODDING_THROUGHPUT_PROCATG */
 /* Table with columns cr2res_dfs_WAVELENGTH_colname() */
 /*                    cr2res_dfs_CONVERSION_colname() */
 /*                    cr2res_dfs_THROUGHPUT_colname() */
 /*                    cr2res_dfs_SENSITIVITY_colname() */
-#define CR2RES_THROUGHPUT_PROTYPE           "THROUGHPUT"
+#define CR2RES_THROUGHPUT_DRSTYPE           "THROUGHPUT"
 
 /* For CR2RES_OBS_POL_SPECA_PROCATG */
 /*     CR2RES_OBS_POL_SPECB_PROCATG */
@@ -180,7 +180,7 @@
 /*                    cr2res_dfs_POL_NULL_ERROR_colname() */
 /*                    cr2res_dfs_POL_INTENS_colname() */
 /*                    cr2res_dfs_POL_INTENS_ERROR_colname() */
-#define CR2RES_POL_SPEC_PROTYPE             "POL_SPEC"
+#define CR2RES_POL_SPEC_DRSTYPE             "POL_SPEC"
 
 /* For  CR2RES_OBS_2D_EXTRACT_PROCATG */
 /* Table with columns cr2res_dfs_SPEC_colname() */
@@ -189,29 +189,29 @@
 /*                    cr2res_dfs_POSITIONX_colname() */
 /*                    cr2res_dfs_POSITIONY_colname() */
 /*                    cr2res_dfs_SLIT_FRACTION_colname() */
-#define CR2RES_EXTRACT_2D_PROTYPE           "EXTRACT_2D"
+#define CR2RES_EXTRACT_2D_DRSTYPE           "EXTRACT_2D"
 
 /* For  CR2RES_OBS_NODDING_COMBINEDA_PROCATG */
 /*      CR2RES_OBS_NODDING_COMBINEDB_PROCATG */
-#define CR2RES_COMBINED_PROTYPE             "COMBINED"
+#define CR2RES_COMBINED_DRSTYPE             "COMBINED"
 
 /* For CR2RES_UTIL_SPLICE_SPLICED_1D_PROCATG */
-#define CR2RES_SPLICED_1D_PROTYPE           "SPLICED_1D"
+#define CR2RES_SPLICED_1D_DRSTYPE           "SPLICED_1D"
 
 /* For  CR2RES_CAL_FLAT_SLIT_MODEL_PROCATG */
 /*      CR2RES_UTIL_SLIT_MODEL_PROCATG */
 /*      CR2RES_OBS_NODDING_SLITMODELA_PROCATG */
 /*      CR2RES_OBS_NODDING_SLITMODELB_PROCATG */
-/* 		CR2RES_OBS_STARING_SLITMODEL_PROCATG */
-#define CR2RES_SLIT_MODEL_PROTYPE           "SLIT_MODEL"
+/*         CR2RES_OBS_STARING_SLITMODEL_PROCATG */
+#define CR2RES_SLIT_MODEL_DRSTYPE           "SLIT_MODEL"
 
 /* For  CR2RES_CAL_FLAT_SLIT_FUNC_PROCATG */
 /*      CR2RES_UTIL_SLIT_FUNC_PROCATG */
 /*      CR2RES_OBS_NODDING_SLITFUNCA_PROCATG */
 /*      CR2RES_OBS_NODDING_SLITFUNCB_PROCATG */
-/* 		CR2RES_OBS_STARING_SLITFUNC_PROCATG */
+/*         CR2RES_OBS_STARING_SLITFUNC_PROCATG */
 /* Table with columns from cr2res_dfs_SLIT_FUNC_colname() */
-#define CR2RES_SLIT_FUNC_PROTYPE            "SLIT_FUNC"
+#define CR2RES_SLIT_FUNC_DRSTYPE            "SLIT_FUNC"
 
 /* For  CR2RES_CAL_FLAT_TW_PROCATG */
 /*      CR2RES_CAL_FLAT_TW_MERGED_PROCATG */
@@ -225,40 +225,40 @@
 /*      CR2RES_OBS_POL_TWB_PROCATG */
 /* Table with Traces polynomials, orders, trace_nb wavelengths */
 /*                  1 trace per Row */
-#define CR2RES_TW_PROTYPE                   "TW"
+#define CR2RES_TW_DRSTYPE                   "TW"
 
 /* For CR2RES_CAL_FLAT_MASTER_PROCATG */
 /*     CR2RES_UTIL_MASTER_FLAT_PROCATG */
 /* Master Flat image with values around 1 */
-#define CR2RES_MASTER_FLAT_PROTYPE          "MASTER_FLAT"
+#define CR2RES_MASTER_FLAT_DRSTYPE          "MASTER_FLAT"
 
 /* For CR2RES_UTIL_CALIB_PROCATG */
 /*     CR2RES_OBS_POL_CALIB_A_PROCATG */
 /*     CR2RES_OBS_POL_CALIB_B_PROCATG */
-#define CR2RES_CALIBRATED_PROTYPE           "CALIBRATED"
+#define CR2RES_CALIBRATED_DRSTYPE           "CALIBRATED"
 
 /* For  CR2RES_UTIL_SLIT_CURV_PROCATG  */
 /* Table with columns from cr2res_dfs_SLIT_CURV_colname() */
-#define CR2RES_SLIT_CURV_PROTYPE            "SLIT_CURV"
+#define CR2RES_SLIT_CURV_DRSTYPE            "SLIT_CURV"
 
 /* For  CR2RES_CALIB_COLLAPSED_PROCATG */
-#define CR2RES_CALIB_COLLAPSED_PROTYPE      "CALIB_COLLAPSED"
+#define CR2RES_CALIB_COLLAPSED_DRSTYPE      "CALIB_COLLAPSED"
 
 /* For CR2RES_UTIL_WAVE_MAP_PROCATG */
 /*     CR2RES_CAL_WAVE_MAP_PROCATG */
 /*     CR2RES_UTIL_TRACE_MAP_WL_PROCATG */
-#define CR2RES_WAVE_MAP_PROTYPE             "WAVE_MAP"
+#define CR2RES_WAVE_MAP_DRSTYPE             "WAVE_MAP"
   
 /* For CR2RES_UTIL_SLIT_CURV_MAP_PROCATG */
 /*     CR2RES_UTIL_TRACE_MAP_SLIT_CURVE_PROCATG */
-#define CR2RES_SLIT_CURV_MAP_PROTYPE        "SLIT_CURV_MAP"
+#define CR2RES_SLIT_CURV_MAP_DRSTYPE        "SLIT_CURV_MAP"
 
 /* For CR2RES_UTIL_TRACE_MAP_TRACE_PROCATG */
-#define CR2RES_TRACE_MAP_PROTYPE            "TRACE_MAP"
+#define CR2RES_TRACE_MAP_DRSTYPE            "TRACE_MAP"
 
 /* For CR2RES_UTIL_WAVE_LINES_DIAGNOSTICS_PROCATG */
 /*     CR2RES_CAL_WAVE_LINES_DIAGNOSTICS_PROCATG */
-#define CR2RES_LINES_DIAGNOSTICS_PROTYPE    "LINES_DIAGNOSTICS"
+#define CR2RES_LINES_DIAGNOSTICS_DRSTYPE    "LINES_DIAGNOSTICS"
 
 /*************************************/
 /* Define here the PRO.CATG keywords */
@@ -302,9 +302,9 @@
 #define CR2RES_OBS_NODDING_TWB_PROCATG          "OBS_NODDING_TWB"
 
 /* Produced by cr2res_obs_staring */
-#define CR2RES_OBS_STARING_EXTRACT_PROCATG     	"OBS_STARING_EXTRACT"
-#define CR2RES_OBS_STARING_SLITFUNC_PROCATG    	"OBS_STARING_SLITFUNC"
-#define CR2RES_OBS_STARING_SLITMODEL_PROCATG   	"OBS_STARING_SLITMODEL"
+#define CR2RES_OBS_STARING_EXTRACT_PROCATG         "OBS_STARING_EXTRACT"
+#define CR2RES_OBS_STARING_SLITFUNC_PROCATG        "OBS_STARING_SLITFUNC"
+#define CR2RES_OBS_STARING_SLITMODEL_PROCATG       "OBS_STARING_SLITMODEL"
 
 /* Produced by cr2res_obs_2d */
 #define CR2RES_OBS_2D_EXTRACT_PROCATG       "OBS_2D_EXTRACT"
@@ -358,9 +358,9 @@
 #define CR2RES_UTIL_WAVE_EXTRACT_1D_PROCATG "UTIL_WAVE_EXTRACT_1D"
 
 /* Produced by cr2res_util_trace_maps */
-#define CR2RES_UTIL_TRACE_MAP_SLIT_CURVE_PROCATG "UTIL_TRACE_MAP_SLIT_CURVE"
-#define CR2RES_UTIL_TRACE_MAP_WL_PROCATG    "UTIL_TRACE_MAP_WL"
-#define CR2RES_UTIL_TRACE_MAP_TRACE_PROCATG "UTIL_TRACE_MAP_TRACE"
+#define CR2RES_UTIL_TRACE_MAP_SLIT_CURVE_PROCATG    "UTIL_TRACE_MAP_SLIT_CURVE"
+#define CR2RES_UTIL_TRACE_MAP_WL_PROCATG            "UTIL_TRACE_MAP_WL"
+#define CR2RES_UTIL_TRACE_MAP_TRACE_PROCATG         "UTIL_TRACE_MAP_TRACE"
 
 /* Produced by cr2res_util_splice */
 #define CR2RES_UTIL_SPLICE_SPLICED_1D_PROCATG   "UTIL_SPLICE_SPLICED_1D"
@@ -385,9 +385,9 @@
 #define CR2RES_OBS_STARING_OTHER_RAW        "OBS_STARING_OTHER"
 #define CR2RES_OBS_STARING_JITTER_RAW       "OBS_STARING_JITTER"
 #define CR2RES_OBS_STARING_WAVE_SKY_RAW     "OBS_WAVE_SKY"
-#define CR2RES_OBS_POLARIMETRY_OTHER_RAW  	"OBS_POLARIMETRY_OTHER"
+#define CR2RES_OBS_POLARIMETRY_OTHER_RAW    "OBS_POLARIMETRY_OTHER"
 #define CR2RES_OBS_2D_OBJECT_RAW            "OBS_2D_OBJECT"
-#define CR2RES_OBS_2D_SKY_RAW              	"OBS_2D_SKY"
+#define CR2RES_OBS_2D_SKY_RAW               "OBS_2D_SKY"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes

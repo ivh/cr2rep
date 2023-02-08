@@ -57,6 +57,7 @@
 #define CR2RES_HEADER_DIT               "ESO DET SEQ1 DIT"
 #define CR2RES_HEADER_PROG_ID           "ESO OBS PROG ID"
 #define CR2RES_HEADER_OBS_ID            "ESO OBS ID"
+#define CR2RES_HEADER_DRS_TYPE          "ESO DRS TYPE"
 
 
 /* QC Parameter Names */
@@ -162,7 +163,7 @@
 cr2res_nodding_pos cr2res_pfits_get_nodding_pos(const cpl_propertylist * plist);
 
 const char * cr2res_pfits_get_procatg(const cpl_propertylist *) ;
-const char * cr2res_pfits_get_protype(const cpl_propertylist *) ;
+const char * cr2res_pfits_get_drstype(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_wlen_id(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_progid(const cpl_propertylist *) ;

@@ -84,7 +84,7 @@ static cpl_table * make_test_catalog()
 static const char * save_catalog(cpl_table * catalog){
     const char * filename = "TEST_linelist.fits";
     cpl_propertylist * header = cpl_propertylist_new();
-    cpl_propertylist_append_string(header, CPL_DFS_PRO_TYPE, CR2RES_PROTYPE_CATALOG);
+    cpl_propertylist_append_string(header, CR2RES_HEADER_DRS_TYPE, CR2RES_DRSTYPE_CATALOG);
 
     cpl_table_save(catalog, header, NULL, filename, CPL_IO_CREATE);
     cpl_propertylist_delete(header);
@@ -94,7 +94,7 @@ static const char * save_catalog(cpl_table * catalog){
 static const char * save_linelist(cpl_bivector * linelist){
     const char * filename = "TEST_linelist.fits";
     cpl_propertylist * header = cpl_propertylist_new();
-    cpl_propertylist_append_string(header, CPL_DFS_PRO_TYPE, CR2RES_PROTYPE_CATALOG);
+    cpl_propertylist_append_string(header, CR2RES_HEADER_DRS_TYPE, CR2RES_DRSTYPE_CATALOG);
 
     cpl_table * table = cpl_table_new(cpl_bivector_get_size(linelist));
     cpl_table_new_column(table, CR2RES_COL_WAVELENGTH, CPL_TYPE_DOUBLE);

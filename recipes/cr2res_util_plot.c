@@ -75,9 +75,9 @@ Plotting                                                                \n\
   relevant graphs accordingly.                                          \n\
                                                                         \n\
   Inputs                                                                \n\
-    first.fits " CR2RES_PROTYPE_CATALOG " [1]                           \n\
-            or " CR2RES_EXTRACT_1D_PROTYPE "                            \n\
-    second.fits " CR2RES_PROTYPE_CATALOG " [0 to 1]                     \n\
+    first.fits " CR2RES_DRSTYPE_CATALOG " [1]                           \n\
+            or " CR2RES_EXTRACT_1D_DRSTYPE "                            \n\
+    second.fits " CR2RES_DRSTYPE_CATALOG " [0 to 1]                     \n\
   Outputs                                                               \n\
     -                                                                   \n\
                                                                         \n\
@@ -298,8 +298,8 @@ static int cr2res_util_plot(
     plist = cpl_propertylist_load(fname1, 0) ;
     protype = cr2res_pfits_get_protype(plist) ;
 
-    /* CR2RES_PROTYPE_CATALOG */
-    if (!strcmp(protype, CR2RES_PROTYPE_CATALOG)) {
+    /* CR2RES_DRSTYPE_CATALOG */
+    if (!strcmp(protype, CR2RES_DRSTYPE_CATALOG)) {
         title = "t 'Emission lines' w lines" ;
         tab1 = cpl_table_load(fname1, 1, 0) ;
 
@@ -321,8 +321,8 @@ static int cr2res_util_plot(
         cpl_table_delete(tab1) ;
     }
  
-    /* CR2RES_EXTRACT_1D_PROTYPE */
-    if (!strcmp(protype, CR2RES_EXTRACT_1D_PROTYPE)) {
+    /* CR2RES_EXTRACT_1D_DRSTYPE */
+    if (!strcmp(protype, CR2RES_EXTRACT_1D_DRSTYPE)) {
 
         /* Only support a single detector */
         if (reduce_det < 1) {
@@ -374,8 +374,8 @@ static int cr2res_util_plot(
         cpl_table_delete(tab1) ;
     }
   
-    /* CR2RES_SLIT_FUNC_PROTYPE */
-    if (!strcmp(protype, CR2RES_SLIT_FUNC_PROTYPE)) {
+    /* CR2RES_SLIT_FUNC_DRSTYPE */
+    if (!strcmp(protype, CR2RES_SLIT_FUNC_DRSTYPE)) {
 
         /* Only support a single detector */
         if (reduce_det < 1) {

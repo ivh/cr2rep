@@ -64,7 +64,7 @@ static void create_empty_fits()
     // when adding a filename to a frame
 	char *my_path = cpl_sprintf("%s/TEST_empty.fits", localdir);
     cpl_propertylist * list = cpl_propertylist_new();
-    cpl_propertylist_append_string(list, CPL_DFS_PRO_TYPE, "DEBUG");
+    cpl_propertylist_append_string(list, CR2RES_HEADER_DRS_TYPE, "DEBUG");
     cpl_propertylist_save(list, my_path, CPL_IO_CREATE);
     cpl_propertylist_delete(list);
     cpl_free(my_path);

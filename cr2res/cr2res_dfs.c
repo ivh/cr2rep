@@ -95,16 +95,16 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_OBS_2D_SKY_RAW) ||
                 /* PRO.TYPE tags that can be used as input RAWs */
                 /* For cr2res_util_bpm_split */
-                !strcmp(tag, CR2RES_BPM_PROTYPE) ||
+                !strcmp(tag, CR2RES_BPM_DRSTYPE) ||
                 /* For cr2res_util_extract */
                 /* For cr2res_util_trace */
                 /* For cr2res_util_normflat */
-                !strcmp(tag, CR2RES_CALIBRATED_PROTYPE) ||
+                !strcmp(tag, CR2RES_CALIBRATED_DRSTYPE) ||
                 /* For cr2res_util_wave */
-                !strcmp(tag, CR2RES_EXTRACT_1D_PROTYPE) ||
+                !strcmp(tag, CR2RES_EXTRACT_1D_DRSTYPE) ||
                 /* For cr2res_util_slit_curv  */
                 /*     cr2res_util_trace_map  */
-                !strcmp(tag, CR2RES_TW_PROTYPE)) {
+                !strcmp(tag, CR2RES_TW_DRSTYPE)) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
         } else if (!strcmp(tag, CR2RES_CAL_DETLIN_COEFFS_PROCATG) ||
