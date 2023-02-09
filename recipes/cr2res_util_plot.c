@@ -257,7 +257,7 @@ static int cr2res_util_plot(
     const char          *   fname1 ;
     const char          *   fname2 ;
     const char          *   title ;
-    const char          *   protype ;
+    const char          *   drstype ;
     cpl_propertylist    *   plist ;
     cpl_table           *   tab1 ;
     cpl_table           *   sel_tab ;
@@ -296,10 +296,10 @@ static int cr2res_util_plot(
 
     /* Read the PRO.TYPE of the first frame */
     plist = cpl_propertylist_load(fname1, 0) ;
-    protype = cr2res_pfits_get_protype(plist) ;
+    drstype = cr2res_pfits_get_drstype(plist) ;
 
     /* CR2RES_DRSTYPE_CATALOG */
-    if (!strcmp(protype, CR2RES_DRSTYPE_CATALOG)) {
+    if (!strcmp(drstype, CR2RES_DRSTYPE_CATALOG)) {
         title = "t 'Emission lines' w lines" ;
         tab1 = cpl_table_load(fname1, 1, 0) ;
 
@@ -322,7 +322,7 @@ static int cr2res_util_plot(
     }
  
     /* CR2RES_EXTRACT_1D_DRSTYPE */
-    if (!strcmp(protype, CR2RES_EXTRACT_1D_DRSTYPE)) {
+    if (!strcmp(drstype, CR2RES_EXTRACT_1D_DRSTYPE)) {
 
         /* Only support a single detector */
         if (reduce_det < 1) {
@@ -375,7 +375,7 @@ static int cr2res_util_plot(
     }
   
     /* CR2RES_SLIT_FUNC_DRSTYPE */
-    if (!strcmp(protype, CR2RES_SLIT_FUNC_DRSTYPE)) {
+    if (!strcmp(drstype, CR2RES_SLIT_FUNC_DRSTYPE)) {
 
         /* Only support a single detector */
         if (reduce_det < 1) {
