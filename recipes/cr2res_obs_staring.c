@@ -28,6 +28,7 @@
 #include <cpl.h>
 
 #include "cr2res_utils.h"
+#include "cr2res_idp.h"
 #include "cr2res_calib.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
@@ -298,6 +299,13 @@ static int cr2res_obs_staring_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.create_idp",
+            CPL_TYPE_BOOL, "Flag to produce  IDP files",
+            "cr2res.cr2res_obs_staring", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "idp");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.display_order",
             CPL_TYPE_INT, "Apply the display for the specified order",
             "cr2res.cr2res_obs_staring", 0);
@@ -368,7 +376,7 @@ static int cr2res_obs_staring(
 {
     const cpl_parameter *   param ;
     int                     subtract_nolight_rows, subtract_interorder_column,
-                            extract_oversample, 
+                            extract_oversample, create_idp,
                             extract_swath_width, extract_height, reduce_det, 
                             ndit, nexp, disp_order, disp_trace ;
     double                  extract_smooth_slit, extract_smooth_spec, ra, dec, 
@@ -416,6 +424,9 @@ static int cr2res_obs_staring(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.detector");
     reduce_det = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_staring.create_idp");
+    create_idp = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.display_order");
     disp_order = cpl_parameter_get_int(param);
@@ -508,7 +519,6 @@ static int cr2res_obs_staring(
         cpl_msg_indent_less() ;
     }
     if (slit_frac != NULL) cpl_array_delete(slit_frac) ;
-    cpl_frameset_delete(rawframes) ;
 
     /* Save Products */
     out_file = cpl_sprintf("%s_slitfunc.fits", RECIPE_STRING) ;
@@ -527,7 +537,12 @@ static int cr2res_obs_staring(
     cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, extract,
             NULL, ext_plist, CR2RES_OBS_STARING_EXTRACT_PROCATG,
             RECIPE_STRING);
+	if (create_idp) {
+        cr2res_idp_save(out_file, frameset, rawframes, parlist, 
+                extract, ext_plist, RECIPE_STRING) ;
+		}
     cpl_free(out_file);
+    cpl_frameset_delete(rawframes) ;
 
     /* Free */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
@@ -794,8 +809,8 @@ static int cr2res_obs_staring_reduce(
             "is %gpix, i.e. below the slit width. This means the slit "
             "is likely not evenly filled with light "
             "in the spectral direction. This can result in a "
-            "wavelength offset between A and B nodding postitions, and with "
-            "respect to calibrations."
+            "wavelength offset between different postitions along the slit,"
+            " and with respect to calibrations."
             , qc_fwhm);
     }
 
