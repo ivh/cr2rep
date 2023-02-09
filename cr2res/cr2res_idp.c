@@ -342,13 +342,21 @@ int cr2res_idp_save(
 
     cpl_propertylist_update_double(ext_head, "RA",
                     cpl_propertylist_get_double(pri_head, "RA"));
-    cpl_propertylist_update_double(ext_head, "DEC",
-                    cpl_propertylist_get_double(pri_head, "DEC"));
     cpl_propertylist_set_comment(ext_head, "RA",
                     cpl_propertylist_get_comment(pri_head, "RA"));
+    cpl_propertylist_update_double(ext_head, "DEC",
+                    cpl_propertylist_get_double(pri_head, "DEC"));
     cpl_propertylist_set_comment(ext_head, "DEC",
                     cpl_propertylist_get_comment(pri_head, "DEC"));
-                    
+    cpl_propertylist_update_string(ext_head, "OBJECT",
+                    cpl_propertylist_get_string(pri_head, "OBJECT"));
+    cpl_propertylist_set_comment(ext_head, "OBJECT",
+                    cpl_propertylist_get_comment(pri_head, "OBJECT"));
+    cpl_propertylist_update_string(ext_head, "TITLE",
+                    cpl_propertylist_get_string(pri_head, "OBJECT"));
+    cpl_propertylist_set_comment(ext_head, "TITLE",
+                    "Title is the same as OBJECT");
+
     cpl_propertylist_update_string(ext_head, "VOPUB", "ESO/SAF") ;
     cpl_propertylist_set_comment(ext_head, "VOPUB", "VO Publishing Authority") ;
     cpl_propertylist_update_string(ext_head, "VOCLASS", "SPECTRUM V1.0") ;
@@ -359,6 +367,26 @@ int cr2res_idp_save(
     cpl_propertylist_update_double(ext_head, "APERTURE", 0.0000555) ;
     cpl_propertylist_set_comment(ext_head, "APERTURE", 
             "Slit width in deg") ;
+
+    cpl_propertylist_update_string(ext_head, "TUTYP1", 
+                        "Spectrum.Data.SpectralAxis.Value");
+    cpl_propertylist_update_string(ext_head, "TTYPE1", "WAVE");
+    cpl_propertylist_update_string(ext_head, "TUCD1", "em.wl");
+    cpl_propertylist_update_string(ext_head, "TUNIT1", "nm");
+    cpl_propertylist_update_double(ext_head, "TDMIN1", wmin);
+    cpl_propertylist_update_double(ext_head, "TDMAX1", wmax);
+
+    cpl_propertylist_update_string(ext_head, "TUTYP2",
+                                "Spectrum.Data.FluxAxis.Value");
+    cpl_propertylist_update_string(ext_head, "TTYPE2", "FLUX");
+    cpl_propertylist_update_string(ext_head, "TUCD2", "phot.count");
+    cpl_propertylist_update_string(ext_head, "TUNIT2", "count");
+
+    cpl_propertylist_update_string(ext_head, "TUTYP3",
+                    "Spectrum.Char.FluxAxis.Accuracy.StatError");
+    cpl_propertylist_update_string(ext_head, "TTYPE3", "ERR");
+    cpl_propertylist_update_string(ext_head, "TUCD3",
+                        "stat.error;phot.count");
 
     if (mjd_end > 0 && mjd_start > 0) {
         cpl_propertylist_update_double(ext_head, "TELAPSE",
