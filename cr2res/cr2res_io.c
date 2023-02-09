@@ -2573,6 +2573,7 @@ static int cr2res_io_check_drs_type(
 {
     cpl_propertylist    *   plist ;
     const char          *   drstype ;
+    const char          *   protype ;
 
     /* Check entries */
     if (filename == NULL) return -1 ;
@@ -2581,12 +2582,32 @@ static int cr2res_io_check_drs_type(
     plist = cpl_propertylist_load(filename, 0) ;
     if (plist == NULL) return -1;
     drstype = cr2res_pfits_get_drstype(plist) ;
-    if (drstype == NULL) return -1;
-    if (strcmp(drstype, expected_drstype)) {
-        cpl_msg_error(__func__, "Unexpected DRS.TYPE: %s != %s",
-                drstype, expected_drstype) ;
-        cpl_propertylist_delete(plist) ;
-        return 0 ;
+    if (drstype == NULL) {
+
+        /* TRANSITION PHASE starting 09.02.2023 : See ticket PIPE-10551 */
+        /* 
+           DRS.TYPE was in PRO.TYPE so far.
+           Adding here check of PRO.TYPE to support old data 
+           Looking in PRO.TYPE id DRS.TYPE is missing
+         */
+        protype = cr2res_pfits_get_protype(plist) ;
+        if (protype == NULL) {
+            cpl_propertylist_delete(plist) ;
+            return -1 ;
+        }
+        if (strcmp(protype, expected_drstype)) {
+            cpl_msg_error(__func__, "Unexpected PRO.TYPE (old data): %s != %s",
+                    protype, expected_drstype) ;
+            cpl_propertylist_delete(plist) ;
+            return 0 ;
+        }
+    } else {
+        if (strcmp(drstype, expected_drstype)) {
+            cpl_msg_error(__func__, "Unexpected DRS.TYPE: %s != %s",
+                    drstype, expected_drstype) ;
+            cpl_propertylist_delete(plist) ;
+            return 0 ;
+        }
     }
     cpl_propertylist_delete(plist) ;
     return 1 ;

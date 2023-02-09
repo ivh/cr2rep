@@ -59,7 +59,6 @@
 #define CR2RES_HEADER_OBS_ID            "ESO OBS ID"
 #define CR2RES_HEADER_DRS_TYPE          "ESO DRS TYPE"
 
-
 /* QC Parameter Names */
 #define CR2RES_HEADER_QC_DARK_RON1          "ESO QC DARK RON1"
 #define CR2RES_HEADER_QC_DARK_RON2          "ESO QC DARK RON2"
@@ -164,6 +163,7 @@ cr2res_nodding_pos cr2res_pfits_get_nodding_pos(const cpl_propertylist * plist);
 
 const char * cr2res_pfits_get_procatg(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_drstype(const cpl_propertylist *) ;
+const char * cr2res_pfits_get_protype(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_wlen_id(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_progid(const cpl_propertylist *) ;

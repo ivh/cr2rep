@@ -88,6 +88,18 @@ const char * cr2res_pfits_get_drstype(const cpl_propertylist * plist)
     return (const char *) cpl_propertylist_get_string(plist, 
             CR2RES_HEADER_DRS_TYPE);
 }
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    find out the PRO.TYPE
+  @param    plist       property list to read from
+  @return   pointer to statically allocated character string
+ */
+/*----------------------------------------------------------------------------*/
+const char * cr2res_pfits_get_protype(const cpl_propertylist * plist)
+{
+    return (const char *) cpl_propertylist_get_string(plist, 
+            CPL_DFS_PRO_TYPE);
+}
 
 /*----------------------------------------------------------------------------*/
 /**
