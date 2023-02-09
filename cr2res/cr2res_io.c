@@ -2582,7 +2582,8 @@ static int cr2res_io_check_drs_type(
     plist = cpl_propertylist_load(filename, 0) ;
     if (plist == NULL) return -1;
     drstype = cr2res_pfits_get_drstype(plist) ;
-    if (drstype == NULL) {
+    if (cpl_error_get_code()) {
+        cpl_error_reset() ;
 
         /* TRANSITION PHASE starting 09.02.2023 : See ticket PIPE-10551 */
         /* 
@@ -2591,7 +2592,8 @@ static int cr2res_io_check_drs_type(
            Looking in PRO.TYPE id DRS.TYPE is missing
          */
         protype = cr2res_pfits_get_protype(plist) ;
-        if (protype == NULL) {
+        if (cpl_error_get_code()) {
+            cpl_error_reset() ;
             cpl_propertylist_delete(plist) ;
             return -1 ;
         }
