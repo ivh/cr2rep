@@ -478,6 +478,7 @@ static int cr2res_obs_nodding(
     cpl_table           *   extractc[CR2RES_NB_DETECTORS] ;
     cpl_table           *   throughput[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   plist ;
+    cpl_propertylist    *   qc_main ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist_photom[CR2RES_NB_DETECTORS] ;
     char                *   cur_setting ;
@@ -709,18 +710,24 @@ static int cr2res_obs_nodding(
             } 
         }
 
+        /* Add ESO.DRS.TMID in the Main Header */
+        qc_main = cpl_propertylist_new();
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_DRS_TMID,
+                cr2res_utils_get_center_mjd(raw_one_angle)) ;
+
 		out_file = cpl_sprintf("%s_combinedA%s", RECIPE_STRING, 
                 product_name_addon) ;
 		cr2res_io_save_COMBINED(out_file, frameset, frameset, parlist,
-				combineda, NULL, ext_plist, 
+				combineda, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_COMBINEDA_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_extractedA%s", RECIPE_STRING,
                 product_name_addon) ;
 		cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                extracta, NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTA_PROCATG,
-				RECIPE_STRING);
+                extracta, qc_main, ext_plist, 
+                CR2RES_OBS_NODDING_EXTRACTA_PROCATG, RECIPE_STRING);
 		if (create_idp) {
 			cr2res_idp_save(out_file, frameset, raw_one_angle, parlist, 
                     extracta, ext_plist, RECIPE_STRING) ;
@@ -730,36 +737,36 @@ static int cr2res_obs_nodding(
 		out_file = cpl_sprintf("%s_slitfuncA%s", RECIPE_STRING,
                 product_name_addon) ;
 		cr2res_io_save_SLIT_FUNC(out_file, frameset, frameset, parlist,
-				slitfunca, NULL, ext_plist, 
+				slitfunca, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_SLITFUNCA_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_modelA%s", RECIPE_STRING,
                 product_name_addon) ;
 		cr2res_io_save_SLIT_MODEL(out_file, frameset, frameset, parlist,
-				modela, NULL, ext_plist, CR2RES_OBS_NODDING_SLITMODELA_PROCATG,
-				RECIPE_STRING) ;
+				modela, qc_main, ext_plist, 
+                CR2RES_OBS_NODDING_SLITMODELA_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_trace_wave_A%s", RECIPE_STRING,
                 product_name_addon) ;
 		cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist,
-				twa, NULL, ext_plist, CR2RES_OBS_NODDING_TWA_PROCATG,
+				twa, qc_main, ext_plist, CR2RES_OBS_NODDING_TWA_PROCATG,
 				RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_combinedB%s", RECIPE_STRING,
                 product_name_addon) ;
 		cr2res_io_save_COMBINED(out_file, frameset, frameset, parlist,
-				combinedb, NULL, ext_plist, 
+				combinedb, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_COMBINEDB_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_extractedB%s", RECIPE_STRING,
                 product_name_addon) ;
 		cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                extractb, NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTB_PROCATG,
-				RECIPE_STRING);
+                extractb, qc_main, ext_plist, 
+                CR2RES_OBS_NODDING_EXTRACTB_PROCATG, RECIPE_STRING);
 		if (create_idp) {
 			cr2res_idp_save(out_file, frameset, raw_one_angle, parlist, 
                     extractb, ext_plist, RECIPE_STRING) ;
@@ -769,29 +776,29 @@ static int cr2res_obs_nodding(
 		out_file = cpl_sprintf("%s_slitfuncB%s", RECIPE_STRING,
                 product_name_addon) ;
 		cr2res_io_save_SLIT_FUNC(out_file, frameset, frameset, parlist,
-				slitfuncb, NULL, ext_plist, 
+				slitfuncb, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_SLITFUNCB_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_modelB%s", RECIPE_STRING,
                 product_name_addon) ;
 		cr2res_io_save_SLIT_MODEL(out_file, frameset, frameset, parlist,
-				modelb, NULL, ext_plist, CR2RES_OBS_NODDING_SLITMODELB_PROCATG,
-				RECIPE_STRING) ;
+				modelb, qc_main, ext_plist, 
+                CR2RES_OBS_NODDING_SLITMODELB_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 		
 		out_file = cpl_sprintf("%s_trace_wave_B%s", RECIPE_STRING,
                 product_name_addon) ;
 		cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist,
-				twb, NULL, ext_plist, CR2RES_OBS_NODDING_TWB_PROCATG,
+				twb, qc_main, ext_plist, CR2RES_OBS_NODDING_TWB_PROCATG,
 				RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_extracted_combined%s", RECIPE_STRING, 
                 product_name_addon) ;
 		cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                extractc, NULL, ext_plist, CR2RES_OBS_NODDING_EXTRACTC_PROCATG,
-				RECIPE_STRING);
+                extractc, qc_main, ext_plist, 
+                CR2RES_OBS_NODDING_EXTRACTC_PROCATG, RECIPE_STRING);
 		if (create_idp) {
 			cr2res_idp_save(out_file, frameset, raw_one_angle, parlist,
 					extractc, ext_plist, RECIPE_STRING) ;
@@ -802,13 +809,14 @@ static int cr2res_obs_nodding(
 			out_file = cpl_sprintf("%s_throughput%s", RECIPE_STRING,
                     product_name_addon) ;
 			cr2res_io_save_THROUGHPUT(out_file, frameset, frameset, 
-                    parlist, throughput, NULL, ext_plist, 
+                    parlist, throughput, qc_main, ext_plist, 
 					CR2RES_OBS_NODDING_THROUGHPUT_PROCATG, RECIPE_STRING) ;
 			cpl_free(out_file);
 		}
         cpl_free(product_name_addon) ;
 
 		/* Free */
+        cpl_propertylist_delete(qc_main) ;
 		for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 			if (combineda[det_nr-1] != NULL)
 				hdrl_image_delete(combineda[det_nr-1]) ;
