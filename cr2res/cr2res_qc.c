@@ -153,8 +153,7 @@ double cr2res_qc_detlin(
         double                  *   max_level) 
 {
     double      qc_detlin_median, qc_detlin_min, qc_detlin_max ;
-    double      level;
-    int         nimgs = 3, width, height;
+    int         width, height;
     hdrl_image * img;
     hdrl_value value = {CR2RES_NONLIN_LEVEL, 0};
     cpl_mask * tmpmask;
@@ -337,7 +336,7 @@ double cr2res_qc_flat_trace_center_y(
 
     // Step 2: Sum all traces together
     traces = cr2res_get_trace_numbers(trace, central_order_idx, &nb_traces);
-    for(cpl_size i = 0; i < nb_traces; i++) {
+    for (i = 0; i < nb_traces; i++) {
       vector = cr2res_trace_get_ycen(trace, central_order_idx, traces[i], 
                 CR2RES_DETECTOR_SIZE);
       qc_trace_center_y += cpl_vector_get_mean(vector);
@@ -512,7 +511,7 @@ double cr2res_qc_wave_line_intens(
     for (cpl_size i = -window_size * 2; i < 2 * window_size; i++)
     {
         k = pixel_pos - i;
-        if (k < 0 | k > cpl_vector_get_size(flux)){
+        if (k < 0 || k > cpl_vector_get_size(flux)){
             continue;
         }
         value = cpl_vector_get(flux, k);
@@ -677,7 +676,7 @@ double cr2res_qc_wave_resol_fwhm(
     cpl_vector  *   ref_lines ;
     cpl_vector  *   ref_lines_fwhm ;
     cpl_vector  *   ref_lines_pos ;
-    double          wmin, wmax, fwhm_med, fwhm, peak_height, min_fwhm_val, 
+    double          wmin, wmax, fwhm, peak_height, min_fwhm_val, 
                     min_fwhm_pos;
     cpl_size        idx ;
     int             i, n, nall;

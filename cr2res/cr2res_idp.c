@@ -207,7 +207,7 @@ int cr2res_idp_save(
         cpl_propertylist_update_string(pri_head, "OBSTECH", "GENERIC_OFFSET") ;
     else if (!strcmp(recipe, "cr2res_obs_pol"))
         cpl_propertylist_update_string(pri_head, "OBSTECH", "POLARIMETRY") ;
-	cpl_propertylist_set_comment(pri_head, "OBSTECH",
+    cpl_propertylist_set_comment(pri_head, "OBSTECH",
 			"Technique of observation") ;
 
     if (!strcmp(recipe, "cr2res_obs_2d"))
@@ -572,7 +572,6 @@ int cr2res_idp_compute_mjd(
         double              *   mjd_start,
         double              *   mjd_end)
 {
-    cpl_frameset        *   rawframes ;
     cpl_frame           *   cur_frame ;
     const char          *   cur_fname ;
     cpl_propertylist    *   plist ;

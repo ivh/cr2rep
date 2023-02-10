@@ -730,7 +730,6 @@ static int cr2res_slit_curv_remove_peaks_at_edge(
     const int width,
     const int ncols)
 {
-    cpl_vector * peaks_filtered;
     cpl_size i, j, npeaks;
     double peak;
 
@@ -947,9 +946,8 @@ static int cr2res_slit_curv_all_peaks(
     cpl_vector      ** vec_c)
 {
     cpl_image * img_peak;
-    double pos[2];
-    double peak, value_a, value_b, value_c, result;
-    cpl_size i, j, k;
+    double peak, value_a, value_b, value_c;
+    cpl_size i;
 
     const int width = 2 * window + 1;
     const int height = cpl_image_get_size_y(img_rect);

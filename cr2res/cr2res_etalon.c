@@ -471,7 +471,7 @@ cpl_vector * cr2res_etalon_find_peaks(
     cpl_vector * peaks_out;
     cpl_vector * peak_distance;
     
-    double peak, peak_height, peak_width, left, right;
+    double peak, peak_height ;
     int npeaks;
     int k;
 
@@ -772,18 +772,14 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_vector * tmp_vec;
     cpl_table * tmp_table;
     cpl_vector * corr;
-    cpl_vector * pw;
-    cpl_size degree, degree_2d[2];
+    cpl_size degree_2d[2];
     cpl_size i, j, k, deg, npeaks, npeaks_total, npoints, setting_deg;
-    double wave, gap, tmp, wcen0, tmp1, tmp2;
+    double wave, gap, tmp, tmp1, tmp2;
     double f0, fr, m, m0, ymax, ymin;
     char * path;
-    FILE * file;
-    cpl_error_code error;
-
     cpl_table * lines_diagnostics_loc;
     double pix_pos, lambda_cat, lambda_meas, line_width, line_intens, fit_error;
-    double coef, offset;
+    double offset;
     int pad;
 
     /* Check Inputs */

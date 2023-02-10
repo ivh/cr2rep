@@ -51,7 +51,6 @@ cr2res_nodding_pos * cr2res_nodding_read_positions(const cpl_frameset * in)
 {
     cr2res_nodding_pos  *   out ;
     cpl_propertylist    *   plist ;
-    const char          *   fname ;
     cpl_size                nframes, i ;
 
     /* Check entries */

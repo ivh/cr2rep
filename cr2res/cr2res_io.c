@@ -53,9 +53,6 @@ static int cr2res_io_check_drs_type(
 static cpl_imagelist * cr2res_hdrl_to_cpl_list(
         const hdrl_imagelist    *   in, 
         int                         data) ;
-static int cr2res_table_check_column(
-        const cpl_table     *   tab,
-        const char          *   col) ;
 static int cr2res_io_save_imagelist(
         const char              *   filename,
         cpl_frameset            *   allframes,
@@ -450,7 +447,6 @@ cr2res_decker * cr2res_io_read_decker_positions(const cpl_frameset * in)
 {
     cr2res_decker       *   out ;
     cpl_propertylist    *   plist ;
-    const char          *   fname ;
     cpl_size                nframes, i ;
 
     /* Check entries */
@@ -2265,7 +2261,6 @@ static int cr2res_io_save_one_table(
 {
     cpl_propertylist    *   pro_list ;
     cpl_propertylist    *   ext_head ;
-    int                     i ;
 
     /* Test entries */
     if (allframes == NULL || filename == NULL || ext_plist == NULL ||
@@ -2553,18 +2548,6 @@ static cpl_imagelist * cr2res_hdrl_to_cpl_list(
     }
     /* Return  */
     return out ;
-}
-
-static int cr2res_table_check_column(
-        const cpl_table     *   tab,
-        const char          *   col)
-{
-    int         ret ;
-    if (!cpl_table_has_column(tab, col)) {
-        cpl_msg_error(__func__, "Column %s is missing", col) ;
-        ret = 1 ;
-    } else ret = 0 ;
-    return ret ;
 }
 
 static int cr2res_io_check_drs_type(

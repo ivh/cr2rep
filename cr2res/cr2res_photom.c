@@ -305,7 +305,6 @@ cpl_bivector * cr2res_photom_conv_get_star(
         double                  ra,
         double                  dec)
 {
-    cpl_propertylist    *   plist ;
     cpl_vector          *   ras ;
     cpl_vector          *   decs ;
     double                  maxdist, dist ;

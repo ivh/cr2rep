@@ -89,7 +89,7 @@ int cr2res_detlin_correct(
     double              *   perr ;
     int                     nx, ny ;
     double                  correction_factor;
-    int                     i, j ;
+    int                     i ;
 
     /* Test entries */
     if (!in || !detlin) return -1 ;
@@ -252,7 +252,7 @@ int cr2res_detlin_compute(
     cpl_size ndata = cpl_vector_get_size(y_tofit);
     if (nc >= ndata){
         // No uncertainty as fit should be perfectly aligned with data points
-        for (cpl_size i = 0; i < max_degree + 1; i++) {
+        for (i = 0; i < max_degree + 1; i++) {
             cpl_vector_set(error_local, i, 0);
         }
     } else {
@@ -274,15 +274,14 @@ int cr2res_detlin_compute(
 
         cpl_vector_fill_polynomial_fit_residual(resids, y_tofit, NULL,
             fitted_local, samppos, NULL);
-        for (cpl_size i = 0; i < ndata; i++)
-        {
+        for (i = 0; i < ndata; i++) {
             cpl_vector_set(resids, i, fabs(cpl_vector_get(resids, i)));
         }
         
         cpl_matrix_multiply_scalar(inverse, 
             cpl_vector_get_sum(resids) / (double)(ndata - nc));
 
-        for (cpl_size i = 0; i < max_degree + 1; i++) {
+        for (i = 0; i < max_degree + 1; i++) {
             cpl_vector_set(error_local, i, sqrt(cpl_matrix_get(inverse, i, i)));
         }
         cpl_matrix_delete(hankel);

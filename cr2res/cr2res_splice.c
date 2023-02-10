@@ -302,12 +302,12 @@ int cr2res_combine_spectra(
     cpl_bivector ** spectrum_err)
 {
 
-    if (spliced == NULL | spliced_err == NULL | nspectra <= 0 |
-        spectrum == NULL | spectrum_err == NULL | spectrum_order == NULL)
+    if (spliced == NULL || spliced_err == NULL || nspectra <= 0 ||
+        spectrum == NULL || spectrum_err == NULL || spectrum_order == NULL)
             return -1;
 
     int i = 0, j = 0, k = 0;
-    int iord = 0, iord_p1 = 0, iord_m1 = 0;
+    int iord = 0 ;
     volatile int fx, lx, fy, ly;
 
     *spectrum = cpl_bivector_new(nspectra * CR2RES_DETECTOR_SIZE);
@@ -387,33 +387,24 @@ int cr2res_splice_orders(
         cpl_bivector **  first,
         cpl_bivector **  last)
 {
-    if (wave == NULL | spec == NULL | cont == NULL | uncs == NULL
-        | spliced == NULL | spliced_err == NULL | nspectra <= 0
-        | spectrum_order == NULL | first == NULL | last == NULL) return -1;
+    if (wave == NULL || spec == NULL || cont == NULL || uncs == NULL
+        || spliced == NULL || spliced_err == NULL || nspectra <= 0
+        || spectrum_order == NULL || first == NULL || last == NULL) return -1;
 
     cpl_size i, j, k; 
-    int central = 0;
-    int current_order = 0, current_trace = 0;
-    int iorder = 0, itrace = 0;
     int * loop0, *loop1;
     int iord0, iord1;
     int first0, first1, last0, last1, overlap0, overlap1;
     int n = CR2RES_DETECTOR_SIZE;
-    double maximum = 0;
     double minW0, minW1, maxW0, maxW1;
     cpl_size minW0pos, minW1pos, maxW0pos, maxW1pos;
     double wgt0, wgt1;
     // temporary work arrays
-    char * colname;
-    const cpl_array * wave1;
-    cpl_polynomial * wave_poly;
     cpl_bivector * wave_center;
     cpl_vector *s0, *s1, *tmpS0, *tmpS1;
     cpl_vector *u0, *u1, *tmpU0, *tmpU1;
     cpl_vector *w0, *w1, *tmpW0, *tmpW1;
     cpl_vector *c0, *c1, *tmpC0, *tmpC1;
-
-    double * tmp1;
     cpl_bivector * tmp2, * tmp3;
     cpl_vector * tmp4;
     double median;
@@ -747,9 +738,8 @@ cpl_table * cr2res_splice_SPLICED_1D_create(
     cpl_table       *   out ;
     const double    *   pspec ;
     const double    *   perr ;
-    cpl_vector      *   wave_vec ;
     const double    *   pwl ;
-    cpl_size            nbins, i;
+    cpl_size            nbins;
 
     /* Check entries */
     if (spectrum == NULL || spectrum_error == NULL) return NULL ;

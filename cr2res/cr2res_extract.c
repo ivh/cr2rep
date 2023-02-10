@@ -370,9 +370,10 @@ int cr2res_extract_traces(
                     cpl_msg_warning(__func__, "Blaze filled with zeros - skip");
                 } else {
                     for (j=0 ; j<cpl_bivector_get_size(blaze_biv) ; j++) {
-                        if (fabs(pblaze[j])<1e-3) 
+                        if (fabs(pblaze[j])<1e-3) {
                             pblaze[j] = first_nonzero_value ; 
                             pblaze_err[j] = first_nonzero_error ; 
+                        }
                     }
 
                     /* Normalize the Blaze */
@@ -423,7 +424,7 @@ int cr2res_extract_traces(
                 for (y = 1; y <= hdrl_image_get_size_y(model_loc); y++){
                     pixval = hdrl_image_get_pixel(model_loc_one, 
                                                     x, y, &badpix);
-                    if (pixval.data != 0 & badpix == 0){
+                    if (pixval.data != 0 && badpix == 0){
                         hdrl_image_set_pixel(model_loc, x, y, pixval);
                     }
                 }
@@ -529,8 +530,6 @@ int cr2res_extract_sum_vert(
     cpl_vector      *   sigma;
     cpl_size            lenx, leny;
     int                 i, j, y;
-    int                 ymin, ymax;
-    int                 empty_bottom = 0;
     double              trace_cen, trace_height ;
     cpl_type            imtyp;
 
@@ -673,8 +672,6 @@ int cr2res_extract_median(
     cpl_vector      *   sigma;
     cpl_size            lenx, leny;
     int                 i, j;
-    int                 ymin, ymax;
-    int                 empty_bottom = 0;
     double              trace_cen, trace_height ;
     cpl_type            imtyp;
 
@@ -811,8 +808,6 @@ int cr2res_extract_sum_tilt(
     cpl_vector      *   sigma;
     cpl_size            lenx, leny;
     int                 i, j;
-    int                 ymin, ymax;
-    int                 empty_bottom = 0;
     double              trace_cen, trace_height ;
     cpl_type            imtyp;
 
@@ -1047,7 +1042,6 @@ cpl_table * cr2res_extract_EXTRACT1D_create(
     cpl_vector      *   wave_vec ;
     const double    *   pwl ;
     int                 nrows, all_null, i, order, trace_id, nb_traces ;
-    cpl_size            j;
 
     /* Check entries */
     if (spectrum == NULL || trace_table == NULL) return NULL ;
@@ -1373,8 +1367,6 @@ int cr2res_extract_slitdec_vert(
         cpl_bivector        **  spec,
         hdrl_image          **  model)
 {
-    cpl_polynomial  **  traces ;
-    int             *   ycen_int;
     double          *   ycen_rest;
     double          *   ycen_sw;
     double          *   img_sw_data;
@@ -1407,10 +1399,9 @@ int cr2res_extract_slitdec_vert(
     cpl_vector      *   unc_decomposition;
     cpl_size            lenx, leny, size;
     cpl_type            imtyp;
-    double              pixval, errval, img_median, unc, model_unc, img_unc, 
-                        norm;
+    double              pixval, errval ;
     double              trace_cen, trace_height ;
-    int                 i, j, k, nswaths, row, col, x, y, ny_os,
+    int                 i, j, k, nswaths, col, x, y, ny_os,
                         sw_start, sw_end, badpix;
 
     /* Check Entries */
@@ -1775,7 +1766,6 @@ int cr2res_extract_slitdec_curved(
     cpl_vector      *   spc;
     cpl_vector      *   slitfu;
     cpl_vector      *   spec_tmp;
-    cpl_vector      *   slitfu_tmp;
     cpl_vector      *   weights_sw;
     cpl_vector      *   tmp_vec;
     cpl_vector      *   bins_begin;
@@ -1797,12 +1787,10 @@ int cr2res_extract_slitdec_curved(
     zeta_ref        *   zeta;
     int             *   m_zeta;
     char            *   path;
-    double              pixval, errval, img_median, norm, model_unc, img_unc,
-                        unc, delta_tmp, a, b, c, yc;
+    double              pixval, errval, delta_tmp, a, b, c,yc;
     double              trace_cen, trace_height ;
-    int                 i, j, k, nswaths, halfswath, row, col, x, y, ny_os,
-                        sw_start, sw_end, badpix, y_lower_limit, y_upper_limit,
-                        delta_x;
+    int                 i, j, k, nswaths, col, x, y, ny_os,
+                        sw_start, sw_end, badpix, y_lower_limit, delta_x;
     int                 ny, nx;
   
 
@@ -2540,7 +2528,6 @@ int cr2res_extract2d_trace(
     cpl_vector      *   x;
 
     int k, bad_pix;
-    cpl_size npix_max;
     cpl_size i, j, row;
     double flux, err;
 
@@ -2555,7 +2542,6 @@ int cr2res_extract2d_trace(
     }
 
     // Step 0: Initialise output arrays
-    npix_max = CR2RES_DETECTOR_SIZE * CR2RES_DETECTOR_SIZE;
     wavelength_local = cpl_vector_new(npoints);
     slit_fraction_local = cpl_vector_new(npoints);
     position_x = cpl_vector_new(npoints);
@@ -2793,7 +2779,7 @@ static int cr2res_extract_slit_func_vert(
         int         maxiter,
         const double * slit_func_in)
 {
-    int x, y, iy, jy, iy1, iy2, ny, nd, i, j;
+    int x, y, iy, jy, iy1, iy2, ny, nd ;
     double step, d1, d2, sum, norm, dev, lambda, diag_tot, sP_change, sP_max;
     int info, iter, isum;
     /* Initialise */
@@ -3537,8 +3523,8 @@ static int cr2res_extract_slit_func_curved(
         int       *  m_zeta)
 {
     int         x, xx, xxx, y, yy, iy, jy, n, m, ny, i, nx;
-    double      sum, norm, dev, lambda, diag_tot, ww, www, sP_change, sP_max;
-    double      tmp, mad, median, cost, cost_old, std;
+    double      norm, lambda, diag_tot, ww, www, sP_change, sP_max;
+    double      tmp, mad, median, cost, cost_old ;
     int         info, iter, isum;
 
 
@@ -3761,10 +3747,6 @@ static int cr2res_extract_slit_func_curved(
             cpl_error_reset();
         }
         mad *= 1.4826; // scaling factor relative to standard deviation
-
-        // For debug comparison
-        // std = cpl_image_get_stdev_window(img_mad, 1 + delta_x, 1, 
-        //         ncols - delta_x, nrows);
 
         /* Adjust the mask marking outlyers */
         for (y = 0; y < nrows; y++) {
