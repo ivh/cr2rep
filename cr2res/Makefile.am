@@ -33,7 +33,6 @@ AM_CPPFLAGS = -DCX_LOG_DOMAIN=\"Cr2resLib\" $(all_includes)
 
 noinst_HEADERS =    cr2res_bpm.h \
                     cr2res_calib.h \
-                    cr2res_cluster.h \
                     cr2res_detlin.h \
                     cr2res_dfs.h \
                     cr2res_extract.h \
@@ -59,7 +58,6 @@ privatelib_LTLIBRARIES = libcr2res.la
 
 libcr2res_la_SOURCES =  cr2res_bpm.c \
                         cr2res_calib.c \
-                        cr2res_cluster.c \
                         cr2res_detlin.c \
                         cr2res_dfs.c \
                         cr2res_extract.c \

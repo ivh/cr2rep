@@ -35,7 +35,6 @@
 #include "cr2res_io.h"
 #include "cr2res_wave.h"
 #include "cr2res_utils.h"
-#include "cr2res_cluster.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
@@ -591,7 +590,7 @@ cpl_table * cr2res_trace_merge(
 {
     cpl_table       *   merged;
     int             *   order_idx_values ;
-    int                 norder_idx_values, my_order_idx, j, cur_trace_id ;
+    int                 norder_idx_values, j, cur_trace_id ;
     cpl_size            i, nrows ;
     
     /* Check Entries */
@@ -922,7 +921,6 @@ double cr2res_trace_get_trace_ypos(
     const cpl_array *   coeffs ;
     cpl_polynomial  *   poly ;
     double              ypos ;
-    cpl_size            i ;
 
     /* Check Entries */
     if (traces == NULL) return -1.0 ;
@@ -981,7 +979,7 @@ int cr2res_trace_add_extra_columns(
     double                  y_pos ;
     cr2res_decker           decker_pos ;
     int                     order_idx, trace_nb, nb_order_idx_values, 
-                            trace_id, i, j ;
+                            i, j ;
 
     if (traces == NULL) return -1;
 
@@ -1045,7 +1043,6 @@ int cr2res_trace_add_extra_columns(
     for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
         /* Get the Order number */
         order_idx = cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) ;
-        trace_id = cpl_table_get(traces, CR2RES_COL_TRACENB, i, NULL) ;
 
         /* Get the Wavelength estimates from the header */
         if ((wl_array = cr2res_wave_get_estimate(infile, det_nr,
@@ -1178,18 +1175,15 @@ cpl_table * cr2res_trace_new_slit_fraction(
     cpl_polynomial  *   poly_a ;
     cpl_polynomial  *   poly_b ;
     cpl_polynomial  *   poly_c ;
-    cpl_polynomial  *   poly_wave;
     cpl_matrix      *   samppos;
     cpl_vector      *   a_vec;
     cpl_vector      *   b_vec;
     cpl_vector      *   c_vec;
-    cpl_vector      *   wave_vec;
     cpl_size            i, j, k, m, n, nrows, degree ;
     int order, trace_id;
     int nb_order_idx_values, nb_traces;
     int * order_idx_values, * trace_numbers;
     double a, b, c;
-    double pix_lower, pix_upper, pix_all;
     double sf_lower, sf_upper, sf_all, sf_new;
     double pix_shift_x, pix_shift_y;
 
@@ -1505,17 +1499,13 @@ cpl_table * cr2res_trace_shift_wavelength(
     const cpl_array * const_slit_curv_a;
     const cpl_array * const_slit_curv_b;
     const cpl_array * const_slit_curv_c;
-
     cpl_polynomial * poly_lower;
     cpl_polynomial * poly_all;
     cpl_polynomial * poly_upper;
     cpl_polynomial * poly_a;
     cpl_polynomial * poly_b;
     cpl_polynomial * poly_c;
-
-    int * order_idx_values, nb_order_idx_values;
-    int * trace_numbers, nb_traces;
-    cpl_size n, k, nrows;
+    cpl_size n, k ;
     cpl_size degree;
     double a, b, c;
     double pix_shift_x, pix_shift_y;
@@ -1640,7 +1630,6 @@ cpl_table * cr2res_trace_adjust(
     cpl_table           *   new_traces ;
     const char          *   first_file ;
     cpl_table           *   corrected_traces ;
-    cpl_table           *   traces ;
     int                     trace_opening, trace_degree,
                             trace_min_cluster, trace_smooth_x, trace_smooth_y ;
     double                  trace_threshold, traces_shift ;
@@ -1848,7 +1837,7 @@ cpl_table * cr2res_trace_split(
 {
     cpl_table       *   sub_trace_wave ;
     cpl_size            i, j, k, table_index;
-    cpl_array       *   bottom, *center, *top, *fraction, *wave, *tmp, *tmp2;
+    cpl_array       *   bottom, *center, *top, *fraction, *wave ;
     const cpl_array *   wave_err, *slit_a, *slit_b, *slit_c;
     double              height = 1. / (nb_subtraces * 2.);
     double              pos;
@@ -1951,8 +1940,6 @@ cpl_table * cr2res_trace_split(
             cpl_array_delete(fraction);
             cpl_array_delete(wave);
         }
-        cpl_array_unwrap(tmp);
-        cpl_array_unwrap(tmp2);
         if (res == -1) break;
     }
     cpl_free(order_idx_values);
@@ -2567,7 +2554,6 @@ static cpl_array * cr2res_trace_fit_trace(
 /*----------------------------------------------------------------------------*/
 static cpl_table * cr2res_trace_convert_labels_to_cluster(cpl_image * labels)
 {
-    cpl_image   *   non_zero_image ;
     const int   *   plabels ;
     cpl_table   *   clustertable ;
     int             nb_table_entries, nx, ny, i, j ;
@@ -2813,8 +2799,7 @@ static int cr2res_trace_new_trace(
     const double    *   sf_in;
     cpl_vector      *   pix_in;
     double              sf_out_l, sf_out_m, sf_out_u, pix_out_l, pix_out_u, 
-                        pix_out_m, sf_wished, new_coeff, b, c, divisor,
-                        x2, x3, y2, y3 ;
+                        pix_out_m, new_coeff ;
 
     /* Check entries */
     if (slit_fraction_in==NULL || trace_in==NULL || slit_fraction_wished==NULL
