@@ -72,6 +72,7 @@ static int cr2res_obs_2d_reduce(
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
+        hdrl_image          **  calibrated,
         cpl_table           **  extract,
         cpl_propertylist    **  ext_plist) ;
 static int cr2res_obs_2d_create(cpl_plugin *);
@@ -315,6 +316,7 @@ static int cr2res_obs_2d(
     const cpl_frame     *   trace_wave_frame ;
     hdrl_image          **  sky_average ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
+    hdrl_image          *   calibrated[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extract[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
     cpl_size                nsky, nobj ;
@@ -416,6 +418,7 @@ static int cr2res_obs_2d(
         /* Loop on the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             /* Initialise */
+            calibrated[det_nr-1] = NULL ;
             extract[det_nr-1] = NULL ;
             ext_plist[det_nr-1] = NULL ;
 
@@ -432,6 +435,7 @@ static int cr2res_obs_2d(
                         master_flat_frame, bpm_frame, subtract_nolight_rows, 
                         subtract_interorder_column, 0, det_nr, reduce_order, 
                         reduce_trace,
+                        &(calibrated[det_nr-1]),
                         &(extract[det_nr-1]),
                         &(ext_plist[det_nr-1])) == -1) {
                 cpl_msg_warning(__func__, "Failed to reduce detector %d", 
@@ -444,6 +448,14 @@ static int cr2res_obs_2d(
 
         /* Save Products */
 
+        /* Calibrated */
+        out_file = cpl_sprintf("%s_frame_%d_calibrated.fits", 
+                RECIPE_STRING, i+1) ;
+        cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist, 
+                calibrated, NULL, ext_plist, CR2RES_OBS_2D_CALIBRATED_PROCATG, 
+                RECIPE_STRING) ;
+        cpl_free(out_file);
+
         /* Extracted */
         out_file = cpl_sprintf("%s_frame_%d_extracted.fits", 
                 RECIPE_STRING, i+1) ;
@@ -454,6 +466,8 @@ static int cr2res_obs_2d(
 
         /* Free */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            if (calibrated[det_nr-1] != NULL) 
+                hdrl_image_delete(calibrated[det_nr-1]) ;
             if (extract[det_nr-1] != NULL) 
                 cpl_table_delete(extract[det_nr-1]) ;
             if (ext_plist[det_nr-1] != NULL) 
@@ -489,6 +503,7 @@ static int cr2res_obs_2d(
   @param reduce_det             The detector to compute
   @param reduce_order           The order to reduce (-1 for all)
   @param reduce_trace           The trace to reduce (-1 for all)
+  @param calibrated             [out] calibrated image
   @param extract                [out] extracted spectrum
   @param ext_plist              [out] the header for saving the products
   @return  0 if ok, -1 otherwise
@@ -509,6 +524,7 @@ static int cr2res_obs_2d_reduce(
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
+        hdrl_image          **  calibrated,
         cpl_table           **  extract,
         cpl_propertylist    **  ext_plist) 
 {
@@ -528,8 +544,8 @@ static int cr2res_obs_2d_reduce(
                             order_zp, order_idx, order_idxp ;
 
     /* Check Inputs */
-    if (extract == NULL || ext_plist == NULL || rawframe_obj == NULL || 
-            trace_wave_frame == NULL) return -1 ;
+    if (extract == NULL || calibrated == NULL || ext_plist == NULL || 
+            rawframe_obj == NULL || trace_wave_frame == NULL) return -1 ;
 
     /* Check raw frames consistency */
     if (cr2res_obs_2d_check_inputs_validity(rawframe_obj) != 1) {
@@ -646,7 +662,6 @@ static int cr2res_obs_2d_reduce(
         cpl_table_delete(trace_wave) ;
         return -1 ;
     }
-    hdrl_image_delete(in_calib) ;
 
     /* Extension header for products */
     plist = cpl_propertylist_load(
@@ -677,6 +692,7 @@ static int cr2res_obs_2d_reduce(
 
     /* Return */
     *extract = extracted ;
+    *calibrated = in_calib ;
     *ext_plist = plist ;
 
     return 0 ;

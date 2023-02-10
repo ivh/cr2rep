@@ -145,6 +145,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_OBS_STARING_SLITMODEL_PROCATG) ||
                 /* Produced by cr2res_obs_2d */
                 !strcmp(tag, CR2RES_OBS_2D_EXTRACT_PROCATG) ||
+                !strcmp(tag, CR2RES_OBS_2D_CALIBRATED_PROCATG) ||
                 /* Produced by cr2res_obs_pol */
                 !strcmp(tag, CR2RES_OBS_POL_EXTRACTA_PROCATG) ||
                 !strcmp(tag, CR2RES_OBS_POL_TWA_PROCATG) ||
