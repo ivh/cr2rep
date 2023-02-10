@@ -77,7 +77,7 @@ cpl_mask * cr2res_bpm_compute(
 {
     cpl_mask    *   bpm ;
     cpl_binary  *   pmask_cur ;
-    int             nx, ny, cur_bp_nb, i, j, k ;
+    int             nx, ny, cur_bp_nb, j, k ;
 
     /* Test entries */
     if (in == NULL) return NULL ;

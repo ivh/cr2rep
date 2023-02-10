@@ -111,7 +111,7 @@ int locate_clusters(int argc, void *argv[])
   unsigned char *mask;
   float noise;
   int iX, iY, half, has_mask;
-  float offset, box, nbox;
+  float box, nbox;
 
   if(argc<7) return -1;
   nX    =*(int *)argv[0];
@@ -210,12 +210,10 @@ int locate_clusters(int argc, void *argv[])
 int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index)
 {
   //int *x, *y, n, nX, nY, thres, *index;
-  int *Xsort, *i2X, *X2i, *Ysort, *i2Y, *Y2i,
-      *Lsort, *i2L, *L2i, *Rsort, *i2R, *R2i,
-      *dummy, *dummy1;
-  int i, j[9], jj, nj, njj, j1, j2, iX, iY, n_branches;
+  int *i2X, *X2i, *i2Y, *Y2i, *i2L, *L2i, *i2R, *R2i, *dummy, *dummy1;
+  int i, j[9], nj, j1, j2, n_branches;
   int threshold, nregions;
-  int min_clr, max_clr, clrs[9], *uniq_clr, *translation;
+  int min_clr, max_clr, *uniq_clr, *translation;
 
   //if(argc<7) return -1;
   //x=(int *)argv[0];
@@ -275,7 +273,6 @@ int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index)
 
   n_branches=0;                          /* Branch counter */
 
-  jj=0;
   for(i=0;i<n;i++)                       /* Loop through pixels */
   {
     nj=1;
@@ -305,7 +302,6 @@ int cluster(int *x, int *y, int n, int nX, int nY, int thres, int *index)
     j2=j1+1;                             /* Next X-sorted number        */
     if(j2<n  && x[R2i[j2]]-1==x[i] && y[R2i[j2]]-1==y[i]) j[nj++]=R2i[j2];
 
-    njj=0;
     min_clr=n+1;                         /* Initialize minimum color     */
     for(j1=0; j1<nj; j1++)               /* Find minimum color           */
     {                                    /* any existing cluster member  */
@@ -389,7 +385,7 @@ cpl_table * cr2res_cluster_detect(
         cpl_mask    *   mask,
         int             mincluster)
 {
-    int                 i, j, nx, ny, nclusters, count, npix ;
+    int                 i, j, nx, ny, count, npix ;
     int             *   xs ;
     int             *   ys ;
     int             *   clusters ;
@@ -413,8 +409,6 @@ cpl_table * cr2res_cluster_detect(
             }
         }
     }
-
-    nclusters = cluster(xs, ys, npix, nx, ny, mincluster, clusters) ;
 
     /* Put result into a table*/
     table = cpl_table_new(npix);
