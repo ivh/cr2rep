@@ -57,6 +57,7 @@ typedef enum {
  -----------------------------------------------------------------------------*/
 
 double cr2res_mjd_obs_now(void) ;
+double cr2res_utils_get_center_mjd(const cpl_frameset * frameset) ;
 
 int cr2res_order_idx_to_real(int order_idx, int order_zp) ;
 int cr2res_order_real_to_idx(int order_real, int order_zp) ;

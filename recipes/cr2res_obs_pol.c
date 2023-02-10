@@ -462,6 +462,7 @@ static int cr2res_obs_pol(
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
     const cpl_frame     *   blaze_frame ;
+    cpl_propertylist    *   qc_main ;
     hdrl_image          *   in_calib_1_a[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   in_calib_2_a[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   in_calib_3_a[CR2RES_NB_DETECTORS] ;
@@ -903,21 +904,28 @@ static int cr2res_obs_pol(
         break ;
     }
 
+	/* Add ESO.DRS.TMID in the Main Header */
+	qc_main = cpl_propertylist_new();
+	cpl_propertylist_append_double(qc_main,
+			CR2RES_HEADER_DRS_TMID,
+			cr2res_utils_get_center_mjd(rawframes)) ;
+
     /* Polarimetry Spectra */
     out_file = cpl_sprintf("%s_pol_specA.fits", RECIPE_STRING) ;
     cr2res_io_save_POL_SPEC(out_file, frameset, frameset, parlist,
-            pol_speca, NULL, ext_plista, CR2RES_OBS_POL_SPECA_PROCATG, 
+            pol_speca, qc_main, ext_plista, CR2RES_OBS_POL_SPECA_PROCATG, 
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_pol_specB.fits", RECIPE_STRING) ;
     cr2res_io_save_POL_SPEC(out_file, frameset, frameset, parlist,
-            pol_specb, NULL, ext_plistb, CR2RES_OBS_POL_SPECB_PROCATG, 
+            pol_specb, qc_main, ext_plistb, CR2RES_OBS_POL_SPECB_PROCATG, 
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     /* Free */
     cpl_frameset_delete(rawframes) ;
+    cpl_propertylist_delete(qc_main) ;
     if (raw_flat_frames != NULL) cpl_frameset_delete(raw_flat_frames) ;
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         if (in_calib_1_a[det_nr-1] != NULL) 

@@ -315,6 +315,7 @@ static int cr2res_obs_2d(
     const cpl_frame     *   bpm_frame ;
     const cpl_frame     *   trace_wave_frame ;
     hdrl_image          **  sky_average ;
+    cpl_propertylist    *   qc_main ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   calibrated[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extract[CR2RES_NB_DETECTORS] ;
@@ -448,23 +449,30 @@ static int cr2res_obs_2d(
 
         /* Save Products */
 
+        /* Add ESO.DRS.TMID in the Main Header */
+        qc_main = cpl_propertylist_new();
+        cpl_propertylist_append_double(qc_main,
+                CR2RES_HEADER_DRS_TMID,
+                cr2res_utils_get_center_mjd(rawframes_obj)) ;
+
         /* Calibrated */
         out_file = cpl_sprintf("%s_frame_%d_calibrated.fits", 
                 RECIPE_STRING, i+1) ;
         cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist, 
-                calibrated, NULL, ext_plist, CR2RES_OBS_2D_CALIBRATED_PROCATG, 
-                RECIPE_STRING) ;
+                calibrated, qc_main, ext_plist, 
+                CR2RES_OBS_2D_CALIBRATED_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
         /* Extracted */
         out_file = cpl_sprintf("%s_frame_%d_extracted.fits", 
                 RECIPE_STRING, i+1) ;
         cr2res_io_save_EXTRACT_2D(out_file, frameset, frameset, parlist, 
-                extract, NULL, ext_plist, CR2RES_OBS_2D_EXTRACT_PROCATG, 
+                extract, qc_main, ext_plist, CR2RES_OBS_2D_EXTRACT_PROCATG, 
                 RECIPE_STRING) ;
         cpl_free(out_file);
 
         /* Free */
+        cpl_propertylist_delete(qc_main) ;
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             if (calibrated[det_nr-1] != NULL) 
                 hdrl_image_delete(calibrated[det_nr-1]) ;

@@ -394,6 +394,7 @@ static int cr2res_obs_staring(
     cpl_table           *   slitfunc[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   model[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   plist ;
+    cpl_propertylist    *   qc_main ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
     int                     i, det_nr, type; 
@@ -521,21 +522,28 @@ static int cr2res_obs_staring(
     if (slit_frac != NULL) cpl_array_delete(slit_frac) ;
 
     /* Save Products */
+
+    /* Add ESO.DRS.TMID in the Main Header */
+    qc_main = cpl_propertylist_new();
+    cpl_propertylist_append_double(qc_main,
+            CR2RES_HEADER_DRS_TMID,
+            cr2res_utils_get_center_mjd(rawframes)) ;
+
     out_file = cpl_sprintf("%s_slitfunc.fits", RECIPE_STRING) ;
     cr2res_io_save_SLIT_FUNC(out_file, frameset, frameset, parlist,
-            slitfunc, NULL, ext_plist, CR2RES_OBS_STARING_SLITFUNC_PROCATG,
+            slitfunc, qc_main, ext_plist, CR2RES_OBS_STARING_SLITFUNC_PROCATG,
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_model.fits", RECIPE_STRING) ;
     cr2res_io_save_SLIT_MODEL(out_file, frameset, frameset, parlist,
-            model, NULL, ext_plist, CR2RES_OBS_STARING_SLITMODEL_PROCATG,
+            model, qc_main, ext_plist, CR2RES_OBS_STARING_SLITMODEL_PROCATG,
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_extracted.fits", RECIPE_STRING) ;
     cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, extract,
-            NULL, ext_plist, CR2RES_OBS_STARING_EXTRACT_PROCATG,
+            qc_main, ext_plist, CR2RES_OBS_STARING_EXTRACT_PROCATG,
             RECIPE_STRING);
 	if (create_idp) {
         cr2res_idp_save(out_file, frameset, rawframes, parlist, 
@@ -545,6 +553,7 @@ static int cr2res_obs_staring(
     cpl_frameset_delete(rawframes) ;
 
     /* Free */
+    cpl_propertylist_delete(qc_main) ;
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         if (extract[det_nr-1] != NULL) 
             cpl_table_delete(extract[det_nr-1]) ;
