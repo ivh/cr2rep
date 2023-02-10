@@ -2949,12 +2949,12 @@ static int cr2res_trace_get_subtrace(
         cpl_array   **  wave)
 {
     // check input values
-    if (slit_pos < 0 | slit_pos > 1) return -1;
-    if (bottom != NULL & *bottom == NULL) return -1;
-    if (center != NULL & *center == NULL) return -1;
-    if (top != NULL & *top == NULL) return -1;
-    if (fraction != NULL & *fraction == NULL) return -1;
-    if (wave != NULL & *wave == NULL) return -1;
+    if (slit_pos < 0 || slit_pos > 1) return -1;
+    if (bottom != NULL && *bottom == NULL) return -1;
+    if (center != NULL && *center == NULL) return -1;
+    if (top != NULL && *top == NULL) return -1;
+    if (fraction != NULL && *fraction == NULL) return -1;
+    if (wave != NULL && *wave == NULL) return -1;
 
     // get trace numbers
     int nb_traces;
@@ -2964,7 +2964,7 @@ static int cr2res_trace_get_subtrace(
     
     const cpl_array * bounds[3], *old_fraction, *old_wave;
     double res;
-    cpl_size power, i, j, k, ndegree;
+    cpl_size i, j, k, ndegree;
     
     cpl_matrix * samppos;
     cpl_vector *fitvals;

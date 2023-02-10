@@ -170,8 +170,6 @@ int cr2res_format_setting(char * setting_id)
 /*----------------------------------------------------------------------------*/
 int cr2res_is_short_wavelength(char * setting_id)
 {
-    int     i, len ;
-
     /* Check entries */
     if (setting_id == NULL) return -1 ;
 
@@ -235,7 +233,7 @@ double * cr2res_vector_get_rest(
     const cpl_vector    * ycen)
 {
     double      * ycen_rest;
-    int         i, lenx, val;
+    int         i, lenx ;
 
     if (ycen == NULL) return NULL;
 
@@ -271,12 +269,11 @@ cpl_table * cr2res_combine_extracted(
     hdrl_spectrum1D             *   b_spec ;
     hdrl_spectrum1D             *   c_spec ;
     hdrl_spectrum1D_wavelength      spec_wav ;
-    hdrl_data_t                     val1, val2 ;
     hdrl_parameter              *   params ;
     double                      *   p_flux ;
     double                      *   p_err ;
     cpl_size                        ncols, i, j, sz, sz_a, sz_b ;
-    int                             trace_nb, order, increasing_values, n ;
+    int                             trace_nb, order, increasing_values ;
 
     /* Check Inputs */
     if (extracta == NULL || extractb == NULL) return NULL ;
@@ -797,8 +794,7 @@ int cr2res_slit_pos_image(
         cpl_image   **  slitpos, 
         cpl_image   **  wavelength)
 {
-    if (trace_wave == NULL | slitpos == NULL | 
-            wavelength == NULL) return -1;
+    if (trace_wave == NULL || slitpos == NULL || wavelength == NULL) return -1;
 
     double w, s;
     int i, k, x, y, nb_order_idx_values;
@@ -806,7 +802,6 @@ int cr2res_slit_pos_image(
     cpl_vector * vec_wd;
     cpl_polynomial ** coef_slit;
     cpl_polynomial ** coef_wave;
-    int *order_idx_values;
 
     if (cr2res_slit_pos(trace_wave, &coef_slit, &coef_wave, &nb_order_idx_values)){
         return -1;
@@ -1329,7 +1324,7 @@ int cr2res_vector_erase_element(cpl_vector * vector, cpl_size pos)
     if (vector == NULL) return -1;
 
     n = cpl_vector_get_size(vector);
-    if (pos >= n | pos < 0) return -1;
+    if (pos >= n || pos < 0) return -1;
 
     // we shift all elements past pos one step to the left
     for (i = pos; i < n - 1; i++){
@@ -1803,11 +1798,10 @@ cpl_image * cr2res_util_optimal_filter_2d(
     double lam_y)
 {
     cpl_size nx, ny, i, j, k;
-    int n, ndiag, badpix;
+    int n, ndiag ;
     double * aij;
     const double * weight_data;
     cpl_image * rhs_image;
-    cpl_image * model;
     double * rhs;
 
     nx = cpl_image_get_size_x(img);
@@ -2016,8 +2010,8 @@ cpl_polynomial * cr2res_polyfit_2d_loc(
     const cpl_vector * x, 
     const cpl_vector * y, 
     const cpl_vector * z,
-    const cpl_matrix * degree
-){
+    const cpl_matrix * degree)
+{
     cpl_size npoints, ndegrees;
     double offset_x, offset_y;
     double norm_x, norm_y;
@@ -2027,7 +2021,6 @@ cpl_polynomial * cr2res_polyfit_2d_loc(
     cpl_polynomial * poly;
     cpl_vector * xhat, * yhat, *zhat;
     cpl_matrix * mh, * mz;
-    cpl_error * error;
     cpl_matrix * mcoef;
     cpl_size power[2];
 

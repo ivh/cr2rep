@@ -194,7 +194,6 @@ int cr2res_wave_apply(
     cpl_table           *   lines_diagnostics_tmp ;
     cpl_table           *   lines_diagnostics_loc ;
     cpl_propertylist    *   qcs_plist ;
-    hdrl_image          *   wave_map_out ;
     cpl_polynomial      *   wave_sol_1d ;
     cpl_array           *   wl_err_array ;
     int                     trace_id, order, i, j ;
@@ -718,8 +717,6 @@ cpl_polynomial * cr2res_wave_1d(
     cpl_bivector        *   spectrum_corrected ;
     double              *   px ;
     cpl_bivector        *   ref_spectrum ;
-    cpl_bivector        *   simple_ref_spectrum ;
-    const cpl_bivector  **  plot;
     double                  wl_error_nm, disp, lamb0, pos ;
     int                     i ;
 
@@ -910,7 +907,7 @@ cpl_polynomial * cr2res_wave_2d(
     cpl_table       *   lines_diagnostics_loc ;
     cpl_bivector    *   catalog_spec ;
     cpl_vector      *   diff;
-    cpl_size            old, new, i, j, k, spec_size, nlines ;
+    cpl_size            old, new, i, j, k, nlines ;
     cpl_polynomial  *   result ;
     cpl_error_code      error;
     cpl_size            degree_2d[2];
@@ -920,7 +917,6 @@ cpl_polynomial * cr2res_wave_2d(
     cpl_vector      *   pos;
     cpl_vector      *   pxa ;
     cpl_vector      *   pxb ;
-    cpl_matrix      *   sigma_px ;
     cpl_vector      *   py ;
     cpl_vector      *   sigma_py ;
     cpl_vector      *   heights;
@@ -939,7 +935,6 @@ cpl_polynomial * cr2res_wave_2d(
 
     /* Initialise */
     pxa = pxb = NULL;
-    sigma_px = NULL ;
     py = sigma_py = NULL ;
     *lines_diagnostics = NULL ;
     *wavelength_error = NULL;
@@ -1245,7 +1240,6 @@ cpl_polynomial * cr2res_wave_xcorr(
     cpl_vector          *   filtered ;
     cpl_vector          *   xcorrs ;
     double                  wl_min, wl_max, wl_error_nm, wl_error_pix ;
-    double                  xc ;
     int                     i, nsamples, degree_loc, npolys ;
 
     /* Check Entries */
@@ -1424,8 +1418,8 @@ cpl_polynomial * cr2res_wave_etalon(
     double            l0, trueD;
     int             nxi, i, npeaks;
 
-    if (spectrum == NULL | spectrum_err == NULL |
-        wavesol_init == NULL | degree < 0 | wavelength_error == NULL)
+    if (spectrum == NULL || spectrum_err == NULL ||
+        wavesol_init == NULL || degree < 0 || wavelength_error == NULL)
             return NULL;
 
     // Find etalon peaks xi in spectrum
@@ -2093,7 +2087,7 @@ int cr2res_wave_fit_single_line(
     cpl_vector * sigma_y;
     cpl_vector * a;
     int * ia;
-    double x0, sigma, area, offset, red_chisq;
+    double red_chisq;
     double value, value2, diff;
     cpl_size k, j, n, spec_size;
     cpl_error_code error;
@@ -2103,7 +2097,7 @@ int cr2res_wave_fit_single_line(
     if (unc != NULL){
         if (cpl_vector_get_size(spec) != cpl_vector_get_size(unc)) return -1;
     }
-    if (pixel_pos < 0 | pixel_pos > cpl_vector_get_size(spec)) return -1;
+    if (pixel_pos < 0 || pixel_pos > cpl_vector_get_size(spec)) return -1;
     if (window_size < 0) return -1;
     if (peak_width < 0) peak_width = 1;
 
@@ -2119,7 +2113,7 @@ int cr2res_wave_fit_single_line(
     k = pixel_pos - window_size / 2;
 
     // Extract the spectrum within the window
-    if (k < 0 | k + window_size >= spec_size){
+    if (k < 0 || k + window_size >= spec_size){
         // if the window reaches outside the spectrum don't use the line
         // cpl_msg_error(__func__, 
         //     "Line at pixel %lli extends past the edge of the spectrum.", 
@@ -2329,9 +2323,8 @@ int cr2res_wave_extract_lines(
     const double * wave;
     const double * height;
     cpl_size power;
-    cpl_size i, j, k, ngood, spec_size, npossible;
-    double pixel_pos, pixel_new, red_chisq, dbl = 0, res = 0;
-    double value, value2, diff;
+    cpl_size i, k, ngood, spec_size, npossible;
+    double pixel_pos, pixel_new;
     double max_wl, min_wl;
     double peak_height, width;
     int n;
@@ -2441,14 +2434,13 @@ int cr2res_wave_extract_lines(
         // 6) sigma is too large or too small
 
         if (fabs(pixel_new - pixel_pos) > window_size
-            | peak_height < 0
+            || peak_height < 0){
             // TODO: the floor is not the same as the noise
             // maybe one could use the std around the floor as a noise estimate?
             // | cpl_vector_get(a, 2) < cpl_vector_get(a, 3)
             // TODO: Tweak these values and make into proper parameters?
             // | cpl_vector_get(a, 1) < 1 // lower line width limit
             // | cpl_vector_get(a, 1) > 6 // upper
-        ){
             if (fabs(pixel_new - pixel_pos) > window_size)
                 cpl_msg_debug(__func__, "Pixel position mismatch");
             if (peak_height < 0)
@@ -2612,7 +2604,7 @@ static cpl_polynomial * cr2res_wave_line_fitting(
 
     if (display){
         cpl_size n = cpl_bivector_get_size(spectrum);
-        cpl_size nlines = cpl_vector_get_size(py);
+        nlines = cpl_vector_get_size(py);
         const cpl_bivector ** plot = cpl_malloc(2 * sizeof(cpl_bivector*));
 
         cpl_vector * wave = cpl_bivector_get_x(spectrum);
@@ -2918,8 +2910,7 @@ static cpl_bivector * cr2res_wave_etalon_assign_fringes(
         const cpl_vector      * li_true)
 {
     int i, j, n;
-    int * best_idx;
-    double x,y;
+    double x;
     cpl_bivector * is_should;
     cpl_vector * is;
     cpl_vector * should;
@@ -3030,16 +3021,13 @@ static cpl_vector * cr2res_wave_etalon_measure_fringes(
     cpl_vector  *   cur_peak;
     cpl_vector  *   X_all, *X_peak;
     int             i, j, k ;
-    int             numD = 0 ;
     int             smooth = 35 ;   // TODO: make free parameter?
                                     // interfringe ~30 in Y, ~70 in K
     double          thresh = 1.0 ;   // TODO: derive from read-out noise
     int             max_num_peaks = 256 ;
-    int             max_len_peak = 256 ;
     int             min_len_peak = 5 ; //TODO: tweak or make parameter?;
     cpl_size        nx ;
     double          spec_i;
-    double          prev_peak;
     double          x0, sigma, area, offset;
 
     nx = cpl_vector_get_size(spectrum) ;
