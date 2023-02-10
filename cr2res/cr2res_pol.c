@@ -133,7 +133,7 @@ cpl_bivector * cr2res_pol_demod_stokes(
     return NULL;
   }
   size = cpl_vector_get_size(intens[0]);
-  for (cpl_size i = 0; i < n; i++) {
+  for (i = 0; i < n; i++) {
     if (intens[i] == NULL) {
       cpl_msg_error(__func__, 
             "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(i));
@@ -437,7 +437,7 @@ cpl_bivector * cr2res_pol_demod_null(
     return NULL;
   }
   size = cpl_vector_get_size(intens[0]);
-  for (cpl_size i = 0; i < n; i++) {
+  for (i = 0; i < n; i++) {
     if (intens[i] == NULL) {
       cpl_msg_error(__func__, 
             "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(i));
@@ -558,7 +558,7 @@ cpl_bivector * cr2res_pol_demod_intens(
       return NULL;
     }
     size = cpl_vector_get_size(intens[0]);
-    for (cpl_size i = 0; i < n; i++) {
+    for (i = 0; i < n; i++) {
       if (intens[i] == NULL) {
         cpl_msg_error(__func__, 
               "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(i));
@@ -593,7 +593,7 @@ cpl_bivector * cr2res_pol_demod_intens(
     intens_local = cpl_malloc(n * sizeof(cpl_vector*));
     errors_local = cpl_malloc(n * sizeof(cpl_vector*));
     wl_local = cpl_malloc(n * sizeof(cpl_vector*));
-    for (cpl_size i = 0; i < n; i++){
+    for (i = 0; i < n; i++){
       intens_local[i] = cpl_vector_duplicate(intens[i]);
       errors_local[i] = cpl_vector_duplicate(errors[i]);
       wl_local[i] = cpl_vector_duplicate(wl[i]);
@@ -605,7 +605,7 @@ cpl_bivector * cr2res_pol_demod_intens(
                     errors_local, n, &xmin, &xmax) == -1){
       cpl_msg_error(__func__, 
           "Could not resample polarimetry spectra to the same wavelength scale");
-      for (cpl_size i = 0; i < n; i++)
+      for (i = 0; i < n; i++)
       {
         cpl_vector_delete(intens_local[i]);
         cpl_vector_delete(errors_local[i]);
@@ -624,8 +624,7 @@ cpl_bivector * cr2res_pol_demod_intens(
     outerr = cpl_bivector_get_y(result);
 
     // Initialize to 0
-    for (cpl_size i = 0; i < size; i++)
-    {
+    for (i = 0; i < size; i++) {
       cpl_vector_set(outspec, i, 0.);
       cpl_vector_set(outerr, i, 0.);
     }
@@ -661,7 +660,7 @@ cpl_bivector * cr2res_pol_demod_intens(
 
     cpl_vector_power(outerr, 0.5);
 
-    for (cpl_size i = 0; i < n; i++){
+    for (i = 0; i < n; i++){
       cpl_vector_delete(intens_local[i]);
       cpl_vector_delete(errors_local[i]);
       cpl_vector_delete(wl_local[i]);
