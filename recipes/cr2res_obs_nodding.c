@@ -483,7 +483,7 @@ static int cr2res_obs_nodding(
     cpl_propertylist    *   ext_plist_photom[CR2RES_NB_DETECTORS] ;
     char                *   cur_setting ;
     char                *   out_file;
-    int                     i, det_nr, type; 
+    int                     det_nr, type; 
 
     /* Initialise */
     gain = 0.0 ;

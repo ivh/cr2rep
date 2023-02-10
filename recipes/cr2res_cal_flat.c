@@ -1145,7 +1145,7 @@ static int cr2res_cal_flat_reduce(
     int                 *   orders ;
     double                  qc_mean, qc_median, qc_flux, qc_rms, qc_s2n, 
                             qc_trace_centery, dit, qc_overexposed ;
-    int                     i, j, badpix, ext_nr, nb_traces, order, trace_id,
+    int                     i, ext_nr, nb_traces, order, trace_id,
                             nb_orders, qc_nbbad, nbvals, zp_order, ngood ;
 
     /* Check Inputs */

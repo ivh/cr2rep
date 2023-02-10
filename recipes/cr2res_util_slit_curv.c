@@ -276,9 +276,7 @@ static int cr2res_util_slit_curv(
     cpl_polynomial      *   slit_polyc ;
     cpl_array           *   slit_array ;
     int                     det_nr, order, trace_id, nb_traces, curv_degree ;
-    char                *   col_name ;
     char                *   out_file;
-    cpl_array           *   curv_array ;
     int                     i, j, k ;
 
     /* RETRIEVE INPUT PARAMETERS */

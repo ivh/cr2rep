@@ -352,8 +352,7 @@ static int cr2res_cal_detlin(
                             trace_opening, single_settings, reduce_det, 
                             trace_smooth_x, trace_smooth_y, plot_x, plot_y ;
     double                  bpm_thresh, trace_threshold;
-    double                  low_thresh, high_thresh, median, sigma ;
-    double                  qc_median, qc_gain, qc_min_level, qc_max_level;
+    double                  qc_median, qc_min_level, qc_max_level;
     cpl_size                qc_nb_bad;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   darkframes ;
@@ -373,7 +372,6 @@ static int cr2res_cal_detlin(
     int                     i, l, det_nr; 
     cpl_size                x, y;
     hdrl_value              pixel;
-    cpl_image           *   cur_coeffs;
     cpl_mask            *   cur_mask;
     cpl_propertylist    *   qc_main ;
     double                  meda, medb, medc, medq ;
@@ -818,7 +816,6 @@ static int cr2res_cal_detlin_reduce(
     cpl_vector          *   dits ;
     hdrl_image          *   collapsed ;
     cpl_image           *   contrib ;
-    hdrl_image          *   master_flat_loc ;
     cpl_table           *   traces ;
     cpl_imagelist       *   coeffs_loc ;
     cpl_image           *   cur_coeffs ;
@@ -836,11 +833,9 @@ static int cr2res_cal_detlin_reduce(
     cpl_vector          *   fitvals ;
     cpl_vector          *   aduPsec ;
     cpl_mask            *   bpm_mask ;
-    int                     i, j, k, idx, ext_nr_data, order, trace_id, nx, ny;
+    int                     i, j, k, idx, ext_nr_data, nx, ny;
     cpl_size                max_degree, l ;
-    int                     qc_nb_bad, qc_nbfailed, qc_nbsuccess ;
-    double                  qc_median, qc_gain, qc_min_level,
-                            qc_max_level, qc_meda, qc_medb, qc_medc, qc_medq ;
+    int                     qc_nbfailed, qc_nbsuccess ;
     
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
@@ -1203,10 +1198,7 @@ static int cr2res_cal_detlin_update(
     int             * pnew_bpm;
     hdrl_image      * global_coeffs_ima;
     hdrl_image      * new_coeffs_ima;
-    cpl_image       * global_errors_ima;
-    cpl_image       * new_errors_ima;
     hdrl_image      * img;
-    int badpix;
     hdrl_value new_value, global_value, pixel;
     double tmp;
     cpl_size x, y;

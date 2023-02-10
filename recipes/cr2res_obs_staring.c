@@ -378,9 +378,9 @@ static int cr2res_obs_staring(
     int                     subtract_nolight_rows, subtract_interorder_column,
                             extract_oversample, create_idp,
                             extract_swath_width, extract_height, reduce_det, 
-                            ndit, nexp, disp_order, disp_trace ;
-    double                  extract_smooth_slit, extract_smooth_spec, ra, dec, 
-                            dit, slit_low, slit_up ;
+                            disp_order, disp_trace ;
+    double                  extract_smooth_slit, extract_smooth_spec, 
+                            slit_low, slit_up ;
     cpl_array           *   slit_frac ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   trace_wave_frame ;
@@ -393,11 +393,10 @@ static int cr2res_obs_staring(
     cpl_table           *   extract[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slitfunc[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   model[CR2RES_NB_DETECTORS] ;
-    cpl_propertylist    *   plist ;
     cpl_propertylist    *   qc_main ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
-    int                     i, det_nr, type; 
+    int                     det_nr; 
 
 
     /* RETRIEVE INPUT PARAMETERS */
@@ -627,7 +626,7 @@ static int cr2res_obs_staring_reduce(
     hdrl_image          *   collapsed ;
     cpl_image           *   contrib ;
     cpl_propertylist    *   plist ;
-    cpl_size                nframes, i ;
+    cpl_size                i ;
     hdrl_image          *   model_master ;
     cpl_table           *   slit_func ;
     cpl_table           *   extracted ;
@@ -637,7 +636,7 @@ static int cr2res_obs_staring_reduce(
     char                *   key_name ;
     const char          *   first_fname ;
     double                  qc_signal, qc_fwhm ;
-    int                     det_nr, order_zp, nb_order_idx_values,
+    int                     order_zp, nb_order_idx_values,
                             order_real, order_idx, order_idxp ;
 
     /* Check Inputs */
@@ -651,7 +650,6 @@ static int cr2res_obs_staring_reduce(
     }
 
     /* Initialise */
-    nframes = cpl_frameset_get_size(rawframes) ;
     first_fname = cpl_frame_get_filename(
             cpl_frameset_get_position_const(rawframes, 0)) ;
 
@@ -863,9 +861,6 @@ static int cr2res_obs_staring_reduce(
 static int cr2res_obs_staring_check_inputs_validity(
         const cpl_frameset  *   rawframes)
 {
-    cpl_propertylist        *   plist ;
-    cpl_size                    nframes, i ;
-
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
     return 1 ;

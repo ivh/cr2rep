@@ -340,7 +340,6 @@ static int cr2res_cal_dark(
                         *   qc_mean,
                         *   qc_med,
                         *   qc_sigma ;
-    hdrl_image          *   master;
     cpl_image           *   contrib_map;
     cpl_mask            *   bpm ;
     const char          *   first_fname ;

@@ -261,13 +261,11 @@ static int cr2res_util_plot(
     cpl_propertylist    *   plist ;
     cpl_table           *   tab1 ;
     cpl_table           *   sel_tab ;
-    cpl_table           *   tab_opt ;
     cpl_bivector        *   spectrum ;
     cpl_bivector        *   spectrum_err ;
     cpl_bivector        *   ref_spectrum ;
     cpl_bivector        *   ref_spectrum_extract ;
     double              *   px ;
-    double                  wmin, wmax ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -435,10 +433,7 @@ static int cr2res_util_plot_slit_func_one(
         const char  *       options,
         const char  *       title)
 {
-    double                  mean1, mean2 ;
     int                     nrows ;
-    cpl_vector          **  vectors ;
-
     /* Check inputs */
     if (tab == NULL) return -1 ;
     nrows = cpl_table_get_nrow(tab) ;

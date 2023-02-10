@@ -1115,7 +1115,6 @@ static int cr2res_obs_pol_reduce(
     cpl_propertylist    *   ext_plista_loc ;
     cpl_propertylist    *   ext_plistb_loc ;
     cpl_size                ngroups ;
-    int                     i ;
 
     /* Check Inputs */
     if (pol_speca == NULL || pol_specb == NULL || ext_plista == NULL || 
@@ -1345,7 +1344,6 @@ static int cr2res_obs_pol_reduce_one(
     cpl_propertylist    *   plist ;
     cpl_propertylist    *   ext_plist_loc ;
     const char          *   first_fname ;
-    char                *   out_file;
     cpl_size                nframes, nspec_group, spec_size ;
     int                     ngroups, i, j, k, l, o, norders, frame_idx ;
     char                *   key_name ;

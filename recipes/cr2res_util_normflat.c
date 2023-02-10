@@ -487,7 +487,7 @@ static int cr2res_util_normflat_reduce(
     cpl_image           *   bpm_flat ;
     cpl_propertylist    *   plist ;
     hdrl_image          *   master_flat_loc ;
-    int                     i, ext_nr ;
+    int                     ext_nr ;
     
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;

@@ -252,7 +252,6 @@ static int cr2res_util_genlines(
     double              *   pbivec_selected_x ;
     double              *   pbivec_selected_y ;
     int                     nvals ;
-    double                  wavel ;
     cpl_table           *   tab ;
     char                *   setting ;
     int                     i, j, k ;

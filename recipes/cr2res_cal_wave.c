@@ -536,7 +536,7 @@ static int cr2res_cal_wave(
     hdrl_image          *   out_wave_map_fpet[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist_fpet[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   qc_main ;
-    int                     det_nr, order, i ;
+    int                     det_nr, i ;
 
     /* Needed for sscanf() */
     setlocale(LC_NUMERIC, "C");
@@ -1620,7 +1620,7 @@ static int cr2res_cal_wave_qc_tilt(
     cpl_polynomial  *   slit_curv_poly ;
     char            *   qc_name;
     double              top_x, top_y, bot_x, bot_y, tilt, tilt_avg;
-    int                 ref_det, cur_order, ref_x, ntilt ;
+    int                 cur_order, ref_x, ntilt ;
     cpl_size            nrows, k ;
 
     /* Check Inputs */

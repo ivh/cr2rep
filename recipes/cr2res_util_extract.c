@@ -352,9 +352,7 @@ static int cr2res_util_extract(
     cpl_table           *   trace_table_new ;
     hdrl_image          *   science_hdrl;
     cpl_table           *   slit_func_in ;
-    cpl_image           *   bpm_img;
-    cpl_mask            *   bpm_mask;
-    int                     det_nr, ext_nr, order, i ;
+    int                     det_nr, ext_nr, i ;
     cr2res_extr_method      extr_method;
 
     /* Needed for sscanf() */

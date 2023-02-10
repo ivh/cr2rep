@@ -548,7 +548,7 @@ static int cr2res_obs_2d_reduce(
     cpl_size                i ;
     char                *   key_name ;
     int                 *   order_idx_values ;
-    int                     det_nr, nb_order_idx_values, order_real,
+    int                     nb_order_idx_values, order_real,
                             order_zp, order_idx, order_idxp ;
 
     /* Check Inputs */

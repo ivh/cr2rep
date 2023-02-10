@@ -257,7 +257,7 @@ static int cr2res_util_trace_map(
     hdrl_image          *   slit_curve_maps[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_table           *   trace_table ;
-    int                     det_nr, ext_nr, order, i;
+    int                     det_nr, ext_nr, i;
 
     /* Initialise */
 

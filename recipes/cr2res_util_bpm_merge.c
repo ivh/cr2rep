@@ -223,7 +223,7 @@ static int cr2res_util_bpm_merge(
     cpl_image           *   merged_bpms[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
-    int                     i, j, det_nr, wished_ext_nb; 
+    int                     i, det_nr, wished_ext_nb; 
 
     /* Initialise */
 

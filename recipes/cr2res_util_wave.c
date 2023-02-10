@@ -405,7 +405,7 @@ static int cr2res_util_wave(
     cpl_propertylist    *   qcs_plist ;
     cpl_propertylist    *   plist ;
     const char          *   first_file;
-    int                     det_nr, order, i, j, zp_order, grat1_order ;
+    int                     det_nr, i, j, zp_order, grat1_order ;
 
     /* Needed for sscanf() */
     setlocale(LC_NUMERIC, "C");
