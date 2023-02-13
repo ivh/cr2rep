@@ -137,8 +137,8 @@ int cr2res_slit_curv_compute_order_trace(
         const int               trace,
         const int               height,
         const int               window,
-        const cpl_size          degree,
-        const int               fit_second_order,
+        const cpl_size          change_degree,
+        const int               slit_degree,
         cpl_polynomial      **  slit_poly_a,
         cpl_polynomial      **  slit_poly_b,
         cpl_polynomial      **  slit_poly_c)
@@ -156,13 +156,19 @@ int cr2res_slit_curv_compute_order_trace(
     cpl_size                power;
     cpl_matrix          *   samppos;
     hdrl_image          *   hdrl_other;
+    int                     fit_second_order;
 
     if (img == NULL || trace_wave == NULL || slit_poly_a == NULL ||
         slit_poly_b == NULL || slit_poly_c == NULL) return -1;
-    if (degree != 1 && degree != 2) {
+    if (slit_degree == 1)
+        fit_second_order = 0;
+    else if (slit_degree == 2)
+        fit_second_order = 1;
+    else {
         cpl_msg_error(__func__, "Only degree 1 or 2 are valid") ;
         return -1 ;
     }
+    
 
     img_in = hdrl_image_get_image_const(img);
     const int ncols = cpl_image_get_size_x(img_in);
@@ -244,11 +250,11 @@ int cr2res_slit_curv_compute_order_trace(
     *slit_poly_c = cpl_polynomial_new(1);
 
     cpl_polynomial_fit(*slit_poly_a, samppos, NULL, vec_a, NULL,
-        CPL_TRUE, NULL, &degree);
+        CPL_TRUE, NULL, &change_degree);
     cpl_polynomial_fit(*slit_poly_b, samppos, NULL, vec_b, NULL,
-        CPL_TRUE, NULL, &degree);
+        CPL_TRUE, NULL, &change_degree);
     cpl_polynomial_fit(*slit_poly_c, samppos, NULL, vec_c, NULL,
-        CPL_TRUE, NULL, &degree);
+        CPL_TRUE, NULL, &change_degree);
     cpl_matrix_unwrap(samppos);
 
     // Add 1 to the linear coefficient of the a polynomial

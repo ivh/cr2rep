@@ -1100,9 +1100,9 @@ static int cr2res_cal_wave_reduce(
             /* TODO : Should those become parameters ? */
             int height = 100 ;
             int window = 15 ;
-            int fit_c = 0 ;
+            int change_degree = 1;
             if (cr2res_slit_curv_compute_order_trace(fpet_image, tw_in, order, 
-                        trace_id, height, window, slit_degree, fit_c, 
+                        trace_id, height, window, change_degree, slit_degree, 
                         &slit_polya, &slit_polyb, &slit_polyc)) {
                 cpl_msg_error(__func__, "Failed to compute slit curvature") ;
                 cpl_table_delete(tw_in) ;

@@ -275,7 +275,7 @@ static int cr2res_util_slit_curv(
     cpl_polynomial      *   slit_polyb ;
     cpl_polynomial      *   slit_polyc ;
     cpl_array           *   slit_array ;
-    int                     det_nr, order, trace_id, nb_traces, curv_degree ;
+    int                     det_nr, order, trace_id, nb_traces, slit_degree ;
     char                *   out_file;
     int                     i, j, k ;
 
@@ -291,7 +291,7 @@ static int cr2res_util_slit_curv(
     reduce_trace = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_slit_curv.degree");
-    curv_degree = cpl_parameter_get_int(param);
+    slit_degree = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_slit_curv.display");
     display = cpl_parameter_get_int(param) ;
@@ -391,12 +391,12 @@ static int cr2res_util_slit_curv(
         
                 /* Call the Slit Curvature Computation */
                 /* TODO : Should those become parameters ? */
-                int height = 100 ;
+                int height = 165 ;
                 int window = 15 ;
-                int fit_c = 0 ;
+                int change_degree = 1; 
                 if (cr2res_slit_curv_compute_order_trace(lamp_image[det_nr-1], 
                             trace_wave[det_nr-1], order, trace_id,
-                            height, window, curv_degree, fit_c, 
+                            height, window, change_degree, slit_degree , 
                             &slit_polya, &slit_polyb, &slit_polyc)) {
                     cpl_msg_warning(__func__, 
                             "Cannot Compute Slit curvature for Order %d",
