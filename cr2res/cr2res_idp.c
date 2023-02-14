@@ -91,6 +91,7 @@ int cr2res_idp_save(
     double                  dit, exptime, texptime, mjd_start, mjd_end,
                             wmin, wmax, resol ;
 	const char			*	progid ;
+	const char			*	slitname ;
     int                     err, i, ndit, nexp, nraw, obid, nrows, ord ;
     char                *   tmp_keyname;
 
@@ -279,30 +280,13 @@ int cr2res_idp_save(
     cpl_propertylist_set_comment(pri_head, "SPEC_BIN", 
             "Average spectral bin width [nm]") ;
 
-    /* Get the TW frame and its headers, for some key values */
-    tw_frame = cr2res_io_find_TRACE_WAVE(allframes);
-    tw_fname = cpl_frame_get_filename(tw_frame) ;
-    tmp_arr = cpl_array_new(12*CR2RES_NB_DETECTORS, CPL_TYPE_DOUBLE);
-    for (i=0; i < CR2RES_NB_DETECTORS; i++ ){
-        ext_head = cpl_propertylist_load_regexp(tw_fname, i,
-                                            "ESO QC WAVE RESOL-*", 0);
-        for (ord=0; ord < cpl_propertylist_get_size(ext_head); ord++){
-            tmp_keyname = cpl_sprintf("%s-%02d-01", 
-                            CR2RES_HEADER_QC_WAVE_RESOL, ord+1);
-            resol = cpl_propertylist_get_double(ext_head, tmp_keyname);
-            if (resol==0){
-                cpl_error_reset();
-            } else {
-                cpl_array_set_double(tmp_arr, ord + (i*12),resol);
-            }
-            cpl_free(tmp_keyname);
-        }
-        cpl_propertylist_delete(ext_head);
-    }
-    cpl_propertylist_update_double(pri_head, "SPEC_RES",
-                                cpl_array_get_median(tmp_arr)) ;
+    slitname = cpl_propertylist_get_string(pri_head,"ESO INS SLIT1 NAME");
+    if (!strcmp(slitname,"w_0.2"))
+        cpl_propertylist_update_double(pri_head, "SPEC_RES", SPEC_RESOL_SLIT02);
+    else if (!strcmp(slitname,"w_0.4"))
+        cpl_propertylist_update_double(pri_head, "SPEC_RES", SPEC_RESOL_SLIT04);
     cpl_propertylist_set_comment(pri_head, "SPEC_RES",
-                "Median resolving power"); 
+                "Nominal resolving power for the given slit"); 
     cpl_array_delete(tmp_arr);
 
     /* Get some keys from the extension headers*/
@@ -357,6 +341,13 @@ int cr2res_idp_save(
     cpl_propertylist_set_comment(ext_head, "TITLE",
                     "Title is the same as OBJECT");
 
+    cpl_propertylist_update_double(ext_head, "SPEC_VAL", (wmax+wmin)/2.0) ;
+    cpl_propertylist_set_comment(ext_head, "SPEC_VAL", 
+            "Characteristic spectral coordinate value [nm]") ;
+    cpl_propertylist_update_double(ext_head, "SPEC_BW", wmax-wmin) ;
+    cpl_propertylist_set_comment(ext_head, "SPEC_BW", 
+            "Width of the spectrum [nm]") ;
+    
     cpl_propertylist_update_string(ext_head, "VOPUB", "ESO/SAF") ;
     cpl_propertylist_set_comment(ext_head, "VOPUB", "VO Publishing Authority") ;
     cpl_propertylist_update_string(ext_head, "VOCLASS", "SPECTRUM V1.0") ;
@@ -383,7 +374,7 @@ int cr2res_idp_save(
     cpl_propertylist_update_string(ext_head, "TUNIT2", "count");
 
     cpl_propertylist_update_string(ext_head, "TUTYP3",
-                    "Spectrum.Char.FluxAxis.Accuracy.StatError");
+                    "Spectrum.Data.FluxAxis.Accuracy.StatError");
     cpl_propertylist_update_string(ext_head, "TTYPE3", "ERR");
     cpl_propertylist_update_string(ext_head, "TUCD3",
                         "stat.error;phot.count");
