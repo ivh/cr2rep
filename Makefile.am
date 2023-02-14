@@ -26,7 +26,7 @@ DISTCLEANFILES = *~
 
 COMPILE_FIRST = 
 
-TOPSUBDIRS = hdrl irplib cr2res recipes regtests reflex
+TOPSUBDIRS = tools hdrl irplib cr2res recipes regtests reflex
 
 COMPILE_LAST =
 
@@ -35,7 +35,7 @@ DOXYGEN_SUBDIRS =
 
 SUBDIRS = $(COMPILE_FIRST) $(TOPSUBDIRS) $(COMPILE_LAST)
 
-EXTRA_DIST = catalogs m4macros/eso.m4 m4macros/cpl.m4 admin/doxygen.am \
+EXTRA_DIST = catalogs tools m4macros/eso.m4 m4macros/cpl.m4 admin/doxygen.am \
 	doxygen/Doxyfile.in setup 
 
 

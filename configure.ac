@@ -92,6 +92,7 @@ AC_CONFIG_FILES(Makefile
                 doxygen/Doxyfile
                 cr2res/Makefile
                 cr2res/tests/Makefile
+                tools/Makefile
                 reflex/Makefile
                 reflex/cr2res_obs_nodding.xml
                 reflex/cr2res_obs_2d.xml
