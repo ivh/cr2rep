@@ -279,8 +279,8 @@ int cr2res_idp_save(
     tmp_arr = cpl_array_new(cpl_array_get_size(wlen_arr)-1, CPL_TYPE_DOUBLE);
     for (i=1; i<cpl_array_get_size(wlen_arr);i++){
         cpl_array_set_double(tmp_arr, i-1, 
-            cpl_array_get_double(wlen_arr,i-1, NULL)- 
-                cpl_array_get_double(wlen_arr,i, NULL)
+            cpl_array_get_double(wlen_arr,i, NULL)- 
+                cpl_array_get_double(wlen_arr,i-1, NULL)
         );
     }
     spec_bin = cpl_array_get_median(tmp_arr);
