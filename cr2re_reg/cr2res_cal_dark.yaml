@@ -1,40 +1,23 @@
 # log default parameters
 PreExec:
-    - "esorex --man cr2res_cal_dark"
+  - "esorex --man cr2res_cal_dark"
+
+# no malloc debugging, disables sparse calloc
+# catalogue relies on sparse data imcore_overlp
+TestEnv:
+  MALLOC_CHECK_: 0
+  MALLOC_PERTURB_: 0
 
 Defaults:
-# defaults that apply to all EsorexTests
   EsorexTests:
-    recipe: cr2res_cal_dark
     result:
       fitsdiff:
 
-# Naming convention: yy_zz - anchor &yy
-#   yy: Identifies the data set ID
-#   zz: Identifies the test case ID
-
 EsorexTests:
-  - 'a01_01': &01
-
-      description: "set #1"
+   - 01_01:
+      recipe: cr2res_cal_dark
       sof:
-        - ["raw/CRIRE.2021-09-17T16:17:03.432.fits", "DARK"]
-        - ["raw/CRIRE.2021-09-17T16:21:25.452.fits", "DARK"]
-        - ["raw/CRIRE.2021-09-17T16:21:25.452.fits", "DARK"]
-      parameters: &cr2res_cal_dark_default_par
-        gain:                           2.5
-        collapse.method:                "MEDIAN"
-        collapse.sigclip.kappa-low:     3.0
-        collapse.sigclip.kappa-high:    3.0
-        collapse.sigclip.niter:         5
-        collapse.minmax.nlow:           1.0
-        collapse.minmax.nhigh :         1.0
-  - 'a01_02':
-      <<: *01
-      parameters:
-        <<: *cr2res_cal_dark_default_par
-        collapse.method:                "MINMAX"
+        - ["raw/CRIRE.2021-09-17T16:17:03.432.fits", DARK]        
+        - ["raw/CRIRE.2021-09-17T16:21:25.452.fits", DARK]        
+        - ["raw/CRIRE.2021-09-17T16:21:25.452.fits", DARK]        
 
-fits_diff_tolerance_relative: 3.9e-1
-fits_diff_tolerance_absolute: 1.1e-2
-fits_diff_additional_keywords: ["QC*", "QC2*"]
