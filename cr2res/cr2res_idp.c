@@ -89,7 +89,7 @@ int cr2res_idp_save(
     cpl_propertylist    *   pri_head ;
     cpl_propertylist    *   ext_head ;
     double                  dit, exptime, texptime, mjd_start, mjd_end,
-                            wmin, wmax, resol ;
+                            wmin, wmax, resol, spec_bin ;
 	const char			*	progid ;
 	const char			*	slitname ;
     int                     err, i, ndit, nexp, nraw, obid, nrows, ord ;
@@ -276,9 +276,18 @@ int cr2res_idp_save(
     cpl_propertylist_set_comment(pri_head, "SPECSYS", 
             "") ;
 
-    cpl_propertylist_update_double(pri_head, "SPEC_BIN", (wmax-wmin)/nrows) ;
+    tmp_arr = cpl_array_new(cpl_array_get_size(wlen_arr)-1, CPL_TYPE_DOUBLE);
+    for (i=1; i<cpl_array_get_size(wlen_arr);i++){
+        cpl_array_set_double(tmp_arr, i-1, 
+            cpl_array_get_double(wlen_arr,i-1, NULL)- 
+                cpl_array_get_double(wlen_arr,i, NULL)
+        );
+    }
+    spec_bin = cpl_array_get_median(tmp_arr);
+    cpl_array_delete(tmp_arr);
+    cpl_propertylist_update_double(pri_head, "SPEC_BIN", spec_bin) ;
     cpl_propertylist_set_comment(pri_head, "SPEC_BIN", 
-            "Average spectral bin width [nm]") ;
+            "Median spectral bin width [nm]") ;
 
     slitname = cpl_propertylist_get_string(pri_head,"ESO INS SLIT1 NAME");
     if (!strcmp(slitname,"w_0.2"))
@@ -287,7 +296,6 @@ int cr2res_idp_save(
         cpl_propertylist_update_double(pri_head, "SPEC_RES", SPEC_RESOL_SLIT04);
     cpl_propertylist_set_comment(pri_head, "SPEC_RES",
                 "Nominal resolving power for the given slit"); 
-    cpl_array_delete(tmp_arr);
 
     /* Get some keys from the extension headers*/
     tmp_arr = cpl_array_new(12*CR2RES_NB_DETECTORS, CPL_TYPE_DOUBLE);
