@@ -16,7 +16,7 @@ Defaults:
 EsorexTests:
 
 
-   - 01_01A:
+   - Test_01_01:
       recipe: cr2res_cal_dark
       sof:
         - ["raw/CRIRE.2021-09-17T16:17:03.432.fits", DARK]        
