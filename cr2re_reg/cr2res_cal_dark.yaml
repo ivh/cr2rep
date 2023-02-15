@@ -14,10 +14,11 @@ Defaults:
       fitsdiff:
 
 EsorexTests:
-   - 01_01:
+
+
+   - 01_01A:
       recipe: cr2res_cal_dark
       sof:
         - ["raw/CRIRE.2021-09-17T16:17:03.432.fits", DARK]        
         - ["raw/CRIRE.2021-09-17T16:21:25.452.fits", DARK]        
         - ["raw/CRIRE.2021-09-17T16:21:25.452.fits", DARK]        
-
