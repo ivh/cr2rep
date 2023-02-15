@@ -22,19 +22,18 @@ EsorexTests:
         - ["raw/CRIRE.2021-09-17T16:21:25.452.fits", "DARK"]
         - ["raw/CRIRE.2021-09-17T16:21:25.452.fits", "DARK"]
       parameters: &cr2res_cal_dark_default_par
-        gain:                   2.5
-        method:                 "MEDIAN"
-        sigclip.kappa-low:      3.0
-        sigclip.kappa-high:     3.0
-        sigclip.niter:          5
-        minmax.nlow:            1.0
-        minmax.nhigh :          1.0
-
+        gain:                           2.5
+        collapse.method:                "MEDIAN"
+        collapse.sigclip.kappa-low:     3.0
+        collapse.sigclip.kappa-high:    3.0
+        collapse.sigclip.niter:         5
+        collapse.minmax.nlow:           1.0
+        collapse.minmax.nhigh :         1.0
   - '01_02':
       <<: *01
       parameters:
         <<: *cr2res_cal_dark_default_par
-        method:                 "MINMAX"
+        collapse.method:                "MINMAX"
 
 fits_diff_tolerance_relative: 3.9e-1
 fits_diff_tolerance_absolute: 1.1e-2
