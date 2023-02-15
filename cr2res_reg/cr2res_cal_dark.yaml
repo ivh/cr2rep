@@ -14,7 +14,7 @@ Defaults:
 #   zz: Identifies the test case ID
 
 EsorexTests:
-  - '01_01': &01
+  - 'a01_01': &01
 
       description: "set #1"
       sof:
@@ -29,7 +29,7 @@ EsorexTests:
         collapse.sigclip.niter:         5
         collapse.minmax.nlow:           1.0
         collapse.minmax.nhigh :         1.0
-  - '01_02':
+  - 'a01_02':
       <<: *01
       parameters:
         <<: *cr2res_cal_dark_default_par
