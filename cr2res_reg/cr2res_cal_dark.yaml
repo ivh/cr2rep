@@ -1,7 +1,3 @@
-TestEnv:
-  ESOREX_SUPPRESS_PREFIX: "TRUE"
-  ESOREX_TIME: "TRUE"
-
 # log default parameters
 PreExec:
     - "esorex --man cr2res_cal_dark"
@@ -10,19 +6,21 @@ Defaults:
 # defaults that apply to all EsorexTests
   EsorexTests:
     recipe: cr2res_cal_dark
+    result:
+      fitsdiff:
 
-# Naming convention: xx_yy_zz - anchor xx_recipe_yy
-#   xx: Identifies data period (01 for pre-PAE, 02 for Comm1, ...)
+# Naming convention: yy_zz - anchor &yy
 #   yy: Identifies the data set ID
 #   zz: Identifies the test case ID
 
 EsorexTests:
-  - '01_01_01': &01_cr2res_cal_dark_01
-      description: "Old CRIRES data - cr2res_cal_dark - set #1"
+  - '01_01': &01
+
+      description: "set #1"
       sof:
-        - ["cr2res/raw/CRIRE.2007-08-19T15:04:14.628.fits", "DARK"]
-        - ["cr2res/raw/CRIRE.2007-08-19T15:10:10.872.fits", "DARK"]
-        - ["cr2res/raw/CRIRE.2007-08-19T15:16:07.118.fits", "DARK"]
+        - ["raw/CRIRE.2021-09-17T16:17:03.432.fits", "DARK"]
+        - ["raw/CRIRE.2021-09-17T16:21:25.452.fits", "DARK"]
+        - ["raw/CRIRE.2021-09-17T16:21:25.452.fits", "DARK"]
       parameters: &cr2res_cal_dark_default_par
         gain:                   2.5
         method:                 "MEDIAN"
@@ -32,10 +30,12 @@ EsorexTests:
         minmax.nlow:            1.0
         minmax.nhigh :          1.0
 
-  - '01_01_02':
-      <<: *01_cr2res_cal_dark_01
+  - '01_02':
+      <<: *01
       parameters:
         <<: *cr2res_cal_dark_default_par
         method:                 "MINMAX"
 
-
+fits_diff_tolerance_relative: 3.9e-1
+fits_diff_tolerance_absolute: 1.1e-2
+fits_diff_additional_keywords: ["QC*", "QC2*"]
