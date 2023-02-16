@@ -1,28 +1,33 @@
 
-###
-### H14
-###
+echo $SOF_DATA
+/home/yjung/TEST/SOF_DATA/cr2re/large/input_data/head
 
-cd $PC2/cr2res_reg/
-usec2
-eso-testgen.py --flatten *.yaml
-cd sof
-rm *basic*
+ls $SOF_DATA
+dynamic  raw  static
 
-esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_trace.01_01_01.cr2res_util_trace.rc cr2res_util_trace cr2res_util_trace.01_01_01.cr2res_util_trace.sof
-esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_extract.01_01_01.cr2res_util_extract.rc cr2res_util_extract cr2res_util_extract.01_01_01.cr2res_util_extract.sof
-esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_wave.01_01_01.cr2res_util_wave.rc cr2res_util_wave cr2res_util_wave.01_01_01.cr2res_util_wave.sof
-esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_tilt.01_01_01.cr2res_util_tilt.rc cr2res_util_tilt cr2res_util_tilt.01_01_01.cr2res_util_tilt.sof
+# Run Localy
+cd cr2rep
+./bootstrap; ./configure; make
+cd regtest/tests/
+make build_mk
+make regcheck
 
-esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_trace.01_02_01.cr2res_util_trace.rc cr2res_util_trace cr2res_util_trace.01_02_01.cr2res_util_trace.sof
-esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_extract.01_02_01.cr2res_util_extract.rc cr2res_util_extract cr2res_util_extract.01_02_01.cr2res_util_extract.sof
-esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_wave.01_02_01.cr2res_util_wave.rc cr2res_util_wave cr2res_util_wave.01_02_01.cr2res_util_wave.sof
-esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_tilt.01_02_01.cr2res_util_tilt.rc cr2res_util_tilt cr2res_util_tilt.01_02_01.cr2res_util_tilt.sof
+# Yaml files
+cr2rep/cr2re_reg/*.yaml
 
-esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_trace.01_03_01.cr2res_util_trace.rc cr2res_util_trace cr2res_util_trace.01_03_01.cr2res_util_trace.sof
-esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_extract.01_03_01.cr2res_util_extract.rc cr2res_util_extract cr2res_util_extract.01_03_01.cr2res_util_extract.sof
-esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_wave.01_03_01.cr2res_util_wave.rc cr2res_util_wave cr2res_util_wave.01_03_01.cr2res_util_wave.sof
-esorex --mem-check=true --output-dir=$SOF_DATA/cr2res/intermediate --recipe-config=cr2res_util_tilt.01_03_01.cr2res_util_tilt.rc cr2res_util_tilt cr2res_util_tilt.01_03_01.cr2res_util_tilt.sof
+# Jenkins
+Set
+    "has_regression_tests = true"
+in
+    P_tools/ci-jenkins/jenkinsfiles/vlt-elt-pipelines/cr2re/cr2re-head.groovy
+and commit.
+
+=> Jenkins > VLT/ELT Pipelines > CRIRES+ > cr2re-head > Build w. Param.
+    -> Tick run_regression_stage and keep_regression_results
+
+Data have to be exported to pipedata as buildacc:
+scp -r /home/yjung/TEST/SOF_DATA/cr2re buildacc@psdlin2:/pipedata/regression/.
+
 
 
 
