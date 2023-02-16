@@ -1,0 +1,28 @@
+# log default parameters
+PreExec:
+  - "esorex --man cr2res_obs_nodding"
+
+# no malloc debugging, disables sparse calloc
+# catalogue relies on sparse data imcore_overlp
+TestEnv:
+  MALLOC_CHECK_: 0
+  MALLOC_PERTURB_: 0
+
+Defaults:
+  EsorexTests:
+    result:
+      fitsdiff:
+
+EsorexTests:
+
+
+   - Test_01_01:
+      recipe: cr2res_obs_nodding
+      sof:
+        - ["raw/CRIRE.2021-09-17T06:18:54.988.fits", OBS_NODDING_JITTER]        
+        - ["raw/CRIRE.2021-09-17T06:20:52.231.fits", OBS_NODDING_JITTER]        
+        - ["static/std_photom.fits", PHOTO_FLUX]        
+        - ["dynamic/cr2res_cal_dark_bpm.fits", CAL_DARK_BPM]        
+        - ["dynamic/cr2res_cal_flat_Open_blaze.fits", CAL_FLAT_EXTRACT_1D]        
+        - ["dynamic/cr2res_cal_flat_Open_master_flat.fits", CAL_FLAT_MASTER]        
+        - ["dynamic/cr2res_cal_wave_tw_fpet.fits", CAL_WAVE_TW]        

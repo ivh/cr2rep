@@ -1,0 +1,27 @@
+# log default parameters
+PreExec:
+  - "esorex --man cr2res_cal_wave"
+
+# no malloc debugging, disables sparse calloc
+# catalogue relies on sparse data imcore_overlp
+TestEnv:
+  MALLOC_CHECK_: 0
+  MALLOC_PERTURB_: 0
+
+Defaults:
+  EsorexTests:
+    result:
+      fitsdiff:
+
+EsorexTests:
+   - Test_01_01:
+      recipe: cr2res_cal_wave
+      sof:
+        - ["raw/CRIRE.2021-09-17T16:50:34.529.fits", WAVE_FPET]        
+        - ["raw/CRIRE.2021-09-17T16:46:18.295.fits", WAVE_UNE]        
+        - ["static/Y1028_tw.fits", UTIL_WAVE_TW]        
+        - ["static/lines_u_sarmiento_Y1028.fits", EMISSION_LINES]        
+        - ["dynamic/cr2res_cal_dark_bpm.fits", CAL_DARK_BPM]
+        - ["dynamic/cr2res_cal_dark_master.fits", CAL_DARK_MASTER]
+        - ["dynamic/cr2res_cal_flat_Open_master_flat.fits", CAL_FLAT_MASTER]
+
