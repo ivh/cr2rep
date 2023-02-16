@@ -135,6 +135,20 @@ int cr2res_idp_save(
             CR2RES_OBS_NODDING_IDP_PROCATG) ;
     cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_TYPE,
             CR2RES_EXTRACT_1D_IDP_DRSTYPE) ;
+
+    /* RADECSYS renamed to RADESYS */
+    if (cpl_propertylist_has(pri_head, "RADECSYS")) {
+        if (!cpl_propertylist_has(pri_head, "RADESYS")) {
+            const cpl_property *_property =
+                cpl_propertylist_get_property_const(pri_head, "RADECSYS");
+            cpl_property *property = cpl_property_duplicate(_property);
+            cpl_property_set_name(property, "RADESYS");
+            cpl_propertylist_append_property(pri_head, property);
+            cpl_property_delete(property);
+        }
+        cpl_propertylist_erase(pri_head, "RADECSYS");
+    }
+
     cpl_dfs_setup_product_header(pri_head, out_frame, allframes,
             parlist, recipe, VERSION, "PRO-1.16", ref_frame);
 
@@ -317,8 +331,6 @@ int cr2res_idp_save(
                 "Median signal-to-noise in all detector-orders"); 
     cpl_array_delete(tmp_arr);
 
-    /* Remove some keys */
-    cpl_propertylist_erase(pri_head, "RADECSYS");
     /* Remove the ASSON keywords */
     cpl_propertylist_erase_regexp(pri_head, "ASSO*", 0);
 
