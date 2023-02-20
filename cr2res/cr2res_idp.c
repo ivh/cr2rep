@@ -93,7 +93,8 @@ int cr2res_idp_save(
 	const char			*	progid ;
 	const char			*	slitname ;
     int                     err, i, ndit, nexp, nraw, obid, nrows, ord ;
-    char                *   tmp_keyname;
+    char                *   keyname;
+    const char          *   fname;
 
     cpl_msg_info(__func__, "Create IDPs for %s", filename) ;
     /* Output file name */
@@ -214,6 +215,16 @@ int cr2res_idp_save(
     nraw = cpl_frameset_get_size(rawframes) ;
     cpl_propertylist_update_int(pri_head, "NCOMBINE", nraw);
 
+    for (i=1; i<=nraw; i++){
+        keyname = cpl_sprintf("ESO PRO REC1 RAW%d NAME", i);
+        fname = cpl_propertylist_get_string(pri_head,keyname);
+        cpl_free(keyname);
+        keyname = cpl_sprintf("PROV%d", i);
+        cpl_propertylist_update_string(pri_head, keyname, fname);
+        cpl_free(keyname);
+    }
+
+
     if (!strcmp(recipe, "cr2res_obs_nodding"))
         cpl_propertylist_update_string(pri_head, "OBSTECH", "NODDING") ;
     else if (!strcmp(recipe, "cr2res_obs_staring"))
@@ -315,14 +326,14 @@ int cr2res_idp_save(
     tmp_arr = cpl_array_new(12*CR2RES_NB_DETECTORS, CPL_TYPE_DOUBLE);
     for (i=0; i<CR2RES_NB_DETECTORS; i++){
         for (ord=0; ord < 12; ord++){
-            tmp_keyname = cpl_sprintf(CR2RES_HEADER_QC_SNR, ord+1);
-            resol = cpl_propertylist_get_double(ext_plist[i], tmp_keyname);
+            keyname = cpl_sprintf(CR2RES_HEADER_QC_SNR, ord+1);
+            resol = cpl_propertylist_get_double(ext_plist[i], keyname);
             if (resol==0){
                 cpl_error_reset();
             } else {
                 cpl_array_set_double(tmp_arr, ord + (i*12),resol);
             }
-            cpl_free(tmp_keyname);
+            cpl_free(keyname);
         }
     }
     cpl_propertylist_update_double(pri_head, "SNR",
