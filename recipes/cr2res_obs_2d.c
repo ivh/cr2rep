@@ -29,7 +29,7 @@
 
 #include "cr2res_utils.h"
 #include "cr2res_calib.h"
-
+#include "cr2res_idp.h"
 #include "cr2res_pfits.h"
 #include "cr2res_dfs.h"
 #include "cr2res_bpm.h"
@@ -248,6 +248,13 @@ static int cr2res_obs_2d_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_2d.create_idp",
+            CPL_TYPE_BOOL, "Flag to produce  IDP files",
+            "cr2res.cr2res_obs_2d", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "idp");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     return 0;
 }
 
@@ -321,7 +328,7 @@ static int cr2res_obs_2d(
     cpl_table           *   extract[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
     cpl_size                nsky, nobj ;
-    int                     i, det_nr; 
+    int                     i, det_nr, create_idp; 
 
     /* Initialise */
 
@@ -341,6 +348,9 @@ static int cr2res_obs_2d(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_2d.trace_nb");
     reduce_trace = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_2d.create_idp");
+    create_idp = cpl_parameter_get_bool(param);
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
@@ -469,6 +479,10 @@ static int cr2res_obs_2d(
         cr2res_io_save_EXTRACT_2D(out_file, frameset, frameset, parlist, 
                 extract, qc_main, ext_plist, CR2RES_OBS_2D_EXTRACT_PROCATG, 
                 RECIPE_STRING) ;
+        if (create_idp) {
+			cr2res_idp_save(out_file, frameset, rawframes_obj, parlist, 
+                    extract, ext_plist, RECIPE_STRING) ;
+		}
         cpl_free(out_file);
 
         /* Free */

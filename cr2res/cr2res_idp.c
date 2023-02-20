@@ -46,7 +46,8 @@ static int cr2res_idp_copy(
     cpl_size            out_start_idx,
     int                 det_nr,
     int                 order,
-    int                 tracenb) ;
+    int                 tracenb,
+    const char      *   recipe) ;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -101,7 +102,7 @@ int cr2res_idp_save(
     idp_filename = cpl_sprintf("idp_%s", filename) ;
 
     /* Create the big table */
-    idp_tab = cr2res_idp_create_table(tables) ;
+    idp_tab = cr2res_idp_create_table(tables, recipe) ;
 
     /* Set the units */
     cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_WAVE, "nm") ;
@@ -122,7 +123,6 @@ int cr2res_idp_save(
 	/* Prepare frame */
 	out_frame = cpl_frame_new();
 	cpl_frame_set_filename(out_frame, idp_filename);
-	cpl_frame_set_tag(out_frame, CR2RES_OBS_NODDING_IDP_PROCATG);
 	cpl_frame_set_type(out_frame, CPL_FRAME_TYPE_ANY);
 	cpl_frame_set_group(out_frame, CPL_FRAME_GROUP_PRODUCT);
 	cpl_frame_set_level(out_frame, CPL_FRAME_LEVEL_FINAL);
@@ -132,10 +132,31 @@ int cr2res_idp_save(
     ref_fname = cpl_frame_get_filename(ref_frame) ;
 
     pri_head = cpl_propertylist_load(ref_fname, 0); 
-    cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_CATG,
-            CR2RES_OBS_NODDING_IDP_PROCATG) ;
+    
+    // TODO: split this type by recipe
     cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_TYPE,
             CR2RES_EXTRACT_1D_IDP_DRSTYPE) ;
+
+    if (!strcmp(recipe, "cr2res_obs_nodding")) {
+	    cpl_frame_set_tag(out_frame, CR2RES_OBS_NODDING_IDP_PROCATG);
+        cpl_propertylist_update_string(pri_head, "OBSTECH1", "NODDING") ;
+        cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_CATG,
+            CR2RES_OBS_NODDING_IDP_PROCATG) ;
+    }
+    else if (!strcmp(recipe, "cr2res_obs_staring")) {
+	    cpl_frame_set_tag(out_frame, CR2RES_OBS_STARING_IDP_PROCATG);
+        cpl_propertylist_update_string(pri_head, "OBSTECH", "STARING") ;
+        cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_CATG,
+            CR2RES_OBS_STARING_IDP_PROCATG) ;
+    }
+    else if (!strcmp(recipe, "cr2res_obs_2d")) {
+        cpl_propertylist_update_string(pri_head, "OBSTECH", "GENERIC_OFFSET") ;
+    }
+    else if (!strcmp(recipe, "cr2res_obs_pol")) {
+        cpl_propertylist_update_string(pri_head, "OBSTECH", "POLARIMETRY") ;
+    cpl_propertylist_set_comment(pri_head, "OBSTECH",
+			"Technique of observation") ;
+    }
 
     /* RADECSYS renamed to RADESYS */
     if (cpl_propertylist_has(pri_head, "RADECSYS")) {
@@ -224,17 +245,6 @@ int cr2res_idp_save(
         cpl_free(keyname);
     }
 
-
-    if (!strcmp(recipe, "cr2res_obs_nodding"))
-        cpl_propertylist_update_string(pri_head, "OBSTECH", "NODDING") ;
-    else if (!strcmp(recipe, "cr2res_obs_staring"))
-        cpl_propertylist_update_string(pri_head, "OBSTECH", "STARING") ;
-    else if (!strcmp(recipe, "cr2res_obs_2d"))
-        cpl_propertylist_update_string(pri_head, "OBSTECH", "GENERIC_OFFSET") ;
-    else if (!strcmp(recipe, "cr2res_obs_pol"))
-        cpl_propertylist_update_string(pri_head, "OBSTECH", "POLARIMETRY") ;
-    cpl_propertylist_set_comment(pri_head, "OBSTECH",
-			"Technique of observation") ;
 
     if (!strcmp(recipe, "cr2res_obs_2d"))
         cpl_propertylist_update_bool(pri_head, "EXT_OBJ", 1) ;
@@ -458,7 +468,8 @@ int cr2res_idp_save(
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_idp_create_table(
-        cpl_table               **  tables)
+        cpl_table               **  tables,
+        const char              *   recipe)
 {
     cpl_table           *   idp_tab ;
     cpl_table           *   tmp_tab ;
@@ -506,6 +517,12 @@ cpl_table * cr2res_idp_create_table(
     cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_TRACE, CPL_TYPE_INT);
     cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_DETEC, CPL_TYPE_INT);
     cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_XPOS, CPL_TYPE_INT);
+    if (!strcmp(recipe, "cr2res_obs_2d")) {
+        cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_YPOS, CPL_TYPE_INT);
+        cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_SLITFRAC, CPL_TYPE_DOUBLE);
+    } else if (!strcmp(recipe, "cr2res_obs_pol")) {
+        // TODO
+    }
 
     /* Fill the table */
     ntot = 0 ;
@@ -521,7 +538,7 @@ cpl_table * cr2res_idp_create_table(
                         !strcmp(col_kind, CR2RES_COL_SPEC_SUFFIX)) {
                     /* Handle this extracted spectrum */
                     cr2res_idp_copy(tmp_tab, tables[i], ntot, i+1, order, 
-                            trace_nb) ;
+                            trace_nb, recipe) ;
                     ntot += cpl_table_get_nrow(tables[i]) ;
                 }
                 if (col_kind != NULL) cpl_free(col_kind) ;
@@ -555,7 +572,6 @@ cpl_table * cr2res_idp_create_table(
     }
     cpl_table_erase_selected(tmp_tab) ;
 
-    //return tmp_tab;
     /* Transform table to single row with arrays */
     col_names = cpl_table_get_column_names(tmp_tab);
     ncols = cpl_table_get_ncol(tmp_tab);
@@ -665,7 +681,8 @@ static int cr2res_idp_copy(
     cpl_size            out_start_idx,
     int                 det_nr,
     int                 order,
-    int                 tracenb) 
+    int                 tracenb,
+    const char          *   recipe) 
 {
     char            *   spec_name ;
     char            *   wave_name ;

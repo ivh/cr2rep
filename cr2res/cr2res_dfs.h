@@ -54,11 +54,13 @@
 #define CR2RES_IDP_COL_FLUX         "FLUX"       /* Intensity */
 #define CR2RES_IDP_COL_ERR          "ERR"        /* Error */
 #define CR2RES_IDP_COL_WAVE         "WAVE"       /* wavelength */
-#define CR2RES_IDP_COL_QUAL          "QUAL"    /* Quality */
-#define CR2RES_IDP_COL_ORDER            "ORDER"      /* Order Number */
-#define CR2RES_IDP_COL_TRACE            "TRACE"      /* Order Number */
-#define CR2RES_IDP_COL_DETEC         "DETEC"   /* Detector */
-#define CR2RES_IDP_COL_XPOS             "XPOS"       /* Original X position */
+#define CR2RES_IDP_COL_QUAL         "QUAL"       /* Quality */
+#define CR2RES_IDP_COL_ORDER        "ORDER"      /* Order Number */
+#define CR2RES_IDP_COL_TRACE        "TRACE"      /* Order Number */
+#define CR2RES_IDP_COL_DETEC        "DETEC"      /* Detector */
+#define CR2RES_IDP_COL_XPOS         "XPOS"       /* Original X position */
+#define CR2RES_IDP_COL_YPOS         "YPOS"       /* Original Y position */
+#define CR2RES_IDP_COL_SLITFRAC     "SLITFRAC"   /* Original Y position */
 
 /*** LINES_DIAGNOSTICS Table ***/
 #define CR2RES_COL_MEASURED_LAMBDA  "Measured_WL"   /* In Nanometers */
@@ -298,18 +300,21 @@
 #define CR2RES_OBS_NODDING_SLITMODELB_PROCATG   "OBS_NODDING_SLITMODELB"
 #define CR2RES_OBS_NODDING_EXTRACTC_PROCATG     "OBS_NODDING_EXTRACT_COMB"
 #define CR2RES_OBS_NODDING_THROUGHPUT_PROCATG   "OBS_NODDING_THROUGHPUT"
-#define CR2RES_OBS_NODDING_IDP_PROCATG          "OBS_NODDING_IDP"
 #define CR2RES_OBS_NODDING_TWA_PROCATG          "OBS_NODDING_TWA"
 #define CR2RES_OBS_NODDING_TWB_PROCATG          "OBS_NODDING_TWB"
+#define CR2RES_OBS_NODDING_IDP_PROCATG          "OBS_NODDING_IDP"
 
 /* Produced by cr2res_obs_staring */
 #define CR2RES_OBS_STARING_EXTRACT_PROCATG         "OBS_STARING_EXTRACT"
 #define CR2RES_OBS_STARING_SLITFUNC_PROCATG        "OBS_STARING_SLITFUNC"
 #define CR2RES_OBS_STARING_SLITMODEL_PROCATG       "OBS_STARING_SLITMODEL"
+#define CR2RES_OBS_STARING_IDP_PROCATG             "OBS_STARING_IDP"
+
 
 /* Produced by cr2res_obs_2d */
 #define CR2RES_OBS_2D_EXTRACT_PROCATG       "OBS_2D_EXTRACT"
 #define CR2RES_OBS_2D_CALIBRATED_PROCATG    "OBS_2D_CALIBRATED"
+#define CR2RES_OBS_2D_IDP_PROCATG           "OBS_2D_IDP"
 
 /* Produced by cr2res_obs_pol */
 #define CR2RES_OBS_POL_EXTRACTA_PROCATG     "OBS_POL_EXTRACTA"
@@ -320,6 +325,7 @@
 #define CR2RES_OBS_POL_SPECB_PROCATG        "OBS_POL_SPECB"
 #define CR2RES_OBS_POL_CALIB_A_PROCATG      "OBS_POL_CALIBA"
 #define CR2RES_OBS_POL_CALIB_B_PROCATG      "OBS_POL_CALIBB"
+#define CR2RES_OBS_POL_IDP_PROCATG          "OBS_POL_IDP"
 
 /* Produced by cr2res_util_genlines */
 #define CR2RES_EMISSION_LINES_PROCATG       "EMISSION_LINES"
