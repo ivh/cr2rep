@@ -201,6 +201,27 @@ int cr2res_format_setting2(char * setting_id)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Get MAD from a vector
+  @param    invec   input vecotr
+  @param    mad*    median absolute deviation (output)
+  @return   median
+
+  Wrap a vector into an image because the cpl does not have this for vectors
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_vector_get_mad(cpl_vector * invec, double *mad)
+{
+    cpl_image * img;
+    double median;
+    img = cpl_image_wrap_double(1,cpl_vector_get_size(invec),
+                cpl_vector_get_data(invec));
+    median = cpl_image_get_mad(img, &mad);
+    cpl_image_unwrap(img);
+    return median;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief
   @param    
   @return

@@ -71,6 +71,8 @@ int cr2res_format_setting(char * setting_id) ;
 int cr2res_format_setting2(char * setting_id) ;
 int cr2res_is_short_wavelength(char * setting_id) ;
 
+double cr2res_vector_get_mad(cpl_vector * invec, double *mad);
+
 double * cr2res_vector_get_rest(
     const cpl_vector    * ycen);
 int * cr2res_vector_get_int(

@@ -286,7 +286,7 @@ hdrl_image * cr2res_calib_image(
                 hdrl_image_delete(out);
                 return NULL ;
             }
-            if (cr2res_calib_subtract_interorder_column(out, calib, 3)){
+            if (cr2res_calib_subtract_interorder_column(out, calib, 0)){
                 cpl_msg_error(__func__, "Could not subtract inter-order fit");
             }
             hdrl_image_delete(calib);
@@ -406,7 +406,7 @@ int cr2res_calib_subtract_interorder_column(hdrl_image * in,
     cpl_size i, j;
     int badpix;
     int badcols = 0;
-    double value;
+    double value, median, mad;
 
     // Check Input 
     if (in == NULL || flat == NULL) return -1;
@@ -427,7 +427,7 @@ int cr2res_calib_subtract_interorder_column(hdrl_image * in,
         px = cpl_matrix_new(1, nrow);
         py = cpl_vector_new(nrow);
         npixel = 0;
-        for ( j = CR2RES_NB_BPM_VIGN_BOTTOM + 1; j < nrow + 1; j++)
+        for ( j = CR2RES_NB_BPM_VIGN_BOTTOM + 5; j < nrow -20 ; j++)
         {
             // TODO: check that the pixels are actually rejected
             // Filter pixels that are rejected in the flat (i.e. between orders)
@@ -439,6 +439,8 @@ int cr2res_calib_subtract_interorder_column(hdrl_image * in,
                 npixel++;
             }
         }
+        cpl_msg_debug(__func__, "Column %lld has %lld pixels for background",
+                i,npixel);
         if (npixel == 0){
             badcols += 1;
             cpl_msg_debug(__func__,
@@ -449,7 +451,15 @@ int cr2res_calib_subtract_interorder_column(hdrl_image * in,
         }
         cpl_matrix_set_size(px, 1, npixel);
         cpl_vector_set_size(py, npixel);
-        tmp = cpl_vector_filter_median_create(py,10);
+
+        // Reject outliers and filter
+        median = cr2res_vector_get_mad(py, &mad);
+        for (j=0;j<npixel;j++){
+            if (cpl_vector_get(py,j) > median*2)
+                cpl_vector_set(py,j,median);
+        }
+        //tmp = cpl_vector_filter_median_create(py,50);
+        tmp = cpl_vector_filter_lowpass_create(py,CPL_LOWPASS_LINEAR,100);
         cpl_vector_delete(py);
         py=tmp;
         if (cpl_msg_get_level() == CPL_MSG_DEBUG){
