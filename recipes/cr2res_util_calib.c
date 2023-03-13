@@ -484,6 +484,13 @@ static int cr2res_util_calib(
             cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
 
             for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+                /* Initialise */
+                ext_plist[det_nr-1] = NULL ;
+                calibrated_one[det_nr-1] = NULL ;
+
+                /* Compute only one detector */
+                if (reduce_det != 0 && det_nr != reduce_det) continue ;
+
                 ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname, 
                         cr2res_io_get_ext_idx(cur_fname, det_nr, 1)) ;
                 calibrated_one[det_nr-1] = hdrl_image_duplicate(
@@ -506,6 +513,12 @@ static int cr2res_util_calib(
         cur_frame = cpl_frameset_get_position(rawframes, 0) ;
         cur_fname = cpl_frame_get_filename(cur_frame) ;
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            /* Initialise */
+            ext_plist[det_nr-1] = NULL ;
+
+            /* Compute only one detector */
+            if (reduce_det != 0 && det_nr != reduce_det) continue ;
+
             ext_plist[det_nr-1] = cpl_propertylist_load(cur_fname, 
                     cr2res_io_get_ext_idx(cur_fname, det_nr, 1)) ;
         }
