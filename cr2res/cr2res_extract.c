@@ -2103,7 +2103,7 @@ int cr2res_extract_slitdec_curved(
         unc_sw_data = cpl_vector_get_data(unc_sw);      
         // First guess for the spectrum
         // img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
-        img_tmp = cpl_image_collapse_create(img_sw, 0);
+        img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
         spec_tmp = cpl_vector_new_from_image_row(img_tmp, 1);
         spec_sw = cpl_vector_filter_median_create(spec_tmp, 1);
         cpl_vector_delete(spec_tmp);
@@ -3753,7 +3753,7 @@ static int cr2res_extract_slit_func_curved(
             for (x = 0; x < ncols; x++) {
                 // We order it like this, to account for NaN values
                 // They evaluate to False, and should be masked
-                if (fabs(model[y * ncols + x] - im[y * ncols + x]) < 40. * mad)
+                if (fabs(model[y * ncols + x] - im[y * ncols + x]) < 6.0 * mad)
                     mask[y * ncols + x] = 1;
                 else
                     mask[y * ncols + x] = 0;
