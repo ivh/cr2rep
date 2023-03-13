@@ -213,11 +213,17 @@ int cr2res_idp_save(
         cpl_propertylist_set_comment(pri_head, "MJD-END", 
                 "[d] End of observations (days)");
     }
-    if (mjd_start > 0.0 && mjd_end > 0.0) {
-        cpl_propertylist_update_double(pri_head, "TELAPSE",
-                                                (mjd_end-mjd_start)*24*3600) ;
-        cpl_propertylist_set_comment(pri_head, "TELAPSE", 
-                    "Total elapsed time [s], MJD-END - MJD-OBS");
+
+    if (mjd_end > 0 && mjd_start > 0) {
+        cpl_propertylist_update_double(ext_head, "TELAPSE",
+                (mjd_end-mjd_start)*24*3600) ;
+        cpl_propertylist_set_comment(ext_head, "TELAPSE", 
+                "Total elapsed time in seconds [s]") ;
+
+        cpl_propertylist_update_double(ext_head, "TMID",
+                (mjd_end+mjd_start)/2.0) ;
+        cpl_propertylist_set_comment(ext_head, "TMID", 
+                "Exposure midpoint [MJD]") ;
     }
 
     progid = cr2res_pfits_get_progid(pri_head) ;
@@ -420,17 +426,14 @@ int cr2res_idp_save(
     cpl_propertylist_update_string(ext_head, "TUCD3",
                         "stat.error;phot.count");
 
-    if (mjd_end > 0 && mjd_start > 0) {
-        cpl_propertylist_update_double(ext_head, "TELAPSE",
-                (mjd_end-mjd_start)*24*3600) ;
-        cpl_propertylist_set_comment(ext_head, "TELAPSE", 
-                "Total elapsed time in seconds [s]") ;
+    cpl_propertylist_update_string(ext_head, "TUTYP3",
+                    "Spectrum.Data.FluxAxis.Accuracy.StatError");
+    cpl_propertylist_update_string(ext_head, "TTYPE3", "ERR");
+    cpl_propertylist_update_string(ext_head, "TUCD3",
+                        "stat.error;phot.count");
 
-        cpl_propertylist_update_double(ext_head, "TMID",
-                (mjd_end+mjd_start)/2.0) ;
-        cpl_propertylist_set_comment(ext_head, "TMID", 
-                "Exposure midpoint [MJD]") ;
-    }
+
+
 
     /* Remove keywords */
     cpl_propertylist_erase(ext_head, "CRDER3");
