@@ -182,7 +182,6 @@ action POL_action
     select file as UTIL_TRACE_TW from calibFiles where
         PRO.CATG=="UTIL_TRACE_TW"
         and inputFile.INSTRUME==INSTRUME        
-        and inputFile.INS.SLIT1.ID==INS.SLIT1.ID
         and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
 
     recipe cr2res_obs_pol;
