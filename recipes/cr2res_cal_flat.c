@@ -719,6 +719,7 @@ static int cr2res_cal_flat(
                 cpl_msg_indent_less() ;
             }
 
+
             /* Compute QCs for the main header */
             qc_main = NULL ;
             if (reduce_det == 0) {
@@ -804,60 +805,62 @@ static int cr2res_cal_flat(
                 cpl_vector_delete(qc_nbbad) ;
                 cpl_vector_delete(qc_centery) ;
 
-                /* Special treatment for ORDERPOSn and OVEREXPOSEDn */
-                /* Get all orders - Use the TW from detector 1 */
-                orders = cr2res_trace_get_order_idx_values(trace_wave[i][0], 
-                        &nb_orders) ;
-                /* Loop on the orders */
-                for (j=0 ; j<nb_orders ; j++) {
-                    qc_orderpos = cpl_vector_new(CR2RES_NB_DETECTORS) ;
-                    qc_overexposed = cpl_vector_new(CR2RES_NB_DETECTORS) ;
-                    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-                        // OVEREXPOSEDn
-                        qc_name = cpl_sprintf("%s%02d",
+                if (trace_wave[i][0] != NULL) {
+                    /* Special treatment for ORDERPOSn and OVEREXPOSEDn */
+                    /* Get all orders - Use the TW from detector 1 */
+                    orders = cr2res_trace_get_order_idx_values(
+                            trace_wave[i][0], &nb_orders) ;
+                    /* Loop on the orders */
+                    for (j=0 ; j<nb_orders ; j++) {
+                        qc_orderpos = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+                        qc_overexposed = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+                        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++){
+                            // OVEREXPOSEDn
+                            qc_name = cpl_sprintf("%s%02d",
+                                    CR2RES_HEADER_QC_OVEREXPOSED, orders[j]) ;
+                            cpl_vector_set(qc_overexposed, det_nr-1,
+                                    cpl_propertylist_get_double(
+                                        ext_plist[i][det_nr-1], qc_name)) ;
+                            cpl_free(qc_name) ;
+                            // ORDERPOSn
+                            qc_name = cpl_sprintf("%s%02d",
+                                    CR2RES_HEADER_QC_FLAT_ORDERPOS, orders[j]) ;
+                            cpl_vector_set(qc_orderpos, det_nr-1,
+                                    cpl_propertylist_get_double(
+                                        ext_plist[i][det_nr-1], qc_name)) ;
+                            cpl_free(qc_name) ;
+                        }
+
+                        // OVEREXPOSEDn.AVG/RMS
+                        qc_name = cpl_sprintf("%s%02d AVG",
                                 CR2RES_HEADER_QC_OVEREXPOSED, orders[j]) ;
-                        cpl_vector_set(qc_overexposed, det_nr-1,
-                                cpl_propertylist_get_double(
-                                    ext_plist[i][det_nr-1], qc_name)) ;
+                        cpl_propertylist_append_double(qc_main,
+                                qc_name, cpl_vector_get_mean(qc_overexposed)) ;
                         cpl_free(qc_name) ;
-                        // ORDERPOSn
-                        qc_name = cpl_sprintf("%s%02d",
+
+                        qc_name = cpl_sprintf("%s%02d RMS",
+                                CR2RES_HEADER_QC_OVEREXPOSED, orders[j]) ;
+                        cpl_propertylist_append_double(qc_main,
+                                qc_name, cpl_vector_get_stdev(qc_overexposed)) ;
+                        cpl_free(qc_name) ;
+                        cpl_vector_delete(qc_overexposed) ;
+
+                        // ORDERPOSn.AVG/RMS
+                        qc_name = cpl_sprintf("%s%02d AVG",
                                 CR2RES_HEADER_QC_FLAT_ORDERPOS, orders[j]) ;
-                        cpl_vector_set(qc_orderpos, det_nr-1,
-                                cpl_propertylist_get_double(
-                                    ext_plist[i][det_nr-1], qc_name)) ;
+                        cpl_propertylist_append_double(qc_main,
+                                qc_name, cpl_vector_get_mean(qc_orderpos)) ;
                         cpl_free(qc_name) ;
+
+                        qc_name = cpl_sprintf("%s%02d RMS",
+                                CR2RES_HEADER_QC_FLAT_ORDERPOS, orders[j]) ;
+                        cpl_propertylist_append_double(qc_main,
+                                qc_name, cpl_vector_get_stdev(qc_orderpos)) ;
+                        cpl_free(qc_name) ;
+                        cpl_vector_delete(qc_orderpos) ;
                     }
-
-                    // OVEREXPOSEDn.AVG/RMS
-                    qc_name = cpl_sprintf("%s%02d AVG",
-                            CR2RES_HEADER_QC_OVEREXPOSED, orders[j]) ;
-                    cpl_propertylist_append_double(qc_main,
-                            qc_name, cpl_vector_get_mean(qc_overexposed)) ;
-                    cpl_free(qc_name) ;
-
-                    qc_name = cpl_sprintf("%s%02d RMS",
-                            CR2RES_HEADER_QC_OVEREXPOSED, orders[j]) ;
-                    cpl_propertylist_append_double(qc_main,
-                            qc_name, cpl_vector_get_stdev(qc_overexposed)) ;
-                    cpl_free(qc_name) ;
-                    cpl_vector_delete(qc_overexposed) ;
-
-                    // ORDERPOSn.AVG/RMS
-                    qc_name = cpl_sprintf("%s%02d AVG",
-                            CR2RES_HEADER_QC_FLAT_ORDERPOS, orders[j]) ;
-                    cpl_propertylist_append_double(qc_main,
-                            qc_name, cpl_vector_get_mean(qc_orderpos)) ;
-                    cpl_free(qc_name) ;
-
-                    qc_name = cpl_sprintf("%s%02d RMS",
-                            CR2RES_HEADER_QC_FLAT_ORDERPOS, orders[j]) ;
-                    cpl_propertylist_append_double(qc_main,
-                            qc_name, cpl_vector_get_stdev(qc_orderpos)) ;
-                    cpl_free(qc_name) ;
-                    cpl_vector_delete(qc_orderpos) ;
+                    cpl_free(orders) ;
                 }
-                cpl_free(orders) ;
             }
 
             /* Save Products */

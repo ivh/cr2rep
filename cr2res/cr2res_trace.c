@@ -212,6 +212,7 @@ cpl_table * cr2res_trace(
     }
     if (nlabels == 0) {
         cpl_msg_error(__func__, "Found no labels");
+        if (labels != NULL) cpl_image_delete(labels);
         cpl_mask_delete(mask_clean);
         return NULL;
     }
