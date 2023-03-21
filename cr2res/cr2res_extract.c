@@ -3524,7 +3524,7 @@ static int cr2res_extract_slit_func_curved(
 {
     int         x, xx, xxx, y, yy, iy, jy, n, m, ny, i, nx;
     double      norm, lambda, diag_tot, ww, www, sP_change, sP_max;
-    double      tmp, mad, median, cost, cost_old ;
+    double      tmp, sigma, median, cost, cost_old ;
     int         info, iter, isum;
 
 
@@ -3738,22 +3738,21 @@ static int cr2res_extract_slit_func_curved(
             }
         }
         // Ignore the outer delta_x pixels on each side, as they are unreliable
-        median = cpl_image_get_mad_window(img_mad,
-            1 + delta_x, 1, ncols-delta_x, nrows, &mad);
+        median = cpl_image_get_median_dev_window(img_mad,
+            1 + delta_x, 1, ncols-delta_x, nrows, &sigma);
         if (cpl_error_get_code() == CPL_ERROR_DATA_NOT_FOUND){
             // this happens if all pixels are bad
-            mad = 1;
+            sigma = 1;
             median = 0;
             cpl_error_reset();
         }
-        mad *= 1.4826; // scaling factor relative to standard deviation
 
         /* Adjust the mask marking outlyers */
         for (y = 0; y < nrows; y++) {
             for (x = 0; x < ncols; x++) {
                 // We order it like this, to account for NaN values
                 // They evaluate to False, and should be masked
-                if (fabs(model[y * ncols + x] - im[y * ncols + x]) < 6.0 * mad)
+                if (fabs(model[y * ncols + x] - im[y * ncols + x]) < 6.0 * sigma)
                     mask[y * ncols + x] = 1;
                 else
                     mask[y * ncols + x] = 0;
@@ -3774,7 +3773,7 @@ static int cr2res_extract_slit_func_curved(
         // TODO: Remove some of the debug output?
         cpl_msg_debug(__func__,  
             "Iter: %i, Mad: %f, Cost: %f, sP_change: %f", 
-            iter, mad, cost, sP_change);
+            iter, sigma, cost, sP_change);
 
         iter++;
     } while (iter == 1 || (iter < maxiter 
