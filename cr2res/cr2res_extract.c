@@ -3769,10 +3769,8 @@ static int cr2res_extract_slit_func_curved(
                 sP_change = fabs(sP[x] - sP_old[x]);
         }
 
-        /* Check for convergence */
-        // TODO: Remove some of the debug output?
         cpl_msg_debug(__func__,  
-            "Iter: %i, Mad: %f, Cost: %f, sP_change: %f", 
+            "Iter: %i, Sigma: %f, Cost: %f, sP_change: %f", 
             iter, sigma, cost, sP_change);
 
         iter++;
