@@ -1802,7 +1802,7 @@ int cr2res_extract_slitdec_curved(
         return -1;
     } else if (smooth_slit < 0.1) {
         cpl_msg_warning(__func__, "Slit-smoothing unreasonably small");
-    } else if (smooth_slit > 10.0) {
+    } else if (smooth_slit > 30.0) {
         cpl_msg_warning(__func__, "Slit-smoothing unreasonably big");
     }
 
@@ -2130,7 +2130,7 @@ int cr2res_extract_slitdec_curved(
                 err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit,
                 slitcurves_sw, delta_x,
                 slitfu_sw_data, spec_sw_data, model_sw, unc_sw_data, smooth_spec,
-                smooth_slit, 1e-5, 10, slit_func_in, sP_old, l_Aij, p_Aij,
+                smooth_slit, 6e-5, 20, slit_func_in, sP_old, l_Aij, p_Aij,
                 l_bj, p_bj, img_mad, xi, zeta, m_zeta);
 
         // add up slit-functions, divide by nswaths below to get average
@@ -2202,8 +2202,8 @@ int cr2res_extract_slitdec_curved(
             cpl_vector_set(bins_end, i, lenx);
         }
 
-        // first and last half swath are not weighted
-        if (i==0){
+        if (nswaths==1) ; // no weighting if only one swath 
+        else if (i==0){ // first and last half swath are not weighted
             for (j = 0; j < delta_x; j++)
             {
                 cpl_vector_set(spec_sw, j, 0);
@@ -3908,6 +3908,15 @@ static int cr2res_extract_slitdec_adjust_swath(
     if (bins_begin == NULL || bins_end == NULL) return -1;
     if (ycen == NULL) return -1;
 
+    // special case only one swath
+    if (sw==CR2RES_DETECTOR_SIZE){
+        *bins_begin = cpl_vector_new(1);
+        *bins_end = cpl_vector_new(1);
+        cpl_vector_set(*bins_begin, 0, 0);
+        cpl_vector_set(*bins_end, 0, CR2RES_DETECTOR_SIZE);
+        return CR2RES_DETECTOR_SIZE;
+    }
+
     int nbin, nx, i = 0;
     double step = 0;
     int bin = 0;
@@ -3962,6 +3971,8 @@ static int cr2res_extract_slitdec_adjust_swath(
         bin = start + min(i * step, nx - sw - 2 * dx);
         cpl_vector_set(*bins_begin, i, bin);
         cpl_vector_set(*bins_end, i, bin + sw + 2 * dx);
+        cpl_msg_debug(__func__, "Swath %d goes from %d to %d.", i, bin,
+                bin + sw + 2 * dx);
     }
     return sw + 2 * dx;
 }
