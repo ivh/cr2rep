@@ -2125,12 +2125,13 @@ int cr2res_extract_slitdec_curved(
             cpl_vector_save(spec_sw, "debug_spc_initial_guess.fits",
                     CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
         }
+        
         /* Finally ready to call the slit-decomp */
         cr2res_extract_slit_func_curved(swath, height, oversample, img_sw_data,
                 err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit,
                 slitcurves_sw, delta_x,
                 slitfu_sw_data, spec_sw_data, model_sw, unc_sw_data, smooth_spec,
-                smooth_slit, 6e-5, 20, slit_func_in, sP_old, l_Aij, p_Aij,
+                smooth_slit, 1e-5, 300, slit_func_in, sP_old, l_Aij, p_Aij,
                 l_bj, p_bj, img_mad, xi, zeta, m_zeta);
 
         // add up slit-functions, divide by nswaths below to get average
@@ -3747,24 +3748,6 @@ static int cr2res_extract_slit_func_curved(
             cpl_error_reset();
         }
 
-/*
-        {
-          double sum=0.e0;
-          int isum=0;
-
-          for(y=0; y<nrows; y++)
-          {
-     	    for(x=delta_x; x<ncols-delta_x; x++)
-     	    {
-              sum+=mask[y * ncols + x]*(model[y * ncols + x]-im[y * ncols + x])*
-                                       (model[y * ncols + x]-im[y * ncols + x]);
-              isum+=mask[y * ncols + x];
-     	    }
-          }
-          sigma=sqrt(sum/isum);
-        }
-*/
-
         /* Adjust the mask marking outlyers */
         for (y = 0; y < nrows; y++) {
             for (x = 0; x < ncols; x++) {
@@ -3788,13 +3771,13 @@ static int cr2res_extract_slit_func_curved(
         }
 
         cpl_msg_debug(__func__,  
-            "Iter: %i, Sigma: %f, Cost: %f, sP_change: %f, sP_stop: %f", 
-            iter, sigma, cost, sP_change, sP_stop);
+            "Iter: %i, Sigma: %f, Cost: %f, sP_change: %f", 
+            iter, sigma, cost, sP_change);
 
         iter++;
     } while (iter == 1 || (iter < maxiter
-                        && fabs(cost - cost_old) > sP_stop)
-                        );//sP_change > sP_stop * sP_max));
+//                      && fabs(cost - cost_old) > sP_stop));
+                        && sP_change > sP_stop * sP_max));
 
     /* Uncertainty estimate */
     for (x = 0; x < ncols; x++) {
