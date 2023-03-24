@@ -3524,9 +3524,10 @@ static int cr2res_extract_slit_func_curved(
         int       *  m_zeta)
 {
     int         x, xx, xxx, y, yy, iy, jy, n, m, ny, i, nx;
-    double      norm, lambda, diag_tot, ww, www, sP_change, sP_max;
+    double      norm, lambda, diag_tot, ww, www, sP_change, sP_med;
     double      tmp, sigma, median, cost, cost_old ;
     int         info, iter, isum;
+    cpl_vector  * tmp_vec;
 
 
     /* The size of the sL array. */
@@ -3762,10 +3763,10 @@ static int cr2res_extract_slit_func_curved(
 
         /* Compute the change in the spectrum */
         sP_change = 0.e0;
-        sP_max = 1.e0;
+        tmp_vec = cpl_vector_wrap(ncols,sP);
+        sP_med = cpl_vector_get_median(tmp_vec);
+        cpl_vector_unwrap(tmp_vec);
         for (x = 0; x < ncols; x++) {
-            if (sP[x] > sP_max)
-                sP_max = sP[x];
             if (fabs(sP[x] - sP_old[x]) > sP_change)
                 sP_change = fabs(sP[x] - sP_old[x]);
         }
@@ -3777,7 +3778,7 @@ static int cr2res_extract_slit_func_curved(
         iter++;
     } while (iter == 1 || (iter < maxiter
 //                      && fabs(cost - cost_old) > sP_stop));
-                        && sP_change > sP_stop * sP_max));
+                        && sP_change > sP_stop * sP_med));
 
     /* Uncertainty estimate */
     for (x = 0; x < ncols; x++) {
