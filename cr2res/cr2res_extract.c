@@ -3747,12 +3747,30 @@ static int cr2res_extract_slit_func_curved(
             cpl_error_reset();
         }
 
+/*
+        {
+          double sum=0.e0;
+          int isum=0;
+
+          for(y=0; y<nrows; y++)
+          {
+     	    for(x=delta_x; x<ncols-delta_x; x++)
+     	    {
+              sum+=mask[y * ncols + x]*(model[y * ncols + x]-im[y * ncols + x])*
+                                       (model[y * ncols + x]-im[y * ncols + x]);
+              isum+=mask[y * ncols + x];
+     	    }
+          }
+          sigma=sqrt(sum/isum);
+        }
+*/
+
         /* Adjust the mask marking outlyers */
         for (y = 0; y < nrows; y++) {
             for (x = 0; x < ncols; x++) {
                 // We order it like this, to account for NaN values
                 // They evaluate to False, and should be masked
-                if (fabs(model[y * ncols + x] - im[y * ncols + x]) < 6.0 * sigma)
+                if (fabs(model[y * ncols + x] - im[y * ncols + x]) < 10.0 * sigma)
                     mask[y * ncols + x] = 1;
                 else
                     mask[y * ncols + x] = 0;
@@ -3770,11 +3788,11 @@ static int cr2res_extract_slit_func_curved(
         }
 
         cpl_msg_debug(__func__,  
-            "Iter: %i, Sigma: %f, Cost: %f, sP_change: %f", 
-            iter, sigma, cost, sP_change);
+            "Iter: %i, Sigma: %f, Cost: %f, sP_change: %f, sP_stop: %f", 
+            iter, sigma, cost, sP_change, sP_stop);
 
         iter++;
-    } while (iter == 1 || (iter < maxiter 
+    } while (iter == 1 || (iter < maxiter
                         && fabs(cost - cost_old) > sP_stop)
                         );//sP_change > sP_stop * sP_max));
 
