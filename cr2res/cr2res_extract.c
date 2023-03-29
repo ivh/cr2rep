@@ -104,6 +104,7 @@ static int cr2res_extract_slit_func_curved(
         double      lambda_sL,
         double      sP_stop,
         int         maxiter,
+        double      kappa,
         const double   *  slit_func_in,
         double    *  sP_old,
         double    *  l_Aij,
@@ -196,6 +197,8 @@ int cr2res_extract_traces(
         int                     oversample,
         double                  smooth_slit,
         double                  smooth_spec,
+        int                     niter,
+        double                  kappa,
         int                     display,
         int                     disp_order_idx,
         int                     disp_trace,
@@ -329,6 +332,7 @@ int cr2res_extract_traces(
             if (cr2res_extract_slitdec_curved(img, traces, slit_func_in_vec,
                         order, trace_id, extr_height, swath_width,
                         oversample, smooth_slit, smooth_spec,
+                        niter, kappa,
                         &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
                 cpl_msg_error(__func__,
@@ -1735,6 +1739,8 @@ int cr2res_extract_slitdec_curved(
         int                     oversample,
         double                  smooth_slit,
         double                  smooth_spec,
+        int                     niter,
+        double                  kappa,
         cpl_vector          **  slit_func,
         cpl_bivector        **  spec,
         hdrl_image          **  model)
@@ -1802,17 +1808,23 @@ int cr2res_extract_slitdec_curved(
         return -1;
     } else if (smooth_slit < 0.1) {
         cpl_msg_warning(__func__, "Slit-smoothing unreasonably small");
-    } else if (smooth_slit > 30.0) {
+    } else if (smooth_slit > 100.0) {
         cpl_msg_warning(__func__, "Slit-smoothing unreasonably big");
     }
-
     if (oversample < 3){
         cpl_msg_error(__func__, "Oversampling too small");
         return -1;
     } else if (oversample > 15) {
         cpl_msg_warning(__func__, "Large oversampling, runtime will be long");
     }
-
+    if (niter < 5){
+        cpl_msg_warning(__func__,
+                "Allowing at least 5 iterations is recommended.");
+    }
+    if (kappa < 4){
+        cpl_msg_warning(__func__,
+                "Rejecting outliers < 4 sigma risks making good data.");
+    }
     img_in = hdrl_image_get_image_const(img_hdrl);
     err_in = hdrl_image_get_error_const(img_hdrl);
 
@@ -2131,7 +2143,7 @@ int cr2res_extract_slitdec_curved(
                 err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit,
                 slitcurves_sw, delta_x,
                 slitfu_sw_data, spec_sw_data, model_sw, unc_sw_data, smooth_spec,
-                smooth_slit, 1e-5, 300, slit_func_in, sP_old, l_Aij, p_Aij,
+                smooth_slit, 1e-5, niter, kappa, slit_func_in, sP_old, l_Aij, p_Aij,
                 l_bj, p_bj, img_mad, xi, zeta, m_zeta);
 
         // add up slit-functions, divide by nswaths below to get average
@@ -3512,6 +3524,7 @@ static int cr2res_extract_slit_func_curved(
         double      lambda_sL,
         double      sP_stop,
         int         maxiter,
+        double      kappa,
         const double  *   slit_func_in,
         double    *  sP_old,
         double    *  l_Aij,
@@ -3754,7 +3767,8 @@ static int cr2res_extract_slit_func_curved(
             for (x = 0; x < ncols; x++) {
                 // We order it like this, to account for NaN values
                 // They evaluate to False, and should be masked
-                if (fabs(model[y * ncols + x] - im[y * ncols + x]) < 10.0 * sigma)
+                if (fabs(model[y * ncols + x] - im[y * ncols + x])
+                                                            < kappa * sigma)
                     mask[y * ncols + x] = 1;
                 else
                     mask[y * ncols + x] = 0;
