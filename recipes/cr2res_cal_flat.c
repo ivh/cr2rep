@@ -357,7 +357,7 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.extract_method",
             CPL_TYPE_STRING, "Extraction method (SUM / MEDIAN / TILTSUM / "
-            "OPT_VERT / OPT_CURV )",
+            "OPT_CURV )",
             "cr2res.cr2res_util_extract", "OPT_CURV");
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_method");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
@@ -576,7 +576,6 @@ static int cr2res_cal_flat(
             "cr2res.cr2res_cal_flat.extract_method");
     sval = cpl_parameter_get_string(param);
     if (!strcmp(sval, ""))              extr_method = CR2RES_EXTR_OPT_CURV;
-    else if (!strcmp(sval, "OPT_VERT")) extr_method = CR2RES_EXTR_OPT_VERT;
     else if (!strcmp(sval, "OPT_CURV")) extr_method = CR2RES_EXTR_OPT_CURV;
     else if (!strcmp(sval, "SUM"))      extr_method = CR2RES_EXTR_SUM;
     else if (!strcmp(sval, "MEDIAN"))   extr_method = CR2RES_EXTR_MEDIAN;
@@ -1154,7 +1153,7 @@ static int cr2res_cal_flat_reduce(
     /* TODO, make parameters */
     int extract_niter = 10;
     double extract_kappa = 10;
-    
+
     /* Check Inputs */
     if (rawframes == NULL) return -1 ;
     if (extr_method != CR2RES_EXTR_OPT_CURV && 
@@ -1333,21 +1332,6 @@ static int cr2res_cal_flat_reduce(
                         extract_height, &(slit_func_vec[i]), &(spectrum[i]), 
                         &model_tmp) != 0) {
                 cpl_msg_error(__func__, "Cannot (tiltsum-)extract the trace") ;
-                slit_func_vec[i] = NULL ;
-                spectrum[i] = NULL ;
-                model_tmp = NULL ;
-                cpl_error_reset() ;
-                cpl_msg_indent_less() ;
-                continue ;
-            }
-        } else if (extr_method == CR2RES_EXTR_OPT_VERT) {
-            if (cr2res_extract_slitdec_vert(collapsed, traces, NULL, order, 
-                        trace_id, extract_height, extract_swath_width, 
-                        extract_oversample, extract_smooth_slit,
-                        extract_smooth_spec,
-                        &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
-                cpl_msg_error(__func__,
-                        "Cannot (slitdec-vert-) extract the trace") ;
                 slit_func_vec[i] = NULL ;
                 spectrum[i] = NULL ;
                 model_tmp = NULL ;

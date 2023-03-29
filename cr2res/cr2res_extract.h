@@ -35,7 +35,6 @@ typedef enum {
     CR2RES_EXTR_SUM,
     CR2RES_EXTR_MEDIAN,
     CR2RES_EXTR_TILTSUM,
-    CR2RES_EXTR_OPT_VERT,
     CR2RES_EXTR_OPT_CURV,
 } cr2res_extr_method ;
 
@@ -91,21 +90,6 @@ int cr2res_extract_sum_tilt(
         int                     order,
         int                     trace_id,
         int                     height,
-        cpl_vector          **  slit_func,
-        cpl_bivector        **  spec,
-        hdrl_image          **  model) ;
-
-int cr2res_extract_slitdec_vert(
-        const hdrl_image    *   img_hdrl,
-        const cpl_table     *   trace_tab,
-        const cpl_vector    *   slit_func_vec_in,
-        int                     order,
-        int                     trace_id,
-        int                     height,
-        int                     swath,
-        int                     oversample,
-        double                  smooth_slit,
-        double                  smooth_spec,
         cpl_vector          **  slit_func,
         cpl_bivector        **  spec,
         hdrl_image          **  model) ;
