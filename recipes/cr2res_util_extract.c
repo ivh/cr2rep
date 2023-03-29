@@ -406,6 +406,10 @@ static int cr2res_util_extract(
         return -1 ;
     }
 
+    /* TODO, make parameters */
+    int extract_niter = 10;
+    double extract_kappa = 10;
+
     /* Check Parameters */
     if (slit_low >= 0.0 && slit_up >= 0.0 && slit_low <= 1.0 && slit_up <= 1.0 
             && slit_up > slit_low) {
@@ -540,7 +544,8 @@ static int cr2res_util_extract(
             if (cr2res_extract_traces(science_hdrl, trace_table,
                         slit_func_in, NULL, reduce_order, reduce_trace, 
                         extr_method, extr_height, swath_width, oversample,
-                        smooth_slit, smooth_spec, 0, 0, 0, 
+                        smooth_slit, smooth_spec,
+                        extract_niter, extract_kappa, 0, 0, 0, 
                         &(extract_tab[det_nr-1]), &(slit_func_tab[det_nr-1]), 
                         &(model_master[det_nr-1]))==-1) {
                 cpl_table_delete(trace_table) ;

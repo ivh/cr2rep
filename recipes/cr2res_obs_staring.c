@@ -755,11 +755,16 @@ static int cr2res_obs_staring_reduce(
         }
     }
 
+    /* TODO, make parameters */
+    int extract_niter = 10;
+    double extract_kappa = 10;
+
     /* Execute the extraction */
     cpl_msg_info(__func__, "Spectra Extraction") ;
     if (cr2res_extract_traces(collapsed, trace_wave, NULL, blaze_table, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
-                extract_oversample, extract_smooth_slit, extract_smooth_spec, 
+                extract_oversample, extract_smooth_slit, extract_smooth_spec,
+                extract_niter, extract_kappa, 
                 0, 0, 0, &extracted, &slit_func, &model_master) == -1) {
         cpl_msg_error(__func__, "Failed to extract");
         hdrl_image_delete(collapsed) ;

@@ -1041,6 +1041,10 @@ static int cr2res_cal_wave_reduce(
                             zp_order_fpet, nb_traces, grat1_order_une, 
                             grat1_order_fpet ;
     
+    /* TODO, make parameters */
+    int extract_niter = 10;
+    double extract_kappa = 10;
+
     /* Check Inputs */
     if (rawframes_fpet==NULL && rawframes_une==NULL) return -1 ;
     if (trace_wave_frame==NULL || out_trace_wave_une==NULL || 
@@ -1233,7 +1237,8 @@ static int cr2res_cal_wave_reduce(
         if (cr2res_extract_traces(collapsed_une, tw_in, NULL, NULL, 
                     reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
                     ext_height, ext_swath_width, ext_oversample, 
-                    ext_smooth_slit, ext_smooth_spec, 0, 0, 0,
+                    ext_smooth_slit, ext_smooth_spec,
+                    extract_niter, extract_kappa, 0, 0, 0,
                     &extracted_une, &slit_func_une, &model_master_une) == -1) {
             cpl_msg_error(__func__, "Failed to extract");
             hdrl_image_delete(collapsed_une) ;
@@ -1475,7 +1480,8 @@ static int cr2res_cal_wave_reduce(
         if (cr2res_extract_traces(collapsed_fpet, tw_in, NULL, NULL, 
                     reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
                     ext_height, ext_swath_width, ext_oversample, 
-                    ext_smooth_slit, ext_smooth_spec, 0, 0, 0,
+                    ext_smooth_slit, ext_smooth_spec, 
+                    extract_niter, extract_kappa, 0, 0, 0,
                     &extracted_fpet, &slit_func_fpet, &model_master_fpet)==-1) {
             cpl_msg_error(__func__, "Failed to extract");
             cpl_table_delete(tw_in) ;

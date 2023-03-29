@@ -1351,6 +1351,10 @@ static int cr2res_obs_pol_reduce_one(
     int                     nb_order_idx_values, order_real, order_zp, 
                             order_idx, order_idxp ;
 
+    /* TODO, make parameters */
+    int extract_niter = 10;
+    double extract_kappa = 10;
+
     /* Check Inputs */
     if (in_calib == NULL || tw == NULL || extract1D == NULL || 
             pol_spec == NULL || ext_plist == NULL || rawframes == NULL || 
@@ -1639,10 +1643,11 @@ static int cr2res_obs_pol_reduce_one(
             /* Execute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(input_images[j], trace_wave_extract[2*j],
-                        NULL, blaze_table, -1, -1, CR2RES_EXTR_OPT_CURV,
-                        extract_height, extract_swath_width, extract_oversample,
-                        extract_smooth_slit, extract_smooth_spec, 0, 0, 0, 
-                        &(extract_1d[2*j]), &slit_func, &model_master) == -1) {
+                    NULL, blaze_table, -1, -1, CR2RES_EXTR_OPT_CURV,
+                    extract_height, extract_swath_width, extract_oversample, 
+                    extract_smooth_slit, extract_smooth_spec,
+                    extract_niter, extract_kappa, 0, 0, 0, 
+                    &(extract_1d[2*j]), &slit_func, &model_master) == -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j] = NULL ;
                 cpl_table_delete(trace_wave_extract[2*j]) ;
@@ -1674,11 +1679,12 @@ static int cr2res_obs_pol_reduce_one(
             /* Execute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(input_images[j],
-                        trace_wave_extract[2*j+1], NULL, blaze_table, -1, -1, 
-                        CR2RES_EXTR_OPT_CURV, extract_height, 
-                        extract_swath_width, extract_oversample,
-                        extract_smooth_slit, extract_smooth_spec, 0, 0, 0, 
-                        &(extract_1d[2*j+1]), &slit_func, &model_master)== -1) {
+                    trace_wave_extract[2*j+1], NULL, blaze_table, -1, -1, 
+                    CR2RES_EXTR_OPT_CURV, extract_height, 
+                    extract_swath_width, extract_oversample,
+                    extract_smooth_slit, extract_smooth_spec,
+                    extract_niter, extract_kappa, 0, 0, 0, 
+                    &(extract_1d[2*j+1]), &slit_func, &model_master)== -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j+1] = NULL ;
                 cpl_table_delete(trace_wave_extract[2*j+1]) ;

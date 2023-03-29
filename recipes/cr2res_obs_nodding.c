@@ -83,6 +83,8 @@ static int cr2res_obs_nodding_reduce(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        int                     extract_niter,
+        double                  extract_kappa,
         int                     reduce_det,
         int                     disp_det,
         int                     disp_order_idx,
@@ -529,6 +531,11 @@ static int cr2res_obs_nodding(
             "cr2res.cr2res_obs_nodding.display_trace");
     disp_trace = cpl_parameter_get_int(param);
 
+
+    /* TODO, make parameters */
+    int extract_niter = 10;
+    double extract_kappa = 10;
+
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
         cpl_msg_error(__func__, "Cannot identify RAW and CALIB frames") ;
@@ -633,8 +640,9 @@ static int cr2res_obs_nodding(
                         nodding_invert, subtract_nolight_rows, 
                         subtract_interorder_column, 0, extract_oversample, 
                         extract_swath_width, extract_height, 
-                        extract_smooth_slit, extract_smooth_spec, det_nr, 
-                        disp_det, disp_order_idx, disp_trace,
+                        extract_smooth_slit, extract_smooth_spec,
+                        extract_niter, extract_kappa,
+                        det_nr, disp_det, disp_order_idx, disp_trace,
 						&(combineda[det_nr-1]),
 						&(extracta[det_nr-1]),
 						&(slitfunca[det_nr-1]),
@@ -913,6 +921,8 @@ static int cr2res_obs_nodding_reduce(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        int                     extract_niter,
+        double                  extract_kappa,
         int                     reduce_det,
         int                     disp_det,
         int                     disp_order_idx,
@@ -1054,7 +1064,8 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_info(__func__, "Apply the Calibrations") ;
     cpl_msg_indent_more() ;
     if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
-        subtract_nolight_rows, subtract_interorder_column, 0, master_flat_frame,
+        subtract_nolight_rows, subtract_interorder_column, 1,
+        master_flat_frame,
         master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         cpl_msg_indent_less() ;
@@ -1283,6 +1294,7 @@ static int cr2res_obs_nodding_reduce(
     if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, blaze_table, -1,
                 -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth_slit, extract_smooth_spec,
+                extract_niter, extract_kappa,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_a, &slit_func_a, &model_master_a) == -1) {
         cpl_msg_error(__func__, "Failed to extract A");
@@ -1301,6 +1313,7 @@ static int cr2res_obs_nodding_reduce(
     if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, blaze_table, -1,
                 -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth_slit, extract_smooth_spec,
+                extract_niter, extract_kappa,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_b, &slit_func_b, &model_master_b) == -1) {
         cpl_msg_error(__func__, "Failed to extract B");
