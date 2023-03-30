@@ -3130,7 +3130,7 @@ static int cr2res_extract_slit_func_curved(
 {
     int         x, xx, xxx, y, yy, iy, jy, n, m, ny, i, nx;
     double      norm, lambda, diag_tot, ww, www, sP_change, sP_med;
-    double      tmp, sigma, median, cost, cost_old ;
+    double      tmp, sigma, median, cost, cost_old;
     int         info, iter, isum;
     cpl_vector  * tmp_vec;
 
@@ -3265,7 +3265,9 @@ static int cr2res_extract_slit_func_curved(
             }
         }
 
+        /* Save the previous iteration spectrum */
         for (x = 0; x < ncols; x++) sP_old[x] = sP[x];
+
         lambda = 1;
         if (lambda_sP > 0.e0) {
             lambda = lambda_sP; /* Scale regularization parameter */
@@ -3288,7 +3290,20 @@ static int cr2res_extract_slit_func_curved(
         /* Solve the system of equations */
         info = cr2res_extract_slitdec_bandsol(p_Aij, p_bj, ncols, nx, lambda);
         if (info) cpl_msg_error(__func__, "info(sP)=%d\n", info);
-        for (x = 0; x < ncols; x++) sP[x] = p_bj[x];
+
+        for (x = 0; x < ncols; x++) sP[x] = p_bj[x]; /* New Spectrum vector */
+
+        /* Compute median value of the spectrum for normalisation purpose */
+        tmp_vec = cpl_vector_wrap(ncols, sP);
+        sP_med = fabs(cpl_vector_get_median(tmp_vec));
+        cpl_vector_unwrap(tmp_vec);
+
+        /* Compute the change in the spectrum */
+        sP_change = 0.e0;
+        for (x = 0; x < ncols; x++) {
+            if (fabs(sP[x] - sP_old[x]) > sP_change)
+                sP_change = fabs(sP[x] - sP_old[x]);
+        }
 
         if ((isnan(sP[0]) || (sP[ncols/2] == 0)) 
                 && (cpl_msg_get_level() == CPL_MSG_DEBUG) ){
@@ -3367,19 +3382,20 @@ static int cr2res_extract_slit_func_curved(
             }
         }
 
-        /* Compute the change in the spectrum */
-        sP_change = 0.e0;
-        tmp_vec = cpl_vector_wrap(ncols,sP);
-        sP_med = cpl_vector_get_median(tmp_vec);
-        cpl_vector_unwrap(tmp_vec);
-        for (x = 0; x < ncols; x++) {
-            if (fabs(sP[x] - sP_old[x]) > sP_change)
-                sP_change = fabs(sP[x] - sP_old[x]);
+/*
+        {
+           FILE *dump;
+           dump=fopen("dump_sp.dat","ab");
+           fwrite(&ncols, sizeof(int), 1, dump);
+           fwrite(sP, sizeof(double), ncols, dump);
+           fclose(dump);
+//openr,1,'dump_sp.dat'&n=0l&readu,1,n&sp2=dblarr(n)&readu,1,sp2&for i=0,1000 do begin&sp1=sp2&readu,1,n&sp2=dblarr(n)&readu,1,sp2&plot,sp1,xs=1&oplot,sp2,col=c24(2)&sss=get_kbrd(1)&endfor
         }
+*/
 
         cpl_msg_debug(__func__,  
-            "Iter: %i, Sigma: %f, Cost: %f, sP_change: %f", 
-            iter, sigma, cost, sP_change);
+            "Iter: %i, Sigma: %f, Cost: %f, sP_change: %f, sP_lim: %f", 
+            iter, sigma, cost, sP_change, sP_stop * sP_med);
 
         iter++;
     } while (iter == 1 || (iter < maxiter
