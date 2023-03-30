@@ -406,7 +406,7 @@ static int cr2res_util_extract(
     }
 
     /* TODO, make parameters */
-    int extract_niter = 10;
+    int extract_niter = 30;
     double extract_kappa = 10;
 
     /* Check Parameters */

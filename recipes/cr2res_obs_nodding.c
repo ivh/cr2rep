@@ -533,8 +533,9 @@ static int cr2res_obs_nodding(
 
 
     /* TODO, make parameters */
-    int extract_niter = 10;
+    int extract_niter = 30;
     double extract_kappa = 10;
+    int correct_cosmics = 1;
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
@@ -638,7 +639,8 @@ static int cr2res_obs_nodding(
 						trace_wave_frame, detlin_frame, master_dark_frame, 
 						master_flat_frame, bpm_frame, blaze_frame, 
                         nodding_invert, subtract_nolight_rows, 
-                        subtract_interorder_column, 0, extract_oversample, 
+                        subtract_interorder_column, correct_cosmics,
+                        extract_oversample, 
                         extract_swath_width, extract_height, 
                         extract_smooth_slit, extract_smooth_spec,
                         extract_niter, extract_kappa,

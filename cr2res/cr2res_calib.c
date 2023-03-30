@@ -314,15 +314,18 @@ hdrl_image * cr2res_calib_image(
         hdrl_image_delete(calib) ;
     }
 
+
     /* Comics correction */
     if (cosmics_corr) {
         cpl_msg_info(__func__, "Apply the cosmics corrections") ;
-        /* TODO */
-        cpl_msg_info(__func__, "NOT YET IMPLEMENTED") ;
+        hdrl_parameter * cospar = hdrl_lacosmic_parameter_create(5.0,1.8,3);
+        if (hdrl_lacosmic_parameter_verify(cospar)!=CPL_ERROR_NONE) 
+            cpl_msg_warning(__func__,"invalid cospar");
+        cpl_mask* cosmask = hdrl_lacosmic_edgedetect(out,cospar);
+        cpl_mask_or(hdrl_image_get_mask(out), cosmask);
+        cpl_mask_delete(cosmask);
+        hdrl_parameter_delete(cospar);
     }
-
-    // remove non finite elements, this prevents weird behaviour later
-//    hdrl_image_reject_value(out, CPL_VALUE_NOTFINITE);
 
     return out ;
 }
