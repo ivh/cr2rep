@@ -642,10 +642,8 @@ int cr2res_slit_pos(
     cpl_polynomial  *  line[3];
     cpl_polynomial  *  poly;
     const cpl_array *  slit;
-    const cpl_array *  curv_a;
     const cpl_array *  curv_b;
     const cpl_array *  curv_c;
-    cpl_polynomial * curv_poly_a;
     cpl_polynomial * curv_poly_b;
     cpl_polynomial * curv_poly_c;
     int             *  order_idx_values;
@@ -657,6 +655,7 @@ int cr2res_slit_pos(
     double pca, pcb, pcc, pc_offset;
     int nb_order_idx_values, nb_traces;
     cpl_error_code errcode;
+    double ycen;
 
     // pixels x, only one because thats the same for all traces
     x = cpl_vector_new(CR2RES_DETECTOR_SIZE);
@@ -700,11 +699,9 @@ int cr2res_slit_pos(
                     order_idx, trace);
             slit = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_FRACTION, k);
 
-            curv_a = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_A, k);
-            curv_b = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_A, k);
-            curv_c = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_A, k);
+            curv_b = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_B, k);
+            curv_c = cpl_table_get_array(trace_wave, CR2RES_COL_SLIT_CURV_C, k);
 
-            curv_poly_a = cr2res_convert_array_to_poly(curv_a);
             curv_poly_b = cr2res_convert_array_to_poly(curv_b);
             curv_poly_c = cr2res_convert_array_to_poly(curv_c);
 
@@ -717,14 +714,15 @@ int cr2res_slit_pos(
                     py = cpl_polynomial_eval_1d(line[m], px, NULL);
 
                     // Calculate the curvature offset at this point
-                    // The parameters are in the global frame so we just
-                    // use them directly
-                    pca = cpl_polynomial_eval_1d(curv_poly_a, px, NULL);
                     pcb = cpl_polynomial_eval_1d(curv_poly_b, px, NULL);
                     pcc = cpl_polynomial_eval_1d(curv_poly_c, px, NULL);
-                    pc_offset = (pca - px) + pcb * py + pcc * py * py;
-
-                    pw = cpl_polynomial_eval_1d(wave, px + pc_offset, NULL);
+                    // Shift the polynomial to the local reference frame
+                    ycen = cpl_polynomial_eval_1d(line[1], px, NULL);
+                    pcb += 2 * ycen * pcc;
+                    pc_offset = (pcc*(py - ycen) + pcb) * (py - ycen);
+                    cpl_msg_debug(__func__, "pc_offset: %g %g %g %g %g",
+                            pc_offset, pcb, pcc, ycen, py);
+                    pw = cpl_polynomial_eval_1d(wave, px - pc_offset, NULL);
                     ps = cpl_array_get_double(slit, m, NULL);
 
                     cpl_matrix_set(matrix_xy, 0, row, px);
@@ -739,7 +737,6 @@ int cr2res_slit_pos(
             cpl_polynomial_delete(line[0]);
             cpl_polynomial_delete(line[1]);
             cpl_polynomial_delete(line[2]);
-            cpl_polynomial_delete(curv_poly_a);
             cpl_polynomial_delete(curv_poly_b);
             cpl_polynomial_delete(curv_poly_c);
             cpl_polynomial_delete(wave);
