@@ -49,6 +49,14 @@ typedef unsigned char byte;
 #define mzeta_index(x, y) (y * ncols) + x
 #define xi_index(x, y, z) (z * ncols * ny) + (y * ncols) + x
 
+//                zeta[ncols][nrows][3*(osample+1)]
+//                m_zeta[ncols][nrows]
+//                xi[ncols][ny][4]
+
+//#define zeta_index(x, y, z) (x * nrows + y) * 3*(osample+1) + z
+//#define mzeta_index(x, y) (x * nrows) + y
+//#define xi_index(x, y, z) (x * ny + y) * 4 + z
+
 typedef struct {
     int     x ;
     int     y ;     /* Coordinates of target pixel x,y  */
@@ -1709,8 +1717,6 @@ int cr2res_extract_slitdec_curved(
         // img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
         img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
         spec_tmp = cpl_vector_new_from_image_row(img_tmp, 1);
-        cpl_vector_multiply_scalar(spec_tmp, 
-                            (double)cpl_image_get_size_y(img_sw));
         spec_sw = cpl_vector_filter_median_create(spec_tmp, 1);
         cpl_vector_delete(spec_tmp);
         cpl_image_delete(img_tmp);
@@ -3132,9 +3138,10 @@ static int cr2res_extract_slit_func_curved(
 {
     int         x, xx, xxx, y, yy, iy, jy, n, m, ny, i, nx;
     double      norm, lambda, diag_tot, ww, www, sP_change, sP_med;
-    double      tmp, sigma, median, cost, cost_old;
+    double      tmp, sigma, median, sum, dev, cost, cost_old;
     int         info, iter, isum;
     cpl_vector  * tmp_vec;
+    FILE *dump;
 
 
     /* The size of the sL array. */
@@ -3157,6 +3164,64 @@ static int cr2res_extract_slit_func_curved(
         norm /= osample;
         for(iy=0; iy<ny; iy++) sL[iy]/=norm;
     }
+
+
+    {
+       double slitcurve[3];
+       const cpl_size p1 = 0;
+       const cpl_size p2 = 1;
+       const cpl_size p3 = 2;
+
+       dump=fopen("swath_dump.dat","wb");
+       
+       fwrite(&ncols,   sizeof(int), 1, dump);
+       fwrite(&nrows,   sizeof(int), 1, dump);
+       fwrite(&osample, sizeof(int), 1, dump);
+       fwrite(&ny,      sizeof(int), 1, dump);
+       fwrite(im, sizeof(double), ncols*nrows, dump);
+       fwrite(mask, sizeof(int), ncols*nrows, dump);
+       fwrite(ycen, sizeof(double), ncols, dump);
+       fwrite(ycen_offset, sizeof(int), ncols, dump);
+       fwrite(&y_lower_lim, sizeof(int), 1, dump);
+
+       for(x=0; x<ncols; x++) {
+         slitcurve[0] = cpl_polynomial_get_coeff(slitcurves[x], &p1);
+         slitcurve[1] = cpl_polynomial_get_coeff(slitcurves[x], &p2);
+         slitcurve[2] = cpl_polynomial_get_coeff(slitcurves[x], &p3);
+         fwrite(slitcurve, sizeof(double), 3, dump);
+       }
+
+       fwrite(&delta_x, sizeof(int), 1, dump);
+       fwrite(&lambda_sP, sizeof(double), 1, dump);
+       fwrite(&lambda_sL, sizeof(double), 1, dump);
+
+       fwrite(xi,     sizeof(xi_ref),   4*ny*ncols,               dump);
+       fwrite(zeta,   sizeof(zeta_ref), 3*(osample+1L)*nrows*ncols, dump);
+       fwrite(m_zeta, sizeof(int),      nrows*ncols,              dump);
+
+       for (y = 0; y < nrows; y++) {
+         for (x = 0; x < ncols; x++) {
+           mask[y * ncols + x] = 1;
+           if(im[y * ncols + x] < -1.e3) {
+             mask[y * ncols + x] = 0;
+             im[y * ncols + x] = 0.e0;
+           }
+         }
+       }
+
+       tmp_vec = cpl_vector_wrap(ncols, sP);
+       sP_med = fabs(cpl_vector_get_median(tmp_vec)) * nrows * 10;
+       cpl_vector_unwrap(tmp_vec);
+
+       for (x = 0; x < ncols; x++) {
+         sP[x] *= ncols;
+//         sP[x] = 0.e0;
+//         for (y = 0; y < nrows; y++) sP[x] += im[y * ncols + x];
+       }
+fwrite(sP, sizeof(double), ncols, dump);
+    }
+
+
 
     /* Loop through sL , sP reconstruction until convergence is reached */
     iter = 0;
@@ -3187,9 +3252,10 @@ static int cr2res_extract_slit_func_curved(
                                         xxx = zeta[zeta_index(xx,yy,m)].x;
                                         jy = zeta[zeta_index(xx,yy,m)].iy;
                                         www = zeta[zeta_index(xx,yy,m)].w;
-                                        l_Aij[iy + ny * (jy - iy + 2 * osample)] +=
-                                            sP[xxx] * sP[x] * www * ww * mask[yy *
-                                            ncols + xx];
+                                        if(jy-iy+2*osample>=0)
+                                          l_Aij[iy + ny * (jy - iy + 2 * osample)] +=
+                                              sP[xxx] * sP[x] * www * ww * mask[yy *
+                                              ncols + xx];
                                     }
                                     l_bj[iy] += im[yy * ncols + xx] * mask[yy * ncols +
                                         xx] * sP[x] * ww;
@@ -3200,6 +3266,8 @@ static int cr2res_extract_slit_func_curved(
                 }
                 diag_tot += fabs(l_Aij[iy + ny * 2 * osample]);
             }
+//fwrite(l_Aij, sizeof(double), ny * (4 * osample + 1), dump);
+//fwrite(l_bj, sizeof(double), ny, dump);
             /* Scale regularization parameters */
             lambda = lambda_sL * diag_tot / ny;
             /* Add regularization parts for the SLE matrix */
@@ -3233,6 +3301,7 @@ static int cr2res_extract_slit_func_curved(
             }
             norm /= osample;
             for (iy = 0; iy < ny; iy++) sL[iy] /= norm;
+fwrite(sL, sizeof(double), ny, dump);
         }
 
         /*  Compute spectrum sP */
@@ -3295,10 +3364,12 @@ static int cr2res_extract_slit_func_curved(
 
         for (x = 0; x < ncols; x++) sP[x] = p_bj[x]; /* New Spectrum vector */
 
+fwrite(sP, sizeof(double), ncols, dump);
+
         /* Compute median value of the spectrum for normalisation purpose */
-        tmp_vec = cpl_vector_wrap(ncols, sP);
-        sP_med = fabs(cpl_vector_get_median(tmp_vec));
-        cpl_vector_unwrap(tmp_vec);
+//        tmp_vec = cpl_vector_wrap(ncols, sP);
+//        sP_med = fabs(cpl_vector_get_median(tmp_vec));
+//        cpl_vector_unwrap(tmp_vec);
 
         /* Compute the change in the spectrum */
         sP_change = 0.e0;
@@ -3336,7 +3407,8 @@ static int cr2res_extract_slit_func_curved(
         // On the other hand the std may get to large and might fail to remove
         // outliers sufficiently in some circumstances.
 
-        cost = 0;
+        cost = 0.e0;
+        sum  = 0.e0;
         isum = 0;
         for (y = 0; y < nrows; y++)
         {
@@ -3345,6 +3417,7 @@ static int cr2res_extract_slit_func_curved(
                 if (mask[y * ncols + x])
                 {
                     tmp = model[y * ncols + x] - im[y * ncols + x];
+                    sum += tmp * tmp;
                     tmp /= max(pix_unc[y * ncols + x], 1);
                     cost += tmp * tmp;
                     isum++;
@@ -3352,6 +3425,19 @@ static int cr2res_extract_slit_func_curved(
             }
         }
         cost /= (isum - (ncols + ny));
+        dev=sqrt(sum/isum);
+
+/* Adjust the mask marking outlyers */
+
+        for(y=0; y<nrows; y++)
+        {
+     	  for(x=delta_x; x<ncols-delta_x; x++)
+     	  {
+            if(fabs(model[y * ncols + x]-im[y * ncols + x])>10.*dev) mask[y * ncols + x]=0;
+            else                                                     mask[y * ncols + x]=1;
+     	  }
+        }
+
 
         for (y = 0; y < nrows; y++) {
             for (x = delta_x; x < ncols - delta_x; x++) {
@@ -3372,6 +3458,7 @@ static int cr2res_extract_slit_func_curved(
         }
 
         /* Adjust the mask marking outlyers */
+/*
         for (y = 0; y < nrows; y++) {
             for (x = 0; x < ncols; x++) {
                 // We order it like this, to account for NaN values
@@ -3383,7 +3470,7 @@ static int cr2res_extract_slit_func_curved(
                     mask[y * ncols + x] = 0;
             }
         }
-
+*/
         cpl_msg_debug(__func__,  
             "Iter: %i, Sigma: %f, Cost: %f, sP_change: %f, sP_lim: %f", 
             iter, sigma, cost, sP_change, sP_stop * sP_med);
@@ -3396,6 +3483,8 @@ static int cr2res_extract_slit_func_curved(
     } while (iter == 1 || (iter <= maxiter
 //                      && fabs(cost - cost_old) > sP_stop));
                         && sP_change > sP_stop * sP_med));
+
+fclose(dump);
 
     /* Uncertainty estimate */
     for (x = 0; x < ncols; x++) {
@@ -3469,7 +3558,8 @@ int cr2res_extract_slitdec_bandsol(
     for(i=0; i<n-1; i++)
     {
         aa=a[i+n*(nd/2)];
-        if(aa==0.e0) aa = lambda; //return -3;
+        if(aa==0.e0) aa = lambda;
+//        if(aa==0.e0) return -3;
         r[i]/=aa;
         for(j=0; j<nd; j++) a[i+j*n]/=aa;
         for(j=1; j<min(nd/2+1,n-i); j++)
@@ -3482,7 +3572,8 @@ int cr2res_extract_slitdec_bandsol(
 
     /* Backward sweep */
     aa = a[n-1+n*(nd/2)];
-    if (aa == 0) aa = lambda; //return -4;
+    if (aa == 0) aa = lambda;
+//    if(aa==0.e0) return -4;
     r[n-1]/=aa;
     for(i=n-1; i>0; i--)
     {
@@ -3490,13 +3581,15 @@ int cr2res_extract_slitdec_bandsol(
             r[i-j]-=r[i]*a[i-j+n*(nd/2+j)];
         }
         aa = a[i-1+n*(nd/2)];
-        if(aa==0.e0) aa = lambda; //return -5;
+        if(aa==0.e0) aa = lambda;
+//        if(aa==0.e0) return -5;
         
         r[i-1]/=aa;
     }
 
     aa = a[n*(nd/2)];
-    if(aa==0.e0) aa = lambda; //return -6;
+    if(aa==0.e0) aa = lambda;
+//    if(aa==0.e0) return -6;
     r[0]/=aa;
     return 0;
 }
