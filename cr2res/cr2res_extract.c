@@ -1735,7 +1735,7 @@ int cr2res_extract_slitdec_curved(
                 err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit,
                 slitcurves_sw, delta_x,
                 slitfu_sw_data, spec_sw_data, model_sw, unc_sw_data, smooth_spec,
-                smooth_slit, 1e-5, niter, kappa, slit_func_in, sP_old, l_Aij, p_Aij,
+                smooth_slit, 5.e-5, niter, kappa, slit_func_in, sP_old, l_Aij, p_Aij,
                 l_bj, p_bj, img_mad, xi, zeta, m_zeta);
 
         // add up slit-functions, divide by nswaths below to get average
@@ -3382,23 +3382,16 @@ static int cr2res_extract_slit_func_curved(
             }
         }
 
-/*
-        {
-           FILE *dump;
-           dump=fopen("dump_sp.dat","ab");
-           fwrite(&ncols, sizeof(int), 1, dump);
-           fwrite(sP, sizeof(double), ncols, dump);
-           fclose(dump);
-//openr,1,'dump_sp.dat'&n=0l&readu,1,n&sp2=dblarr(n)&readu,1,sp2&for i=0,1000 do begin&sp1=sp2&readu,1,n&sp2=dblarr(n)&readu,1,sp2&plot,sp1,xs=1&oplot,sp2,col=c24(2)&sss=get_kbrd(1)&endfor
-        }
-*/
-
         cpl_msg_debug(__func__,  
             "Iter: %i, Sigma: %f, Cost: %f, sP_change: %f, sP_lim: %f", 
             iter, sigma, cost, sP_change, sP_stop * sP_med);
 
         iter++;
-    } while (iter == 1 || (iter < maxiter
+        if (iter == maxiter)
+            cpl_msg_warning(__func__,
+                "Maximum number of %d iterations reached without converging.",
+                maxiter);
+    } while (iter == 1 || (iter <= maxiter
 //                      && fabs(cost - cost_old) > sP_stop));
                         && sP_change > sP_stop * sP_med));
 
