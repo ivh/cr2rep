@@ -77,7 +77,7 @@ static int cr2res_obs_nodding_reduce(
         int                     nodding_invert,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
-        int                     calib_cosmics_corr,
+        int                     cosmics_corr,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
@@ -535,7 +535,7 @@ static int cr2res_obs_nodding(
     /* TODO, make parameters */
     int extract_niter = 30;
     double extract_kappa = 10;
-    int correct_cosmics = 1;
+    int correct_cosmics = 0;
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
@@ -917,7 +917,7 @@ static int cr2res_obs_nodding_reduce(
         int                     nodding_invert,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
-        int                     calib_cosmics_corr,
+        int                     cosmics_corr,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
@@ -1066,8 +1066,8 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_info(__func__, "Apply the Calibrations") ;
     cpl_msg_indent_more() ;
     if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
-        subtract_nolight_rows, subtract_interorder_column, 1,
-        master_flat_frame,
+        subtract_nolight_rows, subtract_interorder_column,
+        cosmics_corr, master_flat_frame,
         master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         cpl_msg_indent_less() ;
