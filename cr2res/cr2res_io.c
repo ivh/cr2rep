@@ -1027,6 +1027,13 @@ hdrl_image * cr2res_io_load_MASTER_FLAT(
     /* Load */
     master_flat = cr2res_io_load_image(filename, detector) ;
 
+            
+    /* In order to not destroy values in data, the NaNs in the */
+    /* flat-field are replaced by 1.0, and masked, so that they */
+    /* can be unmasked later. */
+    hdrl_image_reject_value(master_flat, CPL_VALUE_NAN);
+    cpl_image_fill_rejected(hdrl_image_get_image(master_flat),1.0);
+    
     /* Error must exist */
     if (hdrl_image_get_error(master_flat) == NULL) {
         cpl_msg_error(__func__, "The error is missing") ;

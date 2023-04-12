@@ -303,7 +303,7 @@ hdrl_image * cr2res_calib_image(
             hdrl_image_delete(out);
             return NULL ;
         }
-        
+
         /* Divide */
         if (hdrl_image_div_image(out, calib) != CPL_ERROR_NONE) {
             cpl_msg_error(__func__, "Cannot apply the flat field") ;
