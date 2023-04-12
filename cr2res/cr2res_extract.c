@@ -1709,6 +1709,8 @@ int cr2res_extract_slitdec_curved(
         // img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
         img_tmp = cpl_image_collapse_median_create(img_sw, 0, 0, 0);
         spec_tmp = cpl_vector_new_from_image_row(img_tmp, 1);
+        cpl_vector_multiply_scalar(spec_tmp, 
+                            (double)cpl_image_get_size_y(img_sw));
         spec_sw = cpl_vector_filter_median_create(spec_tmp, 1);
         cpl_vector_delete(spec_tmp);
         cpl_image_delete(img_tmp);
