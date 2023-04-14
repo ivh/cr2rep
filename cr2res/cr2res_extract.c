@@ -3132,10 +3132,9 @@ static int cr2res_extract_slit_func_curved(
 {
     int         x, xx, xxx, y, yy, iy, jy, n, m, ny, i, nx;
     double      norm, lambda, diag_tot, ww, www, sP_change, sP_med;
-    double      tmp, sigma, median, cost, cost_old;
+    double      tmp, sigma, median, sum, dev, cost, cost_old;
     int         info, iter, isum;
     cpl_vector  * tmp_vec;
-
 
     /* The size of the sL array. */
     /* Extra osample is because ycen can be between 0 and 1. */
@@ -3157,6 +3156,18 @@ static int cr2res_extract_slit_func_curved(
         norm /= osample;
         for(iy=0; iy<ny; iy++) sL[iy]/=norm;
     }
+
+    /* Resetting the mask and img values for outliers and NaN */
+/*    for (y = 0; y < nrows; y++) {
+     for (x = 0; x < ncols; x++) {
+       mask[y * ncols + x] = 1;
+       if(im[y * ncols + x] < -1.e3) {
+         mask[y * ncols + x] = 0;
+         //im[y * ncols + x] = 0.e0;
+       }
+     }
+    }
+*/
 
     /* Loop through sL , sP reconstruction until convergence is reached */
     iter = 0;
@@ -3187,9 +3198,10 @@ static int cr2res_extract_slit_func_curved(
                                         xxx = zeta[zeta_index(xx,yy,m)].x;
                                         jy = zeta[zeta_index(xx,yy,m)].iy;
                                         www = zeta[zeta_index(xx,yy,m)].w;
-                                        l_Aij[iy + ny * (jy - iy + 2 * osample)] +=
-                                            sP[xxx] * sP[x] * www * ww * mask[yy *
-                                            ncols + xx];
+                                        if(jy-iy+2*osample>=0)
+                                          l_Aij[iy + ny * (jy - iy + 2 * osample)] +=
+                                              sP[xxx] * sP[x] * www * ww * mask[yy *
+                                              ncols + xx];
                                     }
                                     l_bj[iy] += im[yy * ncols + xx] * mask[yy * ncols +
                                         xx] * sP[x] * ww;
@@ -3295,9 +3307,10 @@ static int cr2res_extract_slit_func_curved(
 
         for (x = 0; x < ncols; x++) sP[x] = p_bj[x]; /* New Spectrum vector */
 
+
         /* Compute median value of the spectrum for normalisation purpose */
         tmp_vec = cpl_vector_wrap(ncols, sP);
-        sP_med = fabs(cpl_vector_get_median(tmp_vec));
+        sP_med = fabs(cpl_vector_get_median_const(tmp_vec));
         cpl_vector_unwrap(tmp_vec);
 
         /* Compute the change in the spectrum */
@@ -3336,7 +3349,8 @@ static int cr2res_extract_slit_func_curved(
         // On the other hand the std may get to large and might fail to remove
         // outliers sufficiently in some circumstances.
 
-        cost = 0;
+        cost = 0.e0;
+        sum  = 0.e0;
         isum = 0;
         for (y = 0; y < nrows; y++)
         {
@@ -3345,6 +3359,7 @@ static int cr2res_extract_slit_func_curved(
                 if (mask[y * ncols + x])
                 {
                     tmp = model[y * ncols + x] - im[y * ncols + x];
+                    sum += tmp * tmp;
                     tmp /= max(pix_unc[y * ncols + x], 1);
                     cost += tmp * tmp;
                     isum++;
@@ -3352,6 +3367,20 @@ static int cr2res_extract_slit_func_curved(
             }
         }
         cost /= (isum - (ncols + ny));
+        sigma=sqrt(sum/isum);
+
+/* Adjust the mask marking outlyers */
+        for(y=0; y<nrows; y++)
+        {
+     	  for(x=delta_x; x<ncols-delta_x; x++)
+     	  {
+            if(fabs(model[y * ncols + x]-im[y * ncols + x])>kappa*sigma)
+                mask[y * ncols + x]=0;
+            else
+                mask[y * ncols + x]=1;
+     	  }
+        }
+
 
         for (y = 0; y < nrows; y++) {
             for (x = delta_x; x < ncols - delta_x; x++) {
@@ -3359,28 +3388,6 @@ static int cr2res_extract_slit_func_curved(
                         im[y * ncols + x]));
                 if ((mask[y * ncols + x] == 0) | (im[y * ncols + x] == 0))
                     cpl_image_reject(img_mad, x+1, y+1);
-            }
-        }
-        // Ignore the outer delta_x pixels on each side, as they are unreliable
-        median = cpl_image_get_median_dev_window(img_mad,
-            1 + delta_x, 1, ncols-delta_x, nrows, &sigma);
-        if (cpl_error_get_code() == CPL_ERROR_DATA_NOT_FOUND){
-            // this happens if all pixels are bad
-            sigma = 1;
-            median = 0;
-            cpl_error_reset();
-        }
-
-        /* Adjust the mask marking outlyers */
-        for (y = 0; y < nrows; y++) {
-            for (x = 0; x < ncols; x++) {
-                // We order it like this, to account for NaN values
-                // They evaluate to False, and should be masked
-                if (fabs(model[y * ncols + x] - im[y * ncols + x])
-                                                            < kappa * sigma)
-                    mask[y * ncols + x] = 1;
-                else
-                    mask[y * ncols + x] = 0;
             }
         }
 
