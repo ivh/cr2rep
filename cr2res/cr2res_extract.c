@@ -49,6 +49,12 @@ typedef unsigned char byte;
 #define mzeta_index(x, y) (y * ncols) + x
 #define xi_index(x, y, z) (z * ncols * ny) + (y * ncols) + x
 
+// Alternative indexing, probably faster
+//#define zeta_index(x, y, z) (x * nrows + y) * 3*(osample+1) + z
+//#define mzeta_index(x, y) (x * nrows) + y
+//#define xi_index(x, y, z) (x * ny + y) * 4 + z
+
+
 typedef struct {
     int     x ;
     int     y ;     /* Coordinates of target pixel x,y  */
@@ -2348,283 +2354,6 @@ cpl_table * cr2res_extract_EXTRACT2D_create(
 
 /** @} */
 
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Slit-decomposition of a single swath, assuming vertical slit
-  @param    ncols       Swath width in pixels
-  @param    nrows       Extraction slit height in pixels
-  @param    osample     Subpixel ovsersampling factor
-  @param    im          Image to be decomposed
-  @param    mask        int mask of same dimension as image
-  @param    ycen        Order centre line offset from pixel row boundary
-  @param    sL          Slit function resulting from decomposition, start
-                        guess is input, gets overwriteten with result
-  @param    sP          Spectrum resulting from decomposition
-  @param    model       the model reconstruction of im
-  @param    lambda_sP   Smoothing parameter for the spectrum, could be zero
-  @param    lambda_sL   Smoothing parameter for the slit function, usually >0
-  @param    sP_stop     Fraction of spectyrum change, stop condition
-  @param    maxiter     Max number of iterations
-  @return
- */
-/*----------------------------------------------------------------------------*/
-static int cr2res_extract_slit_func_vert(
-        int         ncols,
-        int         nrows,
-        int         osample,
-        double  *   im,
-        double  *   pix_unc,
-        int     *   mask,
-        double  *   ycen,
-        double  *   sL,
-        double  *   sP,
-        double  *   model,
-        double  *   unc,
-        double      lambda_sP,
-        double      lambda_sL,
-        double      sP_stop,
-        int         maxiter,
-        const double * slit_func_in)
-{
-    int x, y, iy, jy, iy1, iy2, ny, nd ;
-    double step, d1, d2, sum, norm, dev, lambda, diag_tot, sP_change, sP_max;
-    int info, iter, isum;
-    /* Initialise */
-    nd=2*osample+1;
-    ny=osample*(nrows+1)+1; /* The size of the sf array */
-    step=1.e0/osample;
-    double * E = cpl_malloc(ncols*sizeof(double)); // double E[ncols];
-    double * sP_old = cpl_malloc(ncols*sizeof(double)); // double sP_old[ncols];
-    double * Aij = cpl_malloc(ny*(2 * osample + 1)*sizeof(double)); //double Aij[ny*ny];
-    double * bj = cpl_malloc(ny*sizeof(double)); // double bj[ny];
-    // double Adiag[ncols*3];
-    double * Adiag = cpl_malloc(ncols*3*sizeof(double));
-    // double omega[ny][nrows][ncols];
-    double * omega = cpl_malloc(ny*nrows*ncols*sizeof(double));
-    // index as: [iy+(y*ny)+(x*ny*nrows)]
-    double *p_bj   = cpl_malloc(ncols * sizeof(double));
-
-    /*
-      Construct the omega tensor. Normally it has the dimensionality of
-      ny*nrows*ncols.
-      The tensor is mostly empty and can be easily compressed to ny*nx, but
-      this will complicate matrix operations at later stages. I will keep
-      it as it is for now.
-      Note, that omega is used in in the equations for sL, sP and for the model
-      but it does not involve the data, only the geometry. Thus it can be
-      pre-computed once.
-      */
-    for(x=0; x<ncols; x++) {
-        iy2 = osample - floor(ycen[x] / step) - 1;
-        iy1 = iy2 - osample;
-
-        d1 = fmod(ycen[x], step);
-        if (d1 == 0)
-            d1 = step;
-        d2 = step - d1;
-
-        for(y=0; y<nrows; y++) {
-            iy1+=osample;
-            iy2+=osample;
-            for(iy=0; iy<ny; iy++) {
-                if(iy<iy1)                omega[iy+(y*ny)+(x*ny*nrows)] = 0.;
-                else if(iy==iy1)          omega[iy+(y*ny)+(x*ny*nrows)] = d1;
-                else if(iy>iy1 && iy<iy2) omega[iy+(y*ny)+(x*ny*nrows)] = step;
-                else if(iy==iy2)          omega[iy+(y*ny)+(x*ny*nrows)] = d2;
-                else                      omega[iy+(y*ny)+(x*ny*nrows)] = 0.;
-            }
-        }
-    }
-
-    if (slit_func_in != NULL){
-        // Normalize the input just in case
-        norm = 0.e0;
-        for(iy = 0; iy < ny; iy++) {
-            sL[iy] = slit_func_in[iy];
-            norm += sL[iy];
-        }
-        norm /= osample;
-        for(iy=0; iy<ny; iy++) sL[iy]/=norm;
-    }
-
-    /* Loop through sL , sP reconstruction until convergence is reached */
-    iter=0;
-    do {
-        if (slit_func_in == NULL){
-            /* Compute slit function sL */
-
-            /* Fill in SLE arrays */
-            diag_tot=0.e0;
-            for(iy=0; iy<ny; iy++) {
-                bj[iy]=0.e0;
-                for(jy=max(iy-osample,0); jy<=min(iy+osample,ny-1); jy++) {
-                    Aij[iy+ny*(jy-iy+osample)]=0.e0;
-                    for(x=0; x<ncols; x++) {
-                        sum=0.e0;
-                        for(y=0; y<nrows; y++)
-                            sum+=omega[iy+(y*ny)+(x*ny*nrows)] *
-                                omega[jy+(y*ny)+(x*ny*nrows)]*mask[y*ncols+x];
-                        Aij[iy+ny*(jy-iy+osample)]+=sum*sP[x]*sP[x];
-                    }
-                }
-                for(x=0; x<ncols; x++) {
-                    sum=0.e0;
-                    for(y=0; y<nrows; y++)
-                        sum+=omega[iy+(y*ny)+(x*ny*nrows)]*
-                            mask[y*ncols+x]*im[y*ncols+x];
-                    bj[iy]+=sum*sP[x];
-                }
-                diag_tot+=Aij[iy+ny*osample];
-            }
-
-            /* Scale regularization parameters */
-            lambda=lambda_sL*diag_tot/ny;
-
-            /* Add regularization parts for the slit function */
-            Aij[ny*osample]    +=lambda;           /* Main diagonal  */
-            Aij[ny*(osample+1)]-=lambda;           /* Upper diagonal */
-            for(iy=1; iy<ny-1; iy++) {
-                Aij[iy+ny*(osample-1)]-=lambda;      /* Lower diagonal */
-                Aij[iy+ny*osample    ]+=lambda*2.e0; /* Main diagonal  */
-                Aij[iy+ny*(osample+1)]-=lambda;      /* Upper diagonal */
-            }
-            Aij[ny-1+ny*(osample-1)]-=lambda;      /* Lower diagonal */
-            Aij[ny-1+ny*osample]    +=lambda;      /* Main diagonal  */
-
-            /* Solve the system of equations */
-            info=cr2res_extract_slitdec_bandsol(Aij, bj, ny, nd, lambda);
-            if(info) cpl_msg_warning(__func__, "Bandsol exited with %d", info);
-
-            /* Normalize the slit function */
-            norm=0.e0;
-            for(iy=0; iy<ny; iy++) {
-                sL[iy]=bj[iy];
-                norm+=sL[iy];
-            }
-            norm/=osample;
-            for(iy=0; iy<ny; iy++) sL[iy]/=norm;
-        }
-
-        /* Compute spectrum sP */
-        for(x=0; x<ncols; x++) {
-            Adiag[x]=0.e0;
-            Adiag[x+ncols]=0.e0;
-            Adiag[x+2 *ncols]=0.e0;
-
-            E[x]=0.e0;
-            for(y=0; y<nrows; y++) {
-                sum=0.e0;
-                for(iy=0; iy<ny; iy++) {
-                    sum+=omega[iy+(y*ny)+(x*ny*nrows)]*sL[iy];
-                }
-
-                Adiag[x+ncols]+=sum*sum*mask[y*ncols+x];
-                E[x]+=sum*im[y*ncols+x]*mask[y*ncols+x];
-            }
-        }
-        if(lambda_sP>0.e0) {
-            norm=0.e0;
-            for(x=0; x<ncols; x++) {
-                sP_old[x]=sP[x];
-                norm+=sP[x];
-            }
-            norm/=ncols;
-            lambda=lambda_sP*norm;
-            Adiag[0        ]  = 0.e0;
-            Adiag[0+ncols  ] += lambda;
-            Adiag[0+ncols*2] -= lambda;
-            for(x=1; x<ncols-1; x++) {
-                Adiag[x]=-lambda;
-                Adiag[x+ncols  ]+= 2.e0*lambda;
-                Adiag[x+ncols*2] =-lambda;
-            }
-            Adiag[ncols - 1            ] -= lambda;
-            Adiag[ncols - 1 +     ncols] += lambda;
-            Adiag[ncols - 1 + 2 * ncols] = 0.e0;
-
-            info=cr2res_extract_slitdec_bandsol(Adiag, E, ncols, 3, lambda);
-            for(x=0; x<ncols; x++) sP[x]=E[x];
-        } else {
-            for(x=0; x<ncols; x++) {
-                sP_old[x]=sP[x];
-                sP[x]=E[x]/Adiag[x+ncols];
-            }
-        }
-
-        /* Compute the model */
-        for(y=0; y<nrows; y++) {
-            for(x=0; x<ncols; x++) {
-                sum=0.e0;
-                for(iy=0; iy<ny; iy++)
-                    sum+=omega[iy+(y*ny)+(x*ny*nrows)]*sL[iy];
-                model[y*ncols+x]=sum*sP[x];
-            }
-        }
-
-        /* Compare model and data */
-        sum=0.e0;
-        isum=0;
-        for(y=0; y<nrows; y++) {
-            for(x=0;x<ncols; x++) {
-                sum+=mask[y*ncols+x]*(model[y*ncols+x]-im[y*ncols+x]) *
-                                (model[y*ncols+x]-im[y*ncols+x]);
-                isum+=mask[y*ncols+x];
-            }
-        }
-        dev=sqrt(sum/isum);
-
-        /* Adjust the mask marking outlyers */
-        for(y=0; y<nrows; y++) {
-            for(x=0;x<ncols; x++) {
-                if(fabs(model[y*ncols+x]-im[y*ncols+x])>6.*dev)
-                    mask[y*ncols+x]=0;
-                else mask[y*ncols+x]=1;
-            }
-        }
-
-        /* Compute the change in the spectrum */
-        sP_change=0.e0;
-        sP_max=1.e0;
-        for(x=0; x<ncols; x++) {
-            if(sP[x]>sP_max) sP_max=sP[x];
-            if(fabs(sP[x]-sP_old[x])>sP_change) sP_change=fabs(sP[x]-sP_old[x]);
-        }
-        /* Check the convergence */
-    } while(iter++ < maxiter && sP_change > sP_stop*sP_max);
-
-    /* Uncertainty estimate */
-    for (x = 0; x < ncols; x++) {
-        unc[x] = 0.;
-        p_bj[x] = 0.;
-    }
-    for (x = 0; x < ncols; x++) {
-        // Loop through all pixels contributing to x
-        for (y = 0; y < nrows; y++) {
-            unc[x] += (im[y * ncols + x] - model[y * ncols + x]) *
-                (im[y * ncols + x] - model[y * ncols + x]) *
-                sL[y] * mask[y * ncols + x];
-            unc[x] += pix_unc[y * ncols + x] * pix_unc[y * ncols + x] *
-                sL[y] * mask[y * ncols + x];
-            // Norm
-            p_bj[x] += sL[y] * mask[y * ncols + x];
-        }
-        
-    }
-    for (x = 0; x < ncols; x++) {
-        unc[x] = sqrt(unc[x] / p_bj[x] * nrows);
-    }
-
-
-    cpl_free(E);
-    cpl_free(sP_old);
-    cpl_free(omega);
-    cpl_free(Aij);
-    cpl_free(bj);
-    cpl_free(Adiag);
-    cpl_free(p_bj);
-
-    return 0;
-}
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -3369,7 +3098,7 @@ static int cr2res_extract_slit_func_curved(
         cost /= (isum - (ncols + ny));
         sigma=sqrt(sum/isum);
 
-/* Adjust the mask marking outlyers */
+        /* Adjust the mask marking outlyers */
         for(y=0; y<nrows; y++)
         {
      	  for(x=delta_x; x<ncols-delta_x; x++)
@@ -3380,7 +3109,6 @@ static int cr2res_extract_slit_func_curved(
                 mask[y * ncols + x]=1;
      	  }
         }
-
 
         for (y = 0; y < nrows; y++) {
             for (x = delta_x; x < ncols - delta_x; x++) {
