@@ -392,6 +392,12 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.cosmics_corr",
+            CPL_TYPE_BOOL, "Find and mark cosmic rays hits as bad",
+            "cr2res.cr2res_obs_nodding", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cosmics_corr");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
     return 0;
 }
 
@@ -451,7 +457,7 @@ static int cr2res_obs_nodding(
                             extract_height, reduce_det, 
                             disp_order_idx, disp_trace, disp_det, 
                             nodding_invert, create_idp, subtract_nolight_rows,
-                            subtract_interorder_column ;
+                            subtract_interorder_column, cosmics_corr ;
     double                  extract_smooth_slit, extract_smooth_spec;
     double                  ra, dec, dit, gain, drot_posang ;
     cpl_frameset        *   rawframes ;
@@ -530,12 +536,14 @@ static int cr2res_obs_nodding(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.display_trace");
     disp_trace = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_nodding.cosmics_corr");
+    cosmics_corr = cpl_parameter_get_bool(param);
 
 
-    /* TODO, make parameters */
+    /* TODO, make parameters, maybe */
     int extract_niter = 30;
     double extract_kappa = 10;
-    int correct_cosmics = 0;
 
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset)) {
@@ -639,7 +647,7 @@ static int cr2res_obs_nodding(
 						trace_wave_frame, detlin_frame, master_dark_frame, 
 						master_flat_frame, bpm_frame, blaze_frame, 
                         nodding_invert, subtract_nolight_rows, 
-                        subtract_interorder_column, correct_cosmics,
+                        subtract_interorder_column, cosmics_corr,
                         extract_oversample, 
                         extract_swath_width, extract_height, 
                         extract_smooth_slit, extract_smooth_spec,
