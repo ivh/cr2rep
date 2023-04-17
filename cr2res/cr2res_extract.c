@@ -3124,13 +3124,22 @@ static int cr2res_extract_slit_func_curved(
             iter, sigma, cost, sP_change, sP_stop * sP_med);
 
         iter++;
-        if (iter == maxiter)
-            cpl_msg_warning(__func__,
-                "Maximum number of %d iterations reached without converging.",
-                maxiter);
     } while (iter == 1 || (iter <= maxiter
 //                      && fabs(cost - cost_old) > sP_stop));
                         && sP_change > sP_stop * sP_med));
+    
+    if (iter == maxiter && sP_change > sP_stop * sP_med)
+            cpl_msg_warning(__func__,
+                "Maximum number of %d iterations reached without converging.",
+                maxiter);
+
+    /* Flip sign if converged in negative direction */
+    sum = 0.0;
+    for(y = 0; y < ny; y++) sum += sL[y];
+    if (sum<0.0){
+        for(y = 0; y < ny; y++) sL[y] *= -1.0;
+        for(x = 0; x < ncols; x++) sP[x] *= -1.0;
+    }
 
     /* Uncertainty estimate */
     for (x = 0; x < ncols; x++) {
