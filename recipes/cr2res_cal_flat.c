@@ -1179,6 +1179,7 @@ static int cr2res_cal_flat_reduce(
     if (imlist == NULL) {
         cpl_msg_error(__func__, "Failed to load the images") ;
         cpl_vector_delete(dits) ;
+        cpl_vector_delete(ndits) ;
         return -1 ;
     }
 
@@ -1190,7 +1191,9 @@ static int cr2res_cal_flat_reduce(
                     trace_smooth_x, trace_smooth_y, trace_threshold, 
                     trace_opening, trace_degree, trace_min_cluster)) == NULL) {
         cpl_msg_error(__func__, "Failed compute the traces") ;
-        hdrl_image_delete(collapsed) ;
+        cpl_vector_delete(dits) ;
+        cpl_vector_delete(ndits) ;
+        hdrl_imagelist_delete(imlist) ;
         cpl_msg_indent_less() ;
         return -1 ;
     }
@@ -1206,6 +1209,7 @@ static int cr2res_cal_flat_reduce(
         cpl_vector_delete(dits) ;
         cpl_vector_delete(ndits) ;
         hdrl_imagelist_delete(imlist) ;
+        cpl_table_delete(computed_traces) ;
         cpl_msg_indent_less() ;
         return -1 ;
     } else {
@@ -1224,6 +1228,7 @@ static int cr2res_cal_flat_reduce(
             CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Failed to Collapse") ;
         hdrl_imagelist_delete(imlist) ;
+        cpl_table_delete(computed_traces) ;
         cpl_msg_indent_less() ;
         return -1 ;
     }
