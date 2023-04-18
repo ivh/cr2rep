@@ -1182,6 +1182,20 @@ static int cr2res_cal_flat_reduce(
         return -1 ;
     }
 
+    /* Compute traces */
+    cpl_msg_info(__func__, "Compute the traces") ;
+    cpl_msg_indent_more() ;
+    if ((computed_traces = cr2res_trace(
+                    hdrl_image_get_image(hdrl_imagelist_get(imlist, 0)),
+                    trace_smooth_x, trace_smooth_y, trace_threshold, 
+                    trace_opening, trace_degree, trace_min_cluster)) == NULL) {
+        cpl_msg_error(__func__, "Failed compute the traces") ;
+        hdrl_image_delete(collapsed) ;
+        cpl_msg_indent_less() ;
+        return -1 ;
+    }
+    cpl_msg_indent_less() ;
+
     /* Calibrate the Data */
     cpl_msg_info(__func__, "Calibrate the input images") ;
     cpl_msg_indent_more() ;
@@ -1215,19 +1229,6 @@ static int cr2res_cal_flat_reduce(
     }
     hdrl_imagelist_delete(imlist) ;
     cpl_image_delete(contrib) ;
-    cpl_msg_indent_less() ;
-
-    /* Compute traces */
-    cpl_msg_info(__func__, "Compute the traces") ;
-    cpl_msg_indent_more() ;
-    if ((computed_traces = cr2res_trace(hdrl_image_get_image(collapsed),
-                    trace_smooth_x, trace_smooth_y, trace_threshold, 
-                    trace_opening, trace_degree, trace_min_cluster)) == NULL) {
-        cpl_msg_error(__func__, "Failed compute the traces") ;
-        hdrl_image_delete(collapsed) ;
-        cpl_msg_indent_less() ;
-        return -1 ;
-    }
     cpl_msg_indent_less() ;
 
     /* Add The remaining Columns to the trace table */
