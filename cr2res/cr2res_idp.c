@@ -95,6 +95,7 @@ int cr2res_idp_save(
 	const char			*	slitname ;
     int                     err, i, ndit, nexp, nraw, obid, nrows, ord ;
     char                *   keyname;
+    char                *   tmp_string;
     const char          *   fname;
 
     cpl_msg_info(__func__, "Create IDPs for %s", filename) ;
@@ -130,16 +131,18 @@ int cr2res_idp_save(
     /* Create the Primary header */
     ref_frame = cpl_frameset_get_position_const(rawframes, 0) ;
     ref_fname = cpl_frame_get_filename(ref_frame) ;
-
     pri_head = cpl_propertylist_load(ref_fname, 0); 
     
+    /* Create the first EXTENSION header */
+    ext_head = cpl_propertylist_new() ;
+
     // TODO: split this type by recipe
-    cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_TYPE,
+    cpl_propertylist_append_string(pri_head, CR2RES_HEADER_DRS_TYPE,
             CR2RES_EXTRACT_1D_IDP_DRSTYPE) ;
 
     if (!strcmp(recipe, "cr2res_obs_nodding")) {
 	    cpl_frame_set_tag(out_frame, CR2RES_OBS_NODDING_IDP_PROCATG);
-        cpl_propertylist_update_string(pri_head, "OBSTECH1", "NODDING") ;
+        cpl_propertylist_update_string(pri_head, "OBSTECH", "NODDING") ;
         cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_CATG,
             CR2RES_OBS_NODDING_IDP_PROCATG) ;
     }
@@ -151,12 +154,16 @@ int cr2res_idp_save(
     }
     else if (!strcmp(recipe, "cr2res_obs_2d")) {
         cpl_propertylist_update_string(pri_head, "OBSTECH", "GENERIC_OFFSET") ;
+        cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_CATG,
+            CR2RES_OBS_2D_IDP_PROCATG) ;
     }
     else if (!strcmp(recipe, "cr2res_obs_pol")) {
         cpl_propertylist_update_string(pri_head, "OBSTECH", "POLARIMETRY") ;
+        cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_CATG,
+            CR2RES_OBS_POL_IDP_PROCATG) ;
+    }
     cpl_propertylist_set_comment(pri_head, "OBSTECH",
 			"Technique of observation") ;
-    }
 
     /* RADECSYS renamed to RADESYS */
     if (cpl_propertylist_has(pri_head, "RADECSYS")) {
@@ -330,11 +337,19 @@ int cr2res_idp_save(
     cpl_propertylist_set_comment(pri_head, "SPEC_BIN", 
             "Median spectral bin width [nm]") ;
 
-    slitname = cpl_propertylist_get_string(pri_head,"ESO INS SLIT1 NAME");
-    if (!strcmp(slitname,"w_0.2"))
+    slitname = cpl_propertylist_get_string(pri_head,"ESO INS SLIT1 ID");
+    if (!strcmp(slitname,"w_0.2")) {
+        cpl_propertylist_update_double(ext_head, "APERTURE", 5.5555555E-5) ;
         cpl_propertylist_update_double(pri_head, "SPEC_RES", SPEC_RESOL_SLIT02);
-    else if (!strcmp(slitname,"w_0.4"))
+    }
+    else if (!strcmp(slitname,"w_0.4")) {
+
+        cpl_propertylist_update_double(ext_head, "APERTURE", 1.1111111E-4) ;
         cpl_propertylist_update_double(pri_head, "SPEC_RES", SPEC_RESOL_SLIT04);
+    cpl_msg_warning(__func__,"SLIT: %d",cpl_error_get_code());
+    }
+    cpl_propertylist_set_comment(ext_head, "APERTURE", 
+            "Slit width in deg") ;
     cpl_propertylist_set_comment(pri_head, "SPEC_RES",
                 "Nominal resolving power for the given slit"); 
 
@@ -365,9 +380,6 @@ int cr2res_idp_save(
 	cpl_propertylist_save(pri_head, idp_filename, CPL_IO_CREATE);
 
 
-    /* Create the first EXTENSION header */
-    ext_head = cpl_propertylist_new() ;
-
     /* Add Keywords to extension header */
     cpl_propertylist_update_string(ext_head, "EXTNAME", "IDP_SPECTRUM") ;
 
@@ -383,10 +395,13 @@ int cr2res_idp_save(
                     cpl_propertylist_get_string(pri_head, "OBJECT"));
     cpl_propertylist_set_comment(ext_head, "OBJECT",
                     cpl_propertylist_get_comment(pri_head, "OBJECT"));
-    cpl_propertylist_update_string(ext_head, "TITLE",
-                    cpl_propertylist_get_string(pri_head, "OBJECT"));
+    tmp_string = cpl_sprintf("%s - %f", 
+        cpl_propertylist_get_string(pri_head, "OBJECT"), mjd_start);
+
+    cpl_propertylist_update_string(ext_head, "TITLE", tmp_string);
+    cpl_free(tmp_string);
     cpl_propertylist_set_comment(ext_head, "TITLE",
-                    "Title is the same as OBJECT");
+                    "Title is OBJECT and MJD at start");
 
     cpl_propertylist_update_double(ext_head, "SPEC_VAL", (wmax+wmin)/2.0) ;
     cpl_propertylist_set_comment(ext_head, "SPEC_VAL", 
@@ -402,12 +417,9 @@ int cr2res_idp_save(
             "Data Model name and version") ;
     cpl_propertylist_update_int(ext_head, "NELEM", nrows) ;
     cpl_propertylist_set_comment(ext_head, "NELEM", "Length of the data array");
-    cpl_propertylist_update_double(ext_head, "APERTURE", 0.0000555) ;
-    cpl_propertylist_set_comment(ext_head, "APERTURE", 
-            "Slit width in deg") ;
-
+    
     cpl_propertylist_update_string(ext_head, "TUTYP1", 
-                        "Spectrum.Data.SpectralAxis.Value");
+                        "spec:Data.SpectralAxis.Value");
     cpl_propertylist_update_string(ext_head, "TTYPE1", "WAVE");
     cpl_propertylist_update_string(ext_head, "TUCD1", "em.wl");
     cpl_propertylist_update_string(ext_head, "TUNIT1", "nm");
@@ -415,25 +427,47 @@ int cr2res_idp_save(
     cpl_propertylist_update_double(ext_head, "TDMAX1", wmax);
 
     cpl_propertylist_update_string(ext_head, "TUTYP2",
-                                "Spectrum.Data.FluxAxis.Value");
+                                "spec:Data.FluxAxis.Value");
     cpl_propertylist_update_string(ext_head, "TTYPE2", "FLUX");
     cpl_propertylist_update_string(ext_head, "TUCD2", "phot.count");
     cpl_propertylist_update_string(ext_head, "TUNIT2", "count");
 
     cpl_propertylist_update_string(ext_head, "TUTYP3",
-                    "Spectrum.Data.FluxAxis.Accuracy.StatError");
+                    "spec:Data.FluxAxis.Accuracy.StatError");
     cpl_propertylist_update_string(ext_head, "TTYPE3", "ERR");
     cpl_propertylist_update_string(ext_head, "TUCD3",
                         "stat.error;phot.count");
 
-    cpl_propertylist_update_string(ext_head, "TUTYP3",
-                    "Spectrum.Data.FluxAxis.Accuracy.StatError");
-    cpl_propertylist_update_string(ext_head, "TTYPE3", "ERR");
-    cpl_propertylist_update_string(ext_head, "TUCD3",
-                        "stat.error;phot.count");
+    cpl_propertylist_update_string(ext_head, "TUTYP4",
+                    "spec:Data.FluxAxis.Accurancy.QualityStatus");
+    cpl_propertylist_update_string(ext_head, "TTYPE4", "QUAL");
+    cpl_propertylist_update_string(ext_head, "TUCD4",
+                        "meta.code.qual;meta.main");
+
+    cpl_propertylist_update_string(ext_head, "TUTYP5",
+                    "");
+    cpl_propertylist_update_string(ext_head, "TUCD5",
+                        "instr.order");
+
+    cpl_propertylist_update_string(ext_head, "TUTYP6",
+                    "");
+    cpl_propertylist_update_string(ext_head, "TUCD6",
+                        "meta.number"); // TraceNb
+
+    cpl_propertylist_update_string(ext_head, "TUTYP7",
+                    "");
+    cpl_propertylist_update_string(ext_head, "TUCD7",
+                        "meta.number;instr.det");
+
+    cpl_propertylist_update_string(ext_head, "TUTYP8",
+                    "");
+    cpl_propertylist_update_string(ext_head, "TUCD8",
+                        "pos.cartesian.x;instr.det");
 
 
-
+    /* For Y pixel coordinate in OBS_2D
+    TUCDi = pos.cartesian.y;instr.det
+    */
 
     /* Remove keywords */
     cpl_propertylist_erase(ext_head, "CRDER3");
