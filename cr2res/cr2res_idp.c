@@ -47,7 +47,8 @@ static int cr2res_idp_copy(
     int                 det_nr,
     int                 order,
     int                 tracenb,
-    const char      *   recipe) ;
+    const char      *   recipe,
+    const char      *   setting) ;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -93,6 +94,7 @@ int cr2res_idp_save(
                             wmin, wmax, resol, spec_bin ;
 	const char			*	progid ;
 	const char			*	slitname ;
+	const char			*	setting ;
     int                     err, i, ndit, nexp, nraw, obid, nrows, ord ;
     char                *   keyname;
     char                *   tmp_string;
@@ -102,8 +104,19 @@ int cr2res_idp_save(
     /* Output file name */
     idp_filename = cpl_sprintf("idp_%s", filename) ;
 
+    /* Create the Primary header */
+    ref_frame = cpl_frameset_get_position_const(rawframes, 0) ;
+    ref_fname = cpl_frame_get_filename(ref_frame) ;
+    pri_head = cpl_propertylist_load(ref_fname, 0); 
+    
+    /* Create the first EXTENSION header */
+    ext_head = cpl_propertylist_new() ;
+
+    /* Read spectral setting because we need it to make the table*/
+    setting = cpl_propertylist_get_string(pri_head, "ESO INS WLEN ID");
+
     /* Create the big table */
-    idp_tab = cr2res_idp_create_table(tables, recipe) ;
+    idp_tab = cr2res_idp_create_table(tables, recipe, setting) ;
 
     /* Set the units */
     cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_WAVE, "nm") ;
@@ -128,13 +141,6 @@ int cr2res_idp_save(
 	cpl_frame_set_group(out_frame, CPL_FRAME_GROUP_PRODUCT);
 	cpl_frame_set_level(out_frame, CPL_FRAME_LEVEL_FINAL);
 
-    /* Create the Primary header */
-    ref_frame = cpl_frameset_get_position_const(rawframes, 0) ;
-    ref_fname = cpl_frame_get_filename(ref_frame) ;
-    pri_head = cpl_propertylist_load(ref_fname, 0); 
-    
-    /* Create the first EXTENSION header */
-    ext_head = cpl_propertylist_new() ;
 
     // TODO: split this type by recipe
     cpl_propertylist_append_string(pri_head, CR2RES_HEADER_DRS_TYPE,
@@ -346,7 +352,6 @@ int cr2res_idp_save(
 
         cpl_propertylist_update_double(ext_head, "APERTURE", 1.1111111E-4) ;
         cpl_propertylist_update_double(pri_head, "SPEC_RES", SPEC_RESOL_SLIT04);
-    cpl_msg_warning(__func__,"SLIT: %d",cpl_error_get_code());
     }
     cpl_propertylist_set_comment(ext_head, "APERTURE", 
             "Slit width in deg") ;
@@ -467,6 +472,9 @@ int cr2res_idp_save(
 
     /* For Y pixel coordinate in OBS_2D
     TUCDi = pos.cartesian.y;instr.det
+
+    for pol
+    phot.count;phys.polarization.stokes.I
     */
 
     /* Remove keywords */
@@ -506,7 +514,8 @@ int cr2res_idp_save(
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_idp_create_table(
         cpl_table               **  tables,
-        const char              *   recipe)
+        const char              *   recipe,
+        const char              *   setting)
 {
     cpl_table           *   idp_tab ;
     cpl_table           *   tmp_tab ;
@@ -575,7 +584,7 @@ cpl_table * cr2res_idp_create_table(
                         !strcmp(col_kind, CR2RES_COL_SPEC_SUFFIX)) {
                     /* Handle this extracted spectrum */
                     cr2res_idp_copy(tmp_tab, tables[i], ntot, i+1, order, 
-                            trace_nb, recipe) ;
+                            trace_nb, recipe, setting) ;
                     ntot += cpl_table_get_nrow(tables[i]) ;
                 }
                 if (col_kind != NULL) cpl_free(col_kind) ;
@@ -719,7 +728,8 @@ static int cr2res_idp_copy(
     int                 det_nr,
     int                 order,
     int                 tracenb,
-    const char          *   recipe) 
+    const char          *   recipe, 
+    const char          *   setting) 
 {
     char            *   spec_name ;
     char            *   wave_name ;
@@ -727,7 +737,7 @@ static int cr2res_idp_copy(
     const double    *   pspec ;
     const double    *   pwave ;
     const double    *   perr ;
-    cpl_size            in_size, out_size, i ;
+    cpl_size            in_size, out_size, i, edgepix ;
 
     /* Check entries */
     if (out == NULL  || in == NULL) return -1 ;
@@ -773,8 +783,10 @@ static int cr2res_idp_copy(
             if (!isnan(perr[i])) 
                 cpl_table_set_double(out, CR2RES_IDP_COL_ERR, 
                         out_start_idx + i, perr[i]) ;
+            if (i<5 || (i>=CR2RES_DETECTOR_SIZE-5)) edgepix = 2;
+            else edgepix=0;
             cpl_table_set_int(out, CR2RES_IDP_COL_QUAL, out_start_idx + i, 
-                    0);
+                    edgepix + cr2res_wl_is_ghost(setting, pwave[i]));
             cpl_table_set_int(out, CR2RES_IDP_COL_XPOS, out_start_idx + i, 
                     i+1) ;
             cpl_table_set_int(out, CR2RES_IDP_COL_DETEC, out_start_idx + i, 
@@ -788,3 +800,129 @@ static int cr2res_idp_copy(
     return 0 ;
 }
 
+/*---------------------------------------------------------------------------*/
+/**
+  @brief    check whether a wl is affected by ghost
+  @param    setting         The setting in question
+  @param    wl              The wavelength
+  @return   0 or 1, for unaffected and affected, repsectively.
+ */
+/*---------------------------------------------------------------------------*/
+int cr2res_wl_is_ghost(const char * setting, double wl){
+    cpl_vector * start;
+    cpl_vector * end;
+    cpl_bivector * ghosts;
+    cpl_size nghosts;
+    int i;
+
+    ghosts = cr2res_get_ghosts(setting);
+    start = cpl_bivector_get_x(ghosts);
+    end = cpl_bivector_get_y(ghosts);
+    nghosts = cpl_vector_get_size(start);
+
+    for (i=0; i<nghosts; i++){
+        if ( wl > cpl_vector_get(start,i) && wl < cpl_vector_get(end,i)) {
+            cpl_bivector_delete(ghosts);
+            return 1;
+        }
+    }
+    cpl_bivector_delete(ghosts);
+    return 0;
+}
+/*---------------------------------------------------------------------------*/
+/**
+  @brief    Create a bivector from static values for ghosts, start and end wl
+  @param    setting         The setting in question
+  @return   bivector, needs to be deallocated by caller
+ */
+/*---------------------------------------------------------------------------*/
+cpl_bivector * cr2res_get_ghosts(const char * setting){
+    cpl_vector * start;
+    cpl_vector * end;
+    int nghost;
+
+    if (!strcmp(setting,"Y1029")) {
+        nghost = 9;
+        start = cpl_vector_new(nghost);
+        end = cpl_vector_new(nghost);
+        cpl_vector_set(start, 0,  955.51); cpl_vector_set(end, 0, 956.59);
+        cpl_vector_set(start, 1,  972.36); cpl_vector_set(end, 1, 973.46);
+        cpl_vector_set(start, 2,  990.18); cpl_vector_set(end, 2, 990.81);
+        cpl_vector_set(start, 3, 1008.18); cpl_vector_set(end, 3, 1008.82);
+        cpl_vector_set(start, 4, 1026.81); cpl_vector_set(end, 4, 1027.47);
+        cpl_vector_set(start, 5, 1046.15); cpl_vector_set(end, 5, 1046.90);
+        cpl_vector_set(start, 6, 1066.29); cpl_vector_set(end, 6, 1067.05);
+        cpl_vector_set(start, 7, 1087.15); cpl_vector_set(end, 7, 1087.93);
+        cpl_vector_set(start, 8, 1108.83); cpl_vector_set(end, 8, 1109.63);
+    } else if (!strcmp(setting,"Y1028")) {
+        nghost = 9;
+        start = cpl_vector_new(nghost);
+        end = cpl_vector_new(nghost);
+        cpl_vector_set(start, 0,  954.15); cpl_vector_set(end, 0, 955.20);
+        cpl_vector_set(start, 1,  971.25); cpl_vector_set(end, 1, 971.87);
+        cpl_vector_set(start, 2,  988.65); cpl_vector_set(end, 2, 989.23);
+        cpl_vector_set(start, 3, 1006.61); cpl_vector_set(end, 3, 1007.24);
+        cpl_vector_set(start, 4, 1025.23); cpl_vector_set(end, 4, 1025.90);
+        cpl_vector_set(start, 5, 1044.60); cpl_vector_set(end, 5, 1045.25);
+        cpl_vector_set(start, 6, 1064.67); cpl_vector_set(end, 6, 1065.33);
+        cpl_vector_set(start, 7, 1085.46); cpl_vector_set(end, 7, 1086.18);
+        cpl_vector_set(start, 8, 1107.18); cpl_vector_set(end, 8, 1107.91);
+    } else if (!strcmp(setting,"J1226")) {
+        nghost = 9;
+        start = cpl_vector_new(nghost);
+        end = cpl_vector_new(nghost);
+        cpl_vector_set(start, 0, 1119.44); cpl_vector_set(end, 0, 1020.33);
+        cpl_vector_set(start, 1, 1142.78); cpl_vector_set(end, 1, 1143.76);
+        cpl_vector_set(start, 2, 1167.12); cpl_vector_set(end, 2, 1168.08);
+        cpl_vector_set(start, 3, 1192.52); cpl_vector_set(end, 3, 1193.49);
+        cpl_vector_set(start, 4, 1219.01); cpl_vector_set(end, 4, 1220.04);
+        cpl_vector_set(start, 5, 1246.71); cpl_vector_set(end, 5, 1247.76);
+        cpl_vector_set(start, 6, 1275.70); cpl_vector_set(end, 6, 1276.80);
+        cpl_vector_set(start, 7, 1306.05); cpl_vector_set(end, 7, 1307.15);
+        cpl_vector_set(start, 8, 1337.98); cpl_vector_set(end, 8, 1338.94);
+    } else if (!strcmp(setting,"J1228")) {
+        nghost = 9;
+        start = cpl_vector_new(nghost);
+        end = cpl_vector_new(nghost);
+        cpl_vector_set(start, 0, 1121.21); cpl_vector_set(end, 0, 1122.12);
+        cpl_vector_set(start, 1, 1144.57); cpl_vector_set(end, 1, 1145.53);
+        cpl_vector_set(start, 2, 1168.98); cpl_vector_set(end, 2, 1169.91);
+        cpl_vector_set(start, 3, 1194.37); cpl_vector_set(end, 3, 1195.38);
+        cpl_vector_set(start, 4, 1220.92); cpl_vector_set(end, 4, 1221.95);
+        cpl_vector_set(start, 5, 1248.68); cpl_vector_set(end, 5, 1249.72);
+        cpl_vector_set(start, 6, 1277.71); cpl_vector_set(end, 6, 1278.83);
+        cpl_vector_set(start, 7, 1308.12); cpl_vector_set(end, 7, 1309.17);
+        cpl_vector_set(start, 8, 1339.95); cpl_vector_set(end, 8, 1341.03);
+    } else if (!strcmp(setting,"J1232")) {
+        nghost = 9;
+        start = cpl_vector_new(nghost);
+        end = cpl_vector_new(nghost);
+        cpl_vector_set(start, 0, 1124.71); cpl_vector_set(end, 0, 1125.60);
+        cpl_vector_set(start, 1, 1148.15); cpl_vector_set(end, 1, 1149.46);
+        cpl_vector_set(start, 2, 1172.62); cpl_vector_set(end, 2, 1173.55);
+        cpl_vector_set(start, 3, 1198.13); cpl_vector_set(end, 3, 1199.08);
+        cpl_vector_set(start, 4, 1224.77); cpl_vector_set(end, 4, 1225.74);
+        cpl_vector_set(start, 5, 1252.56); cpl_vector_set(end, 5, 1253.59);
+        cpl_vector_set(start, 6, 1281.74); cpl_vector_set(end, 6, 1282.74);
+        cpl_vector_set(start, 7, 1312.19); cpl_vector_set(end, 7, 1313.26);
+        cpl_vector_set(start, 8, 1344.15); cpl_vector_set(end, 8, 1345.23);
+    } else if (!strcmp(setting,"H1559")) {
+        nghost = 2;
+        start = cpl_vector_new(nghost);
+        end = cpl_vector_new(nghost);
+        cpl_vector_set(start, 0, 1682.63); cpl_vector_set(end, 0, 1682.97);
+        cpl_vector_set(start, 1, 1735.50); cpl_vector_set(end, 1, 1737.42);
+    } else if (!strcmp(setting,"H1567")) {
+        nghost = 1;
+        start = cpl_vector_new(nghost);
+        end = cpl_vector_new(nghost);
+        cpl_vector_set(start, 0, 1744.20); cpl_vector_set(end, 0, 1745.84);
+    } else if (!strcmp(setting,"H1575")) {
+        nghost = 1;
+        start = cpl_vector_new(nghost);
+        end = cpl_vector_new(nghost);
+        cpl_vector_set(start, 0, 1753.20); cpl_vector_set(end, 0, 1754.28);
+    }
+    
+    return cpl_bivector_wrap_vectors(start,end);
+}
