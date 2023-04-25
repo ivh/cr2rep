@@ -74,7 +74,7 @@ static int cr2res_obs_pol_reduce(
         const cpl_frame     *   blaze_frame,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
-        int                     calib_cosmics_corr,
+        int                     cosmics,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
@@ -138,7 +138,7 @@ static int cr2res_obs_pol_reduce_one(
         const cpl_frame     *   blaze_frame,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
-        int                     calib_cosmics_corr,
+        int                     cosmics,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
@@ -348,6 +348,13 @@ static int cr2res_obs_pol_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_pol.cosmics",
+            CPL_TYPE_BOOL, "Find and mark cosmic rays hits as bad",
+            "cr2res.cr2res_obs_pol", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cosmics");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_pol.extract_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
             "cr2res.cr2res_obs_pol", 5);
@@ -450,7 +457,7 @@ static int cr2res_obs_pol(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     extract_oversample, extract_swath_width,
+    int                     extract_oversample, extract_swath_width, cosmics,
                             extract_height, reduce_det, subtract_nolight_rows,
                             subtract_interorder_column, save_group ;
     double                  extract_smooth_slit, extract_smooth_spec ;
@@ -515,10 +522,13 @@ static int cr2res_obs_pol(
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_pol.subtract_nolight_rows");
+    subtract_nolight_rows = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_pol.subtract_interorder_column");
     subtract_interorder_column = cpl_parameter_get_bool(param);
-    subtract_nolight_rows = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_pol.cosmics");
+    cosmics = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_pol.extract_oversample");
     extract_oversample = cpl_parameter_get_int(param);
@@ -633,7 +643,7 @@ static int cr2res_obs_pol(
         if (cr2res_obs_pol_reduce(rawframes, raw_flat_frames, trace_wave_frame, 
                     detlin_frame, master_dark_frame, master_flat_frame, 
                     bpm_frame, blaze_frame, subtract_nolight_rows,
-                    subtract_interorder_column, 0, extract_oversample, 
+                    subtract_interorder_column, cosmics, extract_oversample, 
                     extract_swath_width, extract_height, extract_smooth_slit, 
                     extract_smooth_spec, save_group, det_nr,
                     &(in_calib_1_a[det_nr-1]),
@@ -1016,7 +1026,7 @@ static int cr2res_obs_pol(
   @param bpm_frame              Associated BPM
   @param blaze_frame            Associated Blaze
   @param subtract_nolight_rows
-  @param calib_cosmics_corr     Flag to correct for cosmics
+  @param cosmics                Flag to correct for cosmics
   @param extract_oversample     Extraction related
   @param extract_swath_width    Extraction related
   @param extract_height         Extraction related
@@ -1048,7 +1058,7 @@ static int cr2res_obs_pol_reduce(
         const cpl_frame     *   blaze_frame,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
-        int                     calib_cosmics_corr,
+        int                     cosmics,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
@@ -1160,7 +1170,7 @@ static int cr2res_obs_pol_reduce(
     if (cr2res_obs_pol_reduce_one(rawframes_a, raw_flat_frames, rawframes_b,
                 trace_wave_frame, detlin_frame, master_dark_frame, 
                 master_flat_frame, bpm_frame, blaze_frame, 
-                subtract_nolight_rows, subtract_interorder_column, 0, 
+                subtract_nolight_rows, subtract_interorder_column, cosmics, 
                 extract_oversample, extract_swath_width, extract_height, 
                 extract_smooth_slit, extract_smooth_spec, save_group,
                 reduce_det, 
@@ -1176,7 +1186,7 @@ static int cr2res_obs_pol_reduce(
     if (cr2res_obs_pol_reduce_one(rawframes_b, raw_flat_frames, rawframes_a,
                 trace_wave_frame, detlin_frame, master_dark_frame, 
                 master_flat_frame, bpm_frame, blaze_frame,
-                subtract_nolight_rows, subtract_interorder_column, 0,
+                subtract_nolight_rows, subtract_interorder_column, cosmics,
                 extract_oversample, extract_swath_width, extract_height,
                 extract_smooth_slit, extract_smooth_spec, save_group, 
                 reduce_det, 
@@ -1266,7 +1276,7 @@ static int cr2res_obs_pol_reduce(
   @param bpm_frame              Associated BPM
   @param blaze_frame            Associated Blaze frame
   @param subtract_nolight_rows
-  @param calib_cosmics_corr     Flag to correct for cosmics
+  @param cosmics                Flag to correct for cosmics
   @param extract_oversample     Extraction related
   @param extract_swath_width    Extraction related
   @param extract_height         Extraction related
@@ -1294,7 +1304,7 @@ static int cr2res_obs_pol_reduce_one(
         const cpl_frame     *   blaze_frame,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
-        int                     calib_cosmics_corr,
+        int                     cosmics,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
@@ -1433,9 +1443,9 @@ static int cr2res_obs_pol_reduce_one(
     cpl_msg_info(__func__, "Apply the calibrations") ;
     cpl_msg_indent_more() ;
     if ((in_calib_loc = cr2res_calib_imagelist(in, reduce_det, 0,
-            subtract_nolight_rows, subtract_interorder_column,
-            0, master_flat_frame, 
-            master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
+            subtract_nolight_rows, subtract_interorder_column, cosmics, 
+            master_flat_frame, master_dark_frame, bpm_frame, detlin_frame, 
+            dits, ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         cpl_msg_indent_less() ;
         if (dits != NULL) cpl_vector_delete(dits) ;
@@ -1473,7 +1483,7 @@ static int cr2res_obs_pol_reduce_one(
         cpl_msg_info(__func__, "Apply the calibrations to background") ;
         cpl_msg_indent_more() ;
         if ((in_backgr = cr2res_calib_imagelist(in, reduce_det, 0, 
-                        subtract_nolight_rows, 1, 0, master_flat_frame, 
+                        subtract_nolight_rows, 1, cosmics, master_flat_frame, 
                         master_dark_frame, bpm_frame, detlin_frame, 
                         dits, ndits)) == NULL) {
             cpl_msg_error(__func__,

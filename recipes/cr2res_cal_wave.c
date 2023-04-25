@@ -78,6 +78,7 @@ static int cr2res_cal_wave_reduce(
         int                     reduce_trace,
         int                     slit_degree,
         int                     subtract_nolight_rows,
+        int                     cosmics,
         cr2res_collapse         collapse,
         int                     ext_height,
         int                     ext_swath_width,
@@ -318,6 +319,12 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.cosmics",
+            CPL_TYPE_BOOL, "Find and mark cosmic rays hits as bad",
+            "cr2res.cr2res_cal_wave", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cosmics");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.collapse_method",
             CPL_TYPE_STRING, "Collapse the input images (MEAN or MEDIAN)",
@@ -506,9 +513,9 @@ static int cr2res_cal_wave(
     int                     reduce_det, reduce_order, reduce_trace,
                             slit_degree, ext_oversample, ext_swath_width, 
                             ext_height, wl_degree, display, log_flag,
-                            fallback_input_wavecal_flag,
+                            fallback_input_wavecal_flag, 
                             save_intermediate_flag, keep_higher_degrees_flag, 
-                            clean_spectrum, subtract_nolight_rows ;
+                            clean_spectrum, subtract_nolight_rows, cosmics ;
     double                  ext_smooth_slit, ext_smooth_spec, wl_start, wl_end,
                             wl_err, wl_shift, display_wmin,
                             display_wmax, central_wlen ;
@@ -563,6 +570,9 @@ static int cr2res_cal_wave(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.subtract_nolight_rows");
     subtract_nolight_rows = cpl_parameter_get_bool(param) ;
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_wave.cosmics");
+    cosmics = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_wave.collapse_method");
     sval = cpl_parameter_get_string(param);
@@ -776,7 +786,7 @@ static int cr2res_cal_wave(
         if (cr2res_cal_wave_reduce(rawframes_une, rawframes_fpet, detlin_frame,
                     master_dark_frame, master_flat_frame, bpm_frame,
                     trace_wave_frame, lines_frame, det_nr, reduce_order,
-                    reduce_trace, slit_degree, subtract_nolight_rows,
+                    reduce_trace, slit_degree, subtract_nolight_rows, cosmics,
                     collapse, ext_height, ext_swath_width, ext_oversample, 
                     ext_smooth_slit, ext_smooth_spec, wavecal_type, wl_degree, 
                     wl_start, wl_end, wl_err, wl_shift, log_flag, 
@@ -920,6 +930,7 @@ static int cr2res_cal_wave(
   @param reduce_trace       The trace to compute (-1 for all)
   @param slit_degree        The polynomial degree for the slit fit 
   @param subtract_nolight_rows
+  @param cosmics            Flag to correct for cosmics
   @param collapse           CR2RES_COLLAPSE_MEAN or CR2RES_COLLAPSE_MEDIAN
   @param ext_height         Extraction related
   @param ext_swath_width    Extraction related
@@ -967,6 +978,7 @@ static int cr2res_cal_wave_reduce(
         int                     reduce_trace,
         int                     slit_degree,
         int                     subtract_nolight_rows,
+        int                     cosmics,
         cr2res_collapse         collapse,
         int                     ext_height, 
         int                     ext_swath_width,
@@ -1177,7 +1189,7 @@ static int cr2res_cal_wave_reduce(
         }
         /* Calibrate the UNE images */
         if ((in_une_calib = cr2res_calib_imagelist(in_une, reduce_det, 0,
-                        subtract_nolight_rows, 1, 0, master_flat_frame, 
+                        subtract_nolight_rows, 1, cosmics, master_flat_frame, 
                         master_dark_frame, bpm_frame, detlin_frame, 
                         dits_une, ndits_une)) == NULL) {
             cpl_msg_error(__func__, "Failed to apply the calibrations") ;
@@ -1395,8 +1407,9 @@ static int cr2res_cal_wave_reduce(
 
         /* Calibrate the FPET images */
         if ((in_fpet_calib = cr2res_calib_imagelist(in_fpet, reduce_det, 0, 
-                        subtract_nolight_rows, 0, 0, master_flat_frame, NULL, 
-                        bpm_frame, detlin_frame, NULL, ndits_fpet)) == NULL) {
+                        subtract_nolight_rows, 0, cosmics, master_flat_frame, 
+                        NULL, bpm_frame, detlin_frame, NULL, 
+                        ndits_fpet)) == NULL) {
             cpl_msg_error(__func__, "Failed to apply the calibrations") ;
             cpl_msg_indent_less() ;
             if (in_fpet != NULL) hdrl_imagelist_delete(in_fpet) ;

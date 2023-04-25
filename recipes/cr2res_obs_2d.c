@@ -68,7 +68,7 @@ static int cr2res_obs_2d_reduce(
         const cpl_frame     *   bpm_frame,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
-        int                     calib_cosmics_corr,
+        int                     cosmics,
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
@@ -217,13 +217,19 @@ static int cr2res_obs_2d_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value(
-            "cr2res.cr2res_obs_2d.subtract_interorder_column",
-            CPL_TYPE_BOOL,
+            "cr2res.cr2res_obs_2d.subtract_interorder_column", CPL_TYPE_BOOL,
             "Subtract column-by-column fit to the pixel values between"
             " spectral orders",
             "cr2res.cr2res_obs_2d", TRUE);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, 
                                                 "subtract_interorder_column");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_2d.cosmics",
+            CPL_TYPE_BOOL, "Find and mark cosmic rays hits as bad", 
+            "cr2res.cr2res_obs_2d", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cosmics");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -310,7 +316,7 @@ static int cr2res_obs_2d(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     reduce_det, reduce_order, reduce_trace, 
+    int                     reduce_det, reduce_order, reduce_trace, cosmics,
                             subtract_nolight_rows, subtract_interorder_column ;
     cpl_frameset        *   rawframes_obj ;
     cpl_frameset        *   rawframes_sky ;
@@ -338,10 +344,13 @@ static int cr2res_obs_2d(
     reduce_det = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_2d.subtract_nolight_rows");
+    subtract_nolight_rows = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_2d.subtract_interorder_column");
     subtract_interorder_column = cpl_parameter_get_bool(param);
-    subtract_nolight_rows = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_2d.cosmics");
+    cosmics = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_2d.order");
     reduce_order = cpl_parameter_get_int(param);
@@ -444,8 +453,8 @@ static int cr2res_obs_2d(
                         (const hdrl_image**)sky_average, 
                         trace_wave_frame, detlin_frame, master_dark_frame, 
                         master_flat_frame, bpm_frame, subtract_nolight_rows, 
-                        subtract_interorder_column, 0, det_nr, reduce_order, 
-                        reduce_trace,
+                        subtract_interorder_column, cosmics, det_nr, 
+                        reduce_order, reduce_trace,
                         &(calibrated[det_nr-1]),
                         &(extract[det_nr-1]),
                         &(ext_plist[det_nr-1])) == -1) {
@@ -521,7 +530,8 @@ static int cr2res_obs_2d(
   @param master_flat_frame      Associated master flat
   @param bpm_frame              Associated BPM
   @param subtract_nolight_rows
-  @param calib_cosmics_corr     Flag to correct for cosmics
+  @param subtract_interorder_column
+  @param cosmics                Flag to correct for cosmics
   @param reduce_det             The detector to compute
   @param reduce_order           The order to reduce (-1 for all)
   @param reduce_trace           The trace to reduce (-1 for all)
@@ -542,7 +552,7 @@ static int cr2res_obs_2d_reduce(
         const cpl_frame     *   bpm_frame,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
-        int                     calib_cosmics_corr,
+        int                     cosmics,
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
@@ -610,8 +620,9 @@ static int cr2res_obs_2d_reduce(
 
     /* Calibrate the image */
     if ((in_calib = cr2res_calib_image(in, reduce_det, 0,
-        subtract_nolight_rows, subtract_interorder_column, 0, master_flat_frame, 
-        master_dark_frame, bpm_frame, detlin_frame, dit, ndit)) == NULL) {
+                    subtract_nolight_rows, subtract_interorder_column, cosmics, 
+                    master_flat_frame, master_dark_frame, bpm_frame, 
+                    detlin_frame, dit, ndit)) == NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         hdrl_image_delete(in) ;
         return -1 ;
@@ -647,7 +658,7 @@ static int cr2res_obs_2d_reduce(
 
         /* Calibrate the image */
         if ((in_sky_calib = cr2res_calib_image(in_sky, reduce_det, 0,
-            subtract_nolight_rows, subtract_interorder_column, 0, 
+            subtract_nolight_rows, subtract_interorder_column, cosmics, 
             master_flat_frame, master_dark_frame, bpm_frame, detlin_frame, 
             dit_sky, ndit_sky)) == NULL) {
             cpl_msg_error(__func__, 

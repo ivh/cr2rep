@@ -102,7 +102,7 @@ Frames Calibration                                                      \n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on detectors d:                                                \n\
-      Call cr2res_calib_imagelist()() to calibrate --cosmics_corr,\n\
+      Call cr2res_calib_imagelist()() to calibrate cosmics,             \n\
                detlin, bpm, dark, flat                                  \n\
         -> calibrated(d)                                                \n\
       Collapse the calibrated image list to collapsed(d)                \n\
@@ -219,10 +219,10 @@ static int cr2res_util_calib_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_util_calib.cosmics_corr",
-            CPL_TYPE_BOOL, "Correct the Cosmics",
+    p = cpl_parameter_new_value("cr2res.cr2res_util_calib.cosmics",
+            CPL_TYPE_BOOL, "Find and mark cosmic rays hits as bad",
             "cr2res.cr2res_util_calib", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cosmics_corr");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cosmics");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -288,7 +288,7 @@ static int cr2res_util_calib(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     clean_bad, cosmics_corr, reduce_det, 
+    int                     clean_bad, cosmics, reduce_det, 
                             subtract_nolight_rows, subtract_interorder_column ;
     cr2res_collapse         collapse ;
     const char          *   sval ;
@@ -333,8 +333,8 @@ static int cr2res_util_calib(
             "cr2res.cr2res_util_calib.subtract_interorder_column");
     subtract_interorder_column = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_util_calib.cosmics_corr");
-    cosmics_corr = cpl_parameter_get_bool(param);
+            "cr2res.cr2res_util_calib.cosmics");
+    cosmics = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_calib.collapse");
     sval = cpl_parameter_get_string(param);
@@ -415,7 +415,7 @@ static int cr2res_util_calib(
         cpl_msg_info(__func__, "Calibrate the input images") ;
         if ((calibrated[det_nr-1] = cr2res_calib_imagelist(in, det_nr,
                         clean_bad, subtract_nolight_rows,
-                        subtract_interorder_column, cosmics_corr,
+                        subtract_interorder_column, cosmics,
                         master_flat_frame,
                         master_dark_frame, bpm_frame, detlin_frame, 
                         dits, ndits)) == NULL) {

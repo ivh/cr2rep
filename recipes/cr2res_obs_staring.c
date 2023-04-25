@@ -69,7 +69,7 @@ static int cr2res_obs_staring_reduce(
         const cpl_array     *   slit_frac,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
-        int                     calib_cosmics_corr,
+        int                     cosmics,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
@@ -250,6 +250,13 @@ static int cr2res_obs_staring_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.cosmics",
+            CPL_TYPE_BOOL, "Find and mark cosmic rays hits as bad",
+            "cr2res.cr2res_obs_staring", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cosmics");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.slit_frac",
             CPL_TYPE_STRING, "Wished slit fraction",
             "cr2res.cr2res_obs_staring", "-1.0, -1.0");
@@ -376,7 +383,7 @@ static int cr2res_obs_staring(
 {
     const cpl_parameter *   param ;
     int                     subtract_nolight_rows, subtract_interorder_column,
-                            extract_oversample, create_idp,
+                            extract_oversample, create_idp, cosmics,
                             extract_swath_width, extract_height, reduce_det, 
                             disp_order, disp_trace ;
     double                  extract_smooth_slit, extract_smooth_spec, 
@@ -402,10 +409,13 @@ static int cr2res_obs_staring(
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.subtract_nolight_rows");
+    subtract_nolight_rows = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.subtract_interorder_column");
     subtract_interorder_column = cpl_parameter_get_bool(param);
-    subtract_nolight_rows = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_staring.cosmics");
+    cosmics = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.extract_oversample");
     extract_oversample = cpl_parameter_get_int(param);
@@ -505,7 +515,7 @@ static int cr2res_obs_staring(
                     trace_wave_frame, detlin_frame, master_dark_frame, 
                     master_flat_frame, bpm_frame, blaze_frame, slit_frac, 
                     subtract_nolight_rows, subtract_interorder_column,
-                    0, extract_oversample, 
+                    cosmics, extract_oversample, 
                     extract_swath_width, extract_height, extract_smooth_slit, 
                     extract_smooth_spec, det_nr,
                     &(extract[det_nr-1]),
@@ -579,7 +589,7 @@ static int cr2res_obs_staring(
   @param blaze_frame            Associated Blaze
   @param slit_frac              Specified slit fraction or NULL
   @param subtract_nolight_rows
-  @param calib_cosmics_corr     Flag to correct for cosmics
+  @param cosmics                Flag to correct for cosmics
   @param extract_oversample     Extraction related
   @param extract_swath_width    Extraction related
   @param extract_height         Extraction related
@@ -604,7 +614,7 @@ static int cr2res_obs_staring_reduce(
         const cpl_array     *   slit_frac,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
-        int                     calib_cosmics_corr,
+        int                     cosmics,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
@@ -693,8 +703,9 @@ static int cr2res_obs_staring_reduce(
 
     /* Calibrate the images */
     if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
-            subtract_nolight_rows, subtract_interorder_column, 0, master_flat_frame, 
-            master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
+            subtract_nolight_rows, subtract_interorder_column, cosmics, 
+            master_flat_frame, master_dark_frame, bpm_frame, detlin_frame, 
+            dits, ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         if (dits != NULL) cpl_vector_delete(dits) ;
         if (ndits != NULL) cpl_vector_delete(ndits) ;

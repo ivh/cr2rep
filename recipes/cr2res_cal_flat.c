@@ -66,7 +66,7 @@ static int cr2res_cal_flat_reduce(
         const cpl_frame     *   bpm_frame,
         int                     filter_traces,
         int                     subtract_nolight_rows,
-        int                     calib_cosmics_corr,
+        int                     cosmics,
         double                  bpm_low,
         double                  bpm_high,
         double                  bpm_linemax,
@@ -276,10 +276,10 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.calib_cosmics_corr",
-            CPL_TYPE_BOOL, "Correct the Cosmics",
+    p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.cosmics",
+            CPL_TYPE_BOOL, "Find and mark cosmic rays hits as bad",
             "cr2res.cr2res_cal_flat", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "calib_cosmics_corr");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cosmics");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
@@ -475,7 +475,7 @@ static int cr2res_cal_flat(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param ;
-    int                     subtract_nolight_rows, calib_cosmics_corr, 
+    int                     subtract_nolight_rows, cosmics, 
                             trace_degree, trace_min_cluster,
                             trace_opening, trace_filter,
                             extract_oversample, extract_swath_width,
@@ -537,8 +537,8 @@ static int cr2res_cal_flat(
             "cr2res.cr2res_cal_flat.subtract_nolight_rows");
     subtract_nolight_rows = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_cal_flat.calib_cosmics_corr");
-    calib_cosmics_corr = cpl_parameter_get_bool(param);
+            "cr2res.cr2res_cal_flat.cosmics");
+    cosmics = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.bpm_low");
     bpm_low = cpl_parameter_get_double(param);
@@ -696,7 +696,7 @@ static int cr2res_cal_flat(
                 if (cr2res_cal_flat_reduce(raw_one_setting_decker,
                             trace_wave_frame, detlin_frame, master_dark_frame, 
                             bpm_frame, trace_filter, subtract_nolight_rows, 
-                            calib_cosmics_corr, bpm_low, bpm_high, 
+                            cosmics, bpm_low, bpm_high, 
                             bpm_lines_ratio, trace_degree, trace_min_cluster, 
                             trace_smooth_x, trace_smooth_y, trace_threshold, 
                             trace_opening, extr_method, extract_oversample, 
@@ -1054,7 +1054,7 @@ static int cr2res_cal_flat(
   @param bpm_frame          Associated BPM
   @param filter_traces      Flag to Filter out traces
   @param subtract_nolight_rows
-  @param calib_cosmics_corr Flag to correct for cosmics
+  @param cosmics            Flag to correct for cosmics
   @param bpm_low            Threshold for BPM detection
   @param bpm_high           Threshold for BPM detection
   @param bpm_linemax        Max fraction of BPM per line
@@ -1091,7 +1091,7 @@ static int cr2res_cal_flat_reduce(
         const cpl_frame     *   bpm_frame,
         int                     filter_traces,
         int                     subtract_nolight_rows,
-        int                     calib_cosmics_corr,
+        int                     cosmics,
         double                  bpm_low,
         double                  bpm_high,
         double                  bpm_linemax,
@@ -1203,7 +1203,7 @@ static int cr2res_cal_flat_reduce(
     cpl_msg_info(__func__, "Calibrate the input images") ;
     cpl_msg_indent_more() ;
     if ((imlist_calibrated = cr2res_calib_imagelist(imlist, reduce_det, 
-            0, subtract_nolight_rows, 0, calib_cosmics_corr, NULL, 
+            0, subtract_nolight_rows, 0, cosmics, NULL, 
             master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to Calibrate the Data") ;
         cpl_vector_delete(dits) ;

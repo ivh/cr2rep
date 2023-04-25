@@ -77,7 +77,7 @@ static int cr2res_obs_nodding_reduce(
         int                     nodding_invert,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
-        int                     cosmics_corr,
+        int                     cosmics,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
@@ -317,6 +317,13 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.cosmics",
+            CPL_TYPE_BOOL, "Find and mark cosmic rays hits as bad",
+            "cr2res.cr2res_obs_nodding", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cosmics");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.nodding_invert",
             CPL_TYPE_BOOL, "Flag to use when A is above B",
             "cr2res.cr2res_obs_nodding", FALSE);
@@ -392,12 +399,6 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
-    p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.cosmics_corr",
-            CPL_TYPE_BOOL, "Find and mark cosmic rays hits as bad",
-            "cr2res.cr2res_obs_nodding", FALSE);
-    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "cosmics_corr");
-    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
-    cpl_parameterlist_append(recipe->parameters, p);
     return 0;
 }
 
@@ -457,7 +458,7 @@ static int cr2res_obs_nodding(
                             extract_height, reduce_det, 
                             disp_order_idx, disp_trace, disp_det, 
                             nodding_invert, create_idp, subtract_nolight_rows,
-                            subtract_interorder_column, cosmics_corr ;
+                            subtract_interorder_column, cosmics ;
     double                  extract_smooth_slit, extract_smooth_spec;
     double                  ra, dec, dit, gain, drot_posang ;
     cpl_frameset        *   rawframes ;
@@ -537,9 +538,8 @@ static int cr2res_obs_nodding(
             "cr2res.cr2res_obs_nodding.display_trace");
     disp_trace = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
-            "cr2res.cr2res_obs_nodding.cosmics_corr");
-    cosmics_corr = cpl_parameter_get_bool(param);
-
+            "cr2res.cr2res_obs_nodding.cosmics");
+    cosmics = cpl_parameter_get_bool(param);
 
     /* TODO, make parameters, maybe */
     int extract_niter = 30;
@@ -647,7 +647,7 @@ static int cr2res_obs_nodding(
 						trace_wave_frame, detlin_frame, master_dark_frame, 
 						master_flat_frame, bpm_frame, blaze_frame, 
                         nodding_invert, subtract_nolight_rows, 
-                        subtract_interorder_column, cosmics_corr,
+                        subtract_interorder_column, cosmics,
                         extract_oversample, 
                         extract_swath_width, extract_height, 
                         extract_smooth_slit, extract_smooth_spec,
@@ -888,7 +888,7 @@ static int cr2res_obs_nodding(
   @param blaze_frame            Associated Blaze
   @param nodding_invert         Flag to use if A is above B
   @param subtract_nolight_rows
-  @param calib_cosmics_corr     Flag to correct for cosmics
+  @param cosmics                Flag to correct for cosmics
   @param extract_oversample     Extraction related
   @param extract_swath_width    Extraction related
   @param extract_height         Extraction related
@@ -925,7 +925,7 @@ static int cr2res_obs_nodding_reduce(
         int                     nodding_invert,
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
-        int                     cosmics_corr,
+        int                     cosmics,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
@@ -1074,9 +1074,9 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_info(__func__, "Apply the Calibrations") ;
     cpl_msg_indent_more() ;
     if ((in_calib = cr2res_calib_imagelist(in, reduce_det, 0,
-        subtract_nolight_rows, subtract_interorder_column,
-        cosmics_corr, master_flat_frame,
-        master_dark_frame, bpm_frame, detlin_frame, dits, ndits))==NULL) {
+        subtract_nolight_rows, subtract_interorder_column, cosmics, 
+        master_flat_frame, master_dark_frame, bpm_frame, detlin_frame, dits, 
+        ndits))==NULL) {
         cpl_msg_error(__func__, "Failed to apply the calibrations") ;
         cpl_msg_indent_less() ;
         cpl_free(nod_positions) ;    
