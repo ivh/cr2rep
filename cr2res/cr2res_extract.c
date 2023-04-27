@@ -559,7 +559,13 @@ int cr2res_extract_sum_vert(
     cpl_image_delete(img_1d);
     cpl_image_delete(img_tmp);
 
-    img_tmp = cpl_image_multiply_create(err_in, err_in);
+    img_tmp = cr2res_image_cut_rectify(err_in, ycen, height);
+    if (img_tmp == NULL) {
+        cpl_msg_error(__func__, "Cannot rectify error");
+        cpl_vector_delete(ycen);
+        return -1;
+    }
+    cpl_image_multiply(img_tmp, img_tmp);
     img_1d = cpl_image_collapse_create(img_tmp, 0);
     sigma = cpl_vector_new_from_image_row(img_1d, 1);
     cpl_vector_sqrt(sigma);
@@ -704,7 +710,14 @@ int cr2res_extract_median(
     cpl_image_delete(img_1d);
     cpl_image_delete(img_tmp);
 
-    img_tmp = cpl_image_multiply_create(err_in, err_in);
+    img_tmp = cr2res_image_cut_rectify(err_in, ycen, height);
+    if (img_tmp == NULL)
+    {
+        cpl_msg_error(__func__, "Cannot rectify error");
+        cpl_vector_delete(ycen);
+        return -1;
+    }
+    cpl_image_multiply(img_tmp, img_tmp);
     img_1d = cpl_image_collapse_create(img_tmp, 0);
     sigma = cpl_vector_new_from_image_row(img_1d, 1);
     cpl_vector_sqrt(sigma);
@@ -965,7 +978,14 @@ int cr2res_extract_sum_tilt(
     cpl_image_delete(img_1d);
     cpl_image_delete(img_tmp);
 
-    img_tmp = cpl_image_multiply_create(err_in, err_in);
+    img_tmp = cr2res_image_cut_rectify(err_in, ycen, height);
+    if (img_tmp == NULL)
+    {
+        cpl_msg_error(__func__, "Cannot rectify error");
+        cpl_vector_delete(ycen);
+        return -1;
+    }
+    cpl_image_multiply(img_tmp, img_tmp);
     img_1d = cpl_image_collapse_create(img_tmp, 0);
     sigma = cpl_vector_new_from_image_row(img_1d, 1);
     cpl_vector_sqrt(sigma);
