@@ -335,34 +335,34 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_oversample",
             CPL_TYPE_INT, "factor by which to oversample the extraction",
-            "cr2res.cr2res_cal_wave", 5);
+            "cr2res.cr2res_cal_wave", 7);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_oversample");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_swath_width",
-            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_cal_wave", 800);
+            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_cal_wave", 2048);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_swath_width");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_height",
             CPL_TYPE_INT, "Extraction height",
-            "cr2res.cr2res_cal_wave", 120);
+            "cr2res.cr2res_cal_wave", 160);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_height");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_smooth_slit",
             CPL_TYPE_DOUBLE, "Smoothing along the slit",
-            "cr2res.cr2res_cal_wave", 3.0);
+            "cr2res.cr2res_cal_wave", 15.0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_slit");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_smooth_spec",
             CPL_TYPE_DOUBLE, "Smoothing along the spectrum",
-            "cr2res.cr2res_cal_wave", 2.0E-7);
+            "cr2res.cr2res_cal_wave", 0.005);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_spec");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
