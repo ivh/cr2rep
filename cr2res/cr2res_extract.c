@@ -2881,7 +2881,8 @@ static int cr2res_extract_slit_func_curved(
 {
     int         x, xx, xxx, y, yy, iy, jy, n, m, ny, i, nx;
     double      norm, lambda, diag_tot, ww, www, sP_change, sP_med;
-    double      tmp, sigma, median, sum, dev, cost, cost_old;
+    double      tmp, sigma, median, sum, dev, cost, cost_old, sLmax;
+    double      unc1, unc2;
     int         info, iter, isum;
     cpl_vector  * tmp_vec;
 
@@ -3159,7 +3160,14 @@ static int cr2res_extract_slit_func_curved(
     if (sum<0.0){
         for(y = 0; y < ny; y++) sL[y] *= -1.0;
         for(x = 0; x < ncols; x++) sP[x] *= -1.0;
+        sum *= -1.0;
     }
+    tmp_vec = cpl_vector_wrap(ny,sL);
+    sLmax = cpl_vector_get_max(tmp_vec);
+    cpl_vector_unwrap(tmp_vec);
+    cpl_msg_debug(__func__,
+        "sL-sum, sLmax, osample, nrows, ny: %g, %g, %d, %d, %d",
+        sum, sLmax, osample, nrows, ny);
 
     /* Uncertainty estimate */
     for (x = 0; x < ncols; x++) {
@@ -3174,18 +3182,17 @@ static int cr2res_extract_slit_func_curved(
                     xx = zeta[zeta_index(x,y,m)].x;
                     iy = zeta[zeta_index(x,y,m)].iy;
                     ww = zeta[zeta_index(x,y,m)].w;
-                    unc[xx] += (im[y * ncols + x] - model[y * ncols + x]) *
-                        (im[y * ncols + x] - model[y * ncols + x]) * ww ;
-                    unc[xx] += pix_unc[y * ncols + x] * 
-                                pix_unc[y * ncols + x] * ww ;
-                    // Norm
-                    p_bj[xx] += ww;
+                    unc1 = (im[y * ncols + x] - model[y * ncols + x]) *
+                           (im[y * ncols + x] - model[y * ncols + x]) ;
+                    //unc2 = pix_unc[y * ncols + x] * 
+                    //       pix_unc[y * ncols + x] ;
+                    unc[xx] += unc1 * ww * sL[iy];
                 }
             }
         }
     }
     for (x = 0; x < ncols; x++) {
-        unc[x] = sqrt(unc[x] / p_bj[x] * nrows);
+        unc[x] = sqrt(unc[x] / sLmax);
     }
     return 0;
 }
