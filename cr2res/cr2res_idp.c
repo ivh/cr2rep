@@ -248,10 +248,6 @@ int cr2res_idp_save(
     cpl_propertylist_update_int(pri_head, "OBID1", obid);
     cpl_propertylist_set_comment(pri_head, "OBID1", "Observation block ID");
 
-    cpl_propertylist_update_bool(pri_head, "M_EPOCH", 1) ;
-    cpl_propertylist_set_comment(pri_head, "M_EPOCH",
-            "TRUE if resulting from multiple epochs") ;
-
     nraw = cpl_frameset_get_size(rawframes) ;
     cpl_propertylist_update_int(pri_head, "NCOMBINE", nraw);
 
@@ -386,7 +382,7 @@ int cr2res_idp_save(
 
 
     /* Add Keywords to extension header */
-    cpl_propertylist_update_string(ext_head, "EXTNAME", "IDP_SPECTRUM") ;
+    cpl_propertylist_update_string(ext_head, "EXTNAME", "SPECTRUM") ;
 
     cpl_propertylist_update_double(ext_head, "RA",
                     cpl_propertylist_get_double(pri_head, "RA"));
@@ -434,14 +430,16 @@ int cr2res_idp_save(
     cpl_propertylist_update_string(ext_head, "TUTYP2",
                                 "spec:Data.FluxAxis.Value");
     cpl_propertylist_update_string(ext_head, "TTYPE2", "FLUX");
-    cpl_propertylist_update_string(ext_head, "TUCD2", "phot.count");
+    cpl_propertylist_update_string(ext_head, "TUCD2", 
+            "phot.flux.density;em.wl;stat.uncalib;meta.main");
     cpl_propertylist_update_string(ext_head, "TUNIT2", "count");
 
     cpl_propertylist_update_string(ext_head, "TUTYP3",
                     "spec:Data.FluxAxis.Accuracy.StatError");
     cpl_propertylist_update_string(ext_head, "TTYPE3", "ERR");
     cpl_propertylist_update_string(ext_head, "TUCD3",
-                        "stat.error;phot.count");
+                                   "stat.error;phot.flux.density");
+    cpl_propertylist_update_string(ext_head, "TUNIT3", "count");
 
     cpl_propertylist_update_string(ext_head, "TUTYP4",
                     "spec:Data.FluxAxis.Accurancy.QualityStatus");
@@ -453,22 +451,25 @@ int cr2res_idp_save(
                     "");
     cpl_propertylist_update_string(ext_head, "TUCD5",
                         "instr.order");
+    cpl_propertylist_update_string(ext_head, "TUNIT5", "");
 
     cpl_propertylist_update_string(ext_head, "TUTYP6",
                     "");
     cpl_propertylist_update_string(ext_head, "TUCD6",
                         "meta.number"); // TraceNb
+    cpl_propertylist_update_string(ext_head, "TUNIT6", "");
 
     cpl_propertylist_update_string(ext_head, "TUTYP7",
                     "");
     cpl_propertylist_update_string(ext_head, "TUCD7",
                         "meta.number;instr.det");
+    cpl_propertylist_update_string(ext_head, "TUNIT7", "");
 
     cpl_propertylist_update_string(ext_head, "TUTYP8",
                     "");
     cpl_propertylist_update_string(ext_head, "TUCD8",
                         "pos.cartesian.x;instr.det");
-
+    cpl_propertylist_update_string(ext_head, "TUNIT8", "pixel");
 
     /* For Y pixel coordinate in OBS_2D
     TUCDi = pos.cartesian.y;instr.det
