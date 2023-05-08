@@ -176,7 +176,6 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_UTIL_NORM_BPM_PROCATG) ||
                 /* Produced by cr2res_util_slit_curv */
                 !strcmp(tag, CR2RES_UTIL_SLIT_CURV_MAP_PROCATG) ||
-                !strcmp(tag, CR2RES_UTIL_SLIT_CURV_PROCATG) ||
                 !strcmp(tag, CR2RES_UTIL_SLIT_CURV_TW_PROCATG) ||
                 /* Produced by cr2res_util_wave */
                 !strcmp(tag, CR2RES_UTIL_WAVE_TW_PROCATG) ||
@@ -194,23 +193,6 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
         }
     }
     return CPL_ERROR_NONE;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Get the SLIT_CURV table column name for a given order
-  @param    order_idx       The order index (-49->50)
-  @return   the column name or NULL in error case
-  The return string needs to be deallocated with cpl_free() 
- */
-/*----------------------------------------------------------------------------*/
-char * cr2res_dfs_SLIT_CURV_colname(int order_idx, int trace)
-{
-    int         order_idxp ;
-    if ((order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx)) < 0) 
-        return NULL ;
-    return cpl_sprintf("%02d_%02d_%s", order_idxp, trace, 
-            CR2RES_COL_SLIT_CURV_SUFFIX);
 }
 
 /*----------------------------------------------------------------------------*/

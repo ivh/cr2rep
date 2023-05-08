@@ -128,10 +128,6 @@ hdrl_image * cr2res_io_load_SLIT_CURV_MAP(
         const char  *   filename,
         int             detector) ;
 
-cpl_table * cr2res_io_load_SLIT_CURV(
-        const char  *   filename,
-        int             detector);
-
 cpl_table * cr2res_io_load_EXTRACT_1D(
         const char  *   filename,
         int             detector);
@@ -319,17 +315,6 @@ int cr2res_io_save_SLIT_CURV_MAP(
         cpl_frameset            *   inframes,
         const cpl_parameterlist *   parlist,
         hdrl_image              **  data,
-        const cpl_propertylist  *   qc_list,
-        cpl_propertylist        **  ext_plist,
-        const char              *   procatg,
-        const char              *   recipe) ;
-
-int cr2res_io_save_SLIT_CURV(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        cpl_frameset            *   inframes,
-        const cpl_parameterlist *   parlist,
-        cpl_table               **  tables,
         const cpl_propertylist  *   qc_list,
         cpl_propertylist        **  ext_plist,
         const char              *   procatg,

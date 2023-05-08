@@ -98,9 +98,6 @@
 #define CR2RES_COL_SENSITIVITY_SUFFIX   "SENSITIVITY"   /* Intensity */
 #define CR2RES_COL_THROUGHPUT_SUFFIX    "THROUGHPUT"    /* Intensity */
 
-/* SLIT_CURV Table */
-#define CR2RES_COL_SLIT_CURV_SUFFIX "SLIT_CURV"     /* Polynomial */
-
 /* SPLICED_1D Table */
 #define CR2RES_COL_SPLICED_1D_SPEC  "SPLICED_1D_SPEC"  /* Intensity */
 #define CR2RES_COL_SPLICED_1D_ERROR "SPLICED_1D_ERR"   /* Error */
@@ -240,10 +237,6 @@
 /*     CR2RES_OBS_2D_CALIBRATED_PROCATG */
 #define CR2RES_CALIBRATED_DRSTYPE           "CALIBRATED"
 
-/* For  CR2RES_UTIL_SLIT_CURV_PROCATG  */
-/* Table with columns from cr2res_dfs_SLIT_CURV_colname() */
-#define CR2RES_SLIT_CURV_DRSTYPE            "SLIT_CURV"
-
 /* For  CR2RES_CALIB_COLLAPSED_PROCATG */
 #define CR2RES_CALIB_COLLAPSED_DRSTYPE      "CALIB_COLLAPSED"
 
@@ -356,7 +349,6 @@
 
 /* Produced by cr2res_util_slit_curv */
 #define CR2RES_UTIL_SLIT_CURV_MAP_PROCATG   "UTIL_SLIT_CURV_MAP"
-#define CR2RES_UTIL_SLIT_CURV_PROCATG       "UTIL_SLIT_CURV"
 #define CR2RES_UTIL_SLIT_CURV_TW_PROCATG    "UTIL_SLIT_CURV_TW"
 
 /* Produced by cr2res_util_wave */
@@ -409,7 +401,6 @@ char * cr2res_dfs_CONVERSION_colname(int, int) ;
 char * cr2res_dfs_WAVELENGTH_colname(int, int);
 char * cr2res_dfs_SPEC_ERR_colname(int, int);
 char * cr2res_dfs_SLIT_FUNC_colname(int, int) ;
-char * cr2res_dfs_SLIT_CURV_colname(int, int) ;
 char * cr2res_dfs_POSITIONX_colname(int, int) ;
 char * cr2res_dfs_POSITIONY_colname(int, int) ;
 char * cr2res_dfs_SLIT_FRACTION_colname(int, int) ;

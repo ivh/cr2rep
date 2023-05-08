@@ -77,7 +77,6 @@ Slit curvature computation                                              \n\
                                                                         \n\
   Outputs                                                               \n\
     <input_lamp_name>_map.fits " CR2RES_UTIL_SLIT_CURV_MAP_PROCATG"     \n\
-    <input_lamp_name>_slit_curv.fits " CR2RES_UTIL_SLIT_CURV_PROCATG "  \n\
     <input_lamp_name>_tw.fits " CR2RES_UTIL_SLIT_CURV_TW_PROCATG"       \n\
                                                                         \n\
   Algorithm                                                             \n\

@@ -1239,36 +1239,6 @@ hdrl_image * cr2res_io_load_SLIT_CURV_MAP(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Load a table from a SLIT_CURV
-  @param    filename    The FITS file name
-  @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A table or NULL in error case. The returned object
-              needs to be deallocated
- */
-/*----------------------------------------------------------------------------*/
-cpl_table * cr2res_io_load_SLIT_CURV(
-        const char  *   filename,
-        int             detector)
-{
-    cpl_table           *   slit_curv_tab ;
-
-    /* Check entries */
-    if (filename == NULL) return NULL ;
-    if (detector < 1 || detector > CR2RES_NB_DETECTORS) return NULL ;
-
-    /* Check PRO.TYPE */
-    if (cr2res_io_check_drs_type(filename, CR2RES_SLIT_CURV_DRSTYPE) != 1)
-        return NULL ;
-
-    /* Load the table */
-    slit_curv_tab = cr2res_load_table(filename, detector, -1, -1) ;
-
-    /* Return  */
-    return slit_curv_tab ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Load a table from a EXTRACT_1D
   @param    filename    The FITS file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
@@ -1941,36 +1911,6 @@ int cr2res_io_save_SLIT_CURV_MAP(
     return cr2res_io_save_image(filename, allframes, inframes, parlist,
             data, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe,
             procatg, CR2RES_SLIT_CURV_MAP_DRSTYPE) ;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief    Save a SLIT_CURV
-  @param    filename    The FITS file name
-  @param    allframes   The recipe input frames
-  @param    inframes    The recipe used input frames
-  @param    parlist     The recipe input parameters
-  @param    tables      The tables to save (1 per detector)
-  @param    qc_list     The QC parameters
-  @param    ext_plist   The extensions property lists
-  @param    procatg     The PRO CATG value
-  @param    recipe      The recipe name
-  @return   0 if ok, -1 in error case
- */
-/*----------------------------------------------------------------------------*/
-int cr2res_io_save_SLIT_CURV(
-        const char              *   filename,
-        cpl_frameset            *   allframes,
-        cpl_frameset            *   inframes,
-        const cpl_parameterlist *   parlist,
-        cpl_table               **  tables,
-        const cpl_propertylist  *   qc_list,
-        cpl_propertylist        **  ext_plist,
-        const char              *   procatg,
-        const char              *   recipe)
-{
-    return cr2res_io_save_table(filename, allframes, inframes, parlist, tables,
-            qc_list, ext_plist, recipe, procatg, CR2RES_SLIT_CURV_DRSTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
