@@ -108,7 +108,10 @@ static char cr2res_obs_2d_description[] = "\
     master_flat.fits " CR2RES_CAL_FLAT_MASTER_PROCATG " [0 to 1]        \n\
                                                                         \n\
   Outputs                                                               \n\
-    cr2res_obs_2d_extract.fits " CR2RES_OBS_2D_EXTRACT_PROCATG "        \n\
+    cr2res_obs_2d_frame_<nb>_extracted.fits " 
+        CR2RES_OBS_2D_EXTRACT_PROCATG "\n\
+    cr2res_obs_2d_frame_<nb>_calibrated.fits " 
+        CR2RES_OBS_2D_CALIBRATED_PROCATG"\n\
                                                                         \n\
   Algorithm                                                             \n\
     loop on raw frames f:                                               \n\
@@ -135,6 +138,7 @@ static char cr2res_obs_2d_description[] = "\
     cr2res_io_load_TRACE_WAVE()                                         \n\
     cr2res_extract2d_traces()                                           \n\
     cr2res_io_save_EXTRACT_2D()                                         \n\
+    cr2res_io_save_CALIBRATED()                                         \n\
 ";
 
 /*-----------------------------------------------------------------------------
