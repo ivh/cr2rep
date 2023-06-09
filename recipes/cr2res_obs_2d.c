@@ -401,7 +401,12 @@ static int cr2res_obs_2d(
     //  not NULL            NULL                Use individual Sky frames
     //  not NULL            not NULL            Not allowed
     rawframes_sky = cr2res_extract_frameset(frameset, CR2RES_OBS_2D_SKY_RAW);
-    nsky = cpl_frameset_get_size(rawframes_sky) ;
+    if (rawframes_sky == NULL) {
+        nsky = 0;
+    } else {
+        nsky = cpl_frameset_get_size(rawframes_sky);
+    }
+
     if (nsky == 0) {
         cpl_msg_info(__func__, "No Sky Correction") ;
         if (rawframes_sky != NULL)  cpl_frameset_delete(rawframes_sky) ;
