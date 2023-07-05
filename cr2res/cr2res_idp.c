@@ -817,6 +817,8 @@ int cr2res_wl_is_ghost(const char * setting, double wl){
     int i;
 
     ghosts = cr2res_get_ghosts(setting);
+    if (ghosts == NULL)
+        return 0;
     start = cpl_bivector_get_x(ghosts);
     end = cpl_bivector_get_y(ghosts);
     nghosts = cpl_vector_get_size(start);
@@ -923,7 +925,9 @@ cpl_bivector * cr2res_get_ghosts(const char * setting){
         start = cpl_vector_new(nghost);
         end = cpl_vector_new(nghost);
         cpl_vector_set(start, 0, 1753.20); cpl_vector_set(end, 0, 1754.28);
+    } else {
+        return NULL;
     }
-    
+
     return cpl_bivector_wrap_vectors(start,end);
 }
