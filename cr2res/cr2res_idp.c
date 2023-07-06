@@ -95,7 +95,7 @@ int cr2res_idp_save(
 	const char			*	progid ;
 	const char			*	slitname ;
 	const char			*	setting ;
-    int                     err, i, ndit, nexp, nraw, obid, nrows, ord ;
+    int                     err, i, ndit, nraw, obid, nrows, ord ;
     char                *   keyname;
     char                *   tmp_string;
     const char          *   fname;
@@ -199,16 +199,24 @@ int cr2res_idp_save(
     /* Collect data from main header */
     dit = cr2res_pfits_get_dit(pri_head);
     ndit = cr2res_pfits_get_ndit(pri_head) ; 
-    nexp = cr2res_pfits_get_nexp(pri_head) ;
-    cpl_msg_debug(__func__,"DIT=%g, NDIT=%d NEXP=%d",dit,ndit,nexp);
     
-    // This seems wrong to me. /TM
-    //cpl_propertylist_update_double(pri_head, "DIT", dit*ndit);
+    nraw = cpl_frameset_get_size(rawframes);
+    cpl_propertylist_update_int(pri_head, "NCOMBINE", nraw);
 
-    exptime = dit * ndit * nexp ;
+    for (i = 1; i <= nraw; i++)
+    {
+        keyname = cpl_sprintf("ESO PRO REC1 RAW%d NAME", i);
+        fname = cpl_propertylist_get_string(pri_head, keyname);
+        cpl_free(keyname);
+        keyname = cpl_sprintf("PROV%d", i);
+        cpl_propertylist_update_string(pri_head, keyname, fname);
+        cpl_free(keyname);
+    }
+
+    exptime = dit * ndit * nraw;
     cpl_propertylist_update_double(pri_head, "EXPTIME", exptime);
-    cpl_propertylist_set_comment(pri_head, "EXPTIME", 
-            "[s] Total integration time per pixel");
+    cpl_propertylist_set_comment(pri_head, "EXPTIME",
+                                 "[s] Total integration time per pixel");
 
     texptime = exptime ;
     cpl_propertylist_update_double(pri_head, "TEXPTIME", texptime);
@@ -247,19 +255,6 @@ int cr2res_idp_save(
 	obid = cr2res_pfits_get_obs_id(pri_head) ;
     cpl_propertylist_update_int(pri_head, "OBID1", obid);
     cpl_propertylist_set_comment(pri_head, "OBID1", "Observation block ID");
-
-    nraw = cpl_frameset_get_size(rawframes) ;
-    cpl_propertylist_update_int(pri_head, "NCOMBINE", nraw);
-
-    for (i=1; i<=nraw; i++){
-        keyname = cpl_sprintf("ESO PRO REC1 RAW%d NAME", i);
-        fname = cpl_propertylist_get_string(pri_head,keyname);
-        cpl_free(keyname);
-        keyname = cpl_sprintf("PROV%d", i);
-        cpl_propertylist_update_string(pri_head, keyname, fname);
-        cpl_free(keyname);
-    }
-
 
     if (!strcmp(recipe, "cr2res_obs_2d"))
         cpl_propertylist_update_bool(pri_head, "EXT_OBJ", 1) ;
