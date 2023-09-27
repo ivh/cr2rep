@@ -3169,31 +3169,35 @@ static int cr2res_extract_slit_func_curved(
         "sL-sum, sLmax, osample, nrows, ny: %g, %g, %d, %d, %d",
         sum, sLmax, osample, nrows, ny);
 
-    /* Uncertainty estimate */
-    for (x = 0; x < ncols; x++) {
-        unc[x] = 0.;
-        p_bj[x] = 0.;
+    for (x = 0; x < ncols; x++)
+    {
+        unc[x] = 1.;
+        p_bj[x] = 1.;
     }
-    for (y = 0; y < nrows; y++) {
-        for (x = 0; x < ncols; x++) {
-            // Loop through all pixels contributing to x,y
-            for (m = 0; m < m_zeta[mzeta_index(x,y)]; m++) {
-                if (mask[y * ncols + x]){
-                    xx = zeta[zeta_index(x,y,m)].x;
-                    iy = zeta[zeta_index(x,y,m)].iy;
-                    ww = zeta[zeta_index(x,y,m)].w;
-                    unc1 = (im[y * ncols + x] - model[y * ncols + x]) *
-                           (im[y * ncols + x] - model[y * ncols + x]) ;
-                    //unc2 = pix_unc[y * ncols + x] * 
-                    //       pix_unc[y * ncols + x] ;
-                    unc[xx] += unc1 * ww * sL[iy];
+
+    for (y = 0; y < nrows; y++)
+    {
+        for (x = 0; x < ncols; x++)
+        {
+            for (m = 0; m < m_zeta[mzeta_index(x, y)]; m++) // Loop through all pixels contributing to x,y
+            {
+                if (mask[y * ncols + x]) {
+                    xx = zeta[zeta_index(x, y, m)].x;
+                    iy = zeta[zeta_index(x, y, m)].iy;
+                    ww = zeta[zeta_index(x, y, m)].w;
+                    unc[xx] += (im[y * ncols + x] - model[y * ncols + x]) * (im[y * ncols + x] - model[y * ncols + x]) *
+                               ww * sL[iy];
+                    p_bj[xx] += ww * sL[iy]; // Norm
                 }
             }
         }
     }
-    for (x = 0; x < ncols; x++) {
-        unc[x] = sqrt(unc[x] / sLmax);
+
+    for (x = 0; x < ncols; x++)
+    {
+        unc[x] = sqrt(unc[x] / p_bj[x] * nrows);
     }
+
     return 0;
 }
 
