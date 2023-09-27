@@ -47,6 +47,7 @@ int cr2res_idp_save(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         cpl_propertylist        *  ext_plist[3],
+        const char              *   procatg,
         const char              *   recipe) ;
 
 cpl_table * cr2res_idp_create_table(

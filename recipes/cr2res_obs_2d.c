@@ -498,9 +498,10 @@ static int cr2res_obs_2d(
                 extract, qc_main, ext_plist, CR2RES_OBS_2D_EXTRACT_PROCATG, 
                 RECIPE_STRING) ;
         if (create_idp) {
-			cr2res_idp_save(out_file, frameset, rawframes_obj, parlist, 
-                    extract, ext_plist, RECIPE_STRING) ;
-		}
+            cpl_msg_info(__func__,"IP format is not implemented for obs_2d");
+            // cr2res_idp_save(out_file, frameset, rawframes_obj, parlist,
+            //         extract, ext_plist, RECIPE_STRING) ;
+        }
         cpl_free(out_file);
 
         /* Free */

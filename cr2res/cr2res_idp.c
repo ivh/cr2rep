@@ -77,6 +77,7 @@ int cr2res_idp_save(
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
         cpl_propertylist        *  ext_plist[3],
+        const char              *   procatg,
         const char              *   recipe)
 {
     cpl_table           *   idp_tab ;
@@ -141,32 +142,25 @@ int cr2res_idp_save(
 	cpl_frame_set_group(out_frame, CPL_FRAME_GROUP_PRODUCT);
 	cpl_frame_set_level(out_frame, CPL_FRAME_LEVEL_FINAL);
 
+    // Set the PRO.CATG
+    cpl_frame_set_tag(out_frame, procatg);
+    cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_CATG, procatg);
 
     // TODO: split this type by recipe
     cpl_propertylist_append_string(pri_head, CR2RES_HEADER_DRS_TYPE,
             CR2RES_EXTRACT_1D_IDP_DRSTYPE) ;
 
     if (!strcmp(recipe, "cr2res_obs_nodding")) {
-	    cpl_frame_set_tag(out_frame, CR2RES_OBS_NODDING_IDP_PROCATG);
         cpl_propertylist_update_string(pri_head, "OBSTECH", "NODDING") ;
-        cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_CATG,
-            CR2RES_OBS_NODDING_IDP_PROCATG) ;
     }
     else if (!strcmp(recipe, "cr2res_obs_staring")) {
-	    cpl_frame_set_tag(out_frame, CR2RES_OBS_STARING_IDP_PROCATG);
         cpl_propertylist_update_string(pri_head, "OBSTECH", "STARING") ;
-        cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_CATG,
-            CR2RES_OBS_STARING_IDP_PROCATG) ;
     }
     else if (!strcmp(recipe, "cr2res_obs_2d")) {
         cpl_propertylist_update_string(pri_head, "OBSTECH", "GENERIC_OFFSET") ;
-        cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_CATG,
-            CR2RES_OBS_2D_IDP_PROCATG) ;
     }
     else if (!strcmp(recipe, "cr2res_obs_pol")) {
         cpl_propertylist_update_string(pri_head, "OBSTECH", "POLARIMETRY") ;
-        cpl_propertylist_append_string(pri_head, CPL_DFS_PRO_CATG,
-            CR2RES_OBS_POL_IDP_PROCATG) ;
     }
     cpl_propertylist_set_comment(pri_head, "OBSTECH",
 			"Technique of observation") ;

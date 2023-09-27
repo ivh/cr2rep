@@ -747,9 +747,11 @@ static int cr2res_obs_nodding(
                 extracta, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_EXTRACTA_PROCATG, RECIPE_STRING);
 		if (create_idp) {
-			cr2res_idp_save(out_file, frameset, raw_one_angle, parlist, 
-                    extracta, ext_plist, RECIPE_STRING) ;
-		}
+            cr2res_idp_save(out_file, frameset, raw_one_angle, parlist,
+                            extracta, ext_plist,
+                            CR2RES_OBS_NODDING_EXTRACTA_IDP_PROCATG,
+                            RECIPE_STRING);
+        }
         cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_slitfuncA%s", RECIPE_STRING,
@@ -786,9 +788,11 @@ static int cr2res_obs_nodding(
                 extractb, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_EXTRACTB_PROCATG, RECIPE_STRING);
 		if (create_idp) {
-			cr2res_idp_save(out_file, frameset, raw_one_angle, parlist, 
-                    extractb, ext_plist, RECIPE_STRING) ;
-		}
+            cr2res_idp_save(out_file, frameset, raw_one_angle, parlist,
+                            extractb, ext_plist,
+                            CR2RES_OBS_NODDING_EXTRACTB_IDP_PROCATG,
+                            RECIPE_STRING);
+        }
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_slitfuncB%s", RECIPE_STRING,
@@ -818,9 +822,11 @@ static int cr2res_obs_nodding(
                 extractc, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_EXTRACTC_PROCATG, RECIPE_STRING);
 		if (create_idp) {
-			cr2res_idp_save(out_file, frameset, raw_one_angle, parlist,
-					extractc, ext_plist, RECIPE_STRING) ;
-		}
+            cr2res_idp_save(out_file, frameset, raw_one_angle, parlist,
+                            extractc, ext_plist,
+                            CR2RES_OBS_NODDING_EXTRACTC_IDP_PROCATG,
+                            RECIPE_STRING);
+        }
 		cpl_free(out_file);
 
 		if (type == 2) {
