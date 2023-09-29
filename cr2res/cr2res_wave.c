@@ -107,8 +107,6 @@ static double cr2res_wave_etalon_get_x0(
         double            trueD) ;
 static double cr2res_wave_etalon_get_D(
         cpl_vector      * li) ;
-static cpl_vector * cr2res_wave_etalon_measure_fringes(
-        cpl_vector * spectrum) ;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -2499,6 +2497,101 @@ int cr2res_wave_extract_lines(
 }
 
 /*----------------------------------------------------------------------------*/
+/**
+  @brief Identify and fit etalon lines
+  @param spectrum The input spectrum vector
+  @return Vector with the fitted peak positions, in pixels.
+
+  The peak positions start with 1 for the first pixel !!
+    TODO : Add unit test with an artificial vector
+ */
+/*----------------------------------------------------------------------------*/
+cpl_vector * cr2res_wave_etalon_measure_fringes(
+        cpl_vector * spectrum)
+{
+    cpl_array   *   peaks;
+    cpl_vector  *   peak_vec;
+    cpl_vector  *   spec_thresh;
+    cpl_vector  *   cur_peak;
+    cpl_vector  *   X_all, *X_peak;
+    int             i, j, k ;
+    int             smooth = 35 ;   // TODO: make free parameter?
+                                    // interfringe ~30 in Y, ~70 in K
+    double          thresh = 1.0 ;   // TODO: derive from read-out noise
+    int             max_num_peaks = 256 ;
+    int             min_len_peak = 5 ; //TODO: tweak or make parameter?;
+    cpl_size        nx ;
+    double          spec_i;
+    double          x0, sigma, area, offset;
+
+    nx = cpl_vector_get_size(spectrum) ;
+    spec_thresh = cr2res_threshold_spec(spectrum, smooth, thresh) ;
+    //cpl_plot_vector("", "w lines", "", spec_thresh) ;
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_vector_save(spec_thresh, "debug_thresh.fits", CPL_TYPE_DOUBLE,
+                NULL, CPL_IO_CREATE);
+        cpl_vector_save(spectrum, "debug_spectrum.fits", CPL_TYPE_DOUBLE,
+                NULL, CPL_IO_CREATE);
+    }
+
+    /*Output array, values are invalid until set.*/
+    peaks = cpl_array_new(max_num_peaks, CPL_TYPE_DOUBLE);
+
+    /* X-axis to cut out from for each peak */
+    X_all = cpl_vector_new(nx);
+    for (i=0; i<nx; i++) cpl_vector_set(X_all, i, (double)i+1) ;
+
+    for (i=0; i < nx; i++){
+        j = 0;
+        while ( (spec_i = cpl_vector_get(spec_thresh, i)) > -1 ) {
+            j++;
+            i++;
+        }
+        if (j < min_len_peak) continue;
+        // cpl_msg_debug(__func__, "Peak length j=%d at i=%d",j,i);
+        cur_peak = cpl_vector_extract(spec_thresh, i-j, i, 1) ;
+        X_peak = cpl_vector_extract(X_all, i-j, i, 1) ;
+
+        if (cpl_vector_fit_gaussian(X_peak, NULL, cur_peak, NULL, CPL_FIT_ALL,
+                                &x0, &sigma, &area, &offset,
+                                NULL,NULL,NULL) != CPL_ERROR_NONE ) {
+            cpl_msg_warning(__func__, "Fit at j=%d i=%d failed",j,i);
+            cpl_vector_delete(cur_peak);
+            cpl_vector_delete(X_peak);
+            cpl_error_reset();
+            continue;
+        }
+
+        //cpl_msg_debug(__func__,"Fit: %.2f, %.2f, %.2f, %.2f",
+        //                            x0, sigma, area, offset);
+        if ((k = cpl_array_count_invalid(peaks)) <1)
+            cpl_msg_error(__func__,"Output array overflow!");
+        //cpl_msg_debug(__func__,"k=%d, x0=%g",k,x0);
+        cpl_array_set_double(peaks, max_num_peaks - k, x0);
+
+        cpl_vector_delete(cur_peak);
+        cpl_vector_delete(X_peak);
+    }
+
+    /* Copy into output array */
+    k = max_num_peaks - cpl_array_count_invalid(peaks);
+    peak_vec = cpl_vector_new(k) ;
+    for (i=0; i<k; i++)
+        cpl_vector_set(peak_vec, i, cpl_array_get(peaks, i, NULL) );
+
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_vector_save(peak_vec, "debug_peakpos.fits", CPL_TYPE_DOUBLE,
+                NULL, CPL_IO_CREATE);
+    }
+
+    cpl_vector_delete(spec_thresh) ;
+    cpl_vector_delete(X_all) ;
+    cpl_array_delete(peaks) ;
+    return peak_vec;
+}
+
+/*----------------------------------------------------------------------------*/
 /*-------------------   LINES FITTING  METHODS   -----------------------------*/
 /*----------------------------------------------------------------------------*/
 
@@ -3000,100 +3093,5 @@ static double cr2res_wave_etalon_get_D(
     trueD = cpl_vector_get_median(diffs);
     cpl_vector_delete(diffs);
     return trueD;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
-  @brief Identify and fit etalon lines
-  @param spectrum The input spectrum vector
-  @return Vector with the fitted peak positions, in pixels.
-
-  The peak positions start with 1 for the first pixel !!
-    TODO : Add unit test with an artificial vector
- */
-/*----------------------------------------------------------------------------*/
-static cpl_vector * cr2res_wave_etalon_measure_fringes(
-        cpl_vector * spectrum)
-{
-    cpl_array   *   peaks;
-    cpl_vector  *   peak_vec;
-    cpl_vector  *   spec_thresh;
-    cpl_vector  *   cur_peak;
-    cpl_vector  *   X_all, *X_peak;
-    int             i, j, k ;
-    int             smooth = 35 ;   // TODO: make free parameter?
-                                    // interfringe ~30 in Y, ~70 in K
-    double          thresh = 1.0 ;   // TODO: derive from read-out noise
-    int             max_num_peaks = 256 ;
-    int             min_len_peak = 5 ; //TODO: tweak or make parameter?;
-    cpl_size        nx ;
-    double          spec_i;
-    double          x0, sigma, area, offset;
-
-    nx = cpl_vector_get_size(spectrum) ;
-    spec_thresh = cr2res_threshold_spec(spectrum, smooth, thresh) ;
-    //cpl_plot_vector("", "w lines", "", spec_thresh) ;
-
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_vector_save(spec_thresh, "debug_thresh.fits", CPL_TYPE_DOUBLE,
-                NULL, CPL_IO_CREATE);
-        cpl_vector_save(spectrum, "debug_spectrum.fits", CPL_TYPE_DOUBLE,
-                NULL, CPL_IO_CREATE);
-    }
-
-    /*Output array, values are invalid until set.*/
-    peaks = cpl_array_new(max_num_peaks, CPL_TYPE_DOUBLE);
-
-    /* X-axis to cut out from for each peak */
-    X_all = cpl_vector_new(nx);
-    for (i=0; i<nx; i++) cpl_vector_set(X_all, i, (double)i+1) ;
-
-    for (i=0; i < nx; i++){
-        j = 0;
-        while ( (spec_i = cpl_vector_get(spec_thresh, i)) > -1 ) {
-            j++;
-            i++;
-        }
-        if (j < min_len_peak) continue;
-        // cpl_msg_debug(__func__, "Peak length j=%d at i=%d",j,i);
-        cur_peak = cpl_vector_extract(spec_thresh, i-j, i, 1) ;
-        X_peak = cpl_vector_extract(X_all, i-j, i, 1) ;
-
-        if (cpl_vector_fit_gaussian(X_peak, NULL, cur_peak, NULL, CPL_FIT_ALL,
-                                &x0, &sigma, &area, &offset,
-                                NULL,NULL,NULL) != CPL_ERROR_NONE ) {
-            cpl_msg_warning(__func__, "Fit at j=%d i=%d failed",j,i);
-            cpl_vector_delete(cur_peak);
-            cpl_vector_delete(X_peak);
-            cpl_error_reset();
-            continue;
-        }
-
-        //cpl_msg_debug(__func__,"Fit: %.2f, %.2f, %.2f, %.2f",
-        //                            x0, sigma, area, offset);
-        if ((k = cpl_array_count_invalid(peaks)) <1)
-            cpl_msg_error(__func__,"Output array overflow!");
-        //cpl_msg_debug(__func__,"k=%d, x0=%g",k,x0);
-        cpl_array_set_double(peaks, max_num_peaks - k, x0);
-
-        cpl_vector_delete(cur_peak);
-        cpl_vector_delete(X_peak);
-    }
-
-    /* Copy into output array */
-    k = max_num_peaks - cpl_array_count_invalid(peaks);
-    peak_vec = cpl_vector_new(k) ;
-    for (i=0; i<k; i++)
-        cpl_vector_set(peak_vec, i, cpl_array_get(peaks, i, NULL) );
-
-    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-        cpl_vector_save(peak_vec, "debug_peakpos.fits", CPL_TYPE_DOUBLE,
-                NULL, CPL_IO_CREATE);
-    }
-
-    cpl_vector_delete(spec_thresh) ;
-    cpl_vector_delete(X_all) ;
-    cpl_array_delete(peaks) ;
-    return peak_vec;
 }
 

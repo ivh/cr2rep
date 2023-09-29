@@ -155,6 +155,8 @@
 #define CR2RES_HEADER_QC_THROUGHPUT         "ESO QC THROUGHPUT"
 #define CR2RES_HEADER_QC_TILT               "ESO QC TILT%d"
 #define CR2RES_HEADER_QC_TILT_GLOBAL        "ESO QC TILT GLOBAL"
+#define CR2RES_HEADER_QC_FPI_CONTRAST       "ESO QC FPI CONTRAST"
+#define CR2RES_HEADER_QC_FPI_SEPARATION     "ESO QC FPI SEPARATION"
 
 /*-----------------------------------------------------------------------------
                                    Functions prototypes

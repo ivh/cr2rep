@@ -436,7 +436,7 @@ int cr2res_pfits_get_order_idx(
     cpl_msg_debug(__func__, 
         "Order %d identified with %.1f pix difference from expectation",
         order_idx, best_diff);
-    if (best_diff > 80.0)
+    if (best_diff > 100.0)
         cpl_msg_warning(__func__,
                 "Order %d identified with large difference of %.1f pix",
                 order_idx, best_diff);

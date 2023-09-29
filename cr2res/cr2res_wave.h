@@ -185,4 +185,7 @@ int cr2res_wave_extract_lines(
         cpl_vector      **  heights,
         cpl_vector      **  fit_error) ;
 
+cpl_vector * cr2res_wave_etalon_measure_fringes(
+        cpl_vector * spectrum) ;
+
 #endif
