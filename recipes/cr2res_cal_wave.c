@@ -60,6 +60,12 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
                             Private function prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_cal_wave_qc_une_flux(
+        const cpl_table         **      extracted,
+        const cpl_table         **      tw,
+        const cpl_propertylist  **      ext_plist,
+        double                          cwlen,
+        cpl_propertylist        *       plist) ;
 static int cr2res_cal_wave_qc_fpi(
         const cpl_table         **      extracted,
         const cpl_table         **      tw,
@@ -790,15 +796,17 @@ static int cr2res_cal_wave(
         cpl_msg_indent_more() ;
 
         /* For Testing the QCs without re-running all the time */
-        /*
         if (0) {
-            out_trace_wave_une[det_nr-1] = NULL ;
-            lines_diagnostics_une[det_nr-1] = NULL ;
-            out_extracted_une[det_nr-1] = NULL ;
-            out_wave_map_une[det_nr-1] = NULL ;
-            ext_plist_une[det_nr-1] = NULL ;
-            out_wave_map_fpet[det_nr-1] = NULL ;
-            lines_diagnostics_fpet[det_nr-1] = NULL ;
+            out_trace_wave_une[det_nr-1] = 
+                cr2res_io_load_TRACE_WAVE(
+"/home/yjung/P_cr2res/test_cr2res_cal_wave/res/cr2res_cal_wave_tw_une.fits", 
+                det_nr) ;
+            out_extracted_une[det_nr-1] = cr2res_io_load_EXTRACT_1D(
+"/home/yjung/P_cr2res/test_cr2res_cal_wave/res/cr2res_cal_wave_extracted_une.fits", 
+                det_nr) ;
+            ext_plist_une[det_nr-1] = cpl_propertylist_load(
+"/home/yjung/P_cr2res/test_cr2res_cal_wave/res/cr2res_cal_wave_extracted_une.fits", 
+                det_nr) ;
             out_trace_wave_fpet[det_nr-1] = 
                 cr2res_io_load_TRACE_WAVE(
 "/home/yjung/P_cr2res/test_cr2res_cal_wave/res/cr2res_cal_wave_tw_fpet.fits", 
@@ -811,8 +819,11 @@ static int cr2res_cal_wave(
                 cpl_propertylist_load(
 "/home/yjung/P_cr2res/test_cr2res_cal_wave/res/cr2res_cal_wave_extracted_fpet.fits", 
                 det_nr) ;
+            lines_diagnostics_une[det_nr-1] = NULL ;
+            out_wave_map_une[det_nr-1] = NULL ;
+            out_wave_map_fpet[det_nr-1] = NULL ;
+            lines_diagnostics_fpet[det_nr-1] = NULL ;
         } else {
-        */
 
         /* Call the reduction function */
         if (cr2res_cal_wave_reduce(rawframes_une, rawframes_fpet, detlin_frame,
@@ -838,18 +849,34 @@ static int cr2res_cal_wave(
             cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
             cpl_error_reset() ;
         }
+        }
         cpl_msg_indent_less() ;
     }
 
-    /* QC.FPI Computation */
-    qc_main = NULL ;
+    /* QC Computation */
+    qc_main = cpl_propertylist_new() ;
+    if (rawframes_une != NULL) {
+        plist = cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position_const(rawframes_une, 0)), 0) ;
+        central_wlen = cr2res_pfits_get_cwlen(plist) ;
+        cpl_propertylist_delete(plist);
+
+        /* QC.UNE.FLUX  Computation */
+        if (cr2res_cal_wave_qc_une_flux(
+                    (const cpl_table **)out_extracted_une,
+                    (const cpl_table **)out_trace_wave_une,
+                    (const cpl_propertylist **)ext_plist_une, 
+                    central_wlen, qc_main)) {
+            cpl_msg_warning(__func__, "QC.UNE.FLUX Computation failed") ;
+        }
+    }
+
     if (rawframes_fpet != NULL) {
         plist = cpl_propertylist_load(cpl_frame_get_filename(
                     cpl_frameset_get_position_const(rawframes_fpet, 0)), 0) ;
         central_wlen = cr2res_pfits_get_cwlen(plist) ;
         cpl_propertylist_delete(plist);
 
-        qc_main = cpl_propertylist_new() ;
         /* QC.TILT Computation */
         if (cr2res_cal_wave_qc_tilt((const cpl_table **)out_trace_wave_fpet,
                     central_wlen, qc_main)) {
@@ -927,7 +954,7 @@ static int cr2res_cal_wave(
     }
 
     /* Free and return */
-    if (qc_main != NULL) cpl_propertylist_delete(qc_main) ;
+    cpl_propertylist_delete(qc_main) ;
     cpl_frameset_delete(rawframes_une) ;
     if (rawframes_fpet!=NULL) cpl_frameset_delete(rawframes_fpet) ;
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
@@ -1650,6 +1677,109 @@ static int cr2res_cal_wave_reduce(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief Compute QC.UNE.FLUX
+  @param    extracted   3 extracted tables (1 per detector)
+  @param    tw          3 TW tables (1 per detector)
+  @param    ext_plist   3 Extension headers (1 per detector)
+  @param    cwlen
+  @param    plist       Header for holding the QC values
+  @return   0 if ok
+  
+  Use Detector 1 if CWLEN (from input file headers) is < 1100.0,
+  detector 2 otherwse.
+  The order that is the closest to the center of the detector is used.
+
+  QC.UNE.FLUX is the average of the lines between 1000 and 37000 intensity
+
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_cal_wave_qc_une_flux(
+        const cpl_table         **      extracted,
+        const cpl_table         **      tw,
+        const cpl_propertylist  **      ext_plist,
+        double                          cwlen,
+        cpl_propertylist        *       plist)
+{
+    const cpl_table         *   ref_extr ;
+    const cpl_table         *   ref_tw ;
+    const cpl_propertylist  *   ref_plist ;
+    cpl_bivector            *   spec ;
+    cpl_bivector            *   spec_err ;
+    cpl_bivector            *   intensities ;
+    double                  *   pintens,
+                            *   pbgs ;
+    double                      qc_flux, min_intens, max_intens, val ;
+    int                         ref_det, corder_idx ;
+	cpl_size					k, nintensities, nval ;
+
+    /* Check Inputs */
+    if (extracted==NULL || ext_plist == NULL) return -1 ;
+    for (k=0 ; k< CR2RES_NB_DETECTORS ; k++) {
+        if (extracted[k] == NULL) return -1 ;
+        if (ext_plist[k] == NULL) return -1 ;
+    }
+
+    /* Initialize */
+    qc_flux = -1.0 ;
+    min_intens = 1000.0 ;
+    max_intens = 37000.0 ;
+
+    /* Detector used depends on the cwlen */
+    if (cwlen <= 1100.0)    ref_det = 0 ;
+    else                    ref_det = 1 ;
+    ref_extr = extracted[ref_det] ;
+    ref_tw = tw[ref_det] ;
+    ref_plist = ext_plist[ref_det] ;
+
+    /* Get central order index */
+    corder_idx = cr2res_pfits_get_order_idx(ref_plist,
+            CR2RES_DETECTOR_SIZE/2.0) ;
+
+    cpl_msg_debug(__func__, "Central wl: %g  / Cent. Order IDX:  %d", 
+            cwlen, corder_idx) ;
+
+    /* Load the spectrum */
+    cr2res_extract_EXTRACT1D_get_spectrum(ref_extr, corder_idx, 1, &spec,
+            &spec_err) ;
+    cpl_bivector_delete(spec_err) ;
+
+    /* Plot the spectrum */
+    if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_plot_bivector(
+                "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Intensity';",
+                "t 'UNE Spectrum' w lines", "",
+                spec);
+    }
+
+    /* Compute the lines statistics */
+    if ((intensities = cr2res_qc_lines_intens_bgd(spec)) == NULL) {
+        cpl_msg_warning(__func__, "Cannot get the lines statistics") ;
+    } else {
+        nintensities = cpl_bivector_get_size(intensities) ;
+        pintens = cpl_bivector_get_x_data(intensities) ;
+        pbgs = cpl_bivector_get_y_data(intensities) ;
+        /* Compute qc_flux of lines in [min_intens,max_intens] */
+        nval = 0 ;
+        for (k=0 ; k<nintensities ; k++) {
+            val = pintens[k] - pbgs[k] ;
+            if (val < max_intens && val > min_intens) {
+                qc_flux += val ;
+                nval++;
+            }
+        }
+        if (nval > 0) qc_flux /= nval ;
+        cpl_bivector_delete(intensities) ;
+    }
+    cpl_bivector_delete(spec) ;
+
+    /* Store the QCs */
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_UNE_FLUX, 
+            qc_flux) ;
+
+    return 0 ;
+}
+/*----------------------------------------------------------------------------*/
+/**
   @brief Compute QC.FPI CONTRAST and SEPARATION
   @param    extracted   3 extracted tables (1 per detector)
   @param    tw          3 TW tables (1 per detector)
@@ -1663,11 +1793,13 @@ static int cr2res_cal_wave_reduce(
   The order that is the closest to the center of the detector is used.
 
   QC.FPI.CONTRAST
-
+    Detect all fringes, the peak/valley values, their positions in pix and wl
+    -> average of this value (computed for each fringe) :
+        (peak_wl-valley_wl) / (peak_wl+valley_wl) 
 
   QC.FPI.SEPARATION
-
- 
+    First and Last complete fringes:    
+        -> (last_wl - first_wl)/NumberOfFringesInBetween
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_wave_qc_fpi(

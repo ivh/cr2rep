@@ -81,10 +81,9 @@ double cr2res_qc_wave_disp(
 
 cpl_vector * cr2res_qc_lines_collect(double wmin, double wmax) ;
 
-double cr2res_qc_wave_line_intens(
-        const cpl_bivector  *   spec,
-        double                  wl) ;
 double cr2res_qc_wave_lamp_effic(
+        const cpl_bivector  *   spec) ;
+cpl_bivector * cr2res_qc_lines_intens_bgd(
         const cpl_bivector  *   spec) ;
 
 double cr2res_qc_wave_line_fwhm(

@@ -44,6 +44,12 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+static int cr2res_qc_wave_line_intens(
+        const cpl_bivector  *   spec,
+        double                  wl,
+        double              *   intens,
+        double              *   bgd) ;
+
 /*----------------------------------------------------------------------------*/
 /**
  * @defgroup cr2res_qc  QC related functions
@@ -461,88 +467,6 @@ cpl_vector * cr2res_qc_lines_collect(double wmin, double wmax)
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Computes one line Intensity
-  @param    spec        spectrum
-  @param    wl          line position
-  @return   the computed intensity
- */
-/*----------------------------------------------------------------------------*/
-double cr2res_qc_wave_line_intens(
-        const cpl_bivector  *   spec,
-        double                  wl)
-{
-    // TODO Thomas / Ansgar
-    //cpl_plot_bivector("set grid;set xlabel 'Wavelength (nm)';
-    // set ylabel 'Spec';", "t 'Spectrum' w lines", "",spec) ;
-    const cpl_vector * wave;
-    const cpl_vector * flux;
-    cpl_vector * tmp;
-    cpl_size pixel_pos;
-    cpl_size window_size;
-    cpl_size k, n_inner, n_outer;
-    double sum_inner, sum_outer;
-    double value;
-
-    if (spec == NULL) return -1.0;
-
-    // TODO: How large should this window be?
-    window_size = CR2RES_QC_WINDOW / 2;
-
-    wave = cpl_bivector_get_x_const(spec);
-    flux = cpl_bivector_get_y_const(spec);
-
-    // Determine pixel pos
-    // TODO: If we are sure that wave is sorted, we can also use cpl_vector_find
-    tmp = cpl_vector_duplicate(wave);
-    cpl_vector_subtract_scalar(tmp, wl);
-    cpl_vector_multiply(tmp, tmp);
-    pixel_pos = cpl_vector_get_minpos(tmp);
-    cpl_vector_delete(tmp);
-
-    // If the wavelength value is outside the spectrum
-    if (pixel_pos == 0 || pixel_pos == cpl_vector_get_size(wave)) return -1.0;
-
-    // Sum up the values of the spectrum
-    // inside the window and outside the window
-    sum_inner = 0;
-    sum_outer = 0;
-    n_inner = 0;
-    n_outer = 0;
-    for (cpl_size i = -window_size * 2; i < 2 * window_size; i++)
-    {
-        k = pixel_pos - i;
-        if (k < 0 || k > cpl_vector_get_size(flux)){
-            continue;
-        }
-        value = cpl_vector_get(flux, k);
-        if (isnan(value)){
-            continue;
-        }
-        if (fabs(i) < window_size){
-            // Inner sum
-            n_inner++;
-            sum_inner += value;
-        } else {
-            // Outer sum
-            n_outer++;
-            sum_outer += value;
-        }
-    }
-    if (n_inner + n_outer == 0){
-        // No valid points
-        return -1.0;
-    }
-    // Take the mean
-    if (n_inner != 0) sum_inner /= n_inner;
-    if (n_outer != 0) sum_outer /= n_outer;
-    // return the difference
-    value = sum_inner - sum_outer;
-
-    return value;
-}
-
-/*----------------------------------------------------------------------------*/
-/**
   @brief    Computes one line Fwhm 
   @param    spec        spectrum
   @param    wl          line position
@@ -611,7 +535,50 @@ double cr2res_qc_wave_line_fwhm(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Computes the lines intensities
+  @brief    Computes the lines intensities / background
+  @param    extracted   extracted spectrum
+  @return   the bivector withe the lines intens/bgd
+ */
+/*----------------------------------------------------------------------------*/
+cpl_bivector * cr2res_qc_lines_intens_bgd(
+        const cpl_bivector  *   spec)
+{
+    cpl_bivector    *   intens_bgd ;
+    cpl_vector      *   ref_lines ;
+    double          *   pintens,
+                    *   pbgs ;
+
+    double              wmin, wmax, curr_refline;
+
+    int                 i, nall ;
+
+    /* Get the reference lines */
+    wmin = cpl_vector_get(cpl_bivector_get_x_const(spec), 0);
+    wmax = cpl_vector_get(cpl_bivector_get_x_const(spec),
+            cpl_bivector_get_size(spec)-1) ;
+    ref_lines = cr2res_qc_lines_collect(wmin, wmax) ;
+    if (ref_lines == NULL) return NULL ;
+
+    /* Loop on the lines */
+    nall = cpl_vector_get_size(ref_lines);
+    intens_bgd = cpl_bivector_new(nall) ;
+    pintens = cpl_bivector_get_x_data(intens_bgd) ;
+    pbgs = cpl_bivector_get_y_data(intens_bgd) ;
+    for (i=0 ; i < nall ; i++) {
+        curr_refline = cpl_vector_get(ref_lines, i) ;
+        cr2res_qc_wave_line_intens(spec, curr_refline, 
+                &(pintens[i]), &(pbgs[i]));
+        cpl_msg_debug(__func__, "Ref : %g, intens: %g, Bgd : %g",
+                curr_refline, pintens[i], pbgs[i]) ;
+    }
+    cpl_vector_delete(ref_lines) ;
+
+    return intens_bgd;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the lamp efficiency
   @param    extracted   extracted spectrum
   @return   the computed resolution
  */
@@ -621,7 +588,7 @@ double cr2res_qc_wave_lamp_effic(
 {
     cpl_vector  *   ref_lines ;
     cpl_vector  *   ref_lines_intens ;
-    double          wmin, wmax, intens_med, intens;
+    double          wmin, wmax, intens_med, intens, bgd;
     int             i, n, nall ;
 
     /* Get the reference lines */
@@ -638,9 +605,10 @@ double cr2res_qc_wave_lamp_effic(
     nall = cpl_vector_get_size(ref_lines);
     ref_lines_intens = cpl_vector_new(nall) ;
     for (i=0 ; i < nall ; i++) {
-        intens = cr2res_qc_wave_line_intens(spec, cpl_vector_get(ref_lines, i));
-        if (intens > 0.0) {
-            cpl_vector_set(ref_lines_intens, n, intens); 
+        cr2res_qc_wave_line_intens(spec, cpl_vector_get(ref_lines, i),
+                &intens, &bgd);
+        if (intens-bgd > 0.0) {
+            cpl_vector_set(ref_lines_intens, n, intens-bgd); 
             n++;
         }
     }
@@ -1105,4 +1073,96 @@ double cr2res_qc_obs_slit_psf(
     return qc_fwhm ;
 }
 /**@}*/
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes one line Intensity
+  @param    spec        spectrum
+  @param    wl          line position
+  @param    the computed intensity
+  @param    the computed background
+  @return   0 if ok, -1 otherwiѕe
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_qc_wave_line_intens(
+        const cpl_bivector  *   spec,
+        double                  wl,
+        double              *   intens,
+        double              *   bgd)
+{
+    // TODO Thomas / Ansgar
+    //cpl_plot_bivector("set grid;set xlabel 'Wavelength (nm)';
+    // set ylabel 'Spec';", "t 'Spectrum' w lines", "",spec) ;
+    const cpl_vector * wave;
+    const cpl_vector * flux;
+    cpl_vector * tmp;
+    cpl_size pixel_pos;
+    cpl_size window_size;
+    cpl_size k, n_inner, n_outer;
+    double sum_inner, sum_outer;
+    double value;
+
+    /* Initialise */
+    *intens = -1.0 ;
+    *bgd = 0.0 ;
+
+    if (spec == NULL) return -1 ;
+
+    // TODO: How large should this window be?
+    window_size = CR2RES_QC_WINDOW / 2;
+
+    wave = cpl_bivector_get_x_const(spec);
+    flux = cpl_bivector_get_y_const(spec);
+
+    // Determine pixel pos
+    // TODO: If we are sure that wave is sorted, we can also use cpl_vector_find
+    tmp = cpl_vector_duplicate(wave);
+    cpl_vector_subtract_scalar(tmp, wl);
+    cpl_vector_multiply(tmp, tmp);
+    pixel_pos = cpl_vector_get_minpos(tmp);
+    cpl_vector_delete(tmp);
+
+    // If the wavelength value is outside the spectrum
+    if (pixel_pos == 0 || pixel_pos == cpl_vector_get_size(wave)) return -1.0;
+
+    // Sum up the values of the spectrum
+    // inside the window and outside the window
+    sum_inner = 0;
+    sum_outer = 0;
+    n_inner = 0;
+    n_outer = 0;
+    for (cpl_size i = -window_size * 2; i < 2 * window_size; i++)
+    {
+        k = pixel_pos - i;
+        if (k < 0 || k > cpl_vector_get_size(flux)){
+            continue;
+        }
+        value = cpl_vector_get(flux, k);
+        if (isnan(value)){
+            continue;
+        }
+        if (fabs(i) < window_size){
+            // Inner sum
+            n_inner++;
+            sum_inner += value;
+        } else {
+            // Outer sum
+            n_outer++;
+            sum_outer += value;
+        }
+    }
+    if (n_inner + n_outer == 0){
+        // No valid points
+        return -1 ;
+    }
+    // Take the mean
+    if (n_inner != 0) sum_inner /= n_inner;
+    if (n_outer != 0) sum_outer /= n_outer;
+    // return the difference
+
+    *intens = sum_inner ;
+    *bgd = sum_outer ;
+    return 0 ;
+}
+
 

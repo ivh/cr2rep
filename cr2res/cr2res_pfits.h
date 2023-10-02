@@ -157,6 +157,7 @@
 #define CR2RES_HEADER_QC_TILT_GLOBAL        "ESO QC TILT GLOBAL"
 #define CR2RES_HEADER_QC_FPI_CONTRAST       "ESO QC FPI CONTRAST"
 #define CR2RES_HEADER_QC_FPI_SEPARATION     "ESO QC FPI SEPARATION"
+#define CR2RES_HEADER_QC_UNE_FLUX           "ESO QC UNE FLUX"
 
 /*-----------------------------------------------------------------------------
                                    Functions prototypes
