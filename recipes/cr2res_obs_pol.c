@@ -29,6 +29,7 @@
 #include <cpl.h>
 
 #include "cr2res_utils.h"
+#include "cr2res_idp.h"
 #include "cr2res_pol.h"
 #include "cr2res_nodding.h"
 #include "cr2res_calib.h"
@@ -394,6 +395,13 @@ static int cr2res_obs_pol_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.create_idp",
+                                CPL_TYPE_BOOL, "Flag to produce  IDP files",
+                                "cr2res.cr2res_obs_nodding", FALSE);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "idp");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_pol.save_group",
             CPL_TYPE_INT, 
             "Save extra files for the specified group number (0: no save)",
@@ -458,7 +466,8 @@ static int cr2res_obs_pol(
 {
     const cpl_parameter *   param ;
     int                     extract_oversample, extract_swath_width, cosmics,
-                            extract_height, reduce_det, subtract_nolight_rows,
+                            extract_height, reduce_det, create_idp, 
+                            subtract_nolight_rows,
                             subtract_interorder_column, save_group ;
     double                  extract_smooth_slit, extract_smooth_spec ;
     cpl_frameset        *   rawframes ;
@@ -547,6 +556,9 @@ static int cr2res_obs_pol(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_pol.detector");
     reduce_det = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_nodding.create_idp");
+    create_idp = cpl_parameter_get_bool(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_pol.save_group");
     save_group = cpl_parameter_get_int(param);
@@ -925,12 +937,25 @@ static int cr2res_obs_pol(
     cr2res_io_save_POL_SPEC(out_file, frameset, frameset, parlist,
             pol_speca, qc_main, ext_plista, CR2RES_OBS_POL_SPECA_PROCATG, 
             RECIPE_STRING) ;
+    if (create_idp) {
+        cr2res_idp_save(out_file, frameset, frameset, parlist,
+                        pol_speca, ext_plista,
+                        CR2RES_OBS_POL_EXTRACTA_IDP_PROCATG,
+                        RECIPE_STRING);
+    }
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_pol_specB.fits", RECIPE_STRING) ;
     cr2res_io_save_POL_SPEC(out_file, frameset, frameset, parlist,
             pol_specb, qc_main, ext_plistb, CR2RES_OBS_POL_SPECB_PROCATG, 
             RECIPE_STRING) ;
+    if (create_idp) {
+        cr2res_idp_save(out_file, frameset, frameset, parlist,
+                        pol_specb, ext_plistb,
+                        CR2RES_OBS_POL_EXTRACTB_IDP_PROCATG,
+                        RECIPE_STRING);
+    }
+    //cpl_msg_info(__func__,"ERR: %d", cpl_error_get_code());
     cpl_free(out_file);
 
     /* Free */

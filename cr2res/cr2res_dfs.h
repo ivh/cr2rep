@@ -60,7 +60,9 @@
 #define CR2RES_IDP_COL_DETEC        "DETEC"      /* Detector */
 #define CR2RES_IDP_COL_XPOS         "XPOS"       /* Original X position */
 #define CR2RES_IDP_COL_YPOS         "YPOS"       /* Original Y position */
-#define CR2RES_IDP_COL_SLITFRAC     "SLITFRAC"   /* Original Y position */
+#define CR2RES_IDP_COL_SLITFRAC     "SLITFRAC"   /* Slit fraction */
+#define CR2RES_IDP_COL_STOKES       "STOKES"     /* Stokes parameter */
+#define CR2RES_IDP_COL_STOKESERR    "STOKES_ERR" /* Stokes parameter error */
 
 /*** LINES_DIAGNOSTICS Table ***/
 #define CR2RES_COL_MEASURED_LAMBDA  "Measured_WL"   /* In Nanometers */
@@ -81,11 +83,11 @@
 #define CR2RES_COL_SLIT_FUNC_SUFFIX "SLIT_FUNC"     /* Intensity */
 
 /* POL_SPEC Table */
-#define CR2RES_COL_POL_STOKES_SUFFIX        "STOKES"        /* TODO */
+#define CR2RES_COL_POL_STOKES_SUFFIX        "STOKES"        /* Stokes param */
 #define CR2RES_COL_POL_STOKES_ERROR_SUFFIX  "STOKES_ERR"    /* Error */
-#define CR2RES_COL_POL_NULL_SUFFIX          "NULL"          /* TODO */
+#define CR2RES_COL_POL_NULL_SUFFIX          "NULL"          /* Null spectrum */
 #define CR2RES_COL_POL_NULL_ERROR_SUFFIX    "NULL_ERR"      /* Error */
-#define CR2RES_COL_POL_INTENS_SUFFIX        "INTENS"        /* TODO */
+#define CR2RES_COL_POL_INTENS_SUFFIX        "INTENS"        /* Intensity spec */
 #define CR2RES_COL_POL_INTENS_ERROR_SUFFIX  "INTENS_ERR"    /* Error */
 
 /* EXTRACT_1D Table */
@@ -320,7 +322,8 @@
 #define CR2RES_OBS_POL_SPECB_PROCATG        "OBS_POL_SPECB"
 #define CR2RES_OBS_POL_CALIB_A_PROCATG      "OBS_POL_CALIBA"
 #define CR2RES_OBS_POL_CALIB_B_PROCATG      "OBS_POL_CALIBB"
-#define CR2RES_OBS_POL_IDP_PROCATG          "OBS_POL_IDP"
+#define CR2RES_OBS_POL_EXTRACTA_IDP_PROCATG "OBS_POL_EXTRACTA_IDP"
+#define CR2RES_OBS_POL_EXTRACTB_IDP_PROCATG "OBS_POL_EXTRACTB_IDP"
 
 /* Produced by cr2res_util_genlines */
 #define CR2RES_EMISSION_LINES_PROCATG       "EMISSION_LINES"
@@ -417,6 +420,9 @@ char * cr2res_dfs_SPEC_colname_parse(
         const char  *   colname,
         int         *   order_idx,
         int         *   trace) ;
+char * cr2res_dfs_POL_colname_parse(
+        const char  *   colname, 
+        int         *   order_idx);
 
 cpl_table * cr2res_dfs_create_lines_diagnostics_table(int nrows) ;
 
