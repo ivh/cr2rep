@@ -2881,7 +2881,7 @@ static int cr2res_extract_slit_func_curved(
 {
     int         x, xx, xxx, y, yy, iy, jy, n, m, ny, i, nx;
     double      norm, lambda, diag_tot, ww, www, sP_change, sP_med;
-    double      tmp, sigma, median, sum, dev, cost, cost_old, sLmax;
+    double      tmp, sigma, median, sum, msum, dev, cost, cost_old, sLmax;
     double      unc1, unc2;
     int         info, iter, isum;
     cpl_vector  * tmp_vec;
@@ -3169,33 +3169,20 @@ static int cr2res_extract_slit_func_curved(
         "sL-sum, sLmax, osample, nrows, ny: %g, %g, %d, %d, %d",
         sum, sLmax, osample, nrows, ny);
 
-    for (x = 0; x < ncols; x++)
-    {
-        unc[x] = 1.;
-        p_bj[x] = 1.;
-    }
-
-    for (y = 0; y < nrows; y++)
-    {
-        for (x = 0; x < ncols; x++)
-        {
-            for (m = 0; m < m_zeta[mzeta_index(x, y)]; m++) // Loop through all pixels contributing to x,y
-            {
-                if (mask[y * ncols + x]) {
-                    xx = zeta[zeta_index(x, y, m)].x;
-                    iy = zeta[zeta_index(x, y, m)].iy;
-                    ww = zeta[zeta_index(x, y, m)].w;
-                    unc[xx] += (im[y * ncols + x] - model[y * ncols + x]) * (im[y * ncols + x] - model[y * ncols + x]) *
-                               ww * sL[iy];
-                    p_bj[xx] += ww * sL[iy]; // Norm
-                }
+    
+    for (x = 0; x < ncols; x++) {
+        unc[x] = 0.0;
+        msum = 0.0;
+        sum = 0.0;
+        for (y = 0; y < nrows; y++) {
+            if (mask[y * ncols + x]) {
+                msum += (   im[y * ncols + x] * model[y * ncols + x]) *
+                            mask[y * ncols + x] ;
+                sum +=  (model[y * ncols + x] * model[y * ncols + x]) *
+                            mask[y * ncols + x] ;
             }
         }
-    }
-
-    for (x = 0; x < ncols; x++)
-    {
-        unc[x] = sqrt(unc[x] / p_bj[x] * nrows);
+        unc[x] = sqrt(sP[x] * sum / msum);
     }
 
     return 0;
