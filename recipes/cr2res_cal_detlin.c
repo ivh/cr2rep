@@ -58,6 +58,11 @@ static int cr2res_cal_detlin_update(
         hdrl_imagelist  * new_coeffs,
         cpl_image       ** global_bpm,
         hdrl_imagelist   ** global_coeffs);
+static int cr2res_cal_detlin_update_simplified(
+        cpl_image       * new_bpm,
+        hdrl_imagelist  * new_coeffs,
+        cpl_image       ** global_bpm,
+        hdrl_imagelist   ** global_coeffs);
 static int cr2res_cal_detlin_compare(
         const cpl_frame   *   frame1,
         const cpl_frame   *   frame2) ;
@@ -477,6 +482,9 @@ static int cr2res_cal_detlin(
         cpl_msg_info(__func__, "Process SETTING %s", setting_id) ;
         cpl_msg_indent_more() ;
 
+
+
+
         /* Loop on the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
@@ -489,6 +497,7 @@ static int cr2res_cal_detlin(
             /* Compute only one detector */
             if (reduce_det != 0 && det_nr != reduce_det) continue ;
     
+
             /* Call the reduction function */
             cpl_msg_indent_more() ;
             if (cr2res_cal_detlin_reduce(raw_one, darkframes, bpm_thresh,
@@ -504,6 +513,22 @@ static int cr2res_cal_detlin(
                 cpl_error_reset() ;
             } 
             cpl_msg_indent_less() ;
+ 
+
+            /*
+    if (coeffs[det_nr-1] != NULL) 
+        hdrl_imagelist_delete(coeffs[det_nr-1]) ;
+    if (bpm[det_nr-1] != NULL) 
+        cpl_image_delete(bpm[det_nr-1]) ;
+    if (ext_plist[det_nr-1] != NULL) 
+        cpl_propertylist_delete(ext_plist[det_nr-1]) ;
+    cpl_free(setting_id) ;
+    cpl_frameset_delete(rawframes) ;
+    cpl_frameset_delete(raw_one) ;
+    if (darkframes!= NULL) cpl_frameset_delete(darkframes) ;
+    cpl_free(labels);
+    return 0 ;
+            */
 
             /* Merge the products */
             if (ext_plist[det_nr-1] != NULL && coeffs[det_nr-1] != NULL
@@ -515,8 +540,25 @@ static int cr2res_cal_detlin(
                 }
 
                 /* Merge */
-                cr2res_cal_detlin_update(bpm[det_nr - 1], coeffs[det_nr - 1],
-                        &bpm_merged[det_nr - 1], &coeffs_merged[det_nr - 1]);
+                if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+                    cpl_image_save(
+                            hdrl_image_get_image(
+                                hdrl_imagelist_get(coeffs[det_nr-1], 0)), 
+                            "debug_coeffs_before_merge.fits",
+                            CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+                }
+
+                cr2res_cal_detlin_update_simplified(bpm[det_nr - 1], 
+                        coeffs[det_nr - 1], &bpm_merged[det_nr - 1], 
+                        &coeffs_merged[det_nr - 1]);
+    
+                if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+                    cpl_image_save(
+                            hdrl_image_get_image(
+                                hdrl_imagelist_get(coeffs_merged[det_nr-1], 0)),
+                            "debug_coeffs_after_merge.fits",
+                            CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
+                }
             }
         }
 
@@ -565,10 +607,12 @@ static int cr2res_cal_detlin(
     for (det_nr = 1; det_nr <= CR2RES_NB_DETECTORS; det_nr++) {
         if (reduce_det != 0 && det_nr != reduce_det) 
             continue ;
-        
+      
         // Complete the merging
         // This completes the weighted mean as described in 
         // cr2res_cal_detlin_update
+        // TODO - Why not in the merging function ?? -> REVIEW !!!
+        /*
         for (i=0; i < hdrl_imagelist_get_size(coeffs_merged[det_nr - 1]); i++) {
             img = hdrl_imagelist_get(coeffs_merged[det_nr - 1], i);
             for (x = 0; x < hdrl_image_get_size_x(img); x++) {
@@ -581,6 +625,7 @@ static int cr2res_cal_detlin(
             }
             hdrl_image_reject_value(img, CPL_VALUE_NAN);
         }
+        */
 
         /* Compute the QC parameters */
         cpl_msg_info(__func__, "BPM detection & QCs") ;
@@ -929,15 +974,18 @@ static int cr2res_cal_detlin_reduce(
     } else {
         /* Only use the first image */
         collapsed = hdrl_image_duplicate(hdrl_imagelist_get(imlist, 0)) ;
+        contrib = NULL ;
     }
 
 /*
 	printf("-- %s\n", cpl_error_get_where()) ;
+	hdrl_image_delete(collapsed) ;
+    if (contrib != NULL) cpl_image_delete(contrib);
+
     hdrl_imagelist_delete(imlist) ;
     cpl_vector_delete(dits);
     cpl_propertylist_delete(plist);
-	hdrl_image_delete(collapsed) ;
-	cpl_image_delete(contrib);
+    
     return -1 ;
 */
 
@@ -1019,24 +1067,24 @@ static int cr2res_cal_detlin_reduce(
                     /* Plot the values and the fit */
                     if (plotx==i+1 && ploty==j+1) {
                         aduPsec = cpl_vector_duplicate(fitvals);
+                        cpl_vector * fitvals_loc1=cpl_vector_duplicate(fitvals);
                         cpl_vector_divide(aduPsec, dits);
                         cpl_bivector * toplot_measure =
-                            cpl_bivector_wrap_vectors(fitvals,aduPsec) ;
+                            cpl_bivector_wrap_vectors(fitvals_loc1,aduPsec) ;
                         
                         cpl_vector * poly_eval = cr2res_polynomial_eval_vector(
-                                fitted_poly, fitvals) ;
+                                fitted_poly, fitvals_loc1) ;
+                        cpl_vector * fitvals_loc2=cpl_vector_duplicate(fitvals);
                         cpl_bivector * toplot_fitted =
-                            cpl_bivector_wrap_vectors(fitvals, poly_eval) ;
+                            cpl_bivector_wrap_vectors(fitvals_loc2, poly_eval) ;
                         cpl_plot_bivector(
                         "set grid;set xlabel 'ADU';set ylabel 'ADU/s';",
                         "t 'Measured ADU/s' w lines", "", toplot_measure);
                         cpl_plot_bivector(
                         "set grid;set xlabel 'ADU';set ylabel 'Corr. fact';",
                         "t 'Fit' w lines", "", toplot_fitted);
-                        cpl_bivector_unwrap_vectors(toplot_fitted) ;
-                        cpl_vector_delete(poly_eval) ;
-                        cpl_bivector_unwrap_vectors(toplot_measure) ;
-                        cpl_vector_delete(aduPsec);
+                        cpl_bivector_delete(toplot_fitted) ;
+                        cpl_bivector_delete(toplot_measure) ;
                     }
 
                     /* Store the Coefficients in the output image list */
@@ -1168,6 +1216,90 @@ static int cr2res_cal_detlin_compare(
     cpl_propertylist_delete(plist1) ;
     cpl_propertylist_delete(plist2) ;
     return comparison ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief Update previous result with result from current setting.
+  @param 
+  @return   0 if ok
+
+  This prepares the weighted average of the coefficients, it sets global_bpm
+  and global_coeffs images.
+  In global_coeffs the data values are sum(data / error ** 2) 
+  and the error values are sum (1 / error ** 2).
+  To get the weighted average one needs to divide the data values by the error
+  values, once all components have been added. The errors also need to be
+  transformed by sqrt(1 / error).
+
+  Note that this ignores any possible covariance between the coefficients.
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_cal_detlin_update_simplified(
+    cpl_image       * new_bpm,
+    hdrl_imagelist  * new_coeffs,
+    cpl_image       ** global_bpm,
+    hdrl_imagelist  ** global_coeffs)
+{
+    cpl_size i, j, k, nx, ny, ni, idx;
+    int             * pglobal_bpm;
+    int             * pnew_bpm;
+    hdrl_image      * global_coeffs_ima;
+    hdrl_image      * new_coeffs_ima;
+    hdrl_image      * img;
+    hdrl_value new_value, global_value, pixel;
+    double tmp;
+    cpl_size x, y;
+
+    /* Check Inputs */
+    if (new_bpm == NULL || new_coeffs == NULL) return 0;
+
+   /* Initialise */
+    nx = cpl_image_get_size_x(new_bpm);
+    ny = cpl_image_get_size_y(new_bpm);
+    ni = hdrl_imagelist_get_size(new_coeffs);
+
+    if (*global_bpm != NULL && *global_coeffs != NULL){
+        if (cpl_image_get_size_x(*global_bpm) != nx ||
+            cpl_image_get_size_y(*global_bpm) != ny ||
+            hdrl_imagelist_get_size(*global_coeffs) != ni) {
+            return -1;
+        }
+    } else {
+        /* First non-null solution encountered */
+        *global_coeffs = hdrl_imagelist_duplicate(new_coeffs);
+        *global_bpm = cpl_image_duplicate(new_bpm);
+        return 0;
+    }
+
+    pglobal_bpm = cpl_image_get_data_int(*global_bpm);
+    pnew_bpm = cpl_image_get_data_int(new_bpm);
+
+    /* Loop on the pixels */
+    for (j = 0; j < ny; j++) {
+        for (i = 0; i < nx; i++) {
+            idx = i + j * nx;
+            // Only the new values exist
+            if (pnew_bpm[idx] == 0) {
+                pglobal_bpm[idx] = 0 ;
+                for (k = 0; k < ni; k++) {
+                    global_coeffs_ima = hdrl_imagelist_get(*global_coeffs, k);
+                    new_coeffs_ima = hdrl_imagelist_get(new_coeffs, k);
+                    new_value = hdrl_image_get_pixel(new_coeffs_ima, i + 1, 
+                            j + 1, NULL);
+                    hdrl_image_set_pixel(global_coeffs_ima, i + 1, j + 1, 
+                            hdrl_image_get_pixel(new_coeffs_ima, i + 1, j + 1, 
+                                NULL)) ;
+                }
+            } else if (pglobal_bpm[idx] == CR2RES_BPM_OUTOFORDER 
+                    && pnew_bpm[idx] != CR2RES_BPM_OUTOFORDER) {
+                // Update the BPM mask if it was Out of order
+                // even if it still is a bad pixel
+                pglobal_bpm[idx] = pnew_bpm[idx];
+            }
+        }
+    }
+    return 0 ;
 }
 
 /*----------------------------------------------------------------------------*/
