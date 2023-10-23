@@ -543,22 +543,20 @@ cpl_table * cr2res_idp_create_table(
  
     /* Create the table */
     tmp_tab = cpl_table_new(ntot) ;
-    return tmp_tab;
     cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_WAVE, CPL_TYPE_DOUBLE);
     cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_FLUX, CPL_TYPE_DOUBLE);
     cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_ERR, CPL_TYPE_DOUBLE);
     cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_QUAL, CPL_TYPE_INT);
     cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_ORDER, CPL_TYPE_INT);
-    cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_TRACE, CPL_TYPE_INT);
     cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_DETEC, CPL_TYPE_INT);
-    cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_XPOS, CPL_TYPE_INT);
-    if (!strcmp(recipe, "cr2res_obs_2d")) {
-        cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_YPOS, CPL_TYPE_INT);
-        cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_SLITFRAC, CPL_TYPE_DOUBLE);
-    } else if (!strcmp(recipe, "cr2res_obs_pol")) {
+    if (strcmp(recipe, "cr2res_obs_pol")) { // nodding and staring
+        cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_XPOS, CPL_TYPE_INT);
+        cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_TRACE, CPL_TYPE_INT);
+    } else {
         cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_STOKES, CPL_TYPE_DOUBLE);
         cpl_table_new_column(tmp_tab,
                                 CR2RES_IDP_COL_STOKESERR, CPL_TYPE_DOUBLE);
+
     }
 
     /* Fill the table */
@@ -581,13 +579,16 @@ cpl_table * cr2res_idp_create_table(
                     }
                     if (col_kind != NULL) cpl_free(col_kind) ;
                 }
-            } else { // polarimetry has 7 columns per order
-                for (j=0 ; j<ncols / 7 ; j++) {
+            } else { 
+                for (j=0 ; j<ncols ; j++) {
                     col_name = cpl_array_get_string(col_names, j);
                     col_kind = cr2res_dfs_POL_colname_parse(col_name, &order);
-                    cr2res_idp_copy_pol(tmp_tab, tables[i], ntot, i + 1,
+                    if (col_kind != NULL && 
+                            !strcmp(col_kind, CR2RES_COL_POL_INTENS_SUFFIX)) {
+                        cr2res_idp_copy_pol(tmp_tab, tables[i], ntot, i + 1,
                                         order, recipe, setting);
-                    ntot += cpl_table_get_nrow(tables[i]) ;
+                        ntot += cpl_table_get_nrow(tables[i]) ;
+                    }
                     if (col_kind != NULL) cpl_free(col_kind) ;
                 }
             }
@@ -598,7 +599,7 @@ cpl_table * cr2res_idp_create_table(
     /* Sort by the wavelengths */
     sort_list = cpl_propertylist_new() ;
     cpl_propertylist_append_bool(sort_list, CR2RES_IDP_COL_WAVE, 0) ;
-    cpl_propertylist_append_bool(sort_list, CR2RES_IDP_COL_XPOS, 1) ;
+    //cpl_propertylist_append_bool(sort_list, CR2RES_IDP_COL_XPOS, 1) ;
     cpl_table_sort(tmp_tab, sort_list) ;
     cpl_propertylist_delete(sort_list) ;
 
@@ -627,6 +628,7 @@ cpl_table * cr2res_idp_create_table(
     idp_tab = cpl_table_new(1);
     for (j=0 ; j<ncols ; j++) {
         col_name = cpl_array_get_string(col_names, j);
+        cpl_msg_debug(__func__,"colname: %s", col_name);
         col_type = cpl_table_get_column_type(tmp_tab, col_name);
         tmp_arr = cpl_array_new(nrows, col_type);
         if (col_type==CPL_TYPE_DOUBLE){
@@ -887,21 +889,21 @@ static int cr2res_idp_copy_pol(
 
     /* Get the Stokes */
     stokes_name = cr2res_dfs_POL_STOKES_colname(order) ;
-    if ((pstokes = cpl_table_get_data_double_const(in, err_name)) == NULL) {
-        cpl_msg_error(__func__, "Cannot find the intensity error") ;
-        cpl_free(err_name) ;
+    if ((pstokes = cpl_table_get_data_double_const(in, stokes_name)) == NULL) {
+        cpl_msg_error(__func__, "Cannot find the Stokes spectrum") ;
+        cpl_free(stokes_name) ;
         return -1 ;
     }
-    cpl_free(err_name) ;
+    cpl_free(stokes_name) ;
 
     /* Get the stokes err */
     stokeserr_name = cr2res_dfs_POL_STOKES_ERROR_colname(order) ;
-    if ((pstokeserr = cpl_table_get_data_double_const(in, err_name)) == NULL) {
-        cpl_msg_error(__func__, "Cannot find the intensity error") ;
-        cpl_free(err_name) ;
+    if ((pstokeserr = cpl_table_get_data_double_const(in, stokeserr_name)) == NULL) {
+        cpl_msg_error(__func__, "Cannot find the Stokes error") ;
+        cpl_free(stokeserr_name) ;
         return -1 ;
     }
-    cpl_free(err_name) ;
+    cpl_free(stokeserr_name) ;
 
     /* copy line by line */
     for (i=0 ; i<in_size ; i++) {
@@ -917,10 +919,10 @@ static int cr2res_idp_copy_pol(
                         out_start_idx + i, perr[i]) ;
             if (!isnan(pstokes[i])) 
                 cpl_table_set_double(out, CR2RES_IDP_COL_STOKES, 
-                        out_start_idx + i, perr[i]) ;
+                        out_start_idx + i, pstokes[i]) ;
             if (!isnan(pstokeserr[i])) 
                 cpl_table_set_double(out, CR2RES_IDP_COL_STOKESERR, 
-                        out_start_idx + i, perr[i]) ;
+                        out_start_idx + i, pstokeserr[i]) ;
 
             if (i<5 || (i>=CR2RES_DETECTOR_SIZE-5)) edgepix = 2;
             else edgepix=0;
