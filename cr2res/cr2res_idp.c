@@ -355,10 +355,10 @@ int cr2res_idp_save(
             cpl_free(keyname);
         }
     }
-    cpl_propertylist_update_double(pri_head, "SNR",
-                                cpl_array_get_median(tmp_arr)) ;
-    cpl_propertylist_set_comment(pri_head, "SNR",
-                "Median signal-to-noise in all detector-orders"); 
+    //cpl_propertylist_update_double(pri_head, "SNR",
+    //                            cpl_array_get_median(tmp_arr)) ;
+    //cpl_propertylist_set_comment(pri_head, "SNR",
+    //            "Median signal-to-noise in all detector-orders"); 
     cpl_array_delete(tmp_arr);
 
     /* Remove the ASSON keywords */
@@ -526,21 +526,36 @@ cpl_table * cr2res_idp_create_table(
         if (tables[i] != NULL) {
             col_names = cpl_table_get_column_names(tables[i]);
             ncols = cpl_table_get_ncol(tables[i]) ;
-            for (j=0 ; j<ncols ; j++) {
-                col_name = cpl_array_get_string(col_names, j);
-                col_kind = cr2res_dfs_SPEC_colname_parse(col_name, 
-                        &order, &trace_nb) ;
-                if (col_kind != NULL && 
-                        !strcmp(col_kind, CR2RES_COL_SPEC_SUFFIX)) {
-                    /* Handle this extracted spectrum */
-                    ntot += cpl_table_get_nrow(tables[i]) ;
+            if (strcmp(recipe, "cr2res_obs_pol")) { // nodding and staring
+                for (j=0 ; j<ncols ; j++) {
+                    col_name = cpl_array_get_string(col_names, j);
+                    col_kind = cr2res_dfs_SPEC_colname_parse(col_name, 
+                            &order, &trace_nb) ;
+                    if (col_kind != NULL && 
+                            !strcmp(col_kind, CR2RES_COL_SPEC_SUFFIX)) {
+                        /* Handle this extracted spectrum */
+                        ntot += cpl_table_get_nrow(tables[i]) ;
+                    }
+                    if (col_kind != NULL) cpl_free(col_kind) ;
                 }
-                if (col_kind != NULL) cpl_free(col_kind) ;
+            } else { // POL
+                for (j=0 ; j<ncols ; j++) {
+                    col_name = cpl_array_get_string(col_names, j);
+                    col_kind = cr2res_dfs_POL_colname_parse(col_name, 
+                            &order) ;
+                    if (col_kind != NULL && 
+                            !strcmp(col_kind, CR2RES_COL_POL_INTENS_SUFFIX)) {
+                        /* Handle this extracted spectrum */
+                        ntot += cpl_table_get_nrow(tables[i]) ;
+                    }
+                    if (col_kind != NULL) cpl_free(col_kind) ;
+                }
             }
             cpl_array_delete(col_names) ;
         }
     }
- 
+    cpl_msg_info(__func__, "Found %lld total rows.", ntot);
+
     /* Create the table */
     tmp_tab = cpl_table_new(ntot) ;
     cpl_table_new_column(tmp_tab, CR2RES_IDP_COL_WAVE, CPL_TYPE_DOUBLE);
@@ -558,7 +573,7 @@ cpl_table * cr2res_idp_create_table(
                                 CR2RES_IDP_COL_STOKESERR, CPL_TYPE_DOUBLE);
 
     }
-
+    cpl_msg_info(__func__,"Error where: %s", cpl_error_get_where());
     /* Fill the table */
     ntot = 0 ;
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
