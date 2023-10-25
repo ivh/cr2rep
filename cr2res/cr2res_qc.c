@@ -946,10 +946,8 @@ double * cr2res_qc_snr(
     int                 nb_order_idx_values ;
     cpl_bivector    *   my_spec,
                     *   my_spec_err ;
-    double          *   pmy_spec_err ;
-    cpl_vector      *   my_snr_spec ;
     double          *   snrs ;
-    int                 i, j ;
+    int                 i;
 
     /* Check Entries */
     if (tw==NULL || extracted==NULL || out_order_idx_values==NULL ||
@@ -967,19 +965,14 @@ double * cr2res_qc_snr(
         /* Compute the SNR */
         if (cr2res_extract_EXTRACT1D_get_spectrum(extracted,
                 order_idx_values[i], 1, &my_spec, &my_spec_err) == 0) {
-            my_snr_spec = cpl_vector_duplicate(cpl_bivector_get_y(my_spec)) ;
-            cpl_bivector_delete(my_spec) ;
-            /* Clean the error to avoid division by 0.0 */
-            pmy_spec_err = cpl_bivector_get_y_data(my_spec_err) ;
-            for (j=0 ; j<cpl_bivector_get_size(my_spec_err) ; j++) {
-                if (pmy_spec_err[j] == 0) pmy_spec_err[j] = 1.0 ;
-            }
-            cpl_vector_divide(my_snr_spec, cpl_bivector_get_y(my_spec_err)) ;
-            cpl_bivector_delete(my_spec_err) ;
-            snrs[i] = cpl_vector_get_median(my_snr_spec) ;
-            if (isnan(snrs[i])) snrs[i] = -1.0 ;
-            cpl_vector_delete(my_snr_spec) ; 
-        } else {
+            snrs[i] = cr2res_qc_compute_snr(
+                cpl_bivector_get_y(my_spec),
+                cpl_bivector_get_y(my_spec_err));
+            cpl_bivector_delete(my_spec);
+            cpl_bivector_delete(my_spec_err);
+        }
+        else
+        {
             snrs[i] = -1.0 ;
         }
     }
@@ -987,6 +980,40 @@ double * cr2res_qc_snr(
     *out_order_idx_values = order_idx_values ; 
     *out_nb_order_idx_values = nb_order_idx_values ;
     return snrs ;
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the SNR of one spectrum
+  @param    spec        The spectrum
+  @param    err   The error
+  @return   SNR value (double)
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_compute_snr(cpl_vector * spec,
+                             cpl_vector * err)
+{
+    double snr;
+    cpl_vector *snr_spec;
+    cpl_vector *myerr;
+    int j;
+
+    snr_spec = cpl_vector_duplicate(spec);
+    myerr = cpl_vector_duplicate(err);
+    /* Clean the error to avoid division by 0.0 */
+    for (j=0 ; j<cpl_vector_get_size(myerr) ; j++) {
+        if (cpl_vector_get(myerr,j) == 0) {
+            cpl_vector_set(myerr, j, 1.0) ;
+            //cpl_vector_set(snr_spec, j, 0.0);
+        }
+    }
+    cpl_vector_divide(snr_spec, myerr) ;
+    snr = cpl_vector_get_median(snr_spec) ;
+    if (isnan(snr)) snr = -1.0 ;
+    cpl_vector_delete(snr_spec) ; 
+    cpl_vector_delete(myerr) ; 
+    return snr;
 }
 
 /*----------------------------------------------------------------------------*/

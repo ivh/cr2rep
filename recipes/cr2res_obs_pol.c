@@ -1150,6 +1150,7 @@ static int cr2res_obs_pol_reduce(
     cpl_propertylist    *   ext_plista_loc ;
     cpl_propertylist    *   ext_plistb_loc ;
     cpl_size                ngroups ;
+    double              *   qc_snrs ;
 
     /* Check Inputs */
     if (pol_speca == NULL || pol_specb == NULL || ext_plista == NULL || 
@@ -1382,9 +1383,14 @@ static int cr2res_obs_pol_reduce_one(
     cpl_size                nframes, nspec_group, spec_size ;
     int                     ngroups, i, j, k, l, o, norders, frame_idx ;
     char                *   key_name ;
+    char                *   spec_name ;
+    char                *   err_name ;
+    double                  snr;
     int                 *   order_idx_values ;
     int                     nb_order_idx_values, order_real, order_zp, 
                             order_idx, order_idxp ;
+    cpl_vector          *   spec_vec;
+    cpl_vector          *   err_vec;
 
     /* TODO, make parameters */
     int extract_niter = 10;
@@ -1940,12 +1946,12 @@ static int cr2res_obs_pol_reduce_one(
     ext_plist_loc = cpl_propertylist_load(first_fname,
             cr2res_io_get_ext_idx(first_fname, reduce_det, 1)) ;
 
+    cpl_msg_info(__func__,"Order zero-point: %d", order_zp );
     /* Real Orders in QCs */
     if (order_zp > 0) {
         /* Get the order numbers from the TW rows */
         order_idx_values = cr2res_trace_get_order_idx_values(trace_wave,
                 &nb_order_idx_values);
-
         /* Compute the Real Order numbers and store them in QCs */
         for (i=0 ; i<nb_order_idx_values ; i++) {
             order_idx = order_idx_values[i] ;
@@ -1954,6 +1960,24 @@ static int cr2res_obs_pol_reduce_one(
             key_name = cpl_sprintf(CR2RES_HEADER_QC_REAL_ORDER, order_idxp) ;
             cpl_propertylist_append_int(ext_plist_loc, key_name, order_real) ;
             cpl_free(key_name) ;
+
+            /* Compute SNR and store QC*/
+            key_name = cpl_sprintf(CR2RES_HEADER_QC_SNR, order_idxp);
+            spec_name = cr2res_dfs_POL_INTENS_colname(order_idxp);
+            err_name = cr2res_dfs_POL_INTENS_ERROR_colname(order_idxp);
+
+            spec_vec = cpl_vector_wrap(cpl_table_get_nrow(pol_spec_merged),
+                cpl_table_get_data_double(pol_spec_merged, spec_name));
+            err_vec = cpl_vector_wrap(cpl_table_get_nrow(pol_spec_merged),
+                cpl_table_get_data_double(pol_spec_merged, err_name));
+            snr = cr2res_qc_compute_snr(spec_vec, err_vec);
+            cpl_propertylist_append_double(ext_plist_loc, key_name, snr);
+
+            cpl_vector_unwrap(spec_vec);
+            cpl_vector_unwrap(err_vec);
+            cpl_free(key_name);
+            cpl_free(spec_name) ;
+            cpl_free(err_name) ;
         }
         cpl_free(order_idx_values) ;
     }

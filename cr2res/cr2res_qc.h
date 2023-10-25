@@ -113,6 +113,6 @@ double * cr2res_qc_snr(
     const cpl_table *   extracted,
     int             **  out_order_idx_values,
     int             *   out_nb_order_idx_values) ;
-
+double cr2res_qc_compute_snr(cpl_vector *spec,
+                             cpl_vector *err);
 #endif
-
