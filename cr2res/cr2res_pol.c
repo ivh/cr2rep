@@ -854,36 +854,52 @@ int * cr2res_pol_sort_frames(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Merge several POL_SPEC tables together
-  @param
-  @param   frame2   Frame #2
-  @param   frame3   Frame #3
-  @param   frame4   Frame #4
-  @return   an array of 4 integer indices or NULL in error case
-
-  If the Out array is giving the new position : ordering[0] is the
-  position of frame1, ordering[1] is the position of frame2, etc...
-  If the Frames order needs to be  Frame #2, #4, #3, #1, ordering will
-  contain [3, 0, 2, 1]
-
-  The returned positions correspond to the 1,2,3,4 inputs in the demod
-  fuctions.
+  @brief    Merge several POL_SPEC tables together, by averaging
+  @param    pol_spec_list   The list of tables
+  @param    pol_spec_nb     The number of tables in list
+  @return   A merged table of the same format.
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_pol_spec_pol_merge(
         const cpl_table **  pol_spec_list,
         int                 pol_spec_nb)
 {
-    int         i ;
+    int i, j, k;
+    int n_cols, n_rows;
+    cpl_table * merged_table;
+    double sum, avg;
+    cpl_array * column_names_array;
 
     /* Check Inputs */
-    if (pol_spec_list == NULL || pol_spec_nb <= 0) return NULL ;
-    for (i=0 ; i<pol_spec_nb ; i++)
-        if (pol_spec_list[i] == NULL) return NULL ;
+    if (pol_spec_list == NULL || pol_spec_nb <= 0) return NULL;
+    for (i = 0; i < pol_spec_nb; i++)
+        if (pol_spec_list[i] == NULL) return NULL;
 
-    /* TODO */
-    /* Currently return the first table */
-    return cpl_table_duplicate(pol_spec_list[0]) ;
+    n_cols = cpl_table_get_ncol(pol_spec_list[0]);
+    n_rows = cpl_table_get_nrow(pol_spec_list[0]);
+    merged_table = cpl_table_new(n_rows);
+
+    column_names_array = cpl_table_get_column_names(pol_spec_list[0]);
+
+    for (i = 0; i < n_cols; i++) {
+        const char *col_name = cpl_array_get_string(column_names_array, i);
+        cpl_table_new_column(merged_table, col_name, CPL_TYPE_DOUBLE);
+
+        /* Loop through the rows */
+        for (j = 0; j < n_rows; j++) {
+            sum = 0.0;
+            for (k = 0; k < pol_spec_nb; k++) {
+                sum += cpl_table_get_double(pol_spec_list[k], col_name, j, NULL);
+            }
+            avg = sum / pol_spec_nb;
+            cpl_table_set_double(merged_table, col_name, j, avg);
+        }
+    }
+
+    /* Clean up */
+    cpl_array_delete(column_names_array);
+
+    return merged_table;
 }
 
 /**@}*/
