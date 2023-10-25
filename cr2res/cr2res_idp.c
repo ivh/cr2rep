@@ -456,8 +456,7 @@ int cr2res_idp_save(
     cpl_propertylist_update_string(ext_head, "TUNIT6", "");
 
     if (!strcmp(recipe,"cr2res_obs_pol")) { // POL
-        cpl_propertylist_update_string(ext_head, "TUTYP7",
-                        "");
+        cpl_propertylist_update_string(ext_head, "TUTYP7", "");
         tmp_string = cpl_sprintf("phot.count;phys.polarization.stokes.%s",
                                     poltype);
         cpl_propertylist_update_string(ext_head, "TUCD7", tmp_string);
@@ -465,8 +464,10 @@ int cr2res_idp_save(
         cpl_propertylist_update_string(ext_head, "TUNIT7", "");
 
         cpl_propertylist_update_string(ext_head, "TUTYP8", "");
-        cpl_propertylist_update_string(ext_head, "TUCD8",
-                            "");
+        tmp_string = cpl_sprintf("stat.error;phys.polarization.stokes.%s",
+                                 poltype);
+        cpl_propertylist_update_string(ext_head, "TUCD8", tmp_string);
+        cpl_free(tmp_string);
         cpl_propertylist_update_string(ext_head, "TUNIT8", "");
     } else { //  Nodding and staring
         cpl_propertylist_update_string(ext_head, "TUTYP7",
