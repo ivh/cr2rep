@@ -104,6 +104,7 @@ int cr2res_idp_save(
 	const char			*	progid ;
 	const char			*	slitname ;
 	const char			*	setting ;
+	const char			*	poltype ;
     int                     err, i, ndit, nraw, obid, nrows, ord ;
     char                *   keyname;
     char                *   tmp_string;
@@ -355,11 +356,19 @@ int cr2res_idp_save(
             cpl_free(keyname);
         }
     }
-    //cpl_propertylist_update_double(pri_head, "SNR",
-    //                            cpl_array_get_median(tmp_arr)) ;
-    //cpl_propertylist_set_comment(pri_head, "SNR",
-    //            "Median signal-to-noise in all detector-orders"); 
+    cpl_propertylist_update_double(pri_head, "SNR",
+                                cpl_array_get_median(tmp_arr)) ;
+    cpl_propertylist_set_comment(pri_head, "SNR",
+                "Median signal-to-noise in all detector-orders"); 
     cpl_array_delete(tmp_arr);
+
+    if (!strcmp(recipe,"cr2res_obs_pol")) {
+        /* Find Pol.TYPE */
+        poltype = cr2res_pfits_get_poltype(pri_head);
+        tmp_string = cpl_sprintf("/I/%s/",poltype);
+        cpl_propertylist_update_string(pri_head, "STOKES", tmp_string);
+        cpl_free(tmp_string);
+    }
 
     /* Remove the ASSON keywords */
     cpl_propertylist_erase_regexp(pri_head, "ASSO*", 0);
@@ -443,21 +452,36 @@ int cr2res_idp_save(
     cpl_propertylist_update_string(ext_head, "TUTYP6",
                     "");
     cpl_propertylist_update_string(ext_head, "TUCD6",
-                        "meta.number"); // TraceNb
+                        "meta.number;instr.det"); 
     cpl_propertylist_update_string(ext_head, "TUNIT6", "");
 
-    cpl_propertylist_update_string(ext_head, "TUTYP7",
-                    "");
-    cpl_propertylist_update_string(ext_head, "TUCD7",
-                        "meta.number;instr.det");
-    cpl_propertylist_update_string(ext_head, "TUNIT7", "");
+    if (!strcmp(recipe,"cr2res_obs_pol")) { // POL
+        cpl_propertylist_update_string(ext_head, "TUTYP7",
+                        "");
+        tmp_string = cpl_sprintf("phot.count;phys.polarization.stokes.%s",
+                                    poltype);
+        cpl_propertylist_update_string(ext_head, "TUCD7", tmp_string);
+        cpl_free(tmp_string);
+        cpl_propertylist_update_string(ext_head, "TUNIT7", "");
 
-    cpl_propertylist_update_string(ext_head, "TUTYP8",
-                    "");
-    cpl_propertylist_update_string(ext_head, "TUCD8",
-                        "pos.cartesian.x;instr.det");
-    cpl_propertylist_update_string(ext_head, "TUNIT8", "pixel");
+        cpl_propertylist_update_string(ext_head, "TUTYP8", "");
+        cpl_propertylist_update_string(ext_head, "TUCD8",
+                            "");
+        cpl_propertylist_update_string(ext_head, "TUNIT8", "");
+    } else { //  Nodding and staring
+        cpl_propertylist_update_string(ext_head, "TUTYP7",
+                        "");
+        cpl_propertylist_update_string(ext_head, "TUCD7",
+                            "pos.cartesian.x;instr.det");
+        cpl_propertylist_update_string(ext_head, "TUNIT7", "pixel");
 
+        cpl_propertylist_update_string(ext_head, "TUTYP8",
+                        "");
+        cpl_propertylist_update_string(ext_head, "TUCD8",
+                            "meta.number"); // TraceNb
+        cpl_propertylist_update_string(ext_head, "TUNIT8", "");
+
+    }
     /* For Y pixel coordinate in OBS_2D
     TUCDi = pos.cartesian.y;instr.det
 
@@ -573,7 +597,7 @@ cpl_table * cr2res_idp_create_table(
                                 CR2RES_IDP_COL_STOKESERR, CPL_TYPE_DOUBLE);
 
     }
-    cpl_msg_info(__func__,"Error where: %s", cpl_error_get_where());
+
     /* Fill the table */
     ntot = 0 ;
     for (i=0 ; i<CR2RES_NB_DETECTORS ; i++) {
@@ -657,7 +681,6 @@ cpl_table * cr2res_idp_create_table(
         cpl_table_set_array(idp_tab, col_name, 0, tmp_arr);
         cpl_array_delete(tmp_arr);
     }
-    //cpl_msg_info(__func__, "order %d, trace %d", order, trace_nb);
     cpl_array_delete(col_names) ;
     cpl_table_delete(tmp_tab);
 

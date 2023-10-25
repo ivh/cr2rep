@@ -53,6 +53,7 @@
 #define CR2RES_HEADER_WLEN_CWLEN        "ESO INS WLEN CWLEN"
 #define CR2RES_HEADER_GRAT1_ZPORD       "ESO INS GRAT1 ZP_ORD"
 #define CR2RES_HEADER_GRAT1_ORDER       "ESO INS GRAT1 ORDER"
+#define CR2RES_HEADER_POL_TYPE          "ESO INS POL TYPE"
 #define CR2RES_HEADER_NDIT              "ESO DET NDIT"
 #define CR2RES_HEADER_DIT               "ESO DET SEQ1 DIT"
 #define CR2RES_HEADER_PROG_ID           "ESO OBS PROG ID"
@@ -179,7 +180,8 @@ double cr2res_pfits_get_dec(const cpl_propertylist *) ;
 double cr2res_pfits_get_nodthrow(const cpl_propertylist *) ;
 double cr2res_pfits_get_dit(const cpl_propertylist *) ;
 double cr2res_pfits_get_cwlen(const cpl_propertylist * plist) ;
-double cr2res_pfits_get_mjd_obs(const cpl_propertylist * plist) ;
+const char *cr2res_pfits_get_poltype(const cpl_propertylist *plist);
+double cr2res_pfits_get_mjd_obs(const cpl_propertylist *plist);
 double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order_idx) ;
 double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order_idx) ;
 

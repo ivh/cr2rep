@@ -233,6 +233,18 @@ double cr2res_pfits_get_cwlen(const cpl_propertylist * plist)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    find out the POL TYPE value 
+  @param    plist       property list to read from
+  @return   the requested value
+ */
+/*----------------------------------------------------------------------------*/
+const char * cr2res_pfits_get_poltype(const cpl_propertylist * plist)
+{
+    return cpl_propertylist_get_string(plist, CR2RES_HEADER_POL_TYPE)  ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    find out the Start wavelength for an order_idx (current detector)
   @param    plist       property list to read from
   @param    order_idx   Order INDEX (-49 -> 50)
