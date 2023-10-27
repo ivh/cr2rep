@@ -942,27 +942,14 @@ cpl_table *cr2res_pol_get_beam_trace(
     
     corr_poly = cpl_polynomial_new(1);
 
-/*
-'YuA': array([  0.03988915, -22.78903764]),
-'YuB': array([ 0.04808708, 13.12469913]),
-'YdA': array([-0.04965059, -6.51155269]),
-'YdB': array([-0.04019722, 28.22704312]),
-'JuA': array([  0.03903698, -26.55176271]),
-'JuB': array([ 0.04496791, 10.27999294]),
-'JdA': array([ -0.047482  , -10.87508078]),
-'JdB': array([-0.04101687, 25.44306868]),
-'HuA': array([ 1.59902724e-02, -2.17975984e+01]),
-'HuB': array([ 0.0199041 , 17.44054878]),
-'HdA': array([ -0.02831508, -23.23946728]),
-'HdB': array([-0.02552662, 18.31347609]),
-'KuA': array([ 2.24337404e-02, -2.30870052e+01]),
-'KuB': array([ 0.02467974, 16.43404529]),
-'KdA': array([ -0.02667301, -13.55392217]),
-'KdB': array([-2.42857387e-02,  2.58313952e+01])
-*/
-    if (wl < 1125)
-    {
+    if (wl < 1125) {
         band=cpl_sprintf("Y");
+                            /*
+                            'YuA': array([  0.03988915, -22.78903764]),
+                            'YuB': array([ 0.04808708, 13.12469913]),
+                            'YdA': array([-0.04965059, -6.51155269]),
+                            'YdB': array([-0.04019722, 28.22704312]),
+                            */
         if (decker_position == CR2RES_DECKER_2_4){ // nodd A
             if (up_or_down == 1){ // UP
                 cpl_polynomial_set_coeff(corr_poly, &pow0, -22.78903764);
@@ -979,28 +966,94 @@ cpl_table *cr2res_pol_get_beam_trace(
                 cpl_polynomial_set_coeff(corr_poly, &pow0, 28.22704312);
                 cpl_polynomial_set_coeff(corr_poly, &pow1, -0.04019722);
             }
-
-        } else
-            cpl_msg_error(__func__, "This should never happen");
+        }
     }
     else if (wl < 1360) {
         band=cpl_sprintf("J");
+                            /*
+                            'JuA': array([  0.03903698, -26.55176271]),
+                            'JuB': array([ 0.04496791, 10.27999294]),
+                            'JdA': array([ -0.047482  , -10.87508078]),
+                            'JdB': array([-0.04101687, 25.44306868]),
+                            */
+        if (decker_position == CR2RES_DECKER_2_4){ // nodd A
+            if (up_or_down == 1){ // UP
+                cpl_polynomial_set_coeff(corr_poly, &pow0, -26.55176271);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, 0.03903698);
+            } else { // DOWN
+                cpl_polynomial_set_coeff(corr_poly, &pow0, -10.87508078);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, -0.047482);
+            }
+        } else if (decker_position == CR2RES_DECKER_1_3){ // nodd B
+            if (up_or_down == 1){ // UP
+                cpl_polynomial_set_coeff(corr_poly, &pow0, 10.27999294);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, 0.04496791);
+            } else { // DOWN
+                cpl_polynomial_set_coeff(corr_poly, &pow0, 25.44306868);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, -0.04101687);
+            }
+        }
+    
     }
     else if (wl < 1850) {
         band=cpl_sprintf("H");
+                            /*
+                            'HuA': array([ 1.59902724e-02, -2.17975984e+01]),
+                            'HuB': array([ 0.0199041 , 17.44054878]),
+                            'HdA': array([ -0.02831508, -23.23946728]),
+                            'HdB': array([-0.02552662, 18.31347609]),
+                            */
+        if (decker_position == CR2RES_DECKER_2_4){ // nodd A
+            if (up_or_down == 1){ // UP
+                cpl_polynomial_set_coeff(corr_poly, &pow0, -2.17975984e+01);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, 1.59902724e-02);
+            } else { // DOWN
+                cpl_polynomial_set_coeff(corr_poly, &pow0, -23.23946728);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, -0.02831508);
+            }
+        } else if (decker_position == CR2RES_DECKER_1_3){ // nodd B
+            if (up_or_down == 1){ // UP
+                cpl_polynomial_set_coeff(corr_poly, &pow0, 17.44054878);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, 0.0199041);
+            } else { // DOWN
+                cpl_polynomial_set_coeff(corr_poly, &pow0, 18.31347609);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, -0.02552662);
+            }
+        }
     }
     else if (wl < 2600) {
         band=cpl_sprintf("K");
+                            /*
+                            'KuA': array([ 2.24337404e-02, -2.30870052e+01]),
+                            'KuB': array([ 0.02467974, 16.43404529]),
+                            'KdA': array([ -0.02667301, -13.55392217]),
+                            'KdB': array([-2.42857387e-02,  2.58313952e+01])
+                            */
+        if (decker_position == CR2RES_DECKER_2_4){ // nodd A
+            if (up_or_down == 1){ // UP
+                cpl_polynomial_set_coeff(corr_poly, &pow0, -2.30870052e+01);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, 2.24337404e-02);
+            } else { // DOWN
+                cpl_polynomial_set_coeff(corr_poly, &pow0, -13.55392217);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, -0.02667301);
+            }
+        } else if (decker_position == CR2RES_DECKER_1_3){ // nodd B
+            if (up_or_down == 1){ // UP
+                cpl_polynomial_set_coeff(corr_poly, &pow0, 16.43404529);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, 0.02467974);
+            } else { // DOWN
+                cpl_polynomial_set_coeff(corr_poly, &pow0, 2.58313952e+01);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, -2.42857387e-02);
+            }
+        }
     }
     else {
         cpl_msg_error(__func__, "No proper WL found to identify band.");
-        cpl_polynomial_delete(wl_poly);
         cpl_polynomial_delete(corr_poly);
         return NULL;
     }
     cpl_msg_info(__func__, "Found wl=%g nm, therefore applying beam "
                     "correction for %s-band.", wl, band);
-
 
 
     nb_traces = cpl_table_get_nrow(tw_in) ;
@@ -1012,11 +1065,12 @@ cpl_table *cr2res_pol_get_beam_trace(
             cpl_msg_error(__func__, "More than one input-trace per order"
                             "is not supported.");
             cpl_table_delete(tw_out);
-            cpl_polynomial_delete(wl_poly);
+            cpl_free(band);
+            cpl_polynomial_delete(corr_poly);
             return NULL;
         }
 
-        wl_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_WAVELENGTH, o, 1);
+        wl_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_WAVELENGTH, o,1);
         trace_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_ALL, o, 1);
         upper_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_UPPER, o, 1);
         lower_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_LOWER, o, 1);
