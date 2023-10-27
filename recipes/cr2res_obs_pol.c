@@ -1670,16 +1670,9 @@ static int cr2res_obs_pol_reduce_one(
                     "Extract Up Spectrum from %s (Det %d / Decker %s)", 
                     fname, reduce_det, decker_name) ;
             cpl_free(decker_name) ;
-            cpl_msg_indent_more() ;
-           
-            /* Get slit fraction for the upper trace */
-            slit_frac = cr2res_trace_slit_fraction_create(
-                    decker_positions[frame_idx], 1) ;
+            cpl_msg_indent_more();
 
-            /* Compute the new trace_wave for the extraction */
-            trace_wave_extract[2*j] = cr2res_trace_new_slit_fraction(trace_wave,
-                    slit_frac) ;
-            cpl_array_delete(slit_frac) ;
+            trace_wave_extract[2 * j] = cr2res_pol_get_beam_trace(trace_wave, decker_positions[frame_idx], 1);
 
             /* Execute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
@@ -1708,14 +1701,7 @@ static int cr2res_obs_pol_reduce_one(
             cpl_free(decker_name) ;
             cpl_msg_indent_more() ;
            
-            /* Get slit fraction for the lower trace */
-            slit_frac = cr2res_trace_slit_fraction_create(
-                    decker_positions[frame_idx], 2) ;
-
-            /* Compute the new trace_wave for the extraction */
-            trace_wave_extract[2*j+1] = cr2res_trace_new_slit_fraction(
-                    trace_wave, slit_frac) ;
-            cpl_array_delete(slit_frac) ;
+            trace_wave_extract[2*j+1] = cr2res_pol_get_beam_trace(trace_wave, decker_positions[frame_idx], 2);
 
             /* Execute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;

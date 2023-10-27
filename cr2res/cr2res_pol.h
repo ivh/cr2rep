@@ -26,12 +26,15 @@
 
 #include <cpl.h>
 #include <hdrl.h>
+#include "cr2res_utils.h"
+
 
 /*-----------------------------------------------------------------------------
                                    Define
  -----------------------------------------------------------------------------*/
 
-#define     CR2RES_POLARIMETRY_GROUP_SIZE   4
+#define     CR2RES_POLARIMETRY_GROUP_SIZE       4
+#define     CR2RES_POLARIMETRY_DEFAULT_HEIGHT   32 
 
 /*-----------------------------------------------------------------------------
                                        Prototypes
@@ -69,5 +72,8 @@ cpl_table * cr2res_pol_spec_pol_merge(
         const cpl_table **  pol_spec_list,
         int                 pol_spec_nb) ;
 
-
+cpl_table *cr2res_pol_get_beam_trace(
+    const cpl_table *traces_in,
+    cr2res_decker decker_position,
+    int up_or_down);
 #endif

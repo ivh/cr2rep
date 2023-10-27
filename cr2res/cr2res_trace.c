@@ -1141,9 +1141,6 @@ int cr2res_trace_add_extra_columns(
     are computed like this:
     TODO
 
-    COMMENTS / TODO
-        Currently only calculates the new position of the trace
-        Wavelength and slit curvature remain unchanged
  */
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_trace_new_slit_fraction(
@@ -1541,7 +1538,6 @@ cpl_table * cr2res_trace_shift_wavelength(
     poly_lower = cr2res_convert_array_to_poly(trace_lower_old);
     poly_upper = cr2res_convert_array_to_poly(trace_upper_old);
 
-    // TODO
     // we switch around sf_new and sf_all, since we are correcting
     // for a change that has already happened
     sf_lower = cpl_array_get_double(slit_frac_old, 0, NULL);
@@ -1587,7 +1583,6 @@ cpl_table * cr2res_trace_shift_wavelength(
             "Could not calculate the new wavelength polynomial. %s. %s",
             cpl_error_get_message(), cpl_error_get_where());
         cpl_error_reset();
-        // delete stuff
         cpl_vector_delete(wave_vec);
         cpl_polynomial_delete(poly_wave);
         cpl_matrix_delete(samppos);
@@ -1598,10 +1593,6 @@ cpl_table * cr2res_trace_shift_wavelength(
                         cpl_array_get_size(const_wave));
 
     cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH, k, wave);
-    // TODO: change the wavelength errors
-    // This can't be the same array that was taken from the table or we segfault
-    // cpl_table_set_array(traces, CR2RES_COL_WAVELENGTH_ERROR, k, 
-    //         const_wave_err);
 
     cpl_vector_delete(wave_vec);
     cpl_polynomial_delete(poly_wave);

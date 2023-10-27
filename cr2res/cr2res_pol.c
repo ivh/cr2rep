@@ -32,6 +32,7 @@
 #include "cr2res_pol.h"
 #include "cr2res_dfs.h"
 #include "cr2res_calib.h"
+#include "cr2res_trace.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
@@ -901,5 +902,178 @@ cpl_table * cr2res_pol_spec_pol_merge(
 
     return merged_table;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Compute the traces for the polarimetric beams
+  @param    tw_in        The input traces
+  @param    decker_name   The decker name
+  @param    up_down       Upper or lower beam
+  @return   The newly computed trace 
+
+Uses hardcoded correction polynomials to account for the diverging beams
+
+    */
+/*----------------------------------------------------------------------------*/
+
+cpl_table *cr2res_pol_get_beam_trace(
+    const cpl_table *tw_in,
+    cr2res_decker   decker_position,
+    int up_or_down)
+{
+
+    cpl_table       *   tw_out;
+    cpl_polynomial  *   wl_poly;
+    cpl_polynomial  *   trace_poly;
+    cpl_polynomial  *   upper_poly;
+    cpl_polynomial  *   lower_poly;
+    cpl_polynomial  *   corr_poly;
+    double              wl, y_mid, y_up, y_lo, y_corr, y_corr2, halfSF, newSF;
+    cpl_array       *   tmp_arr;
+    cpl_size            pow0=0;
+    cpl_size            pow1=1;
+    char            *   band;
+    int                 nb_traces, i, o, trace_id;
+
+
+    wl_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_WAVELENGTH, 5, 1);
+    wl = cpl_polynomial_eval_1d(wl_poly, 1024, NULL);
+    cpl_polynomial_delete(wl_poly);
+    
+    corr_poly = cpl_polynomial_new(1);
+
+/*
+'YuA': array([  0.03988915, -22.78903764]),
+'YuB': array([ 0.04808708, 13.12469913]),
+'YdA': array([-0.04965059, -6.51155269]),
+'YdB': array([-0.04019722, 28.22704312]),
+'JuA': array([  0.03903698, -26.55176271]),
+'JuB': array([ 0.04496791, 10.27999294]),
+'JdA': array([ -0.047482  , -10.87508078]),
+'JdB': array([-0.04101687, 25.44306868]),
+'HuA': array([ 1.59902724e-02, -2.17975984e+01]),
+'HuB': array([ 0.0199041 , 17.44054878]),
+'HdA': array([ -0.02831508, -23.23946728]),
+'HdB': array([-0.02552662, 18.31347609]),
+'KuA': array([ 2.24337404e-02, -2.30870052e+01]),
+'KuB': array([ 0.02467974, 16.43404529]),
+'KdA': array([ -0.02667301, -13.55392217]),
+'KdB': array([-2.42857387e-02,  2.58313952e+01])
+*/
+    if (wl < 1125)
+    {
+        band=cpl_sprintf("Y");
+        if (decker_position == CR2RES_DECKER_2_4){ // nodd A
+            if (up_or_down == 1){ // UP
+                cpl_polynomial_set_coeff(corr_poly, &pow0, -22.78903764);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, 0.03988915);
+            } else { // DOWN
+                cpl_polynomial_set_coeff(corr_poly, &pow0, -6.51155269);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, -0.04965059);
+            }
+        } else if (decker_position == CR2RES_DECKER_1_3){ // nodd B
+            if (up_or_down == 1){ // UP
+                cpl_polynomial_set_coeff(corr_poly, &pow0, 13.12469913);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, 0.04808708);
+            } else { // DOWN
+                cpl_polynomial_set_coeff(corr_poly, &pow0, 28.22704312);
+                cpl_polynomial_set_coeff(corr_poly, &pow1, -0.04019722);
+            }
+
+        } else
+            cpl_msg_error(__func__, "This should never happen");
+    }
+    else if (wl < 1360) {
+        band=cpl_sprintf("J");
+    }
+    else if (wl < 1850) {
+        band=cpl_sprintf("H");
+    }
+    else if (wl < 2600) {
+        band=cpl_sprintf("K");
+    }
+    else {
+        cpl_msg_error(__func__, "No proper WL found to identify band.");
+        cpl_polynomial_delete(wl_poly);
+        cpl_polynomial_delete(corr_poly);
+        return NULL;
+    }
+    cpl_msg_info(__func__, "Found wl=%g nm, therefore applying beam "
+                    "correction for %s-band.", wl, band);
+
+
+
+    nb_traces = cpl_table_get_nrow(tw_in) ;
+    tw_out = cpl_table_duplicate(tw_in);
+    for (i=0 ; i<nb_traces ; i++) {
+        o = cpl_table_get(tw_in, CR2RES_COL_ORDER, i, NULL) ;
+        trace_id = cpl_table_get(tw_in, CR2RES_COL_TRACENB, i, NULL);
+        if (trace_id =! 1){
+            cpl_msg_error(__func__, "More than one input-trace per order"
+                            "is not supported.");
+            cpl_table_delete(tw_out);
+            cpl_polynomial_delete(wl_poly);
+            return NULL;
+        }
+
+        wl_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_WAVELENGTH, o, 1);
+        trace_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_ALL, o, 1);
+        upper_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_UPPER, o, 1);
+        lower_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_LOWER, o, 1);
+        y_mid = cpl_polynomial_eval_1d(trace_poly, 1024, NULL);
+        y_up = cpl_polynomial_eval_1d(upper_poly, 1024, NULL);
+        y_lo = cpl_polynomial_eval_1d(lower_poly, 1024, NULL);
+        y_corr = cpl_polynomial_eval_1d(corr_poly, wl, NULL);
+
+        /* Calculate new slit-fraction, important for WL-correction */
+        tmp_arr = cpl_array_new(3,CPL_TYPE_DOUBLE);
+        newSF = 0.5 + (y_corr) / (y_up - y_lo);
+        halfSF = CR2RES_POLARIMETRY_DEFAULT_HEIGHT / (y_up - y_lo) / 2;
+        cpl_array_set(tmp_arr, 0, newSF-halfSF);
+        cpl_array_set(tmp_arr, 1, newSF);
+        cpl_array_set(tmp_arr, 2, newSF+halfSF);
+        cpl_table_set_array(tw_out, CR2RES_COL_SLIT_FRACTION, i, tmp_arr);
+        cpl_array_delete(tmp_arr);
+
+        /* Fix wavelengths at the new slit-fraction */
+        tw_out = cr2res_trace_shift_wavelength(tw_out, 0.5, o, 1);
+
+        /* Add the correction coeffs to the trace polys */
+        wl = cpl_polynomial_eval_1d(wl_poly, 1, NULL);
+        y_corr = cpl_polynomial_eval_1d(corr_poly, wl, NULL);
+        wl = cpl_polynomial_eval_1d(wl_poly, CR2RES_DETECTOR_SIZE, NULL);
+        y_corr2 = (cpl_polynomial_eval_1d(corr_poly, wl, NULL) - y_corr) / 
+                                                        CR2RES_DETECTOR_SIZE;
+        cpl_msg_debug(__func__, 
+                "y_mid, y_up, y_lo, newSF, halfSF, y_corr2, y_corr: "
+                "%g, %g, %g, %g, %g, %g, %g ",
+                 y_mid, y_up, y_lo, newSF, halfSF, y_corr2, y_corr);
+
+        tmp_arr = cpl_array_duplicate (
+                    cpl_table_get_array(tw_out, CR2RES_COL_ALL,i));
+        cpl_array_set(tmp_arr, 0, cpl_array_get(tmp_arr, 0, NULL) + y_corr);
+        cpl_array_set(tmp_arr, 1, cpl_array_get(tmp_arr, 1, NULL) + y_corr2);
+        cpl_table_set_array(tw_out, CR2RES_COL_ALL, i, tmp_arr);
+        cpl_array_set(tmp_arr, 0, cpl_array_get(tmp_arr, 0, NULL) + 
+                            CR2RES_POLARIMETRY_DEFAULT_HEIGHT / 2);
+        cpl_table_set_array(tw_out, CR2RES_COL_UPPER, i, tmp_arr);
+        cpl_array_set(tmp_arr, 0, cpl_array_get(tmp_arr, 0, NULL) - 
+                            CR2RES_POLARIMETRY_DEFAULT_HEIGHT);
+        cpl_table_set_array(tw_out, CR2RES_COL_LOWER, i, tmp_arr);
+        cpl_array_delete(tmp_arr);
+
+        cpl_polynomial_delete(trace_poly);
+        cpl_polynomial_delete(upper_poly);
+        cpl_polynomial_delete(lower_poly);
+        cpl_polynomial_delete(wl_poly);
+    }
+
+
+    cpl_free(band);
+    cpl_polynomial_delete(corr_poly);
+    return tw_out;
+}
+
+//
 
 /**@}*/
