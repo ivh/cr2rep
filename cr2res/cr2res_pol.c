@@ -928,7 +928,7 @@ cpl_table *cr2res_pol_get_beam_trace(
     cpl_polynomial  *   upper_poly;
     cpl_polynomial  *   lower_poly;
     cpl_polynomial  *   corr_poly;
-    double              wl, y_mid, y_up, y_lo, y_corr, y_corr2, halfSF, newSF;
+    double              wl, y_mid, y_up, y_lo, y_corr, slope_corr, halfSF, newSF;
     cpl_array       *   tmp_arr;
     cpl_size            pow0=0;
     cpl_size            pow1=1;
@@ -939,9 +939,11 @@ cpl_table *cr2res_pol_get_beam_trace(
     wl_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_WAVELENGTH, 5, 1);
     wl = cpl_polynomial_eval_1d(wl_poly, 1024, NULL);
     cpl_polynomial_delete(wl_poly);
-    
-    corr_poly = cpl_polynomial_new(1);
 
+    /* Correction polynomial gets filled with hardcoded values. */    
+    /* These were derived as linear difference from the order mid-line */
+    /* for the upper/lower beams and A/B nodding position, in each band.*/
+    corr_poly = cpl_polynomial_new(1);
     if (wl < 1125) {
         band=cpl_sprintf("Y");
                             /*
@@ -1056,6 +1058,7 @@ cpl_table *cr2res_pol_get_beam_trace(
                     "correction for %s-band.", wl, band);
 
 
+    /* Loop through all traces in input TW */
     nb_traces = cpl_table_get_nrow(tw_in) ;
     tw_out = cpl_table_duplicate(tw_in);
     for (i=0 ; i<nb_traces ; i++) {
@@ -1070,6 +1073,7 @@ cpl_table *cr2res_pol_get_beam_trace(
             return NULL;
         }
 
+        /* Evaluate at middle of detector to get average positions */
         wl_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_WAVELENGTH, o,1);
         trace_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_ALL, o, 1);
         upper_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_UPPER, o, 1);
@@ -1081,7 +1085,7 @@ cpl_table *cr2res_pol_get_beam_trace(
 
         /* Calculate new slit-fraction, important for WL-correction */
         tmp_arr = cpl_array_new(3,CPL_TYPE_DOUBLE);
-        newSF = 0.5 + (y_corr) / (y_up - y_lo);
+        newSF = 0.5 + (y_corr) / (y_up - y_lo); // 
         halfSF = CR2RES_POLARIMETRY_DEFAULT_HEIGHT / (y_up - y_lo) / 2;
         cpl_array_set(tmp_arr, 0, newSF-halfSF);
         cpl_array_set(tmp_arr, 1, newSF);
@@ -1089,25 +1093,29 @@ cpl_table *cr2res_pol_get_beam_trace(
         cpl_table_set_array(tw_out, CR2RES_COL_SLIT_FRACTION, i, tmp_arr);
         cpl_array_delete(tmp_arr);
 
-        /* Fix wavelengths at the new slit-fraction */
+        /* Recalculate wavelengths at the new slit-fraction */
         tw_out = cr2res_trace_shift_wavelength(tw_out, 0.5, o, 1);
 
-        /* Add the correction coeffs to the trace polys */
+        /* Evaluate WL at detector edges, because corr-poly is P(WL)*/
         wl = cpl_polynomial_eval_1d(wl_poly, 1, NULL);
         y_corr = cpl_polynomial_eval_1d(corr_poly, wl, NULL);
         wl = cpl_polynomial_eval_1d(wl_poly, CR2RES_DETECTOR_SIZE, NULL);
-        y_corr2 = (cpl_polynomial_eval_1d(corr_poly, wl, NULL) - y_corr) / 
-                                                        CR2RES_DETECTOR_SIZE;
-        cpl_msg_debug(__func__, 
-                "y_mid, y_up, y_lo, newSF, halfSF, y_corr2, y_corr: "
-                "%g, %g, %g, %g, %g, %g, %g ",
-                 y_mid, y_up, y_lo, newSF, halfSF, y_corr2, y_corr);
+        slope_corr = (cpl_polynomial_eval_1d(corr_poly, wl, NULL)
+                    - y_corr) /  CR2RES_DETECTOR_SIZE;  // SLOPE!
 
+        cpl_msg_debug(__func__, 
+                "y_mid, y_up, y_lo, newSF, halfSF, slope_corr, y_corr: "
+                "%g, %g, %g, %g, %g, %g, %g ",
+                 y_mid, y_up, y_lo, newSF, halfSF, slope_corr, y_corr);
+
+        /* Add the correction to the existing trace polys */
         tmp_arr = cpl_array_duplicate (
                     cpl_table_get_array(tw_out, CR2RES_COL_ALL,i));
         cpl_array_set(tmp_arr, 0, cpl_array_get(tmp_arr, 0, NULL) + y_corr);
-        cpl_array_set(tmp_arr, 1, cpl_array_get(tmp_arr, 1, NULL) + y_corr2);
+        cpl_array_set(tmp_arr, 1, cpl_array_get(tmp_arr, 1, NULL) + slope_corr);
         cpl_table_set_array(tw_out, CR2RES_COL_ALL, i, tmp_arr);
+        
+        /* Edge polynomials are just shifted up/down by height/2 */
         cpl_array_set(tmp_arr, 0, cpl_array_get(tmp_arr, 0, NULL) + 
                             CR2RES_POLARIMETRY_DEFAULT_HEIGHT / 2);
         cpl_table_set_array(tw_out, CR2RES_COL_UPPER, i, tmp_arr);
