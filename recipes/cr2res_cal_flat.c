@@ -1146,7 +1146,8 @@ static int cr2res_cal_flat_reduce(
     double              *   qc_order_pos ;
     int                 *   orders ;
     double                  qc_mean, qc_median, qc_flux, qc_rms, qc_s2n, 
-                            qc_trace_centery, dit, qc_overexposed ;
+                            qc_trace_centery, dit, qc_overexposed, 
+                            extract_gain ;
     int                     i, ext_nr, nb_traces, order, trace_id,
                             nb_orders, qc_nbbad, nbvals, zp_order, ngood ;
 
@@ -1159,6 +1160,15 @@ static int cr2res_cal_flat_reduce(
     if (extr_method != CR2RES_EXTR_OPT_CURV && 
             extr_method != CR2RES_EXTR_SUM) {
         cpl_msg_error(__func__, "Failed to read the dits") ;
+        return -1 ;
+    }
+
+    /* Get the Gain */
+    if (reduce_det == 1) extract_gain = CR2RES_GAIN_CHIP1 ;
+    else if (reduce_det == 2) extract_gain = CR2RES_GAIN_CHIP2 ;
+    else if (reduce_det == 3) extract_gain = CR2RES_GAIN_CHIP3 ;
+    else {
+        cpl_msg_error(__func__, "Failed to get the Gain value") ;
         return -1 ;
     }
 
@@ -1350,6 +1360,7 @@ static int cr2res_cal_flat_reduce(
                         trace_id, extract_height, extract_swath_width, 
                         extract_oversample, extract_smooth_slit, 
                         extract_smooth_spec, extract_niter, extract_kappa,
+                        extract_gain,
                         &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
                 cpl_msg_error(__func__, "Cannot (slitdec-) extract the trace") ;
                 slit_func_vec[i] = NULL ;

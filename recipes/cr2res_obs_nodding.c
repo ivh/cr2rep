@@ -989,7 +989,8 @@ static int cr2res_obs_nodding_reduce(
     const char          *   first_fname ;
     double                  slit_length, extr_width_frac, slit_frac_a_bot, 
                             slit_frac_a_mid, slit_frac_a_top, slit_frac_b_bot, 
-                            slit_frac_b_mid, slit_frac_b_top, nod_throw ;
+                            slit_frac_b_mid, slit_frac_b_top, nod_throw,
+                            extract_gain ;
     double                  qc_signal_a, qc_signal_b, qc_fwhm_a, 
                             qc_fwhm_b, qc_standard_flux_a,
                             qc_standard_flux_b, qc_fwhm_med ;
@@ -1009,6 +1010,15 @@ static int cr2res_obs_nodding_reduce(
             extracta == NULL || extractb == NULL || extractc == NULL || 
             ext_plist == NULL || rawframes == NULL || trace_wave_frame == NULL)
         return -1 ;
+
+    /* Get the Gain */
+    if (reduce_det == 1) extract_gain = CR2RES_GAIN_CHIP1 ;
+    else if (reduce_det == 2) extract_gain = CR2RES_GAIN_CHIP2 ;
+    else if (reduce_det == 3) extract_gain = CR2RES_GAIN_CHIP3 ;
+    else {
+        cpl_msg_error(__func__, "Failed to get the Gain value") ;
+        return -1 ;
+    }
 
     /* Check raw frames consistency */
     if (cr2res_obs_nodding_check_inputs_validity(rawframes) != 1) {
@@ -1310,7 +1320,7 @@ static int cr2res_obs_nodding_reduce(
     if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, blaze_table, -1,
                 -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth_slit, extract_smooth_spec,
-                extract_niter, extract_kappa,
+                extract_niter, extract_kappa, extract_gain,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_a, &slit_func_a, &model_master_a) == -1) {
         cpl_msg_error(__func__, "Failed to extract A");
@@ -1329,7 +1339,7 @@ static int cr2res_obs_nodding_reduce(
     if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, blaze_table, -1,
                 -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth_slit, extract_smooth_spec,
-                extract_niter, extract_kappa,
+                extract_niter, extract_kappa, extract_gain,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_b, &slit_func_b, &model_master_b) == -1) {
         cpl_msg_error(__func__, "Failed to extract B");

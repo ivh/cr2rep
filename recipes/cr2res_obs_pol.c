@@ -1385,7 +1385,7 @@ static int cr2res_obs_pol_reduce_one(
     char                *   key_name ;
     char                *   spec_name ;
     char                *   err_name ;
-    double                  snr;
+    double                  snr, extract_gain ;
     int                 *   order_idx_values ;
     int                     nb_order_idx_values, order_real, order_zp, 
                             order_idx, order_idxp ;
@@ -1410,6 +1410,15 @@ static int cr2res_obs_pol_reduce_one(
     *ext_plist = NULL ;
     first_fname = cpl_frame_get_filename(
             cpl_frameset_get_position_const(rawframes, 0)) ;
+
+    /* Get the Gain */
+    if (reduce_det == 1) extract_gain = CR2RES_GAIN_CHIP1 ;
+    else if (reduce_det == 2) extract_gain = CR2RES_GAIN_CHIP2 ;
+    else if (reduce_det == 3) extract_gain = CR2RES_GAIN_CHIP3 ;
+    else {
+        cpl_msg_error(__func__, "Failed to get the Gain value") ;
+        return -1 ;
+    }
 
     /* Get the order zeropoint */
     if ((plist = cpl_propertylist_load(cpl_frame_get_filename(trace_wave_frame),
@@ -1680,7 +1689,7 @@ static int cr2res_obs_pol_reduce_one(
                     NULL, blaze_table, -1, -1, CR2RES_EXTR_OPT_CURV,
                     extract_height, extract_swath_width, extract_oversample, 
                     extract_smooth_slit, extract_smooth_spec,
-                    extract_niter, extract_kappa, 0, 0, 0, 
+                    extract_niter, extract_kappa, extract_gain, 0, 0, 0, 
                     &(extract_1d[2*j]), &slit_func, &model_master) == -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j] = NULL ;
@@ -1710,7 +1719,7 @@ static int cr2res_obs_pol_reduce_one(
                     CR2RES_EXTR_OPT_CURV, extract_height, 
                     extract_swath_width, extract_oversample,
                     extract_smooth_slit, extract_smooth_spec,
-                    extract_niter, extract_kappa, 0, 0, 0, 
+                    extract_niter, extract_kappa, extract_gain, 0, 0, 0, 
                     &(extract_1d[2*j+1]), &slit_func, &model_master)== -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j+1] = NULL ;

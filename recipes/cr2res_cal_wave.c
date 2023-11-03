@@ -1116,7 +1116,7 @@ static int cr2res_cal_wave_reduce(
     cpl_polynomial      *   slit_polyb ;
     cpl_polynomial      *   slit_polyc ;
     cpl_array           *   slit_array ;
-    double                  qc_overexposed ;
+    double                  qc_overexposed, extract_gain ;
     int                     i, order, trace_id, ext_nr, zp_order_une, 
                             zp_order_fpet, nb_traces, grat1_order_une, 
                             grat1_order_fpet ;
@@ -1135,6 +1135,16 @@ static int cr2res_cal_wave_reduce(
             ext_plist_fpet == NULL) return -1 ;
     if (collapse!=CR2RES_COLLAPSE_MEAN && collapse!=CR2RES_COLLAPSE_MEDIAN) 
         return -1 ;
+
+    /* Get the Gain */
+    if (reduce_det == 1) extract_gain = CR2RES_GAIN_CHIP1 ;
+    else if (reduce_det == 2) extract_gain = CR2RES_GAIN_CHIP2 ;
+    else if (reduce_det == 3) extract_gain = CR2RES_GAIN_CHIP3 ;
+    else {
+        cpl_msg_error(__func__, "Failed to get the Gain value") ;
+        return -1 ;
+    }
+
 
     /* Compute the Slit Curvature using the first passed FPET frame */
     tw_in = NULL ;
@@ -1294,7 +1304,8 @@ static int cr2res_cal_wave_reduce(
         hdrl_imagelist_delete(in_une_calib) ;
         if (contrib != NULL) cpl_image_delete(contrib) ;
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
-            cpl_msg_error(__func__, "Failed Collapse: %d",cpl_error_get_code());
+            cpl_msg_error(__func__, "Failed Collapse: %d",
+                    cpl_error_get_code());
             cpl_msg_indent_less() ;
             if (tw_in != NULL) cpl_table_delete(tw_in); 
             return -1 ;
@@ -1318,7 +1329,7 @@ static int cr2res_cal_wave_reduce(
                     reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
                     ext_height, ext_swath_width, ext_oversample, 
                     ext_smooth_slit, ext_smooth_spec,
-                    extract_niter, extract_kappa, 0, 0, 0,
+                    extract_niter, extract_kappa, extract_gain, 0, 0, 0,
                     &extracted_une, &slit_func_une, &model_master_une) == -1) {
             cpl_msg_error(__func__, "Failed to extract");
             hdrl_image_delete(collapsed_une) ;
@@ -1562,7 +1573,7 @@ static int cr2res_cal_wave_reduce(
                     reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
                     ext_height, ext_swath_width, ext_oversample, 
                     ext_smooth_slit, ext_smooth_spec, 
-                    extract_niter, extract_kappa, 0, 0, 0,
+                    extract_niter, extract_kappa, extract_gain, 0, 0, 0,
                     &extracted_fpet, &slit_func_fpet, &model_master_fpet)==-1) {
             cpl_msg_error(__func__, "Failed to extract");
             cpl_table_delete(tw_in) ;

@@ -333,7 +333,8 @@ static int cr2res_util_extract(
     const cpl_parameter *   param;
     int                     oversample, swath_width, extr_height,
                             reduce_det, reduce_order, reduce_trace ;
-    double                  smooth_slit, smooth_spec, slit_low, slit_up ;
+    double                  smooth_slit, smooth_spec, slit_low, slit_up,
+                            extract_gain ;
     cpl_array           *   slit_frac ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   cur_frame ;
@@ -537,14 +538,23 @@ static int cr2res_util_extract(
             } else {
                 slit_func_in = NULL ;
             }
-            
+           
+            /* Get the Gain */
+			if (det_nr == 1) extract_gain = CR2RES_GAIN_CHIP1 ;
+			else if (det_nr == 2) extract_gain = CR2RES_GAIN_CHIP2 ;
+			else if (det_nr == 3) extract_gain = CR2RES_GAIN_CHIP3 ;
+			else {
+				cpl_msg_error(__func__, "Failed to get the Gain value") ;
+				extract_gain = -1.0 ;
+			}
+
             /* Compute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(science_hdrl, trace_table,
                         slit_func_in, NULL, reduce_order, reduce_trace, 
                         extr_method, extr_height, swath_width, oversample,
                         smooth_slit, smooth_spec,
-                        extract_niter, extract_kappa, 0, 0, 0, 
+                        extract_niter, extract_kappa, extract_gain, 0, 0, 0, 
                         &(extract_tab[det_nr-1]), &(slit_func_tab[det_nr-1]), 
                         &(model_master[det_nr-1]))==-1) {
                 cpl_table_delete(trace_table) ;
