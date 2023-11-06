@@ -76,6 +76,7 @@ static int cr2res_obs_staring_reduce(
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
         int                     reduce_det,
+        hdrl_image          **  combined,
         cpl_table           **  extract,
         cpl_table           **  slitfunc,
         hdrl_image          **  model,
@@ -124,6 +125,7 @@ Staring Observation                                                     \n\
   Algorithm                                                             \n\
     loop on detectors d:                                                \n\
       call cr2res_obs_staring_reduce()                                  \n\
+        -> combined(d)                                                   \n\
         -> extract(d)                                                   \n\
         -> slitfunc(d)                                                  \n\
         -> model(d)                                                     \n\
@@ -139,6 +141,7 @@ Staring Observation                                                     \n\
       Recompute a new trace wave with the specified slit fraction       \n\
              (--slit_frac) if needed                                    \n\
       Extract the spectra from the collapsed image                      \n\
+        -> combined                                                     \n\
         -> extracted                                                    \n\
         -> slit_func                                                    \n\
         -> model_master                                                 \n\
@@ -397,6 +400,7 @@ static int cr2res_obs_staring(
     const cpl_frame     *   bpm_frame ;
     const cpl_frame     *   blaze_frame ;
     const char          *   sval ;
+    hdrl_image          *   combined[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extract[CR2RES_NB_DETECTORS] ;
     cpl_table           *   slitfunc[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   model[CR2RES_NB_DETECTORS] ;
@@ -499,6 +503,7 @@ static int cr2res_obs_staring(
     /* Loop on the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         /* Initialise */
+        combined[det_nr-1] = NULL ;
         extract[det_nr-1] = NULL ;
         slitfunc[det_nr-1] = NULL ;
         model[det_nr-1] = NULL ;
@@ -518,6 +523,7 @@ static int cr2res_obs_staring(
                     cosmics, extract_oversample, 
                     extract_swath_width, extract_height, extract_smooth_slit, 
                     extract_smooth_spec, det_nr,
+                    &(combined[det_nr-1]),
                     &(extract[det_nr-1]),
                     &(slitfunc[det_nr-1]),
                     &(model[det_nr-1]),
@@ -537,6 +543,12 @@ static int cr2res_obs_staring(
     cpl_propertylist_append_double(qc_main,
             CR2RES_HEADER_DRS_TMID,
             cr2res_utils_get_center_mjd(rawframes)) ;
+
+    out_file = cpl_sprintf("%s_combined.fits", RECIPE_STRING) ;
+    cr2res_io_save_COMBINED(out_file, frameset, frameset, parlist,
+            combined, qc_main, ext_plist,
+            CR2RES_OBS_STARING_COMBINED_PROCATG, RECIPE_STRING) ;
+    cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_slitfunc.fits", RECIPE_STRING) ;
     cr2res_io_save_SLIT_FUNC(out_file, frameset, frameset, parlist,
@@ -566,6 +578,8 @@ static int cr2res_obs_staring(
     /* Free */
     cpl_propertylist_delete(qc_main) ;
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        if (combined[det_nr-1] != NULL)
+            hdrl_image_delete(combined[det_nr-1]) ;
         if (extract[det_nr-1] != NULL) 
             cpl_table_delete(extract[det_nr-1]) ;
         if (slitfunc[det_nr-1] != NULL) 
@@ -623,6 +637,7 @@ static int cr2res_obs_staring_reduce(
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
         int                     reduce_det,
+        hdrl_image          **  combined,
         cpl_table           **  extract,
         cpl_table           **  slitfunc,
         hdrl_image          **  model,
@@ -652,8 +667,8 @@ static int cr2res_obs_staring_reduce(
                             order_real, order_idx, order_idxp ;
 
     /* Check Inputs */
-    if (extract == NULL || ext_plist == NULL || rawframes == NULL
-            || trace_wave_frame == NULL) return -1 ;
+    if (combined == NULL || extract == NULL || ext_plist == NULL || 
+            rawframes == NULL || trace_wave_frame == NULL) return -1 ;
 
     /* Get the Gain */
     if (reduce_det == 1) extract_gain = CR2RES_GAIN_CHIP1 ;
@@ -793,7 +808,6 @@ static int cr2res_obs_staring_reduce(
         cpl_table_delete(trace_wave) ;
         return -1 ;
     }
-	hdrl_image_delete(collapsed) ;
     if (blaze_table != NULL) cpl_table_delete(blaze_table) ;
 
     /* Store the extension header for product saving */
@@ -870,6 +884,7 @@ static int cr2res_obs_staring_reduce(
 	cpl_table_delete(trace_wave) ;
 
     /* Return */
+    *combined = collapsed ;
     *extract = extracted ;
     *slitfunc = slit_func ;
     *model = model_master ;
