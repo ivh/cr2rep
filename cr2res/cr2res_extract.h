@@ -57,6 +57,7 @@ int cr2res_extract_traces(
         double                  smooth_spec,
         int                     niter,
         double                  kappa,
+        double                  gain,
         int                     display,
         int                     disp_order_idx,
         int                     disp_trace,
@@ -107,6 +108,7 @@ int cr2res_extract_slitdec_curved(
         double                  smooth_spec,
         int                     niter,
         double                  kappa,
+        double                  gain,
         cpl_vector          **  slit_func,
         cpl_bivector        **  spec,
         hdrl_image          **  model) ;

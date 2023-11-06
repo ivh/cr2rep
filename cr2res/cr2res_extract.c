@@ -72,6 +72,7 @@ typedef struct {
  -----------------------------------------------------------------------------*/
 
 static int cr2res_extract_slit_func_curved(
+        double      gain,
         int         ncols,
         int         nrows,
         int         osample,
@@ -161,6 +162,7 @@ static int debug_output(int         ncols,
   @param    oversample      factor for oversampling
   @param    smooth_slit     smoothing along slit
   @param    smooth_spec     smoothing along spectrum
+  @param    gain            gain
   @param    display         Flag to allow display
   @param    disp_order_idx  The order index to display
   @param    disp_trace      The trace number to display
@@ -187,6 +189,7 @@ int cr2res_extract_traces(
         double                  smooth_spec,
         int                     niter,
         double                  kappa,
+        double                  gain,
         int                     display,
         int                     disp_order_idx,
         int                     disp_trace,
@@ -303,7 +306,7 @@ int cr2res_extract_traces(
             if (cr2res_extract_slitdec_curved(img, traces, slit_func_in_vec,
                         order, trace_id, extr_height, swath_width,
                         oversample, smooth_slit, smooth_spec,
-                        niter, kappa,
+                        niter, kappa, gain,
                         &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
                 cpl_msg_error(__func__,
@@ -1322,6 +1325,7 @@ int cr2res_extract_SLIT_FUNC_get_vector(
   @param    oversample  factor for oversampling
   @param    smooth_slit smoothing along slit
   @param    smooth_spec smoothing along spectrum
+  @param    gain        gain
   @param    slit_func   the returned slit function
   @param    spec        the returned spectrum
   @param    model       the returned model
@@ -1359,6 +1363,7 @@ int cr2res_extract_slitdec_curved(
         double                  smooth_spec,
         int                     niter,
         double                  kappa,
+        double                  gain,
         cpl_vector          **  slit_func,
         cpl_bivector        **  spec,
         hdrl_image          **  model)
@@ -1759,12 +1764,12 @@ int cr2res_extract_slitdec_curved(
         }
         
         /* Finally ready to call the slit-decomp */
-        cr2res_extract_slit_func_curved(swath, height, oversample, img_sw_data,
-                err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, y_lower_limit,
-                slitcurves_sw, delta_x,
-                slitfu_sw_data, spec_sw_data, model_sw, unc_sw_data, smooth_spec,
-                smooth_slit, 5.e-5, niter, kappa, slit_func_in, sP_old, l_Aij, p_Aij,
-                l_bj, p_bj, img_mad, xi, zeta, m_zeta);
+        cr2res_extract_slit_func_curved(gain, swath, height, oversample, 
+                img_sw_data, err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, 
+                y_lower_limit, slitcurves_sw, delta_x, slitfu_sw_data, 
+                spec_sw_data, model_sw, unc_sw_data, smooth_spec, smooth_slit, 
+                5.e-5, niter, kappa, slit_func_in, sP_old, l_Aij, p_Aij, l_bj, 
+                p_bj, img_mad, xi, zeta, m_zeta);
 
         // add up slit-functions, divide by nswaths below to get average
         if (i==0) cpl_vector_copy(slitfu,slitfu_sw);
@@ -2823,6 +2828,7 @@ static int cr2res_extract_xi_zeta_tensors(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Slit decomposition of single swath with slit tilt & curvature
+  @param gain       gain
   @param ncols      Swath width in pixels
   @param nrows      Extraction slit height in pixels
   @param osample    Subpixel ovsersampling factor
@@ -2848,6 +2854,7 @@ static int cr2res_extract_xi_zeta_tensors(
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_extract_slit_func_curved(
+        double      gain,
         int         ncols,
         int         nrows,
         int         osample,
