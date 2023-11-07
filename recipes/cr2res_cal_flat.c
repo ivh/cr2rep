@@ -1462,9 +1462,9 @@ static int cr2res_cal_flat_reduce(
         cpl_mask_count(bpm_mask) ;
     cpl_mask_delete(bpm_mask);
     qc_rms = sqrt(cpl_image_get_sqflux(my_master_flat) / ngood) ;
-
-    qc_s2n = cr2res_qc_flat_s2n(my_master_flat) ;
     cpl_image_delete(my_master_flat) ;
+
+    qc_s2n = cr2res_qc_flat_s2n(extract_tab) ;
 
     qc_trace_centery = cr2res_qc_flat_trace_center_y(traces) ;
     qc_nbbad = cr2res_bpm_count(bpm_im, CR2RES_BPM_FLAT) ;

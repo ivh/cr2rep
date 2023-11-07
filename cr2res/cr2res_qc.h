@@ -69,7 +69,7 @@ int cr2res_qc_flat_order_positions(
         double          **  order_pos,
         int             *   nbvals) ;
 double cr2res_qc_flat_s2n(
-        const cpl_image     *   master_flat) ;
+        const cpl_table     *   extracted) ;
 
 /* WAVE */
 double cr2res_qc_wave_central(

@@ -358,18 +358,80 @@ double cr2res_qc_flat_trace_center_y(
     return qc_trace_center_y ;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Computes the S2N on the flat
-  @param    master_flat     The master flat
-  @return   
+  @param    extracted   The extracted spectrum from the flat ie blaze
+  @return   The S2N
+  Compute for each spectrum of the input EXTRACT_1D table : median(snr)
+  Return the median of the medians
  */
 /*----------------------------------------------------------------------------*/
 double cr2res_qc_flat_s2n(
-        const cpl_image     *   master_flat)
+        const cpl_table     *   extracted)
 {
-    return -1.0 ;
+    cpl_array                   *   col_names ;
+    char                        *   col_type ;
+    const char                  *   col_name ;
+    char                        *   err_col ;
+    const double                *   pspec ;
+    const double                *   pspec_err ;
+    cpl_vector                  *   snrs ;
+    cpl_vector                  *   meds ;
+    double                          snr, med ;
+    cpl_size                        ncols, i, j, snr_size, nrows, nmeds ;
+    int                             trace_nb, order ;
+
+    /* Check Inputs */
+    if (extracted == NULL) return -1.0 ;
+
+    /* Get the column names */
+    col_names = cpl_table_get_column_names(extracted);
+    ncols = cpl_table_get_ncol(extracted) ;
+    if (ncols < 9){
+        cpl_array_delete(col_names) ;
+        return -1.0 ;
+    }
+
+    /* Loop on the columns */
+    nmeds = 0 ;
+    meds = cpl_vector_new(ncols); 
+
+    for (i=0 ; i<ncols ; i++) {
+        col_name = cpl_array_get_string(col_names, i);
+        col_type = cr2res_dfs_SPEC_colname_parse(col_name, &order,
+                &trace_nb) ;
+        if (col_type != NULL && !strcmp(col_type, CR2RES_COL_SPEC_SUFFIX)) {
+            /* This is a SPEC column */
+            /* Get the error column name */
+            err_col = cr2res_dfs_SPEC_ERR_colname(order,trace_nb) ;
+
+            /* Access the data */
+            pspec = cpl_table_get_data_double_const(extracted, col_name) ;
+            pspec_err = cpl_table_get_data_double_const(extracted, err_col) ;
+
+            nrows = cpl_table_get_nrow(extracted) ;
+            snrs = cpl_vector_new(nrows) ;
+            for (j=0 ; j<nrows ; j++) {
+                snr = 0.0 ;
+                if (fabs(pspec_err[j]) > 1e-3) {
+                    snr = pspec[j]/pspec_err[j] ;
+                }
+                cpl_vector_set(snrs, j, snr) ;
+            }
+            cpl_vector_set(meds, nmeds, cpl_vector_get_median(snrs)) ;
+            nmeds++ ;
+            cpl_vector_delete(snrs) ;
+            cpl_free(err_col);
+        }
+        if (col_type != NULL) cpl_free(col_type) ;
+    }
+    cpl_array_delete(col_names) ;
+
+    cpl_vector_set_size(meds, nmeds);
+    med = cpl_vector_get_median(meds) ;
+    cpl_vector_delete(meds); 
+    return med ;
 }
 
 /*----------------------------------------------------------------------------*/
