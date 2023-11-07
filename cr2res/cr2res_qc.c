@@ -431,7 +431,9 @@ double cr2res_qc_flat_s2n(
     cpl_vector_set_size(meds, nmeds);
     med = cpl_vector_get_median(meds) ;
     cpl_vector_delete(meds); 
-    return med ;
+
+    // The slit is 180 pixels long -> SNR/pixel needs to divide by sqrt(180)
+    return med/sqrt(180) ;
 }
 
 /*----------------------------------------------------------------------------*/
