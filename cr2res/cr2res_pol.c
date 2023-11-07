@@ -33,6 +33,7 @@
 #include "cr2res_dfs.h"
 #include "cr2res_calib.h"
 #include "cr2res_trace.h"
+#include "cr2res_pfits.h"
 
 /*-----------------------------------------------------------------------------
                                    Defines
@@ -838,18 +839,61 @@ int * cr2res_pol_sort_frames(
         const cpl_frame *   frame4)
 {
     int     *   idx_order ;
+    const char	*	poltype ;
+    const char	*	fname ;
+    cpl_propertylist    *   pri_head ;
+    cpl_propertylist    *   tmp_head ;
 
     /* Check Inputs */
     if (frame1 == NULL || frame2 == NULL || frame3 == NULL || frame4 == NULL)
-        return NULL ;
+        return NULL;
 
-    /* TODO */
+    /* Read POL.TYPE */
+    fname = cpl_frame_get_filename(frame1); 
+    pri_head = cpl_propertylist_load(fname, 0);
+    poltype = cr2res_pfits_get_poltype(pri_head);
+
+    /* Make sure the others are the same */
+    fname = cpl_frame_get_filename(frame2); 
+    tmp_head = cpl_propertylist_load(fname, 0);
+    if (strcmp(poltype,cr2res_pfits_get_poltype(tmp_head))){
+        cpl_msg_error(__func__, "Different POL.TYPE! %s != %s", poltype, 
+                                cr2res_pfits_get_poltype(tmp_head));
+        return NULL;  }
+    cpl_propertylist_delete(tmp_head);
+    fname = cpl_frame_get_filename(frame3); 
+    tmp_head = cpl_propertylist_load(fname, 0);
+    if (strcmp(poltype,cr2res_pfits_get_poltype(tmp_head))){
+        cpl_msg_error(__func__, "Different POL.TYPE! %s != %s", poltype, 
+                                cr2res_pfits_get_poltype(tmp_head));
+        return NULL;  }
+    cpl_propertylist_delete(tmp_head);
+    fname = cpl_frame_get_filename(frame4); 
+    tmp_head = cpl_propertylist_load(fname, 0);
+    if (strcmp(poltype,cr2res_pfits_get_poltype(tmp_head))){
+        cpl_msg_error(__func__, "Different POL.TYPE! %s != %s", poltype, 
+                                cr2res_pfits_get_poltype(tmp_head));
+        return NULL;  }
+    cpl_propertylist_delete(tmp_head);
 
     idx_order = cpl_malloc(4 * sizeof(int)) ;
-    idx_order[0] = 0 ;
-    idx_order[1] = 1 ;
-    idx_order[2] = 2 ;
-    idx_order[3] = 3 ;
+
+    if (!strcmp(poltype, "V")){
+        cpl_msg_info(__func__, "Set up file order for circular pol.");
+        idx_order[0] = 0 ;
+        idx_order[1] = 1 ;
+        idx_order[2] = 2 ;
+        idx_order[3] = 3 ;
+    } else {
+        cpl_msg_info(__func__, "Set up file order for linear pol.");
+        idx_order[0] = 0 ;
+        idx_order[1] = 3 ;
+        idx_order[2] = 2 ;
+        idx_order[3] = 1 ;
+    }
+
+    cpl_propertylist_delete(pri_head);
+    
     return idx_order ;
 }
 
