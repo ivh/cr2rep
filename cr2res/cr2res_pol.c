@@ -655,7 +655,7 @@ cpl_bivector * cr2res_pol_demod_intens(
             pouterr[i] = 0.0 ;
         }
     }
-    if (ncorrections > 10)
+    if (ncorrections > 20)
         cpl_msg_warning(__func__,
                 "The Errors vector contained %d negative values",
                 ncorrections) ;

@@ -3189,7 +3189,7 @@ static int cr2res_extract_slit_func_curved(
                             mask[y * ncols + x] ;
             }
         }
-        unc[x] = sqrt(sP[x] * sum / msum);
+        unc[x] = sqrt(sP[x] * sum / msum / gain );
     }
 
     return 0;
