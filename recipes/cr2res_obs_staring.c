@@ -544,26 +544,46 @@ static int cr2res_obs_staring(
             CR2RES_HEADER_DRS_TMID,
             cr2res_utils_get_center_mjd(rawframes)) ;
 
+	/* Save only the used RAW - fill raw_one_angle with CALIBS */
+	if (trace_wave_frame != NULL)
+		cpl_frameset_insert(rawframes,
+				cpl_frame_duplicate(trace_wave_frame)) ;
+	if (detlin_frame != NULL)
+		cpl_frameset_insert(rawframes,
+				cpl_frame_duplicate(detlin_frame)) ;
+	if (master_dark_frame != NULL)
+		cpl_frameset_insert(rawframes,
+				cpl_frame_duplicate(master_dark_frame)) ;
+	if (master_flat_frame!= NULL)
+		cpl_frameset_insert(rawframes,
+				cpl_frame_duplicate(master_flat_frame)) ;
+	if (bpm_frame!= NULL)
+		cpl_frameset_insert(rawframes,
+				cpl_frame_duplicate(bpm_frame)) ;
+	if (blaze_frame!= NULL)
+		cpl_frameset_insert(rawframes,
+				cpl_frame_duplicate(blaze_frame)) ;
+
     out_file = cpl_sprintf("%s_combined.fits", RECIPE_STRING) ;
-    cr2res_io_save_COMBINED(out_file, frameset, frameset, parlist,
+    cr2res_io_save_COMBINED(out_file, frameset, rawframes, parlist,
             combined, qc_main, ext_plist,
             CR2RES_OBS_STARING_COMBINED_PROCATG, RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_slitfunc.fits", RECIPE_STRING) ;
-    cr2res_io_save_SLIT_FUNC(out_file, frameset, frameset, parlist,
+    cr2res_io_save_SLIT_FUNC(out_file, frameset, rawframes, parlist,
             slitfunc, qc_main, ext_plist, CR2RES_OBS_STARING_SLITFUNC_PROCATG,
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_model.fits", RECIPE_STRING) ;
-    cr2res_io_save_SLIT_MODEL(out_file, frameset, frameset, parlist,
+    cr2res_io_save_SLIT_MODEL(out_file, frameset, rawframes, parlist,
             model, qc_main, ext_plist, CR2RES_OBS_STARING_SLITMODEL_PROCATG,
             RECIPE_STRING) ;
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_extracted.fits", RECIPE_STRING) ;
-    cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, extract,
+    cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, extract,
             qc_main, ext_plist, CR2RES_OBS_STARING_EXTRACT_PROCATG,
             RECIPE_STRING);
 	if (create_idp) {
