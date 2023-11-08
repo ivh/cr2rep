@@ -716,9 +716,6 @@ static int cr2res_obs_nodding(
         else                product_name_addon = cpl_sprintf("_%g.fits",
                 drot_posang);
 
-        /* Save only the used RAW ? : raw_one_angle instead of 2nd frameset */
-        /* Beware that the calibration PRO RECi CAL will be missing */
-
         /* Add the photom QC to the std ones */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             if (ext_plist_photom[det_nr-1] != NULL &&
@@ -734,16 +731,36 @@ static int cr2res_obs_nodding(
                 CR2RES_HEADER_DRS_TMID,
                 cr2res_utils_get_center_mjd(raw_one_angle)) ;
 
+        /* Save only the used RAW - fill raw_one_angle with CALIBS */
+        if (trace_wave_frame != NULL) 
+            cpl_frameset_insert(raw_one_angle,
+                    cpl_frame_duplicate(trace_wave_frame)) ;
+        if (detlin_frame != NULL) 
+            cpl_frameset_insert(raw_one_angle,
+                    cpl_frame_duplicate(detlin_frame)) ;
+        if (master_dark_frame != NULL) 
+            cpl_frameset_insert(raw_one_angle,
+                    cpl_frame_duplicate(master_dark_frame)) ;
+        if (master_flat_frame!= NULL) 
+            cpl_frameset_insert(raw_one_angle,
+                    cpl_frame_duplicate(master_flat_frame)) ;
+        if (bpm_frame!= NULL) 
+            cpl_frameset_insert(raw_one_angle,
+                    cpl_frame_duplicate(bpm_frame)) ;
+        if (blaze_frame!= NULL) 
+            cpl_frameset_insert(raw_one_angle,
+                    cpl_frame_duplicate(blaze_frame)) ;
+
 		out_file = cpl_sprintf("%s_combinedA%s", RECIPE_STRING, 
                 product_name_addon) ;
-		cr2res_io_save_COMBINED(out_file, frameset, frameset, parlist,
+		cr2res_io_save_COMBINED(out_file, frameset, raw_one_angle, parlist,
 				combineda, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_COMBINEDA_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_extractedA%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
+		cr2res_io_save_EXTRACT_1D(out_file, frameset, raw_one_angle, parlist, 
                 extracta, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_EXTRACTA_PROCATG, RECIPE_STRING);
 		if (create_idp) {
@@ -756,35 +773,35 @@ static int cr2res_obs_nodding(
 
 		out_file = cpl_sprintf("%s_slitfuncA%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_SLIT_FUNC(out_file, frameset, frameset, parlist,
+		cr2res_io_save_SLIT_FUNC(out_file, frameset, raw_one_angle, parlist,
 				slitfunca, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_SLITFUNCA_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_modelA%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_SLIT_MODEL(out_file, frameset, frameset, parlist,
+		cr2res_io_save_SLIT_MODEL(out_file, frameset, raw_one_angle, parlist,
 				modela, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_SLITMODELA_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_trace_wave_A%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist,
+		cr2res_io_save_TRACE_WAVE(out_file, frameset, raw_one_angle, parlist,
 				twa, qc_main, ext_plist, CR2RES_OBS_NODDING_TWA_PROCATG,
 				RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_combinedB%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_COMBINED(out_file, frameset, frameset, parlist,
+		cr2res_io_save_COMBINED(out_file, frameset, raw_one_angle, parlist,
 				combinedb, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_COMBINEDB_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_extractedB%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
+		cr2res_io_save_EXTRACT_1D(out_file, frameset, raw_one_angle, parlist, 
                 extractb, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_EXTRACTB_PROCATG, RECIPE_STRING);
 		if (create_idp) {
@@ -797,28 +814,28 @@ static int cr2res_obs_nodding(
 
 		out_file = cpl_sprintf("%s_slitfuncB%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_SLIT_FUNC(out_file, frameset, frameset, parlist,
+		cr2res_io_save_SLIT_FUNC(out_file, frameset, raw_one_angle, parlist,
 				slitfuncb, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_SLITFUNCB_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_modelB%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_SLIT_MODEL(out_file, frameset, frameset, parlist,
+		cr2res_io_save_SLIT_MODEL(out_file, frameset, raw_one_angle, parlist,
 				modelb, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_SLITMODELB_PROCATG, RECIPE_STRING) ;
 		cpl_free(out_file);
 		
 		out_file = cpl_sprintf("%s_trace_wave_B%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist,
+		cr2res_io_save_TRACE_WAVE(out_file, frameset, raw_one_angle, parlist,
 				twb, qc_main, ext_plist, CR2RES_OBS_NODDING_TWB_PROCATG,
 				RECIPE_STRING) ;
 		cpl_free(out_file);
 
 		out_file = cpl_sprintf("%s_extracted_combined%s", RECIPE_STRING, 
                 product_name_addon) ;
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
+		cr2res_io_save_EXTRACT_1D(out_file, frameset, raw_one_angle, parlist, 
                 extractc, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_EXTRACTC_PROCATG, RECIPE_STRING);
 		if (create_idp) {
@@ -832,7 +849,7 @@ static int cr2res_obs_nodding(
 		if (type == 2) {
 			out_file = cpl_sprintf("%s_throughput%s", RECIPE_STRING,
                     product_name_addon) ;
-			cr2res_io_save_THROUGHPUT(out_file, frameset, frameset, 
+			cr2res_io_save_THROUGHPUT(out_file, frameset, raw_one_angle, 
                     parlist, throughput, qc_main, ext_plist, 
 					CR2RES_OBS_NODDING_THROUGHPUT_PROCATG, RECIPE_STRING) ;
 			cpl_free(out_file);
