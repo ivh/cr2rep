@@ -315,6 +315,7 @@ static int cr2res_obs_2d(
     int                     reduce_det, reduce_order, reduce_trace, cosmics,
                             subtract_nolight_rows, subtract_interorder_column ;
     cpl_frameset        *   rawframes_obj ;
+    cpl_frameset        *   used_frameset ;
     cpl_frameset        *   rawframes_sky ;
     cpl_frame           *   rawframe_obj ;
     cpl_frame           *   rawframe_sky ;
@@ -472,10 +473,32 @@ static int cr2res_obs_2d(
                 CR2RES_HEADER_DRS_TMID,
                 cr2res_utils_get_center_mjd(rawframes_obj)) ;
 
+        /* Save only the used RAW - fill raw_one_angle with CALIBS */
+        used_frameset = cpl_frameset_new() ;
+        cpl_frameset_insert(used_frameset, cpl_frame_duplicate(rawframe_obj)) ;
+        if (rawframe_sky != NULL) 
+            cpl_frameset_insert(frameset,
+                    cpl_frame_duplicate(rawframe_sky)) ;
+        if (trace_wave_frame!= NULL)
+            cpl_frameset_insert(used_frameset,
+                    cpl_frame_duplicate(trace_wave_frame)) ;
+        if (detlin_frame!= NULL)
+            cpl_frameset_insert(used_frameset,
+                    cpl_frame_duplicate(detlin_frame)) ;
+        if (master_dark_frame!= NULL)
+            cpl_frameset_insert(used_frameset,
+                    cpl_frame_duplicate(master_dark_frame)) ;
+        if (master_flat_frame!= NULL)
+            cpl_frameset_insert(used_frameset,
+                    cpl_frame_duplicate(master_flat_frame)) ;
+        if (bpm_frame!= NULL)
+            cpl_frameset_insert(used_frameset,
+                    cpl_frame_duplicate(bpm_frame)) ;
+
         /* Calibrated */
         out_file = cpl_sprintf("%s_frame_%d_calibrated.fits", 
                 RECIPE_STRING, i+1) ;
-        cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist, 
+        cr2res_io_save_CALIBRATED(out_file, frameset, used_frameset, parlist, 
                 calibrated, qc_main, ext_plist, 
                 CR2RES_OBS_2D_CALIBRATED_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
@@ -483,11 +506,11 @@ static int cr2res_obs_2d(
         /* Extracted */
         out_file = cpl_sprintf("%s_frame_%d_extracted.fits", 
                 RECIPE_STRING, i+1) ;
-        cr2res_io_save_EXTRACT_2D(out_file, frameset, frameset, parlist, 
+        cr2res_io_save_EXTRACT_2D(out_file, frameset, used_frameset, parlist, 
                 extract, qc_main, ext_plist, CR2RES_OBS_2D_EXTRACT_PROCATG, 
                 RECIPE_STRING) ;
-
         cpl_free(out_file);
+        cpl_frameset_delete(used_frameset);
 
         /* Free */
         cpl_propertylist_delete(qc_main) ;
