@@ -46,7 +46,8 @@ int cr2res_idp_save(
         cpl_frameset            *   rawframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
-        cpl_propertylist        *  ext_plist[3],
+        cpl_propertylist        *   main_qc_plist,
+        cpl_propertylist        **  ext_plist,
         const char              *   procatg,
         const char              *   recipe) ;
 

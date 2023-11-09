@@ -770,7 +770,7 @@ static int cr2res_obs_nodding(
                 CR2RES_OBS_NODDING_EXTRACTA_PROCATG, RECIPE_STRING);
 		if (create_idp) {
             cr2res_idp_save(out_file, frameset, raw_one_angle, parlist,
-                            extracta, ext_plist,
+                            extracta, qc_main, ext_plist,
                             CR2RES_OBS_NODDING_EXTRACTA_IDP_PROCATG,
                             RECIPE_STRING);
         }
@@ -811,7 +811,7 @@ static int cr2res_obs_nodding(
                 CR2RES_OBS_NODDING_EXTRACTB_PROCATG, RECIPE_STRING);
 		if (create_idp) {
             cr2res_idp_save(out_file, frameset, raw_one_angle, parlist,
-                            extractb, ext_plist,
+                            extractb, qc_main, ext_plist,
                             CR2RES_OBS_NODDING_EXTRACTB_IDP_PROCATG,
                             RECIPE_STRING);
         }
@@ -845,7 +845,7 @@ static int cr2res_obs_nodding(
                 CR2RES_OBS_NODDING_EXTRACTC_PROCATG, RECIPE_STRING);
 		if (create_idp) {
             cr2res_idp_save(out_file, frameset, raw_one_angle, parlist,
-                            extractc, ext_plist,
+                            extractc, qc_main, ext_plist,
                             CR2RES_OBS_NODDING_EXTRACTC_IDP_PROCATG,
                             RECIPE_STRING);
         }

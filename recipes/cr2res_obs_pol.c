@@ -968,7 +968,7 @@ static int cr2res_obs_pol(
             RECIPE_STRING) ;
     if (create_idp) {
         cr2res_idp_save(out_file, frameset, rawframes, parlist,
-                        pol_speca, ext_plista,
+                        pol_speca, qc_main, ext_plista,
                         CR2RES_OBS_POL_EXTRACTA_IDP_PROCATG,
                         RECIPE_STRING);
     }
@@ -980,7 +980,7 @@ static int cr2res_obs_pol(
             RECIPE_STRING) ;
     if (create_idp) {
         cr2res_idp_save(out_file, frameset, rawframes, parlist,
-                        pol_specb, ext_plistb,
+                        pol_specb, qc_main, ext_plistb,
                         CR2RES_OBS_POL_EXTRACTB_IDP_PROCATG,
                         RECIPE_STRING);
     }

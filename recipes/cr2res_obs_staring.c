@@ -593,7 +593,7 @@ static int cr2res_obs_staring(
             RECIPE_STRING);
 	if (create_idp) {
         cr2res_idp_save(out_file, frameset, rawframes, parlist, 
-                extract, ext_plist,
+                extract, qc_main, ext_plist,
                 CR2RES_OBS_STARING_IDP_PROCATG,
                 RECIPE_STRING) ;
 		}

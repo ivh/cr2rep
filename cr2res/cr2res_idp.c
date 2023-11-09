@@ -69,12 +69,14 @@ static int cr2res_idp_copy_pol(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Save an IDP file
-  @param    filename    The FITS file name
-  @param    allframes   The recipe input frames
-  @param    rawframes   The recipe used input frames
-  @param    parlist     The recipe input parameters
-  @param    tables      The tables to save (1 per detector)
-  @param    recipe      The recipe name
+  @param    filename        The FITS file name
+  @param    allframes       The recipe input frames
+  @param    rawframes       The recipe used input frames
+  @param    parlist         The recipe input parameters
+  @param    tables          The tables to save (1 per detector)
+  @param    main_qc_plist   The main header QCs
+  @param    ext_plist       CR2RES_NB_DETECTORS extension headers
+  @param    recipe          The recipe name
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -84,7 +86,8 @@ int cr2res_idp_save(
         cpl_frameset            *   rawframes,
         const cpl_parameterlist *   parlist,
         cpl_table               **  tables,
-        cpl_propertylist        *  ext_plist[3],
+        cpl_propertylist        *   main_qc_plist,
+        cpl_propertylist        **  ext_plist,
         const char              *   procatg,
         const char              *   recipe)
 {
