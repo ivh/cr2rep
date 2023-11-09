@@ -838,47 +838,58 @@ int * cr2res_pol_sort_frames(
         const cpl_frame *   frame3,
         const cpl_frame *   frame4)
 {
-    int     *   idx_order ;
-    const char	*	poltype ;
-    const char	*	fname ;
+    int                 *   idx_order ;
+    const char	        *	poltype_first ;
+    const char	        *	poltype_curr ;
+    const char	        *	fname ;
     cpl_propertylist    *   pri_head ;
     cpl_propertylist    *   tmp_head ;
+    const cpl_frame     *   frames_holder[4] ;
+    int                     nframes, i ;
 
     /* Check Inputs */
     if (frame1 == NULL || frame2 == NULL || frame3 == NULL || frame4 == NULL)
         return NULL;
 
+    /* Initialise */
+    nframes = 4 ;
+    frames_holder[0] = frame1 ;
+    frames_holder[1] = frame2 ;
+    frames_holder[2] = frame3 ;
+    frames_holder[3] = frame4 ;
+
     /* Read POL.TYPE */
-    fname = cpl_frame_get_filename(frame1); 
+    fname = cpl_frame_get_filename(frames_holder[0]); 
     pri_head = cpl_propertylist_load(fname, 0);
-    poltype = cr2res_pfits_get_poltype(pri_head);
+    poltype_first = cr2res_pfits_get_poltype(pri_head);
+    if (cpl_error_get_code()) {
+        cpl_propertylist_delete(pri_head);
+        cpl_msg_error(__func__, "Missing POL.TYPE in header") ;
+        return NULL ;
+    }
 
     /* Make sure the others are the same */
-    fname = cpl_frame_get_filename(frame2); 
-    tmp_head = cpl_propertylist_load(fname, 0);
-    if (strcmp(poltype,cr2res_pfits_get_poltype(tmp_head))){
-        cpl_msg_error(__func__, "Different POL.TYPE! %s != %s", poltype, 
-                                cr2res_pfits_get_poltype(tmp_head));
-        return NULL;  }
-    cpl_propertylist_delete(tmp_head);
-    fname = cpl_frame_get_filename(frame3); 
-    tmp_head = cpl_propertylist_load(fname, 0);
-    if (strcmp(poltype,cr2res_pfits_get_poltype(tmp_head))){
-        cpl_msg_error(__func__, "Different POL.TYPE! %s != %s", poltype, 
-                                cr2res_pfits_get_poltype(tmp_head));
-        return NULL;  }
-    cpl_propertylist_delete(tmp_head);
-    fname = cpl_frame_get_filename(frame4); 
-    tmp_head = cpl_propertylist_load(fname, 0);
-    if (strcmp(poltype,cr2res_pfits_get_poltype(tmp_head))){
-        cpl_msg_error(__func__, "Different POL.TYPE! %s != %s", poltype, 
-                                cr2res_pfits_get_poltype(tmp_head));
-        return NULL;  }
-    cpl_propertylist_delete(tmp_head);
+    for (i=1 ; i<nframes ; i++) {
+        fname = cpl_frame_get_filename(frames_holder[i]); 
+        tmp_head = cpl_propertylist_load(fname, 0);
+        poltype_curr = cr2res_pfits_get_poltype(tmp_head);
+        if (cpl_error_get_code()) {
+            cpl_propertylist_delete(tmp_head);
+            cpl_propertylist_delete(pri_head);
+            cpl_msg_error(__func__, "Missing POL.TYPE in header") ;
+            return NULL ;
+        }
+        if (strcmp(poltype_first, poltype_curr)) {
+            cpl_msg_error(__func__, "Different POL.TYPE! %s != %s", 
+                    poltype_first, poltype_curr) ; 
+            return NULL ;  
+        }
+        cpl_propertylist_delete(tmp_head);
+    }
 
-    idx_order = cpl_malloc(4 * sizeof(int)) ;
+    idx_order = cpl_malloc(nframes * sizeof(int)) ;
 
-    if (!strcmp(poltype, "V")){
+    if (!strcmp(poltype_first, "V")){
         cpl_msg_info(__func__, "Set up file order for circular pol.");
         idx_order[0] = 0 ;
         idx_order[1] = 1 ;
@@ -891,9 +902,7 @@ int * cr2res_pol_sort_frames(
         idx_order[2] = 2 ;
         idx_order[3] = 1 ;
     }
-
     cpl_propertylist_delete(pri_head);
-    
     return idx_order ;
 }
 
