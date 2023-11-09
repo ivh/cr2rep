@@ -2095,15 +2095,51 @@ static int cr2res_obs_pol_check_inputs_validity(
         const cpl_frameset  *   rawframes,
         cpl_size            *   ngroups)
 {
+    cpl_propertylist    *       plist ;
+    cpl_frame           *       cur_frame ;
+    const char          *       cur_fname ;
     cr2res_nodding_pos  *       nod_positions ;
     cpl_frameset        *       raw_a ;
     cpl_frameset        *       raw_b ;
     cpl_size                    nframes, nframes_a, nframes_b, i ;
+    double                      mjd_obs, mjd_obs_previous ;
 
     /* Check Inputs */
     if (rawframes == NULL || ngroups == NULL) return -1 ;
     nframes = cpl_frameset_get_size(rawframes) ;
-     
+    
+    /* Check that the MJD-OBS is increasing (only when several frames) */
+    if (nframes > 1) {
+        /* Get the first MJDOBS */
+        cur_frame = cpl_frameset_get_position((cpl_frameset*)rawframes, 0) ;
+        cur_fname = cpl_frame_get_filename(cur_frame);
+        plist = cpl_propertylist_load(cur_fname, 0) ;
+        mjd_obs_previous = cr2res_pfits_get_mjd_obs(plist) ;
+        cpl_propertylist_delete(plist) ;
+        if (cpl_error_get_code() != CPL_ERROR_NONE) {
+            cpl_msg_error(__func__, "Cannot access MJD-OBS") ;
+            return -1 ;
+        }
+        /* Loop on the n-1 last frames */
+        for (i=1 ; i<nframes ; i++) {
+            /* Get the current MJDOBS */
+            cur_frame = cpl_frameset_get_position((cpl_frameset*)rawframes, i) ;
+            cur_fname = cpl_frame_get_filename(cur_frame);
+            plist = cpl_propertylist_load(cur_fname, 0) ;
+            mjd_obs = cr2res_pfits_get_mjd_obs(plist) ;
+            cpl_propertylist_delete(plist) ;
+            if (cpl_error_get_code() != CPL_ERROR_NONE) {
+                cpl_msg_error(__func__, "Cannot access MJD-OBS") ;
+                return -1 ;
+            }
+            if (mjd_obs <= mjd_obs_previous) {
+                cpl_msg_error(__func__, "Rawframes MJD-OBS is not increasing") ;
+                return 0 ;
+            }
+            mjd_obs_previous = mjd_obs ;
+        }
+    }
+
     /* Get the nodding positions */
     nod_positions = cr2res_nodding_read_positions(rawframes) ;
     if (nod_positions == NULL) {
