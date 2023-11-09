@@ -716,6 +716,11 @@ static int cr2res_obs_pol(
 			CR2RES_HEADER_DRS_TMID,
 			cr2res_utils_get_center_mjd(rawframes)) ;
 
+	/* Add QC NUMSAT */
+	cpl_propertylist_append_int(qc_main,
+			CR2RES_HEADER_QC_NUMSAT,
+			cr2res_qc_numsat(rawframes)) ;
+
     /* Save Extra Products if at least one is returned */
     save_products = 0 ;
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {

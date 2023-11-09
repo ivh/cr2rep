@@ -544,6 +544,11 @@ static int cr2res_obs_staring(
             CR2RES_HEADER_DRS_TMID,
             cr2res_utils_get_center_mjd(rawframes)) ;
 
+    /* Add QC NUMSAT */
+    cpl_propertylist_append_int(qc_main,
+            CR2RES_HEADER_QC_NUMSAT,
+            cr2res_qc_numsat(rawframes)) ;
+
 	/* Save only the used RAW - fill raw_one_angle with CALIBS */
 	if (trace_wave_frame != NULL)
 		cpl_frameset_insert(rawframes,

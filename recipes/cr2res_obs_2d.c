@@ -473,6 +473,11 @@ static int cr2res_obs_2d(
                 CR2RES_HEADER_DRS_TMID,
                 cr2res_utils_get_center_mjd(rawframes_obj)) ;
 
+        /* Add QC NUMSAT */
+        cpl_propertylist_append_int(qc_main,
+                CR2RES_HEADER_QC_NUMSAT,
+                cr2res_qc_numsat(rawframes_obj)) ;
+
         /* Save only the used RAW - fill raw_one_angle with CALIBS */
         used_frameset = cpl_frameset_new() ;
         cpl_frameset_insert(used_frameset, cpl_frame_duplicate(rawframe_obj)) ;
