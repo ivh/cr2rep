@@ -376,6 +376,10 @@ int cr2res_idp_save(
     /* Remove the ASSON keywords */
     cpl_propertylist_erase_regexp(pri_head, "ASSO*", 0);
 
+    /* Add QC from the main Extension */
+    if (main_qc_plist != NULL) 
+        cpl_propertylist_copy_property_regexp(pri_head, main_qc_plist, "QC*",0);
+
 	/* Save the main header */
 	cpl_propertylist_save(pri_head, idp_filename, CPL_IO_CREATE);
 
@@ -505,6 +509,10 @@ int cr2res_idp_save(
     cpl_propertylist_erase(ext_head, "CRPIX1");
     cpl_propertylist_erase(ext_head, "CRVAL1");
     cpl_propertylist_erase(ext_head, "CUNIT1");
+
+    /* Add QC from the first Extension  ext_plist[0] */
+    if (ext_plist[0] != NULL)
+        cpl_propertylist_copy_property_regexp(ext_head, ext_plist[0], "QC*", 0);
 
     /* Save the table */
     cpl_table_save(idp_tab, NULL, ext_head, idp_filename, CPL_IO_EXTEND) ;
