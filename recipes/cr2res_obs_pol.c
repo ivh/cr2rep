@@ -524,7 +524,7 @@ static int cr2res_obs_pol(
     cpl_propertylist    *   ext_plista[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plistb[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
-    int                     det_nr; 
+    int                     det_nr, save_products ; 
 
     /* Initialise */
 
@@ -652,11 +652,12 @@ static int cr2res_obs_pol(
         cpl_msg_indent_more() ;
 
         /* Call the reduction function */
-        if (cr2res_obs_pol_reduce(rawframes, raw_flat_frames, trace_wave_frame, 
-                    detlin_frame, master_dark_frame, master_flat_frame, 
-                    bpm_frame, blaze_frame, subtract_nolight_rows,
-                    subtract_interorder_column, cosmics, extract_oversample, 
-                    extract_swath_width, extract_height, extract_smooth_slit, 
+        if (cr2res_obs_pol_reduce(rawframes, raw_flat_frames, 
+                    trace_wave_frame, detlin_frame, master_dark_frame, 
+                    master_flat_frame, bpm_frame, blaze_frame, 
+                    subtract_nolight_rows, subtract_interorder_column, 
+                    cosmics, extract_oversample, extract_swath_width, 
+                    extract_height, extract_smooth_slit, 
                     extract_smooth_spec, save_group, det_nr,
                     &(in_calib_1_a[det_nr-1]),
                     &(in_calib_2_a[det_nr-1]),
@@ -702,228 +703,11 @@ static int cr2res_obs_pol(
                     &(pol_specb[det_nr-1]),
                     &(ext_plista[det_nr-1]),
                     &(ext_plistb[det_nr-1])) == -1) {
-            cpl_msg_warning(__func__, "Failed to reduce detector %d", det_nr);
+            cpl_msg_warning(__func__, "Failed to reduce detector %d", 
+                    det_nr);
             cpl_error_reset() ;
         }
         cpl_msg_indent_less() ;
-    }
-
-    /* Save Extra Products if returned */
-    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-        if (in_calib_1_a[det_nr-1] != NULL) {
-            /* Calibrated images a */
-            out_file = cpl_sprintf("%s_in_calibA_1.fits", RECIPE_STRING) ;
-            cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
-                    in_calib_1_a, NULL, ext_plista, 
-                    CR2RES_OBS_POL_CALIB_A_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_in_calibA_2.fits", RECIPE_STRING) ;
-            cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
-                    in_calib_2_a, NULL, ext_plista, 
-                    CR2RES_OBS_POL_CALIB_A_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_in_calibA_3.fits", RECIPE_STRING) ;
-            cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
-                    in_calib_3_a, NULL, ext_plista, 
-                    CR2RES_OBS_POL_CALIB_A_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_in_calibA_4.fits", RECIPE_STRING) ;
-            cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
-                    in_calib_4_a, NULL, ext_plista, 
-                    CR2RES_OBS_POL_CALIB_A_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-
-            /* TW Nodding a */
-            out_file = cpl_sprintf("%s_twA_1u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_1u_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twA_1d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_1d_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twA_2u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_2u_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twA_2d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_2d_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twA_3u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_3u_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twA_3d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_3d_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twA_4u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_4u_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twA_4d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_4d_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-
-            /* Extracted Nodding A */
-            out_file = cpl_sprintf("%s_extractedA_1u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_1u_a, NULL, ext_plista, 
-                    CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedA_1d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_1d_a, NULL, ext_plista, 
-                    CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedA_2u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_2u_a, NULL, ext_plista, 
-                    CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedA_2d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_2d_a, NULL, ext_plista, 
-                    CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedA_3u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_3u_a, NULL, ext_plista, 
-                    CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedA_3d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_3d_a, NULL, ext_plista, 
-                    CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedA_4u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_4u_a, NULL, ext_plista, 
-                    CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedA_4d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_4d_a, NULL, ext_plista, 
-                    CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-
-            /* Calibrated images b */
-            out_file = cpl_sprintf("%s_in_calibB_1.fits", RECIPE_STRING) ;
-            cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
-                    in_calib_1_b, NULL, ext_plista, 
-                    CR2RES_OBS_POL_CALIB_B_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_in_calibB_2.fits", RECIPE_STRING) ;
-            cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
-                    in_calib_2_b, NULL, ext_plista, 
-                    CR2RES_OBS_POL_CALIB_B_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_in_calibB_3.fits", RECIPE_STRING) ;
-            cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
-                    in_calib_3_b, NULL, ext_plista, 
-                    CR2RES_OBS_POL_CALIB_B_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_in_calibB_4.fits", RECIPE_STRING) ;
-            cr2res_io_save_CALIBRATED(out_file, frameset, frameset, parlist,
-                    in_calib_4_b, NULL, ext_plista, 
-                    CR2RES_OBS_POL_CALIB_B_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-
-            /* TW Nodding b */
-            out_file = cpl_sprintf("%s_twB_1u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_1u_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twB_1d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_1d_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twB_2u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_2u_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twB_2d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_2d_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twB_3u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_3u_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twB_3d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_3d_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twB_4u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_4u_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_twB_4d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    tw_4d_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
-                    RECIPE_STRING);
-            cpl_free(out_file);
-
-            /* Extracted Nodding B */
-            out_file = cpl_sprintf("%s_extractedB_1u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_1u_b, NULL, ext_plistb, 
-                    CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedB_1d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_1d_b, NULL, ext_plistb, 
-                    CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedB_2u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_2u_b, NULL, ext_plistb, 
-                    CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedB_2d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_2d_b, NULL, ext_plistb, 
-                    CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedB_3u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_3u_b, NULL, ext_plistb, 
-                    CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedB_3d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_3d_b, NULL, ext_plistb, 
-                    CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedB_4u.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_4u_b, NULL, ext_plistb, 
-                    CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-            out_file = cpl_sprintf("%s_extractedB_4d.fits", RECIPE_STRING) ;
-            cr2res_io_save_EXTRACT_1D(out_file, frameset, frameset, parlist, 
-                    extract1D_4d_b, NULL, ext_plistb, 
-                    CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
-            cpl_free(out_file);
-        } 
-        break ;
     }
 
 	/* Add ESO.DRS.TMID in the Main Header */
@@ -932,13 +716,253 @@ static int cr2res_obs_pol(
 			CR2RES_HEADER_DRS_TMID,
 			cr2res_utils_get_center_mjd(rawframes)) ;
 
+    /* Save Extra Products if at least one is returned */
+    save_products = 0 ;
+    for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        if (in_calib_1_a[det_nr-1] != NULL) save_products = 1 ;
+    }
+
+    /* Save only the used RAW - fill rawframes with CALIBS */
+	if (trace_wave_frame != NULL)
+		cpl_frameset_insert(rawframes,
+				cpl_frame_duplicate(trace_wave_frame)) ;
+	if (detlin_frame != NULL)
+		cpl_frameset_insert(rawframes,
+				cpl_frame_duplicate(detlin_frame)) ;
+	if (master_dark_frame != NULL)
+		cpl_frameset_insert(rawframes,
+				cpl_frame_duplicate(master_dark_frame)) ;
+	if (master_flat_frame!= NULL)
+		cpl_frameset_insert(rawframes,
+				cpl_frame_duplicate(master_flat_frame)) ;
+	if (bpm_frame!= NULL)
+		cpl_frameset_insert(rawframes,
+				cpl_frame_duplicate(bpm_frame)) ;
+	if (blaze_frame!= NULL)
+		cpl_frameset_insert(rawframes,
+				cpl_frame_duplicate(blaze_frame)) ;
+
+    if (save_products == 1) {
+        /* Calibrated images a */
+        out_file = cpl_sprintf("%s_in_calibA_1.fits", RECIPE_STRING) ;
+        cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+                in_calib_1_a, NULL, ext_plista, 
+                CR2RES_OBS_POL_CALIB_A_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_in_calibA_2.fits", RECIPE_STRING) ;
+        cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+                in_calib_2_a, NULL, ext_plista, 
+                CR2RES_OBS_POL_CALIB_A_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_in_calibA_3.fits", RECIPE_STRING) ;
+        cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+                in_calib_3_a, NULL, ext_plista, 
+                CR2RES_OBS_POL_CALIB_A_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_in_calibA_4.fits", RECIPE_STRING) ;
+        cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+                in_calib_4_a, NULL, ext_plista, 
+                CR2RES_OBS_POL_CALIB_A_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+
+        /* TW Nodding a */
+        out_file = cpl_sprintf("%s_twA_1u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_1u_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twA_1d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_1d_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twA_2u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_2u_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twA_2d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_2d_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twA_3u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_3u_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twA_3d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_3d_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twA_4u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_4u_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twA_4d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_4d_a, NULL, ext_plista, CR2RES_OBS_POL_TWA_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+
+        /* Extracted Nodding A */
+        out_file = cpl_sprintf("%s_extractedA_1u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_1u_a, NULL, ext_plista, 
+                CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedA_1d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_1d_a, NULL, ext_plista, 
+                CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedA_2u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_2u_a, NULL, ext_plista, 
+                CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedA_2d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_2d_a, NULL, ext_plista, 
+                CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedA_3u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_3u_a, NULL, ext_plista, 
+                CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedA_3d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_3d_a, NULL, ext_plista, 
+                CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedA_4u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_4u_a, NULL, ext_plista, 
+                CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedA_4d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_4d_a, NULL, ext_plista, 
+                CR2RES_OBS_POL_EXTRACTA_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+
+        /* Calibrated images b */
+        out_file = cpl_sprintf("%s_in_calibB_1.fits", RECIPE_STRING) ;
+        cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+                in_calib_1_b, NULL, ext_plista, 
+                CR2RES_OBS_POL_CALIB_B_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_in_calibB_2.fits", RECIPE_STRING) ;
+        cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+                in_calib_2_b, NULL, ext_plista, 
+                CR2RES_OBS_POL_CALIB_B_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_in_calibB_3.fits", RECIPE_STRING) ;
+        cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+                in_calib_3_b, NULL, ext_plista, 
+                CR2RES_OBS_POL_CALIB_B_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_in_calibB_4.fits", RECIPE_STRING) ;
+        cr2res_io_save_CALIBRATED(out_file, frameset, rawframes, parlist,
+                in_calib_4_b, NULL, ext_plista, 
+                CR2RES_OBS_POL_CALIB_B_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+
+        /* TW Nodding b */
+        out_file = cpl_sprintf("%s_twB_1u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_1u_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twB_1d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_1d_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twB_2u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_2u_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twB_2d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_2d_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twB_3u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_3u_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twB_3d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_3d_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twB_4u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_4u_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_twB_4d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                tw_4d_b, NULL, ext_plistb, CR2RES_OBS_POL_TWB_PROCATG, 
+                RECIPE_STRING);
+        cpl_free(out_file);
+
+        /* Extracted Nodding B */
+        out_file = cpl_sprintf("%s_extractedB_1u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_1u_b, NULL, ext_plistb, 
+                CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedB_1d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_1d_b, NULL, ext_plistb, 
+                CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedB_2u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_2u_b, NULL, ext_plistb, 
+                CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedB_2d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_2d_b, NULL, ext_plistb, 
+                CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedB_3u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_3u_b, NULL, ext_plistb, 
+                CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedB_3d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_3d_b, NULL, ext_plistb, 
+                CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedB_4u.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_4u_b, NULL, ext_plistb, 
+                CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+        out_file = cpl_sprintf("%s_extractedB_4d.fits", RECIPE_STRING) ;
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, rawframes, parlist, 
+                extract1D_4d_b, NULL, ext_plistb, 
+                CR2RES_OBS_POL_EXTRACTB_PROCATG, RECIPE_STRING);
+        cpl_free(out_file);
+    } 
+
     /* Polarimetry Spectra */
     out_file = cpl_sprintf("%s_pol_specA.fits", RECIPE_STRING) ;
-    cr2res_io_save_POL_SPEC(out_file, frameset, frameset, parlist,
+    cr2res_io_save_POL_SPEC(out_file, frameset, rawframes, parlist,
             pol_speca, qc_main, ext_plista, CR2RES_OBS_POL_SPECA_PROCATG, 
             RECIPE_STRING) ;
     if (create_idp) {
-        cr2res_idp_save(out_file, frameset, frameset, parlist,
+        cr2res_idp_save(out_file, frameset, rawframes, parlist,
                         pol_speca, ext_plista,
                         CR2RES_OBS_POL_EXTRACTA_IDP_PROCATG,
                         RECIPE_STRING);
@@ -946,11 +970,11 @@ static int cr2res_obs_pol(
     cpl_free(out_file);
 
     out_file = cpl_sprintf("%s_pol_specB.fits", RECIPE_STRING) ;
-    cr2res_io_save_POL_SPEC(out_file, frameset, frameset, parlist,
+    cr2res_io_save_POL_SPEC(out_file, frameset, rawframes, parlist,
             pol_specb, qc_main, ext_plistb, CR2RES_OBS_POL_SPECB_PROCATG, 
             RECIPE_STRING) ;
     if (create_idp) {
-        cr2res_idp_save(out_file, frameset, frameset, parlist,
+        cr2res_idp_save(out_file, frameset, rawframes, parlist,
                         pol_specb, ext_plistb,
                         CR2RES_OBS_POL_EXTRACTB_IDP_PROCATG,
                         RECIPE_STRING);
