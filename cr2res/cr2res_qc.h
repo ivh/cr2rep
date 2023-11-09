@@ -95,6 +95,7 @@ double cr2res_qc_wave_resol_fwhm(
         double              *   wl) ;
 
 /* OBS */
+int cr2res_qc_numsat(const cpl_frameset * frameset) ;
 double cr2res_qc_overexposed(
         const cpl_image *   ima,
         const cpl_table *   tw,

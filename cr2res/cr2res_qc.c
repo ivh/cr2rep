@@ -36,6 +36,7 @@
 #include "cr2res_trace.h"
 #include "cr2res_dfs.h"
 #include "cr2res_extract.h"
+#include "cr2res_io.h"
 #include "cr2res_calib.h"
 #include "cr2res_detlin.h"
 #include "cr2res_wave.h"
@@ -1163,6 +1164,56 @@ double cr2res_qc_obs_slit_psf(
     cpl_vector_delete(y);
     return qc_fwhm ;
 }
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Calculate the number of saturated pixels
+  @param    frameset - the input RAW frames
+  @return   the max number of saturated pixels (over all detectors)
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_qc_numsat(const cpl_frameset * frameset)
+{
+    const cpl_frame     *   frame ;
+    const char          *   fname ;
+    hdrl_image          *   hima ;
+    cpl_image           *   ima ;
+    double              *   pima ;
+    int                     det_nr, max_nsat, nsat ;
+    cpl_size                i, k, nframes, nx, ny ;
+
+    /* Check Inputs */
+    if (frameset == NULL) return -1 ;
+
+    /* Initialise */
+    max_nsat = 0 ;
+    nframes = cpl_frameset_get_size(frameset);
+
+    for (i = 0; i < nframes; i++) {
+        frame = cpl_frameset_get_position_const(frameset, i);
+        fname = cpl_frame_get_filename(frame);
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            nsat = 0 ;
+            hima = cr2res_io_load_image(fname, det_nr) ;
+            if (hima != NULL) {
+                ima = hdrl_image_get_image(hima) ;
+                pima = cpl_image_get_data_double(ima) ;
+                nx = cpl_image_get_size_x(ima) ;
+                ny = cpl_image_get_size_y(ima) ;
+                for (k = 0 ; k<nx*ny ; k++) {
+                    if (pima[k] > CR2RES_DETECTOR_OVEREXP_THRESH) nsat++ ;
+                }
+                hdrl_image_delete(hima) ;
+            } else {
+                cpl_msg_warning(__func__, "NUMSAT - cannot load detector") ;
+                cpl_error_reset() ;
+            }
+            if (nsat > max_nsat) max_nsat = nsat ;
+        }
+    }
+    return max_nsat ;
+}
+
 /**@}*/
 
 /*----------------------------------------------------------------------------*/
