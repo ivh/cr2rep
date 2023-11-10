@@ -31,14 +31,14 @@ if DPR.CATG like "%CALIB%" and DPR.TYPE like "%WAVE%" and DPR.TYPE like "%FPET%"
 }
 
 
-if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%OTHER%" then
+if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%OTHER%" and not DPR.TECH like "%POLA%" then
 {
     RAW.TYPE = "OBS_NODDING_OTHER";
     REFLEX.CATG = "OBS_NODDING_OTHER";
     CATG = "SCIENCE";
     REFLEX.TARGET = "T";
 }
-if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%JITTER%" then
+if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%JITTER%" and not DPR.TECH like "%POLA%" then
 {
     RAW.TYPE = "OBS_NODDING_JITTER";
     REFLEX.CATG = "OBS_NODDING_JITTER";
@@ -46,14 +46,14 @@ if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SP
     REFLEX.TARGET = "T";
 }
 
-if DPR.CATG like "%CALIB%" and DPR.TYPE like "%STD%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%OTHER%" then
+if DPR.CATG like "%CALIB%" and DPR.TYPE like "%STD%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%OTHER%" and not DPR.TECH like "%POLA%" then
 {
     RAW.TYPE = "CAL_NODDING_OTHER";
     REFLEX.CATG = "CAL_NODDING_OTHER";
     CATG = "SCIENCE";
     REFLEX.TARGET = "T";
 }
-if DPR.CATG like "%CALIB%" and DPR.TYPE like "%STD%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%JITTER%" then
+if DPR.CATG like "%CALIB%" and DPR.TYPE like "%STD%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%JITTER%" and not DPR.TECH like "%POLA%" then
 {
     RAW.TYPE = "CAL_NODDING_JITTER";
     REFLEX.CATG = "CAL_NODDING_JITTER";
@@ -61,14 +61,14 @@ if DPR.CATG like "%CALIB%" and DPR.TYPE like "%STD%" and DPR.TECH like "%SPECTRU
     REFLEX.TARGET = "T";
 }
 
-if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%OTHER%" and DPR.TECH like "%ASTR%" then
+if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%OTHER%" and DPR.TECH like "%ASTR%" and not DPR.TECH like "%POLA%" then
 {
     RAW.TYPE = "OBS_ASTROMETRY_OTHER";
     REFLEX.CATG = "OBS_ASTROMETRY_OTHER";
     CATG = "SCIENCE";
     REFLEX.TARGET = "T";
 }
-if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%JITTER%" and DPR.TECH like "%ASTR%" then
+if DPR.CATG like "%SCIENCE%" and DPR.TYPE like "%OBJECT%" and DPR.TECH like "%SPECTRUM%" and DPR.TECH like "%NODDING%" and DPR.TECH like "%JITTER%" and DPR.TECH like "%ASTR%" and not DPR.TECH like "%POLA%" then
 {
     RAW.TYPE = "OBS_ASTROMETRY_JITTER";
     REFLEX.CATG = "OBS_ASTROMETRY_JITTER";
