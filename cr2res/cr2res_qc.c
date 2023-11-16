@@ -210,7 +210,10 @@ double cr2res_qc_detlin(
 
     if (isnan(qc_detlin_median) || 
             isnan(qc_detlin_min) ||
-            isnan(qc_detlin_max)) return -1.0 ;
+            isnan(qc_detlin_max)) {
+        cpl_mask_delete(tmpmask);
+        return -1.0 ;
+    }
 
     *min_level = qc_detlin_min ;
     *max_level = qc_detlin_max ;

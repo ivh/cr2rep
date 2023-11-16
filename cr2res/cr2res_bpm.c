@@ -372,7 +372,6 @@ static cpl_mask * cr2res_bpm_compute_local_stats(
     if (img == NULL) return NULL ;
     nx = cpl_image_get_size_x(img) ;
     ny = cpl_image_get_size_y(img) ;
-    if (sigma < 0.0) return NULL ;
 
     /* Create Output mask */
     out = cpl_mask_new(nx, ny) ;

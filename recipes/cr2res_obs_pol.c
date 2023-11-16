@@ -1525,7 +1525,10 @@ static int cr2res_obs_pol_reduce_one(
     }
     cpl_msg_indent_less() ;
     hdrl_imagelist_delete(in) ;
-    if (dits != NULL) cpl_vector_delete(dits) ;
+    if (dits != NULL) {
+        cpl_vector_delete(dits) ;
+        dits = NULL ;
+    }
     if (ndits != NULL) cpl_vector_delete(ndits) ;
 
     /* Apply Background Correction using the other nodding position */

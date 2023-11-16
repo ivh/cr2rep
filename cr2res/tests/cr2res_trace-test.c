@@ -694,11 +694,11 @@ static void test_cr2res_trace_new_slit_fraction(void)
     const cpl_array *carray;
 
     // test for NULL input
-    cpl_test_null(cr2res_trace_new_slit_fraction(NULL, new_slit_fraction));
     cpl_test_null(cr2res_trace_new_slit_fraction(trace_table, NULL));
 
     // test with too small new slit fraction, should get NULL
     new_slit_fraction = cpl_array_new(1, CPL_TYPE_DOUBLE);
+    cpl_test_null(cr2res_trace_new_slit_fraction(NULL, new_slit_fraction));
     cpl_test_null(cr2res_trace_new_slit_fraction(trace_table, new_slit_fraction));
     cpl_array_delete(new_slit_fraction);
 
