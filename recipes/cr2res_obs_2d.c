@@ -35,6 +35,7 @@
 #include "cr2res_trace.h"
 #include "cr2res_extract.h"
 #include "cr2res_io.h"
+#include "cr2res_qc.h"
 
 /*-----------------------------------------------------------------------------
                                 Define
