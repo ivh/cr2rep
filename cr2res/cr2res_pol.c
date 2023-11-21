@@ -978,15 +978,14 @@ cpl_table *cr2res_pol_get_beam_trace(
     cpl_table       *   tw_out;
     cpl_polynomial  *   wl_poly;
     cpl_polynomial  *   trace_poly;
-    cpl_polynomial  *   upper_poly;
-    cpl_polynomial  *   lower_poly;
     cpl_polynomial  *   corr_poly;
-    double              wl, y_mid, y_up, y_lo, y_corr, slope_corr, halfSF, newSF;
+    double              wl, y_corr, slope_corr, halfSF, newSF;
     cpl_array       *   tmp_arr;
     cpl_size            pow0=0;
     cpl_size            pow1=1;
     char            *   band;
     int                 nb_traces, i, o, trace_id;
+    cpl_vector      *   newSFs;
 
 
     wl_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_WAVELENGTH, 5, 1);
@@ -1113,8 +1112,9 @@ cpl_table *cr2res_pol_get_beam_trace(
 
     /* Loop through all traces in input TW */
     nb_traces = cpl_table_get_nrow(tw_in) ;
-    tw_out = cpl_table_duplicate(tw_in);
-    for (i=0 ; i<nb_traces ; i++) {
+    newSFs = cpl_vector_new(nb_traces);
+    for (i = 0; i < nb_traces; i++)
+    {
         o = cpl_table_get(tw_in, CR2RES_COL_ORDER, i, NULL) ;
         trace_id = cpl_table_get(tw_in, CR2RES_COL_TRACENB, i, NULL);
         if (trace_id =! 1){
@@ -1127,29 +1127,40 @@ cpl_table *cr2res_pol_get_beam_trace(
         }
 
         /* Evaluate at middle of detector to get average positions */
-        wl_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_WAVELENGTH, o,1);
-        trace_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_ALL, o, 1);
-        upper_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_UPPER, o, 1);
-        lower_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_LOWER, o, 1);
-        y_mid = cpl_polynomial_eval_1d(trace_poly, 1024, NULL);
-        y_up = cpl_polynomial_eval_1d(upper_poly, 1024, NULL);
-        y_lo = cpl_polynomial_eval_1d(lower_poly, 1024, NULL);
         y_corr = cpl_polynomial_eval_1d(corr_poly, wl, NULL);
+        cpl_vector_set(newSFs, i, 0.5 + (y_corr) / CR2RES_APPROX_SLIT_HEIGHT);
+    }
+    newSF = cpl_vector_get_median(newSFs);
+    cpl_vector_delete(newSFs);
+    cpl_msg_info(__func__, "Median new slit-fraction: %g", newSF);
+
+    tmp_arr = cpl_array_new(3,CPL_TYPE_DOUBLE);
+    cpl_array_set(tmp_arr, 0, newSF-0.15);
+    cpl_array_set(tmp_arr, 1, newSF);
+    cpl_array_set(tmp_arr, 2, newSF+0.15);
+    tw_out = cr2res_trace_new_slit_fraction(tw_in, tmp_arr);
+    //tw_out = cpl_table_duplicate(tw_in);
+    cpl_array_delete(tmp_arr);
+
+    for (i=0 ; i<nb_traces ; i++) {
+        o = cpl_table_get(tw_in, CR2RES_COL_ORDER, i, NULL) ;
+        trace_id = cpl_table_get(tw_in, CR2RES_COL_TRACENB, i, NULL);
 
         /* Calculate new slit-fraction, important for WL-correction */
+        /* wl is at middle of detector from above */
+        y_corr = cpl_polynomial_eval_1d(corr_poly, wl, NULL);
         tmp_arr = cpl_array_new(3,CPL_TYPE_DOUBLE);
-        newSF = 0.5 + (y_corr) / (y_up - y_lo); // 
-        halfSF = CR2RES_POLARIMETRY_DEFAULT_HEIGHT / (y_up - y_lo) / 2;
+        newSF = 0.5 + (y_corr / CR2RES_APPROX_SLIT_HEIGHT); 
+        halfSF = CR2RES_POLARIMETRY_DEFAULT_HEIGHT /
+                        CR2RES_APPROX_SLIT_HEIGHT / 2;
         cpl_array_set(tmp_arr, 0, newSF-halfSF);
         cpl_array_set(tmp_arr, 1, newSF);
         cpl_array_set(tmp_arr, 2, newSF+halfSF);
         cpl_table_set_array(tw_out, CR2RES_COL_SLIT_FRACTION, i, tmp_arr);
         cpl_array_delete(tmp_arr);
 
-        /* Recalculate wavelengths at the new slit-fraction */
-        tw_out = cr2res_trace_shift_wavelength(tw_out, 0.5, o, 1);
-
         /* Evaluate WL at detector edges, because corr-poly is P(WL)*/
+        wl_poly = cr2res_get_trace_wave_poly(tw_in, CR2RES_COL_WAVELENGTH, o,1);
         wl = cpl_polynomial_eval_1d(wl_poly, 1, NULL);
         y_corr = cpl_polynomial_eval_1d(corr_poly, wl, NULL);
         wl = cpl_polynomial_eval_1d(wl_poly, CR2RES_DETECTOR_SIZE, NULL);
@@ -1157,13 +1168,13 @@ cpl_table *cr2res_pol_get_beam_trace(
                     - y_corr) /  CR2RES_DETECTOR_SIZE;  // SLOPE!
 
         cpl_msg_debug(__func__, 
-                "y_mid, y_up, y_lo, newSF, halfSF, slope_corr, y_corr: "
-                "%g, %g, %g, %g, %g, %g, %g ",
-                 y_mid, y_up, y_lo, newSF, halfSF, slope_corr, y_corr);
+                "newSF, halfSF, slope_corr, y_corr: "
+                "%g, %g, %g, %g ",
+                newSF, halfSF, slope_corr, y_corr);
 
         /* Add the correction to the existing trace polys */
         tmp_arr = cpl_array_duplicate (
-                    cpl_table_get_array(tw_out, CR2RES_COL_ALL,i));
+                    cpl_table_get_array(tw_in, CR2RES_COL_ALL,i));
         cpl_array_set(tmp_arr, 0, cpl_array_get(tmp_arr, 0, NULL) + y_corr);
         cpl_array_set(tmp_arr, 1, cpl_array_get(tmp_arr, 1, NULL) + slope_corr);
         cpl_table_set_array(tw_out, CR2RES_COL_ALL, i, tmp_arr);
@@ -1178,8 +1189,6 @@ cpl_table *cr2res_pol_get_beam_trace(
         cpl_array_delete(tmp_arr);
 
         cpl_polynomial_delete(trace_poly);
-        cpl_polynomial_delete(upper_poly);
-        cpl_polynomial_delete(lower_poly);
         cpl_polynomial_delete(wl_poly);
     }
 
