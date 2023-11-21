@@ -1480,6 +1480,12 @@ int cr2res_extract_slitdec_curved(
     trace_height = (double)cr2res_trace_get_height(trace_tab, order, trace_id) ;
     cpl_msg_info(__func__, "Y position of the trace: %g -> %g", 
             trace_cen-(trace_height/2), trace_cen+(trace_height/2)) ;
+    if (trace_cen-(height/2) < 0.0 || 
+                trace_cen+(height/2) > CR2RES_DETECTOR_SIZE) {
+        cpl_msg_warning(__func__, "Extraction beyond detector edges, skipping");
+        cpl_vector_delete(ycen);
+        return -1;
+    }
 
     // Get cut-out rectified order
     img_rect = cr2res_image_cut_rectify(img_in, ycen, height);
