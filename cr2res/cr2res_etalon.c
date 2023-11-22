@@ -783,10 +783,13 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     int pad;
 
     /* Check Inputs */
-    if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
+    if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL || 
             orders==NULL)
         return NULL ;
-
+    for (i=0 ; i<ninputs ; i++) {
+        if (spectra[i]==NULL || spectra_err[i]==NULL || wavesol_init[i]==NULL)
+            return NULL ;
+    }
     *wavelength_error = NULL;
 
     // Determine the setting based on the initial wavelength guess
