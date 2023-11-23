@@ -310,7 +310,7 @@ int cr2res_extract_traces(
                         &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
                 cpl_msg_error(__func__,
-                        "Cannot (slitdec-curved-) extract the trace") ;
+                        "Cannot extract order %d, trace %d", order, trace_id) ;
                 if (slit_func_in_vec != NULL) 
                     cpl_vector_delete(slit_func_in_vec) ;
                 slit_func_vec[i] = NULL ;
@@ -1482,7 +1482,7 @@ int cr2res_extract_slitdec_curved(
             trace_cen-(trace_height/2), trace_cen+(trace_height/2)) ;
     if (trace_cen-(height/2) < 0.0 || 
                 trace_cen+(height/2) > CR2RES_DETECTOR_SIZE) {
-        cpl_msg_warning(__func__, "Extraction beyond detector edges, skipping");
+        cpl_msg_error(__func__, "Extraction outside detector edges impossible");
         cpl_vector_delete(ycen);
         return -1;
     }

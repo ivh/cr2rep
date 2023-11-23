@@ -125,30 +125,30 @@ cpl_bivector * cr2res_pol_demod_stokes(
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
   if (n != 8) {
     cpl_msg_error(__func__, 
-          "Got %i spectra, but expected 8 for polarimetry!", n);
+          "Demodulation fail: Got %i spectra, but expected 8!", n);
     return NULL;
   }
 
   if (intens[0]== NULL) {
     cpl_msg_error(__func__, 
-          "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(0));
+          "Demodulation fail: Spectrum %s is missing", CR2RES_POL_MODE(0));
     return NULL;
   }
   size = cpl_vector_get_size(intens[0]);
   for (i = 0; i < n; i++) {
     if (intens[i] == NULL) {
       cpl_msg_error(__func__, 
-            "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(i));
+            "Demodulation fail: Spectrum %s is missing", CR2RES_POL_MODE(i));
       return NULL;
     }
     if (wl[i] == NULL) {
       cpl_msg_error(__func__, 
-            "Wavelength %s is missing for polarimetry", CR2RES_POL_MODE(i));
+            "Demodulation fail: Wavelength %s is missing", CR2RES_POL_MODE(i));
       return NULL;
     }
     if (errors[i] == NULL) {
       cpl_msg_error(__func__, 
-            "Errors %s are missing for polarimetry", CR2RES_POL_MODE(i));
+            "Demodulation fail: Errors %s are missing", CR2RES_POL_MODE(i));
       return NULL;
     }
     if (cpl_vector_get_size(intens[i]) != size) {
@@ -429,30 +429,30 @@ cpl_bivector * cr2res_pol_demod_null(
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
   if (n != 8) {
     cpl_msg_error(__func__, 
-          "Got %i spectra, but expected 8 for polarimetry!", n);
+          "Demodulation fail: Got %i spectra, but expected 8!", n);
     return NULL;
   }
 
   if (intens[0]== NULL) {
     cpl_msg_error(__func__, 
-          "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(0));
+          "Demodulation fail: Spectrum %s is missing", CR2RES_POL_MODE(0));
     return NULL;
   }
   size = cpl_vector_get_size(intens[0]);
   for (i = 0; i < n; i++) {
     if (intens[i] == NULL) {
       cpl_msg_error(__func__, 
-            "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(i));
+            "Demodulation fail: Spectrum %s is missing", CR2RES_POL_MODE(i));
       return NULL;
     }
     if (wl[i] == NULL) {
       cpl_msg_error(__func__, 
-            "Wavelength %s is missing for polarimetry", CR2RES_POL_MODE(i));
+            "Demodulation fail: Wavelength %s is missing", CR2RES_POL_MODE(i));
       return NULL;
     }
     if (errors[i] == NULL) {
       cpl_msg_error(__func__, 
-            "Errors %s are missing for polarimetry", CR2RES_POL_MODE(i));
+            "Demodulation fail: Errors %s are missing", CR2RES_POL_MODE(i));
       return NULL;
     }
     if (cpl_vector_get_size(intens[i]) != size) {
@@ -550,30 +550,30 @@ cpl_bivector * cr2res_pol_demod_intens(
     if (intens == NULL || wl == NULL || errors == NULL) return NULL;
     if (n != 8) {
       cpl_msg_error(__func__, 
-            "Got %i spectra, but expected 8 for polarimetry!", n);
+            "Demodulation fail: Got %i spectra, but expected 8!", n);
       return NULL;
     }
 
     if (intens[0]== NULL) {
       cpl_msg_error(__func__, 
-            "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(0));
+            "Demodulation fail: Spectrum %s is missing", CR2RES_POL_MODE(0));
       return NULL;
     }
     size = cpl_vector_get_size(intens[0]);
     for (i = 0; i < n; i++) {
       if (intens[i] == NULL) {
         cpl_msg_error(__func__, 
-              "Spectrum %s is missing for polarimetry", CR2RES_POL_MODE(i));
+              "Demodulation fail: Spectrum %s is missing", CR2RES_POL_MODE(i));
         return NULL;
       }
       if (wl[i] == NULL) {
         cpl_msg_error(__func__, 
-              "Wavelength %s is missing for polarimetry", CR2RES_POL_MODE(i));
+              "Demodulation fail: Wavelength %s is missing", CR2RES_POL_MODE(i));
         return NULL;
       }
       if (errors[i] == NULL) {
         cpl_msg_error(__func__, 
-              "Errors %s are missing for polarimetry", CR2RES_POL_MODE(i));
+              "Demodulation fail: Errors %s are missing", CR2RES_POL_MODE(i));
         return NULL;
       }
       if (cpl_vector_get_size(intens[i]) != size) {
