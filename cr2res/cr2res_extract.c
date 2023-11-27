@@ -72,7 +72,7 @@ typedef struct {
  -----------------------------------------------------------------------------*/
 
 static int cr2res_extract_slit_func_curved(
-        double      gain,
+        double      error_factor,
         int         ncols,
         int         nrows,
         int         osample,
@@ -162,7 +162,7 @@ static int debug_output(int         ncols,
   @param    oversample      factor for oversampling
   @param    smooth_slit     smoothing along slit
   @param    smooth_spec     smoothing along spectrum
-  @param    gain            gain
+  @param    error_factor    Factor to get errors scale correctly
   @param    display         Flag to allow display
   @param    disp_order_idx  The order index to display
   @param    disp_trace      The trace number to display
@@ -189,7 +189,7 @@ int cr2res_extract_traces(
         double                  smooth_spec,
         int                     niter,
         double                  kappa,
-        double                  gain,
+        double                  error_factor,
         int                     display,
         int                     disp_order_idx,
         int                     disp_trace,
@@ -306,7 +306,7 @@ int cr2res_extract_traces(
             if (cr2res_extract_slitdec_curved(img, traces, slit_func_in_vec,
                         order, trace_id, extr_height, swath_width,
                         oversample, smooth_slit, smooth_spec,
-                        niter, kappa, gain,
+                        niter, kappa, error_factor,
                         &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
                 cpl_msg_error(__func__,
@@ -1325,7 +1325,7 @@ int cr2res_extract_SLIT_FUNC_get_vector(
   @param    oversample  factor for oversampling
   @param    smooth_slit smoothing along slit
   @param    smooth_spec smoothing along spectrum
-  @param    gain        gain
+  @param    error_factor        error_factor
   @param    slit_func   the returned slit function
   @param    spec        the returned spectrum
   @param    model       the returned model
@@ -1363,7 +1363,7 @@ int cr2res_extract_slitdec_curved(
         double                  smooth_spec,
         int                     niter,
         double                  kappa,
-        double                  gain,
+        double                  error_factor,
         cpl_vector          **  slit_func,
         cpl_bivector        **  spec,
         hdrl_image          **  model)
@@ -1778,7 +1778,7 @@ int cr2res_extract_slitdec_curved(
         cpl_image_unwrap(img_tmp);
         
         /* Finally ready to call the slit-decomp */
-        cr2res_extract_slit_func_curved(gain, swath, height, oversample, 
+        cr2res_extract_slit_func_curved(error_factor, swath, height, oversample, 
                 img_sw_data, err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, 
                 y_lower_limit, slitcurves_sw, delta_x, slitfu_sw_data, 
                 spec_sw_data, model_sw, unc_sw_data, smooth_spec, smooth_slit, 
@@ -2842,7 +2842,7 @@ static int cr2res_extract_xi_zeta_tensors(
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Slit decomposition of single swath with slit tilt & curvature
-  @param gain       gain
+  @param error_factor Factor for error scaling
   @param ncols      Swath width in pixels
   @param nrows      Extraction slit height in pixels
   @param osample    Subpixel ovsersampling factor
@@ -2868,7 +2868,7 @@ static int cr2res_extract_xi_zeta_tensors(
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_extract_slit_func_curved(
-        double      gain,
+        double      error_factor,
         int         ncols,
         int         nrows,
         int         osample,
@@ -3203,7 +3203,7 @@ static int cr2res_extract_slit_func_curved(
                             mask[y * ncols + x] ;
             }
         }
-        unc[x] = sqrt(sP[x] * sum / msum / gain );
+        unc[x] = sqrt(sP[x] * sum / msum / error_factor );
     }
 
     return 0;

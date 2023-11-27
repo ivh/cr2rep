@@ -1012,7 +1012,7 @@ static int cr2res_obs_nodding_reduce(
     double                  slit_length, extr_width_frac, slit_frac_a_bot, 
                             slit_frac_a_mid, slit_frac_a_top, slit_frac_b_bot, 
                             slit_frac_b_mid, slit_frac_b_top, nod_throw,
-                            extract_gain ;
+                            gain, error_factor ;
     double                  qc_signal_a, qc_signal_b, qc_fwhm_a, 
                             qc_fwhm_b, qc_standard_flux_a,
                             qc_standard_flux_b, qc_fwhm_med ;
@@ -1034,9 +1034,9 @@ static int cr2res_obs_nodding_reduce(
         return -1 ;
 
     /* Get the Gain */
-    if (reduce_det == 1) extract_gain = CR2RES_GAIN_CHIP1 ;
-    else if (reduce_det == 2) extract_gain = CR2RES_GAIN_CHIP2 ;
-    else if (reduce_det == 3) extract_gain = CR2RES_GAIN_CHIP3 ;
+    if (reduce_det == 1) gain = CR2RES_GAIN_CHIP1 ;
+    else if (reduce_det == 2) gain = CR2RES_GAIN_CHIP2 ;
+    else if (reduce_det == 3) gain = CR2RES_GAIN_CHIP3 ;
     else {
         cpl_msg_error(__func__, "Failed to get the Gain value") ;
         return -1 ;
@@ -1125,7 +1125,6 @@ static int cr2res_obs_nodding_reduce(
     }
     hdrl_imagelist_delete(in) ;
     if (dits != NULL) cpl_vector_delete(dits) ;
-    if (ndits != NULL) cpl_vector_delete(ndits) ;
     cpl_msg_indent_less() ;
 
     /* Split the image lists */
@@ -1139,12 +1138,18 @@ static int cr2res_obs_nodding_reduce(
         hdrl_imagelist_delete(in_calib) ;
         return -1 ;
     }
+    
+    /* error factor is gain * ndit *nexp */
+    error_factor = gain * cpl_vector_get(ndits, 0) * 
+                                        hdrl_imagelist_get_size(in_a);
+    
+    cpl_vector_delete(ndits) ;
     cpl_free(nod_positions) ;    
     hdrl_imagelist_delete(in_calib) ;
     cpl_msg_indent_less() ;
 
     /* Check the sizes of A/B image lists */
-    if (hdrl_imagelist_get_size(in_a) != hdrl_imagelist_get_size(in_b)
+    if ((hdrl_imagelist_get_size(in_a)) != hdrl_imagelist_get_size(in_b)
             || hdrl_imagelist_get_size(in_a) == 0) {
         cpl_msg_error(__func__, "Inconsistent A / B number of images") ;
         hdrl_imagelist_delete(in_a) ;
@@ -1342,7 +1347,7 @@ static int cr2res_obs_nodding_reduce(
     if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, blaze_table, -1,
                 -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth_slit, extract_smooth_spec,
-                extract_niter, extract_kappa, extract_gain,
+                extract_niter, extract_kappa, error_factor,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_a, &slit_func_a, &model_master_a) == -1) {
         cpl_msg_error(__func__, "Failed to extract A");
@@ -1361,7 +1366,7 @@ static int cr2res_obs_nodding_reduce(
     if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, blaze_table, -1,
                 -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth_slit, extract_smooth_spec,
-                extract_niter, extract_kappa, extract_gain,
+                extract_niter, extract_kappa, error_factor,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_b, &slit_func_b, &model_master_b) == -1) {
         cpl_msg_error(__func__, "Failed to extract B");
