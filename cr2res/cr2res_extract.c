@@ -1417,7 +1417,7 @@ int cr2res_extract_slitdec_curved(
     int             *   m_zeta;
     char            *   path;
     double              pixval, errval, delta_tmp, a, b, c,yc;
-    double              trace_cen, trace_height ;
+    double              trace_cen, trace_height, img_sum ;
     int                 i, j, k, nswaths, col, x, y, ny_os,
                         sw_start, sw_end, badpix, y_lower_limit, delta_x;
     int                 ny, nx;
@@ -1759,15 +1759,23 @@ int cr2res_extract_slitdec_curved(
         }
         y_lower_limit = height / 2;
 
-        if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
-            img_tmp = cpl_image_wrap_int(swath, height, mask_sw);
-            cpl_image_save(img_tmp, "debug_mask_before_sw.fits", CPL_TYPE_INT, 
-                    NULL, CPL_IO_CREATE);
+        img_tmp = cpl_image_wrap_int(swath, height, mask_sw);
+        img_sum = cpl_image_get_flux(img_tmp);
+        if (img_sum < 0.5 * swath*height){
+            cpl_msg_error(__func__,
+                    "Only %.0f %% of pixels not masked, cannot extract",
+                    100*img_sum/(swath*height));
             cpl_image_unwrap(img_tmp);
-
+            cpl_vector_delete(spec_sw);
+            break;
+        }
+        if (cpl_msg_get_level() == CPL_MSG_DEBUG)
+        {
+            cpl_image_save(img_tmp, "debug_mask_before_sw.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
             cpl_vector_save(spec_sw, "debug_spc_initial_guess.fits",
                     CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
         }
+        cpl_image_unwrap(img_tmp);
         
         /* Finally ready to call the slit-decomp */
         cr2res_extract_slit_func_curved(gain, swath, height, oversample, 
