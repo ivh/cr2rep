@@ -1116,7 +1116,7 @@ static int cr2res_cal_wave_reduce(
     cpl_polynomial      *   slit_polyb ;
     cpl_polynomial      *   slit_polyc ;
     cpl_array           *   slit_array ;
-    double                  qc_overexposed, extract_gain ;
+    double                  qc_overexposed, gain, error_factor ;
     int                     i, order, trace_id, ext_nr, zp_order_une, 
                             zp_order_fpet, nb_traces, grat1_order_une, 
                             grat1_order_fpet ;
@@ -1137,9 +1137,9 @@ static int cr2res_cal_wave_reduce(
         return -1 ;
 
     /* Get the Gain */
-    if (reduce_det == 1) extract_gain = CR2RES_GAIN_CHIP1 ;
-    else if (reduce_det == 2) extract_gain = CR2RES_GAIN_CHIP2 ;
-    else if (reduce_det == 3) extract_gain = CR2RES_GAIN_CHIP3 ;
+    if (reduce_det == 1) gain = CR2RES_GAIN_CHIP1 ;
+    else if (reduce_det == 2) gain = CR2RES_GAIN_CHIP2 ;
+    else if (reduce_det == 3) gain = CR2RES_GAIN_CHIP3 ;
     else {
         cpl_msg_error(__func__, "Failed to get the Gain value") ;
         return -1 ;
@@ -1247,6 +1247,16 @@ static int cr2res_cal_wave_reduce(
         /*Load the NDITs */
         ndits_une = cr2res_io_read_ndits(rawframes_une);
 
+        /* Set the error factor. */
+        error_factor = gain * cpl_vector_get(ndits_une, 0) *
+                                    cpl_frameset_get_size(rawframes_une) ;
+
+        for (i=0; i<cpl_vector_get_size(ndits_une); i++){
+            if (cpl_vector_get(ndits_une,i) != cpl_vector_get(ndits_une, 0))
+                cpl_msg_warning(__func__, "UNE raw frames have different NDIT! "
+                    "Error spectrum will likely be scaled incorrectly.");
+        }
+
         /* Load UNE image list */
         if ((in_une = cr2res_io_load_image_list_from_set(rawframes_une,
                         reduce_det)) == NULL) {
@@ -1329,7 +1339,7 @@ static int cr2res_cal_wave_reduce(
                     reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
                     ext_height, ext_swath_width, ext_oversample, 
                     ext_smooth_slit, ext_smooth_spec,
-                    extract_niter, extract_kappa, extract_gain, 0, 0, 0,
+                    extract_niter, extract_kappa, error_factor, 0, 0, 0,
                     &extracted_une, &slit_func_une, &model_master_une) == -1) {
             cpl_msg_error(__func__, "Failed to extract");
             hdrl_image_delete(collapsed_une) ;
@@ -1484,6 +1494,16 @@ static int cr2res_cal_wave_reduce(
         /* Load FPET NDITs*/
         ndits_fpet = cr2res_io_read_ndits(rawframes_fpet);
 
+        /* Set the error factor. */
+        error_factor = gain * cpl_vector_get(ndits_fpet, 0) *
+                                    cpl_frameset_get_size(rawframes_une) ;
+
+        for (i=0; i<cpl_vector_get_size(ndits_fpet); i++){
+            if (cpl_vector_get(ndits_fpet,i) != cpl_vector_get(ndits_fpet, 0))
+                cpl_msg_warning(__func__, "FPET raw frames have different NDIT! "
+                    "Error spectrum will likely be scaled incorrectly.");
+        }
+
         /* Calibrate the FPET images */
         if ((in_fpet_calib = cr2res_calib_imagelist(in_fpet, reduce_det, 0, 
                         subtract_nolight_rows, 0, cosmics, master_flat_frame, 
@@ -1573,7 +1593,7 @@ static int cr2res_cal_wave_reduce(
                     reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
                     ext_height, ext_swath_width, ext_oversample, 
                     ext_smooth_slit, ext_smooth_spec, 
-                    extract_niter, extract_kappa, extract_gain, 0, 0, 0,
+                    extract_niter, extract_kappa, error_factor, 0, 0, 0,
                     &extracted_fpet, &slit_func_fpet, &model_master_fpet)==-1) {
             cpl_msg_error(__func__, "Failed to extract");
             cpl_table_delete(tw_in) ;

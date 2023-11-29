@@ -1414,7 +1414,7 @@ static int cr2res_obs_pol_reduce_one(
     char                *   key_name ;
     char                *   spec_name ;
     char                *   err_name ;
-    double                  snr, extract_gain ;
+    double                  snr, gain, error_factor ;
     int                 *   order_idx_values ;
     int                     nb_order_idx_values, order_real, order_zp, 
                             order_idx, order_idxp ;
@@ -1441,9 +1441,9 @@ static int cr2res_obs_pol_reduce_one(
             cpl_frameset_get_position_const(rawframes, 0)) ;
 
     /* Get the Gain */
-    if (reduce_det == 1) extract_gain = CR2RES_GAIN_CHIP1 ;
-    else if (reduce_det == 2) extract_gain = CR2RES_GAIN_CHIP2 ;
-    else if (reduce_det == 3) extract_gain = CR2RES_GAIN_CHIP3 ;
+    if (reduce_det == 1) gain = CR2RES_GAIN_CHIP1 ;
+    else if (reduce_det == 2) gain = CR2RES_GAIN_CHIP2 ;
+    else if (reduce_det == 3) gain = CR2RES_GAIN_CHIP3 ;
     else {
         cpl_msg_error(__func__, "Failed to get the Gain value") ;
         return -1 ;
@@ -1481,6 +1481,16 @@ static int cr2res_obs_pol_reduce_one(
     
     /* Load the NDITs */
     ndits = cr2res_io_read_ndits(rawframes) ;
+
+    /* Set the error factor. Note that we don't multiply by 4 because */
+    /* each the beams get extracted from each frame, then errors propagated on.*/
+    error_factor = gain * cpl_vector_get(ndits, 0);
+
+    for (i=0; i<cpl_vector_get_size(ndits); i++){
+        if (cpl_vector_get(ndits,i) != cpl_vector_get(ndits, 0))
+            cpl_msg_warning(__func__, "Raw frames have different NDIT! "
+                "Error spectrum will likely be scaled incorrectly.");
+    }
 
     /* Get the decker positions */
     if ((decker_positions = cr2res_io_read_decker_positions(rawframes))==NULL) {
@@ -1721,7 +1731,7 @@ static int cr2res_obs_pol_reduce_one(
                     NULL, blaze_table, -1, -1, CR2RES_EXTR_OPT_CURV,
                     extract_height, extract_swath_width, extract_oversample, 
                     extract_smooth_slit, extract_smooth_spec,
-                    extract_niter, extract_kappa, extract_gain, 0, 0, 0, 
+                    extract_niter, extract_kappa, error_factor, 0, 0, 0, 
                     &(extract_1d[2*j]), &slit_func, &model_master) == -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j] = NULL ;
@@ -1751,7 +1761,7 @@ static int cr2res_obs_pol_reduce_one(
                     CR2RES_EXTR_OPT_CURV, extract_height, 
                     extract_swath_width, extract_oversample,
                     extract_smooth_slit, extract_smooth_spec,
-                    extract_niter, extract_kappa, extract_gain, 0, 0, 0, 
+                    extract_niter, extract_kappa, error_factor, 0, 0, 0, 
                     &(extract_1d[2*j+1]), &slit_func, &model_master)== -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j+1] = NULL ;

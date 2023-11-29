@@ -334,7 +334,7 @@ static int cr2res_util_extract(
     int                     oversample, swath_width, extr_height,
                             reduce_det, reduce_order, reduce_trace ;
     double                  smooth_slit, smooth_spec, slit_low, slit_up,
-                            extract_gain ;
+                            gain, error_factor ;
     cpl_array           *   slit_frac ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   cur_frame ;
@@ -349,6 +349,7 @@ static int cr2res_util_extract(
     cpl_table           *   slit_func_tab[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extract_tab[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
+    cpl_propertylist    *   prim_plist ;
     cpl_table           *   trace_table ;
     cpl_table           *   trace_table_new ;
     hdrl_image          *   science_hdrl;
@@ -458,6 +459,9 @@ static int cr2res_util_extract(
         cpl_msg_info(__func__, "Reduce Frame %s", cur_fname) ;
         cpl_msg_indent_more() ;
 
+        /* Needed for NDIT for error factor */
+        prim_plist = cpl_propertylist_load(cur_fname, 0);
+
         /* Loop over the detectors */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
 
@@ -466,6 +470,16 @@ static int cr2res_util_extract(
             slit_func_tab[det_nr-1] = NULL ;
             extract_tab[det_nr-1] = NULL ;
             ext_plist[det_nr-1] = NULL ;
+
+            /* Get the Gain and set error factor*/
+            if (reduce_det == 1) gain = CR2RES_GAIN_CHIP1 ;
+            else if (reduce_det == 2) gain = CR2RES_GAIN_CHIP2 ;
+            else if (reduce_det == 3) gain = CR2RES_GAIN_CHIP3 ;
+            else {
+                cpl_msg_error(__func__, "Failed to get the Gain value") ;
+                return -1 ;
+            }
+            error_factor = gain * cr2res_pfits_get_ndit(prim_plist);
 
             /* Store the extension header for product saving */
             ext_nr = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
@@ -540,12 +554,12 @@ static int cr2res_util_extract(
             }
            
             /* Get the Gain */
-			if (det_nr == 1) extract_gain = CR2RES_GAIN_CHIP1 ;
-			else if (det_nr == 2) extract_gain = CR2RES_GAIN_CHIP2 ;
-			else if (det_nr == 3) extract_gain = CR2RES_GAIN_CHIP3 ;
+			if (det_nr == 1) gain = CR2RES_GAIN_CHIP1 ;
+			else if (det_nr == 2) gain = CR2RES_GAIN_CHIP2 ;
+			else if (det_nr == 3) gain = CR2RES_GAIN_CHIP3 ;
 			else {
 				cpl_msg_error(__func__, "Failed to get the Gain value") ;
-				extract_gain = -1.0 ;
+				gain = -1.0 ;
 			}
 
             /* Compute the extraction */
@@ -554,7 +568,7 @@ static int cr2res_util_extract(
                         slit_func_in, NULL, reduce_order, reduce_trace, 
                         extr_method, extr_height, swath_width, oversample,
                         smooth_slit, smooth_spec,
-                        extract_niter, extract_kappa, extract_gain, 0, 0, 0, 
+                        extract_niter, extract_kappa, error_factor, 0, 0, 0, 
                         &(extract_tab[det_nr-1]), &(slit_func_tab[det_nr-1]), 
                         &(model_master[det_nr-1]))==-1) {
                 cpl_table_delete(trace_table) ;
@@ -571,6 +585,7 @@ static int cr2res_util_extract(
             cpl_msg_indent_less() ;
         }
         cpl_array_delete(slit_frac) ;
+        cpl_propertylist_delete(prim_plist);
 
         /* Generate the currently used frameset */
         /* TODO : add calibrations */

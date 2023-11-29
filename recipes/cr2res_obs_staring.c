@@ -687,7 +687,7 @@ static int cr2res_obs_staring_reduce(
     cpl_array           *   fwhm_array ;
     char                *   key_name ;
     const char          *   first_fname ;
-    double                  qc_signal, qc_fwhm, extract_gain ;
+    double                  qc_signal, qc_fwhm, gain, error_factor ;
     int                     order_zp, nb_order_idx_values,
                             order_real, order_idx, order_idxp ;
 
@@ -696,9 +696,9 @@ static int cr2res_obs_staring_reduce(
             rawframes == NULL || trace_wave_frame == NULL) return -1 ;
 
     /* Get the Gain */
-    if (reduce_det == 1) extract_gain = CR2RES_GAIN_CHIP1 ;
-    else if (reduce_det == 2) extract_gain = CR2RES_GAIN_CHIP2 ;
-    else if (reduce_det == 3) extract_gain = CR2RES_GAIN_CHIP3 ;
+    if (reduce_det == 1) gain = CR2RES_GAIN_CHIP1 ;
+    else if (reduce_det == 2) gain = CR2RES_GAIN_CHIP2 ;
+    else if (reduce_det == 3) gain = CR2RES_GAIN_CHIP3 ;
     else {
         cpl_msg_error(__func__, "Failed to get the Gain value") ;
         return -1 ;
@@ -750,6 +750,16 @@ static int cr2res_obs_staring_reduce(
         if (dits != NULL) cpl_vector_delete(dits) ;
         hdrl_imagelist_delete(in) ;
         return -1 ;
+    }
+
+    /* Set the error factor. */
+    error_factor = gain * cpl_vector_get(ndits, 0) *
+                                cpl_frameset_get_size(rawframes) ;
+
+    for (i=0; i<cpl_vector_get_size(ndits); i++){
+        if (cpl_vector_get(ndits,i) != cpl_vector_get(ndits, 0))
+            cpl_msg_warning(__func__, "Raw frames have different NDIT! "
+                "Error spectrum will likely be scaled incorrectly.");
     }
 
     /* Calibrate the images */
@@ -826,7 +836,7 @@ static int cr2res_obs_staring_reduce(
     if (cr2res_extract_traces(collapsed, trace_wave, NULL, blaze_table, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth_slit, extract_smooth_spec,
-                extract_niter, extract_kappa, extract_gain, 
+                extract_niter, extract_kappa, error_factor, 
                 0, 0, 0, &extracted, &slit_func, &model_master) == -1) {
         cpl_msg_error(__func__, "Failed to extract");
         hdrl_image_delete(collapsed) ;

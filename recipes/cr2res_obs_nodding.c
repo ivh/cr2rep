@@ -1136,6 +1136,7 @@ static int cr2res_obs_nodding_reduce(
         cpl_msg_indent_less() ;
         cpl_free(nod_positions) ;    
         hdrl_imagelist_delete(in_calib) ;
+        cpl_vector_delete(ndits) ;
         return -1 ;
     }
     
@@ -1143,6 +1144,11 @@ static int cr2res_obs_nodding_reduce(
     error_factor = gain * cpl_vector_get(ndits, 0) * 
                                         hdrl_imagelist_get_size(in_a);
     
+    for (i=0; i<cpl_vector_get_size(ndits); i++){
+        if (cpl_vector_get(ndits,i) != cpl_vector_get(ndits, 0))
+            cpl_msg_warning(__func__, "Raw frames have different NDIT! "
+                "Error spectrum will likely be scaled incorrectly.");
+    }
     cpl_vector_delete(ndits) ;
     cpl_free(nod_positions) ;    
     hdrl_imagelist_delete(in_calib) ;

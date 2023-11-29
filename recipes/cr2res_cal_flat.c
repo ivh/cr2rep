@@ -1147,7 +1147,7 @@ static int cr2res_cal_flat_reduce(
     int                 *   orders ;
     double                  qc_mean, qc_median, qc_flux, qc_rms, qc_s2n, 
                             qc_trace_centery, dit, qc_overexposed, 
-                            extract_gain ;
+                            gain, error_factor ;
     int                     i, ext_nr, nb_traces, order, trace_id,
                             nb_orders, qc_nbbad, nbvals, zp_order, ngood ;
 
@@ -1164,9 +1164,9 @@ static int cr2res_cal_flat_reduce(
     }
 
     /* Get the Gain */
-    if (reduce_det == 1) extract_gain = CR2RES_GAIN_CHIP1 ;
-    else if (reduce_det == 2) extract_gain = CR2RES_GAIN_CHIP2 ;
-    else if (reduce_det == 3) extract_gain = CR2RES_GAIN_CHIP3 ;
+    if (reduce_det == 1) gain = CR2RES_GAIN_CHIP1 ;
+    else if (reduce_det == 2) gain = CR2RES_GAIN_CHIP2 ;
+    else if (reduce_det == 3) gain = CR2RES_GAIN_CHIP3 ;
     else {
         cpl_msg_error(__func__, "Failed to get the Gain value") ;
         return -1 ;
@@ -1191,6 +1191,16 @@ static int cr2res_cal_flat_reduce(
         cpl_vector_delete(dits) ;
         cpl_vector_delete(ndits) ;
         return -1 ;
+    }
+
+    /* Set the error factor. */
+    error_factor = gain * cpl_vector_get(ndits, 0) *
+                                cpl_frameset_get_size(rawframes) ;
+
+    for (i=0; i<cpl_vector_get_size(ndits); i++){
+        if (cpl_vector_get(ndits,i) != cpl_vector_get(ndits, 0))
+            cpl_msg_warning(__func__, "Raw frames have different NDIT! "
+                "Error spectrum will likely be scaled incorrectly.");
     }
 
     /* Compute traces */
@@ -1360,7 +1370,7 @@ static int cr2res_cal_flat_reduce(
                         trace_id, extract_height, extract_swath_width, 
                         extract_oversample, extract_smooth_slit, 
                         extract_smooth_spec, extract_niter, extract_kappa,
-                        extract_gain,
+                        error_factor,
                         &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
                 cpl_msg_error(__func__, "Cannot (slitdec-) extract the trace") ;
                 slit_func_vec[i] = NULL ;
