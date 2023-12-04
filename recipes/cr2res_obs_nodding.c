@@ -755,6 +755,9 @@ static int cr2res_obs_nodding(
         if (blaze_frame!= NULL) 
             cpl_frameset_insert(raw_one_angle,
                     cpl_frame_duplicate(blaze_frame)) ;
+        if (photo_flux_frame!= NULL) 
+            cpl_frameset_insert(raw_one_angle,
+                    cpl_frame_duplicate(photo_flux_frame)) ;
 
 		out_file = cpl_sprintf("%s_combinedA%s", RECIPE_STRING, 
                 product_name_addon) ;
