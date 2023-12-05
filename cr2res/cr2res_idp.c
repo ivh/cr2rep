@@ -108,7 +108,7 @@ int cr2res_idp_save(
 	const char			*	slitname ;
 	const char			*	setting ;
 	const char			*	poltype ;
-    int                     err, i, ndit, nraw, obid, nrows, ord ;
+    int                     err, i, ndit, nframes, nraw, obid, nrows, ord ;
     char                *   keyname;
     char                *   tmp_string;
     const char          *   fname;
@@ -196,19 +196,22 @@ int cr2res_idp_save(
     dit = cr2res_pfits_get_dit(pri_head);
     ndit = cr2res_pfits_get_ndit(pri_head) ; 
     
-    nraw = cpl_frameset_get_size(rawframes);
-    cpl_propertylist_update_int(pri_head, "NCOMBINE", nraw);
-
-    for (i = 1; i <= nraw; i++)
+    nframes = cpl_frameset_get_size(rawframes);
+    nraw = 0;
+    for (i = 1; i <= nframes; i++)
     {
         keyname = cpl_sprintf("ESO PRO REC1 RAW%d NAME", i);
         fname = cpl_propertylist_get_string(pri_head, keyname);
         cpl_free(keyname);
-        keyname = cpl_sprintf("PROV%d", i);
-        cpl_propertylist_update_string(pri_head, keyname, fname);
-        cpl_free(keyname);
+        if (fname != NULL){
+            keyname = cpl_sprintf("PROV%d", i);
+            cpl_propertylist_update_string(pri_head, keyname, fname);
+            cpl_free(keyname);
+            nraw++;
+        }
     }
 
+    cpl_propertylist_update_int(pri_head, "NCOMBINE", nraw);
     exptime = dit * ndit * nraw;
     cpl_propertylist_update_double(pri_head, "EXPTIME", exptime);
     cpl_propertylist_set_comment(pri_head, "EXPTIME",
