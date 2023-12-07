@@ -471,16 +471,6 @@ static int cr2res_util_extract(
             extract_tab[det_nr-1] = NULL ;
             ext_plist[det_nr-1] = NULL ;
 
-            /* Get the Gain and set error factor*/
-            if (reduce_det == 1) gain = CR2RES_GAIN_CHIP1 ;
-            else if (reduce_det == 2) gain = CR2RES_GAIN_CHIP2 ;
-            else if (reduce_det == 3) gain = CR2RES_GAIN_CHIP3 ;
-            else {
-                cpl_msg_error(__func__, "Failed to get the Gain value") ;
-                return -1 ;
-            }
-            error_factor = gain * cr2res_pfits_get_ndit(prim_plist);
-
             /* Store the extension header for product saving */
             ext_nr = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
             if (ext_nr < 0) continue ;
@@ -553,14 +543,16 @@ static int cr2res_util_extract(
                 slit_func_in = NULL ;
             }
            
-            /* Get the Gain */
+            /* Get the Gain and set error factor */
 			if (det_nr == 1) gain = CR2RES_GAIN_CHIP1 ;
 			else if (det_nr == 2) gain = CR2RES_GAIN_CHIP2 ;
 			else if (det_nr == 3) gain = CR2RES_GAIN_CHIP3 ;
 			else {
-				cpl_msg_error(__func__, "Failed to get the Gain value") ;
+				cpl_msg_error(__func__, "Failed to get the Gain value, det %d",
+                                                         det_nr) ;
 				gain = -1.0 ;
 			}
+            error_factor = gain * cr2res_pfits_get_ndit(prim_plist);
 
             /* Compute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
