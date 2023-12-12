@@ -60,6 +60,7 @@
 #define CR2RES_HEADER_OBS_ID            "ESO OBS ID"
 #define CR2RES_HEADER_DRS_TYPE          "ESO DRS TYPE"
 #define CR2RES_HEADER_DRS_TMID          "ESO DRS TMID"
+#define CR2RES_HEADER_DRS_BARYCORR      "ESO DRS BARYCORR"
 
 /* QC Parameter Names */
 #define CR2RES_HEADER_QC_DARK_RON1          "ESO QC DARK RON1"

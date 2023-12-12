@@ -731,6 +731,29 @@ static int cr2res_obs_nodding(
                 CR2RES_HEADER_DRS_TMID,
                 cr2res_utils_get_center_mjd(raw_one_angle)) ;
 
+        /* Add barycentric correction */
+        double barycorr = 0.0;
+        cpl_table *eop_table =
+            cpl_table_load("/home/tom/pipes/esotk_eop_param.fits", 1,0);
+        plist=cpl_propertylist_load(cpl_frame_get_filename(
+			cpl_frameset_get_position_const(raw_one_angle, 0)), 0) ;
+        hdrl_barycorr_compute(
+            cpl_propertylist_get_double(plist, "RA"),
+            cpl_propertylist_get_double(plist, "DEC"),
+            eop_table,
+            cpl_propertylist_get_double(plist, "MJD-OBS"),
+            (cr2res_utils_get_center_mjd(raw_one_angle) -
+             cpl_propertylist_get_double(plist, "MJD-OBS")) *
+                24 * 3600,
+            cpl_propertylist_get_double(plist, "ESO TEL GEOLON"),
+            cpl_propertylist_get_double(plist, "ESO TEL GEOLAT"),
+            cpl_propertylist_get_double(plist, "ESO TEL GEOELEV"),
+            0.0, 0.0, 0.0, 0.0, &barycorr);
+        cpl_propertylist_delete(plist) ;
+
+        cpl_msg_info(__func__, "Barycentric correction: %g m/s", barycorr);
+        cpl_propertylist_append_double(qc_main, CR2RES_HEADER_DRS_BARYCORR,
+                                            barycorr);
         /* Add QC NUMSAT */
         cpl_propertylist_append_int(qc_main,
                 CR2RES_HEADER_QC_NUMSAT,
