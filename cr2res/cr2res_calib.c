@@ -432,7 +432,6 @@ int cr2res_calib_subtract_interorder_column(hdrl_image * in,
         npixel = 0;
         for ( j = CR2RES_NB_BPM_VIGN_BOTTOM + 5; j < nrow -20 ; j++)
         {
-            // TODO: check that the pixels are actually rejected
             // Filter pixels that are rejected in the flat (i.e. between orders)
             // but not rejected by the image (i.e. not bad pixels)
             if (cpl_image_is_rejected(flat_img, i, j) 
@@ -444,10 +443,8 @@ int cr2res_calib_subtract_interorder_column(hdrl_image * in,
         }
         cpl_msg_debug(__func__, "Column %lld has %lld pixels for background",
                 i,npixel);
-        if (npixel == 0){
+        if (npixel < 10){
             badcols += 1;
-            cpl_msg_debug(__func__,
-              "Could not find any valid points for column %"CPL_SIZE_FORMAT, i);
             cpl_matrix_delete(px);
             cpl_vector_delete(py);
             continue;
