@@ -27,6 +27,7 @@
 
 #include <string.h>
 #include <cpl.h>
+#include "hdrl.h"
 
 #include "cr2res_utils.h"
 #include "cr2res_idp.h"
