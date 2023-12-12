@@ -59,7 +59,7 @@ static int cr2res_util_bpm_merge(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_util_bpm_merge_description[] = "\
 BPM merging                                                             \n\
-  Each input BPM is splitted into several BPMs                          \n\
+  Each input BPM is split into several BPMs                          \n\
                                                                         \n\
   Inputs                                                                \n\
    	raw.fits " CR2RES_CAL_DARK_BPM_PROCATG " [1 to n]                   \n\

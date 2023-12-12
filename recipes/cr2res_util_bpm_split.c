@@ -59,7 +59,7 @@ static int cr2res_util_bpm_split(cpl_frameset *, const cpl_parameterlist *);
 
 static char cr2res_util_bpm_split_description[] = "\
 BPM splitting                                                           \n\
-  Each input BPM is splitted into several BPMs                          \n\
+  Each input BPM is split into several BPMs                          \n\
                                                                         \n\
   Inputs                                                                \n\
    	raw.fits " CR2RES_CAL_DARK_BPM_PROCATG " [1 to n]                   \n\
@@ -70,7 +70,7 @@ BPM splitting                                                           \n\
           or " CR2RES_UTIL_NORM_BPM_PROCATG "                           \n\
                                                                         \n\
   Outputs                                                               \n\
-    <input_name>_splitted_<bpm_code>.fits " 
+    <input_name>_split_<bpm_code>.fits " 
     CR2RES_UTIL_BPM_SPLIT_PROCATG "\n\
                                                                         \n\
   Algorithm                                                             \n\
@@ -227,7 +227,7 @@ static int cr2res_util_bpm_split(
     const char          *   cur_fname ;
     cpl_frameset        *   cur_fset ;
     cpl_image           *   ima ;
-    cpl_image   *   splitted_bpms[CR2RES_NB_BPM_TYPES][CR2RES_NB_DETECTORS] ;
+    cpl_image   *   split_bpms[CR2RES_NB_BPM_TYPES][CR2RES_NB_DETECTORS] ;
     cpl_mask            *   my_mask ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
@@ -269,7 +269,7 @@ static int cr2res_util_bpm_split(
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             /* Initialise */
             for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++)
-                splitted_bpms[j][det_nr-1] = NULL ;
+                split_bpms[j][det_nr-1] = NULL ;
             wished_ext_nb = cr2res_io_get_ext_idx(cur_fname, det_nr, 1) ;
             ext_plist[det_nr-1]=cpl_propertylist_load(cur_fname,wished_ext_nb);
 
@@ -285,7 +285,7 @@ static int cr2res_util_bpm_split(
             /* Loop on the BPM types */
             for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {
                 my_mask = cr2res_bpm_extract_mask(ima, bpm_types[j]) ;
-                splitted_bpms[j][det_nr-1] = 
+                split_bpms[j][det_nr-1] = 
                     cr2res_bpm_from_mask(my_mask, bpm_types[j]) ;
                 cpl_mask_delete(my_mask) ;
             }
@@ -297,12 +297,12 @@ static int cr2res_util_bpm_split(
 
         /* SPLITTED_BPM */
         for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {
-            out_file=cpl_sprintf("%s_splitted_%d.fits", 
+            out_file=cpl_sprintf("%s_split_%d.fits", 
                     cr2res_get_root_name(cur_fname), bpm_types[j]) ;
             cur_fset = cpl_frameset_new() ;
             cpl_frameset_insert(cur_fset, cpl_frame_duplicate(cur_frame)) ;
             cr2res_io_save_BPM(out_file, frameset, cur_fset, parlist,
-                    splitted_bpms[j], NULL, ext_plist, 
+                    split_bpms[j], NULL, ext_plist, 
                     CR2RES_UTIL_BPM_SPLIT_PROCATG, RECIPE_STRING) ;
             cpl_frameset_delete(cur_fset) ;
             cpl_free(out_file);
@@ -310,8 +310,8 @@ static int cr2res_util_bpm_split(
         /* Free */
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
             for (j=0 ; j<CR2RES_NB_BPM_TYPES ; j++) {
-                if (splitted_bpms[j][det_nr-1] != NULL)
-                    cpl_image_delete(splitted_bpms[j][det_nr-1]) ;
+                if (split_bpms[j][det_nr-1] != NULL)
+                    cpl_image_delete(split_bpms[j][det_nr-1]) ;
             }
             if (ext_plist[det_nr-1] != NULL) 
                 cpl_propertylist_delete(ext_plist[det_nr-1]) ;

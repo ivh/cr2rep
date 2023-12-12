@@ -1814,7 +1814,7 @@ cpl_array * cr2res_trace_slit_fraction_create(
   @param    nb_subtraces    number of subtraces to create
   @return   the new trace_wave table or NULL in error case
 
-  All input traces that have a full slit_fraction are splitted.
+  All input traces that have a full slit_fraction are split.
 
   The returned trace wave table only contains the newly created traces.
   
