@@ -751,6 +751,7 @@ static int cr2res_obs_nodding(
             cpl_propertylist_get_double(plist, "ESO TEL GEOELEV"),
             0.0, 0.0, 0.0, 0.0, &barycorr);
         cpl_propertylist_delete(plist) ;
+        cpl_table_delete(eop_table);
 
         cpl_msg_info(__func__, "Barycentric correction: %g m/s", barycorr);
         cpl_propertylist_append_double(qc_main, CR2RES_HEADER_DRS_BARYCORR,
