@@ -318,7 +318,7 @@ hdrl_image * cr2res_calib_image(
     /* Comics correction */
     if (cosmics_corr) {
         cpl_msg_info(__func__, "Apply the cosmics corrections") ;
-        hdrl_parameter * cospar = hdrl_lacosmic_parameter_create(5.0,1.8,3);
+        hdrl_parameter * cospar = hdrl_lacosmic_parameter_create(12.0,2.5,1);
         if (hdrl_lacosmic_parameter_verify(cospar)!=CPL_ERROR_NONE) 
             cpl_msg_warning(__func__,"invalid cospar");
         cpl_mask* cosmask = hdrl_lacosmic_edgedetect(out,cospar);
