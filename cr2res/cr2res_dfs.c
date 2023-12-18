@@ -71,10 +71,7 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
         if (tag == NULL) {
             cpl_msg_warning(cpl_func, "Frame %d has no tag", i);
                 /* DO.CATG Tags for the RAW files */
-        } else if (!strcmp(tag, CR2RES_EMISSION_LINES_TXT_RAW) ||
-                !strcmp(tag, CR2RES_LINES_SELECTION_TXT_RAW) ||
-                !strcmp(tag, CR2RES_PHOTO_FLUX_TXT_RAW) ||
-                !strcmp(tag, CR2RES_DETLIN_DARK_RAW) ||
+        } else if (!strcmp(tag, CR2RES_DETLIN_DARK_RAW) ||
                 !strcmp(tag, CR2RES_DETLIN_LAMP_RAW) ||
                 !strcmp(tag, CR2RES_DARK_RAW) ||
                 !strcmp(tag, CR2RES_FLAT_RAW) ||
@@ -107,8 +104,13 @@ cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
                 !strcmp(tag, CR2RES_TW_DRSTYPE)) {
             /* RAW frames */
             cpl_frame_set_group(frame, CPL_FRAME_GROUP_RAW);
-        } else if (!strcmp(tag, CR2RES_CAL_DETLIN_COEFFS_PROCATG) ||
+        } else if (!strcmp(tag, CR2RES_EMISSION_LINES_TXT_RAW) ||
+                !strcmp(tag, CR2RES_LINES_SELECTION_TXT_RAW) ||
+                !strcmp(tag, CR2RES_PHOTO_FLUX_TXT_RAW) ||
+                /* PIPE-11223 _TXT_RAW files must be declared as CALIB */
+                /* RAW  need to refer to archive files, TXT files are not */
                 /* Produced by cr2res_cal_detlin */
+                !strcmp(tag, CR2RES_CAL_DETLIN_COEFFS_PROCATG) ||
                 !strcmp(tag, CR2RES_CAL_DETLIN_BPM_PROCATG) ||
                 /* Produced by cr2res_cal_dark */
                 !strcmp(tag, CR2RES_CAL_DARK_MASTER_PROCATG) ||
