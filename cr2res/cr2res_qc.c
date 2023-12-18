@@ -1080,7 +1080,6 @@ double cr2res_qc_compute_snr(cpl_vector * spec,
     cpl_vector_divide(snr_spec, myerr) ;
 
     snr = cpl_vector_get_median(snr_spec) ;
-    printf("%g\n", snr) ;
     if (isnan(snr)) snr = -1.0 ;
     cpl_vector_delete(snr_spec) ; 
     cpl_vector_delete(myerr) ; 
