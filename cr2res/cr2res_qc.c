@@ -1062,7 +1062,7 @@ double * cr2res_qc_snr(
 double cr2res_qc_compute_snr(cpl_vector * spec,
                              cpl_vector * err)
 {
-    double snr;
+    double snr, err_val;
     cpl_vector *snr_spec;
     cpl_vector *myerr;
     int j;
@@ -1071,13 +1071,16 @@ double cr2res_qc_compute_snr(cpl_vector * spec,
     myerr = cpl_vector_duplicate(err);
     /* Clean the error to avoid division by 0.0 */
     for (j=0 ; j<cpl_vector_get_size(myerr) ; j++) {
-        if (cpl_vector_get(myerr,j) == 0) {
+        err_val = cpl_vector_get(myerr,j) ;
+        if (fabs(err_val) < 1e-3 || isnan(err_val)) {
             cpl_vector_set(myerr, j, 1.0) ;
             //cpl_vector_set(snr_spec, j, 0.0);
         }
     }
     cpl_vector_divide(snr_spec, myerr) ;
+
     snr = cpl_vector_get_median(snr_spec) ;
+    printf("%g\n", snr) ;
     if (isnan(snr)) snr = -1.0 ;
     cpl_vector_delete(snr_spec) ; 
     cpl_vector_delete(myerr) ; 
