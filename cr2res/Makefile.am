@@ -40,6 +40,7 @@ noinst_HEADERS =    cr2res_bpm.h \
                     cr2res_flat.h \
                     cr2res_idp.h \
                     cr2res_io.h \
+                    cr2res_io_eop_table.h \
                     cr2res_nodding.h \
                     cr2res_pfits.h \
                     cr2res_photom.h \

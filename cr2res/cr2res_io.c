@@ -33,6 +33,7 @@
 #include "irplib_wlxcorr.h"
 
 #include "cr2res_io.h"
+#include "cr2res_io_eop_table.h"
 #include "cr2res_idp.h"
 #include "cr2res_utils.h"
 #include "cr2res_dfs.h"
@@ -109,7 +110,21 @@ static int cr2res_io_save_one_table(
 /*----------------------------------------------------------------------------*/
 
 /**@{*/
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Get the eop_table 
+  @return   The new allocated table
+ */
+/*----------------------------------------------------------------------------*/
+cpl_table * cr2res_io_get_eop_table()
+{
 
+    cpl_table *eop_table =
+            cpl_table_load("/home/yjung/P_cr2res/cr2re/cr2rep/catalogs/esotk_eop_param.fits", 1,0);
+
+    return eop_table ;
+}
+ 
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the first CR2RES_SLIT_MODEL_DRSTYPE frame from a frameset 

@@ -460,7 +460,9 @@ static int cr2res_obs_nodding(
                             nodding_invert, create_idp, subtract_nolight_rows,
                             subtract_interorder_column, cosmics ;
     double                  extract_smooth_slit, extract_smooth_spec;
-    double                  ra, dec, dit, gain, drot_posang ;
+    double                  dit, gain, drot_posang ;
+    double                  ra, dec, mjd_obs, mjd_cen, geolon, geolat, geoelev,
+                            barycorr;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_one_angle ;
     cpl_frameset        *   raw_flat_frames ;
@@ -492,10 +494,12 @@ static int cr2res_obs_nodding(
     cpl_propertylist    *   ext_plist_photom[CR2RES_NB_DETECTORS] ;
     char                *   cur_setting ;
     char                *   out_file;
+    cpl_table           *   eop_table ;
     int                     det_nr, type; 
 
     /* Initialise */
     gain = 0.0 ;
+    barycorr = 0.0;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -618,34 +622,34 @@ static int cr2res_obs_nodding(
         cpl_msg_info(__func__, "Process Angle %g", drot_posang) ;
         cpl_msg_indent_more() ;
 
-		/* Loop on the detectors */
-		for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-			/* Initialise */
-			combineda[det_nr-1] = NULL ;
-			extracta[det_nr-1] = NULL ;
-			slitfunca[det_nr-1] = NULL ;
-			modela[det_nr-1] = NULL ;
-			twa[det_nr-1] = NULL ;
-			combinedb[det_nr-1] = NULL ;
-			extractb[det_nr-1] = NULL ;
-			slitfuncb[det_nr-1] = NULL ;
-			modelb[det_nr-1] = NULL ;
-			twb[det_nr-1] = NULL ;
-			extractc[det_nr-1] = NULL ;
-			ext_plist[det_nr-1] = NULL ;
-			ext_plist_photom[det_nr-1] = NULL ;
-			throughput[det_nr-1] = NULL ;
+        /* Loop on the detectors */
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            /* Initialise */
+            combineda[det_nr-1] = NULL ;
+            extracta[det_nr-1] = NULL ;
+            slitfunca[det_nr-1] = NULL ;
+            modela[det_nr-1] = NULL ;
+            twa[det_nr-1] = NULL ;
+            combinedb[det_nr-1] = NULL ;
+            extractb[det_nr-1] = NULL ;
+            slitfuncb[det_nr-1] = NULL ;
+            modelb[det_nr-1] = NULL ;
+            twb[det_nr-1] = NULL ;
+            extractc[det_nr-1] = NULL ;
+            ext_plist[det_nr-1] = NULL ;
+            ext_plist_photom[det_nr-1] = NULL ;
+            throughput[det_nr-1] = NULL ;
 
-			/* Compute only one detector */
-			if (reduce_det != 0 && det_nr != reduce_det) continue ;
-		
-			cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
-			cpl_msg_indent_more() ;
+            /* Compute only one detector */
+            if (reduce_det != 0 && det_nr != reduce_det) continue ;
+        
+            cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
+            cpl_msg_indent_more() ;
 
-			/* Call the reduction function */
-			if (cr2res_obs_nodding_reduce(raw_one_angle, raw_flat_frames, 
-						trace_wave_frame, detlin_frame, master_dark_frame, 
-						master_flat_frame, bpm_frame, blaze_frame, 
+            /* Call the reduction function */
+            if (cr2res_obs_nodding_reduce(raw_one_angle, raw_flat_frames, 
+                        trace_wave_frame, detlin_frame, master_dark_frame, 
+                        master_flat_frame, bpm_frame, blaze_frame, 
                         nodding_invert, subtract_nolight_rows, 
                         subtract_interorder_column, cosmics,
                         extract_oversample, 
@@ -653,65 +657,65 @@ static int cr2res_obs_nodding(
                         extract_smooth_slit, extract_smooth_spec,
                         extract_niter, extract_kappa,
                         det_nr, disp_det, disp_order_idx, disp_trace,
-						&(combineda[det_nr-1]),
-						&(extracta[det_nr-1]),
-						&(slitfunca[det_nr-1]),
-						&(modela[det_nr-1]),
-						&(twa[det_nr-1]),
-						&(combinedb[det_nr-1]),
-						&(extractb[det_nr-1]),
-						&(slitfuncb[det_nr-1]),
-						&(modelb[det_nr-1]),
-						&(twb[det_nr-1]),
-						&(extractc[det_nr-1]),
-						&(ext_plist[det_nr-1])) == -1) {
-				cpl_msg_warning(__func__, "Failed to reduce detector %d", 
+                        &(combineda[det_nr-1]),
+                        &(extracta[det_nr-1]),
+                        &(slitfunca[det_nr-1]),
+                        &(modela[det_nr-1]),
+                        &(twa[det_nr-1]),
+                        &(combinedb[det_nr-1]),
+                        &(extractb[det_nr-1]),
+                        &(slitfuncb[det_nr-1]),
+                        &(modelb[det_nr-1]),
+                        &(twb[det_nr-1]),
+                        &(extractc[det_nr-1]),
+                        &(ext_plist[det_nr-1])) == -1) {
+                cpl_msg_warning(__func__, "Failed to reduce detector %d", 
                         det_nr);
-				cpl_error_reset() ;
-			} else if (type == 2) {
-				cpl_msg_info(__func__,
-						"Sensitivity / Conversion / Throughput computation") ;
-				cpl_msg_indent_more() ;
+                cpl_error_reset() ;
+            } else if (type == 2) {
+                cpl_msg_info(__func__,
+                        "Sensitivity / Conversion / Throughput computation") ;
+                cpl_msg_indent_more() ;
 
-				/* Define the gain */
-				if (det_nr==1) gain = CR2RES_GAIN_CHIP1 ;
-				if (det_nr==2) gain = CR2RES_GAIN_CHIP2 ;
-				if (det_nr==3) gain = CR2RES_GAIN_CHIP3 ;
+                /* Define the gain */
+                if (det_nr==1) gain = CR2RES_GAIN_CHIP1 ;
+                if (det_nr==2) gain = CR2RES_GAIN_CHIP2 ;
+                if (det_nr==3) gain = CR2RES_GAIN_CHIP3 ;
 
-				/* Get the RA and DEC observed */
-				plist=cpl_propertylist_load(cpl_frame_get_filename(
-							cpl_frameset_get_position_const(raw_one_angle, 0)),
+                /* Get the RA and DEC observed */
+                plist=cpl_propertylist_load(cpl_frame_get_filename(
+                            cpl_frameset_get_position_const(raw_one_angle, 0)),
                         0) ;
-				ra = cr2res_pfits_get_ra(plist) ;
-				dec = cr2res_pfits_get_dec(plist) ;
-				dit = cr2res_pfits_get_dit(plist) ;
+                ra = cr2res_pfits_get_ra(plist) ;
+                dec = cr2res_pfits_get_dec(plist) ;
+                dit = cr2res_pfits_get_dit(plist) ;
                 cur_setting = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
                 cr2res_format_setting(cur_setting) ;
-				cpl_propertylist_delete(plist) ;
-				if (cpl_error_get_code()) {
-					cpl_msg_indent_less() ;
-					cpl_error_reset() ;
-					cpl_msg_warning(__func__, "Missing Header Informations") ;
-				} else {
-					/* Compute the photometry */
-					if (cr2res_photom_engine(extracta[det_nr-1],
-								cpl_frame_get_filename(photo_flux_frame),
-								cur_setting, ra, dec, gain, dit,
-								disp_det==det_nr, disp_order_idx,
-								disp_trace, &(throughput[det_nr-1]),
+                cpl_propertylist_delete(plist) ;
+                if (cpl_error_get_code()) {
+                    cpl_msg_indent_less() ;
+                    cpl_error_reset() ;
+                    cpl_msg_warning(__func__, "Missing Header Informations") ;
+                } else {
+                    /* Compute the photometry */
+                    if (cr2res_photom_engine(extracta[det_nr-1],
+                                cpl_frame_get_filename(photo_flux_frame),
+                                cur_setting, ra, dec, gain, dit,
+                                disp_det==det_nr, disp_order_idx,
+                                disp_trace, &(throughput[det_nr-1]),
                                 &(ext_plist_photom[det_nr-1])) == -1) {
-						cpl_msg_warning(__func__, 
-								"Failed to reduce detector %d", det_nr);
-						cpl_error_reset() ;
-					}
-				}
+                        cpl_msg_warning(__func__, 
+                                "Failed to reduce detector %d", det_nr);
+                        cpl_error_reset() ;
+                    }
+                }
                 cpl_free(cur_setting) ;
-				cpl_msg_indent_less() ;
-			}
-			cpl_msg_indent_less() ;
-		}
+                cpl_msg_indent_less() ;
+            }
+            cpl_msg_indent_less() ;
+        }
 
-		/* Save Products */
+        /* Save Products */
         if (nlabels == 1)   product_name_addon = cpl_sprintf(".fits") ;
         else                product_name_addon = cpl_sprintf("_%g.fits",
                 drot_posang);
@@ -730,6 +734,39 @@ static int cr2res_obs_nodding(
         cpl_propertylist_append_double(qc_main,
                 CR2RES_HEADER_DRS_TMID,
                 cr2res_utils_get_center_mjd(raw_one_angle)) ;
+
+        /* Add barycentric correction */
+        eop_table = cr2res_io_get_eop_table() ;
+        if (eop_table != NULL) {
+            plist=cpl_propertylist_load(cpl_frame_get_filename(
+                        cpl_frameset_get_position_const(raw_one_angle, 0)), 0) ;
+
+            ra = cpl_propertylist_get_double(plist, "RA") ;
+            dec = cpl_propertylist_get_double(plist, "DEC") ;
+            mjd_obs = cpl_propertylist_get_double(plist, "MJD-OBS") ;
+            geolon = cpl_propertylist_get_double(plist, "ESO TEL GEOLON") ;
+            geolat = cpl_propertylist_get_double(plist, "ESO TEL GEOLAT") ;
+            geoelev = cpl_propertylist_get_double(plist, "ESO TEL GEOELEV") ;
+
+            cpl_propertylist_delete(plist) ;
+
+            barycorr = 0.0 ;
+            if (!cpl_error_get_code()) {
+                mjd_cen = cr2res_utils_get_center_mjd(raw_one_angle) ;
+                hdrl_barycorr_compute(ra, dec, eop_table, mjd_obs,
+                        (mjd_cen-mjd_obs)*24*3600, geolon, geolat, geoelev, 
+                        0.0, 0.0, 0.0, 0.0, &barycorr);
+
+                cpl_msg_info(__func__, "Barycentric correction: %g m/s", 
+                        barycorr);
+            } else {
+                cpl_msg_info(__func__, "Cannot derive Barycentric correction");
+                cpl_error_reset() ;
+            }
+            cpl_table_delete(eop_table) ;
+            cpl_propertylist_append_double(qc_main, CR2RES_HEADER_DRS_BARYCORR,
+                    barycorr);
+        }
 
         /* Add QC NUMSAT */
         cpl_propertylist_append_int(qc_main,
@@ -759,19 +796,19 @@ static int cr2res_obs_nodding(
             cpl_frameset_insert(raw_one_angle,
                     cpl_frame_duplicate(photo_flux_frame)) ;
 
-		out_file = cpl_sprintf("%s_combinedA%s", RECIPE_STRING, 
+        out_file = cpl_sprintf("%s_combinedA%s", RECIPE_STRING, 
                 product_name_addon) ;
-		cr2res_io_save_COMBINED(out_file, frameset, raw_one_angle, parlist,
-				combineda, qc_main, ext_plist, 
+        cr2res_io_save_COMBINED(out_file, frameset, raw_one_angle, parlist,
+                combineda, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_COMBINEDA_PROCATG, RECIPE_STRING) ;
-		cpl_free(out_file);
+        cpl_free(out_file);
 
-		out_file = cpl_sprintf("%s_extractedA%s", RECIPE_STRING,
+        out_file = cpl_sprintf("%s_extractedA%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, raw_one_angle, parlist, 
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, raw_one_angle, parlist, 
                 extracta, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_EXTRACTA_PROCATG, RECIPE_STRING);
-		if (create_idp) {
+        if (create_idp) {
             cr2res_idp_save(out_file, frameset, raw_one_angle, parlist,
                             extracta, qc_main, ext_plist,
                             CR2RES_OBS_NODDING_EXTRACTA_IDP_PROCATG,
@@ -779,123 +816,123 @@ static int cr2res_obs_nodding(
         }
         cpl_free(out_file);
 
-		out_file = cpl_sprintf("%s_slitfuncA%s", RECIPE_STRING,
+        out_file = cpl_sprintf("%s_slitfuncA%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_SLIT_FUNC(out_file, frameset, raw_one_angle, parlist,
-				slitfunca, qc_main, ext_plist, 
+        cr2res_io_save_SLIT_FUNC(out_file, frameset, raw_one_angle, parlist,
+                slitfunca, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_SLITFUNCA_PROCATG, RECIPE_STRING) ;
-		cpl_free(out_file);
+        cpl_free(out_file);
 
-		out_file = cpl_sprintf("%s_modelA%s", RECIPE_STRING,
+        out_file = cpl_sprintf("%s_modelA%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_SLIT_MODEL(out_file, frameset, raw_one_angle, parlist,
-				modela, qc_main, ext_plist, 
+        cr2res_io_save_SLIT_MODEL(out_file, frameset, raw_one_angle, parlist,
+                modela, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_SLITMODELA_PROCATG, RECIPE_STRING) ;
-		cpl_free(out_file);
+        cpl_free(out_file);
 
-		out_file = cpl_sprintf("%s_trace_wave_A%s", RECIPE_STRING,
+        out_file = cpl_sprintf("%s_trace_wave_A%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_TRACE_WAVE(out_file, frameset, raw_one_angle, parlist,
-				twa, qc_main, ext_plist, CR2RES_OBS_NODDING_TWA_PROCATG,
-				RECIPE_STRING) ;
-		cpl_free(out_file);
+        cr2res_io_save_TRACE_WAVE(out_file, frameset, raw_one_angle, parlist,
+                twa, qc_main, ext_plist, CR2RES_OBS_NODDING_TWA_PROCATG,
+                RECIPE_STRING) ;
+        cpl_free(out_file);
 
-		out_file = cpl_sprintf("%s_combinedB%s", RECIPE_STRING,
+        out_file = cpl_sprintf("%s_combinedB%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_COMBINED(out_file, frameset, raw_one_angle, parlist,
-				combinedb, qc_main, ext_plist, 
+        cr2res_io_save_COMBINED(out_file, frameset, raw_one_angle, parlist,
+                combinedb, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_COMBINEDB_PROCATG, RECIPE_STRING) ;
-		cpl_free(out_file);
+        cpl_free(out_file);
 
-		out_file = cpl_sprintf("%s_extractedB%s", RECIPE_STRING,
+        out_file = cpl_sprintf("%s_extractedB%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, raw_one_angle, parlist, 
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, raw_one_angle, parlist, 
                 extractb, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_EXTRACTB_PROCATG, RECIPE_STRING);
-		if (create_idp) {
+        if (create_idp) {
             cr2res_idp_save(out_file, frameset, raw_one_angle, parlist,
                             extractb, qc_main, ext_plist,
                             CR2RES_OBS_NODDING_EXTRACTB_IDP_PROCATG,
                             RECIPE_STRING);
         }
-		cpl_free(out_file);
+        cpl_free(out_file);
 
-		out_file = cpl_sprintf("%s_slitfuncB%s", RECIPE_STRING,
+        out_file = cpl_sprintf("%s_slitfuncB%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_SLIT_FUNC(out_file, frameset, raw_one_angle, parlist,
-				slitfuncb, qc_main, ext_plist, 
+        cr2res_io_save_SLIT_FUNC(out_file, frameset, raw_one_angle, parlist,
+                slitfuncb, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_SLITFUNCB_PROCATG, RECIPE_STRING) ;
-		cpl_free(out_file);
+        cpl_free(out_file);
 
-		out_file = cpl_sprintf("%s_modelB%s", RECIPE_STRING,
+        out_file = cpl_sprintf("%s_modelB%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_SLIT_MODEL(out_file, frameset, raw_one_angle, parlist,
-				modelb, qc_main, ext_plist, 
+        cr2res_io_save_SLIT_MODEL(out_file, frameset, raw_one_angle, parlist,
+                modelb, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_SLITMODELB_PROCATG, RECIPE_STRING) ;
-		cpl_free(out_file);
-		
-		out_file = cpl_sprintf("%s_trace_wave_B%s", RECIPE_STRING,
+        cpl_free(out_file);
+        
+        out_file = cpl_sprintf("%s_trace_wave_B%s", RECIPE_STRING,
                 product_name_addon) ;
-		cr2res_io_save_TRACE_WAVE(out_file, frameset, raw_one_angle, parlist,
-				twb, qc_main, ext_plist, CR2RES_OBS_NODDING_TWB_PROCATG,
-				RECIPE_STRING) ;
-		cpl_free(out_file);
+        cr2res_io_save_TRACE_WAVE(out_file, frameset, raw_one_angle, parlist,
+                twb, qc_main, ext_plist, CR2RES_OBS_NODDING_TWB_PROCATG,
+                RECIPE_STRING) ;
+        cpl_free(out_file);
 
-		out_file = cpl_sprintf("%s_extracted_combined%s", RECIPE_STRING, 
+        out_file = cpl_sprintf("%s_extracted_combined%s", RECIPE_STRING, 
                 product_name_addon) ;
-		cr2res_io_save_EXTRACT_1D(out_file, frameset, raw_one_angle, parlist, 
+        cr2res_io_save_EXTRACT_1D(out_file, frameset, raw_one_angle, parlist, 
                 extractc, qc_main, ext_plist, 
                 CR2RES_OBS_NODDING_EXTRACTC_PROCATG, RECIPE_STRING);
-		if (create_idp) {
+        if (create_idp) {
             cr2res_idp_save(out_file, frameset, raw_one_angle, parlist,
                             extractc, qc_main, ext_plist,
                             CR2RES_OBS_NODDING_EXTRACTC_IDP_PROCATG,
                             RECIPE_STRING);
         }
-		cpl_free(out_file);
+        cpl_free(out_file);
 
-		if (type == 2) {
-			out_file = cpl_sprintf("%s_throughput%s", RECIPE_STRING,
+        if (type == 2) {
+            out_file = cpl_sprintf("%s_throughput%s", RECIPE_STRING,
                     product_name_addon) ;
-			cr2res_io_save_THROUGHPUT(out_file, frameset, raw_one_angle, 
+            cr2res_io_save_THROUGHPUT(out_file, frameset, raw_one_angle, 
                     parlist, throughput, qc_main, ext_plist, 
-					CR2RES_OBS_NODDING_THROUGHPUT_PROCATG, RECIPE_STRING) ;
-			cpl_free(out_file);
-		}
+                    CR2RES_OBS_NODDING_THROUGHPUT_PROCATG, RECIPE_STRING) ;
+            cpl_free(out_file);
+        }
         cpl_free(product_name_addon) ;
 
-		/* Free */
+        /* Free */
         cpl_propertylist_delete(qc_main) ;
-		for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
-			if (combineda[det_nr-1] != NULL)
-				hdrl_image_delete(combineda[det_nr-1]) ;
-			if (extracta[det_nr-1] != NULL) 
-				cpl_table_delete(extracta[det_nr-1]) ;
-			if (slitfunca[det_nr-1] != NULL) 
-				cpl_table_delete(slitfunca[det_nr-1]) ;
-			if (modela[det_nr-1] != NULL)
-				hdrl_image_delete(modela[det_nr-1]) ;
-			if (twa[det_nr-1] != NULL) 
-				cpl_table_delete(twa[det_nr-1]) ;
-			if (combinedb[det_nr-1] != NULL)
-				hdrl_image_delete(combinedb[det_nr-1]) ;
-			if (extractb[det_nr-1] != NULL) 
-				cpl_table_delete(extractb[det_nr-1]) ;
-			if (slitfuncb[det_nr-1] != NULL) 
-				cpl_table_delete(slitfuncb[det_nr-1]) ;
-			if (modelb[det_nr-1] != NULL)
-				hdrl_image_delete(modelb[det_nr-1]) ;
-			if (twb[det_nr-1] != NULL) 
-				cpl_table_delete(twb[det_nr-1]) ;
-			if (extractc[det_nr-1] != NULL) 
-				cpl_table_delete(extractc[det_nr-1]) ;
-			if (throughput[det_nr-1] != NULL) 
-				cpl_table_delete(throughput[det_nr-1]) ;
-			if (ext_plist[det_nr-1] != NULL) 
-				cpl_propertylist_delete(ext_plist[det_nr-1]) ;
-			if (ext_plist_photom[det_nr-1] != NULL) 
-				cpl_propertylist_delete(ext_plist_photom[det_nr-1]) ;
-		}
+        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+            if (combineda[det_nr-1] != NULL)
+                hdrl_image_delete(combineda[det_nr-1]) ;
+            if (extracta[det_nr-1] != NULL) 
+                cpl_table_delete(extracta[det_nr-1]) ;
+            if (slitfunca[det_nr-1] != NULL) 
+                cpl_table_delete(slitfunca[det_nr-1]) ;
+            if (modela[det_nr-1] != NULL)
+                hdrl_image_delete(modela[det_nr-1]) ;
+            if (twa[det_nr-1] != NULL) 
+                cpl_table_delete(twa[det_nr-1]) ;
+            if (combinedb[det_nr-1] != NULL)
+                hdrl_image_delete(combinedb[det_nr-1]) ;
+            if (extractb[det_nr-1] != NULL) 
+                cpl_table_delete(extractb[det_nr-1]) ;
+            if (slitfuncb[det_nr-1] != NULL) 
+                cpl_table_delete(slitfuncb[det_nr-1]) ;
+            if (modelb[det_nr-1] != NULL)
+                hdrl_image_delete(modelb[det_nr-1]) ;
+            if (twb[det_nr-1] != NULL) 
+                cpl_table_delete(twb[det_nr-1]) ;
+            if (extractc[det_nr-1] != NULL) 
+                cpl_table_delete(extractc[det_nr-1]) ;
+            if (throughput[det_nr-1] != NULL) 
+                cpl_table_delete(throughput[det_nr-1]) ;
+            if (ext_plist[det_nr-1] != NULL) 
+                cpl_propertylist_delete(ext_plist[det_nr-1]) ;
+            if (ext_plist_photom[det_nr-1] != NULL) 
+                cpl_propertylist_delete(ext_plist_photom[det_nr-1]) ;
+        }
         cpl_frameset_delete(raw_one_angle) ;
         cpl_msg_indent_less() ;
     }
@@ -1651,7 +1688,7 @@ static int cr2res_obs_nodding_astrometry_compare(
     int                     comparison ;
     cpl_propertylist    *   plist1 ;
     cpl_propertylist    *   plist2 ;
-	double					dval1, dval2 ;
+    double                    dval1, dval2 ;
 
     /* Test entries */
     if (frame1==NULL || frame2==NULL) return -1 ;

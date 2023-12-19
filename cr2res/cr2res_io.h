@@ -33,6 +33,7 @@
                                    Functions prototypes
  -----------------------------------------------------------------------------*/
 
+cpl_table * cr2res_io_get_eop_table() ;
 cpl_frame * cr2res_io_find_SLIT_MODEL(
         const cpl_frameset  *   in,
         const char          *   setting_id,
