@@ -331,6 +331,10 @@ static int cr2res_obs_2d(
     hdrl_image          *   calibrated[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extract[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
+    cpl_table           *   eop_table ;
+    cpl_propertylist    *   plist ;
+    double                  ra, dec, mjd_obs, mjd_cen, geolon, geolat, geoelev,
+                            barycorr;
     cpl_size                nsky, nobj ;
     int                     i, det_nr;
 
@@ -474,12 +478,45 @@ static int cr2res_obs_2d(
                 CR2RES_HEADER_DRS_TMID,
                 cr2res_utils_get_center_mjd(rawframes_obj)) ;
 
+        /* Add barycentric correction */
+        eop_table = cr2res_io_get_eop_table() ;
+        if (eop_table != NULL) {
+            plist=cpl_propertylist_load(cpl_frame_get_filename(
+                        cpl_frameset_get_position_const(rawframes_obj, 0)), 0) ;
+
+            ra = cpl_propertylist_get_double(plist, "RA") ;
+            dec = cpl_propertylist_get_double(plist, "DEC") ;
+            mjd_obs = cpl_propertylist_get_double(plist, "MJD-OBS") ;
+            geolon = cpl_propertylist_get_double(plist, "ESO TEL GEOLON") ;
+            geolat = cpl_propertylist_get_double(plist, "ESO TEL GEOLAT") ;
+            geoelev = cpl_propertylist_get_double(plist, "ESO TEL GEOELEV") ;
+
+            cpl_propertylist_delete(plist) ;
+
+            barycorr = 0.0 ;
+            if (!cpl_error_get_code()) {
+                mjd_cen = cr2res_utils_get_center_mjd(rawframes_obj) ;
+                hdrl_barycorr_compute(ra, dec, eop_table, mjd_obs,
+                        (mjd_cen-mjd_obs)*24*3600, geolon, geolat, geoelev,
+                        0.0, 0.0, 0.0, 0.0, &barycorr);
+
+                cpl_msg_info(__func__, "Barycentric correction: %g m/s",
+                        barycorr);
+            } else {
+                cpl_msg_info(__func__, "Cannot derive Barycentric correction");
+                cpl_error_reset() ;
+            }
+            cpl_table_delete(eop_table) ;
+            cpl_propertylist_append_double(qc_main, CR2RES_HEADER_DRS_BARYCORR,
+                    barycorr);
+        }
+
         /* Add QC NUMSAT */
         cpl_propertylist_append_int(qc_main,
                 CR2RES_HEADER_QC_NUMSAT,
                 cr2res_qc_numsat(rawframes_obj)) ;
 
-        /* Save only the used RAW - fill raw_one_angle with CALIBS */
+        /* Save only the used RAW - fill rawframe_obj with CALIBS */
         used_frameset = cpl_frameset_new() ;
         cpl_frameset_insert(used_frameset, cpl_frame_duplicate(rawframe_obj)) ;
         if (rawframe_sky != NULL) 

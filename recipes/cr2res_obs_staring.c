@@ -391,6 +391,8 @@ static int cr2res_obs_staring(
                             disp_order, disp_trace ;
     double                  extract_smooth_slit, extract_smooth_spec, 
                             slit_low, slit_up ;
+    double                  ra, dec, mjd_obs, mjd_cen, geolon, geolat, geoelev,
+                            barycorr;
     cpl_array           *   slit_frac ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   trace_wave_frame ;
@@ -407,8 +409,9 @@ static int cr2res_obs_staring(
     cpl_propertylist    *   qc_main ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
+    cpl_table           *   eop_table ;
+    cpl_propertylist    *   plist ;
     int                     det_nr; 
-
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -543,6 +546,39 @@ static int cr2res_obs_staring(
     cpl_propertylist_append_double(qc_main,
             CR2RES_HEADER_DRS_TMID,
             cr2res_utils_get_center_mjd(rawframes)) ;
+
+    /* Add barycentric correction */
+    eop_table = cr2res_io_get_eop_table() ;
+    if (eop_table != NULL) {
+        plist=cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position_const(rawframes, 0)), 0) ;
+
+        ra = cpl_propertylist_get_double(plist, "RA") ;
+        dec = cpl_propertylist_get_double(plist, "DEC") ;
+        mjd_obs = cpl_propertylist_get_double(plist, "MJD-OBS") ;
+        geolon = cpl_propertylist_get_double(plist, "ESO TEL GEOLON") ;
+        geolat = cpl_propertylist_get_double(plist, "ESO TEL GEOLAT") ;
+        geoelev = cpl_propertylist_get_double(plist, "ESO TEL GEOELEV") ;
+
+        cpl_propertylist_delete(plist) ;
+
+        barycorr = 0.0 ;
+        if (!cpl_error_get_code()) {
+            mjd_cen = cr2res_utils_get_center_mjd(rawframes) ;
+            hdrl_barycorr_compute(ra, dec, eop_table, mjd_obs,
+                    (mjd_cen-mjd_obs)*24*3600, geolon, geolat, geoelev,
+                    0.0, 0.0, 0.0, 0.0, &barycorr);
+
+            cpl_msg_info(__func__, "Barycentric correction: %g m/s",
+                    barycorr);
+        } else {
+            cpl_msg_info(__func__, "Cannot derive Barycentric correction");
+            cpl_error_reset() ;
+        }
+        cpl_table_delete(eop_table) ;
+        cpl_propertylist_append_double(qc_main, CR2RES_HEADER_DRS_BARYCORR,
+                barycorr);
+    }
 
     /* Add QC NUMSAT */
     cpl_propertylist_append_int(qc_main,
