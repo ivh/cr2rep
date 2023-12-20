@@ -7,6 +7,9 @@ from astropy.table import Table
 #   General Information
 ###############################################################################
 
+Use the recipe esotk_eop from the ESOTK pipeline to download and generate the
+file esotk_eop_param.fits (see ESOTK documentation for details).
+
 Run 
     python3 cr2res_gen_eop_table.py -i /home/.../esotk_eop_param.fits
 
