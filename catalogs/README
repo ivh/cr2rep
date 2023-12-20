@@ -1,4 +1,7 @@
 
+python3 cr2res_gen_eop_table.py -i esotk_eop_param.fits
+-> Generates cr2res_io_eop_table.h --> cr2re/cr2rep/cr2res/
+
 esorex cr2res_util_genlines YJ.sof
 more YJ.sof
 lines_u_sarmiento.txt EMISSION_LINES_TXT
