@@ -118,9 +118,37 @@ static int cr2res_io_save_one_table(
 /*----------------------------------------------------------------------------*/
 cpl_table * cr2res_io_get_eop_table()
 {
+    cpl_table   *   eop_table;
+    cpl_size        i ;
 
-    cpl_table *eop_table =
-            cpl_table_load("/home/yjung/P_cr2res/cr2re/cr2rep/catalogs/esotk_eop_param.fits", 1,0);
+    eop_table = cpl_table_new(EOP_TABLE_SIZE);
+    cpl_table_new_column(eop_table, "MJD", CPL_TYPE_DOUBLE) ;
+    cpl_table_new_column(eop_table, "PMX", CPL_TYPE_DOUBLE) ;
+    cpl_table_new_column(eop_table, "PMY", CPL_TYPE_DOUBLE) ;
+    cpl_table_new_column(eop_table, "DUT", CPL_TYPE_DOUBLE) ;
+    cpl_table_new_column(eop_table, "FLAG", CPL_TYPE_STRING) ;
+    for (i=0; i<EOP_TABLE_SIZE; i++) {
+        cpl_table_set_double(eop_table, "MJD", i, 
+                eop_table_double_entries[i][0]) ;
+        cpl_table_set_double(eop_table, "PMX", i, 
+                eop_table_double_entries[i][1]) ;
+        cpl_table_set_double(eop_table, "PMY", i, 
+                eop_table_double_entries[i][2]) ;
+        cpl_table_set_double(eop_table, "DUT", i, 
+                eop_table_double_entries[i][3]) ;
+        cpl_table_set_string(eop_table, "FLAG", i, 
+                eop_table_string_entries[i]) ;
+    }
+    cpl_table_save(eop_table, NULL, NULL, "test.fits", CPL_IO_CREATE);
+
+    /*
+    In order to by-pass the usage of cr2res_io_eop_table.h, load
+    directly the FITS cr2rep/catalogs/esotk_eop_param.fits file.
+    -> Uncomment the 2 following lines
+
+    cpl_table_delete(eop_table);
+    eop_table = cpl_table_load("/home/yjung/P_cr2res/cr2re/cr2rep/catalogs/esotk_eop_param.fits", 1,0);
+    */
 
     return eop_table ;
 }
