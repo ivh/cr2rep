@@ -374,7 +374,7 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.extract_smooth_spec",
             CPL_TYPE_DOUBLE, "Smoothing along the spectrum",
-            "cr2res.cr2res_cal_wave", 0.005);
+            "cr2res.cr2res_cal_wave", 2.0E-7);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_smooth_spec");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
