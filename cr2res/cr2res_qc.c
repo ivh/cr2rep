@@ -1281,7 +1281,7 @@ static int cr2res_qc_wave_line_intens(
     for (cpl_size i = -window_size * 2; i < 2 * window_size; i++)
     {
         k = pixel_pos - i;
-        if (k < 0 || k > cpl_vector_get_size(flux)){
+        if (k < 0 || k >= cpl_vector_get_size(flux)){
             continue;
         }
         value = cpl_vector_get(flux, k);
