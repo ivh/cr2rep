@@ -504,7 +504,7 @@ int cr2res_calib_subtract_interorder_column(hdrl_image * in,
 
     if (badcols){
         cpl_msg_warning(__func__, 
-        "%d columns could not be background-ubtracted from inter-order gaps",
+        "%d columns could not be background-subtracted from inter-order gaps",
             badcols);
     }
     return 0;
