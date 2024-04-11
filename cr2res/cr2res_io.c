@@ -52,7 +52,7 @@ static int cr2res_io_check_drs_type(
         const char  *   filename,
         const char  *   expected_drstype) ;
 static cpl_imagelist * cr2res_hdrl_to_cpl_list(
-        const hdrl_imagelist    *   in, 
+        const hdrl_imagelist    *   in,
         int                         data) ;
 static int cr2res_io_save_imagelist(
         const char              *   filename,
@@ -112,7 +112,7 @@ static int cr2res_io_save_one_table(
 /**@{*/
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Get the eop_table 
+  @brief    Get the eop_table
   @return   The new allocated table
  */
 /*----------------------------------------------------------------------------*/
@@ -128,20 +128,21 @@ cpl_table * cr2res_io_get_eop_table()
     cpl_table_new_column(eop_table, "DUT", CPL_TYPE_DOUBLE) ;
     cpl_table_new_column(eop_table, "FLAG", CPL_TYPE_STRING) ;
     for (i=0; i<EOP_TABLE_SIZE; i++) {
-        cpl_table_set_double(eop_table, "MJD", i, 
+        cpl_table_set_double(eop_table, "MJD", i,
                 eop_table_double_entries[i][0]) ;
-        cpl_table_set_double(eop_table, "PMX", i, 
+        cpl_table_set_double(eop_table, "PMX", i,
                 eop_table_double_entries[i][1]) ;
-        cpl_table_set_double(eop_table, "PMY", i, 
+        cpl_table_set_double(eop_table, "PMY", i,
                 eop_table_double_entries[i][2]) ;
-        cpl_table_set_double(eop_table, "DUT", i, 
+        cpl_table_set_double(eop_table, "DUT", i,
                 eop_table_double_entries[i][3]) ;
-        cpl_table_set_string(eop_table, "FLAG", i, 
+        cpl_table_set_string(eop_table, "FLAG", i,
                 eop_table_string_entries[i]) ;
     }
-    cpl_table_save(eop_table, NULL, NULL, "test.fits", CPL_IO_CREATE);
 
     /*
+    cpl_table_save(eop_table, NULL, NULL, "test.fits", CPL_IO_CREATE);
+
     In order to by-pass the usage of cr2res_io_eop_table.h, load
     directly the FITS cr2rep/catalogs/esotk_eop_param.fits file.
     -> Uncomment the 2 following lines
@@ -152,12 +153,12 @@ cpl_table * cr2res_io_get_eop_table()
 
     return eop_table ;
 }
- 
+
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Get the first CR2RES_SLIT_MODEL_DRSTYPE frame from a frameset 
+  @brief    Get the first CR2RES_SLIT_MODEL_DRSTYPE frame from a frameset
   @param    set     Input frame set
-  @param    setting The setting to match 
+  @param    setting The setting to match
   @param    decker  The decker position to match
   @return   The new allocated frame or NULL in error case or if it is missing
  */
@@ -210,7 +211,7 @@ cpl_frame * cr2res_io_find_SLIT_MODEL(
             cr2res_format_setting(cur_setting) ;
             cur_decker = cr2res_pfits_get_decker_position(plist) ;
             cpl_propertylist_delete(plist) ;
-            if (!strcmp(cur_setting, setting_id) && cur_decker == decker) 
+            if (!strcmp(cur_setting, setting_id) && cur_decker == decker)
                 out = cpl_frame_duplicate(cur_frame) ;
             cpl_free(cur_setting) ;
         }
@@ -234,23 +235,23 @@ const cpl_frame * cr2res_io_find_TRACE_WAVE(const cpl_frameset * in)
     if (in == NULL) return NULL ;
 
     out=cpl_frameset_find_const(in, CR2RES_CAL_FLAT_TW_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out=cpl_frameset_find_const(in, CR2RES_CAL_FLAT_TW_MERGED_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out=cpl_frameset_find_const(in, CR2RES_UTIL_TRACE_TW_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out=cpl_frameset_find_const(in, CR2RES_UTIL_WAVE_TW_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out=cpl_frameset_find_const(in, CR2RES_CAL_WAVE_TW_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out=cpl_frameset_find_const(in, CR2RES_UTIL_SLIT_CURV_TW_PROCATG);
-    if (out == NULL) 
+    if (out == NULL)
         out=cpl_frameset_find_const(in, CR2RES_OBS_NODDING_TWA_PROCATG);
-    if (out == NULL) 
+    if (out == NULL)
         out=cpl_frameset_find_const(in, CR2RES_OBS_NODDING_TWB_PROCATG);
-    if (out == NULL) 
+    if (out == NULL)
         out=cpl_frameset_find_const(in, CR2RES_OBS_POL_TWA_PROCATG);
-    if (out == NULL) 
+    if (out == NULL)
         out=cpl_frameset_find_const(in, CR2RES_OBS_POL_TWB_PROCATG);
     return out ;
 }
@@ -270,13 +271,13 @@ const cpl_frame * cr2res_io_find_SLIT_FUNC(const cpl_frameset * in)
     if (in == NULL) return NULL ;
 
     out=cpl_frameset_find_const(in, CR2RES_CAL_FLAT_SLIT_FUNC_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out=cpl_frameset_find_const(in, CR2RES_UTIL_SLIT_FUNC_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out=cpl_frameset_find_const(in, CR2RES_OBS_NODDING_SLITFUNCA_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out=cpl_frameset_find_const(in, CR2RES_OBS_NODDING_SLITFUNCB_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out=cpl_frameset_find_const(in, CR2RES_OBS_STARING_SLITFUNC_PROCATG) ;
     return out ;
 }
@@ -310,7 +311,7 @@ cpl_frameset * cr2res_io_find_TRACE_WAVE_all(const cpl_frameset  * in)
     tags[7] = cpl_sprintf(CR2RES_OBS_NODDING_TWB_PROCATG) ;
     tags[8] = cpl_sprintf(CR2RES_OBS_POL_TWA_PROCATG) ;
     tags[9] = cpl_sprintf(CR2RES_OBS_POL_TWB_PROCATG) ;
- 
+
     /* Get the frameset */
     out = cr2res_extract_frameset_several_tags(in, (const char**)tags, ntags) ;
 
@@ -372,15 +373,15 @@ const cpl_frame * cr2res_io_find_BPM(const cpl_frameset * in)
     if (in == NULL) return NULL ;
 
     out=cpl_frameset_find_const(in, CR2RES_CAL_DARK_BPM_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out = cpl_frameset_find_const(in, CR2RES_CAL_FLAT_BPM_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out = cpl_frameset_find_const(in, CR2RES_CAL_DETLIN_BPM_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out = cpl_frameset_find_const(in, CR2RES_UTIL_BPM_MERGE_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out = cpl_frameset_find_const(in, CR2RES_UTIL_BPM_SPLIT_PROCATG) ;
-    if (out == NULL) 
+    if (out == NULL)
         out = cpl_frameset_find_const(in, CR2RES_UTIL_NORM_BPM_PROCATG) ;
     return out ;
 }
@@ -574,7 +575,7 @@ cpl_frameset * cr2res_io_extract_decker_frameset(
 /**
   @brief    Convert the order_idx to the order_idxp
   @param    order_idx   Order (-49 to 50)
-  @return   the order positive index (order_idxp) or a negative value in 
+  @return   the order positive index (order_idxp) or a negative value in
             error case (0 to 99)
  */
 /*----------------------------------------------------------------------------*/
@@ -679,7 +680,7 @@ int cr2res_io_get_ext_idx(
         if (data == 1)
             cpl_msg_warning(__func__,
         "EXTNAME is supposed to match CHIPn.INT1 or CHIPnERR.INT1 (n=1/2/3)") ;
-    } 
+    }
 
     return wished_ext_nb ;
 }
@@ -693,7 +694,7 @@ int cr2res_io_get_ext_idx(
   @brief    Load an hdrl image from a image file
   @param    fname       The input file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A hdrl image or NULL in error case. 
+  @return   A hdrl image or NULL in error case.
             The returned object needs to be deallocated
   This function load images files (also where the error is missing)
   with the proper EXTNAME convention
@@ -718,12 +719,12 @@ hdrl_image * cr2res_io_load_image(
 
     /* The wished extension was not found */
     if (ext_nr_data < 0) return NULL ;
-    
+
     /* Load the image */
     data = cpl_image_load(in, CPL_TYPE_DOUBLE, 0, ext_nr_data) ;
-    if (ext_nr_err >= 0) 
+    if (ext_nr_err >= 0)
         err = cpl_image_load(in, CPL_TYPE_DOUBLE, 0, ext_nr_err) ;
-    else    
+    else
         err = NULL ;
 
     /* Set the NaN pixels as bad  */
@@ -743,7 +744,7 @@ hdrl_image * cr2res_io_load_image(
   @brief    Load an hdrl image list from a cube file
   @param    fname       The input file name
   @param    detector    The wished detector (1 to CR2RES_NB_DETECTORS)
-  @return   A hdrl image list or NULL in error case. 
+  @return   A hdrl image list or NULL in error case.
             The returned object needs to be deallocated
   This function loads image list from a cube (also where the error is missing)
   with the proper EXTNAME convention
@@ -769,16 +770,16 @@ hdrl_imagelist * cr2res_io_load_image_list(
 
     /* The wished extension was not found */
     if (wished_ext_nb_data < 0) return NULL ;
-    
+
     /* Load the image list */
     data = cpl_imagelist_load(in, CPL_TYPE_DOUBLE, wished_ext_nb_data);
-    if (wished_ext_nb_error >= 0) 
+    if (wished_ext_nb_error >= 0)
         error = cpl_imagelist_load(in, CPL_TYPE_DOUBLE, wished_ext_nb_error);
-    else 
+    else
         error = NULL ;
 
     /* Set the NaN pixels as bad  */
-    for (i=0 ; i<cpl_imagelist_get_size(data) ; i++) 
+    for (i=0 ; i<cpl_imagelist_get_size(data) ; i++)
         cr2res_io_set_NaNs_as_bpm(cpl_imagelist_get(data, i)) ;
 
     /* Create output hdrl image */
@@ -826,16 +827,16 @@ hdrl_imagelist * cr2res_io_load_image_list_from_set(
 
     /* The wished extension was not found */
     if (ext_nr_data < 0) return NULL ;
-    
+
     /* Load the image list */
     data = cpl_imagelist_load_frameset(in, CPL_TYPE_DOUBLE, 1, ext_nr_data) ;
-    if (ext_nr_err >= 0) 
+    if (ext_nr_err >= 0)
         err = cpl_imagelist_load_frameset(in, CPL_TYPE_DOUBLE, 1, ext_nr_err) ;
-    else 
+    else
         err = NULL ;
 
     /* Set the NaN pixels as bad  */
-    for (i=0 ; i<cpl_imagelist_get_size(data) ; i++) 
+    for (i=0 ; i<cpl_imagelist_get_size(data) ; i++)
         cr2res_io_set_NaNs_as_bpm(cpl_imagelist_get(data, i)) ;
 
     /* Create output hdrl image */
@@ -1164,7 +1165,7 @@ cpl_table * cr2res_io_load_SLIT_FUNC(
 /*----------------------------------------------------------------------------*/
 hdrl_image * cr2res_io_load_SLIT_MODEL(
         const char  *   filename,
-        int             detector) 
+        int             detector)
 {
     hdrl_image          *   slit_model ;
 
@@ -1438,7 +1439,7 @@ int cr2res_io_save_EMISSION_LINES(
 {
     cpl_propertylist    *   plist ;
     double                  mjd_obs ;
-    
+
     plist = cpl_propertylist_new();
     cpl_propertylist_append_string(plist, CR2RES_HEADER_INSTRUMENT, "CRIRES") ;
     cpl_propertylist_append_string(plist, CPL_DFS_PRO_CATG,
@@ -1562,7 +1563,7 @@ int cr2res_io_save_BPM(
     hdrl_image      *   hdrl_bpms[CR2RES_NB_DETECTORS] ;
     int                 det_nr, ret ;
     cpl_image       *   bpm_tmp;
-            
+
     /* Convert to HDRL images */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         if (bpms[det_nr-1] == NULL){
@@ -1712,7 +1713,7 @@ int cr2res_io_save_LINES_DIAGNOSTICS(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Save a 1D extracted spectrum   
+  @brief    Save a 1D extracted spectrum
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    inframes    The recipe used input frames
@@ -1796,8 +1797,8 @@ int cr2res_io_save_SLIT_FUNC(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_table(filename, allframes, inframes, parlist, 
-            slit_func, qc_list, ext_plist, recipe, procatg, 
+    return cr2res_io_save_table(filename, allframes, inframes, parlist,
+            slit_func, qc_list, ext_plist, recipe, procatg,
             CR2RES_SLIT_FUNC_DRSTYPE) ;
 }
 
@@ -1828,7 +1829,7 @@ int cr2res_io_save_SLIT_MODEL(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, inframes, parlist,
-            data, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe, procatg, 
+            data, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe, procatg,
             CR2RES_SLIT_MODEL_DRSTYPE) ;
 }
 
@@ -1859,7 +1860,7 @@ int cr2res_io_save_COMBINED(
         const char              *   recipe)
 {
     return cr2res_io_save_image(filename, allframes, inframes, parlist,
-            data, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe, procatg, 
+            data, qc_list, ext_plist, CPL_TYPE_DOUBLE, recipe, procatg,
             CR2RES_COMBINED_DRSTYPE) ;
 }
 
@@ -1982,14 +1983,14 @@ int cr2res_io_save_SPLICED_1D(
         const char              *   procatg,
         const char              *   recipe)
 {
-    return cr2res_io_save_one_table(filename, allframes, inframes, parlist, 
-            spliced_1d, qc_list, ext_plist, "SPLICED", recipe, procatg, 
+    return cr2res_io_save_one_table(filename, allframes, inframes, parlist,
+            spliced_1d, qc_list, ext_plist, "SPLICED", recipe, procatg,
             CR2RES_SPLICED_1D_DRSTYPE) ;
 }
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Save a 2D extracted spectrum   
+  @brief    Save a 2D extracted spectrum
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    inframes    The recipe used input frames
@@ -2019,7 +2020,7 @@ int cr2res_io_save_EXTRACT_2D(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Save a Polarymetry spectrum   
+  @brief    Save a Polarymetry spectrum
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    inframes    The recipe used input frames
@@ -2058,7 +2059,7 @@ int cr2res_io_save_POL_SPEC(
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_io_set_bpm_as_NaNs(
-        cpl_image   *   in) 
+        cpl_image   *   in)
 {
     cpl_size        nx, ny, i, j ;
     double      *   pdata ;
@@ -2089,7 +2090,7 @@ static int cr2res_io_set_bpm_as_NaNs(
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_io_set_NaNs_as_bpm(
-        cpl_image   *   in) 
+        cpl_image   *   in)
 {
     cpl_size        nx, ny, i, j ;
     double      *   pdata ;
@@ -2338,7 +2339,7 @@ static int cr2res_io_save_image(
     to_remove = cpl_sprintf("NODPOS") ;
 
     /* Create the Primary Data Unit without data */
-    if (cpl_dfs_save_propertylist(allframes, NULL, parlist, inframes, NULL, 
+    if (cpl_dfs_save_propertylist(allframes, NULL, parlist, inframes, NULL,
                 recipe, qclist_loc, to_remove,
                 PACKAGE "/" PACKAGE_VERSION, filename) != CPL_ERROR_NONE) {
         cpl_msg_error(__func__, "Cannot save the empty primary HDU") ;
@@ -2366,7 +2367,7 @@ static int cr2res_io_save_image(
 
         if (data[det_nr-1] == NULL)
             to_save = NULL ;
-        else                       
+        else
             to_save = hdrl_image_get_image(data[det_nr-1]);
 
         /* Set BPMs as NaNs */
@@ -2379,11 +2380,11 @@ static int cr2res_io_save_image(
         /* Save the NOISE - always but for the BPM */
         if (strcmp(drstype, CR2RES_BPM_DRSTYPE)) {
             wished_extname = cr2res_io_create_extname(det_nr, 0) ;
-            cpl_propertylist_update_string(qclist_loc, "EXTNAME", 
+            cpl_propertylist_update_string(qclist_loc, "EXTNAME",
                     wished_extname) ;
-            if (data[det_nr-1] == NULL)    
+            if (data[det_nr-1] == NULL)
                 to_save = NULL ;
-            else                        
+            else
                 to_save = hdrl_image_get_error(data[det_nr-1]);
             cpl_image_save(to_save, filename, type, qclist_loc, CPL_IO_EXTEND) ;
             cpl_free(wished_extname) ;
@@ -2463,8 +2464,8 @@ static int cr2res_io_save_imagelist(
         }
 
         /* Set BPMs as NaNs */
-        if (list_data != NULL) 
-            for (i=0 ; i<cpl_imagelist_get_size(list_data) ; i++) 
+        if (list_data != NULL)
+            for (i=0 ; i<cpl_imagelist_get_size(list_data) ; i++)
                 cr2res_io_set_bpm_as_NaNs(cpl_imagelist_get(list_data, i)) ;
 
         /* Prepare header */
@@ -2480,8 +2481,8 @@ static int cr2res_io_save_imagelist(
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", wished_extname) ;
         if (list_data == NULL) {
             cpl_propertylist_save(qclist_loc, filename, CPL_IO_EXTEND) ;
-        } else {                        
-            cpl_imagelist_save(list_data, filename, type, qclist_loc, 
+        } else {
+            cpl_imagelist_save(list_data, filename, type, qclist_loc,
                     CPL_IO_EXTEND) ;
             cpl_imagelist_delete(list_data) ;
         }
@@ -2492,8 +2493,8 @@ static int cr2res_io_save_imagelist(
         cpl_propertylist_update_string(qclist_loc, "EXTNAME", wished_extname) ;
         if (list_noise == NULL) {
             cpl_propertylist_save(qclist_loc, filename, CPL_IO_EXTEND) ;
-        } else {                        
-            cpl_imagelist_save(list_noise, filename, type, qclist_loc, 
+        } else {
+            cpl_imagelist_save(list_noise, filename, type, qclist_loc,
                     CPL_IO_EXTEND) ;
             cpl_imagelist_delete(list_noise) ;
         }
@@ -2513,8 +2514,8 @@ static int cr2res_io_save_imagelist(
  */
 /*----------------------------------------------------------------------------*/
 static cpl_imagelist * cr2res_hdrl_to_cpl_list(
-        const hdrl_imagelist    *   in, 
-        int                         data) 
+        const hdrl_imagelist    *   in,
+        int                         data)
 {
     cpl_imagelist       *   out ;
     const hdrl_image    *   cur_im ;
@@ -2564,9 +2565,9 @@ static int cr2res_io_check_drs_type(
         cpl_error_reset() ;
 
         /* TRANSITION PHASE starting 09.02.2023 : See ticket PIPE-10551 */
-        /* 
+        /*
            DRS.TYPE was in PRO.TYPE so far.
-           Adding here check of PRO.TYPE to support old data 
+           Adding here check of PRO.TYPE to support old data
            Looking in PRO.TYPE id DRS.TYPE is missing
          */
         protype = cr2res_pfits_get_protype(plist) ;
