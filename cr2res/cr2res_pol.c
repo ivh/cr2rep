@@ -977,7 +977,6 @@ cpl_table *cr2res_pol_get_beam_trace(
 
     cpl_table       *   tw_out;
     cpl_polynomial  *   wl_poly;
-    cpl_polynomial  *   trace_poly;
     cpl_polynomial  *   corr_poly;
     double              wl, y_corr, slope_corr, halfSF, newSF;
     cpl_array       *   tmp_arr;
@@ -1188,7 +1187,6 @@ cpl_table *cr2res_pol_get_beam_trace(
         cpl_table_set_array(tw_out, CR2RES_COL_LOWER, i, tmp_arr);
         cpl_array_delete(tmp_arr);
 
-        cpl_polynomial_delete(trace_poly);
         cpl_polynomial_delete(wl_poly);
     }
 
