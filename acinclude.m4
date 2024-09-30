@@ -113,6 +113,14 @@ AC_DEFUN([CR2RES_SET_PATHS],
         wkfcopydir='${datadir}/reflex/workflows/${PACKAGE}-${VERSION}'
     fi
 
+    if test -z "$workflowdir"; then
+        workflowdir='${datadir}/esopipes/workflows/crires-${VERSION}/crires'
+    fi
+
+    if test -z "$reportsdir"; then
+       reportsdir='${datadir}/esopipes/reports/${PACKAGE}-${VERSION}'
+    fi
+
     AC_SUBST(plugindir)
     AC_SUBST(privatelibdir)
     AC_SUBST(apidocdir)
@@ -120,6 +128,9 @@ AC_DEFUN([CR2RES_SET_PATHS],
     AC_SUBST(configdir)
     AC_SUBST(wkfextradir)
     AC_SUBST(wkfcopydir)
+    AC_SUBST(workflowdir)
+    AC_SUBST(reportsdir)
+
 
 
     # Define a preprocesor symbol for the plugin search paths
