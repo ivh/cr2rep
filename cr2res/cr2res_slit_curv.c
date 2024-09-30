@@ -47,12 +47,12 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static int cr2res_slit_curv_get_position(
+/*static int cr2res_slit_curv_get_position(
         cpl_polynomial  *   trace,
         cpl_polynomial  *   wave,
         double              ref_wl,
         double          *   xpos,
-        double          *   ypos) ;
+        double          *   ypos) ;*/
 
 static int fmodel(
     const double x[],
@@ -443,7 +443,6 @@ hdrl_image * cr2res_slit_curv_gen_map(
     cpl_polynomial  *   upper_poly ;
     cpl_polynomial  *   lower_poly ;
     cpl_polynomial  *   slit_curv_poly ;
-    int                 cur_order, cur_trace_id ;
     double              upper_pos, lower_pos, x_slit_pos, value, val1, val2 ;
     cpl_size            i, j, k, nrows, nx, ny, x1, x2, ref_x ;
 
@@ -462,7 +461,8 @@ hdrl_image * cr2res_slit_curv_gen_map(
     pout_ima = cpl_image_get_data_double(out_ima) ;
 
     /* Loop on the traces */
-    for (k=0 ; k<nrows ; k++) {
+    for (k = 0; k < nrows; k++) {
+        int cur_order, cur_trace_id;
         /* Only specified order / trace */
         cur_order = cpl_table_get(trace_wave, CR2RES_COL_ORDER, k, NULL) ;
         cur_trace_id = cpl_table_get(trace_wave, CR2RES_COL_TRACENB,k,NULL);
@@ -551,7 +551,7 @@ hdrl_image * cr2res_slit_curv_gen_map(
   @param slit_poly_b	Polynomial for the b coefficient
   @param slit_poly_c	Polynomial for the c coefficient
   @param x              The x position (1->2048)
-  @return   the slit curvture polynomial or NULL in error case
+  @return   the slit curvature polynomial or NULL in error case
  */
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_slit_curv_build_poly(
@@ -578,7 +578,7 @@ cpl_polynomial * cr2res_slit_curv_build_poly(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief Get the (X,Y) image cordinate of a Wavelength on a trace
+  @brief Get the (X,Y) image coordinate of a Wavelength on a trace
   @param trace  The trace center position polynomial on which we search
   @param wave   The wavelength polynomial of the trace
   @param ref_wl The wavelength value
@@ -590,6 +590,7 @@ cpl_polynomial * cr2res_slit_curv_build_poly(
   Y is computed using X and the trace polynomial.
  */
 /*----------------------------------------------------------------------------*/
+/*
 static int cr2res_slit_curv_get_position(
         cpl_polynomial  *   trace,
         cpl_polynomial  *   wave,
@@ -599,36 +600,37 @@ static int cr2res_slit_curv_get_position(
 {
     double          cur_wl, tmp_wl ;
     cpl_size        x ;
-
+*/
     /* Check entries */
-    if (trace == NULL || wave == NULL || xpos == NULL || ypos == NULL) 
+/*   if (trace == NULL || wave == NULL || xpos == NULL || ypos == NULL) 
         return -1 ;
-
+*/
     /* Loop on the x positions  */
-    for (x=0 ; x<=CR2RES_DETECTOR_SIZE+1 ; x++) {
+/*    for (x=0 ; x<=CR2RES_DETECTOR_SIZE+1 ; x++) {
         cur_wl = cpl_polynomial_eval_1d(wave, (double)x, NULL) ;
+*/
         /* As soon as the WL is bigger than ref_wl, we keep X */
-        if (cur_wl > ref_wl) break ;
+/*      if (cur_wl > ref_wl) break ;
     }
 
     tmp_wl = cpl_polynomial_eval_1d(wave, (double)(x-1), NULL) ;
-
+*/
     /* Linear interpolation */
-    if (fabs(cur_wl-tmp_wl) < 1e-5)
+/*    if (fabs(cur_wl-tmp_wl) < 1e-5)
         *xpos = (double)x ;
     else 
         *xpos = (double)(x -((cur_wl-ref_wl) / (cur_wl-tmp_wl))) ;
 
     *ypos = cpl_polynomial_eval_1d(trace, *xpos, NULL) ;
-    /* Check results */
-    if (*xpos < 1 || *xpos > CR2RES_DETECTOR_SIZE ||
+*/    /* Check results */
+/*    if (*xpos < 1 || *xpos > CR2RES_DETECTOR_SIZE ||
             *ypos < 1 || *ypos > CR2RES_DETECTOR_SIZE) {
         *xpos = *ypos = -1 ;
         return -1 ;
     }
     return 0 ;
 }
-
+*/
 /*----------------------------------------------------------------------------*/
 /**
   @brief Build a model of a shifted Gaussian peak
@@ -688,12 +690,12 @@ static int fmodel(const double x[], const double a[], double *result){
 /*----------------------------------------------------------------------------*/
 static int dmodel_da(const double x[], const double a[], double *result){
     const double height = a[0];
-    const double bottom = a[1];
+    //const double bottom = a[1];
     const double sigma = a[2];
     const double center = a[3];
     const double tilt = a[4];
     const double shear = a[5];
-    const double nrows = a[6];
+    //const double nrows = a[6];
     const double * ycen = (double*)(intptr_t)a[8];
     const double yc = ycen[(size_t)x[0]];
 
@@ -737,13 +739,13 @@ static int cr2res_slit_curv_remove_peaks_at_edge(
     const int ncols)
 {
     cpl_size i, j, npeaks;
-    double peak;
 
     // Loop through the vector and shift peaks to the beginning of the vector,
     // overwriting existing values, of peaks at the edge
     j = 0;
     npeaks = cpl_vector_get_size(*peaks);
-    for (i = 0; i < npeaks; i++){
+    for (i = 0; i < npeaks; i++) {
+        double peak;
         peak = cpl_vector_get(*peaks, i);
         if (peak <= width || peak >= ncols - width) continue;
         cpl_vector_set(*peaks, j, cpl_vector_get(*peaks, i));
@@ -762,7 +764,7 @@ static int cr2res_slit_curv_remove_peaks_at_edge(
   @param y        Vector of shape (width * height,) for least-squares fitting
   @param a        Vector of shape (7,), for least-squares fitting
   @param ia       array of shape (7,), for least-squares fitting
-  @param value_a  [out] fitted constant coeffcient of the curvature
+  @param value_a  [out] fitted constant coefficient of the curvature
   @param value_b  [out] fitted first order coefficient of the curvature
   @param value_c  [out] fitted second order coefficient of the curvature
   @return   0 if ok, -1 in error case
@@ -801,12 +803,11 @@ static int cr2res_slit_curv_single_peak(
     int window, badpix;
     cpl_error_code error;
     cpl_image * img_slitfunc;
-    cpl_image * img_model;
     cpl_image * img_spec;
     cpl_matrix * x_extract;
     cpl_vector * y_extract;
     double minimum, maximum;
-    double yc, result;
+    double result;
     double pos[2];
     double pix_value;
 
@@ -841,6 +842,7 @@ static int cr2res_slit_curv_single_peak(
     if (maximum <= 0){
         // Abort before division by 0, and weird peaks
         cpl_image_delete(img_slitfunc);
+        *value_a = *value_b = *value_c = 0.;
         return -1;
     }
 
@@ -882,6 +884,7 @@ static int cr2res_slit_curv_single_peak(
     cpl_vector_unwrap(y_extract);
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+        cpl_image * img_model;
         img_model = cpl_image_new(width, height, CPL_TYPE_DOUBLE);
         for (j = 0; j < width; j++){
             for (k = 0; k < height; k++){
@@ -909,6 +912,7 @@ static int cr2res_slit_curv_single_peak(
         *value_a = *value_b = *value_c = 0.;
         return -1;
     } else {
+        double yc;
         *value_b = cpl_vector_get(a, 4);
         *value_c = cpl_vector_get(a, 5);
         // The offset a was fixed so that is 0 in the local frame
@@ -951,8 +955,7 @@ static int cr2res_slit_curv_all_peaks(
     cpl_vector      ** vec_b,
     cpl_vector      ** vec_c)
 {
-    cpl_image * img_peak;
-    double peak, value_a, value_b, value_c;
+    double value_a, value_b, value_c;
     cpl_size i;
 
     const int width = 2 * window + 1;
@@ -967,7 +970,7 @@ static int cr2res_slit_curv_all_peaks(
     // The peak height of the Gaussian
     // The bottom level of the Gaussian
     // The width (sigma) of the Gaussian
-    // The center position (as ofset from the peak pixel)
+    // The center position (as offset from the peak pixel)
     // The tilt (first order curvature)
     // The shear (second order curvature), only if fit_second_order is not 0
     // Fixed parameters are:
@@ -992,8 +995,10 @@ static int cr2res_slit_curv_all_peaks(
     *vec_c = cpl_vector_new(cpl_vector_get_size(peaks));
 
     for (i = 0; i < npeaks; i++){
+        cpl_image * img_peak;
+        double peak;
         // Loop over the individual lines
-        // and fit each of them seperately
+        // and fit each of them separately
         peak = cpl_vector_get(peaks, i);
         img_peak  = cpl_image_extract(img_rect, peak - window, 1,
             peak + window, height);

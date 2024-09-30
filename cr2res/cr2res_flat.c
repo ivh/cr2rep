@@ -117,7 +117,7 @@ static cpl_image * cr2res_bpm_from_master_flat(
     cpl_binary      *   pmask_flat ;
     cpl_binary      *   pmask_inter_order ;
     cpl_image       *   bpm ;
-    int                 nx, ny, cur_bp_nb ;
+    int                 nx, ny;
     int                 i, j ;
 
     /* Test entries */
@@ -149,9 +149,10 @@ static cpl_image * cr2res_bpm_from_master_flat(
         Post processing : Big zones of bad pixels are not considered as
         bad pixels. Each line containing more than
         100*bad_per_line_limit percent bad pixels is reset to contain
-        anly good pixels.
+        only good pixels.
     */
     for (j=0 ; j<ny ; j++) {
+        int cur_bp_nb;
         cur_bp_nb = cpl_mask_count_window(mask_flat, 1, j+1, nx, j+1) ;
         /* Check if the line has too many bad pixels */
         if (cur_bp_nb > bad_per_line_limit * nx) {

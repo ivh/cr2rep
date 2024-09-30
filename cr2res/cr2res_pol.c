@@ -80,7 +80,7 @@ int cr2res_pol_resample(cpl_vector ** intens,
 
 /**@{*/
 
-/* TODO demod fuinctions : rebin all 8 vectors to the same wl  */
+/* TODO demod functions : rebin all 8 vectors to the same wl  */
 /*                                     --> wl[0] as reference */
 /*----------------------------------------------------------------------------*/
 /**
@@ -88,7 +88,7 @@ int cr2res_pol_resample(cpl_vector ** intens,
   @param    intens      Array of n extracted intensities
   @param    wl          Array of n extracted wavelengths
   @param    errors      Array of n extracted errors
-  @param    n           Length of intens, wl and erros [needs to be 8]
+  @param    n           Length of intens, wl and errors [needs to be 8]
   @return   cpl_bivector with Stokes parameter spectrum (P/I) and error, needs
             to be de-allocated by caller.
 
@@ -118,36 +118,35 @@ cpl_bivector * cr2res_pol_demod_stokes(
   cpl_vector ** intens_local;
   cpl_vector ** errors_local;
   cpl_vector ** wl_local;
-  double r, s, e, tmp;
   cpl_size i, j;
 
   /* Check entries */
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
   if (n != 8) {
-    cpl_msg_error(__func__, 
+    cpl_msg_error(__func__,
           "Demodulation fail: Got %i spectra, but expected 8!", n);
     return NULL;
   }
 
   if (intens[0]== NULL) {
-    cpl_msg_error(__func__, 
+    cpl_msg_error(__func__,
           "Demodulation fail: Spectrum %s is missing", CR2RES_POL_MODE(0));
     return NULL;
   }
   size = cpl_vector_get_size(intens[0]);
   for (i = 0; i < n; i++) {
     if (intens[i] == NULL) {
-      cpl_msg_error(__func__, 
+      cpl_msg_error(__func__,
             "Demodulation fail: Spectrum %s is missing", CR2RES_POL_MODE(i));
       return NULL;
     }
     if (wl[i] == NULL) {
-      cpl_msg_error(__func__, 
+      cpl_msg_error(__func__,
             "Demodulation fail: Wavelength %s is missing", CR2RES_POL_MODE(i));
       return NULL;
     }
     if (errors[i] == NULL) {
-      cpl_msg_error(__func__, 
+      cpl_msg_error(__func__,
             "Demodulation fail: Errors %s are missing", CR2RES_POL_MODE(i));
       return NULL;
     }
@@ -177,9 +176,9 @@ cpl_bivector * cr2res_pol_demod_stokes(
   }
   xmin = cpl_vector_new(n);
   xmax = cpl_vector_new(n);
-  if (cr2res_pol_resample(intens_local, wl_local, 
+  if (cr2res_pol_resample(intens_local, wl_local,
                   errors_local, n, &xmin, &xmax) == -1){
-    cpl_msg_error(__func__, 
+    cpl_msg_error(__func__,
         "Could not resample polarimetry spectra to the same wavelength scale");
     for (i = 0; i < n; i++)
     {
@@ -208,27 +207,29 @@ cpl_bivector * cr2res_pol_demod_stokes(
 
   for (i = cpl_vector_get_max(xmin);
         i < cpl_vector_get_min(xmax) + 1; i++){
-    // Calculate R
-    r = cpl_vector_get(intens_local[0], i);  // 1u
-    r /= cpl_vector_get(intens_local[2], i); // 2u
-    r *= cpl_vector_get(intens_local[3], i); // 2d
-    r /= cpl_vector_get(intens_local[1], i); // 1d
-    r *= cpl_vector_get(intens_local[5], i); // 3d
-    r /= cpl_vector_get(intens_local[7], i); // 4d
-    r *= cpl_vector_get(intens_local[6], i); // 4u
-    r /= cpl_vector_get(intens_local[4], i); // 3u
-    r = pow(r, 0.25); // 0.25 = 2/n
+      double r, s, e;
+      // Calculate R
+      r = cpl_vector_get(intens_local[0], i);   // 1u
+      r /= cpl_vector_get(intens_local[2], i);  // 2u
+      r *= cpl_vector_get(intens_local[3], i);  // 2d
+      r /= cpl_vector_get(intens_local[1], i);  // 1d
+      r *= cpl_vector_get(intens_local[5], i);  // 3d
+      r /= cpl_vector_get(intens_local[7], i);  // 4d
+      r *= cpl_vector_get(intens_local[6], i);  // 4u
+      r /= cpl_vector_get(intens_local[4], i);  // 3u
+      r = pow(r, 0.25);                         // 0.25 = 2/n
 
-    // Calculate Spectrum
-    s = (r - 1) / (r + 1);
+      // Calculate Spectrum
+      s = (r - 1) / (r + 1);
 
-    // Calculate Error
-    // sum((err / spec)**2)
-    e = 0;
-    for (j = 0; j < n; j++){
-      tmp = cpl_vector_get(errors_local[j], i) /
-          cpl_vector_get(intens_local[j], i);
-      e += tmp * tmp;
+      // Calculate Error
+      // sum((err / spec)**2)
+      e = 0;
+      for (j = 0; j < n; j++) {
+          double tmp;
+          tmp = cpl_vector_get(errors_local[j], i) /
+                cpl_vector_get(intens_local[j], i);
+          e += tmp * tmp;
     }
 
     // 0.5 * R / (R+1)**2 * sqrt(err)
@@ -295,8 +296,6 @@ int cr2res_pol_resample(cpl_vector ** intens,
   // TODO: Use some other grid as baseline?
   double wmin, wmax;
   cpl_vector * master_wl;
-  cpl_bivector * tmp;
-  cpl_bivector * target;
   cpl_size i, j, m;
 
   // Construct master_wl
@@ -347,35 +346,34 @@ int cr2res_pol_resample(cpl_vector ** intens,
 
   // Do we need to copy the arrays before interpolation
   // or does it work in place?
-  for (i = 0; i < n; i++)
-  {
-    tmp = cpl_bivector_wrap_vectors(wl[i], intens[i]);
-    target = cpl_bivector_wrap_vectors(master_wl, intens[i]);
-    cpl_bivector_interpolate_linear(target, tmp);
-    cpl_bivector_unwrap_vectors(tmp);
-    cpl_bivector_unwrap_vectors(target);
+  for (i = 0; i < n; i++) {
+      cpl_bivector *tmp;
+      cpl_bivector *target;
+      tmp = cpl_bivector_wrap_vectors(wl[i], intens[i]);
+      target = cpl_bivector_wrap_vectors(master_wl, intens[i]);
+      cpl_bivector_interpolate_linear(target, tmp);
+      cpl_bivector_unwrap_vectors(tmp);
+      cpl_bivector_unwrap_vectors(target);
 
-    tmp = cpl_bivector_wrap_vectors(wl[i], errors[i]);
-    target = cpl_bivector_wrap_vectors(master_wl, errors[i]);
-    cpl_bivector_interpolate_linear(target, tmp);
-    cpl_bivector_unwrap_vectors(tmp);
-    cpl_bivector_unwrap_vectors(target);
+      tmp = cpl_bivector_wrap_vectors(wl[i], errors[i]);
+      target = cpl_bivector_wrap_vectors(master_wl, errors[i]);
+      cpl_bivector_interpolate_linear(target, tmp);
+      cpl_bivector_unwrap_vectors(tmp);
+      cpl_bivector_unwrap_vectors(target);
 
-    // We copy the wavelength here, even though it is currently noy used in
-    // the rest of the code
-    cpl_vector_copy(wl[i], master_wl);
+      // We copy the wavelength here, even though it is currently noy used in
+      // the rest of the code
+      cpl_vector_copy(wl[i], master_wl);
 
-    for (j = 0; j < cpl_vector_get(*xmin, i); j++)
-    {
-      cpl_vector_set(intens[i], j, 1);
-      cpl_vector_set(errors[i], j, 1);
-    }
-    for (j = cpl_vector_get(*xmax, i) + 1;
-         j < cpl_vector_get_size(intens[i]); j++)
-    {
-      cpl_vector_set(intens[i], j, 1);
-      cpl_vector_set(errors[i], j, 1);
-    }
+      for (j = 0; j < cpl_vector_get(*xmin, i); j++) {
+          cpl_vector_set(intens[i], j, 1);
+          cpl_vector_set(errors[i], j, 1);
+      }
+      for (j = cpl_vector_get(*xmax, i) + 1; j < cpl_vector_get_size(intens[i]);
+           j++) {
+          cpl_vector_set(intens[i], j, 1);
+          cpl_vector_set(errors[i], j, 1);
+      }
   }
 
   cpl_vector_delete(master_wl);
@@ -388,7 +386,7 @@ int cr2res_pol_resample(cpl_vector ** intens,
   @param    intens      Array of n extracted intensities
   @param    wl          Array of n extracted wavelengths
   @param    errors      Array of n extracted errors
-  @param    n           Length of intens, wl and erros [needs to be 8]
+  @param    n           Length of intens, wl and errors [needs to be 8]
   @return   cpl_bivector with Null spectrum and error, needs
             to be de-allocated by caller.
 
@@ -399,7 +397,7 @@ int cr2res_pol_resample(cpl_vector ** intens,
   Demodulation formula is N = (R^1/4 - 1) / (R^1/4 + 1) , with
     R = 1u/1d * 2u/2d * 3d/3u * 4d/4u
   see equation 3 in Donati et al. 1997 bibcode: 1997MNRAS.291..658D
-  This is anologous to the Stokes demodulation but the last two ratios are
+  This is analogous to the Stokes demodulation but the last two ratios are
   inverted which makes the true polarization signal cancel out. Thus the
   Null spectrum's deviation from zero is an inverse measure of quality.
   We simply re-use the Stokes demodulation after switching the spectra
@@ -428,30 +426,30 @@ cpl_bivector * cr2res_pol_demod_null(
   /* Check entries */
   if (intens == NULL || wl == NULL || errors == NULL) return NULL;
   if (n != 8) {
-    cpl_msg_error(__func__, 
+    cpl_msg_error(__func__,
           "Demodulation fail: Got %i spectra, but expected 8!", n);
     return NULL;
   }
 
   if (intens[0]== NULL) {
-    cpl_msg_error(__func__, 
+    cpl_msg_error(__func__,
           "Demodulation fail: Spectrum %s is missing", CR2RES_POL_MODE(0));
     return NULL;
   }
   size = cpl_vector_get_size(intens[0]);
   for (i = 0; i < n; i++) {
     if (intens[i] == NULL) {
-      cpl_msg_error(__func__, 
+      cpl_msg_error(__func__,
             "Demodulation fail: Spectrum %s is missing", CR2RES_POL_MODE(i));
       return NULL;
     }
     if (wl[i] == NULL) {
-      cpl_msg_error(__func__, 
+      cpl_msg_error(__func__,
             "Demodulation fail: Wavelength %s is missing", CR2RES_POL_MODE(i));
       return NULL;
     }
     if (errors[i] == NULL) {
-      cpl_msg_error(__func__, 
+      cpl_msg_error(__func__,
             "Demodulation fail: Errors %s are missing", CR2RES_POL_MODE(i));
       return NULL;
     }
@@ -516,12 +514,12 @@ cpl_bivector * cr2res_pol_demod_null(
   @param    intens      Array of n extracted intensities
   @param    wl          Array of n extracted wavelengths
   @param    errors      Array of n extracted errors
-  @param    n           Length of intens, wl and erros [needs to be 8]
+  @param    n           Length of intens, wl and errors [needs to be 8]
   @return   cpl_bivector with intensity spectrum and error, needs
             to be de-allocated by caller.
 
   The calculation is a simple sum of input spectra, divided by half the
-  number of sepctra, since two pol-beams together make up one unit intensity.
+  number of spectra, since two pol-beams together make up one unit intensity.
 
   Important : the first of the 8 input wavelength vectors (wl[0]) is the
   reference one for which the output parameters shall be computed
@@ -549,30 +547,30 @@ cpl_bivector * cr2res_pol_demod_intens(
     /* Check entries */
     if (intens == NULL || wl == NULL || errors == NULL) return NULL;
     if (n != 8) {
-      cpl_msg_error(__func__, 
+      cpl_msg_error(__func__,
             "Demodulation fail: Got %i spectra, but expected 8!", n);
       return NULL;
     }
 
     if (intens[0]== NULL) {
-      cpl_msg_error(__func__, 
+      cpl_msg_error(__func__,
             "Demodulation fail: Spectrum %s is missing", CR2RES_POL_MODE(0));
       return NULL;
     }
     size = cpl_vector_get_size(intens[0]);
     for (i = 0; i < n; i++) {
       if (intens[i] == NULL) {
-        cpl_msg_error(__func__, 
+        cpl_msg_error(__func__,
               "Demodulation fail: Spectrum %s is missing", CR2RES_POL_MODE(i));
         return NULL;
       }
       if (wl[i] == NULL) {
-        cpl_msg_error(__func__, 
+        cpl_msg_error(__func__,
               "Demodulation fail: Wavelength %s is missing", CR2RES_POL_MODE(i));
         return NULL;
       }
       if (errors[i] == NULL) {
-        cpl_msg_error(__func__, 
+        cpl_msg_error(__func__,
               "Demodulation fail: Errors %s are missing", CR2RES_POL_MODE(i));
         return NULL;
       }
@@ -603,9 +601,9 @@ cpl_bivector * cr2res_pol_demod_intens(
     xmin = cpl_vector_new(n);
     xmax = cpl_vector_new(n);
 
-    if (cr2res_pol_resample(intens_local, wl_local, 
+    if (cr2res_pol_resample(intens_local, wl_local,
                     errors_local, n, &xmin, &xmax) == -1){
-      cpl_msg_error(__func__, 
+      cpl_msg_error(__func__,
           "Could not resample polarimetry spectra to the same wavelength scale");
       for (i = 0; i < n; i++)
       {
@@ -840,10 +838,8 @@ int * cr2res_pol_sort_frames(
 {
     int                 *   idx_order ;
     const char	        *	poltype_first ;
-    const char	        *	poltype_curr ;
     const char	        *	fname ;
     cpl_propertylist    *   pri_head ;
-    cpl_propertylist    *   tmp_head ;
     const cpl_frame     *   frames_holder[4] ;
     int                     nframes, i ;
 
@@ -859,7 +855,7 @@ int * cr2res_pol_sort_frames(
     frames_holder[3] = frame4 ;
 
     /* Read POL.TYPE */
-    fname = cpl_frame_get_filename(frames_holder[0]); 
+    fname = cpl_frame_get_filename(frames_holder[0]);
     pri_head = cpl_propertylist_load(fname, 0);
     poltype_first = cr2res_pfits_get_poltype(pri_head);
     if (cpl_error_get_code()) {
@@ -870,7 +866,9 @@ int * cr2res_pol_sort_frames(
 
     /* Make sure the others are the same */
     for (i=1 ; i<nframes ; i++) {
-        fname = cpl_frame_get_filename(frames_holder[i]); 
+        const char *poltype_curr;
+        cpl_propertylist *tmp_head;
+        fname = cpl_frame_get_filename(frames_holder[i]);
         tmp_head = cpl_propertylist_load(fname, 0);
         poltype_curr = cr2res_pfits_get_poltype(tmp_head);
         if (cpl_error_get_code()) {
@@ -880,9 +878,9 @@ int * cr2res_pol_sort_frames(
             return NULL ;
         }
         if (strcmp(poltype_first, poltype_curr)) {
-            cpl_msg_error(__func__, "Different POL.TYPE! %s != %s", 
-                    poltype_first, poltype_curr) ; 
-            return NULL ;  
+            cpl_msg_error(__func__, "Different POL.TYPE! %s != %s",
+                    poltype_first, poltype_curr) ;
+            return NULL ;
         }
         cpl_propertylist_delete(tmp_head);
     }
@@ -962,7 +960,7 @@ cpl_table * cr2res_pol_spec_pol_merge(
   @param    tw_in        The input traces
   @param    decker_name   The decker name
   @param    up_down       Upper or lower beam
-  @return   The newly computed trace 
+  @return   The newly computed trace
 
 Uses hardcoded correction polynomials to account for the diverging beams
 
@@ -975,15 +973,15 @@ cpl_table *cr2res_pol_get_beam_trace(
     int up_or_down)
 {
 
-    cpl_table       *   tw_out;
+    cpl_table       *   tw_out = NULL;
     cpl_polynomial  *   wl_poly;
     cpl_polynomial  *   corr_poly;
-    double              wl, y_corr, slope_corr, halfSF, newSF;
+    double              wl, y_corr, newSF;
     cpl_array       *   tmp_arr;
     cpl_size            pow0=0;
     cpl_size            pow1=1;
     char            *   band;
-    int                 nb_traces, i, o, trace_id;
+    int                 nb_traces, i;
     cpl_vector      *   newSFs;
 
 
@@ -991,7 +989,7 @@ cpl_table *cr2res_pol_get_beam_trace(
     wl = cpl_polynomial_eval_1d(wl_poly, 1024, NULL);
     cpl_polynomial_delete(wl_poly);
 
-    /* Correction polynomial gets filled with hardcoded values. */    
+    /* Correction polynomial gets filled with hardcoded values. */
     /* These were derived as linear difference from the order mid-line */
     /* for the upper/lower beams and A/B nodding position, in each band.*/
     corr_poly = cpl_polynomial_new(1);
@@ -1046,7 +1044,7 @@ cpl_table *cr2res_pol_get_beam_trace(
                 cpl_polynomial_set_coeff(corr_poly, &pow1, -0.04101687);
             }
         }
-    
+
     }
     else if (wl < 1850) {
         band=cpl_sprintf("H");
@@ -1114,9 +1112,10 @@ cpl_table *cr2res_pol_get_beam_trace(
     newSFs = cpl_vector_new(nb_traces);
     for (i = 0; i < nb_traces; i++)
     {
-        o = cpl_table_get(tw_in, CR2RES_COL_ORDER, i, NULL) ;
+        int trace_id;
+        cpl_table_get(tw_in, CR2RES_COL_ORDER, i, NULL) ;
         trace_id = cpl_table_get(tw_in, CR2RES_COL_TRACENB, i, NULL);
-        if (trace_id =! 1){
+        if (trace_id != 1){
             cpl_msg_error(__func__, "More than one input-trace per order"
                             "is not supported.");
             cpl_table_delete(tw_out);
@@ -1142,14 +1141,16 @@ cpl_table *cr2res_pol_get_beam_trace(
     cpl_array_delete(tmp_arr);
 
     for (i=0 ; i<nb_traces ; i++) {
+        double slope_corr, halfSF; 
+        int o;
         o = cpl_table_get(tw_in, CR2RES_COL_ORDER, i, NULL) ;
-        trace_id = cpl_table_get(tw_in, CR2RES_COL_TRACENB, i, NULL);
+        //trace_id = cpl_table_get(tw_in, CR2RES_COL_TRACENB, i, NULL);
 
         /* Calculate new slit-fraction, important for WL-correction */
         /* wl is at middle of detector from above */
         y_corr = cpl_polynomial_eval_1d(corr_poly, wl, NULL);
         tmp_arr = cpl_array_new(3,CPL_TYPE_DOUBLE);
-        newSF = 0.5 + (y_corr / CR2RES_APPROX_SLIT_HEIGHT); 
+        newSF = 0.5 + (y_corr / CR2RES_APPROX_SLIT_HEIGHT);
         halfSF = CR2RES_POLARIMETRY_DEFAULT_HEIGHT /
                         CR2RES_APPROX_SLIT_HEIGHT / 2;
         cpl_array_set(tmp_arr, 0, newSF-halfSF);
@@ -1166,7 +1167,7 @@ cpl_table *cr2res_pol_get_beam_trace(
         slope_corr = (cpl_polynomial_eval_1d(corr_poly, wl, NULL)
                     - y_corr) /  CR2RES_DETECTOR_SIZE;  // SLOPE!
 
-        cpl_msg_debug(__func__, 
+        cpl_msg_debug(__func__,
                 "newSF, halfSF, slope_corr, y_corr: "
                 "%g, %g, %g, %g ",
                 newSF, halfSF, slope_corr, y_corr);
@@ -1177,12 +1178,12 @@ cpl_table *cr2res_pol_get_beam_trace(
         cpl_array_set(tmp_arr, 0, cpl_array_get(tmp_arr, 0, NULL) + y_corr);
         cpl_array_set(tmp_arr, 1, cpl_array_get(tmp_arr, 1, NULL) + slope_corr);
         cpl_table_set_array(tw_out, CR2RES_COL_ALL, i, tmp_arr);
-        
+
         /* Edge polynomials are just shifted up/down by height/2 */
-        cpl_array_set(tmp_arr, 0, cpl_array_get(tmp_arr, 0, NULL) + 
+        cpl_array_set(tmp_arr, 0, cpl_array_get(tmp_arr, 0, NULL) +
                             CR2RES_POLARIMETRY_DEFAULT_HEIGHT / 2);
         cpl_table_set_array(tw_out, CR2RES_COL_UPPER, i, tmp_arr);
-        cpl_array_set(tmp_arr, 0, cpl_array_get(tmp_arr, 0, NULL) - 
+        cpl_array_set(tmp_arr, 0, cpl_array_get(tmp_arr, 0, NULL) -
                             CR2RES_POLARIMETRY_DEFAULT_HEIGHT);
         cpl_table_set_array(tw_out, CR2RES_COL_LOWER, i, tmp_arr);
         cpl_array_delete(tmp_arr);

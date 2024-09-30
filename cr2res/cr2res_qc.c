@@ -40,6 +40,7 @@
 #include "cr2res_calib.h"
 #include "cr2res_detlin.h"
 #include "cr2res_wave.h"
+#include "cr2res_pfits.h"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -170,9 +171,9 @@ double cr2res_qc_detlin(
     if (hdrl_coeffs==NULL || min_level==NULL || max_level==NULL) return -1.0 ;
 
     /* Initialise */
-    qc_detlin_median = -1.0 ;
-    qc_detlin_min = -1.0 ;
-    qc_detlin_max = -1.0 ;
+    //qc_detlin_median = -1.0 ;
+    //qc_detlin_min = -1.0 ;
+    //qc_detlin_max = -1.0 ;
 
     // Apply detlin correction on an image with constant value
     width = hdrl_image_get_size_x(hdrl_imagelist_get(hdrl_coeffs, 0));
@@ -324,7 +325,6 @@ int cr2res_qc_flat_order_positions(
 double cr2res_qc_flat_trace_center_y(
         const cpl_table     *   trace)
 {
-    cpl_vector * vector;
     cpl_array * array;
     int * order_idx_values, nb_order_idx_values, central_order_idx, i;
     int * traces, nb_traces;
@@ -347,6 +347,7 @@ double cr2res_qc_flat_trace_center_y(
     // Step 2: Sum all traces together
     traces = cr2res_get_trace_numbers(trace, central_order_idx, &nb_traces);
     for (i = 0; i < nb_traces; i++) {
+      cpl_vector * vector;
       vector = cr2res_trace_get_ycen(trace, central_order_idx, traces[i], 
                 CR2RES_DETECTOR_SIZE);
       qc_trace_center_y += cpl_vector_get_mean(vector);
@@ -375,15 +376,13 @@ double cr2res_qc_flat_s2n(
         const cpl_table     *   extracted)
 {
     cpl_array                   *   col_names ;
-    char                        *   col_type ;
-    const char                  *   col_name ;
     char                        *   err_col ;
     const double                *   pspec ;
     const double                *   pspec_err ;
     cpl_vector                  *   snrs ;
     cpl_vector                  *   meds ;
     double                          snr, med ;
-    cpl_size                        ncols, i, j, snr_size, nrows, nmeds ;
+    cpl_size                        ncols, i, j, nrows, nmeds ;
     int                             trace_nb, order ;
 
     /* Check Inputs */
@@ -399,9 +398,11 @@ double cr2res_qc_flat_s2n(
 
     /* Loop on the columns */
     nmeds = 0 ;
-    meds = cpl_vector_new(ncols); 
+    meds = cpl_vector_new(ncols);
 
-    for (i=0 ; i<ncols ; i++) {
+    for (i = 0; i < ncols; i++) {
+        char *col_type;
+        const char *col_name;
         col_name = cpl_array_get_string(col_names, i);
         col_type = cr2res_dfs_SPEC_colname_parse(col_name, &order,
                 &trace_nb) ;
@@ -616,7 +617,7 @@ cpl_bivector * cr2res_qc_lines_intens_bgd(
     double          *   pintens,
                     *   pbgs ;
 
-    double              wmin, wmax, curr_refline;
+    double              wmin, wmax;
 
     int                 i, nall ;
 
@@ -633,6 +634,7 @@ cpl_bivector * cr2res_qc_lines_intens_bgd(
     pintens = cpl_bivector_get_x_data(intens_bgd) ;
     pbgs = cpl_bivector_get_y_data(intens_bgd) ;
     for (i=0 ; i < nall ; i++) {
+        double curr_refline;
         curr_refline = cpl_vector_get(ref_lines, i) ;
         cr2res_qc_wave_line_intens(spec, curr_refline, 
                 &(pintens[i]), &(pbgs[i]));
@@ -701,8 +703,8 @@ double cr2res_qc_wave_lamp_effic(
 /**
   @brief    Computes the lines Fwhm and return the smallest
   @param    extracted   extracted spectrum
-  @param    wl          [out] the wavelength of the thinest line
-  @return   the thinest fwhm
+  @param    wl          [out] the wavelength of the thinnest line
+  @return   the thinnest fwhm
  */
 /*----------------------------------------------------------------------------*/
 double cr2res_qc_wave_resol_fwhm(
@@ -712,7 +714,7 @@ double cr2res_qc_wave_resol_fwhm(
     cpl_vector  *   ref_lines ;
     cpl_vector  *   ref_lines_fwhm ;
     cpl_vector  *   ref_lines_pos ;
-    double          wmin, wmax, fwhm, peak_height, min_fwhm_val, 
+    double          wmin, wmax, peak_height, min_fwhm_val, 
                     min_fwhm_pos;
     cpl_size        idx ;
     int             i, n, nall;
@@ -738,6 +740,7 @@ double cr2res_qc_wave_resol_fwhm(
     ref_lines_fwhm = cpl_vector_new(nall) ;
     ref_lines_pos = cpl_vector_new(nall) ;
     for (i=0 ; i<cpl_vector_get_size(ref_lines) ; i++) {
+        double fwhm;
         fwhm = cr2res_qc_wave_line_fwhm(spec, cpl_vector_get(ref_lines, i), 
                 &peak_height);
         /*
@@ -852,7 +855,7 @@ double cr2res_qc_obs_nodding_signal(
     if (extracted == NULL) return -1.0 ;
 
     /* Initialise */
-    qc_signal = -1.0 ;
+    //qc_signal = -1.0 ;
     colname = cr2res_dfs_SPEC_colname(CR2RES_QC_ORDER, CR2RES_QC_TRACE);
     data = cpl_table_get_data_double((cpl_table*) extracted, colname);
     cpl_free(colname);
@@ -902,7 +905,7 @@ double cr2res_qc_obs_nodding_standard_flux(
     if (extracted == NULL) return -1.0 ;
 
     /* Initialise */
-    qc_flux = -1.0 ;
+    //qc_flux = -1.0 ;
     wl_start = -1.0 ;
     wl_stop = -1 ;
     nrows = cpl_table_get_nrow(extracted);
@@ -1062,7 +1065,7 @@ double * cr2res_qc_snr(
 double cr2res_qc_compute_snr(cpl_vector * spec,
                              cpl_vector * err)
 {
-    double snr, err_val;
+    double snr;
     cpl_vector *snr_spec;
     cpl_vector *myerr;
     int j;
@@ -1071,6 +1074,7 @@ double cr2res_qc_compute_snr(cpl_vector * spec,
     myerr = cpl_vector_duplicate(err);
     /* Clean the error to avoid division by 0.0 */
     for (j=0 ; j<cpl_vector_get_size(myerr) ; j++) {
+        double err_val;
         err_val = cpl_vector_get(myerr,j) ;
         if (fabs(err_val) < 1e-3 || isnan(err_val)) {
             cpl_vector_set(myerr, j, 1.0) ;
@@ -1105,7 +1109,6 @@ double cr2res_qc_obs_slit_psf(
     const double    *   data ;
     cpl_size            i, j ;
     cpl_fit_mode        fit_pars ;
-    cpl_error_code      err;
     int                 nrow ;
     double              qc_fwhm, x0, sigma, area, offset, extr_height;
 
@@ -1124,7 +1127,7 @@ double cr2res_qc_obs_slit_psf(
     }
 
     /* Initialise */
-    qc_fwhm = -1.0 ;
+    //qc_fwhm = -1.0 ;
     fit_pars = CPL_FIT_CENTROID + CPL_FIT_STDEV + CPL_FIT_AREA;
     offset = 0.;
 
@@ -1148,7 +1151,7 @@ double cr2res_qc_obs_slit_psf(
             cpl_vector_set(y, j, data[j]);
         }
     }
-    err = cpl_vector_fit_gaussian(x, NULL, y, NULL, fit_pars, &x0, &sigma,
+    cpl_vector_fit_gaussian(x, NULL, y, NULL, fit_pars, &x0, &sigma,
             &area, &offset, NULL, NULL, NULL);
     if (cpl_error_get_code()) {
         cpl_msg_warning(__func__, "Failed Fit for the slit PSF") ;
@@ -1179,8 +1182,6 @@ double cr2res_qc_obs_slit_psf(
 /*----------------------------------------------------------------------------*/
 int cr2res_qc_numsat(const cpl_frameset * frameset)
 {
-    const cpl_frame     *   frame ;
-    const char          *   fname ;
     hdrl_image          *   hima ;
     cpl_image           *   ima ;
     double              *   pima ;
@@ -1195,6 +1196,8 @@ int cr2res_qc_numsat(const cpl_frameset * frameset)
     nframes = cpl_frameset_get_size(frameset);
 
     for (i = 0; i < nframes; i++) {
+        const cpl_frame *frame;
+        const char *fname;
         frame = cpl_frameset_get_position_const(frameset, i);
         fname = cpl_frame_get_filename(frame);
         for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
@@ -1228,7 +1231,7 @@ int cr2res_qc_numsat(const cpl_frameset * frameset)
   @param    wl          line position
   @param    the computed intensity
   @param    the computed background
-  @return   0 if ok, -1 otherwiѕe
+  @return   0 if ok, -1 otherwise
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_qc_wave_line_intens(
@@ -1245,7 +1248,7 @@ static int cr2res_qc_wave_line_intens(
     cpl_vector * tmp;
     cpl_size pixel_pos;
     cpl_size window_size;
-    cpl_size k, n_inner, n_outer;
+    cpl_size n_inner, n_outer;
     double sum_inner, sum_outer;
     double value;
 
@@ -1280,6 +1283,7 @@ static int cr2res_qc_wave_line_intens(
     n_outer = 0;
     for (cpl_size i = -window_size * 2; i < 2 * window_size; i++)
     {
+        cpl_size k;
         k = pixel_pos - i;
         if (k < 0 || k >= cpl_vector_get_size(flux)){
             continue;
@@ -1288,7 +1292,7 @@ static int cr2res_qc_wave_line_intens(
         if (isnan(value)){
             continue;
         }
-        if (fabs(i) < window_size){
+        if (llabs(i) < window_size){
             // Inner sum
             n_inner++;
             sum_inner += value;
@@ -1312,4 +1316,203 @@ static int cr2res_qc_wave_line_intens(
     return 0 ;
 }
 
+int cr2res_qc_calculate_mean_and_rmsd(cpl_propertylist ***plists, int size, const int *sizes, 
+                             const char *ref_keyword, cpl_propertylist *qc_main,
+                             const char *result_avg_keyword, const char *result_rmsd_keyword) {
 
+    cpl_errorstate status;
+
+    status = cpl_errorstate_get();
+
+    double sum = 0.0;
+    double sum_sq = 0.0;
+    int count = 0;
+
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j<sizes[i]; j++){
+        if (plists[i][j] != NULL) {
+            double value = cpl_propertylist_get_double(plists[i][j], ref_keyword);
+            if(!cpl_errorstate_is_equal(status)) {
+                cpl_msg_debug(__func__, "Cannot get keyword %s : %s", ref_keyword, cpl_error_get_message());
+                cpl_errorstate_set(status);
+                continue;
+            }
+            sum += value;
+            sum_sq += value * value;
+            count++;
+        }
+        }
+    }
+
+    if (count > 0) {
+        double mean = sum / count;
+
+        double rmsd = 0.0;
+
+        if (count > 1) {
+            rmsd = sqrt( (count*mean*mean - 2*mean*sum + sum_sq) / count);
+        }
+
+            if (qc_main != NULL) {
+                cpl_propertylist_append_double(qc_main, result_avg_keyword, mean);
+                cpl_propertylist_append_double(qc_main, result_rmsd_keyword, rmsd);
+            }
+    }
+    return 0;
+}
+
+int
+cr2res_qc_dup_mtrlgy_key(cpl_frameset *framelist, cpl_propertylist *plist)
+{
+
+    /*
+     * Get the first input frame in the input set-of-frames.
+     * Copied from cpl_dfs_setup_product_header()
+     */
+
+
+    const cpl_frame *frame;
+    const cpl_frame *first_frame = NULL;
+    cpl_frameset_iterator *it = NULL;
+    cpl_propertylist *met_plist = NULL;
+
+    cpl_errorstate status;
+
+    it = cpl_frameset_iterator_new(framelist);
+    frame = cpl_frameset_iterator_get_const(it);
+
+    while (frame != NULL) {
+
+        if (cpl_frame_get_group(frame) == CPL_FRAME_GROUP_RAW) {
+            first_frame = frame;
+            break;
+        }
+
+        status = cpl_errorstate_get();
+
+        cpl_frameset_iterator_advance(it, 1);
+
+        if (cpl_error_get_code() == CPL_ERROR_ACCESS_OUT_OF_RANGE) {
+            cpl_errorstate_set(status);
+        }
+
+        frame = cpl_frameset_iterator_get_const(it);
+    }
+
+    if (first_frame == NULL) {
+        cpl_frameset_iterator_reset(it);
+        frame = cpl_frameset_iterator_get_const(it);
+
+        while (frame != NULL) {
+
+            if (cpl_frame_get_group(frame) == CPL_FRAME_GROUP_CALIB) {
+                first_frame = frame;
+                break;
+            }
+
+            status = cpl_errorstate_get();
+
+            cpl_frameset_iterator_advance(it, 1);
+
+            if (cpl_error_get_code() == CPL_ERROR_ACCESS_OUT_OF_RANGE) {
+                cpl_errorstate_set(status);
+            }
+
+            frame = cpl_frameset_iterator_get_const(it);
+        }
+    }
+
+    cpl_frameset_iterator_delete(it);
+    it = NULL;
+
+    if (first_frame == NULL) {
+            cpl_msg_debug(__func__, "No suitable frame found for QC MTRLGY ID in sof.");
+            return 0;
+    }
+
+
+    status = cpl_errorstate_get();
+
+    met_plist =
+        cpl_propertylist_load_regexp(cpl_frame_get_filename(first_frame), 0,
+                                     CR2RES_HEADER_OCS_MTRLGY, 0);
+        if (cpl_error_get_code() != CPL_ERROR_NONE) {
+            cpl_msg_debug(__func__, "Cannot read header for QC MTRLGY ID : %s", cpl_error_get_message());
+            cpl_errorstate_set(status);
+            return 0;
+        }
+
+    if (plist != NULL) {
+        int mtrlgy_st;
+        mtrlgy_st =
+            cpl_propertylist_get_bool(met_plist, CR2RES_HEADER_OCS_MTRLGY);
+        if (cpl_error_get_code() != CPL_ERROR_NONE) {
+            cpl_msg_debug(__func__, "Cannot get keyword %s : %s",
+                          CR2RES_HEADER_OCS_MTRLGY, cpl_error_get_message());
+            cpl_errorstate_set(status);
+        }
+        else {
+            if (mtrlgy_st == 0) {
+                cpl_propertylist_prepend_int(plist, CR2RES_HEADER_QC_MTRLGY_ID,
+                                             0);
+            }
+            else {
+                cpl_propertylist_prepend_int(plist, CR2RES_HEADER_QC_MTRLGY_ID,
+                                             1);
+            }
+            if (cpl_error_get_code() != CPL_ERROR_NONE) {
+                cpl_msg_debug(__func__, "Cannot write keyword %s : %s",
+                              CR2RES_HEADER_QC_MTRLGY_ID,
+                              cpl_error_get_message());
+            cpl_errorstate_set(status);
+            }
+        }
+    }
+
+    if (met_plist != NULL){
+        cpl_propertylist_delete(met_plist);
+    }
+
+    return 0;
+}
+
+
+int
+cr2res_qc_dup_chip_idx(cpl_propertylist *plist)
+{
+
+    cpl_errorstate status;
+
+    status = cpl_errorstate_get();
+
+    if (plist != NULL) {
+        int chip_idx;
+        char id[6];
+        chip_idx = cpl_propertylist_get_int(plist, CR2RES_HEADER_CHIP_IDX);
+        if (cpl_error_get_code() != CPL_ERROR_NONE) {
+            cpl_msg_debug(__func__, "Cannot get keyword %s : %s",
+                          CR2RES_HEADER_OCS_MTRLGY, cpl_error_get_message());
+            cpl_errorstate_set(status);
+        }
+        else {
+            if (chip_idx >= 1 && chip_idx <= 3) {
+                sprintf(id, "CHIP%d", chip_idx);
+                cpl_propertylist_append_string(plist, CR2RES_HEADER_QC_DET_ID,
+                                               id);
+                if (cpl_error_get_code() != CPL_ERROR_NONE) {
+                    cpl_msg_debug(__func__, "Cannot write keyword %s : %s",
+                                  CR2RES_HEADER_QC_DET_ID,
+                                  cpl_error_get_message());
+                    cpl_errorstate_set(status);
+                }
+            }
+            else {
+                cpl_msg_debug(__func__,
+                              "CHIP INDEX not recognized for QC DET ID: %d",
+                              chip_idx);
+            }
+        }
+    }
+
+    return 0;
+}

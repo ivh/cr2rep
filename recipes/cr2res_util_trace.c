@@ -299,8 +299,6 @@ static int cr2res_util_trace(
                             split_traces, smooth_x, smooth_y, trace_filter ;
     double                  threshold ;
     cpl_frameset        *   rawframes ;
-    const cpl_frame     *   cur_frame ;
-    const char          *   cur_fname ;
     cpl_frameset        *   cur_fset ;
     char                *   out_file;
     hdrl_image          *   flat_ima ;
@@ -366,7 +364,9 @@ static int cr2res_util_trace(
     }
 
     /* Loop on the RAW frames */
-    for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
+    for (i = 0; i < cpl_frameset_get_size(rawframes); i++) {
+        const cpl_frame *cur_frame;
+        const char *cur_fname;
         /* Get the Current Frame */
         cur_frame = cpl_frameset_get_position(rawframes, i) ;
         cur_fname = cpl_frame_get_filename(cur_frame) ;

@@ -53,7 +53,7 @@ static void test_cr2res_trace_get_trace_ypos(void);
 static void test_cr2res_trace_signal_detect(void);
 static void test_cr2res_trace_fit_traces(void);
 static void test_cr2res_trace_fit_trace(void);
-static void test_cr2res_trace_convert_cluster_to_labels(void);
+//static void test_cr2res_trace_convert_cluster_to_labels(void);
 static void test_cr2res_trace_convert_labels_to_cluster(void);
 static void test_cr2res_trace_clean_blobs(void);
 static void test_cr2res_trace_extract_edges(void);
@@ -70,9 +70,9 @@ static void test_cr2res_get_trace_wave_poly(void);
 /*----------------------------------------------------------------------------*/
 
 /**@{*/
-#define WLEN_BEGIN(i) ({char s[20]; sprintf(s, CR2RES_HEADER_WLEN_BEGIN, i); s;})
-#define WLEN_END(i) ({char s[20]; sprintf(s, CR2RES_HEADER_WLEN_END, i); s;})
-#define WLEN_CENY(i) ({char s[20]; sprintf(s, CR2RES_HEADER_WLEN_CENY, i); s;})
+#define WLEN_BEGIN(buffer, i) (sprintf(buffer, CR2RES_HEADER_WLEN_BEGIN, i), buffer)
+#define WLEN_END(buffer, i) (sprintf(buffer, CR2RES_HEADER_WLEN_END, i), buffer)
+#define WLEN_CENY(buffer, i) (sprintf(buffer, CR2RES_HEADER_WLEN_CENY, i), buffer)
 
 
 /*----------------------------------------------------------------------------*/
@@ -206,11 +206,13 @@ static cpl_table *create_test_table()
                     1617.2042020846, 1572.2818631378, 1529.78775872867,
                     1489.53018613055, 1451.3371044349, -1};
 
+    char buffer[20];
+
     for (int i = 0; i < 9; i++)
     {
-        cpl_propertylist_append_double(hdr, WLEN_CENY(i), ceny[i]);
-        cpl_propertylist_append_double(hdr, WLEN_BEGIN(i), begin[i]);
-        cpl_propertylist_append_double(hdr, WLEN_END(i), end[i]);
+        cpl_propertylist_append_double(hdr, WLEN_CENY(buffer, i), ceny[i]);
+        cpl_propertylist_append_double(hdr, WLEN_BEGIN(buffer, i), begin[i]);
+        cpl_propertylist_append_double(hdr, WLEN_END(buffer, i), end[i]);
     }
 
 
@@ -251,23 +253,23 @@ static cpl_image *create_test_image(void)
     cpl_image_save(trace_ima, "TEST_trace.fits", CPL_TYPE_INT, NULL, CPL_IO_CREATE);
     return trace_ima;
 }
-
+#ifdef CR2RES_UNUSED_TESTS
 static cpl_table *create_cluster_table(void)
 {
     // for each pixel in a cluster
     // XS, YS - coordinates
     // Cluster - which cluster that pixel belongs to
-    int data[] = {2, 2, 0, 0, 0,
+    /*int data[] = {2, 2, 0, 0, 0,
                   0, 0, 0, 1, 1,
                   0, 1, 1, 1, 1,
                   1, 1, 1, 1, 1,
-                  1, 1, 1, 1, 0};
+                  1, 1, 1, 1, 0};*/
     // flip data, so the image will be the same
-    int data_inverse[] = {1, 1, 1, 1, 0,
+    /*int data_inverse[] = {1, 1, 1, 1, 0,
                           1, 1, 1, 1, 1,
                           0, 1, 1, 1, 1,
                           0, 0, 0, 1, 1,
-                          2, 2, 0, 0, 0};
+                          2, 2, 0, 0, 0};*/
 
     int xs[] = {4, 5, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2};
     int ys[] = {4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 5, 5};
@@ -279,6 +281,7 @@ static cpl_table *create_cluster_table(void)
     cpl_table_wrap_int(cluster, clusters, CR2RES_COL_CLUSTERS);
     return cluster;
 }
+#endif
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -299,7 +302,7 @@ static void test_cr2res_trace(void)
     cpl_image *trace_ima = cpl_image_cast(int_ima, CPL_TYPE_DOUBLE);
     cpl_image_delete(int_ima);
     cpl_table *out;
-    const cpl_array *all;
+    //const cpl_array *all;
 
     double threshold = 5;
 
@@ -310,7 +313,7 @@ static void test_cr2res_trace(void)
 
     cpl_test(out = cr2res_trace(trace_ima, 1.0, 5.0, threshold, 1, 2, 10));
 
-    all = cpl_table_get_array(out, CR2RES_COL_ALL, 0);
+    cpl_table_get_array(out, CR2RES_COL_ALL, 0);
 
     cpl_table_save(out, NULL, NULL, "TEST_table2.fits", CPL_IO_CREATE);
     cpl_table_delete(out);
@@ -463,7 +466,7 @@ static void test_cr2res_trace_get_ycen(void)
     }
     cmp = cpl_vector_wrap(size, data);
 
-    // Run that sould not fail, compare output
+    // Run that should not fail, compare output
     cpl_test(res = cr2res_trace_get_ycen(trace, order_nb, trace_nb, size));
     cpl_test_vector_abs(cmp, res, size * DBL_EPSILON);
 
@@ -628,8 +631,6 @@ static void test_cr2res_trace_add_extra_columns(void)
     cpl_table *tmp = cpl_table_duplicate(traces);
     char *file_for_wl = "TEST_table.fits";
     int det_nr = 1;
-    int res;
-    const cpl_array *wl;
     double cmp1[] = {-1, 1441.46160481499, 1479.3948049417, 1519.37844831851, 1561.58340521624, 1606.20007393671, 1653.44125258191, 1703.54553296318, 1756.78133086827};
     double cmp2[] = {0, 0.00482202129878357, 0.00494891659611621, 0.00508267109871028, 0.00522385640701021, 0.00537310944721049, 0.00553114207801171, 0.00569875244401075, 0.00587683845788956};
 
@@ -665,6 +666,7 @@ static void test_cr2res_trace_add_extra_columns(void)
     // Check wavelength
     for (int i = 0; i < 9; i++)
     {
+        const cpl_array *wl;
         wl = cpl_table_get_array(tmp, CR2RES_COL_WAVELENGTH, i);
         cpl_test_abs(cpl_array_get(wl, 0, 0), cmp1[i], FLT_EPSILON);
         cpl_test_abs(cpl_array_get(wl, 1, 0), cmp2[i], FLT_EPSILON);

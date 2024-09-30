@@ -63,7 +63,7 @@ cr2res_nodding_pos cr2res_pfits_get_nodding_pos(const cpl_propertylist * plist)
     if (sval[0] == 'B') return CR2RES_NODDING_B ;
     return CR2RES_NODDING_NONE ; 
 }
-
+#ifdef CR2RES_UNUSED
 /*----------------------------------------------------------------------------*/
 /**
   @brief    find out the PRO.CATG
@@ -75,7 +75,7 @@ const char * cr2res_pfits_get_procatg(const cpl_propertylist * plist)
 {
     return (const char *) cpl_propertylist_get_string(plist, CPL_DFS_PRO_CATG);
 }
-
+#endif
 /*----------------------------------------------------------------------------*/
 /**
   @brief    find out the DRS.TYPE
@@ -100,7 +100,7 @@ const char * cr2res_pfits_get_protype(const cpl_propertylist * plist)
     return (const char *) cpl_propertylist_get_string(plist, 
             CPL_DFS_PRO_TYPE);
 }
-
+#ifdef CR2RES_UNUSED
 /*----------------------------------------------------------------------------*/
 /**
   @brief    find out the arcfile
@@ -113,7 +113,7 @@ const char * cr2res_pfits_get_arcfile(const cpl_propertylist * plist)
     return (const char *) cpl_propertylist_get_string(plist, 
             CR2RES_HEADER_ARCFILE);
 }
-
+#endif
 /*----------------------------------------------------------------------------*/
 /**
   @brief    find out the PROG ID
@@ -304,7 +304,7 @@ double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order_idx)
     cpl_free(key_name) ;
     return val ;
 }
-
+#ifdef CR2RES_UNUSED
 /*----------------------------------------------------------------------------*/
   /*
   @brief    find out the NAXIS1 value
@@ -352,7 +352,7 @@ int cr2res_pfits_get_expno(const cpl_propertylist * plist)
 {
     return cpl_propertylist_get_int(plist, CR2RES_HEADER_EXPNO)  ;
 }
-
+#endif
 /*----------------------------------------------------------------------------*/
 /**
   @brief    find out the NDIT value
@@ -413,12 +413,11 @@ int cr2res_pfits_get_order_idx(
         const cpl_propertylist  *   plist,
         double                      yposition)
 {
-    char    *   key_name ;
-    int         i, order_idxp;
+    int         i;
     int         order_idx = -1000 ;
     int         min_order_idx = -49 ;
     int         max_order_idx =  50 ;
-    double      ycen, curr_diff;
+    double      curr_diff;
     double      best_diff = CR2RES_DETECTOR_SIZE;
 
     /* Check entries */
@@ -429,7 +428,10 @@ int cr2res_pfits_get_order_idx(
         return -1 ;
     }
 
-    for (i=min_order_idx ; i <= max_order_idx ; i++) {
+    for (i = min_order_idx; i <= max_order_idx; i++) {
+        char *key_name;
+        int order_idxp;
+        double ycen;
         order_idxp = cr2res_io_convert_order_idx_to_idxp(i);
         key_name = cpl_sprintf(CR2RES_HEADER_WLEN_CENY, order_idxp) ;
         ycen = cpl_propertylist_get_double(plist, key_name);

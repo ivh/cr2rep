@@ -54,7 +54,7 @@ static void test_cr2res_polynomial_eval_vector(void);
 static void test_cr2res_threshold_spec(void);
 static void test_cr2res_get_base_name(void);
 static void test_cr2res_get_root_name(void);
-static void test_cr2res_extract_filename(void);
+//static void test_cr2res_extract_filename(void);
 static void test_cr2res_extract_frameset(void);
 static void test_cr2res_convert_array_to_poly(void);
 static void test_cr2res_convert_poly_to_array(void);
@@ -79,13 +79,13 @@ static void test_cr2res_polyfit_2d(void);
 static void test_cr2res_vector_get_int(void)
 {
     int i;
-    double d;
     int n = 10;
     cpl_vector *in = cpl_vector_new(n);
     int *res;
 
     for (i = 0; i < n; i++)
     {
+        double d;
         d = (double)i;
         cpl_vector_set(in, i, d + (d / (n + 1)));
     }
@@ -107,7 +107,6 @@ static void test_cr2res_vector_get_int(void)
 static void test_cr2res_vector_get_rest(void)
 {
     int i;
-    double d;
     int n = 1000;
     cpl_vector *in = cpl_vector_new(n);
     cpl_vector *out = cpl_vector_new(n);
@@ -115,6 +114,7 @@ static void test_cr2res_vector_get_rest(void)
 
     for (i = 0; i < n; i++)
     {
+        double d;
         d = (double)i;
         cpl_vector_set(in, i, d + (d / (n + 1)));
         cpl_vector_set(out, i, (d / (n + 1)));
@@ -222,7 +222,6 @@ static void test_cr2res_polynomial_eval_vector(void)
     int i;
     cpl_size power;
     double p0 = 1.1, p1 = 2.2, p2 = 3.3;
-    double d, val;
     int n = 100;
     cpl_vector *in = cpl_vector_new(n);
     cpl_vector *out = cpl_vector_new(n);
@@ -238,8 +237,9 @@ static void test_cr2res_polynomial_eval_vector(void)
 
     for (i = 0; i < n; i++)
     {
+        double d, val;
         d = (double)i;
-        val = d + (d / (n + 1));
+        //val = d + (d / (n + 1));
         cpl_vector_set(in, i, d);
         val = (p2 * d * d) + (p1 * d) + p0;
         cpl_vector_set(out, i, val);
@@ -351,7 +351,7 @@ static void test_cr2res_get_root_name(void)
     //test output
     cpl_test_eq_string(res, "cr2res_trace-test");
 }
-
+#ifdef CR2RES_UNUSED_TESTS
 /*----------------------------------------------------------------------------*/
 /**
    @brief   Create a frameset two frames, with different tags, and check that 
@@ -387,6 +387,7 @@ static void test_cr2res_extract_filename(void)
     //deallocate memory
     cpl_frameset_delete(in); //this should also delete the frames
 }
+#endif
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -449,8 +450,6 @@ static void test_cr2res_convert_array_to_poly(void)
     double data[] = {0.9, 1.5, 219.1, 123.8, 18, 123.3, 0.623, 0., 0.9, 1};
     cpl_array *arr = cpl_array_wrap_double(data, n);
     cpl_polynomial *res;
-    cpl_size power = 0;
-    double poly;
 
     //run test
     cpl_test_null(cr2res_convert_array_to_poly(NULL));
@@ -458,8 +457,9 @@ static void test_cr2res_convert_array_to_poly(void)
     cpl_test(res = cr2res_convert_array_to_poly(arr));
 
     //test output
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
+        cpl_size power;
+        double poly;
         power = i;
         poly = cpl_polynomial_get_coeff(res, &power);
         cpl_test_eq(data[i], poly);
@@ -522,7 +522,6 @@ static void test_cr2res_detector_shotnoise_model(void)
     cpl_image_set(ima_data, 1, 1, -1);
 
     cpl_image *ima_errs;
-    cpl_error_code res;
 
     cpl_image * compare = cpl_image_new(width, height, CPL_TYPE_INT);
     cpl_image_add_scalar(compare, err);

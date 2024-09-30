@@ -116,4 +116,20 @@ double * cr2res_qc_snr(
     int             *   out_nb_order_idx_values) ;
 double cr2res_qc_compute_snr(cpl_vector *spec,
                              cpl_vector *err);
+
+int cr2res_qc_calculate_mean_and_rmsd(
+        cpl_propertylist    ***      plists, 
+        int                         size,
+        const int                 *       sizes, 
+        const char          *       ref_keyword,
+        cpl_propertylist    *       qc_main,
+        const char          *       result_avg_keyword,
+        const char          *       result_rmsd_keyword);
+
+int cr2res_qc_dup_mtrlgy_key(
+        cpl_frameset * framelist, 
+        cpl_propertylist *plist);
+
+int cr2res_qc_dup_chip_idx(
+        cpl_propertylist *plist);
 #endif

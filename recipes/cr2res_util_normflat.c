@@ -285,12 +285,9 @@ static int cr2res_util_normflat(
     double                  bpm_low, bpm_high, bpm_lines_ratio ;
     cpl_frameset        *   rawframes ;
     const char          *   used_tag ;
-    cpl_frameset        *   raw_one_setting ;
     cpl_frameset        *   raw_one_setting_decker ;
     cpl_size            *   labels ;
     cpl_size                nlabels ;
-    cpl_propertylist    *   plist ;
-    char                *   setting_id ;
     cpl_frame           *   slitmodel_frame ;
     hdrl_image          *   master_flat[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
@@ -345,7 +342,10 @@ static int cr2res_util_normflat(
     }
 
     /* Loop on the settings */
-    for (l=0 ; l<(int)nlabels ; l++) {
+    for (l = 0; l < (int)nlabels; l++) {
+        cpl_propertylist *plist;
+        char *setting_id;
+        cpl_frameset *raw_one_setting;
         /* Get the frames for the current setting */
         raw_one_setting = cpl_frameset_extract(rawframes, labels, (cpl_size)l) ;
 

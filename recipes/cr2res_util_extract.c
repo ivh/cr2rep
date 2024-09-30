@@ -337,8 +337,6 @@ static int cr2res_util_extract(
                             gain, error_factor ;
     cpl_array           *   slit_frac ;
     cpl_frameset        *   rawframes ;
-    const cpl_frame     *   cur_frame ;
-    const char          *   cur_fname ;
     cpl_frameset        *   cur_fset ;
     const cpl_frame     *   trace_frame ;
     const cpl_frame     *   bpm_frame ;
@@ -349,7 +347,6 @@ static int cr2res_util_extract(
     cpl_table           *   slit_func_tab[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extract_tab[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
-    cpl_propertylist    *   prim_plist ;
     cpl_table           *   trace_table ;
     cpl_table           *   trace_table_new ;
     hdrl_image          *   science_hdrl;
@@ -452,7 +449,10 @@ static int cr2res_util_extract(
     }
    
     /* Loop on the RAW frames */
-    for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
+    for (i = 0; i < cpl_frameset_get_size(rawframes); i++) {
+        const cpl_frame *cur_frame;
+        const char *cur_fname;
+        cpl_propertylist *prim_plist;
         /* Get the Current Frame */
         cur_frame = cpl_frameset_get_position(rawframes, i) ;
         cur_fname = cpl_frame_get_filename(cur_frame) ;
@@ -557,7 +557,7 @@ static int cr2res_util_extract(
             /* Compute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(science_hdrl, trace_table,
-                        slit_func_in, NULL, reduce_order, reduce_trace, 
+                        slit_func_in, NULL, 0, reduce_order, reduce_trace, 
                         extr_method, extr_height, swath_width, oversample,
                         smooth_slit, smooth_spec,
                         extract_niter, extract_kappa, error_factor, 0, 0, 0, 

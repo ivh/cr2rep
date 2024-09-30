@@ -229,8 +229,6 @@ static int cr2res_util_splice(
     cpl_bivector        *   spliced_err ;
     cpl_table           *   spliced_table ;
     cpl_error_code          ret ;
-    cpl_propertylist    *   ext_plist ;
-    char                *   out_file;
     cpl_size                nframes, i ;
     int                     ext_nr_trace, ext_nr_blaze, ext_nr_extracted, 
                             det_nr, nb_det ;
@@ -421,7 +419,10 @@ static int cr2res_util_splice(
         /* Save the table */
         if (spliced_table == NULL) {
             cpl_msg_error(__func__, "Failed to create the SPLICED table");
-        } else {
+        }
+        else {
+            cpl_propertylist *ext_plist;
+            char *out_file;
             extracted_file = cpl_frame_get_filename(
                     cpl_frameset_get_position(extracted_fset, 0)) ;
             ext_plist = cpl_propertylist_load(extracted_file, 1) ; 

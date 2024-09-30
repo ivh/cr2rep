@@ -387,12 +387,10 @@ static int cr2res_obs_staring(
     const cpl_parameter *   param ;
     int                     subtract_nolight_rows, subtract_interorder_column,
                             extract_oversample, create_idp, cosmics,
-                            extract_swath_width, extract_height, reduce_det, 
-                            disp_order, disp_trace ;
+                            extract_swath_width, extract_height, reduce_det;
     double                  extract_smooth_slit, extract_smooth_spec, 
                             slit_low, slit_up ;
-    double                  ra, dec, mjd_obs, mjd_cen, geolon, geolat, geoelev,
-                            barycorr;
+    double                  barycorr;
     cpl_array           *   slit_frac ;
     cpl_frameset        *   rawframes ;
     const cpl_frame     *   trace_wave_frame ;
@@ -410,7 +408,6 @@ static int cr2res_obs_staring(
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
     cpl_table           *   eop_table ;
-    cpl_propertylist    *   plist ;
     int                     det_nr; 
 
     /* RETRIEVE INPUT PARAMETERS */
@@ -444,12 +441,12 @@ static int cr2res_obs_staring(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.create_idp");
     create_idp = cpl_parameter_get_bool(param);
-    param = cpl_parameterlist_find_const(parlist,
+    /*param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.display_order");
     disp_order = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.display_trace");
-    disp_trace = cpl_parameter_get_int(param);
+    disp_trace = cpl_parameter_get_int(param);*/
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.slit_frac");
     sval = cpl_parameter_get_string(param) ;
@@ -550,6 +547,8 @@ static int cr2res_obs_staring(
     /* Add barycentric correction */
     eop_table = cr2res_io_get_eop_table() ;
     if (eop_table != NULL) {
+        double ra, dec, mjd_obs, geolon, geolat, geoelev;
+        cpl_propertylist *plist;
         plist=cpl_propertylist_load(cpl_frame_get_filename(
                     cpl_frameset_get_position_const(rawframes, 0)), 0) ;
 
@@ -564,6 +563,7 @@ static int cr2res_obs_staring(
 
         barycorr = 0.0 ;
         if (!cpl_error_get_code()) {
+            double mjd_cen;
             mjd_cen = cr2res_utils_get_center_mjd(rawframes) ;
             hdrl_barycorr_compute(ra, dec, eop_table, mjd_obs,
                     (mjd_cen-mjd_obs)*24*3600, geolon, geolat, geoelev,
@@ -571,7 +571,8 @@ static int cr2res_obs_staring(
 
             cpl_msg_info(__func__, "Barycentric correction: %g m/s",
                     barycorr);
-        } else {
+        }
+        else {
             cpl_msg_info(__func__, "Cannot derive Barycentric correction");
             cpl_error_reset() ;
         }
@@ -723,9 +724,9 @@ static int cr2res_obs_staring_reduce(
     cpl_array           *   fwhm_array ;
     char                *   key_name ;
     const char          *   first_fname ;
-    double                  qc_signal, qc_fwhm, gain, error_factor ;
+    double                  qc_signal, qc_fwhm, gain, error_factor, blaze_norm ;
     int                     order_zp, nb_order_idx_values,
-                            order_real, order_idx, order_idxp ;
+                            order_idx, order_idxp ;
 
     /* Check Inputs */
     if (combined == NULL || extract == NULL || ext_plist == NULL || 
@@ -852,6 +853,7 @@ static int cr2res_obs_staring_reduce(
 
     /* Load Blaze */
     blaze_table = NULL ;
+    blaze_norm = 0;
     if (blaze_frame != NULL) {
         cpl_msg_info(__func__, "Load the BLAZE") ;
         if ((blaze_table = cr2res_io_load_EXTRACT_1D(cpl_frame_get_filename(
@@ -861,6 +863,19 @@ static int cr2res_obs_staring_reduce(
             cpl_table_delete(trace_wave) ;
             return -1 ;
         }
+        cpl_propertylist    *   blaze_plist ;
+        blaze_plist = cpl_propertylist_load_regexp(cpl_frame_get_filename(
+                            blaze_frame),0,CR2RES_HEADER_QC_BLAZE_NORM,0);
+        if(cpl_propertylist_get_size(blaze_plist)>0){
+            blaze_norm = cpl_propertylist_get_double(blaze_plist, CR2RES_HEADER_QC_BLAZE_NORM);
+        }
+        else {
+            blaze_norm = -1;
+            cpl_msg_warning(__func__, "QC BLAZE NORM value not found, reverting to per trace normalization") ;
+        }
+        if(blaze_plist!=NULL){
+            cpl_propertylist_delete(blaze_plist);
+        }
     }
 
     /* TODO, make parameters */
@@ -869,7 +884,7 @@ static int cr2res_obs_staring_reduce(
 
     /* Execute the extraction */
     cpl_msg_info(__func__, "Spectra Extraction") ;
-    if (cr2res_extract_traces(collapsed, trace_wave, NULL, blaze_table, -1, -1,
+    if (cr2res_extract_traces(collapsed, trace_wave, NULL, blaze_table, blaze_norm, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth_slit, extract_smooth_spec,
                 extract_niter, extract_kappa, error_factor, 
@@ -924,11 +939,11 @@ static int cr2res_obs_staring_reduce(
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SLITFWHM_MED, 
             qc_fwhm) ;
     if (qc_fwhm < 3.5) {
-        cpl_msg_warning(__func__, "Median FWMH of the PSF along the slit "
+        cpl_msg_warning(__func__, "Median FWHM of the PSF along the slit "
             "is %gpix, i.e. below the slit width. This means the slit "
             "is likely not evenly filled with light "
             "in the spectral direction. This can result in a "
-            "wavelength offset between different postitions along the slit,"
+            "wavelength offset between different positions along the slit,"
             " and with respect to calibrations."
             , qc_fwhm);
     }
@@ -942,7 +957,8 @@ static int cr2res_obs_staring_reduce(
                 &nb_order_idx_values);
 
         /* Compute the Real Order numbers and store them in QCs */
-        for (i=0 ; i<nb_order_idx_values ; i++) {
+        for (i = 0; i < nb_order_idx_values; i++) {
+            int order_real;
             order_idx = order_idx_values[i] ;
             order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
             order_real = cr2res_order_idx_to_real(order_idx, order_zp) ;

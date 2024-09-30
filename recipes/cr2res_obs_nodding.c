@@ -67,7 +67,6 @@ static int cr2res_obs_nodding_check_inputs_validity(
         const cpl_frameset  *   rawframes) ;
 static int cr2res_obs_nodding_reduce(
         const cpl_frameset  *   rawframes,
-        const cpl_frameset  *   raw_flat_frames,
         const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
@@ -460,11 +459,10 @@ static int cr2res_obs_nodding(
                             nodding_invert, create_idp, subtract_nolight_rows,
                             subtract_interorder_column, cosmics ;
     double                  extract_smooth_slit, extract_smooth_spec;
-    double                  dit, gain, drot_posang ;
+    double                  dit, gain;
     double                  ra, dec, mjd_obs, mjd_cen, geolon, geolat, geoelev,
                             barycorr;
     cpl_frameset        *   rawframes ;
-    cpl_frameset        *   raw_one_angle ;
     cpl_frameset        *   raw_flat_frames ;
     const cpl_frame     *   trace_wave_frame ;
     const cpl_frame     *   detlin_frame ;
@@ -488,7 +486,6 @@ static int cr2res_obs_nodding(
     cpl_table           *   twb[CR2RES_NB_DETECTORS] ;
     cpl_table           *   extractc[CR2RES_NB_DETECTORS] ;
     cpl_table           *   throughput[CR2RES_NB_DETECTORS] ;
-    cpl_propertylist    *   plist ;
     cpl_propertylist    *   qc_main ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist_photom[CR2RES_NB_DETECTORS] ;
@@ -609,7 +606,10 @@ static int cr2res_obs_nodding(
     }
 
     /* Loop on the settings */
-    for (l=0 ; l<(int)nlabels ; l++) {
+    for (l = 0; l < (int)nlabels; l++) {
+        double drot_posang;
+        cpl_frameset *raw_one_angle;
+        cpl_propertylist *plist;
         /* Get the frames for the current angle */
         raw_one_angle = cpl_frameset_extract(rawframes, labels, (cpl_size)l) ;
 
@@ -623,96 +623,97 @@ static int cr2res_obs_nodding(
         cpl_msg_indent_more() ;
 
         /* Loop on the detectors */
-        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        for (det_nr = 1; det_nr <= CR2RES_NB_DETECTORS; det_nr++) {
             /* Initialise */
-            combineda[det_nr-1] = NULL ;
-            extracta[det_nr-1] = NULL ;
-            slitfunca[det_nr-1] = NULL ;
-            modela[det_nr-1] = NULL ;
-            twa[det_nr-1] = NULL ;
-            combinedb[det_nr-1] = NULL ;
-            extractb[det_nr-1] = NULL ;
-            slitfuncb[det_nr-1] = NULL ;
-            modelb[det_nr-1] = NULL ;
-            twb[det_nr-1] = NULL ;
-            extractc[det_nr-1] = NULL ;
-            ext_plist[det_nr-1] = NULL ;
-            ext_plist_photom[det_nr-1] = NULL ;
-            throughput[det_nr-1] = NULL ;
+            combineda[det_nr - 1] = NULL;
+            extracta[det_nr - 1] = NULL;
+            slitfunca[det_nr - 1] = NULL;
+            modela[det_nr - 1] = NULL;
+            twa[det_nr - 1] = NULL;
+            combinedb[det_nr - 1] = NULL;
+            extractb[det_nr - 1] = NULL;
+            slitfuncb[det_nr - 1] = NULL;
+            modelb[det_nr - 1] = NULL;
+            twb[det_nr - 1] = NULL;
+            extractc[det_nr - 1] = NULL;
+            ext_plist[det_nr - 1] = NULL;
+            ext_plist_photom[det_nr - 1] = NULL;
+            throughput[det_nr - 1] = NULL;
 
             /* Compute only one detector */
-            if (reduce_det != 0 && det_nr != reduce_det) continue ;
-        
-            cpl_msg_info(__func__, "Process Detector %d", det_nr) ;
-            cpl_msg_indent_more() ;
+            if (reduce_det != 0 && det_nr != reduce_det)
+                continue;
+
+            cpl_msg_info(__func__, "Process Detector %d", det_nr);
+            cpl_msg_indent_more();
 
             /* Call the reduction function */
-            if (cr2res_obs_nodding_reduce(raw_one_angle, raw_flat_frames, 
-                        trace_wave_frame, detlin_frame, master_dark_frame, 
-                        master_flat_frame, bpm_frame, blaze_frame, 
-                        nodding_invert, subtract_nolight_rows, 
-                        subtract_interorder_column, cosmics,
-                        extract_oversample, 
-                        extract_swath_width, extract_height, 
-                        extract_smooth_slit, extract_smooth_spec,
-                        extract_niter, extract_kappa,
-                        det_nr, disp_det, disp_order_idx, disp_trace,
-                        &(combineda[det_nr-1]),
-                        &(extracta[det_nr-1]),
-                        &(slitfunca[det_nr-1]),
-                        &(modela[det_nr-1]),
-                        &(twa[det_nr-1]),
-                        &(combinedb[det_nr-1]),
-                        &(extractb[det_nr-1]),
-                        &(slitfuncb[det_nr-1]),
-                        &(modelb[det_nr-1]),
-                        &(twb[det_nr-1]),
-                        &(extractc[det_nr-1]),
-                        &(ext_plist[det_nr-1])) == -1) {
-                cpl_msg_warning(__func__, "Failed to reduce detector %d", 
-                        det_nr);
-                cpl_error_reset() ;
-            } else if (type == 2) {
-                cpl_msg_info(__func__,
-                        "Sensitivity / Conversion / Throughput computation") ;
-                cpl_msg_indent_more() ;
+            if (cr2res_obs_nodding_reduce(
+                    raw_one_angle, trace_wave_frame,
+                    detlin_frame, master_dark_frame, master_flat_frame,
+                    bpm_frame, blaze_frame, nodding_invert,
+                    subtract_nolight_rows, subtract_interorder_column, cosmics,
+                    extract_oversample, extract_swath_width, extract_height,
+                    extract_smooth_slit, extract_smooth_spec, extract_niter,
+                    extract_kappa, det_nr, disp_det, disp_order_idx, disp_trace,
+                    &(combineda[det_nr - 1]), &(extracta[det_nr - 1]),
+                    &(slitfunca[det_nr - 1]), &(modela[det_nr - 1]),
+                    &(twa[det_nr - 1]), &(combinedb[det_nr - 1]),
+                    &(extractb[det_nr - 1]), &(slitfuncb[det_nr - 1]),
+                    &(modelb[det_nr - 1]), &(twb[det_nr - 1]),
+                    &(extractc[det_nr - 1]), &(ext_plist[det_nr - 1])) == -1) {
+                cpl_msg_warning(__func__, "Failed to reduce detector %d",
+                                det_nr);
+                cpl_error_reset();
+            }
+            else if (type == 2) {
+                cpl_msg_info(
+                    __func__,
+                    "Sensitivity / Conversion / Throughput computation");
+                cpl_msg_indent_more();
 
                 /* Define the gain */
-                if (det_nr==1) gain = CR2RES_GAIN_CHIP1 ;
-                if (det_nr==2) gain = CR2RES_GAIN_CHIP2 ;
-                if (det_nr==3) gain = CR2RES_GAIN_CHIP3 ;
+                if (det_nr == 1)
+                    gain = CR2RES_GAIN_CHIP1;
+                if (det_nr == 2)
+                    gain = CR2RES_GAIN_CHIP2;
+                if (det_nr == 3)
+                    gain = CR2RES_GAIN_CHIP3;
 
                 /* Get the RA and DEC observed */
-                plist=cpl_propertylist_load(cpl_frame_get_filename(
-                            cpl_frameset_get_position_const(raw_one_angle, 0)),
-                        0) ;
-                ra = cr2res_pfits_get_ra(plist) ;
-                dec = cr2res_pfits_get_dec(plist) ;
-                dit = cr2res_pfits_get_dit(plist) ;
-                cur_setting = cpl_strdup(cr2res_pfits_get_wlen_id(plist)) ;
-                cr2res_format_setting(cur_setting) ;
-                cpl_propertylist_delete(plist) ;
+                plist = cpl_propertylist_load(
+                    cpl_frame_get_filename(
+                        cpl_frameset_get_position_const(raw_one_angle, 0)),
+                    0);
+                ra = cr2res_pfits_get_ra(plist);
+                dec = cr2res_pfits_get_dec(plist);
+                dit = cr2res_pfits_get_dit(plist);
+                cur_setting = cpl_strdup(cr2res_pfits_get_wlen_id(plist));
+                cr2res_format_setting(cur_setting);
+                cpl_propertylist_delete(plist);
                 if (cpl_error_get_code()) {
-                    cpl_msg_indent_less() ;
-                    cpl_error_reset() ;
-                    cpl_msg_warning(__func__, "Missing Header Informations") ;
-                } else {
+                    cpl_msg_indent_less();
+                    cpl_error_reset();
+                    cpl_msg_warning(__func__, "Missing Header Informations");
+                }
+                else {
                     /* Compute the photometry */
-                    if (cr2res_photom_engine(extracta[det_nr-1],
-                                cpl_frame_get_filename(photo_flux_frame),
-                                cur_setting, ra, dec, gain, dit,
-                                disp_det==det_nr, disp_order_idx,
-                                disp_trace, &(throughput[det_nr-1]),
-                                &(ext_plist_photom[det_nr-1])) == -1) {
-                        cpl_msg_warning(__func__, 
-                                "Failed to reduce detector %d", det_nr);
-                        cpl_error_reset() ;
+                    if (cr2res_photom_engine(
+                            extracta[det_nr - 1],
+                            cpl_frame_get_filename(photo_flux_frame),
+                            cur_setting, ra, dec, gain, dit, disp_det == det_nr,
+                            disp_order_idx, disp_trace,
+                            &(throughput[det_nr - 1]),
+                            &(ext_plist_photom[det_nr - 1])) == -1) {
+                        cpl_msg_warning(__func__,
+                                        "Failed to reduce detector %d", det_nr);
+                        cpl_error_reset();
                     }
                 }
-                cpl_free(cur_setting) ;
-                cpl_msg_indent_less() ;
+                cpl_free(cur_setting);
+                cpl_msg_indent_less();
             }
-            cpl_msg_indent_less() ;
+            cpl_msg_indent_less();
         }
 
         /* Save Products */
@@ -803,6 +804,87 @@ static int cr2res_obs_nodding(
                 CR2RES_OBS_NODDING_COMBINEDA_PROCATG, RECIPE_STRING) ;
         cpl_free(out_file);
 
+        char *qc_perdet_keywords[] = { CR2RES_HEADER_QC_SIGNAL,
+                                       CR2RES_HEADER_QC_STANDARD_FLUX,
+                                       CR2RES_HEADER_QC_SLITFWHM_MED };
+        
+        char *qc_pertrace_keywords[] = { CR2RES_HEADER_QC_SNR_BASE,
+                                         CR2RES_HEADER_QC_SLITFWHM_ORDER_BASE };
+                                
+        int qc_perdet_size = sizeof(qc_perdet_keywords) / sizeof(char *);
+        int qc_pertrace_size = sizeof(qc_pertrace_keywords) / sizeof(char *);
+
+        int qc_sizes_ext[] = {CR2RES_NB_DETECTORS};
+       cpl_propertylist** qc_plists_ext[] = {ext_plist} ; 
+       char * qc_res_avg, * qc_res_rmsd, * qc_ref;
+
+       int qc_i;
+
+       for (qc_i=0; qc_i<qc_perdet_size ; qc_i++) {
+
+                    qc_res_avg = cpl_sprintf("%s %s",
+                            qc_perdet_keywords[qc_i], "AVG");
+                    qc_res_rmsd = cpl_sprintf("%s %s",
+                            qc_perdet_keywords[qc_i], "RMS");
+
+                cr2res_qc_calculate_mean_and_rmsd(qc_plists_ext, 1, qc_sizes_ext, 
+                                 qc_perdet_keywords[qc_i], qc_main,
+                                 qc_res_avg, qc_res_rmsd);
+
+                cpl_free(qc_res_avg);
+                cpl_free(qc_res_rmsd);
+       }
+
+
+       int min_order = INT_MAX;
+       int max_order = INT_MIN;
+       int current_min, current_max;
+
+       for (qc_i = 0; qc_i < CR2RES_NB_DETECTORS; qc_i++) {
+           if (twa[qc_i] == NULL) {
+               continue;
+           }
+           current_min =
+               cpl_table_get_column_min(twa[qc_i], "Order");
+           if (cpl_error_get_code() != CPL_ERROR_NONE) {
+               continue;
+           }
+           if (current_min < min_order) {
+               min_order = current_min;
+           }
+
+           current_max =
+               cpl_table_get_column_max(twa[qc_i], "Order");
+           if (cpl_error_get_code() != CPL_ERROR_NONE) {
+               continue;
+           }
+           if (current_max > max_order) {
+               max_order = current_max;
+           }
+       }
+
+       for (qc_i = 0; qc_i < qc_pertrace_size; qc_i++) {
+           for (int order_id = min_order; order_id <= max_order; order_id++) {
+
+               qc_ref = cpl_sprintf("%s%d", qc_pertrace_keywords[qc_i],
+                                    order_id);
+               qc_res_avg =
+                   cpl_sprintf("%s%d %s", qc_pertrace_keywords[qc_i],
+                               order_id, "AVG");
+               qc_res_rmsd =
+                   cpl_sprintf("%s%d %s", qc_pertrace_keywords[qc_i],
+                               order_id, "RMS");
+
+               cr2res_qc_calculate_mean_and_rmsd(qc_plists_ext, 1, qc_sizes_ext,
+                                                 qc_ref, qc_main, qc_res_avg,
+                                                 qc_res_rmsd);
+
+               cpl_free(qc_ref);
+               cpl_free(qc_res_avg);
+               cpl_free(qc_res_rmsd);
+           }
+       }
+
         out_file = cpl_sprintf("%s_extractedA%s", RECIPE_STRING,
                 product_name_addon) ;
         cr2res_io_save_EXTRACT_1D(out_file, frameset, raw_one_angle, parlist, 
@@ -816,6 +898,30 @@ static int cr2res_obs_nodding(
         }
         cpl_free(out_file);
 
+        /* for (qc_i=0; qc_i<qc_perdet_size ; qc_i++) {
+
+                    qc_res_avg = cpl_sprintf("%s %s",
+                            qc_perdet_keywords[qc_i], "AVG");
+                    qc_res_rmsd = cpl_sprintf("%s %s",
+                            qc_perdet_keywords[qc_i], "RMS");
+
+            cpl_propertylist_erase(qc_main, qc_res_avg);
+            if(cpl_error_get_code() != CPL_ERROR_NONE) {
+                cpl_msg_debug(__func__, "Cannot erase %s", qc_perdet_keywords[qc_i]);
+                cpl_error_reset();
+            }
+
+            cpl_propertylist_erase(qc_main, qc_res_rmsd);
+            if(cpl_error_get_code() != CPL_ERROR_NONE) {
+                cpl_msg_debug(__func__, "Cannot erase %s", qc_perdet_keywords[qc_i]);
+                cpl_error_reset();
+            }
+
+
+                cpl_free(qc_res_avg);
+                cpl_free(qc_res_rmsd);
+        }
+ */
         out_file = cpl_sprintf("%s_slitfuncA%s", RECIPE_STRING,
                 product_name_addon) ;
         cr2res_io_save_SLIT_FUNC(out_file, frameset, raw_one_angle, parlist,
@@ -892,6 +998,17 @@ static int cr2res_obs_nodding(
         cpl_free(out_file);
 
         if (type == 2) {
+
+            qc_res_avg = cpl_sprintf("%s %s", CR2RES_HEADER_QC_THROUGHPUT, "AVG");
+            qc_res_rmsd = cpl_sprintf("%s %s", CR2RES_HEADER_QC_THROUGHPUT, "RMS");
+
+            cr2res_qc_calculate_mean_and_rmsd(qc_plists_ext, 1, qc_sizes_ext,
+                                              CR2RES_HEADER_QC_THROUGHPUT, qc_main,
+                                              qc_res_avg, qc_res_rmsd);
+
+            cpl_free(qc_res_avg);
+            cpl_free(qc_res_rmsd);
+
             out_file = cpl_sprintf("%s_throughput%s", RECIPE_STRING,
                     product_name_addon) ;
             cr2res_io_save_THROUGHPUT(out_file, frameset, raw_one_angle, 
@@ -983,7 +1100,6 @@ static int cr2res_obs_nodding(
 /*----------------------------------------------------------------------------*/
 static int cr2res_obs_nodding_reduce(
         const cpl_frameset  *   rawframes,
-        const cpl_frameset  *   raw_flat_frames,
         const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
@@ -1032,7 +1148,7 @@ static int cr2res_obs_nodding_reduce(
     cpl_vector          *   dits ;
     cpl_vector          *   ndits=NULL ;
     cpl_table           *   trace_wave ;
-    cpl_table           *   trace_wave_corrected ;
+ //   cpl_table           *   trace_wave_corrected ;
     cpl_table           *   trace_wave_a ;
     cpl_table           *   trace_wave_b ;
     cpl_table           *   blaze_table ;
@@ -1055,13 +1171,13 @@ static int cr2res_obs_nodding_reduce(
                             gain, error_factor ;
     double                  qc_signal_a, qc_signal_b, qc_fwhm_a, 
                             qc_fwhm_b, qc_standard_flux_a,
-                            qc_standard_flux_b, qc_fwhm_med ;
+                            qc_standard_flux_b, qc_fwhm_med, blaze_norm ;
     cpl_array           *   fwhm_a_array ;
     cpl_array           *   fwhm_b_array ;
     char                *   cur_setting ;
     int                 *   order_idx_values ;
     double              *   qc_snrs ;
-    int                     nb_order_idx_values, order_real,
+    int                     nb_order_idx_values,
                             order_zp, order_idx, order_idxp ;
 
     /* Check Inputs */
@@ -1248,7 +1364,8 @@ static int cr2res_obs_nodding_reduce(
     }
 
     /* Correct trace_wave with some provided raw flats */
-    if (raw_flat_frames != NULL) {
+     cpl_msg_warning(__func__, "TRACE ADJUST NOT YET IMPLEMENTED") ;
+    /*if (raw_flat_frames != NULL) {
         cpl_msg_info(__func__, "Try to correct the reproducibility error") ;
         cpl_msg_indent_more() ;
         trace_wave_corrected = cr2res_trace_adjust(trace_wave, raw_flat_frames, 
@@ -1259,7 +1376,7 @@ static int cr2res_obs_nodding_reduce(
             trace_wave_corrected = NULL ;
         }
         cpl_msg_indent_less() ;
-    }
+    }*/
 
     /* Compute the slit fractions for A and B positions extraction */   
     cpl_msg_info(__func__, "Compute the slit fractions for A and B positions");
@@ -1373,6 +1490,7 @@ static int cr2res_obs_nodding_reduce(
    
     /* Load Blaze */
     blaze_table = NULL ;
+    blaze_norm = 0;
     if (blaze_frame != NULL) {
         cpl_msg_info(__func__, "Load the BLAZE") ;
         if ((blaze_table = cr2res_io_load_EXTRACT_1D(cpl_frame_get_filename(
@@ -1385,12 +1503,25 @@ static int cr2res_obs_nodding_reduce(
             cpl_table_delete(trace_wave_b) ;
             return -1 ;
         }
+        cpl_propertylist    *   blaze_plist ;
+        blaze_plist = cpl_propertylist_load_regexp(cpl_frame_get_filename(
+                            blaze_frame),0,CR2RES_HEADER_QC_BLAZE_NORM,0);
+        if(cpl_propertylist_get_size(blaze_plist)>0){
+            blaze_norm = cpl_propertylist_get_double(blaze_plist, CR2RES_HEADER_QC_BLAZE_NORM);
+        }
+        else {
+            blaze_norm = -1;
+            cpl_msg_warning(__func__, "QC BLAZE NORM value not found, reverting to per trace normalization") ;
+        }
+        if(blaze_plist!=NULL){
+            cpl_propertylist_delete(blaze_plist);
+        }
     }
 
     /* Execute the extraction */
     cpl_msg_info(__func__, "A position Spectra Extraction") ;
     cpl_msg_indent_more() ;
-    if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, blaze_table, -1,
+    if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, blaze_table, blaze_norm, -1,
                 -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth_slit, extract_smooth_spec,
                 extract_niter, extract_kappa, error_factor,
@@ -1409,7 +1540,7 @@ static int cr2res_obs_nodding_reduce(
 
     cpl_msg_info(__func__, "B position Spectra Extraction") ;
     cpl_msg_indent_more() ;
-    if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, blaze_table, -1,
+    if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, blaze_table, blaze_norm, -1,
                 -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_smooth_slit, extract_smooth_spec,
                 extract_niter, extract_kappa, error_factor,
@@ -1463,7 +1594,7 @@ static int cr2res_obs_nodding_reduce(
             (qc_standard_flux_a+qc_standard_flux_b)/2.0) ;
     cpl_free(cur_setting) ;
 
-    /* QC - SNR on nodding A posision */
+    /* QC - SNR on nodding A position */
     qc_snrs = cr2res_qc_snr(trace_wave_a, extracted_a, &order_idx_values,
             &nb_order_idx_values) ;
     for (i=0 ; i<nb_order_idx_values ; i++) {
@@ -1504,11 +1635,11 @@ static int cr2res_obs_nodding_reduce(
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_SLITFWHM_MED,
             qc_fwhm_med) ;
     if (qc_fwhm_med < 3.5) {
-        cpl_msg_warning(__func__, "Median FWMH of the PSF along the slit "
+        cpl_msg_warning(__func__, "Median FWHM of the PSF along the slit "
             "is %gpix, i.e. below the slit width. This means the slit "
             "is likely not evenly filled with light "
             "in the spectral direction. This can result in a "
-            "wavelength offset between A and B nodding postitions, and with "
+            "wavelength offset between A and B nodding positions, and with "
             "respect to calibrations."
             , qc_fwhm_med);
     }
@@ -1518,7 +1649,8 @@ static int cr2res_obs_nodding_reduce(
     /* QC - Real Orders  */
     if (order_zp > 0) {
         /* Compute the Real Order numbers and store them in QCs */
-        for (i=0 ; i<nb_order_idx_values ; i++) {
+        for (i = 0; i < nb_order_idx_values; i++) {
+            int order_real;
             order_idx = order_idx_values[i] ;
             order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
 
@@ -1563,7 +1695,7 @@ static int cr2res_obs_nodding_check_inputs_validity(
     cpl_propertylist        *   plist ;
     cr2res_nodding_pos      *   nod_positions ;
     cpl_size                    nframes, i ;
-    double                      nodthrow, nodthrow_cur ;
+    double                      nodthrow;
     int                         nb_a, nb_b ;
 
     /* Check Inputs */
@@ -1599,7 +1731,8 @@ static int cr2res_obs_nodding_check_inputs_validity(
     } 
     nodthrow = cr2res_pfits_get_nodthrow(plist);
     cpl_propertylist_delete(plist) ;
-    for (i=1 ; i<nframes ; i++) {
+    for (i = 1; i < nframes; i++) {
+        double nodthrow_cur;
         if ((plist = cpl_propertylist_load(cpl_frame_get_filename(
                             cpl_frameset_get_position_const(rawframes, i)),
                         0)) == NULL) {

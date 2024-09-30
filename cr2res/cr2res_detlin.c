@@ -166,7 +166,7 @@ int cr2res_detlin_correct(
   The input dits and values vectors must have the same size
   The *fitted polynomial coefficients are the values stored in the
   DETLIN_COEFFS product for a given pixel. When evaluated at a certain ADU,
-  this polynomial yeilds the correction factor to be multiplied with.
+  this polynomial yields the correction factor to be multiplied with.
   The *error vector size must match the *fitted polynomial number of
   coefficients. Its values are stored in the error extension of the 
   DETLIN_COEFFS product.
@@ -185,7 +185,7 @@ int cr2res_detlin_compute(
     cpl_vector          *   adusPsec ;
     cpl_vector          *   y_tofit, *tmp;
     cpl_vector          *   adus_loc, *dits_loc;
-    double                  y,  cur_coeff, aduPsec;
+    double                  aduPsec;
     cpl_size                i=0, first_satur=-1 ;
     int                     count_linear=0;
 
@@ -224,6 +224,7 @@ int cr2res_detlin_compute(
 
     y_tofit = cpl_vector_new(cpl_vector_get_size(dits_loc));
     for(i = 0; i < cpl_vector_get_size(dits_loc); i++) {
+        double y;
         // We fit the ratio of true ADU/s over the measured ones.
         y = aduPsec / cpl_vector_get(adusPsec,i);
         cpl_vector_set(y_tofit, i, y);
@@ -296,6 +297,7 @@ int cr2res_detlin_compute(
 
     /* Check Result - Polynomial coefficients are NaN sometimes */
     for (i=0 ; i<=max_degree ; i++) {
+        double cur_coeff;
         cur_coeff = cpl_polynomial_get_coeff(fitted_local, &i) ;
         if (isnan(cur_coeff)) {
             cpl_polynomial_delete(fitted_local) ;
@@ -325,7 +327,7 @@ int cr2res_detlin_compute(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Sort the frames by increaing DIT
+  @brief    Sort the frames by increasing DIT
   @param    in  The input frameset
   @return   the newly allocated sorted frameset
  */

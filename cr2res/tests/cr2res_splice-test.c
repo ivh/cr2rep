@@ -129,7 +129,6 @@ static void cr2res_splice_orders_test(){
 
     int i = 0, j = 0;
     int ntotal = 2;
-    double median = 1;
 
     cpl_vector ** wave = cpl_malloc(ntotal * sizeof(cpl_vector*));
     cpl_vector ** spec = cpl_malloc(ntotal * sizeof(cpl_vector*));
@@ -160,8 +159,6 @@ static void cr2res_splice_orders_test(){
     cpl_bivector ** spliced, ** spliced_err;
     cpl_vector * spectrum_order;
     cpl_bivector * first, *last;
-
-    int res;
 
     // Test NULL input
     cpl_test_eq(-1, cr2res_splice_orders(NULL, spec, uncs, cont, ntotal, &spliced, &spliced_err, &spectrum_order, &first, &last));
@@ -196,7 +193,7 @@ static void cr2res_splice_orders_test(){
     cpl_bivector_delete(first);
     cpl_bivector_delete(last);
 
-    for (int i = 0; i < ntotal; i++){
+    for (i = 0; i < ntotal; i++){
         cpl_bivector_delete(spliced[i]);
         cpl_bivector_delete(spliced_err[i]);
         cpl_vector_delete(wave[i]);
@@ -217,7 +214,7 @@ static void cr2res_splice_orders_test(){
 }
 
 static void cr2res_splice_test(){
-    int i = 0, j = 0;
+    int i = 0;
     cpl_table * trace_wave = make_trace_wave();
     cpl_table * blaze;
     cpl_table * spectra = make_spectra(&blaze);
@@ -230,7 +227,6 @@ static void cr2res_splice_test(){
         cpl_vector_set(tmp, i, 1);
     }
 
-    int res;
     cpl_test_eq(0, cr2res_splice(&spectra, &blaze, &trace_wave, 1, &spliced, &spliced_err));
 
     for (i = 0; i < CR2RES_DETECTOR_SIZE - 1; i++){

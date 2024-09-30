@@ -213,20 +213,15 @@ static int cr2res_util_genstd(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   par ;
-    FILE            *   in ;
     char                line[1024] ;
     cpl_bivector    *   bivec_ref ;
-    cpl_bivector    *   bivec ;
     int                 ra1, ra2, dec1, dec2;
     double              ra3, dec3;
-    double              ra, dec ;
     char                isign;
     cpl_frame       *   cur_frame ;
     const char      *   cur_fname ;
     cpl_table       *   tab ;
-    int                 nvals, nframes, nvals_ref, display ;
-    double          *   pwave ;
-    double          *   pemiss ;
+    int                 nframes, nvals_ref, display ;
     double          *   pwave_ref ;
     cpl_array       *   array ;
     int                 i, j ;
@@ -272,8 +267,14 @@ static int cr2res_util_genstd(
     cpl_array_unwrap(array) ;
 
     /* Loop on the input frames */
-    for (i=0 ; i<nframes ; i++) {
-        
+    for (i = 0; i < nframes; i++) {
+        FILE *in;
+        cpl_bivector *bivec;
+        double ra, dec;
+        double *pwave;
+        double *pemiss;
+        int nvals;
+
         /* Get the frame */
         cur_frame = cpl_frameset_get_position(framelist, i) ;
         cur_fname = cpl_frame_get_filename(cur_frame) ;

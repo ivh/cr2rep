@@ -53,9 +53,9 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
 /*-----------------------------------------------------------------------------
                             Functions prototypes
  -----------------------------------------------------------------------------*/
-static int cr2res_util_plot_slit_func(cpl_table *, int, int, int) ;
+static int cr2res_util_plot_slit_func(cpl_table *, int, int) ;
 static int cr2res_util_plot_slit_func_one(cpl_table *, const char *,
-        int, const char *, const char *) ;
+        const char *, const char *) ;
 static int cr2res_util_plot_spec_1d(cpl_table *, cpl_table *, int, int,
         int, double, double);
 static int cr2res_util_plot_spec_1d_one(cpl_table *, cpl_table *, 
@@ -256,16 +256,12 @@ static int cr2res_util_plot(
     double                  xmin, xmax ;
     const char          *   fname1 ;
     const char          *   fname2 ;
-    const char          *   title ;
     const char          *   drstype ;
     cpl_propertylist    *   plist ;
     cpl_table           *   tab1 ;
     cpl_table           *   sel_tab ;
     cpl_bivector        *   spectrum ;
     cpl_bivector        *   spectrum_err ;
-    cpl_bivector        *   ref_spectrum ;
-    cpl_bivector        *   ref_spectrum_extract ;
-    double              *   px ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -298,6 +294,7 @@ static int cr2res_util_plot(
 
     /* CR2RES_DRSTYPE_CATALOG */
     if (!strcmp(drstype, CR2RES_DRSTYPE_CATALOG)) {
+        const char *title;
         title = "t 'Emission lines' w lines" ;
         tab1 = cpl_table_load(fname1, 1, 0) ;
 
@@ -318,7 +315,7 @@ static int cr2res_util_plot(
                 title, "", tab1, CR2RES_COL_WAVELENGTH, CR2RES_COL_EMISSION) ;
         cpl_table_delete(tab1) ;
     }
- 
+
     /* CR2RES_EXTRACT_1D_DRSTYPE */
     if (!strcmp(drstype, CR2RES_EXTRACT_1D_DRSTYPE)) {
 
@@ -334,7 +331,11 @@ static int cr2res_util_plot(
         if (fname2 == NULL) {
             cr2res_util_plot_spec_1d(tab1, NULL, adjust, reduce_order, 
                     reduce_trace, xmin, xmax) ;
-        } else {
+        }
+        else {
+            cpl_bivector *ref_spectrum;
+            cpl_bivector *ref_spectrum_extract;
+            double *px;
             if (reduce_order < 1 || reduce_trace < 1) {
                 cpl_msg_error(__func__, "Please specify a order/trace - abort");
                 cpl_propertylist_delete(plist) ;
@@ -384,7 +385,7 @@ static int cr2res_util_plot(
 
         /* Load the table */
         tab1 = cr2res_io_load_SLIT_FUNC(fname1, reduce_det) ;
-        cr2res_util_plot_slit_func(tab1, adjust, reduce_order,reduce_trace);
+        cr2res_util_plot_slit_func(tab1, reduce_order,reduce_trace);
         cpl_table_delete(tab1) ;
     }
  
@@ -401,7 +402,6 @@ static int cr2res_util_plot(
 
 static int cr2res_util_plot_slit_func(
         cpl_table   *       tab,
-        int                 adjust,
         int                 order,
         int                 trace) 
 {
@@ -418,7 +418,7 @@ static int cr2res_util_plot_slit_func(
     col = cr2res_dfs_SLIT_FUNC_colname(order, trace) ;
 
     /* SPECTRUM */
-    cr2res_util_plot_slit_func_one(tab, col, adjust,
+    cr2res_util_plot_slit_func_one(tab, col,
 "set grid;set xlabel 'slit pos (pix)';set ylabel 'Intensity (ADU/sec)';",
             "t 'Slit Function' w lines") ;
 
@@ -429,14 +429,13 @@ static int cr2res_util_plot_slit_func(
 static int cr2res_util_plot_slit_func_one(
         cpl_table   *       tab,
         const char  *       col,
-        int                 adjust_level,
         const char  *       options,
         const char  *       title)
 {
-    int                     nrows ;
+    //int                     nrows ;
     /* Check inputs */
     if (tab == NULL) return -1 ;
-    nrows = cpl_table_get_nrow(tab) ;
+    //nrows = cpl_table_get_nrow(tab) ;
     cpl_plot_column(options, title, "", tab, NULL, col) ;
     return 0 ;
 }
@@ -507,9 +506,7 @@ static int cr2res_util_plot_spec_1d_one(
         const char  *       options,
         const char  *       title)
 {
-    double                  mean1, mean2 ;
     int                     nrows ;
-    cpl_vector          **  vectors ;
 
     /* Check inputs */
     if (tab == NULL) return -1 ;
@@ -522,6 +519,7 @@ static int cr2res_util_plot_spec_1d_one(
         }
     }
     if (tab_opt != NULL) {
+        cpl_vector **vectors;
         vectors = cpl_malloc(3*sizeof(cpl_vector*)) ;
         vectors[0]=cpl_vector_wrap(nrows,cpl_table_get_data_double(tab, 
                     wave_col));
@@ -530,6 +528,7 @@ static int cr2res_util_plot_spec_1d_one(
         vectors[2] = cpl_vector_wrap(nrows,
                 cpl_table_get_data_double(tab_opt, y_col));
         if (adjust_level) {
+            double mean1, mean2;
             mean1 = cpl_vector_get_mean(vectors[1]) ;
             mean2 = cpl_vector_get_mean(vectors[2]) ;
             cpl_vector_multiply_scalar(vectors[2], fabs(mean1/mean2)) ;
@@ -539,7 +538,8 @@ static int cr2res_util_plot_spec_1d_one(
         cpl_vector_unwrap(vectors[1]) ;
         cpl_vector_unwrap(vectors[2]) ;
         cpl_free(vectors) ;
-    } else {
+    }
+    else {
         cpl_plot_column(options, title, "", tab, wave_col, y_col) ;
     }
     return 0 ;

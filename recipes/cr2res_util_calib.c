@@ -303,14 +303,13 @@ static int cr2res_util_calib(
     cpl_image           *   contrib ;
     const cpl_frame     *   cur_frame ;
     const char          *   cur_fname ;
-    cpl_frameset        *   cur_fset ;
     hdrl_image          *   collapsed_ima[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   calibrated_one[CR2RES_NB_DETECTORS] ;
     hdrl_imagelist      *   calibrated[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
     hdrl_value              mul_factor ;
     char                *   out_file;
-    int                     i, det_nr ; 
+    int                     det_nr ; 
 
     /* Needed for sscanf() */
     setlocale(LC_NUMERIC, "C");
@@ -470,9 +469,11 @@ static int cr2res_util_calib(
 
     /* Save Products */
     if (collapse == CR2RES_COLLAPSE_NONE) {
+        int i;
         /* Save individual calibrated images */
         /* Loop on the RAW frames */
-        for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
+        for (i = 0; i < cpl_frameset_get_size(rawframes); i++) {
+            cpl_frameset *cur_fset;
             /* Get the Current Frame */
             cur_frame = cpl_frameset_get_position(rawframes, i) ;
             cur_fname = cpl_frame_get_filename(cur_frame) ;
@@ -508,7 +509,8 @@ static int cr2res_util_calib(
             cpl_frameset_delete(cur_fset) ;
             cpl_free(out_file);
         }
-    } else {
+    }
+    else {
         /* Save COLLAPSED calibrated image */
         cur_frame = cpl_frameset_get_position(rawframes, 0) ;
         cur_fname = cpl_frame_get_filename(cur_frame) ;

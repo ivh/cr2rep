@@ -56,11 +56,13 @@
 #define CR2RES_HEADER_POL_TYPE          "ESO INS POL TYPE"
 #define CR2RES_HEADER_NDIT              "ESO DET NDIT"
 #define CR2RES_HEADER_DIT               "ESO DET SEQ1 DIT"
+#define CR2RES_HEADER_CHIP_IDX          "ESO DET CHIP INDEX"
 #define CR2RES_HEADER_PROG_ID           "ESO OBS PROG ID"
 #define CR2RES_HEADER_OBS_ID            "ESO OBS ID"
 #define CR2RES_HEADER_DRS_TYPE          "ESO DRS TYPE"
 #define CR2RES_HEADER_DRS_TMID          "ESO DRS TMID"
 #define CR2RES_HEADER_DRS_BARYCORR      "ESO DRS BARYCORR"
+#define CR2RES_HEADER_OCS_MTRLGY        "ESO OCS MTRLGY ST"
 
 /* QC Parameter Names */
 #define CR2RES_HEADER_QC_DARK_RON1          "ESO QC DARK RON1"
@@ -78,8 +80,8 @@
 #define CR2RES_HEADER_QC_DARK_MEAN_RMS      "ESO QC DARK MEAN RMS"
 #define CR2RES_HEADER_QC_DARK_MEDIAN_AVG    "ESO QC DARK MEDIAN AVG"
 #define CR2RES_HEADER_QC_DARK_MEDIAN_RMS    "ESO QC DARK MEDIAN RMS"
-#define CR2RES_HEADER_QC_DARK_STDEV_AVG     "ESO QC DARK STDEV AVG"
-#define CR2RES_HEADER_QC_DARK_STDEV_RMS     "ESO QC DARK STDEV RMS"
+#define CR2RES_HEADER_QC_DARK_STDEV_AVG     "ESO QC DARK STDDEV AVG"
+#define CR2RES_HEADER_QC_DARK_STDEV_RMS     "ESO QC DARK STDDEV RMS"
 #define CR2RES_HEADER_QC_DARK_NBAD_AVG      "ESO QC DARK NBAD AVG"
 #define CR2RES_HEADER_QC_DARK_NBAD_RMS      "ESO QC DARK NBAD RMS"
 
@@ -136,12 +138,19 @@
 #define CR2RES_HEADER_QC_FLAT_S2N_RMS       "ESO QC FLAT S2N RMS"
 #define CR2RES_HEADER_QC_FLAT_NBBAD_AVG     "ESO QC FLAT NBBAD AVG"
 #define CR2RES_HEADER_QC_FLAT_NBBAD_RMS     "ESO QC FLAT NBBAD RMS"
-#define CR2RES_HEADER_QC_FLAT_CENTERY_AVG   "ESO QC FLAT CENTERY AVG"
-#define CR2RES_HEADER_QC_FLAT_CENTERY_RMS   "ESO QC FLAT CENTERY RMS"
+#define CR2RES_HEADER_QC_FLAT_CENTERY_AVG   "ESO QC FLAT TRACE CENTERY AVG"
+#define CR2RES_HEADER_QC_FLAT_CENTERY_RMS   "ESO QC FLAT TRACE CENTERY RMS"
+#define CR2RES_HEADER_QC_BLAZE_NGOOD        "ESO QC FLAT BLAZE NGOOD"
+#define CR2RES_HEADER_QC_BLAZE_TOT          "ESO QC FLAT BLAZE TOT"
+#define CR2RES_HEADER_QC_BLAZE_NORM         "ESO QC FLAT BLAZE NORM"
 
 #define CR2RES_HEADER_QC_WAVE_BESTXCORR     "ESO QC WAVE BESTXCORR"
 #define CR2RES_HEADER_QC_WAVE_CENTWL        "ESO QC WAVE CENTWL"
+#define CR2RES_HEADER_QC_WAVE_CENTWL_AVG    "ESO QC WAVE CENTWL AVG"
+#define CR2RES_HEADER_QC_WAVE_CENTWL_RMS    "ESO QC WAVE CENTWL RMS"
 #define CR2RES_HEADER_QC_WAVE_DISPWL        "ESO QC WAVE DISPWL"
+#define CR2RES_HEADER_QC_WAVE_DISPWL_AVG    "ESO QC WAVE DISPWL AVG"
+#define CR2RES_HEADER_QC_WAVE_DISPWL_RMS    "ESO QC WAVE DISPWL RMS"
 #define CR2RES_HEADER_QC_WAVE_RESOL_FWHM    "ESO QC WAVE RESOLFWHM"
 #define CR2RES_HEADER_QC_WAVE_POS           "ESO QC WAVE RESOLFWHM POS"
 #define CR2RES_HEADER_QC_WAVE_RESOL         "ESO QC WAVE RESOL"
@@ -153,14 +162,20 @@
 #define CR2RES_HEADER_QC_STANDARD_FLUX      "ESO QC STANDARD FLUX"
 #define CR2RES_HEADER_QC_SNR                "ESO QC SNR%d"
 #define CR2RES_HEADER_QC_SLITFWHM_ORDER     "ESO QC SLITFWHM%d"
+#define CR2RES_HEADER_QC_SNR_BASE           "ESO QC SNR"
+#define CR2RES_HEADER_QC_SLITFWHM_ORDER_BASE     "ESO QC SLITFWHM"
 #define CR2RES_HEADER_QC_SLITFWHM_MED       "ESO QC SLITFWHM MED"
 #define CR2RES_HEADER_QC_REAL_ORDER         "ESO QC REALORDER%d"
 #define CR2RES_HEADER_QC_THROUGHPUT         "ESO QC THROUGHPUT"
 #define CR2RES_HEADER_QC_TILT               "ESO QC TILT%d"
 #define CR2RES_HEADER_QC_TILT_GLOBAL        "ESO QC TILT GLOBAL"
 #define CR2RES_HEADER_QC_FPI_CONTRAST       "ESO QC FPI CONTRAST"
+#define CR2RES_HEADER_QC_FPI_FLUX           "ESO QC FPI FLUX"
 #define CR2RES_HEADER_QC_FPI_SEPARATION     "ESO QC FPI SEPARATION"
 #define CR2RES_HEADER_QC_UNE_FLUX           "ESO QC UNE FLUX"
+
+#define CR2RES_HEADER_QC_MTRLGY_ID          "ESO QC MTRLGY ID"
+#define CR2RES_HEADER_QC_DET_ID             "ESO QC DET ID"
 
 /*-----------------------------------------------------------------------------
                                    Functions prototypes
@@ -168,12 +183,19 @@
 
 cr2res_nodding_pos cr2res_pfits_get_nodding_pos(const cpl_propertylist * plist);
 
-const char * cr2res_pfits_get_procatg(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_drstype(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_protype(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_wlen_id(const cpl_propertylist *) ;
-const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
 const char * cr2res_pfits_get_progid(const cpl_propertylist *) ;
+
+#ifdef CR2RES_UNUSED
+const char * cr2res_pfits_get_procatg(const cpl_propertylist *) ;
+const char * cr2res_pfits_get_arcfile(const cpl_propertylist *) ;
+int cr2res_pfits_get_naxis1(const cpl_propertylist * plist) ;
+int cr2res_pfits_get_naxis2(const cpl_propertylist * plist) ;
+int cr2res_pfits_get_expno(const cpl_propertylist * plist) ;
+int cr2res_pfits_get_nexp(const cpl_propertylist * plist) ;
+#endif
 
 
 double cr2res_pfits_get_ra(const cpl_propertylist *) ;
@@ -187,10 +209,6 @@ double cr2res_pfits_get_mjd_obs(const cpl_propertylist *plist);
 double cr2res_pfits_get_wstrt(const cpl_propertylist * plist, int order_idx) ;
 double cr2res_pfits_get_wend(const cpl_propertylist * plist, int order_idx) ;
 
-int cr2res_pfits_get_naxis1(const cpl_propertylist * plist) ;
-int cr2res_pfits_get_naxis2(const cpl_propertylist * plist) ;
-int cr2res_pfits_get_expno(const cpl_propertylist * plist) ;
-int cr2res_pfits_get_nexp(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_ndit(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_obs_id(const cpl_propertylist * plist) ;
 int cr2res_pfits_get_order_zp(const cpl_propertylist * plist) ;

@@ -50,7 +50,6 @@
 cr2res_nodding_pos * cr2res_nodding_read_positions(const cpl_frameset * in)
 {
     cr2res_nodding_pos  *   out ;
-    cpl_propertylist    *   plist ;
     cpl_size                nframes, i ;
 
     /* Check entries */
@@ -60,11 +59,12 @@ cr2res_nodding_pos * cr2res_nodding_read_positions(const cpl_frameset * in)
     nframes = cpl_frameset_get_size(in) ;
 
     /* Allocate the vector */
-    out = cpl_malloc(nframes * sizeof(cr2res_nodding_pos)) ;
+    out = cpl_malloc(nframes * sizeof(cr2res_nodding_pos));
     for (i = 0; i < nframes; i++) out[i] = CR2RES_NODDING_NONE;
 
     /* Loop on the frames */
     for (i=0 ; i< nframes ; i++) {
+        cpl_propertylist    *   plist ;
         plist = cpl_propertylist_load(cpl_frame_get_filename(
                     cpl_frameset_get_position_const(in, i)), 0) ;
         out[i] = cr2res_pfits_get_nodding_pos(plist) ;
@@ -99,7 +99,7 @@ char cr2res_nodding_position_char(cr2res_nodding_pos pos)
 /*----------------------------------------------------------------------------*/
 int cr2res_combine_nodding_split_frames(
         const cpl_frameset      *   in,
-        cr2res_nodding_pos      *   positions,
+        const cr2res_nodding_pos      *   positions,
         cpl_frameset            **  pos_a,
         cpl_frameset            **  pos_b)
 {
@@ -152,7 +152,7 @@ int cr2res_combine_nodding_split_frames(
 /*----------------------------------------------------------------------------*/
 int cr2res_combine_nodding_split(
         const hdrl_imagelist    *   in,
-        cr2res_nodding_pos      *   positions,
+        const cr2res_nodding_pos      *   positions,
         hdrl_imagelist          **  pos_a,
         hdrl_imagelist          **  pos_b)
 {

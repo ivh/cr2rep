@@ -276,7 +276,7 @@ static void test_cr2res_calib_image()
 {
     int nx = 5;
     int ny = 5;
-    int badpix;
+    //int badpix;
 
     double img_value = 100;
     double img_error = 1;
@@ -294,7 +294,7 @@ static void test_cr2res_calib_image()
     double dit = 10;
 
     hdrl_image * out;
-    hdrl_image * cmp;
+    //hdrl_image * cmp;
 
     // NULL input / output
     out = cr2res_calib_image(NULL, chip, 0, 0, 1, 0, NULL, NULL, NULL, NULL,dit,1);
@@ -337,17 +337,17 @@ static void test_cr2res_calib_cosmic()
 {
     int nx = 5;
     int ny = 5;
-    int badpix;
+    //int badpix;
 
     double img_value = 100;
     double img_error = 1;
-    double out_value, out_error;
-    double flat_value, flat_error;
+    //double out_value, out_error;
+    //double flat_value, flat_error;
 
-    hdrl_image * in, * out, * cmp;
-    cpl_frame * flat;
+    hdrl_image * in, * out;// * cmp;
+    //cpl_frame * flat;
     int chip = 1;
-    int cosmics_corr = 1;
+    //int cosmics_corr;
     double dit = 10;
 
     in = cr2res_create_hdrl(nx, ny, img_value, img_error);
@@ -377,7 +377,7 @@ static void test_cr2res_calib_flat()
 {
     int nx = 5;
     int ny = 5;
-    int badpix;
+    //int badpix;
 
     double img_value = 100;
     double img_error = 1;
@@ -386,11 +386,11 @@ static void test_cr2res_calib_flat()
     double flat_value, flat_error;
 
     hdrl_image * in, * out, * cmp;
-    cpl_mask * bpm;
+    //cpl_mask * bpm;
     cpl_frame * flat;
     int chip = 1;
     double dit = 10;
-    cpl_error_code error;
+    //cpl_error_code error;
 
     in = cr2res_create_hdrl(nx, ny, img_value, img_error);
 
@@ -497,7 +497,7 @@ static void test_cr2res_calib_dark()
 {
     int nx = 5;
     int ny = 5;
-    int badpix;
+    //int badpix;
 
     double img_value = 100;
     double img_error = 1;
@@ -506,7 +506,7 @@ static void test_cr2res_calib_dark()
     double dark_value, dark_error, dark_dit;
 
     hdrl_image * in, * out, * cmp;
-    cpl_mask *bpm;
+    //cpl_mask *bpm;
     cpl_frame * dark;
     int chip = 1;
     double dit = 10;
@@ -728,8 +728,8 @@ static void test_cr2res_calib_bpm()
 
     double img_value = 100;
     double img_error = 1;
-    double out_value, out_error;
-    double bpm_value;
+    //double out_value, out_error;
+    //double bpm_value;
     hdrl_image * hdrl;
     hdrl_value value;
     cpl_image * tmp;
@@ -793,9 +793,9 @@ static void test_cr2res_calib_bpm()
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);
     // cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
 
-    for (size_t i = 1; i <= nx; i++)
+    for (size_t i = 1; i <= (size_t) nx; i++)
     {
-        for (size_t j = 1; j <= ny; j++)
+        for (size_t j = 1; j <= (size_t) ny; j++)
         {
             if (!hdrl_image_is_rejected(out, i, j)){
                 cpl_test_abs(cpl_image_get(hdrl_image_get_error(out), i, j, &badpix), 
@@ -833,9 +833,9 @@ static void test_cr2res_calib_bpm()
     cpl_test_image_abs(hdrl_image_get_image(out), hdrl_image_get_image(cmp), DBL_EPSILON);    
     // cpl_test_image_abs(hdrl_image_get_error(out), hdrl_image_get_error(cmp), DBL_EPSILON);
 
-    for (size_t i = 1; i <= nx; i++)
+    for (size_t i = 1; i <= (size_t) nx; i++)
     {
-        for (size_t j = 1; j <= ny; j++)
+        for (size_t j = 1; j <= (size_t) ny; j++)
         {
             if (!hdrl_image_is_rejected(out, i, j)){
                 cpl_test_abs(cpl_image_get(hdrl_image_get_error(out), i, j, &badpix), 
@@ -893,14 +893,14 @@ static void test_cr2res_calib_detlin()
 {
     int nx = 5;
     int ny = 5;
-    int badpix;
+    //int badpix;
 
     double img_value = 20000;
     double img_error = 200;
     double out_value, out_error;
-    double bpm_value;
-    hdrl_image * hdrl;
-    hdrl_value value;
+    //double bpm_value;
+    //hdrl_image * hdrl;
+    //hdrl_value value;
 
     hdrl_image * in, * out, * cmp;
     hdrl_image * ima, * imb, * imc;

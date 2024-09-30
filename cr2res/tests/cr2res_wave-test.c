@@ -42,10 +42,10 @@
  -----------------------------------------------------------------------------*/
 
 static void test_cr2res_wave_1d(void);
-static void test_cr2res_wave_2d(void);
-static void test_cr2res_wave_line_fitting_2d_other(void);
-static void test_cr2res_wave_etalon(void);
-static void test_cr2res_wave_etalon_other(void);
+//static void test_cr2res_wave_2d(void);
+//static void test_cr2res_wave_line_fitting_2d_other(void);
+//static void test_cr2res_wave_etalon(void);
+//static void test_cr2res_wave_etalon_other(void);
 static void test_cr2res_wave_polys_1d_to_2d(void);
 static void test_cr2res_wave_poly_2d_to_1d(void);
 static void test_cr2res_wave_estimate_compute(void);
@@ -90,7 +90,7 @@ static const char * save_catalog(cpl_table * catalog){
     cpl_propertylist_delete(header);
     return filename;
 }
-
+#ifdef CR2RES_UNUSED_TESTS
 static const char * save_linelist(cpl_bivector * linelist){
     const char * filename = "TEST_linelist.fits";
     cpl_propertylist * header = cpl_propertylist_new();
@@ -112,12 +112,12 @@ static const char * save_linelist(cpl_bivector * linelist){
     cpl_table_delete(table);
     return filename;
 }
+#endif
 
 // make a test spectrum based on a line list catalog
 static cpl_bivector * make_test_spectrum(cpl_table * catalog, double wmin, double wmax, int size, cpl_bivector ** spectrum_err)
 {
-    double wl, mu, line_em, sig;
-    double tmp;
+    double mu, line_em, sig;
     int i, j;
     cpl_bivector * spectrum = cpl_bivector_new(size);
     *spectrum_err = cpl_bivector_new(size);
@@ -128,6 +128,8 @@ static cpl_bivector * make_test_spectrum(cpl_table * catalog, double wmin, doubl
     cpl_vector * unc = cpl_bivector_get_y(*spectrum_err);
 
     for (i = 0; i < size; i++){
+        double wl;
+        double tmp;
         wl = wmin + i * (wmax - wmin) / (double)size;
         tmp = 0;
         for (j = 0; j < 2; j++){
@@ -146,6 +148,7 @@ static cpl_bivector * make_test_spectrum(cpl_table * catalog, double wmin, doubl
     return spectrum;
 }
 
+#ifdef CR2RES_UNUSED_TESTS
 static cpl_bivector * make_test_etalon_spectrum(int size, double freq, cpl_bivector ** spectrum_err)
 {
     cpl_bivector * spectrum = cpl_bivector_new(size);
@@ -168,6 +171,7 @@ static cpl_bivector * make_test_etalon_spectrum(int size, double freq, cpl_bivec
     return spectrum;
 
 }
+#endif
 
 // make a simple linear polynomial from wmin to wmax
 static cpl_polynomial * make_test_polynomial(double wmin, double wmax, int size)
@@ -197,7 +201,6 @@ static void test_cr2res_wave_1d()
     cpl_bivector * spectrum_err;
     cpl_bivector * spectrum = make_test_spectrum(catalog, wmin, wmax, size, &spectrum_err);
     cpl_polynomial * initial_guess = make_test_polynomial(wmin, wmax, size);
-    int window_size = 30;
     int degree = 1;
     int order = 0;
     int trace = 0;
@@ -293,7 +296,7 @@ static void test_cr2res_wave_1d()
     cpl_array_delete(wave_error_init);
 }
 
-
+#ifdef CR2RES_UNUSED_TESTS
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Use two identical orders, with two lines each, and check that the result is still linear
@@ -320,7 +323,6 @@ static void test_cr2res_wave_2d()
     cpl_array * wavelength_error;
     cpl_table * diagnostics;
     cpl_polynomial * wavelength;
-    cpl_size power;
 
     cpl_size degree_x = 1; // polynomial degree in wavelength direction
     cpl_size degree_y = 2; // polynomial degree in order direction
@@ -394,7 +396,9 @@ static void test_cr2res_wave_2d()
     cpl_free(guess);
     cpl_free(init_error);
 }
+#endif
 
+#ifdef CR2RES_UNUSED_TESTS
 static void test_cr2res_wave_etalon(void){
 
     cpl_bivector * spectrum;
@@ -444,7 +448,9 @@ static void test_cr2res_wave_etalon(void){
     cpl_polynomial_delete(initial);
     cpl_polynomial_delete(result);
 }
+#endif
 
+#ifdef CR2RES_UNUSED_TESTS
 static void test_cr2res_wave_etalon_other(void){
 
     cpl_bivector * spectrum;
@@ -481,6 +487,7 @@ static void test_cr2res_wave_etalon_other(void){
     cpl_polynomial_delete(initial);
     cpl_polynomial_delete(result);
 }
+#endif
 
 static void test_cr2res_wave_polys_1d_to_2d(void)
 {
@@ -535,7 +542,7 @@ static void test_cr2res_wave_polys_1d_to_2d(void)
 
 
     cpl_polynomial_delete(res);
-    for (size_t i = 0; i < npolys; i++)
+    for (size_t i = 0; i < (size_t) npolys; i++)
     {
         cpl_polynomial_delete(poly_1ds[i]);
     }
@@ -705,8 +712,7 @@ static void test_cr2res_wave_etalon_2d(){
     cpl_size degree_x = 2;
     cpl_size degree_y = 2;
     cpl_polynomial * result = NULL;
-    cpl_size degree, degree2d[2];
-    double c00, c01, c10, c11;
+    cpl_size degree;
     double wave, freq;
 
     cpl_matrix * px;
@@ -754,6 +760,9 @@ static void test_cr2res_wave_etalon_2d(){
 
     cpl_test_nonnull(result);
     if (result != NULL){
+        cpl_size degree2d[2];
+
+        double c00, c01, c10, c11;
         degree2d[0] = 0;
         degree2d[1] = 0;
         c00 = cpl_polynomial_get_coeff(result, degree2d);

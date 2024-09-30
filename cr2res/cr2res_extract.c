@@ -17,7 +17,12 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02111-1307  USA
  */
 
-#pragma GCC optimize("O0")
+/* Removing this pragma to give significant speedup to cal_flat
+ * Don't think its actually been needed since the original development of
+ * curved extraction. It also isn't recognized by clang and some
+ * versions of gcc.
+ * pragma GCC optimize("O0")
+*/
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -110,7 +115,7 @@ static int cr2res_extract_xi_zeta_tensors(
         int         nrows,
         int         ny,
         double  *   ycen,
-        int     *   ycen_offset,
+        const int     *   ycen_offset,
         int         y_lower_lim,
         int         osample,
         cpl_polynomial ** slitcurves,
@@ -154,6 +159,7 @@ static int debug_output(int         ncols,
   @param    traces          The traces table
   @param    slit_func_in    The input slit_func or NULL
   @param    blaze_table_in  The input blaze or NULL
+  @param    blaze_norm      The blaze normalization or 0
   @param    reduce_order    The order to extract (-1 for all)
   @param    reduce_trace    The Trace to extract (-1 for all)
   @param    extr_method     The wished extraction method
@@ -171,7 +177,7 @@ static int debug_output(int         ncols,
   @param    model_master    [out] the model
   @return   0 if ok, -1 otherwise
 
-  This func takes a single image (contining many orders), and a traces table.
+  This func takes a single image (containing many orders), and a traces table.
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_extract_traces(
@@ -179,6 +185,7 @@ int cr2res_extract_traces(
         const cpl_table     *   traces,
         const cpl_table     *   slit_func_in,
         const cpl_table     *   blaze_table_in,
+        float                   blaze_norm,
         int                     reduce_order,
         int                     reduce_trace,
         cr2res_extr_method      extr_method,
@@ -213,7 +220,7 @@ int cr2res_extract_traces(
     hdrl_image          *   model_loc_one ;
     double                  first_nonzero_value, first_nonzero_error, 
                             norm_factor, val, err ;
-    int                     nb_traces, i, j, order, trace_id ;
+    int                     nb_traces, i, j;
     int                     badpix;
     cpl_size                x, y, kth;
     hdrl_value              pixval;
@@ -233,6 +240,8 @@ int cr2res_extract_traces(
     /* Loop over the traces and extract them */
     for (i=0 ; i<nb_traces ; i++) {
         /* Initialise */
+        int trace_id;
+        int order;
         slit_func_vec[i] = NULL ;
         spectrum[i] = NULL ;
         model_loc_one = NULL ;
@@ -354,12 +363,20 @@ int cr2res_extract_traces(
                         }
                     }
 
-                    /* Normalize the Blaze */
-                    tmp_vec=cpl_vector_duplicate(cpl_bivector_get_y(blaze_biv));
-                    kth = (cpl_size)(cpl_bivector_get_size(blaze_biv)*0.95) ;
-                    irplib_vector_get_kth(tmp_vec, kth) ;
-                    norm_factor = cpl_vector_get(tmp_vec, kth) ;
-                    cpl_vector_delete(tmp_vec) ;
+                    /* Normalize the Blaze, prefer the normalization factor given in 
+                     * QC FLAT BLAZE NORM if present otherwise revert to trace-wise
+                     * 95th percentile normalization
+                     */
+
+                    if (blaze_norm > 0){
+                        norm_factor = blaze_norm;
+                    } else {
+                        tmp_vec=cpl_vector_duplicate(cpl_bivector_get_y(blaze_biv));
+                        kth = (cpl_size)(cpl_bivector_get_size(blaze_biv)*0.95) ;
+                        irplib_vector_get_kth(tmp_vec, kth) ;
+                        norm_factor = cpl_vector_get(tmp_vec, kth) ;
+                        cpl_vector_delete(tmp_vec) ;
+                    }
 
                     /* Divide by the Blaze */
                     pspec = cpl_bivector_get_x_data(spectrum[i]) ;
@@ -414,7 +431,7 @@ int cr2res_extract_traces(
         if (display && disp_order_idx==order && disp_trace==trace_id) {
             cpl_plot_vector(
             "set grid;set xlabel 'pixels';set ylabel 'Flux (ADU)';",
-            "t 'Extracted Specrum' w lines", "",
+            "t 'Extracted Spectrum' w lines", "",
             cpl_bivector_get_x_const(spectrum[i])) ;
         }
         cpl_msg_indent_less() ;
@@ -770,7 +787,7 @@ int cr2res_extract_median(
   the order and trace numbers to extract (one each), and the extraction
   height.
   It uses the trace to shift the image columns by integer values,
-  thereby straightening the order. Additionaly the image is corrected
+  thereby straightening the order. Additionally the image is corrected
   for the curvature by linear interpolation. The output spectra and slit
   function are then the collapsed image in x and y, respectively.
   Also returned is the "model", i.e. an image reconstruction from
@@ -802,7 +819,7 @@ int cr2res_extract_sum_tilt(
     double              trace_cen, trace_height ;
     cpl_type            imtyp;
 
-    int yc, yt, badpix;
+    int badpix;
     double a, b, c, value;
     cpl_polynomial * slitcurve_A, * slitcurve_B, *slitcurve_C;
     cpl_bivector * xi, *xt;
@@ -890,11 +907,11 @@ int cr2res_extract_sum_tilt(
     }
 
     for (i = 0; i < height; i++){
-        yt = i - height / 2 + 0.5;      
-        yc = cpl_vector_get(ycen, i);
+        int yt = i - height / 2 + 0.5;      
+        int yc = cpl_vector_get(ycen, i);
 
         for (j = 1; j < lenx - 1; j++){
-            a = cpl_polynomial_eval_1d(slitcurve_A, j, NULL);
+            //a = cpl_polynomial_eval_1d(slitcurve_A, j, NULL); this is ignored apparently?
             b = cpl_polynomial_eval_1d(slitcurve_B, j, NULL);
             c = cpl_polynomial_eval_1d(slitcurve_C, j, NULL);              
 
@@ -1331,9 +1348,9 @@ int cr2res_extract_SLIT_FUNC_get_vector(
   @param    model       the returned model
   @return   0 if ok, -1 otherwise
 
-  This func takes a single image (contining many orders), and a *single*
-  order definition in the form of central y-corrds., plus the height.
-  Swath widht and oversampling are passed through.
+  This func takes a single image (containing many orders), and a *single*
+  order definition in the form of central y-coords., plus the height.
+  Swath width and oversampling are passed through.
 
   The task of this function then is to
 
@@ -1371,12 +1388,8 @@ int cr2res_extract_slitdec_curved(
     double          *   ycen_rest;
     double          *   ycen_sw;
     int             *   ycen_offset_sw;
-    double          *   img_sw_data;
-    double          *   err_sw_data;
-    double          *   spec_sw_data;
     double          *   slitfu_sw_data;
     double          *   model_sw;
-    double          *   unc_sw_data;
     const double    *   slit_func_in;
     int             *   mask_sw;
     const cpl_image *   img_in;
@@ -1387,20 +1400,17 @@ int cr2res_extract_slitdec_curved(
     cpl_image       *   err_rect;
     cpl_image       *   model_rect;
     cpl_vector      *   ycen ;
-    cpl_image       *   img_tmp;
     cpl_image       *   img_out;
-    cpl_vector      *   spec_sw;
     cpl_vector      *   slitfu_sw;
     cpl_vector      *   unc_sw;
     cpl_vector      *   spc;
     cpl_vector      *   slitfu;
-    cpl_vector      *   spec_tmp;
     cpl_vector      *   weights_sw;
     cpl_vector      *   tmp_vec;
     cpl_vector      *   bins_begin;
     cpl_vector      *   bins_end;
     cpl_vector      *   unc_decomposition;
-    cpl_size            lenx, leny, pow, size;
+    cpl_size            lenx, leny, pow;
     cpl_type            imtyp;
     cpl_polynomial      *slitcurve_A, *slitcurve_B, *slitcurve_C;
     cpl_polynomial  **  slitcurves_sw;
@@ -1416,10 +1426,10 @@ int cr2res_extract_slitdec_curved(
     zeta_ref        *   zeta;
     int             *   m_zeta;
     char            *   path;
-    double              pixval, errval, delta_tmp, a, b, c,yc;
-    double              trace_cen, trace_height, img_sum ;
+    double              pixval, errval;
+    double              trace_cen, trace_height;
     int                 i, j, k, nswaths, col, x, y, ny_os,
-                        sw_start, sw_end, badpix, y_lower_limit, delta_x;
+                        badpix, delta_x;
     int                 ny, nx;
   
 
@@ -1525,11 +1535,12 @@ int cr2res_extract_slitdec_curved(
     /* Maximum horizontal shift in detector pixels due to slit image curv. */
     delta_x=0;
     for (i=1; i<=lenx; i+=swath/2){
+        double delta_tmp, a, b, c, yc;
         /* Do a coarse sweep through the order and evaluate the slitcurve */
         /* polynomials at  +- height/2, update the value. */
         /* Note: The index i is subtracted from a because the polys have */
         /* their origin at the edge of the full frame */
-        a = cpl_polynomial_eval_1d(slitcurve_A, i, NULL);
+        //a = cpl_polynomial_eval_1d(slitcurve_A, i, NULL); this is ignored apparently?
         b = cpl_polynomial_eval_1d(slitcurve_B, i, NULL);
         c = cpl_polynomial_eval_1d(slitcurve_C, i, NULL);
         yc = cpl_vector_get(ycen, i-1);
@@ -1579,6 +1590,7 @@ int cr2res_extract_slitdec_curved(
     /* Use existing slitfunction if given */
     slit_func_in = NULL;
     if (slit_func_vec_in != NULL) {
+        cpl_size size;
         size = cpl_vector_get_size(slit_func_vec_in);
         if (size == ny_os){
             slit_func_in = cpl_vector_get_data_const(slit_func_vec_in);
@@ -1659,7 +1671,20 @@ int cr2res_extract_slitdec_curved(
     /* The actual number of contributing elements in zeta  [ncols][nrows]  */
     m_zeta = cpl_malloc(swath * height * sizeof(int));
 
-    for (i=0;i<nswaths;i++){
+    for (i = 0; i < nswaths; i++) {
+        double *img_sw_data;
+        double *err_sw_data;
+        double *spec_sw_data;
+        double *unc_sw_data;
+
+        cpl_image *img_tmp;
+        cpl_vector *spec_sw;
+        cpl_vector *spec_tmp;
+
+        int sw_start, sw_end, y_lower_limit;
+
+        double img_sum;
+
         sw_start = cpl_vector_get(bins_begin, i);
         sw_end = cpl_vector_get(bins_end, i);
 
@@ -1929,7 +1954,7 @@ int cr2res_extract_slitdec_curved(
         }
 
         cpl_vector_delete(spec_sw);
-    } // End loop over swaths
+    }  // End loop over swaths
 
     // divide by nswaths to make the slitfu into the average over all swaths.
     cpl_vector_divide_scalar(slitfu, nswaths);
@@ -2025,7 +2050,7 @@ int cr2res_extract_slitdec_curved(
   @param    extracted       [out] the extracted spectra 
   @return   0 if ok, -1 otherwise
 
-  This func takes a single image (contining many orders), and a traces table.
+  This func takes a single image (containing many orders), and a traces table.
  */
 /*--------------------------------------------------------------------------*/
 int cr2res_extract2d_traces(
@@ -2042,7 +2067,7 @@ int cr2res_extract2d_traces(
     cpl_table           *   extract_loc ;
     cpl_image           *   wavemap;
     cpl_image           *   slitmap;
-    int                     nb_traces, i, order, trace_id, npoints ;
+    int                     nb_traces, i, npoints ;
 
     /* Check Entries */
     if (img == NULL || traces == NULL) return -1 ;
@@ -2076,6 +2101,8 @@ int cr2res_extract2d_traces(
         position[i] = NULL ;
         wavelength[i] = NULL ;
         slit_fraction[i] = NULL ;
+
+        int order, trace_id;
 
         /* Get Order and trace id */
         order = cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) ;
@@ -2404,7 +2431,7 @@ cpl_table * cr2res_extract_EXTRACT2D_create(
   @param ycen_offset    Order image column shift
   @param y_lower_lim    Number of detector pixels below the pixel
                         containing the central line yc
-  @param osample        Subpixel ovsersampling factor
+  @param osample        Subpixel oversampling factor
   @param PSF_curve      Parabolic fit to the slit image curvature
                         For column d_x = PSF_curve[ncols][0] +
                                         PSF_curve[ncols][1] *d_y +
@@ -2430,7 +2457,7 @@ static int cr2res_extract_xi_zeta_tensors(
         int         nrows,
         int         ny,
         double  *   ycen,
-        int     *   ycen_offset,
+        const int     *   ycen_offset,
         int         y_lower_lim,
         int         osample,
         cpl_polynomial ** slitcurves,
@@ -2438,8 +2465,8 @@ static int cr2res_extract_xi_zeta_tensors(
         zeta_ref *  zeta,
         int      *  m_zeta)
 {
-    int x, xx, y, yy, ix, ix1, ix2, iy, iy1, iy2, m;
-    double step, delta, dy, w, d1, d2;
+    int x, xx, y, yy, ix, ix1, ix2, iy, m;
+    double step, delta, w;
     step = 1.e0 / osample;
 
     /* Clean xi */
@@ -2480,6 +2507,8 @@ static int cr2res_extract_xi_zeta_tensors(
     */
     for (x = 0; x < ncols; x++)
     {
+        int iy1, iy2;
+        double d1, d2, dy;
         /*
         I promised to reconsider the initial offset. Here it is. For the original layout
         (no column shifts and discontinuities in ycen) there is pixel y that contains the
@@ -2490,11 +2519,11 @@ static int cr2res_extract_xi_zeta_tensors(
 
         Next we need to define starting and ending indices iy for sL subpixels that contribute
         to pixel y. I call them iy1 and iy2. For both cases we assume osample+1 subpixels covering
-        pixel y (wierd). So for case 1 iy1 will be (y-1)*osample and iy2 == y*osample. Special
+        pixel y (weird). So for case 1 iy1 will be (y-1)*osample and iy2 == y*osample. Special
         treatment of the boundary subpixels will compensate for introducing extra subpixel in
         case 1. In case 2 things are more logical: iy1=(yc-y)*osample+(y-1)*osample;
         iy2=(y+1-yc)*osample)+(y-1)*osample. ycen is yc-y making things simpler. Note also that
-        the same pattern repeates for all rows: we only need to initialize iy1 and iy2 and keep
+        the same pattern repeats for all rows: we only need to initialize iy1 and iy2 and keep
         incrementing them by osample. 
         */
 
@@ -2512,7 +2541,7 @@ static int cr2res_extract_xi_zeta_tensors(
                 that the first subpixel is totally outside of pixel y and d1 is set to 0.
         Case 3: ycen falls inside of each pixel (0>ycen>1). In this case d1 is set to the fraction of
                 the first step contained inside of each pixel.
-        And BTW, this also means that central line coinsides with the upper boundary of subpixel iy2
+        And BTW, this also means that central line coincides with the upper boundary of subpixel iy2
         when the y loop reaches pixel y_lower_lim. In other words:
 
         dy=(iy-(y_lower_lim+ycen[x])*osample)*step-0.5*step
@@ -2527,7 +2556,7 @@ static int cr2res_extract_xi_zeta_tensors(
         The final hurdle for 2D slit decomposition is to construct two 3D reference tensors. We proceed
         similar to 1D case except that now each iy subpixel can be shifted left or right following
         the curvature of the slit image on the detector. We assume for now that each subpixel is
-        exactly 1 detector pixel wide. This may not be exactly true if the curvature changes accross
+        exactly 1 detector pixel wide. This may not be exactly true if the curvature changes across
         the focal plane but will deal with it when the necessity will become apparent. For now we
         just assume that a shift delta the weight w assigned to subpixel iy is divided between
         ix1=int(delta) and ix2=int(delta)+signum(delta) as (1-|delta-ix1|)*w and |delta-ix1|*w.
@@ -2547,7 +2576,7 @@ static int cr2res_extract_xi_zeta_tensors(
         dy = ycen[x] - floor((y_lower_lim + ycen[x]) / step) * step - step;
 
         /*
-        Now we go detector pixels x and y incrementing subpixels looking for their controibutions
+        Now we go detector pixels x and y incrementing subpixels looking for their contributions
         to the current and adjacent pixels. Note that the curvature/tilt of the projected slit
         image could be so large that subpixel iy may no contribute to column x at all. On the
         other hand, subpixels around ycen by definition must contribute to pixel x,y. 
@@ -2579,7 +2608,8 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 3)].x = xx;
                             xi[xi_index(x, iy, 3)].y = yy;
                             xi[xi_index(x, iy, 3)].w = w - fabs(delta - ix1) * w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 3)].w > 0)
+                            // xx>=0 && xx<ncols is already given by the loop condition
+                            if (xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 3)].w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2599,7 +2629,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 2)].x = xx;
                             xi[xi_index(x, iy, 2)].y = yy;
                             xi[xi_index(x, iy, 2)].w = fabs(delta - ix1) * w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 2)].w > 0)
+                            if (xx >= 0 && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 2)].w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2618,7 +2648,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 2)].x = xx;
                             xi[xi_index(x, iy, 2)].y = yy;
                             xi[xi_index(x, iy, 2)].w = fabs(delta - ix1) * w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 2)].w > 0)
+                            if (xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 2)].w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2631,7 +2661,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 3)].x = xx;
                             xi[xi_index(x, iy, 3)].y = yy;
                             xi[xi_index(x, iy, 3)].w = w - fabs(delta - ix1) * w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 3)].w > 0)
+                            if (xx >= 0 && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 3)].w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2650,7 +2680,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 2)].x = xx;
                             xi[xi_index(x, iy, 2)].y = yy;
                             xi[xi_index(x, iy, 2)].w = w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && w > 0)
+                            if (yy >= 0 && yy < nrows && w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2672,7 +2702,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 1)].x = xx;
                             xi[xi_index(x, iy, 1)].y = yy;
                             xi[xi_index(x, iy, 1)].w = w - fabs(delta - ix1) * w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 1)].w > 0)
+                            if (xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 1)].w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2685,7 +2715,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 0)].x = xx;
                             xi[xi_index(x, iy, 0)].y = yy;
                             xi[xi_index(x, iy, 0)].w = fabs(delta - ix1) * w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 0)].w > 0)
+                            if (xx >= 0 && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 0)].w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2704,7 +2734,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 0)].x = xx;
                             xi[xi_index(x, iy, 0)].y = yy;
                             xi[xi_index(x, iy, 0)].w = fabs(delta - ix1) * w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 0)].w > 0)
+                            if (xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 0)].w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2717,7 +2747,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 1)].x = xx;
                             xi[xi_index(x, iy, 1)].y = yy;
                             xi[xi_index(x, iy, 1)].w = w - fabs(delta - ix1) * w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 1)].w > 0)
+                            if (xx >= 0 && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 1)].w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2736,7 +2766,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 0)].x = xx;
                             xi[xi_index(x, iy, 0)].y = yy;
                             xi[xi_index(x, iy, 0)].w = w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && w > 0)
+                            if (yy >= 0 && yy < nrows && w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2758,7 +2788,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 1)].x = xx;
                             xi[xi_index(x, iy, 1)].y = yy;
                             xi[xi_index(x, iy, 1)].w = w - fabs(delta - ix1) * w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 1)].w > 0)
+                            if (xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 1)].w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2771,7 +2801,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 0)].x = xx;
                             xi[xi_index(x, iy, 0)].y = yy;
                             xi[xi_index(x, iy, 0)].w = fabs(delta - ix1) * w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 0)].w > 0)
+                            if (xx >= 0 && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 0)].w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2790,7 +2820,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 1)].x = xx;
                             xi[xi_index(x, iy, 1)].y = yy;
                             xi[xi_index(x, iy, 1)].w = fabs(delta - ix1) * w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 1)].w > 0)
+                            if (xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 1)].w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2803,7 +2833,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 0)].x = xx;
                             xi[xi_index(x, iy, 0)].y = yy;
                             xi[xi_index(x, iy, 0)].w = w - fabs(delta - ix1) * w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 0)].w > 0)
+                            if (xx >= 0 && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 0)].w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2822,7 +2852,7 @@ static int cr2res_extract_xi_zeta_tensors(
                             xi[xi_index(x, iy, 0)].x = xx;
                             xi[xi_index(x, iy, 0)].y = yy;
                             xi[xi_index(x, iy, 0)].w = w;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && w > 0)
+                            if (yy >= 0 && yy < nrows && w > 0)
                             {
                                 m = m_zeta[mzeta_index(xx, yy)];
                                 zeta[zeta_index(xx, yy, m)].x = x;
@@ -2845,7 +2875,7 @@ static int cr2res_extract_xi_zeta_tensors(
   @param error_factor Factor for error scaling
   @param ncols      Swath width in pixels
   @param nrows      Extraction slit height in pixels
-  @param osample    Subpixel ovsersampling factor
+  @param osample    Subpixel oversampling factor
   @param im         Image to be decomposed [nrows][ncols]
   @param pix_unc
   @param mask       Initial and final mask for the swath [nrows][ncols]
@@ -2900,36 +2930,38 @@ static int cr2res_extract_slit_func_curved(
         zeta_ref  *  zeta,
         int       *  m_zeta)
 {
-    int         x, xx, xxx, y, yy, iy, jy, n, m, ny, i, nx;
-    double      norm, lambda, diag_tot, ww, www, sP_change, sP_med;
-    double      tmp, sigma, median, sum, msum, dev, cost, cost_old, sLmax;
-    double      unc1, unc2;
-    int         info, iter, isum;
-    cpl_vector  * tmp_vec;
+    int x, xx, xxx, y, yy, iy, jy, n, m, ny, nx;
+    double norm, lambda, diag_tot, ww, www, sP_change, sP_med;
+    double tmp, sLmax, sum;
+    int info, iter;
+    cpl_vector *tmp_vec;
 
     /* The size of the sL array. */
     /* Extra osample is because ycen can be between 0 and 1. */
     ny = osample * (nrows + 1) + 1;
     nx = 4 * delta_x + 1;
-    if(nx < 3) nx = 3;
+    if (nx < 3)
+        nx = 3;
 
-    i = cr2res_extract_xi_zeta_tensors(ncols, nrows, ny, ycen, ycen_offset,
-            y_lower_lim, osample, slitcurves, xi, zeta, m_zeta);
+    cr2res_extract_xi_zeta_tensors(ncols, nrows, ny, ycen, ycen_offset,
+                                   y_lower_lim, osample, slitcurves, xi, zeta,
+                                   m_zeta);
 
     // If a slit func is given, use that instead of recalculating it
-    if (slit_func_in != NULL){
+    if (slit_func_in != NULL) {
         // Normalize the input just in case
         norm = 0.e0;
-        for(iy = 0; iy < ny; iy++) {
+        for (iy = 0; iy < ny; iy++) {
             sL[iy] = slit_func_in[iy];
             norm += sL[iy];
         }
         norm /= osample;
-        for(iy=0; iy<ny; iy++) sL[iy]/=norm;
+        for (iy = 0; iy < ny; iy++)
+            sL[iy] /= norm;
     }
 
     /* Resetting the mask and img values for outliers and NaN */
-/*    for (y = 0; y < nrows; y++) {
+    /*    for (y = 0; y < nrows; y++) {
      for (x = 0; x < ncols; x++) {
        mask[y * ncols + x] = 1;
        if(im[y * ncols + x] < -1.e3) {
@@ -2942,10 +2974,12 @@ static int cr2res_extract_slit_func_curved(
 
     /* Loop through sL , sP reconstruction until convergence is reached */
     iter = 0;
-    cost = 0;
+    // cost = 0; Not used without cost_old?
     do {
-        cost_old = cost;
-        if (slit_func_in == NULL){
+        //cost_old = cost; this is not used apparently?
+        double cost, sigma;
+        int isum;
+        if (slit_func_in == NULL) {
             /* Compute slit function sL */
             /* Prepare the RHS and the matrix */
             for (iy = 0; iy < ny; iy++) {
@@ -2959,23 +2993,27 @@ static int cr2res_extract_slit_func_curved(
             for (iy = 0; iy < ny; iy++) {
                 for (x = 0; x < ncols; x++) {
                     for (n = 0; n < 4; n++) {
-                        ww = xi[xi_index(x,iy,n)].w;
+                        ww = xi[xi_index(x, iy, n)].w;
                         if (ww > 0) {
-                            xx = xi[xi_index(x,iy,n)].x;
-                            yy = xi[xi_index(x,iy,n)].y;
-                            if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows) {
-                                if (m_zeta[mzeta_index(xx,yy)] > 0){
-                                    for (m = 0; m < m_zeta[mzeta_index(xx,yy)]; m++) {
-                                        xxx = zeta[zeta_index(xx,yy,m)].x;
-                                        jy = zeta[zeta_index(xx,yy,m)].iy;
-                                        www = zeta[zeta_index(xx,yy,m)].w;
-                                        if(jy-iy+2*osample>=0)
-                                          l_Aij[iy + ny * (jy - iy + 2 * osample)] +=
-                                              sP[xxx] * sP[x] * www * ww * mask[yy *
-                                              ncols + xx];
+                            xx = xi[xi_index(x, iy, n)].x;
+                            yy = xi[xi_index(x, iy, n)].y;
+                            if (xx >= 0 && xx < ncols && yy >= 0 &&
+                                yy < nrows) {
+                                if (m_zeta[mzeta_index(xx, yy)] > 0) {
+                                    for (m = 0; m < m_zeta[mzeta_index(xx, yy)];
+                                         m++) {
+                                        xxx = zeta[zeta_index(xx, yy, m)].x;
+                                        jy = zeta[zeta_index(xx, yy, m)].iy;
+                                        www = zeta[zeta_index(xx, yy, m)].w;
+                                        if (jy - iy + 2 * osample >= 0)
+                                            l_Aij[iy + ny * (jy - iy +
+                                                             2 * osample)] +=
+                                                sP[xxx] * sP[x] * www * ww *
+                                                mask[yy * ncols + xx];
                                     }
-                                    l_bj[iy] += im[yy * ncols + xx] * mask[yy * ncols +
-                                        xx] * sP[x] * ww;
+                                    l_bj[iy] += im[yy * ncols + xx] *
+                                                mask[yy * ncols + xx] * sP[x] *
+                                                ww;
                                 }
                             }
                         }
@@ -3005,8 +3043,9 @@ static int cr2res_extract_slit_func_curved(
 
             /* Solve the system of equations */
             info = cr2res_extract_slitdec_bandsol(l_Aij, l_bj, ny,
-                4 * osample + 1, lambda);
-            if (info) cpl_msg_error(__func__, "info(sL)=%d\n", info);
+                                                  4 * osample + 1, lambda);
+            if (info)
+                cpl_msg_error(__func__, "info(sL)=%d\n", info);
 
             /* Normalize the slit function */
             norm = 0.e0;
@@ -3015,34 +3054,37 @@ static int cr2res_extract_slit_func_curved(
                 norm += fabs(sL[iy]);
             }
             norm /= osample;
-            for (iy = 0; iy < ny; iy++) sL[iy] /= norm;
+            for (iy = 0; iy < ny; iy++)
+                sL[iy] /= norm;
         }
 
         /*  Compute spectrum sP */
         for (x = 0; x < ncols; x++) {
-            for (xx = 0; xx < nx; xx++) p_Aij[xx * ncols + x] = 0.;
+            for (xx = 0; xx < nx; xx++)
+                p_Aij[xx * ncols + x] = 0.;
             p_bj[x] = 0;
         }
         for (x = 0; x < ncols; x++) {
             for (iy = 0; iy < ny; iy++) {
-                for (n=0; n < 4; n++) {
-                    ww = xi[xi_index(x,iy,n)].w;
+                for (n = 0; n < 4; n++) {
+                    ww = xi[xi_index(x, iy, n)].w;
                     if (ww > 0) {
-                        xx = xi[xi_index(x,iy,n)].x;
-                        yy = xi[xi_index(x,iy,n)].y;
-                        if (xx >= 0 && 
-                            xx < ncols && yy >= 0 && yy < nrows) {
-                            if (m_zeta[mzeta_index(xx,yy)] > 0){
-                                for (m = 0; m < m_zeta[mzeta_index(xx,yy)]; m++) {
-                                    xxx = zeta[zeta_index(xx,yy,m)].x;
-                                    jy = zeta[zeta_index(xx,yy,m)].iy;
-                                    www = zeta[zeta_index(xx,yy,m)].w;
-                                    p_Aij[x + ncols * (xxx - x + 2 * delta_x)] += 
-                                        sL[jy] * sL[iy] * www * ww * 
+                        xx = xi[xi_index(x, iy, n)].x;
+                        yy = xi[xi_index(x, iy, n)].y;
+                        if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows) {
+                            if (m_zeta[mzeta_index(xx, yy)] > 0) {
+                                for (m = 0; m < m_zeta[mzeta_index(xx, yy)];
+                                     m++) {
+                                    xxx = zeta[zeta_index(xx, yy, m)].x;
+                                    jy = zeta[zeta_index(xx, yy, m)].iy;
+                                    www = zeta[zeta_index(xx, yy, m)].w;
+                                    p_Aij[x +
+                                          ncols * (xxx - x + 2 * delta_x)] +=
+                                        sL[jy] * sL[iy] * www * ww *
                                         mask[yy * ncols + xx];
                                 }
-                                p_bj[x] += im[yy * ncols + xx] * mask[yy * ncols +
-                                    xx] * sL[iy] * ww;
+                                p_bj[x] += im[yy * ncols + xx] *
+                                           mask[yy * ncols + xx] * sL[iy] * ww;
                             }
                         }
                     }
@@ -3051,12 +3093,13 @@ static int cr2res_extract_slit_func_curved(
         }
 
         /* Save the previous iteration spectrum */
-        for (x = 0; x < ncols; x++) sP_old[x] = sP[x];
+        for (x = 0; x < ncols; x++)
+            sP_old[x] = sP[x];
 
         lambda = 1;
         if (lambda_sP > 0.e0) {
             lambda = lambda_sP; /* Scale regularization parameter */
-            p_Aij[ncols * (2 * delta_x)] += lambda; /* Main diagonal  */
+            p_Aij[ncols * (2 * delta_x)] += lambda;     /* Main diagonal  */
             p_Aij[ncols * (2 * delta_x + 1)] -= lambda; /* Upper diagonal */
             for (x = 1; x < ncols - 1; x++) {
                 /* Lower diagonal */
@@ -3074,9 +3117,11 @@ static int cr2res_extract_slit_func_curved(
 
         /* Solve the system of equations */
         info = cr2res_extract_slitdec_bandsol(p_Aij, p_bj, ncols, nx, lambda);
-        if (info) cpl_msg_error(__func__, "info(sP)=%d\n", info);
+        if (info)
+            cpl_msg_error(__func__, "info(sP)=%d\n", info);
 
-        for (x = 0; x < ncols; x++) sP[x] = p_bj[x]; /* New Spectrum vector */
+        for (x = 0; x < ncols; x++)
+            sP[x] = p_bj[x]; /* New Spectrum vector */
 
 
         /* Compute median value of the spectrum for normalisation purpose */
@@ -3091,23 +3136,23 @@ static int cr2res_extract_slit_func_curved(
                 sP_change = fabs(sP[x] - sP_old[x]);
         }
 
-        if ((isnan(sP[0]) || (sP[ncols/2] == 0)) 
-                && (cpl_msg_get_level() == CPL_MSG_DEBUG) ){
+        if ((isnan(sP[0]) || (sP[ncols / 2] == 0)) &&
+            (cpl_msg_get_level() == CPL_MSG_DEBUG)) {
             debug_output(ncols, nrows, osample, im, pix_unc, mask, ycen,
-                ycen_offset, y_lower_lim, slitcurves);
+                         ycen_offset, y_lower_lim, slitcurves);
             cpl_msg_error(__func__, "Swath failed");
         }
 
         /* Compute the model */
         for (y = 0; y < nrows * ncols; y++) {
-                model[y] = 0.;
+            model[y] = 0.;
         }
         for (y = 0; y < nrows; y++) {
             for (x = 0; x < ncols; x++) {
-                for (m = 0; m < m_zeta[mzeta_index(x,y)]; m++) {
-                    xx = zeta[zeta_index(x,y,m)].x;
-                    iy = zeta[zeta_index(x,y,m)].iy;
-                    ww = zeta[zeta_index(x,y,m)].w;
+                for (m = 0; m < m_zeta[mzeta_index(x, y)]; m++) {
+                    xx = zeta[zeta_index(x, y, m)].x;
+                    iy = zeta[zeta_index(x, y, m)].iy;
+                    ww = zeta[zeta_index(x, y, m)].w;
                     model[y * ncols + x] += sP[xx] * sL[iy] * ww;
                 }
             }
@@ -3121,14 +3166,11 @@ static int cr2res_extract_slit_func_curved(
         // outliers sufficiently in some circumstances.
 
         cost = 0.e0;
-        sum  = 0.e0;
+        sum = 0.e0;
         isum = 0;
-        for (y = 0; y < nrows; y++)
-        {
-            for (x = delta_x; x < ncols - delta_x; x++)
-            {
-                if (mask[y * ncols + x])
-                {
+        for (y = 0; y < nrows; y++) {
+            for (x = delta_x; x < ncols - delta_x; x++) {
+                if (mask[y * ncols + x]) {
                     tmp = model[y * ncols + x] - im[y * ncols + x];
                     sum += tmp * tmp;
                     tmp /= max(pix_unc[y * ncols + x], 1);
@@ -3138,72 +3180,79 @@ static int cr2res_extract_slit_func_curved(
             }
         }
         cost /= (isum - (ncols + ny));
-        sigma=sqrt(sum/isum);
+        sigma = sqrt(sum / isum);
 
-        /* Adjust the mask marking outlyers */
-        for(y=0; y<nrows; y++)
-        {
-     	  for(x=delta_x; x<ncols-delta_x; x++)
-     	  {
-            if(fabs(model[y * ncols + x]-im[y * ncols + x])>kappa*sigma)
-                mask[y * ncols + x]=0;
-            else
-                mask[y * ncols + x]=1;
-     	  }
+        /* Adjust the mask marking outliers */
+        for (y = 0; y < nrows; y++) {
+            for (x = delta_x; x < ncols - delta_x; x++) {
+                if (fabs(model[y * ncols + x] - im[y * ncols + x]) >
+                    kappa * sigma)
+                    mask[y * ncols + x] = 0;
+                else
+                    mask[y * ncols + x] = 1;
+            }
         }
 
         for (y = 0; y < nrows; y++) {
             for (x = delta_x; x < ncols - delta_x; x++) {
-                cpl_image_set(img_mad, x+1, y+1, (model[y * ncols + x] -
-                        im[y * ncols + x]));
+                cpl_image_set(img_mad, x + 1, y + 1,
+                              (model[y * ncols + x] - im[y * ncols + x]));
                 if ((mask[y * ncols + x] == 0) | (im[y * ncols + x] == 0))
-                    cpl_image_reject(img_mad, x+1, y+1);
+                    cpl_image_reject(img_mad, x + 1, y + 1);
             }
         }
 
-        cpl_msg_debug(__func__,  
-            "Iter: %i, Sigma: %f, Cost: %f, sP_change: %f, sP_lim: %f", 
-            iter, sigma, cost, sP_change, sP_stop * sP_med);
+        cpl_msg_debug(
+            __func__,
+            "Iter: %i, Sigma: %f, Cost: %f, sP_change: %f, sP_lim: %f", iter,
+            sigma, cost, sP_change, sP_stop * sP_med);
 
         iter++;
-    } while (iter == 1 || (iter <= maxiter
-//                      && fabs(cost - cost_old) > sP_stop));
-                        && sP_change > sP_stop * sP_med));
-    
+    } while (iter == 1 ||
+             (iter <= maxiter
+              //                      && fabs(cost - cost_old) > sP_stop));
+              && sP_change > sP_stop * sP_med));
+
     if (iter == maxiter && sP_change > sP_stop * sP_med)
-            cpl_msg_warning(__func__,
-                "Maximum number of %d iterations reached without converging.",
-                maxiter);
+        cpl_msg_warning(
+            __func__,
+            "Maximum number of %d iterations reached without converging.",
+            maxiter);
 
     /* Flip sign if converged in negative direction */
     sum = 0.0;
-    for(y = 0; y < ny; y++) sum += sL[y];
-    if (sum<0.0){
-        for(y = 0; y < ny; y++) sL[y] *= -1.0;
-        for(x = 0; x < ncols; x++) sP[x] *= -1.0;
+    for (y = 0; y < ny; y++)
+        sum += sL[y];
+    if (sum < 0.0) {
+        for (y = 0; y < ny; y++)
+            sL[y] *= -1.0;
+        for (x = 0; x < ncols; x++)
+            sP[x] *= -1.0;
         sum *= -1.0;
     }
-    tmp_vec = cpl_vector_wrap(ny,sL);
+    tmp_vec = cpl_vector_wrap(ny, sL);
     sLmax = cpl_vector_get_max(tmp_vec);
     cpl_vector_unwrap(tmp_vec);
     cpl_msg_debug(__func__,
-        "sL-sum, sLmax, osample, nrows, ny: %g, %g, %d, %d, %d",
-        sum, sLmax, osample, nrows, ny);
+                  "sL-sum, sLmax, osample, nrows, ny: %g, %g, %d, %d, %d", sum,
+                  sLmax, osample, nrows, ny);
 
-    
+
     for (x = 0; x < ncols; x++) {
+        double msum;
+        
         unc[x] = 0.0;
         msum = 0.0;
         sum = 0.0;
         for (y = 0; y < nrows; y++) {
             if (mask[y * ncols + x]) {
-                msum += (   im[y * ncols + x] * model[y * ncols + x]) *
-                            mask[y * ncols + x] ;
-                sum +=  (model[y * ncols + x] * model[y * ncols + x]) *
-                            mask[y * ncols + x] ;
+                msum += (im[y * ncols + x] * model[y * ncols + x]) *
+                        mask[y * ncols + x];
+                sum += (model[y * ncols + x] * model[y * ncols + x]) *
+                       mask[y * ncols + x];
             }
         }
-        unc[x] = sqrt(sP[x] * sum / msum / error_factor );
+        unc[x] = sqrt(sP[x] * sum / msum / error_factor);
     }
 
     return 0;
@@ -3220,7 +3269,7 @@ static int cr2res_extract_slit_func_curved(
             degenerate matrix
 
   Solve a sparse system of linear equations with band-diagonal matrix.
-  Band is assumed to be symmetrix relative to the main diaginal.
+  Band is assumed to be symmetric relative to the main diagonal.
 
   nd must be an odd number. The main diagonal should be in a(*,nd/2)
   The first lower subdiagonal should be in a(1:n-1,nd/2-1), the first
@@ -3321,7 +3370,6 @@ static int cr2res_extract_slitdec_adjust_swath(
 
     int nbin, nx, i = 0;
     double step = 0;
-    int bin = 0;
     int start = 0, end = lenx;
     // Setting them as int, makes this comparable to using ycen_int
     int ymin, ymax;
@@ -3370,6 +3418,7 @@ static int cr2res_extract_slitdec_adjust_swath(
     // boundaries of bins
     for(i = 0; i < nbin; i++)
     {
+        int bin;
         bin = start + min(i * step, nx - sw - 2 * dx);
         cpl_vector_set(*bins_begin, i, bin);
         cpl_vector_set(*bins_end, i, bin + sw + 2 * dx);

@@ -492,13 +492,10 @@ static int cr2res_cal_flat(
     const cpl_frame     *   bpm_frame ;
     cpl_frameset        *   rawframes ;
     const char          *   used_tag ;
-    cpl_frameset        *   raw_one_setting ;
     cpl_frameset        *   raw_one_setting_decker ;
     cpl_size            *   labels ;
     cpl_size                nlabels ;
-    cpl_propertylist    *   plist ;
     cpl_propertylist    *   qc_main ;
-    char                *   setting_id ;
 
     hdrl_image          *   master_flat[CR2RES_NB_DETECTORS] ;
     cpl_table * trace_wave[CR2RES_NB_DECKER_POSITIONS][CR2RES_NB_DETECTORS] ;
@@ -522,6 +519,8 @@ static int cr2res_cal_flat(
                         *   qc_s2n,
                         *   qc_nbbad,
                         *   qc_centery,
+                        *   qc_bltot,
+                        *   qc_blgood,
                         *   qc_orderpos,
                         *   qc_overexposed ;
     int                     l, i, j, det_nr, nb_orders;
@@ -644,7 +643,10 @@ static int cr2res_cal_flat(
     }
 
     /* Loop on the settings */
-    for (l=0 ; l<(int)nlabels ; l++) {
+    for (l = 0; l < (int)nlabels; l++) {
+        cpl_frameset *raw_one_setting;
+        cpl_propertylist *plist;
+        char *setting_id;
         /* Get the frames for the current setting */
         raw_one_setting = cpl_frameset_extract(rawframes, labels, (cpl_size)l) ;
 
@@ -729,6 +731,8 @@ static int cr2res_cal_flat(
                 qc_s2n = cpl_vector_new(CR2RES_NB_DETECTORS) ;
                 qc_nbbad = cpl_vector_new(CR2RES_NB_DETECTORS) ;
                 qc_centery = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+                qc_blgood = cpl_vector_new(CR2RES_NB_DETECTORS) ;
+                qc_bltot = cpl_vector_new(CR2RES_NB_DETECTORS) ;
                 for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
                     cpl_vector_set(qc_mean, det_nr-1, 
                             cpl_propertylist_get_double(ext_plist[i][det_nr-1],
@@ -751,6 +755,12 @@ static int cr2res_cal_flat(
                     cpl_vector_set(qc_centery, det_nr-1, 
                             cpl_propertylist_get_double(ext_plist[i][det_nr-1],
                                 CR2RES_HEADER_QC_FLAT_CENTERY)) ;
+                    cpl_vector_set(qc_blgood, det_nr-1, 
+                        (double)cpl_propertylist_get_int(ext_plist[i][det_nr-1],
+                                CR2RES_HEADER_QC_BLAZE_NGOOD)) ;
+                    cpl_vector_set(qc_bltot, det_nr-1, 
+                            cpl_propertylist_get_double(ext_plist[i][det_nr-1],
+                                CR2RES_HEADER_QC_BLAZE_TOT)) ;
                 }
 
                 qc_main = cpl_propertylist_new() ;
@@ -796,6 +806,9 @@ static int cr2res_cal_flat(
 				cpl_propertylist_append_double(qc_main,
 						CR2RES_HEADER_QC_FLAT_CENTERY_RMS,
 						cpl_vector_get_stdev(qc_centery)) ;
+				cpl_propertylist_append_double(qc_main,
+						CR2RES_HEADER_QC_BLAZE_NORM,
+						cpl_vector_get_sum(qc_bltot)/cpl_vector_get_sum(qc_blgood)) ;
                 cpl_vector_delete(qc_mean) ;
                 cpl_vector_delete(qc_median) ;
                 cpl_vector_delete(qc_flux) ;
@@ -803,6 +816,8 @@ static int cr2res_cal_flat(
                 cpl_vector_delete(qc_s2n) ;
                 cpl_vector_delete(qc_nbbad) ;
                 cpl_vector_delete(qc_centery) ;
+                cpl_vector_delete(qc_blgood) ;
+                cpl_vector_delete(qc_bltot) ;
 
                 if (trace_wave[i][0] != NULL) {
                     /* Special treatment for ORDERPOSn and OVEREXPOSEDn */
@@ -1141,15 +1156,14 @@ static int cr2res_cal_flat_reduce(
     hdrl_image          *   model_tmp ;
     cpl_vector          *   dits ;
     cpl_vector          *   ndits ;
-    char                *   setting_id ;
     int                 *   qc_order_nb ;
     double              *   qc_order_pos ;
     int                 *   orders ;
     double                  qc_mean, qc_median, qc_flux, qc_rms, qc_s2n, 
-                            qc_trace_centery, dit, qc_overexposed, 
-                            gain, error_factor ;
-    int                     i, ext_nr, nb_traces, order, trace_id,
-                            nb_orders, qc_nbbad, nbvals, zp_order, ngood ;
+                            qc_trace_centery, dit,  
+                            gain, error_factor, bl_tot ;
+    int                     i, ext_nr, nb_traces,
+                            nb_orders, qc_nbbad, nbvals, ngood, bl_good ;
 
     /* TODO, make parameters */
     int extract_niter = 10;
@@ -1261,6 +1275,8 @@ static int cr2res_cal_flat_reduce(
 
     /* Filter out traces */
     if (filter_traces) {
+        char *setting_id;
+        int zp_order;
         cpl_msg_info(__func__, "Filter out the traces") ;
         cpl_msg_indent_more() ;
 
@@ -1282,7 +1298,7 @@ static int cr2res_cal_flat_reduce(
             cpl_msg_indent_less() ;
             return -1 ;
         }
-    } 
+    }
 
     /* Use the input traces for extraction if they are provided */
     if (tw_frame) {
@@ -1310,6 +1326,7 @@ static int cr2res_cal_flat_reduce(
     cpl_msg_info(__func__, "Extract the traces") ;
     cpl_msg_indent_more() ;
     for (i=0 ; i<nb_traces ; i++) {
+        int order, trace_id;
         /* Initialise */
         slit_func_vec[i] = NULL ;
         spectrum[i] = NULL ;
@@ -1476,6 +1493,8 @@ static int cr2res_cal_flat_reduce(
 
     qc_s2n = cr2res_qc_flat_s2n(extract_tab) ;
 
+    cr2res_util_blaze_stat(extract_tab, &bl_good, &bl_tot); 
+
     qc_trace_centery = cr2res_qc_flat_trace_center_y(traces) ;
     qc_nbbad = cr2res_bpm_count(bpm_im, CR2RES_BPM_FLAT) ;
     cr2res_qc_flat_order_positions(traces, &qc_order_nb, &qc_order_pos,&nbvals);
@@ -1501,6 +1520,7 @@ static int cr2res_cal_flat_reduce(
     orders = cr2res_trace_get_order_idx_values(traces, &nb_orders) ;
     /* Loop on the orders */
     for (i=0 ; i<nb_orders ; i++) {
+        double qc_overexposed;
         qc_overexposed = cr2res_qc_overexposed(
                 hdrl_image_get_image(first_image), traces, orders[i]) ;
         char * qc_name = cpl_sprintf("%s%02d",
@@ -1535,8 +1555,12 @@ static int cr2res_cal_flat_reduce(
             qc_s2n) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FLAT_CENTERY,
             qc_trace_centery) ;
-    cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_FLAT_NBBAD, 
+    cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_FLAT_NBBAD,
             qc_nbbad) ;
+    cpl_propertylist_append_int(plist, CR2RES_HEADER_QC_BLAZE_NGOOD, 
+            bl_good) ;
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_BLAZE_TOT,
+            bl_tot) ;
 
     /* Return the results */
     *trace_wave = traces ;

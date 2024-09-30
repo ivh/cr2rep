@@ -168,7 +168,7 @@ int cr2res_format_setting(char * setting_id)
   @return   1 if SW, 0 if LW, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_is_short_wavelength(char * setting_id)
+int cr2res_is_short_wavelength(const char * setting_id)
 {
     /* Check entries */
     if (setting_id == NULL) return -1 ;
@@ -202,7 +202,7 @@ int cr2res_format_setting2(char * setting_id)
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get MAD from a vector
-  @param    invec   input vecotr
+  @param    invec   input vector
   @param    mad*    median absolute deviation (output)
   @return   median
 
@@ -281,9 +281,7 @@ cpl_table * cr2res_combine_extracted(
 {
     cpl_table                   *   extractc ;
     cpl_array                   *   col_names ;
-    const char                  *   col_name ;
     char                        *   err_col ;
-    char                        *   col_type ;
     char                        *   wave_col ;
     hdrl_spectrum1D_wave_scale      scale ;
     hdrl_spectrum1D             *   a_spec ;
@@ -309,6 +307,9 @@ cpl_table * cr2res_combine_extracted(
 
     /* Loop on the columns */
     for (i=0 ; i<ncols ; i++) {
+
+        const char                  *   col_name ;
+        char                        *   col_type ;
         col_name = cpl_array_get_string(col_names, i);
         col_type = cr2res_dfs_SPEC_colname_parse(col_name, &order,
                 &trace_nb) ;
@@ -332,7 +333,7 @@ cpl_table * cr2res_combine_extracted(
                 cpl_msg_error(__func__, "Cannot create HDRL spectra - abort") ;
                 cpl_free(wave_col) ;
                 cpl_free(err_col);
-                if (col_type != NULL) cpl_free(col_type) ;
+                cpl_free(col_type) ;
                 cpl_array_delete(col_names) ;
                 cpl_table_delete(extractc) ;
                 return NULL ;
@@ -347,13 +348,13 @@ cpl_table * cr2res_combine_extracted(
                 hdrl_spectrum1D_delete(&b_spec);
                 cpl_free(wave_col) ;
                 cpl_free(err_col);
-                if (col_type != NULL) cpl_free(col_type) ;
+                cpl_free(col_type) ;
                 cpl_array_delete(col_names) ;
                 cpl_table_delete(extractc) ;
                 return NULL ;
             }
    
-            /* Check if the Wavelenghs are increasing */
+            /* Check if the Wavelengths are increasing */
             increasing_values = 1 ;
             for (j=1 ; j<sz_a ; j++) {
                 hdrl_data_t vala1 =
@@ -454,7 +455,7 @@ cpl_table * cr2res_combine_extracted(
   @param    trace_wave  Trace Wave Table
   @param    order_x     maximum order of the polynomial in x direction
   @param    order_y     maximum order of the polynomial in y direction
-  @return   the fitted polynomial if succesful, NULL on error
+  @return   the fitted polynomial if successful, NULL on error
  */
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_fit_interorder(
@@ -634,13 +635,8 @@ int cr2res_slit_pos(
             coef_wave == NULL || size == NULL) return -1;
 
     cpl_vector      *  x;
-    cpl_matrix      *  matrix_xy;
-    cpl_matrix      *  matrix_wd;
-    cpl_vector      *  vec_w;
-    cpl_vector      *  vec_s;
     cpl_polynomial  *  wave;
     cpl_polynomial  *  line[3];
-    cpl_polynomial  *  poly;
     const cpl_array *  slit;
     const cpl_array *  curv_b;
     const cpl_array *  curv_c;
@@ -649,10 +645,10 @@ int cr2res_slit_pos(
     int             *  order_idx_values;
     int             *  traces;
     const cpl_size maxdeg = 2;
-    int i, j, k, n, m, row;
-    int order_idx, trace;
+    int i, j, k, n, m;
+    int trace;
     double px, py, pw, ps;
-    double pca, pcb, pcc, pc_offset;
+    double pcb, pcc, pc_offset;
     int nb_order_idx_values, nb_traces;
     cpl_error_code errcode;
     double ycen;
@@ -675,6 +671,14 @@ int cr2res_slit_pos(
     *size = nb_order_idx_values;
 
     for (i = 0; i < nb_order_idx_values; i++) {
+        cpl_matrix *matrix_xy;
+        cpl_matrix *matrix_wd;
+        cpl_vector *vec_w;
+        cpl_vector *vec_s;
+        cpl_polynomial  *poly;
+
+        int row;
+        int order_idx;
         order_idx = order_idx_values[i];
         // For each trace of this order
         traces = cr2res_get_trace_numbers(trace_wave, order_idx, &nb_traces);
@@ -910,7 +914,7 @@ cpl_image * cr2res_image_cut_rectify(
     cpl_type        imtyp;
     cpl_size        lenx, leny;
     int             * ycen_int;
-    int             i, j, ymin, ymax;
+    int             i, j;
     int             empty_bottom = 0;
 
     if (img_in == NULL || ycen == NULL || height < 1) return NULL;
@@ -922,8 +926,9 @@ cpl_image * cr2res_image_cut_rectify(
     img_out = cpl_image_new(lenx, height, imtyp);
 
     /* Loop over columns, cut out around ycen, insert into img_out*/
-    for (i=1;i<=lenx;i++){ // All image indx start at 1!
+    for (i = 1; i <= lenx; i++) {  // All image indx start at 1!
 
+        int ymin, ymax;
         /* treat edge cases, summing over shorter column where needed*/
         ymin = ycen_int[i-1]-(height/2);
         ymax = ycen_int[i-1]+(height/2) + height%2 ;
@@ -984,8 +989,7 @@ int cr2res_image_insert_rect(
     cpl_image       * img_1d;
     cpl_size        lenx, leny, height;
     int             * ycen_int;
-    int             i, j, ymin, ymax;
-    int             empty_bottom;
+    int             i, j;
 
     if (rect_in == NULL || ycen == NULL || img_out == NULL) return -1;
 
@@ -1000,6 +1004,8 @@ int cr2res_image_insert_rect(
     ycen_int = cr2res_vector_get_int(ycen);
 
     for (i=1;i<=lenx;i++){ // All image indices start at 1!
+        int   ymin, ymax;
+        int   empty_bottom;
         empty_bottom = 0;
         /* treat edge cases, shorten column where needed*/
         ymin = ycen_int[i-1]-(height/2);
@@ -1126,7 +1132,7 @@ char * cr2res_get_root_name(const char * filename)
     if (filename == NULL) return NULL;
 
     if (strlen(filename)>4096) return NULL ;
-    memset(path, 4096, 0);
+    memset(path, 0, 4096);
     strcpy(path, filename);
     lastdot = strrchr(path, '.');
     if (lastdot == NULL) return path ;
@@ -1140,7 +1146,7 @@ char * cr2res_get_root_name(const char * filename)
     }
     return path ;
 }
-
+#ifdef CR2RES_UNUSED
 /*----------------------------------------------------------------------------*/
 /**
    @brief   Extract the filename for the first frame of the given tag
@@ -1159,7 +1165,7 @@ const char * cr2res_extract_filename(
     if ((cur_frame = cpl_frameset_find_const(in, tag)) == NULL) return NULL ;
     return cpl_frame_get_filename(cur_frame) ;
 }
-
+#endif
 /*----------------------------------------------------------------------------*/
 /**
    @brief   Extract the frames with the given tag from a frameset
@@ -1175,7 +1181,6 @@ cpl_frameset * cr2res_extract_frameset(
         const char          *   tag)
 {
     cpl_frameset    *   out ;
-    const cpl_frame *   cur_frame ;
     cpl_frame       *   loc_frame ;
     int                 nbframes;
     int                 i ;
@@ -1195,6 +1200,7 @@ cpl_frameset * cr2res_extract_frameset(
 
     /* Loop on the requested frames and store them in out */
     for (i=0 ; i<nbframes ; i++) {
+        const cpl_frame *   cur_frame ;
         cur_frame = cpl_frameset_get_position_const(in, i) ;
         if (!strcmp(cpl_frame_get_tag(cur_frame), tag)) {
             loc_frame = cpl_frame_duplicate(cur_frame) ;
@@ -1221,10 +1227,8 @@ cpl_frameset * cr2res_extract_frameset_several_tags(
         int                     ntags)
 {
     cpl_frameset    *   out ;
-    const cpl_frame *   cur_frame ;
     cpl_frame       *   loc_frame ;
     int                 nbframes;
-    int                 match ;
     int                 i, j ;
 
     /* Test entries */
@@ -1240,6 +1244,8 @@ cpl_frameset * cr2res_extract_frameset_several_tags(
 
     /* Loop on the requested frames and store them in out */
     for (i=0 ; i<nbframes ; i++) {
+        const cpl_frame *   cur_frame ;
+        int                 match ;
         cur_frame = cpl_frameset_get_position_const(in, i) ;
         match = 0 ;
         for (j=0 ; j<ntags ; j++) {
@@ -1299,7 +1305,6 @@ char * cr2res_decker_print_position(cr2res_decker dpos)
 cpl_polynomial * cr2res_convert_array_to_poly(const cpl_array * arr)
 {
     cpl_polynomial  *   out ;
-    double              val ;
     cpl_size            i ;
 
     /* Test entries */
@@ -1310,6 +1315,7 @@ cpl_polynomial * cr2res_convert_array_to_poly(const cpl_array * arr)
 
     /* Fill it  */
 	for (i=0 ; i<cpl_array_get_size(arr) ; i++) {
+        double              val ;
         val = cpl_array_get(arr, i, NULL) ;
         if (isnan(val)) {
             cpl_polynomial_delete(out) ;
@@ -1461,14 +1467,10 @@ int cr2res_plot_wavecal_result(
     double          *   p0y ;
     double          *   p1x ;
     double          *   p1y ;
-    double          *   ptmp_biv0x ;
-    double          *   ptmp_biv0y ;
-    double          *   ptmp_biv1x ;
-    double          *   ptmp_biv1y ;
     cpl_bivector    *   tmp_biv0 ;
     cpl_bivector    *   tmp_biv1 ;
     double              rate ;
-    int                 n0, n1, i ;
+    int                 n0, n1;
 
     /* Check entries */
     if (extracted_spec==NULL||catalog==NULL||title==NULL)
@@ -1494,7 +1496,7 @@ int cr2res_plot_wavecal_result(
 
     /* Shrink bivectors to wmin-wmax only if requested */
     if (wmin > 0.0 && wmax > 0.0 && wmax > wmin) {
-
+        int i ;
         /* Count the bins falling in the wished interval  */
         for (i=0 ; i<cpl_bivector_get_size(bivectors[0]) ; i++)
             if (p0x[i] >= wmin && p0x[i] <= wmax) n0++ ;
@@ -1502,6 +1504,10 @@ int cr2res_plot_wavecal_result(
             if (p1x[i] >= wmin && p1x[i] <= wmax) n1++ ;
 
         if (n0 > 0 && n1 > 0) {
+            double *ptmp_biv0x;
+            double *ptmp_biv0y;
+            double *ptmp_biv1x;
+            double *ptmp_biv1y;
             /* Allocate the smaller bivectors */
             tmp_biv0 = cpl_bivector_new(n0) ;
             ptmp_biv0x = cpl_bivector_get_x_data(tmp_biv0) ;
@@ -1556,7 +1562,7 @@ int cr2res_plot_wavecal_result(
     cpl_free(bivectors) ;
     return 0 ;
 }
-
+#ifdef CR2RES_UNUSED
 /*
    opt_filter_1d performs optimal filtering of a 1D double array. The mandatory parameters
    are the data array Yarg, the output array Result, the filtering parameter Lam1 and the
@@ -1580,23 +1586,22 @@ int cr2res_plot_wavecal_result(
   @param    Lam2            Regularization parameter for 2nd derivatives
   @return   CPL_ERROR_NONE  if OK, error code otherwise
 
-  The optimal filter is a smoothing algorithm minimizing the absolut values of the
+  The optimal filter is a smoothing algorithm minimizing the absolute values of the
   1st and (optionally) 2nd derivatives.
  */
 /*----------------------------------------------------------------------------*/
 int cr2res_util_optimal_filter_1d(
-    double     * Yarg,
+    const double     * Yarg,
     double       Lam1,
     double     * Result,
     int          n,
     int          Options[],
-    double     * Xarg,
-    double     * Weights,
+    const double     * Xarg,
+    const double     * Weights,
     double       Lam2)
 {
-   int i, nzero, flag_x, flag_w, flag_lam2;
-   double *dx, *ddx2, *aij, *bj;
-   double dddd;
+   int i, flag_x, flag_w, flag_lam2;
+   double *aij, *bj;
 
    flag_x   =(Options[0])?1:0;  // Flags for optional parameters
    flag_w   =(Options[1])?1:0;
@@ -1604,6 +1609,8 @@ int cr2res_util_optimal_filter_1d(
 
    if(flag_x)                          // Xarg is present
    {
+     int nzero;
+     double *dx;
      dx=(double *)cpl_malloc((n-1)*sizeof(double));
      nzero=0;
      for(i=0; i<n-1; i++)
@@ -1621,6 +1628,7 @@ int cr2res_util_optimal_filter_1d(
 
      if(flag_lam2)
      {
+        double *ddx2;
         ddx2=(double *)cpl_malloc((n-2)*sizeof(double));
         for(i=0; i<n-2; i++)
         {
@@ -1657,6 +1665,7 @@ int cr2res_util_optimal_filter_1d(
 
         for(i=0; i<n-2; i++)
         {
+          double dddd;
           aij[2*n+i  ]+=Lam2/(dx[i  ]*dx[i  ]*ddx2[i]);
           dddd=1./dx[i]+1./dx[i+1]; dddd*=dddd;
           aij[2*n+i+1]+=Lam2*dddd/ddx2[i];
@@ -1686,7 +1695,7 @@ int cr2res_util_optimal_filter_1d(
         if(flag_w) for(i=0; i<n; i++) bj[i]=Yarg[i]*Weights[i];
         else       for(i=0; i<n; i++) bj[i]=Yarg[i];
 
-        i=cr2res_extract_slitdec_bandsol(aij, bj, n, 5, Lam1); // Solve the band diagonal SLE
+        cr2res_extract_slitdec_bandsol(aij, bj, n, 5, Lam1); // Solve the band diagonal SLE
         for(i=0; i<n; i++) Result[i]=bj[i]; // Copy results
 
         cpl_free(bj);
@@ -1722,7 +1731,7 @@ int cr2res_util_optimal_filter_1d(
         if(flag_w) for(i=0; i<n; i++) bj[i]=Yarg[i]*Weights[i];
         else       for(i=0; i<n; i++) bj[i]=Yarg[i];
 
-        i=cr2res_extract_slitdec_bandsol(aij, bj, n, 3, Lam1); // Solve the band diagonal SLE
+        cr2res_extract_slitdec_bandsol(aij, bj, n, 3, Lam1); // Solve the band diagonal SLE
         for(i=0; i<n; i++) Result[i]=bj[i]; // Copy results
 
         cpl_free(bj);
@@ -1776,7 +1785,7 @@ int cr2res_util_optimal_filter_1d(
         if(flag_w) for(i=0; i<n; i++) bj[i]=Yarg[i]*Weights[i];
         else       for(i=0; i<n; i++) bj[i]=Yarg[i];
 
-        i=cr2res_extract_slitdec_bandsol(aij, bj, n, 5, Lam1); // Solve the band diagonal SLE
+        cr2res_extract_slitdec_bandsol(aij, bj, n, 5, Lam1); // Solve the band diagonal SLE
         for(i=0; i<n; i++) Result[i]=bj[i]; // Copy results
 
         cpl_free(bj);
@@ -1810,7 +1819,7 @@ int cr2res_util_optimal_filter_1d(
         if(flag_w) for(i=0; i<n; i++) bj[i]=Yarg[i]*Weights[i];
         else       for(i=0; i<n; i++) bj[i]=Yarg[i];
 
-        i=cr2res_extract_slitdec_bandsol(aij, bj, n, 3, Lam1); // Solve the band diagonal SLE
+        cr2res_extract_slitdec_bandsol(aij, bj, n, 3, Lam1); // Solve the band diagonal SLE
         for(i=0; i<n; i++) Result[i]=bj[i]; // Copy filtered vector to Result
 
         cpl_free(bj);
@@ -1819,7 +1828,7 @@ int cr2res_util_optimal_filter_1d(
      }
    }
 }
-
+#endif
 #define aij_index(x, y) ((y) * n) + (x)
 #define w_index(x, y) ((y) * nx) + (x)
 
@@ -1832,7 +1841,7 @@ int cr2res_util_optimal_filter_1d(
   @param    lam_y           Regularization factor in y direction
   @return   filtered image if ok, NULL otherwise
 
-  The optimal filter applies a restricition on the 1st derivatives in the x and
+  The optimal filter applies a restriction on the 1st derivatives in the x and
   y directions.
  */
 /*----------------------------------------------------------------------------*/
@@ -1959,7 +1968,7 @@ def _unscale(x, y, norm, offset):
 def polyfit2d(
     x, y, z, degree=1, max_degree=None, scale=True, plot=False, plot_title=None
 ):
-    """A simple 2D plynomial fit to data x, y, z
+    """A simple 2D polynomial fit to data x, y, z
     The polynomial can be evaluated with numpy.polynomial.polynomial.polyval2d
 
     Parameters
@@ -2045,7 +2054,7 @@ def polyfit2d(
   @param    degrees to fit with shape (ndegrees, 2) with one entry per 
             xy combination, x degrees in the 1st column, and y degrees in the 2nd,
             Note that you need to include 0, 0 as well for the constant offset
-  @return   Fitted polynomail, NULL for error
+  @return   Fitted polynomial, NULL for error
 
     Perform a 2D polynomial fit, where the fit degrees are explicitly specified.
 
@@ -2058,7 +2067,6 @@ cpl_polynomial * cr2res_polyfit_2d_loc(
     const cpl_matrix * degree)
 {
     cpl_size npoints, ndegrees;
-    double offset_x, offset_y;
     double norm_x, norm_y;
     double coef;
     cpl_size i, j;
@@ -2203,6 +2211,70 @@ cpl_polynomial * cr2res_polyfit_2d(
     return result;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the average of the blaze
+  @param    blaze   The extracted spectrum from the flat ie blaze
+  @return   The average
+  Compute for each spectrum of the input EXTRACT_1D table : median(snr)
+  Return the median of the medians
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_util_blaze_stat(
+        const cpl_table     *   blaze,
+        int * ngood,
+        double  * blaze_tot)
+{
+    cpl_array                   *   col_names ;
+    const double                *   pspec ;
+    cpl_size                        ncols, i, j, nrows;
+
+    /* Check Inputs */
+    if (blaze == NULL) return 1.0 ;
+
+    /* Get the column names */
+    col_names = cpl_table_get_column_names(blaze);
+    ncols = cpl_table_get_ncol(blaze) ;
+    if (ncols < 9){
+        cpl_array_delete(col_names) ;
+        return 1.0 ;
+    }
+
+    /* Loop on the columns */
+    *ngood = 0;
+    *blaze_tot = 0;
+
+    for (i = 0; i < ncols; i++) {
+        char *col_type;
+        const char *col_name;
+        int trace_nb, order ;
+        col_name = cpl_array_get_string(col_names, i);
+        col_type = cr2res_dfs_SPEC_colname_parse(col_name, &order,
+                &trace_nb) ;
+        if (col_type != NULL && !strcmp(col_type, CR2RES_COL_SPEC_SUFFIX)) {
+            /* This is a SPEC column */
+
+            /* Access the data */
+            pspec = cpl_table_get_data_double_const(blaze, col_name) ;
+
+            nrows = cpl_table_get_nrow(blaze) ;
+            for (j=0 ; j<nrows ; j++) {
+                if (pspec[j] > 0) {
+                    (*blaze_tot) += pspec[j] ;
+                    (*ngood)++;
+                }
+            }
+        }
+        if (col_type != NULL) cpl_free(col_type) ;
+    }
+    cpl_array_delete(col_names) ;
+
+    if(*ngood == 0)
+        return 1.0;
+
+    return *blaze_tot / *ngood ;
+}
+
 #define SECONDS_TO_DAYS 1.157407e-5
 /*----------------------------------------------------------------------------*/
 /**
@@ -2211,19 +2283,15 @@ cpl_polynomial * cr2res_polyfit_2d(
   @return   The center of the exposures in MJD
 
   The calculation is a weighted arithmetic mean of the midpoints in mjd, 
-  weigted by the exposure times.
+  weighted by the exposure times.
  */
 /*----------------------------------------------------------------------------*/
 double cr2res_utils_get_center_mjd(const cpl_frameset * frameset)
 {
     cpl_size nframes = 0;
     cpl_size i;
-    const cpl_frame * frame;
-    cpl_propertylist * pl;
-    double exptime, mjd;
     double total, total_weight;
 
-    const char * fname;
     const char exptime_name[] = "EXPTIME";
     const char mjd_mid_name[] = "MJD-OBS";
 
@@ -2237,6 +2305,10 @@ double cr2res_utils_get_center_mjd(const cpl_frameset * frameset)
     nframes = cpl_frameset_get_size(frameset);
     for ( i = 0; i < nframes; i++)
     {
+        const cpl_frame * frame;
+        cpl_propertylist * pl;
+        double exptime, mjd;
+        const char * fname;
         // load the header from the frame
         frame = cpl_frameset_get_position_const(frameset, i);
         fname = cpl_frame_get_filename(frame);

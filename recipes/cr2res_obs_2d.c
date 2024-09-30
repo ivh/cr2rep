@@ -318,7 +318,6 @@ static int cr2res_obs_2d(
     cpl_frameset        *   rawframes_obj ;
     cpl_frameset        *   used_frameset ;
     cpl_frameset        *   rawframes_sky ;
-    cpl_frame           *   rawframe_obj ;
     cpl_frame           *   rawframe_sky ;
     const cpl_frame     *   detlin_frame ;
     const cpl_frame     *   master_dark_frame ;
@@ -420,9 +419,11 @@ static int cr2res_obs_2d(
         // Should never happen
         if (rawframes_sky != NULL)  cpl_frameset_delete(rawframes_sky) ;
         rawframes_sky = NULL ;
+        sky_average = NULL ;
     }
     /* Loop on the RAW files */
-    for (i=0 ; i<cpl_frameset_get_size(rawframes_obj) ; i++) {
+    for (i = 0; i < cpl_frameset_get_size(rawframes_obj); i++) {
+        cpl_frame *rawframe_obj;
         /* Current frame */
         rawframe_obj = cpl_frameset_get_position(rawframes_obj, i);
 
@@ -630,11 +631,8 @@ static int cr2res_obs_2d_reduce(
     double                  dit, dit_sky ;
     int                     ndit, ndit_sky ;
     cpl_table           *   extracted ;
-    cpl_size                i ;
-    char                *   key_name ;
     int                 *   order_idx_values ;
-    int                     nb_order_idx_values, order_real,
-                            order_zp, order_idx, order_idxp ;
+    int                     nb_order_idx_values, order_zp;
 
     /* Check Inputs */
     if (extract == NULL || calibrated == NULL || ext_plist == NULL || 
@@ -767,12 +765,15 @@ static int cr2res_obs_2d_reduce(
 
     /* Real Orders in QCs */
     if (order_zp > 0) {
+        cpl_size i;
         /* Get the order numbers from the TW rows */
         order_idx_values = cr2res_trace_get_order_idx_values(trace_wave,
                 &nb_order_idx_values);
 
         /* Compute the Real Order numbers and store them in QCs */
-        for (i=0 ; i<nb_order_idx_values ; i++) {
+        for (i = 0; i < nb_order_idx_values; i++) {
+            int order_real, order_idx, order_idxp;
+            char *key_name;
             order_idx = order_idx_values[i] ;
             order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
             order_real = cr2res_order_idx_to_real(order_idx, order_zp) ;
@@ -820,7 +821,6 @@ static hdrl_image ** cr2res_obs_2d_average_sky(
         const cpl_frameset  *   skyframes)
 {
     hdrl_image      **  sky_average ;
-    hdrl_imagelist  *   sky_list ;
     hdrl_image      *   avg ;
     cpl_image       *   contrib ;
     int                 det_nr ;
@@ -835,6 +835,7 @@ static hdrl_image ** cr2res_obs_2d_average_sky(
 
     /* Loop on the detectors */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        hdrl_imagelist *sky_list;
 
         /* Load the images */
         sky_list = cr2res_io_load_image_list_from_set(skyframes, det_nr) ;

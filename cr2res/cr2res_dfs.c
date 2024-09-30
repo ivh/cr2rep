@@ -53,18 +53,18 @@
 cpl_error_code cr2res_dfs_set_groups(cpl_frameset * set)
 {
 
-    cpl_frame   *   frame ;
-    const char  *   tag ; 
     int             nframes, i ;
     
     /* Check entries */
-    if (set == NULL) return -1 ;
+    if (set == NULL) return CPL_ERROR_NULL_INPUT ;
     
     /* Initialize */
     nframes = cpl_frameset_get_size(set) ;
     
     /* Loop on frames */
     for (i = 0 ; i < nframes ; i++) {
+        cpl_frame *frame;
+        const char *tag;
         frame = cpl_frameset_get_position(set, i);
         tag = cpl_frame_get_tag(frame);
 

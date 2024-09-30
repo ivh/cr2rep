@@ -55,7 +55,9 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
+#ifdef CR2RES_UNUSED
 static cpl_mask * cr2res_etalon_binary_image(const cpl_image *) ;
+#endif
 static cpl_vector * cr2res_etalon_get_peaks_gaussian(
     cpl_bivector        *  spectra,
     cpl_bivector        *  spectra_err,
@@ -74,7 +76,7 @@ static cpl_vector * cr2res_etalon_get_peaks_gaussian(
 /*----------------------------------------------------------------------------*/
 
 /**@{*/
-
+#ifdef CR2RES_UNUSED
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Get the etalon Image, and detects the blobs
@@ -139,10 +141,7 @@ static cpl_mask * cr2res_etalon_binary_image(const cpl_image * in)
     cpl_image       *   collapsed_im ;
     cpl_vector      *   local_maxima ;
     double          *   pmax ;
-    cpl_image       *   blob_image ;
-    cpl_mask        *   blob_mask ;
-    double              threshold ;
-    int                 i, j, start_x, end_x ;
+    int i;
 
     /* Check Entries */
     if (in == NULL) return NULL; 
@@ -172,7 +171,11 @@ static cpl_mask * cr2res_etalon_binary_image(const cpl_image * in)
     mask = cpl_mask_new(cpl_image_get_size_x(in), cpl_image_get_size_y(in)) ;
    
     /* Loop on the Maxima positions and isolate the blob */
-    for (i=0 ; i<cpl_vector_get_size(local_maxima) ; i++) {
+    for (i = 0; i < cpl_vector_get_size(local_maxima); i++) {
+        cpl_image *blob_image;
+        cpl_mask *blob_mask;
+        double threshold;
+        int j, start_x, end_x;
 
         /* Get start_x end_x */
         start_x = 1;
@@ -184,7 +187,7 @@ static cpl_mask * cr2res_etalon_binary_image(const cpl_image * in)
 
         cpl_msg_debug(__func__, "Extract %d -> %d", start_x, end_x) ;
 
-        /* Extact the current blob */
+        /* Extract the current blob */
         blob_image = cpl_image_extract(in, start_x, 1, end_x,
                 cpl_image_get_size_y(in)) ;
 
@@ -215,7 +218,6 @@ static cpl_mask * cr2res_etalon_binary_image(const cpl_image * in)
 }
 
 /**@}*/
-
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Detect maxima from a 1d periodic signal and store their positions
@@ -256,6 +258,7 @@ cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector * in)
     return maxima_pos ;
 }
 
+#endif
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Find local maxima in a 1D array. This function finds all local 
@@ -394,7 +397,7 @@ cpl_vector * cr2res_etalon_select_by_peak_distance(const cpl_vector * peaks,
     cpl_vector * keep;
     cpl_vector * priority_to_position;
     cpl_bivector * bivector_tmp;
-    int i, j, k, peaks_size, distance_;
+    int i, k, peaks_size, distance_;
 
     peaks_size = cpl_vector_get_size(peaks);
     // Round up because actual peak distance can only be natural number
@@ -421,6 +424,7 @@ cpl_vector * cr2res_etalon_select_by_peak_distance(const cpl_vector * peaks,
 
     // Highest priority first -> iterate in reverse order (decreasing)
     for (i = peaks_size - 1; i> -1; i--){
+        int j;
         // "Translate" `i` to `j` which points to current peak whose
         // neighbours are to be evaluated
         j = cpl_vector_get(priority_to_position, i);
@@ -535,7 +539,6 @@ static cpl_vector * cr2res_etalon_get_peaks_gaussian(
     cpl_vector      *  new_peaks;
     const cpl_vector      *  in;
     cpl_size j, npeaks;
-    double wave, height;
 
     in = cpl_bivector_get_y_const(spectra);
     npeaks = cpl_vector_get_size(peaks);
@@ -545,6 +548,7 @@ static cpl_vector * cr2res_etalon_get_peaks_gaussian(
     peak_height = cpl_bivector_get_y(linelist);
     for (j = 0; j < npeaks; j++)
     {
+        double wave, height;
         wave = cpl_polynomial_eval_1d(wavesol_init, 
                     cpl_vector_get(peaks, j), NULL);
         height = cpl_vector_get(in, (cpl_size) cpl_vector_get(peaks, j));
@@ -592,7 +596,7 @@ double rofunc(
 {
     // Evaluates the right-hand side of equation (15.7.16) for a given value of b.
     int j;
-    double d, sum=0.0;
+    double sum=0.0;
     double arr[ndata];
     cpl_vector * tmp_vec;
 
@@ -604,6 +608,7 @@ double rofunc(
     *abdev=0.0;
     for (j=0;j<ndata;j++) 
     {
+        double d;
         d=y[j]-(b*x[j]+*a);
         *abdev += *abdev + fabs(d);
         if (y[j] != 0.0) 
@@ -625,7 +630,7 @@ cpl_polynomial * cr2res_robust_polynomial_fit(cpl_matrix *px, cpl_vector *py)
 
     double a, b, abdev;
     int j;
-    double b1, b2, del, f, f1, f2, sigb, temp;
+    double b1, del, f1, sigb;
     double sx=0.0, sy=0.0, sxy=0.0, sxx=0.0, chisq=0.0;
     double *x, *y;
     int ndata;
@@ -635,6 +640,9 @@ cpl_polynomial * cr2res_robust_polynomial_fit(cpl_matrix *px, cpl_vector *py)
     x = cpl_matrix_get_data(px);
     y = cpl_vector_get_data(py);
     ndata = cpl_vector_get_size(py);
+
+    if(ndata < 1)
+        return NULL;
 
     // As a first guess for a and b, we will find the
     // least-squares fitting line.
@@ -650,6 +658,7 @@ cpl_polynomial * cr2res_robust_polynomial_fit(cpl_matrix *px, cpl_vector *py)
     b = (ndata * sxy - sx * sy) / del;
 
     for (j = 0; j < ndata; j++){
+        double temp;
         temp = y[j] - (a + b * x[j]);
         chisq += temp * temp;
     }
@@ -660,6 +669,7 @@ cpl_polynomial * cr2res_robust_polynomial_fit(cpl_matrix *px, cpl_vector *py)
     f1 = rofunc(x, y, ndata, &a, &abdev, b1);
     if (sigb > 0.0) 
     {
+        double f2, b2;
         //Guess bracket as 3-sigma away, in the downhill direction known from f1.
         b2 = b + 3.0 * sigb * signum(f1); 
         f2 = rofunc(x, y, ndata, &a, &abdev, b2);
@@ -685,6 +695,7 @@ cpl_polynomial * cr2res_robust_polynomial_fit(cpl_matrix *px, cpl_vector *py)
         sigb = 0.01 * sigb;
         while (fabs(b2 - b1) > sigb) 
         {
+            double f;
             b = b1 + 0.5 * (b2 - b1); //Bisection.
             if (b == b1 || b == b2) 
                 break;
@@ -694,7 +705,7 @@ cpl_polynomial * cr2res_robust_polynomial_fit(cpl_matrix *px, cpl_vector *py)
                 f1 = f;
                 b1 = b;
             } else {
-                f2 = f;
+                //f2 = f; Never used
                 b2 = b;
             }
         }
@@ -753,8 +764,6 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_vector * pxa;
     cpl_vector * pxb;
     cpl_vector * py;
-    cpl_matrix * px_tmp;
-    cpl_vector * py_tmp;
     cpl_vector ** heights;
     cpl_vector ** sigmas;
     cpl_vector ** fit_errors;
@@ -764,21 +773,17 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     cpl_vector ** fpe_mord;
     cpl_vector ** fpe_cord;
     cpl_polynomial * result;
-    cpl_polynomial * wavesol_loc;
     cpl_vector * pos;
     cpl_vector * diff;
 
-    cpl_vector * fpe_gap;
     cpl_vector * tmp_vec;
-    cpl_table * tmp_table;
     cpl_vector * corr;
     cpl_size degree_2d[2];
     cpl_size i, j, k, deg, npeaks, npeaks_total, npoints, setting_deg;
-    double wave, gap, tmp, tmp1, tmp2;
-    double f0, fr, m, m0, ymax, ymin;
+    double wave, gap, tmp;
+    double f0, fr, m;
     char * path;
     cpl_table * lines_diagnostics_loc;
-    double pix_pos, lambda_cat, lambda_meas, line_width, line_intens, fit_error;
     double offset;
     int pad;
 
@@ -869,7 +874,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
             continue;
         }
 
-        // get the peak using the gausian fit
+        // get the peak using the gaussian fit
         if ((peaks_new = cr2res_etalon_get_peaks_gaussian(spectra[i], spectra_err[i],
                          wavesol_init[i], wavesol_init_err[i], peaks, display,
                          &sigmas[i], &heights[i], &fit_errors[i])) == NULL){
@@ -890,7 +895,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
 
         /*
         Adjust frequency sequence so that freq_i = i * const
-        Then determin FPE order number m for each peak in a given CRIRES+ order i.
+        Then determine FPE order number m for each peak in a given CRIRES+ order i.
         This is done with the following smart algebra based on diffraction equation:
 
              m * lambda_m     = const (1)
@@ -967,9 +972,9 @@ cpl_polynomial * cr2res_etalon_wave_2d(
             cpl_vector_set(wcen, j, SPEED_OF_LIGHT / wave);
         }
         deg = 0;
-        f0 = cpl_polynomial_get_coeff(poly, &deg);
+        //f0 = cpl_polynomial_get_coeff(poly, &deg); Never used
         deg = 1;
-        fr = cpl_polynomial_get_coeff(poly, &deg);
+        //fr = cpl_polynomial_get_coeff(poly, &deg); Never used
         cpl_polynomial_delete(poly);
         // Determine M
         mpos = cpl_vector_new(npeaks);
@@ -1051,12 +1056,13 @@ cpl_polynomial * cr2res_etalon_wave_2d(
 
     /*
     If the initial wavelength solution has an offset larger than the FPE line
-    spacing the m's defined above will not match accross the CRIRES+ orders.
+    spacing the m's defined above will not match across the CRIRES+ orders.
     Here with find the offsets using eq. 1 and apply them:
     */
     // gap here is the constant m * w
     if (gap < 0)
     { 
+        cpl_vector * fpe_gap;
         k = 0;
         fpe_gap = cpl_vector_new(npeaks_total);
         for (i = 0; i < ninputs; i++)
@@ -1170,6 +1176,11 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     }
 
     if (setting_deg == 1){
+
+        cpl_matrix * px_tmp;
+        cpl_vector * py_tmp;
+
+        double m0, ymax, ymin;
         // Do a robust (L1 norm) fit to the data
         // use robust to avoid outliers
         // However the method is not as numerically stable
@@ -1192,6 +1203,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         k = 0;
         for (i = 0; i < ninputs; i++)
         {
+            double tmp1, tmp2;
             if (fpe_mord[i] == NULL) continue;
             // mean(mord * wobs)
             tmp1 = 0;
@@ -1306,6 +1318,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
     }
 
     if (cpl_msg_get_level() == CPL_MSG_DEBUG){
+        cpl_table * tmp_table;
         path = cpl_sprintf("debug_etalon_final_mord.fits");
         cpl_vector_save(fpe_mord[0], path, CPL_TYPE_DOUBLE, NULL, CPL_IO_CREATE);
         for (i = 1; i < ninputs; i++)
@@ -1359,12 +1372,13 @@ cpl_polynomial * cr2res_etalon_wave_2d(
         cpl_free(path);
     }
 
-    /* Create / Fill / Merge the lines diagnosics table  */
+    /* Create / Fill / Merge the lines diagnostics table  */
     if (line_diagnostics != NULL) {
         *line_diagnostics = NULL;
         cpl_msg_debug(__func__, "Number of lines: %"CPL_SIZE_FORMAT, npeaks_total);
         for (i = 0; i < ninputs; i++)
         {
+            cpl_polynomial * wavesol_loc;
             if (fpe_mord[i] == NULL) continue;
             npeaks = cpl_vector_get_size(fpe_mord[i]);
             /* Create */
@@ -1374,6 +1388,7 @@ cpl_polynomial * cr2res_etalon_wave_2d(
                     orders[i] + zp_order);
             /* Fill */
             for (j=0 ; j < npeaks ; j++) {
+                double pix_pos, lambda_cat, lambda_meas, line_width, line_intens, fit_error;
                 pix_pos = cpl_vector_get(fpe_xobs[i], j);
                 lambda_cat = cpl_vector_get(fpe_wobs[i], j) ;
                 lambda_meas = cpl_polynomial_eval_1d(wavesol_loc, pix_pos,

@@ -30,8 +30,10 @@
                                        Prototypes
  -----------------------------------------------------------------------------*/
 
+#ifdef CR2RES_UNUSED
 cpl_image * cr2res_etalon_computation(const cpl_image * in) ;
 cpl_vector * cr2res_etalon_get_maxpos(const cpl_vector *) ;
+#endif
 cpl_vector * cr2res_etalon_find_peaks(
     const cpl_vector * in, 
     double height, 

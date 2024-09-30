@@ -67,10 +67,9 @@ static void test_cr2res_detlin_compute(){
         cpl_vector          **  error) */
 
   int n = 100;
-  double i;
+  int i;
   cpl_size pow;
   double aduPsec = 666.6;
-  double adu;
   cpl_size max_degree=2;
   cpl_vector    *   dits  = cpl_vector_new(n);
   cpl_vector    *   adus = cpl_vector_new(n);
@@ -88,6 +87,7 @@ cpl_polynomial_set_coeff(poly_nonlin,&pow,5E-5);
 
 /* Fill data */
 for (i=0; i<n; i++){
+  double adu;
   cpl_vector_set(dits, i, i+1);
   adu=(i+1)*aduPsec / (1+cpl_polynomial_eval_1d(poly_nonlin,i+1,NULL));
   cpl_vector_set(adus, i, adu);

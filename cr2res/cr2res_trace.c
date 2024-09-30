@@ -54,12 +54,12 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-static int cr2res_trace_apply_shift(
+/*static int cr2res_trace_apply_shift(
         cpl_table       *   traces,
-        double              shift) ;
-static double cr2res_trace_compute_shift(
+        double              shift) ;*/
+/*static double cr2res_trace_compute_shift(
         const cpl_table *   traces1,
-        const cpl_table *   traces2) ;
+        const cpl_table *   traces2) ;*/
 static int cr2res_trace_new_trace(
         const cpl_array     *   slit_fraction_in,
         const cpl_array     **  trace_in,
@@ -172,7 +172,6 @@ cpl_table * cr2res_trace(
     cpl_mask        *   mask ;
     cpl_mask        *   mask_clean ;
     cpl_image       *   labels ;
-    cpl_apertures   *   aperts ;
     cpl_table       *   clustertable ;
     cpl_table       *   trace_table ;
     cpl_table       *   restored_trace_table ;
@@ -212,7 +211,7 @@ cpl_table * cr2res_trace(
     }
     if (nlabels == 0) {
         cpl_msg_error(__func__, "Found no labels");
-        if (labels != NULL) cpl_image_delete(labels);
+        cpl_image_delete(labels);
         cpl_mask_delete(mask_clean);
         return NULL;
     }
@@ -221,6 +220,7 @@ cpl_table * cr2res_trace(
     /* Analyse and dump traces */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
         if (cpl_image_get_max(labels) != 0){
+            cpl_apertures   *   aperts ;
             aperts = cpl_apertures_new_from_image(ima, labels);
             cpl_apertures_dump(aperts, stdout) ;
             cpl_apertures_delete(aperts) ;
@@ -294,9 +294,7 @@ cpl_mask * cr2res_trace_clean(
         int             opening,
         int             min_cluster)
 {
-    cpl_mask    *   mask_kernel ;
     cpl_mask    *   new_mask ;
-    cpl_mask    *   diff_mask ;
     cpl_mask    *   clean_mask ;
 
     /* Check entries */
@@ -305,6 +303,10 @@ cpl_mask * cr2res_trace_clean(
 
     /* Apply a opening to join horizontally the close clusters */
     if (opening) {
+
+        cpl_mask    *   mask_kernel ;
+        cpl_mask    *   diff_mask ;
+
         cpl_msg_info(__func__, "Apply Opening to cleanup the traces") ;
         mask_kernel = cpl_mask_new(5, 1) ;
         cpl_mask_not(mask_kernel);
@@ -364,10 +366,6 @@ cpl_image * cr2res_trace_gen_image(
 {
     cpl_image       *   out ;
     int             *   pout ;
-    const cpl_array *   coeffs_upper ;
-    const cpl_array *   coeffs_lower ;
-    cpl_polynomial  *   poly_upper ;
-    cpl_polynomial  *   poly_lower ;
     int                 order_idx, i ;
     cpl_size            j, k, y_pos_lower, y_pos_upper ;
 
@@ -382,6 +380,11 @@ cpl_image * cr2res_trace_gen_image(
 
     /* Loop on the traces */
     for (i=0 ; i<cpl_table_get_nrow(trace) ; i++) {
+
+        const cpl_array *   coeffs_upper ;
+        const cpl_array *   coeffs_lower ;
+        cpl_polynomial  *   poly_upper ;
+        cpl_polynomial  *   poly_lower ;
         /* Get the Order - Use fix value when no order column */
         if (cpl_table_has_column(trace, CR2RES_COL_ORDER))
             order_idx = cpl_table_get(trace, CR2RES_COL_ORDER, i, NULL) ;
@@ -417,7 +420,7 @@ cpl_image * cr2res_trace_gen_image(
 /**
   @brief    Count and return the different order_idx values from a TW table
   @param    trace               TW table
-  @param    nb_order_idx_values [output] number of diffrent order_idx values
+  @param    nb_order_idx_values [output] number of different order_idx values
   @return   newly allocated int array
 
   The int array will need to be freed by the caller. Its size is
@@ -430,7 +433,7 @@ int * cr2res_trace_get_order_idx_values(
         int             *   nb_order_idx_values)
 {
     const int   *   porder_idx_values ;
-    int             nrows, count_order_idx_values, new_order_idx ;
+    int             nrows, count_order_idx_values;
     int         *   tmp_out ;
     int         *   out ;
     int             i, j ;
@@ -448,6 +451,7 @@ int * cr2res_trace_get_order_idx_values(
     /* Count the different orders */
     count_order_idx_values = 0 ;
     for (i=0 ; i<nrows ; i++) {
+        int new_order_idx ;
         /* Is the current order a new one ? */
         new_order_idx = 1 ;
         for (j=0 ; j<count_order_idx_values ; j++)
@@ -544,7 +548,7 @@ int * cr2res_get_trace_numbers(
     }
     return traces;
 }
-
+#ifdef CR2RES_UNUSED
 /*----------------------------------------------------------------------------*/
 /**
   @brief   Get the number of traces for a specified order_idx that have a WL
@@ -558,7 +562,6 @@ cpl_size cr2res_get_nb_traces_with_wavelength(
         const cpl_table *   trace_wave,
         int                 order_idx)
 {
-    const cpl_array *   wave_array ;
     cpl_size            nrows, i, count ;
 
     /* Check Entries */
@@ -570,13 +573,14 @@ cpl_size cr2res_get_nb_traces_with_wavelength(
 
     /* Loop on the table rows */
     for (i=0 ; i<nrows ; i++) {
+        const cpl_array *   wave_array ;
         wave_array = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, i) ;
         if (cpl_table_get(trace_wave, CR2RES_COL_ORDER, i, NULL) == order_idx 
                 && wave_array != NULL) count ++ ;
     }
     return count ;
 }
-
+#endif
 /*----------------------------------------------------------------------------*/
 /**
    @brief   Merge 2 trace_wave tables 
@@ -591,7 +595,7 @@ cpl_table * cr2res_trace_merge(
 {
     cpl_table       *   merged;
     int             *   order_idx_values ;
-    int                 norder_idx_values, j, cur_trace_id ;
+    int                 norder_idx_values, j;
     cpl_size            i, nrows ;
     
     /* Check Entries */
@@ -618,6 +622,7 @@ cpl_table * cr2res_trace_merge(
     /* Update the trace_id Information */
     /* Loop on the orders */
     for (j=0 ; j<norder_idx_values ; j++) {
+        int cur_trace_id ;
         /* Initialise the trace ID */
         cur_trace_id = 1 ;
 
@@ -758,7 +763,7 @@ cpl_vector * cr2res_trace_get_wl(
   @param    trace_nb    the trace number
   @param    size        Output vector size
   @return   The returned vector contains the poly evaluation result on i
-            vector from 1 to size. It needs to be destryed by the caller.
+            vector from 1 to size. It needs to be destroyed by the caller.
  */
 /*----------------------------------------------------------------------------*/
 cpl_vector * cr2res_trace_get_ycen(
@@ -972,14 +977,11 @@ int cr2res_trace_add_extra_columns(
     cpl_propertylist    *   ext_plist ;
     cpl_propertylist    *   main_plist ;
     int                 *   order_idx_values ;
-    cpl_array           *   wl_array ;
     cpl_array           *   array_id ;
     cpl_array           *   array_zero ;
     cpl_array           *   array_neg ;
-    cpl_array           *   slit_frac ;
-    double                  y_pos ;
     cr2res_decker           decker_pos ;
-    int                     order_idx, trace_nb, nb_order_idx_values, 
+    int                     order_idx, nb_order_idx_values, 
                             i, j ;
 
     if (traces == NULL) return -1;
@@ -1004,6 +1006,7 @@ int cr2res_trace_add_extra_columns(
 
     /* Loop on the traces */
     for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
+        double  y_pos ;
         /* Get the current trace Y position */
         y_pos = cr2res_trace_get_trace_ypos(traces, i) ;
 
@@ -1021,6 +1024,7 @@ int cr2res_trace_add_extra_columns(
     order_idx_values = cr2res_trace_get_order_idx_values(traces, 
             &nb_order_idx_values) ;
     for (i=0 ; i<nb_order_idx_values ; i++) {
+        int trace_nb;
         /* Initialise */
         trace_nb = 1 ;
         /* Loop on the traces */
@@ -1042,6 +1046,7 @@ int cr2res_trace_add_extra_columns(
 
     /* Loop on the traces */
     for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
+        cpl_array           *   wl_array ;
         /* Get the Order number */
         order_idx = cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) ;
 
@@ -1104,6 +1109,7 @@ int cr2res_trace_add_extra_columns(
     cpl_array_set(array_neg, 1, -1.0) ;
     cpl_array_set(array_neg, 2, -1.0) ;
     for (i=0 ; i<cpl_table_get_nrow(traces) ; i++) {
+        cpl_array           *   slit_frac ;
         /* Get the slit fraction array */
         slit_frac = cr2res_trace_get_slit_frac(traces, i, decker_pos) ;
         if (slit_frac == NULL) {
@@ -1122,7 +1128,7 @@ int cr2res_trace_add_extra_columns(
 /**
   @brief    Recompute the traces at a newly specified slit fraction
   @param    traces              The input traces
-  @param    new_slit_fraction   The newly wishded slit fraction
+  @param    new_slit_fraction   The newly wished slit fraction
   @return   The newly computed trace 
   @see  cr2res_trace_new_trace()
   
@@ -1148,7 +1154,6 @@ cpl_table * cr2res_trace_new_slit_fraction(
         const cpl_array     *   new_slit_fraction)
 {
     cpl_table       *   out ;
-    cpl_array *   slit_frac_old_trace ;
     const cpl_array *   slit_frac_old;
     const cpl_array *   trace_all_old ;
     const cpl_array *   trace_upper_old ;
@@ -1178,9 +1183,8 @@ cpl_table * cr2res_trace_new_slit_fraction(
     cpl_vector      *   b_vec;
     cpl_vector      *   c_vec;
     cpl_size            i, j, k, m, n, nrows, degree ;
-    int order, trace_id;
     int nb_order_idx_values, nb_traces;
-    int * order_idx_values, * trace_numbers;
+    int * order_idx_values;
     double a, b, c;
     double sf_lower, sf_upper, sf_all, sf_new;
     double pix_shift_x, pix_shift_y;
@@ -1198,7 +1202,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
     }
 
     /* Initialise */
-    nrows = cpl_table_get_nrow(traces) ;
+    //nrows = cpl_table_get_nrow(traces) ;
     order_idx_values = cr2res_trace_get_order_idx_values(traces, 
             &nb_order_idx_values);
     out = cpl_table_new(nb_order_idx_values);
@@ -1207,13 +1211,16 @@ cpl_table * cr2res_trace_new_slit_fraction(
 
     /* Loop on the order_idx values */
     for (i=0 ; i<nb_order_idx_values; i++) {
+
+        cpl_array *   slit_frac_old_trace ;
+        int * trace_numbers;
         trace_numbers = cr2res_get_trace_numbers(traces, order_idx_values[i], 
                 &nb_traces);
         trace_old = cpl_malloc(nb_traces * 3 * sizeof(cpl_array*));
         for (j = 0; j < nb_traces * 3; j++) trace_old[j] = NULL;
         slit_frac_old_trace = cpl_array_new(nb_traces * 3, CPL_TYPE_DOUBLE);        
 
-        for(j = m = 0; j < nb_traces; j++ + m++) {
+        for(j = m = 0; j < nb_traces; j++, m++) {
             k=cr2res_get_trace_table_index(traces, order_idx_values[i], 
                     trace_numbers[j]);
             /* Check if the input trace slit_fraction is available */
@@ -1424,6 +1431,7 @@ cpl_table * cr2res_trace_new_slit_fraction(
     nrows = cpl_table_get_nrow(out);
     for (k = 0; k < nrows; k++)
     {
+        int order, trace_id;
         order = cpl_table_get_int(out, CR2RES_COL_ORDER, k, NULL);
         trace_id = cpl_table_get_int(out, CR2RES_COL_TRACENB, k, NULL);
         out = cr2res_trace_shift_wavelength(out, 0.5, order, trace_id);
@@ -1489,7 +1497,6 @@ cpl_table * cr2res_trace_shift_wavelength(
     cpl_array * wave;
     cpl_matrix * samppos;
     const cpl_array * const_wave;
-    const cpl_array * const_wave_err;
     const cpl_array * slit_frac_old;
     const cpl_array * trace_all_old;
     const cpl_array * trace_lower_old;
@@ -1506,7 +1513,7 @@ cpl_table * cr2res_trace_shift_wavelength(
     cpl_size n, k ;
     cpl_size degree;
     double a, b, c;
-    double pix_shift_x, pix_shift_y;
+    double pix_shift_y;
     double sf_lower, sf_all, sf_upper, sf_new;
 
     k = cr2res_get_trace_table_index(traces, order, trace_id);
@@ -1520,8 +1527,8 @@ cpl_table * cr2res_trace_shift_wavelength(
         return traces;
     }
 
-    const_wave_err = cpl_table_get_array(traces, 
-        CR2RES_COL_WAVELENGTH_ERROR, k); 
+    //const_wave_err = cpl_table_get_array(traces, 
+     //   CR2RES_COL_WAVELENGTH_ERROR, k); 
     slit_frac_old = cpl_table_get_array(traces, 
         CR2RES_COL_SLIT_FRACTION, k);
     trace_all_old = cpl_table_get_array(traces, CR2RES_COL_ALL, k) ;
@@ -1556,6 +1563,7 @@ cpl_table * cr2res_trace_shift_wavelength(
 
     for (n = 0; n < CR2RES_DETECTOR_SIZE; n++)
     {
+        double pix_shift_x;
         cpl_vector_set(wave_vec, n, 
                     cpl_polynomial_eval_1d(poly_wave, n + 1, NULL));
 
@@ -1601,7 +1609,7 @@ cpl_table * cr2res_trace_shift_wavelength(
 
     return traces;
 }
-
+#ifdef CR2RES_UNUSED
 /*----------------------------------------------------------------------------*/
 /**
   @brief Adjust the traces spatial positions using a new FLAT frameset
@@ -1624,7 +1632,7 @@ cpl_table * cr2res_trace_adjust(
     cpl_table           *   corrected_traces ;
     int                     trace_opening, trace_degree,
                             trace_min_cluster, trace_smooth_x, trace_smooth_y ;
-    double                  trace_threshold, traces_shift ;
+    double                  trace_threshold, traces_shift ; 
  
     /* Check Entries */
     if (trace_wave == NULL || flat_raw == NULL || 
@@ -1674,7 +1682,7 @@ cpl_table * cr2res_trace_adjust(
     first_file = cpl_frame_get_filename(
             cpl_frameset_get_position_const(flat_raw, 0)) ;
     cr2res_trace_add_extra_columns(new_traces, first_file, det_nr) ;
-
+ 
     /* Compute the shift */
     cpl_msg_info(__func__, "Compute the Shift between 2 traces tables") ;
     traces_shift = cr2res_trace_compute_shift(trace_wave, new_traces) ;
@@ -1683,12 +1691,13 @@ cpl_table * cr2res_trace_adjust(
     /* Apply the shift */
     corrected_traces = cpl_table_duplicate(trace_wave) ;
     cpl_msg_error(__func__, "Apply correction shift of %g pixels",
-            traces_shift) ;
+           traces_shift) ;
     cr2res_trace_apply_shift(corrected_traces, traces_shift) ;
 
     /* Free and return */
     return corrected_traces ;
-}
+} 
+#endif
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -1702,7 +1711,7 @@ cr2res_decker cr2res_trace_slit_fraction_info(
         const cpl_array *   slit_frac,
         int             *   up_or_down)
 {
-    double          up, down, mid ;
+    double          up, down;
     cr2res_decker   decker_pos ;
 
     /* Initialise */
@@ -1713,23 +1722,23 @@ cr2res_decker cr2res_trace_slit_fraction_info(
 
     /* Read the positions */
     down = cpl_array_get(slit_frac, 0, NULL) ;
-    mid = cpl_array_get(slit_frac, 1, NULL) ;
+    //mid = cpl_array_get(slit_frac, 1, NULL) ;
     up = cpl_array_get(slit_frac, 2, NULL) ;
     if (cpl_error_get_code()) return CR2RES_DECKER_INVALID ;
 
-    if (fabs((down-0.0)<1e-3) && fabs((up-1.0)<1e-3)) {
+    if ((fabs(down-0.0)<1e-3) && (fabs(up-1.0)<1e-3)) {
         decker_pos = CR2RES_DECKER_NONE ;
         if (up_or_down != NULL) *up_or_down=0 ;
-    } else if (fabs((down-0.750)<1e-3) && fabs((up-1.000)<1e-3)) {
+    } else if ((fabs(down-0.750)<1e-3) && (fabs(up-1.000)<1e-3)) {
         decker_pos = CR2RES_DECKER_1_3 ;
         if (up_or_down != NULL) *up_or_down=1 ;
-    } else if (fabs((down-0.250)<1e-3) && fabs((up-0.500)<1e-3)) {
+    } else if ((fabs(down-0.250)<1e-3) && (fabs(up-0.500)<1e-3)) {
         decker_pos = CR2RES_DECKER_1_3 ;
         if (up_or_down != NULL) *up_or_down=2 ;
-    } else if (fabs((down-0.500)<1e-3) && fabs((up-0.750)<1e-3)) {
+    } else if ((fabs(down-0.500)<1e-3) && (fabs(up-0.750)<1e-3)) {
         decker_pos = CR2RES_DECKER_2_4 ;
         if (up_or_down != NULL) *up_or_down=1 ;
-    } else if (fabs((down-0.000)<1e-3) && fabs((up-0.250)<1e-3)) {
+    } else if ((fabs(down-0.000)<1e-3) && (fabs(up-0.250)<1e-3)) {
         decker_pos = CR2RES_DECKER_2_4 ;
         if (up_or_down != NULL) *up_or_down=2 ;
     } else {
@@ -1834,7 +1843,7 @@ cpl_table * cr2res_trace_split(
     double              height = 1. / (nb_subtraces * 2.);
     double              pos;
     int                 res = -1;
-    int                 ord, nb_order_idx_values, nb_traces, size_new_tw, 
+    int                 nb_order_idx_values, nb_traces, size_new_tw, 
                         ndegree;
     int             *   order_idx_values, 
                     *   traces;
@@ -1855,6 +1864,7 @@ cpl_table * cr2res_trace_split(
 
     // Prepare data to fill the other columns of the table
     for (j = 0; j < nb_order_idx_values; j++){
+        int ord;
         ord = order_idx;
         if (order_idx == -100) ord = order_idx_values[j];
         else if (order_idx != order_idx_values[j]) continue;
@@ -1959,12 +1969,12 @@ cpl_table * cr2res_trace_filter(
 {
     cpl_table       *   selected_tw ;
     cpl_table       *   filtered_tw ;
-    int                 order_idx, order_real ;
     cpl_size            nrows, i ;
 
     selected_tw = cpl_table_duplicate(tw) ;
     nrows = cpl_table_get_nrow(selected_tw) ;
     for (i=0 ; i<nrows ; i++) {
+        int  order_idx, order_real ;
         order_idx = cpl_table_get(selected_tw, CR2RES_COL_ORDER, i, NULL) ;
         order_real = cr2res_order_idx_to_real(order_idx, zp_order) ;
         if (cr2res_trace_filter_keep(setting, order_real)) {
@@ -1979,7 +1989,7 @@ cpl_table * cr2res_trace_filter(
 }
 
 /**@}*/
-
+#ifdef CR2RES_UNUSED
 /*----------------------------------------------------------------------------*/
 /**
   @brief  Compares 2 traces files, and returns the estimated shift between both
@@ -1998,14 +2008,10 @@ static double cr2res_trace_compute_shift(
         const cpl_table *   traces1,
         const cpl_table *   traces2)
 {
-    /* TODO */
-    int             order_idx, trace_id ;
     cpl_size        i ;
 
     for (i=0 ; i<cpl_table_get_nrow(traces1) ; i++) {
-        /* Only the Open slit */
-
-        /* Get the order */
+        int             order_idx;
         order_idx = cpl_table_get(traces1, CR2RES_COL_ORDER, i, NULL) ;
         if (order_idx >= 0) {
 
@@ -2027,9 +2033,9 @@ static int cr2res_trace_apply_shift(
         cpl_table       *   traces,
         double              shift)
 {
-    /* TODO */
     return -1 ;
 }
+#endif
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -2039,7 +2045,7 @@ static int cr2res_trace_apply_shift(
   @param decker_pos The decker position
   @return   the slit_frac array or NULL
 
-  The returned array contains 3 numbers between 0 and 1 identifing the low,
+  The returned array contains 3 numbers between 0 and 1 identifying the low,
   middle and high positions of the trace along the slit.
   0 is for the slit bottom, 1 for the top.
 
@@ -2120,17 +2126,9 @@ static cpl_mask * cr2res_trace_signal_detect(
 {
     cpl_image       *smx_image;
     cpl_image       *smxy_image;
-    cpl_image       *tmp_image;
-    cpl_mask        *smxy_mask;
-    double          *smxy_data;
-    double          *img_column, *wgt_column;
-    cpl_binary      *smxy_mskdata;
     int              kernel_x, kernel_y;
-    cpl_size         icol, ncols, irow, nrows;
     cpl_mask        *kernel;
     cpl_mask        *mask;
-    int              log, opt_filter;
-    int              options[3];
 
     /* Check Entries */
     if (image == NULL) return NULL;
@@ -2139,10 +2137,6 @@ static cpl_mask * cr2res_trace_signal_detect(
         return NULL;
     }
     if (smooth_x < 0 || smooth_y < 0) return NULL;
-
-    /* Flags. TODO: decide whether to expose these to caller and/or user */    
-    log=1;
-    opt_filter=0;
 
     /* Prepare kernel */
     kernel_x = smooth_x;
@@ -2164,7 +2158,47 @@ static cpl_mask * cr2res_trace_signal_detect(
         return NULL;
     }
     cpl_mask_delete(kernel);
+    #ifndef CR2RES_UNUSED
+    // Filter log image instead of the original
+    /* Shift image to counts >1 so that log works */
+    double img_min = cpl_image_get_min(smx_image) - 1.0;
+    cpl_image_subtract_scalar(smx_image, img_min);
+    smxy_image = cpl_image_logarithm_create(smx_image, CPL_MATH_E);
 
+    // Boxcar average instead of optimal filter
+    cpl_image *tmp_image;
+    kernel = cpl_mask_new(1, kernel_y);
+    cpl_mask_not(kernel);
+    tmp_image = cpl_image_duplicate(smxy_image);
+    if (cpl_image_filter_mask(smxy_image, tmp_image, kernel,
+                              CPL_FILTER_AVERAGE_FAST,
+                              CPL_BORDER_FILTER) != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Cannot filter the image");
+        cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT);
+        cpl_mask_delete(kernel);
+        cpl_image_delete(smx_image);
+        cpl_image_delete(tmp_image);
+        return NULL;
+    }
+    cpl_mask_delete(kernel);
+    cpl_image_delete(tmp_image);
+
+    // Potentiating the filtered image before comparing to the original
+    if (cpl_image_exponential(smxy_image, CPL_MATH_E) != CPL_ERROR_NONE)
+        cpl_msg_error(__func__, "Cannot exponentiate the smxy_image");
+    #endif
+
+    #ifdef CR2RES_UNUSED
+
+
+    double          *smxy_data;
+    double          *img_column;
+    int              options[3];
+    cpl_size         icol, ncols, irow, nrows;
+    int              log, opt_filter;
+    /* Flags. TODO: decide whether to expose these to caller and/or user */    
+    log=1;
+    opt_filter=0;
 
     if (log) {  // Filter log image instead of the original
         /* Shift image to counts >1 so that log works */
@@ -2176,6 +2210,10 @@ static cpl_mask * cr2res_trace_signal_detect(
     }
     
     if (opt_filter) {  /* Vertical filtering is done using optimal filter */
+   
+        cpl_mask        *smxy_mask;
+        cpl_binary      *smxy_mskdata;
+        double          *wgt_column;
         // TODO: Move filter preparation into own function and call this instead
         /* Number of columns */
         ncols = cpl_image_get_size_x(image);
@@ -2212,6 +2250,7 @@ static cpl_mask * cr2res_trace_signal_detect(
         cpl_free(wgt_column);
     }
     else {     // Boxcar average instead of optimal filter
+        cpl_image       *tmp_image;
         kernel = cpl_mask_new(1, kernel_y);
         cpl_mask_not(kernel);
         tmp_image = cpl_image_duplicate(smxy_image);
@@ -2230,10 +2269,11 @@ static cpl_mask * cr2res_trace_signal_detect(
         }
     
     if (log) {
-    // Potentitating the filtered image before comparing to the original
+    // Potentiating the filtered image before comparing to the original
         if (cpl_image_exponential(smxy_image, CPL_MATH_E) != CPL_ERROR_NONE)
             cpl_msg_error(__func__, "Cannot exponentiate the smxy_image");
     }
+    #endif
 
     /* Subtract x-smoothed image from xy-smoothed */
     cpl_image_subtract(smx_image, smxy_image);
@@ -2263,7 +2303,7 @@ static cpl_mask * cr2res_trace_signal_detect(
 
   The function loops over the traces labels. For each of them, it
   identifies the ones where the traces are incomplete on the detector
-  edges. It then tries to restore them using the availlable information.
+  edges. It then tries to restore them using the available information.
  */
 /*----------------------------------------------------------------------------*/
 static cpl_table * cr2res_trace_restore_edge_traces(
@@ -2273,12 +2313,10 @@ static cpl_table * cr2res_trace_restore_edge_traces(
     const cpl_array *   coeffs_upper ;
     const cpl_array *   coeffs_lower ;
     cpl_array       *   new_trace ;
-    cpl_polynomial  *   poly_upper ;
-    cpl_polynomial  *   poly_lower ;
     cpl_vector      *   heights ;
     cpl_vector      *   heights_tmp ;
-    double              height, height_med, threshold, lowest_pos,
-                        uppest_pos, curr_pos ;
+    double              height_med, threshold, lowest_pos,
+                        uppest_pos;
     cpl_size            ntraces, i, lowest_idx, uppest_idx ;
 
     /* Check entries */
@@ -2293,6 +2331,10 @@ static cpl_table * cr2res_trace_restore_edge_traces(
     ntraces = cpl_table_get_nrow(trace_table) ;
     heights = cpl_vector_new(ntraces) ;
     for (i=0 ; i<ntraces ; i++) {
+        cpl_polynomial  *   poly_upper ;
+        cpl_polynomial  *   poly_lower ;
+        double              height;
+        double              curr_pos;
         /* Get the Upper polynomial*/
         coeffs_upper = cpl_table_get_array(trace_table, CR2RES_COL_UPPER, i) ;
         poly_upper = cr2res_convert_array_to_poly(coeffs_upper) ;
@@ -2326,7 +2368,7 @@ static cpl_table * cr2res_trace_restore_edge_traces(
     height_med = cpl_vector_get_median(heights_tmp) ;
     cpl_vector_delete(heights_tmp) ;
     threshold = 0.95 * height_med ;
-    cpl_msg_debug(__func__, "Heigth Median / Threshold: %g / %g",
+    cpl_msg_debug(__func__, "Height Median / Threshold: %g / %g",
             height_med, threshold) ;
 
     /* Fix wrong traces */
@@ -2388,14 +2430,9 @@ static cpl_table * cr2res_trace_fit_traces(
         cpl_table   *   clustertable,
         int             degree)
 {
-    cpl_array   *    fitparams_all;
-    cpl_array   *    fitparams_upper;
-    cpl_array   *    fitparams_lower;
     cpl_table   *    traces_table;
-    cpl_table   *    trace_table;
-    cpl_table   *    edge_upper_table;
-    cpl_table   *    edge_lower_table;
-    cpl_size         nclusters_cur;
+    cpl_table   *    edge_upper_table = NULL;
+    cpl_table   *    edge_lower_table = NULL;
     int              i, nclusters;
 
     /* Check entries */
@@ -2417,6 +2454,12 @@ static cpl_table * cr2res_trace_fit_traces(
 
     /* Loop on the clusters */
     for (i=1 ; i<=nclusters ; i++) {
+
+        cpl_array   *    fitparams_all;
+        cpl_array   *    fitparams_upper;
+        cpl_array   *    fitparams_lower;
+        cpl_table   *    trace_table;
+        cpl_size nclusters_cur;
         /* Select the pixels of the current cluster */
         nclusters_cur = cpl_table_and_selected_int(clustertable,
                 CR2RES_COL_CLUSTERS, CPL_EQUAL_TO, i);
@@ -2600,7 +2643,7 @@ static cpl_mask * cr2res_trace_clean_blobs(
     cpl_size        nlabels ;
     cpl_binary  *   pnew_mask ;
     const int   *   plabels ;
-    int             i, curr_label, pix_count, npix ;
+    int             i, curr_label, npix ;
 
     /* Check entries */
     if (mask == NULL) return NULL ;
@@ -2627,9 +2670,10 @@ static cpl_mask * cr2res_trace_clean_blobs(
 
     /* Loop on the labels */
     for (curr_label=1 ; curr_label<=nlabels ; curr_label++) {
+        int pix_count;
         pix_count = 0 ;
 
-        /* Count ocurences of current label */
+        /* Count occurrences of current label */
         for (i=0 ; i<npix ; i++) {
             if (plabels[i] == curr_label) pix_count++ ;
             if (pix_count >= min_cluster) break;
@@ -2798,7 +2842,7 @@ static int cr2res_trace_new_trace(
             || trace_all_new==NULL || trace_upper_new==NULL
             || trace_lower_new==NULL || nb_traces <= 0) return -1; 
 
-    // Both in and output slitfractions need to have 3 components 
+    // Both in and output slit fractions need to have 3 components 
     // (3 per trace for input)
     if (cpl_array_get_size(slit_fraction_in) != 3 * nb_traces || 
                     cpl_array_get_size(slit_fraction_wished) != 3) return -1;
@@ -2954,7 +2998,7 @@ static int cr2res_trace_get_subtrace(
     traces = cr2res_get_trace_numbers(trace_wave, order_idx, &nb_traces);
     if (traces == NULL) return -1;
     
-    const cpl_array * bounds[3], *old_fraction, *old_wave;
+    const cpl_array * bounds[3], *old_fraction;
     double res;
     cpl_size i, j, k, ndegree;
     
@@ -2964,7 +3008,7 @@ static int cr2res_trace_get_subtrace(
 
     // Each trace has 3 components, so we can always fit a 2nd order polynomial
     cpl_size maxdeg = 2;
-    cpl_error_code error;
+    cpl_error_code error = CPL_ERROR_NONE;
     
     // interpolate order tracing
     ndegree = cpl_table_get_column_dimension(trace_wave, CR2RES_COL_ALL, 0);
@@ -3022,6 +3066,7 @@ static int cr2res_trace_get_subtrace(
 
     // interpolate wavelength solution, if we have more than one trace
     if (wave != NULL){
+        const cpl_array  *old_wave;
         if (nb_traces == 1){
             j = cr2res_get_trace_table_index(trace_wave, order_idx, traces[0]);
             old_wave = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, j);

@@ -223,8 +223,6 @@ static int cr2res_util_bpm_split(
     const cpl_parameter *   param ;
     int                     reduce_det ;
     cpl_frameset        *   rawframes ;
-    const cpl_frame     *   cur_frame ;
-    const char          *   cur_fname ;
     cpl_frameset        *   cur_fset ;
     cpl_image           *   ima ;
     cpl_image   *   split_bpms[CR2RES_NB_BPM_TYPES][CR2RES_NB_DETECTORS] ;
@@ -258,7 +256,9 @@ static int cr2res_util_bpm_split(
     }
 
     /* Loop on the RAW frames */
-    for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
+    for (i = 0; i < cpl_frameset_get_size(rawframes); i++) {
+        const cpl_frame *cur_frame;
+        const char *cur_fname;
         /* Get the Current Frame */
         cur_frame = cpl_frameset_get_position(rawframes, i) ;
         cur_fname = cpl_frame_get_filename(cur_frame) ;

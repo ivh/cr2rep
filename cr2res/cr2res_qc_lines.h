@@ -776,7 +776,7 @@ static double qc_lines[QC_LINES_NUMBER]={
 };
 
 // V1 : Start -> 17.02.2022
-#define     QC_LINES_NUMBER_V1     1026
+/* #define     QC_LINES_NUMBER_V1     1026
 static double qc_lines_v1[QC_LINES_NUMBER_V1]={
 954.2587,
 954.3909,
@@ -1804,7 +1804,7 @@ static double qc_lines_v1[QC_LINES_NUMBER_V1]={
 2316.3074,
 2371.4805,
 2395.4727
-};
+};*/
 
 #endif
 

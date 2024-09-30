@@ -56,7 +56,7 @@ cpl_frameset * cr2res_io_extract_decker_frameset(
         cr2res_decker           decker) ;
 
 int cr2res_io_convert_order_idx_to_idxp(int) ;
-int cr2res_io_convert_order_idxp_to_idx(int) ;
+//int cr2res_io_convert_order_idxp_to_idx(int) ;
 
 char * cr2res_io_create_extname(
         int             detector,
@@ -116,7 +116,7 @@ cpl_table * cr2res_io_load_SLIT_FUNC(
 hdrl_image * cr2res_io_load_SLIT_MODEL(
         const char  *   filename,
         int             detector) ;
-
+#ifdef CR2RES_UNUSED
 hdrl_image * cr2res_io_load_TRACE_MAP(
         const char  *   filename,
         int             detector) ;
@@ -128,11 +128,12 @@ hdrl_image * cr2res_io_load_WAVE_MAP(
 hdrl_image * cr2res_io_load_SLIT_CURV_MAP(
         const char  *   filename,
         int             detector) ;
-
+#endif
 cpl_table * cr2res_io_load_EXTRACT_1D(
         const char  *   filename,
         int             detector);
 
+#ifdef CR2RES_UNUSED
 cpl_table * cr2res_io_load_SPLICED_1D(
         const char  *   filename,
         int             detector);
@@ -140,7 +141,7 @@ cpl_table * cr2res_io_load_SPLICED_1D(
 cpl_table * cr2res_io_load_EXTRACT_2D(
         const char  *   filename,
         int             detector);
-
+#endif
 int cr2res_io_save_PHOTO_FLUX(
         const char              *   filename,
         cpl_table               *   out_table,

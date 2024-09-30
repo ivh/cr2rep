@@ -53,11 +53,13 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
 /*-----------------------------------------------------------------------------
                             Private function prototypes
  -----------------------------------------------------------------------------*/
+ #ifdef CR2RES_UNUSED
 static int cr2res_cal_detlin_update(
         cpl_image       * new_bpm,
         hdrl_imagelist  * new_coeffs,
         cpl_image       ** global_bpm,
         hdrl_imagelist   ** global_coeffs);
+#endif
 static int cr2res_cal_detlin_update_simplified(
         cpl_image       * new_bpm,
         hdrl_imagelist  * new_coeffs,
@@ -69,7 +71,6 @@ static int cr2res_cal_detlin_compare(
 static int cr2res_cal_detlin_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frameset  *   darkframes,
-        double                  bpm_thresh,
         int                     trace_degree,
         int                     trace_min_cluster,
         int                     trace_smooth_x,
@@ -363,33 +364,17 @@ static int cr2res_cal_detlin(
     cpl_frameset        *   darkframes ;
     cpl_size            *   labels ;
     cpl_size                nlabels ;
-    cpl_frameset        *   raw_one ;
-    char                *   setting_id ;
     hdrl_imagelist      *   coeffs_merged[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpm_merged[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist_merged[CR2RES_NB_DETECTORS] ;
     hdrl_imagelist      *   coeffs[CR2RES_NB_DETECTORS] ;
     cpl_image           *   bpm[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist[CR2RES_NB_DETECTORS] ;
-    cpl_propertylist    *   plist ;
-    hdrl_image          *   img;
     char                *   out_file;
-    int                     i, l, det_nr; 
-    cpl_size                x, y;
-    hdrl_value              pixel;
+    int                     l, det_nr;
     cpl_mask            *   cur_mask;
     cpl_propertylist    *   qc_main ;
     double                  meda, medb, medc, medq ;
-    cpl_vector          *   qc_nbfailed,
-                        *   qc_nbsuccess,
-                        *   qc_nbad,
-                        *   qc_med,
-                        *   qc_min,
-                        *   qc_max,
-                        *   qc_meda,
-                        *   qc_medb,
-                        *   qc_medc,
-                        *   qc_medq ;
 
     /* Initialise */
 
@@ -469,6 +454,10 @@ static int cr2res_cal_detlin(
 
     /* Loop on the settings */
     for (l=0 ; l<(int)nlabels ; l++) {
+
+        cpl_frameset        *   raw_one ;
+        char                *   setting_id ;
+        cpl_propertylist    *   plist ;
         /* Get the frames for the current setting */
         raw_one = cpl_frameset_extract(rawframes, labels, (cpl_size)l) ;
 
@@ -500,7 +489,7 @@ static int cr2res_cal_detlin(
 
             /* Call the reduction function */
             cpl_msg_indent_more() ;
-            if (cr2res_cal_detlin_reduce(raw_one, darkframes, bpm_thresh,
+            if (cr2res_cal_detlin_reduce(raw_one, darkframes,
                         trace_degree, trace_min_cluster, trace_smooth_x,
                         trace_smooth_y, trace_threshold, trace_opening, 
                         trace_collapse, det_nr, plot_x, plot_y,
@@ -602,7 +591,6 @@ static int cr2res_cal_detlin(
         cpl_msg_indent_less() ;
     }
     cpl_free(labels);
-    if (darkframes!= NULL) cpl_frameset_delete(darkframes) ;
 
     for (det_nr = 1; det_nr <= CR2RES_NB_DETECTORS; det_nr++) {
         if (reduce_det != 0 && det_nr != reduce_det) 
@@ -668,6 +656,18 @@ static int cr2res_cal_detlin(
     /* Compute Global QCs (primary header) */
     qc_main = NULL ;
     if (reduce_det == 0) {
+
+    cpl_vector          *   qc_nbfailed,
+                        *   qc_nbsuccess,
+                        *   qc_nbad,
+                        *   qc_med,
+                        *   qc_min,
+                        *   qc_max,
+                        *   qc_meda,
+                        *   qc_medb,
+                        *   qc_medc,
+                        *   qc_medq ;
+        
         qc_nbfailed = cpl_vector_new(CR2RES_NB_DETECTORS) ;
         qc_nbsuccess = cpl_vector_new(CR2RES_NB_DETECTORS) ;
         qc_nbad = cpl_vector_new(CR2RES_NB_DETECTORS) ;
@@ -786,6 +786,7 @@ static int cr2res_cal_detlin(
 
     /* Save the merged products */
     /* BPM */
+    if(darkframes != NULL) cpl_frameset_join(rawframes, darkframes) ;
     out_file = cpl_sprintf("%s_bpm.fits", RECIPE_STRING) ;
     cr2res_io_save_BPM(out_file, frameset, rawframes, parlist, bpm_merged, 
             qc_main, ext_plist_merged, CR2RES_CAL_DETLIN_BPM_PROCATG, 
@@ -800,6 +801,7 @@ static int cr2res_cal_detlin(
     cpl_free(out_file);
 
     if (qc_main != NULL) cpl_propertylist_delete(qc_main) ;
+    if (darkframes!= NULL) cpl_frameset_delete(darkframes) ;
     cpl_frameset_delete(rawframes) ;
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         if (coeffs_merged[det_nr-1] != NULL) 
@@ -817,7 +819,6 @@ static int cr2res_cal_detlin(
 /**
   @brief  Compute the non-linearity for a single setting, single detector
   @param rawframes          Raw frames from a single setting
-  @param bpm_thresh          thresh value for BPM detection
   @param trace_min_cluster
   @param trace_smooth_x
   @param trace_smooth_y
@@ -836,7 +837,6 @@ static int cr2res_cal_detlin(
 static int cr2res_cal_detlin_reduce(
         const cpl_frameset  *   rawframes,
         const cpl_frameset  *   darkframes,
-        double                  bpm_thresh,
         int                     trace_degree,
         int                     trace_min_cluster,
         int                     trace_smooth_x,
@@ -852,10 +852,8 @@ static int cr2res_cal_detlin_reduce(
         cpl_propertylist    **  ext_plist)
 {
     cpl_frameset        *   sorted_frames ;
-    cpl_frameset        *   sorted_darkframes ;
     const char          *   first_file ;
     hdrl_imagelist      *   imlist ;
-    hdrl_imagelist      *   darklist ;
     hdrl_image          *   cur_im ;
     double              *   pcur_im ;
     cpl_vector          *   dits ;
@@ -918,11 +916,15 @@ static int cr2res_cal_detlin_reduce(
 	/* Apply the dark correction */
     if (darkframes != NULL && 
         cpl_frameset_get_size(darkframes)==cpl_frameset_get_size(rawframes)) {
+
+        cpl_frameset        *   sorted_darkframes ;
         /* Sort the frames by increasing DIT */
         if ((sorted_darkframes=cr2res_detlin_sort_frames(darkframes)) == NULL) {
             cpl_msg_warning(__func__, 
                     "Failed sorting dark frames by increasing DITs - skip") ;
         } else {
+
+            hdrl_imagelist      *   darklist ;
             /* Load the image list */
             if ((darklist=cr2res_io_load_image_list_from_set(sorted_darkframes,
                             reduce_det)) == NULL) {
@@ -1056,10 +1058,10 @@ static int cr2res_cal_detlin_reduce(
                     for (l=0 ; l<=max_degree ; l++) {
                         cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
                         pcur_coeffs = cpl_image_get_data_double(cur_coeffs) ;
-                        pcur_coeffs[idx] = 0.0/0.0 ;
+                        pcur_coeffs[idx] = NAN ;
                         cur_errors = cpl_imagelist_get(errors_loc, l) ;
                         pcur_errors = cpl_image_get_data_double(cur_errors) ;
-                        pcur_errors[idx] = 0.0/0.0 ;
+                        pcur_errors[idx] = NAN ;
                     } 
                 } else {
                     qc_nbsuccess++ ;
@@ -1115,10 +1117,10 @@ static int cr2res_cal_detlin_reduce(
                 for (l=0 ; l<=max_degree ; l++) {
                     cur_coeffs = cpl_imagelist_get(coeffs_loc, l) ;
                     pcur_coeffs = cpl_image_get_data_double(cur_coeffs) ;
-                    pcur_coeffs[idx] = 0.0/0.0 ;
+                    pcur_coeffs[idx] = NAN ;
                     cur_errors = cpl_imagelist_get(errors_loc, l) ;
                     pcur_errors = cpl_image_get_data_double(cur_errors) ;
-                    pcur_errors[idx] = 0.0/0.0 ;
+                    pcur_errors[idx] = NAN ;
                 }
                 /* Set the BPM as bad */
                 pbpm_loc[idx] = CR2RES_BPM_OUTOFORDER ;
@@ -1246,10 +1248,6 @@ static int cr2res_cal_detlin_update_simplified(
     int             * pnew_bpm;
     hdrl_image      * global_coeffs_ima;
     hdrl_image      * new_coeffs_ima;
-    hdrl_image      * img;
-    hdrl_value new_value, global_value, pixel;
-    double tmp;
-    cpl_size x, y;
 
     /* Check Inputs */
     if (new_bpm == NULL || new_coeffs == NULL) return 0;
@@ -1285,8 +1283,8 @@ static int cr2res_cal_detlin_update_simplified(
                 for (k = 0; k < ni; k++) {
                     global_coeffs_ima = hdrl_imagelist_get(*global_coeffs, k);
                     new_coeffs_ima = hdrl_imagelist_get(new_coeffs, k);
-                    new_value = hdrl_image_get_pixel(new_coeffs_ima, i + 1, 
-                            j + 1, NULL);
+                    /*new_value = hdrl_image_get_pixel(new_coeffs_ima, i + 1, 
+                            j + 1, NULL);*/
                     hdrl_image_set_pixel(global_coeffs_ima, i + 1, j + 1, 
                             hdrl_image_get_pixel(new_coeffs_ima, i + 1, j + 1, 
                                 NULL)) ;
@@ -1301,7 +1299,7 @@ static int cr2res_cal_detlin_update_simplified(
     }
     return 0 ;
 }
-
+#ifdef CR2RES_UNUSED
 /*----------------------------------------------------------------------------*/
 /**
   @brief Update previous result with result from current setting.
@@ -1330,7 +1328,6 @@ static int cr2res_cal_detlin_update(
     int             * pnew_bpm;
     hdrl_image      * global_coeffs_ima;
     hdrl_image      * new_coeffs_ima;
-    hdrl_image      * img;
     hdrl_value new_value, global_value, pixel;
     double tmp;
     cpl_size x, y;
@@ -1358,6 +1355,7 @@ static int cr2res_cal_detlin_update(
 
         for (i = 0; i < hdrl_imagelist_get_size(*global_coeffs); i++)
         {
+            hdrl_image      * img;
             img = hdrl_imagelist_get(*global_coeffs, i);
             for (x = 0; x < hdrl_image_get_size_x(img); x++)
             {
@@ -1430,3 +1428,4 @@ static int cr2res_cal_detlin_update(
     }
     return 0 ;
 }
+#endif

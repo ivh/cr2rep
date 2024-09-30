@@ -142,7 +142,7 @@ static double cr2res_wave_etalon_get_D(
   @param    display_wmax    Maximum Wavelength to display or -1.0
   @param    qcs                 [out] QC parameters
   @param    lines_diagnostics   [out] lines diagnostics table
-  @param    extracted_out       [out] extracte table with updated WL
+  @param    extracted_out       [out] extracted table with updated WL
   @param    trace_wave_out      [out] trace wave table
   @return   0 if ok, -1 otherwise
  */
@@ -184,17 +184,15 @@ int cr2res_wave_apply(
     int                     nb_traces ;
     cpl_table           *   tw_out ;
     cpl_table           *   extracted_out_loc ;
-    const cpl_array     *   wl_array_tmp ;
     cpl_array           *   wl_array ;
     int                     flag ;
-    double                  coeff;
     cpl_polynomial      *   wave_sol_2d ;
     cpl_table           *   lines_diagnostics_tmp ;
     cpl_table           *   lines_diagnostics_loc ;
     cpl_propertylist    *   qcs_plist ;
     cpl_polynomial      *   wave_sol_1d ;
     cpl_array           *   wl_err_array ;
-    int                     trace_id, order, i, j ;
+    int                     trace_id, order, i;
     double                  best_xcorr, lines_resol_fwhm, lines_pos, 
                             lines_resol, lines_intens, qc_wlen_central, 
                             qc_wlen_disp ;
@@ -320,7 +318,7 @@ int cr2res_wave_apply(
         }
     }
 
-    /* Only if we use fallback or keep hiher degrees is the ouput */
+    /* Only if we use fallback or keep higher degrees is the ouput */
     /* degree potentially higher than the requested one */
     if (!fallback_input_wavecal_flag && !keep_higher_degrees_flag) 
         out_wl_array_size = degree+1 ;
@@ -367,16 +365,19 @@ int cr2res_wave_apply(
         return -1;
     }
 
-    /* Copy incoming solution into output If explicitely requested */
+    /* Copy incoming solution into output If explicitly requested */
     if (fallback_input_wavecal_flag) {
         for (i = 0; i < nb_traces; i++) {
+            int j;
             /* Propagate WAVELENGTH  */
+            const cpl_array     *   wl_array_tmp ;
             wl_array_tmp = cpl_table_get_array(tw_out, "TMP_WL", i);
             wl_array = cpl_array_new(degree_out+1, CPL_TYPE_DOUBLE);
             for (j=0; j <= degree_out; j++) {
                 if ( j+1 > cpl_array_get_size(wl_array_tmp)){
                     cpl_array_set(wl_array, j, 0.0);
                 } else {
+                    double                  coeff;
                     coeff = cpl_array_get_double(wl_array_tmp, j, &flag);
                     if (flag != 0)
                         cpl_msg_debug(__func__,"%d, %d, %s",j,flag,
@@ -676,7 +677,7 @@ int cr2res_wave_apply(
   @param    display_wmax    Maximum Wavelength to display or -1.0
   @param    best_xcorr          [out] Best XCORR value when applicable
   @param    lines_resol_fwhm    [out] Lines Fwhm min in pix
-  @param    lines_pos           [out] min fwhm line posision in nm
+  @param    lines_pos           [out] min fwhm line position in nm
   @param    lines_resol         [out] Lines Fwhm min in nm
   @param    lines_intens        [out] Lines intensities median 
   @param    wavelength_error    [out] array of wave_mean_error, wave_max_error
@@ -710,13 +711,9 @@ cpl_polynomial * cr2res_wave_1d(
         cpl_table           **  lines_diagnostics)
 {
     cpl_bivector        *   spectrum_local ;
-    cpl_vector          *   clean_spec_vec ;
     cpl_polynomial      *   solution ;
-    cpl_bivector        *   spectrum_corrected ;
-    double              *   px ;
     cpl_bivector        *   ref_spectrum ;
-    double                  wl_error_nm, disp, lamb0, pos ;
-    int                     i ;
+    double                  wl_error_nm, pos ;
 
     /* Check Inputs */
     if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL ||
@@ -748,6 +745,7 @@ cpl_polynomial * cr2res_wave_1d(
 
     /* Clean the input spectrum if requested */
     if (clean_spectrum && ref_spectrum != NULL) {
+        cpl_vector          *   clean_spec_vec ;
         /* Clean the spectrum */
         if ((clean_spec_vec = cr2res_wave_clean_spectrum(
                         cpl_bivector_get_y(spectrum), wavesol_init,
@@ -779,6 +777,10 @@ cpl_polynomial * cr2res_wave_1d(
         if (cpl_error_get_code() != CPL_ERROR_NONE) {
             cpl_error_reset();
         } else {
+            cpl_bivector        *   spectrum_corrected ;
+            double              *   px ;
+            int                     i ;
+            double                  lamb0, disp ;
             /* Recompute the wavelengths for the spectrum */
             spectrum_corrected = cpl_bivector_duplicate(spectrum_local) ;
             px = cpl_bivector_get_x_data(spectrum_corrected) ;
@@ -907,7 +909,6 @@ cpl_polynomial * cr2res_wave_2d(
     cpl_vector      *   diff;
     cpl_size            old, new, i, j, k, nlines ;
     cpl_polynomial  *   result ;
-    cpl_error_code      error;
     cpl_size            degree_2d[2];
     cpl_matrix      *   tmp_x;
     cpl_vector      *   tmp_y;
@@ -923,7 +924,7 @@ cpl_polynomial * cr2res_wave_2d(
     cpl_polynomial  **  wavesol;
     double              pix_pos, lambda_cat, lambda_meas, line_width,
                         line_intens, fit_error, value;
-    int                 n, badpix, order, trace;
+    int                 n, badpix;
 
     /* Check Inputs */
     if (spectra==NULL || spectra_err==NULL || wavesol_init==NULL ||
@@ -936,13 +937,14 @@ cpl_polynomial * cr2res_wave_2d(
     py = sigma_py = NULL ;
     *lines_diagnostics = NULL ;
     *wavelength_error = NULL;
+    result = NULL ;
 
     /* Load Catalog */
     if ((catalog_spec = cr2res_io_load_EMISSION_LINES(catalog)) == NULL) {
             cpl_msg_error(__func__,"Failed to load the catalog");
             return NULL ;
     }
-    n = cpl_bivector_get_size(catalog_spec);
+    // n = cpl_bivector_get_size(catalog_spec);
     // result = cpl_polynomial_new(2);
     wavesol = cpl_malloc(ninputs * sizeof(cpl_vector *));
     for (i = 0; i < ninputs; i++){
@@ -961,7 +963,7 @@ cpl_polynomial * cr2res_wave_2d(
                 continue;
             }
 
-            /* Create / Fill / Merge the lines diagnosics table  */
+            /* Create / Fill / Merge the lines diagnostics table  */
             if (lines_diagnostics != NULL && tmp_x != NULL) {
                 nlines = cpl_matrix_get_nrow(tmp_x) ;
                 cpl_msg_debug(__func__, "Number of lines: %"CPL_SIZE_FORMAT,nlines);
@@ -1044,7 +1046,7 @@ cpl_polynomial * cr2res_wave_2d(
         
 
         if (pxa == NULL){
-            // No orders ran succesfully
+            // No orders ran successfully
             cpl_msg_error(__func__, "No lines could be extracted in any order");
             cpl_bivector_delete(catalog_spec) ;
             // cpl_polynomial_delete(result);
@@ -1135,7 +1137,7 @@ cpl_polynomial * cr2res_wave_2d(
     for (i = 0; i < n; i++){
         cpl_vector_set(pos, 0, cpl_vector_get(pxa, i));
         cpl_vector_set(pos, 1, cpl_vector_get(pxb, i));
-        cpl_vector_set(diff, i, abs(
+        cpl_vector_set(diff, i, fabs(
             cpl_polynomial_eval(result, pos)
             - cpl_vector_get(py, i)));
     }
@@ -1148,12 +1150,13 @@ cpl_polynomial * cr2res_wave_2d(
     cpl_array_set_double(*wavelength_error, 1,
             cpl_vector_get_max(diff));
 
-    /* Update the lines diagnosics table with the new solution*/
+    /* Update the lines diagnostics table with the new solution*/
     if (lines_diagnostics != NULL) {
         nlines = cpl_table_get_nrow(*lines_diagnostics);
         /* Fill */
         i = 0;
         for (j=0 ; j<nlines ; j++) {
+            int order, trace;
             pix_pos = cpl_table_get_double(*lines_diagnostics, 
                             CR2RES_COL_MEASURED_PIXEL, j, &badpix);
             lambda_cat = cpl_table_get_double(*lines_diagnostics, 
@@ -1235,7 +1238,6 @@ cpl_polynomial * cr2res_wave_xcorr(
     cpl_vector          *   spec_clean ;
     double              *   pspec_clean ;
     cpl_bivector        *   lines_list_filtered ;
-    cpl_vector          *   filtered ;
     cpl_vector          *   xcorrs ;
     double                  wl_min, wl_max, wl_error_nm, wl_error_pix ;
     int                     i, nsamples, degree_loc, npolys ;
@@ -1253,6 +1255,7 @@ cpl_polynomial * cr2res_wave_xcorr(
 
     /* Clean the spectrum from the low frequency signal if requested */
     if (cleaning_filter_size > 0) {
+        cpl_vector          *   filtered ;
         cpl_msg_info(__func__, "Low Frequency removal from spectrum") ;
         cpl_msg_indent_more() ;
         /* Subtract the low frequency part */
@@ -1389,19 +1392,19 @@ cpl_polynomial * cr2res_wave_xcorr(
     The method involves these steps:
     * Identify lines (thresholding)
     * Determine line centers (gauss fit)
-    * Subtract x-coods from subsequent lines, i.e. measure d many times
+    * Subtract x-coords from subsequent lines, i.e. measure d many times
         d is the distance between fringes in pixels, assumed to be constant
     * Determine mis-counts in fringes, by looking at outliers in d-distribution,
         re-count with e.g. half-distance between two fringes, if one is missing.
-    * Fit the d-distibution to determine "true d"
-    * Use d to calculate new x-coodinates, use input-solution to translate to
+    * Fit the d-distribution to determine "true d"
+    * Use d to calculate new x-coordinates, use input-solution to translate to
         wavelength
-    * Fit measured x-coords to new lamdas to get new solution.
+    * Fit measured x-coords to new lambdas to get new solution.
  */
 /*----------------------------------------------------------------------------*/
 cpl_polynomial * cr2res_wave_etalon(
         cpl_bivector    *   spectrum,
-        cpl_bivector    *   spectrum_err,
+        const cpl_bivector    *   spectrum_err,
         cpl_polynomial  *   wavesol_init,
         int                 degree,
         cpl_array       **  wavelength_error)
@@ -1608,8 +1611,6 @@ hdrl_image * cr2res_wave_gen_wave_map(
     hdrl_image      *   out ;
     cpl_image       *   out_ima ;
     double          *   pout_ima ;
-    const cpl_array *   tmp_array ;
-    cpl_polynomial  *   wave_poly ;
     cpl_polynomial  *   upper_poly ;
     cpl_polynomial  *   lower_poly ;
     double              upper_pos, lower_pos, wavelength ;
@@ -1630,6 +1631,8 @@ hdrl_image * cr2res_wave_gen_wave_map(
 
     /* Loop on the traces */
     for (k=0 ; k<nrows ; k++) {
+        const cpl_array *   tmp_array ;
+        cpl_polynomial  *   wave_poly ;
         /* Check if there is a Wavelength Polynomial available */
         tmp_array = cpl_table_get_array(trace_wave, CR2RES_COL_WAVELENGTH, k) ;
         wave_poly = cr2res_convert_array_to_poly(tmp_array) ;
@@ -1675,7 +1678,7 @@ hdrl_image * cr2res_wave_gen_wave_map(
   @param    poly_1ds    List of 1d wavelength polynomials
   @param    orders      List of the order values
   @param    npolys      Number of passed polynomials
-  @param    xdegree     Polynomial degree in vertical direction (cross-dispers)
+  @param    xdegree     Polynomial degree in vertical direction (cross-dispersed)
   @return   The newly allocated 2D polynomial or NULL in error case
  */
 /*----------------------------------------------------------------------------*/
@@ -1794,7 +1797,7 @@ cpl_polynomial * cr2res_wave_poly_2d_to_1d(
 
     return out ;
 }
-
+#ifdef CR2RES_UNUSED
 /*----------------------------------------------------------------------------*/
 /**
   @brief  Print the Method
@@ -1820,7 +1823,7 @@ char * cr2res_wave_method_print(
         out_str = cpl_sprintf("Unsupported") ;
     return out_str ;
 }
-
+#endif
 /**@}*/
 
 /*----------------------------------------------------------------------------*/
@@ -1921,10 +1924,9 @@ static cpl_table * cr2res_wave_recompute_wl(
         const cpl_table *   tw)
 {
     cpl_table       *   spectra_out ;
-    cpl_polynomial  *   wave_poly ;
     char            *   wave_name ;
     double          *   pwave ;
-    int                 i, j, nrows, order, trace_nb ;
+    int                 i, j, nrows;
 
     /* Check entries */
     if (spectra == NULL || tw == NULL) return NULL ;
@@ -1937,6 +1939,9 @@ static cpl_table * cr2res_wave_recompute_wl(
 
     /* Loop on the traces */
     for (i=0 ; i<nrows ; i++) {
+
+        cpl_polynomial  *   wave_poly ;
+        int                 order, trace_nb ;
         order = cpl_table_get(tw, CR2RES_COL_ORDER, i, NULL) ;
         trace_nb = cpl_table_get(tw, CR2RES_COL_TRACENB, i, NULL);
        
@@ -2078,7 +2083,6 @@ int cr2res_wave_fit_single_line(
     // For gaussian fit of each line
     // gauss = A * exp((x-mu)^2/(2*sig^2)) + cont
 
-    cpl_vector * tmp;
     cpl_matrix * x;
     cpl_matrix * sigma_x;
     cpl_vector * y;
@@ -2086,7 +2090,7 @@ int cr2res_wave_fit_single_line(
     cpl_vector * a;
     int * ia;
     double red_chisq;
-    double value, value2, diff;
+    double value;
     cpl_size k, j, n, spec_size;
     cpl_error_code error;
 
@@ -2107,7 +2111,7 @@ int cr2res_wave_fit_single_line(
     ia = NULL;
 
     spec_size = cpl_vector_get_size(spec);
-    value = 0;
+    //value = 0;
     k = pixel_pos - window_size / 2;
 
     // Extract the spectrum within the window
@@ -2125,6 +2129,7 @@ int cr2res_wave_fit_single_line(
     }
     n = 0;
     for (j = 0; j < window_size; j++){
+        double value2;
         k = pixel_pos - window_size / 2 + j;
         value = cpl_vector_get(spec, k);
         value2 = unc != NULL ? cpl_vector_get(unc, k) : 0;
@@ -2156,29 +2161,33 @@ int cr2res_wave_fit_single_line(
 
     // Filter out bad pixels
     // This needs at least 2 elements
-    if (n > 2){
-        tmp = cpl_vector_duplicate(y);
-        // First element
-        if (fabs(cpl_vector_get(tmp, 0) - cpl_vector_get(tmp, 1)) 
-                > MAX_DEVIATION_FOR_BAD_PIXEL)
-            cpl_vector_set(y, 0, cpl_vector_get(tmp, 1));     
-        // Elements in between
-        for (j = 1; j < n-1; j++){
-            diff = 2 * cpl_vector_get(tmp, j) - 
-                    cpl_vector_get(tmp, j-1) - cpl_vector_get(tmp, j+1);
-            diff = fabs(diff);
-            if (diff > MAX_DEVIATION_FOR_BAD_PIXEL){
-                value = (cpl_vector_get(tmp, j-1) + cpl_vector_get(tmp, j+1)) / 2.;
-                cpl_vector_set(y, j, value);
-            }
+    //if (n > 2){ n>=5 from above.
+
+    cpl_vector *tmp;
+    tmp = cpl_vector_duplicate(y);
+    // First element
+    if (fabs(cpl_vector_get(tmp, 0) - cpl_vector_get(tmp, 1)) >
+        MAX_DEVIATION_FOR_BAD_PIXEL)
+        cpl_vector_set(y, 0, cpl_vector_get(tmp, 1));
+    // Elements in between
+    for (j = 1; j < n - 1; j++) {
+        double diff;
+        diff = 2 * cpl_vector_get(tmp, j) - cpl_vector_get(tmp, j - 1) -
+               cpl_vector_get(tmp, j + 1);
+        diff = fabs(diff);
+        if (diff > MAX_DEVIATION_FOR_BAD_PIXEL) {
+            value =
+                (cpl_vector_get(tmp, j - 1) + cpl_vector_get(tmp, j + 1)) / 2.;
+            cpl_vector_set(y, j, value);
         }
-        // Last element
-        if (fabs(cpl_vector_get(tmp, n-1) - 
-                cpl_vector_get(tmp, n-2)) > MAX_DEVIATION_FOR_BAD_PIXEL)
-            cpl_vector_set(y, n-1, cpl_vector_get(tmp, n-2));
-        cpl_vector_delete(tmp);
-        
     }
+    // Last element
+    if (fabs(cpl_vector_get(tmp, n - 1) - cpl_vector_get(tmp, n - 2)) >
+        MAX_DEVIATION_FOR_BAD_PIXEL)
+        cpl_vector_set(y, n - 1, cpl_vector_get(tmp, n - 2));
+    cpl_vector_delete(tmp);
+
+    //}
 
     // get initial guess for gaussian fit
     value = pixel_pos - window_size / 2 + cpl_vector_get_maxpos(y);
@@ -2319,12 +2328,11 @@ int cr2res_wave_extract_lines(
     const cpl_vector * spec;
     const cpl_vector * unc;
     const double * wave;
-    const double * height;
     cpl_size power;
     cpl_size i, k, ngood, spec_size, npossible;
     double pixel_pos, pixel_new;
     double max_wl, min_wl;
-    double peak_height, width;
+    double peak_height;
     int n;
 
     /* Check Entries */
@@ -2376,7 +2384,7 @@ int cr2res_wave_extract_lines(
 
     // get line data
     wave = cpl_bivector_get_x_data_const(lines_list);
-    height = cpl_bivector_get_y_data_const(lines_list);
+    //height = cpl_bivector_get_y_data_const(lines_list);
     // TODO width is not provided in the catalog at the moment,
     // use half window size instead?
     if (peak_width <= 0){
@@ -2514,14 +2522,13 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
     cpl_vector  *   spec_thresh;
     cpl_vector  *   cur_peak;
     cpl_vector  *   X_all, *X_peak;
-    int             i, j, k ;
+    int             i, k ;
     int             smooth = 35 ;   // TODO: make free parameter?
                                     // interfringe ~30 in Y, ~70 in K
     double          thresh = 1.0 ;   // TODO: derive from read-out noise
     int             max_num_peaks = 256 ;
     int             min_len_peak = 5 ; //TODO: tweak or make parameter?;
     cpl_size        nx ;
-    double          spec_i;
     double          x0, sigma, area, offset;
 
     nx = cpl_vector_get_size(spectrum) ;
@@ -2543,8 +2550,9 @@ cpl_vector * cr2res_wave_etalon_measure_fringes(
     for (i=0; i<nx; i++) cpl_vector_set(X_all, i, (double)i+1) ;
 
     for (i=0; i < nx; i++){
+        int j;
         j = 0;
-        while ( (spec_i = cpl_vector_get(spec_thresh, i)) > -1 ) {
+        while ( cpl_vector_get(spec_thresh, i) > -1 ) {
             j++;
             i++;
         }
@@ -2641,9 +2649,7 @@ static cpl_polynomial * cr2res_wave_line_fitting(
     cpl_vector      *   sigma_py;
     cpl_vector      *   heights ;
     cpl_vector      *   fit_errors ;
-    cpl_size            nlines, j ;
-    double              pix_pos, lambda_cat, lambda_meas, line_width,
-                        line_intens, fit_error ;
+    cpl_size            nlines;
 
     /* Check Entries */
     if (spectrum == NULL || spectrum_err == NULL || wavesol_init == NULL ||
@@ -2662,14 +2668,19 @@ static cpl_polynomial * cr2res_wave_line_fitting(
     result = cr2res_wave_polyfit_1d(px, py, sigma_py, degree, wavesol_init,
             wavelength_error, sigma_fit, &cov);
 
-    /* Create / Fill the lines diagnosics table  */
+    /* Create / Fill the lines diagnostics table  */
     if (lines_diagnostics != NULL && px != NULL && result != NULL) {
+        cpl_size j;
+
         nlines = cpl_matrix_get_nrow(px) ;
         cpl_msg_debug(__func__, "Number of lines: %"CPL_SIZE_FORMAT, nlines);
         /* Create */
         *lines_diagnostics = cr2res_dfs_create_lines_diagnostics_table(nlines) ;
         /* Fill */
         for (j=0 ; j<nlines ; j++) {
+
+            double      pix_pos, lambda_cat, lambda_meas, line_width,
+                        line_intens, fit_error ;
             pix_pos = cpl_matrix_get(px, j, 0) ;
             lambda_cat = cpl_vector_get(py, j) ;
             lambda_meas = cpl_polynomial_eval_1d(result, pix_pos, NULL) ;
@@ -2766,7 +2777,6 @@ static cpl_polynomial * cr2res_wave_polyfit_1d(
 {
 
     // For polynomial fit
-    cpl_vector * diff;
     cpl_polynomial * result = cpl_polynomial_new(1);
     cpl_matrix * sigma_px = NULL;
     cpl_vector * pa = cpl_vector_new(degree + 1 + 1);
@@ -2814,6 +2824,8 @@ static cpl_polynomial * cr2res_wave_polyfit_1d(
         }
 
         if (wavelength_error != NULL){
+
+            cpl_vector * diff;
             // Calculate absolute difference between polynomial and catalog value for each line
             // use px and py, so that only good lines are used
             diff = cpl_vector_new(cpl_vector_get_size(py));
@@ -3002,8 +3014,7 @@ static cpl_bivector * cr2res_wave_etalon_assign_fringes(
         const cpl_vector      * li,
         const cpl_vector      * li_true)
 {
-    int i, j, n;
-    double x;
+    int i, n;
     cpl_bivector * is_should;
     cpl_vector * is;
     cpl_vector * should;
@@ -3013,6 +3024,8 @@ static cpl_bivector * cr2res_wave_etalon_assign_fringes(
     is = cpl_bivector_get_x(is_should);
     should = cpl_bivector_get_y(is_should);
     for (i=0; i<n; i++) {
+        double x;
+        int j;
         x = cpl_vector_get(li, i);
         j = cpl_vector_find(li_true, x);
         cpl_vector_set(is, i, x);

@@ -84,9 +84,9 @@ int * cr2res_get_trace_numbers(
         int                 order_idx,
         int             *   nb_traces) ;
 
-cpl_size cr2res_get_nb_traces_with_wavelength(
+/*cpl_size cr2res_get_nb_traces_with_wavelength(
         const cpl_table *   trace_wave,
-        int                 order_idx) ;
+        int                 order_idx) ;*/
 
 cpl_vector * cr2res_trace_get_ycen(
         const cpl_table *   trace,
@@ -122,10 +122,12 @@ cpl_table * cr2res_trace_new_slit_fraction(
         const cpl_table     *   traces,
         const cpl_array     *   new_slit_fraction) ;
 
+#ifdef CR2RES_UNUSED
 cpl_table * cr2res_trace_adjust(
         const cpl_table     *   trace_wave,
         const cpl_frameset  *   flat_raw,
         int                     det_nr) ;
+#endif
 
 cr2res_decker cr2res_trace_slit_fraction_info(
         const cpl_array *   slit_frac,

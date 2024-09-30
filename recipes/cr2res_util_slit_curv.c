@@ -259,13 +259,9 @@ static int cr2res_util_slit_curv(
         const cpl_parameterlist *   parlist)
 {
     const cpl_parameter *   param;
-    int                     reduce_det, reduce_order, reduce_trace, display ;
+    int                     reduce_det, reduce_order, reduce_trace;
     cpl_frameset        *   rawframes_tw ;
     cpl_frameset        *   rawframes_lamp ;
-    const cpl_frame     *   cur_frame_tw ;
-    const char          *   cur_fname_tw ;
-    const cpl_frame     *   cur_frame_lamp ;
-    const char          *   cur_fname_lamp ;
     cpl_table           *   trace_wave[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   lamp_image[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   slit_curv_map[CR2RES_NB_DETECTORS] ;
@@ -291,9 +287,9 @@ static int cr2res_util_slit_curv(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_slit_curv.degree");
     slit_degree = cpl_parameter_get_int(param);
-    param = cpl_parameterlist_find_const(parlist,
+    /*param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_slit_curv.display");
-    display = cpl_parameter_get_int(param) ;
+    display = cpl_parameter_get_int(param) ;*/
  
     /* Identify the RAW and CALIB frames in the input frameset */
     if (cr2res_dfs_set_groups(frameset) != CPL_ERROR_NONE) {
@@ -320,7 +316,11 @@ static int cr2res_util_slit_curv(
     }
 
     /* Loop on the RAW frames */
-    for (i=0 ; i<cpl_frameset_get_size(rawframes_tw) ; i++) {
+    for (i = 0; i < cpl_frameset_get_size(rawframes_tw); i++) {
+        const cpl_frame *cur_frame_tw;
+        const char *cur_fname_tw;
+        const cpl_frame *cur_frame_lamp;
+        const char *cur_fname_lamp;
         /* Get the Current Frame */
         cur_frame_tw = cpl_frameset_get_position(rawframes_tw, i) ;
         cur_fname_tw = cpl_frame_get_filename(cur_frame_tw) ;

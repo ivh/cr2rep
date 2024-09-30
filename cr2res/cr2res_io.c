@@ -39,6 +39,7 @@
 #include "cr2res_dfs.h"
 #include "cr2res_pfits.h"
 #include "cr2res_bpm.h"
+#include "cr2res_qc.h"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -431,7 +432,6 @@ cpl_frameset * cr2res_io_find_BPM_all(const cpl_frameset  * in)
 cpl_vector * cr2res_io_read_dits(const cpl_frameset * in)
 {
     cpl_vector          *   dits ;
-    cpl_propertylist    *   plist ;
     cpl_size                i ;
 
     /* Check entries */
@@ -442,6 +442,7 @@ cpl_vector * cr2res_io_read_dits(const cpl_frameset * in)
 
     /* Loop on the frames */
     for (i=0 ; i< cpl_vector_get_size(dits) ; i++) {
+        cpl_propertylist    *   plist ;
         plist = cpl_propertylist_load(cpl_frame_get_filename(
                     cpl_frameset_get_position_const(in, i)), 0) ;
         cpl_vector_set(dits, i, cr2res_pfits_get_dit(plist)) ;
@@ -461,7 +462,6 @@ cpl_vector * cr2res_io_read_dits(const cpl_frameset * in)
 cpl_vector * cr2res_io_read_ndits(const cpl_frameset * in)
 {
     cpl_vector          *   ndits ;
-    cpl_propertylist    *   plist ;
     cpl_size                i ;
 
     /* Check entries */
@@ -472,6 +472,7 @@ cpl_vector * cr2res_io_read_ndits(const cpl_frameset * in)
 
     /* Loop on the frames */
     for (i=0 ; i< cpl_vector_get_size(ndits) ; i++) {
+        cpl_propertylist    *   plist ;
         plist = cpl_propertylist_load(cpl_frame_get_filename(
                     cpl_frameset_get_position_const(in, i)), 0) ;
         cpl_vector_set(ndits, i, cr2res_pfits_get_ndit(plist)) ;
@@ -490,7 +491,6 @@ cpl_vector * cr2res_io_read_ndits(const cpl_frameset * in)
 cr2res_decker * cr2res_io_read_decker_positions(const cpl_frameset * in)
 {
     cr2res_decker       *   out ;
-    cpl_propertylist    *   plist ;
     cpl_size                nframes, i ;
 
     /* Check entries */
@@ -503,7 +503,8 @@ cr2res_decker * cr2res_io_read_decker_positions(const cpl_frameset * in)
     out = cpl_malloc(nframes * sizeof(cr2res_decker)) ;
 
     /* Loop on the frames */
-    for (i=0 ; i< nframes ; i++) {
+    for (i = 0; i < nframes; i++) {
+        cpl_propertylist *plist;
         plist = cpl_propertylist_load(cpl_frame_get_filename(
                     cpl_frameset_get_position_const(in, i)), 0) ;
         out[i] = cr2res_pfits_get_decker_position(plist) ;
@@ -529,7 +530,6 @@ cpl_frameset * cr2res_io_extract_decker_frameset(
         cr2res_decker           decker)
 {
     cpl_frameset        *   out ;
-    const cpl_frame     *   cur_frame ;
     cpl_frame           *   loc_frame ;
     int                     nbframes;
     cpl_propertylist    *   plist ;
@@ -553,6 +553,7 @@ cpl_frameset * cr2res_io_extract_decker_frameset(
 
     /* Loop on the requested frames and store them in out */
     for (i=0 ; i<nbframes ; i++) {
+        const cpl_frame     *   cur_frame ;
         cur_frame = cpl_frameset_get_position_const(in, i) ;
         if (!strcmp(cpl_frame_get_tag(cur_frame), tag)) {
             /* Get the propertylist */
@@ -588,7 +589,7 @@ int cr2res_io_convert_order_idx_to_idxp(int order_idx)
     if (order_idx < 0)  return order_idx + 100 ;
     else                return order_idx ;
 }
-
+#ifdef CR2RES_UNUSED
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Convert the order_idxp to the order_idx
@@ -605,7 +606,7 @@ int cr2res_io_convert_order_idxp_to_idx(int order_idxp)
     if (order_idxp > 50) return order_idxp - 100 ;
     else                return order_idxp ;
 }
-
+#endif
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Create Extname
@@ -645,10 +646,8 @@ int cr2res_io_get_ext_idx(
         int             detector,
         int             data)
 {
-    const char          *   extname ;
     char                *   wished_extname ;
     int                     wished_ext_nb = -1 ;
-    cpl_propertylist    *   pl ;
     int                     nb_ext, i ;
 
     /* Check entries */
@@ -663,6 +662,8 @@ int cr2res_io_get_ext_idx(
 
     /* Loop on the extensions */
     for (i=1 ; i<=nb_ext ; i++) {
+        const char          *   extname ;
+        cpl_propertylist    *   pl ;
         /* Get the header */
         pl = cpl_propertylist_load(filename, i) ;
         /* Read the EXTNAME */
@@ -866,14 +867,14 @@ cpl_table * cr2res_load_table(
 {
     cpl_table   *   out ;
     cpl_table   *   out_tmp ;
-    int             ext_nr ;
+    //int             ext_nr ;
 
     /* Check entries */
     if (in == NULL) return NULL ;
     if (det_nr < 1 || det_nr > CR2RES_NB_DETECTORS) return NULL ;
 
     /* Get the extension number for this detector */
-    ext_nr = cr2res_io_get_ext_idx(in, det_nr, 1) ;
+    //ext_nr = cr2res_io_get_ext_idx(in, det_nr, 1) ;
 
     /* Load the table */
     if ((out = cpl_table_load(in, det_nr, 0)) == NULL) {
@@ -906,8 +907,7 @@ cpl_bivector * cr2res_io_load_EMISSION_LINES(
     double          *   lines_x ;
     double          *   lines_y ;
     cpl_table       *   lines_tab ;
-    double              val ;
-    int                 i, tab_size, log_flag ;
+    int                 i, tab_size;// log_flag ;
 
     /* Check Entries */
     if (filename == NULL) return NULL ;
@@ -919,7 +919,7 @@ cpl_bivector * cr2res_io_load_EMISSION_LINES(
     }
 
     /* Initialise */
-    log_flag = 0 ;
+    //log_flag = 0 ;
 
     /* Load the file in a table */
     lines_tab = cpl_table_load(filename, 1, 1) ;
@@ -930,10 +930,13 @@ cpl_bivector * cr2res_io_load_EMISSION_LINES(
     lines_x = cpl_bivector_get_x_data(lines) ;
     lines_y = cpl_bivector_get_y_data(lines) ;
     for (i=0 ; i<tab_size ; i++) {
+
+        double              val ;
         lines_x[i] = cpl_table_get(lines_tab, CR2RES_COL_WAVELENGTH, i, NULL) ;
         val = cpl_table_get(lines_tab, CR2RES_COL_EMISSION, i, NULL) ;
-        if (log_flag && val > 0)    lines_y[i] = log10(val) ;
-        else                        lines_y[i] = val ;
+        //if (log_flag && val > 0)    lines_y[i] = log10(val) ;
+        //else                        lines_y[i] = val ;
+        lines_y[i] = val ;
     }
 
     /* Free and return */
@@ -1190,7 +1193,7 @@ hdrl_image * cr2res_io_load_SLIT_MODEL(
     /* Return  */
     return slit_model ;
 }
-
+#ifdef CR2RES_UNUSED
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Load an hdrl image from a TRACE_MAP
@@ -1280,7 +1283,7 @@ hdrl_image * cr2res_io_load_SLIT_CURV_MAP(
     /* Return  */
     return slit_curv_map ;
 }
-
+#endif
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Load a table from a EXTRACT_1D
@@ -1310,7 +1313,7 @@ cpl_table * cr2res_io_load_EXTRACT_1D(
     /* Return  */
     return extract_1D_tab ;
 }
-
+#ifdef CR2RES_UNUSED
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Load a table from a SPLICED_1D
@@ -1366,7 +1369,7 @@ cpl_table * cr2res_io_load_EXTRACT_2D(
     /* Return  */
     return extract_2D_tab ;
 }
-
+#endif
 /*----------------------------------------------------------------------------*/
 /*---------------------       SAVING FUNCTIONS       -------------------------*/
 /*----------------------------------------------------------------------------*/
@@ -1682,7 +1685,7 @@ int cr2res_io_save_TRACE_WAVE(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Save a LINES_DIAGNOSICS
+  @brief    Save a LINES_DIAGNOSTICS
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    inframes    The recipe used input frames
@@ -2020,7 +2023,7 @@ int cr2res_io_save_EXTRACT_2D(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Save a Polarymetry spectrum
+  @brief    Save a Polarimetry spectrum
   @param    filename    The FITS file name
   @param    allframes   The recipe input frames
   @param    inframes    The recipe used input frames
@@ -2076,7 +2079,7 @@ static int cr2res_io_set_bpm_as_NaNs(
     /* Loop on the pixels */
     for (j=0 ; j<ny ; j++) {
         for (i=0 ; i<nx ; i++) {
-            if (cpl_image_is_rejected(in, i+1, j+1)) pdata[i+j*nx] = 0./0. ;
+            if (cpl_image_is_rejected(in, i+1, j+1)) pdata[i+j*nx] = NAN ;
         }
     }
     return 0 ;
@@ -2157,6 +2160,8 @@ static int cr2res_io_save_table(
     /* Add PRO Keys */
     cpl_propertylist_append_string(pro_list, CPL_DFS_PRO_CATG, procatg) ;
     cpl_propertylist_append_string(pro_list, CR2RES_HEADER_DRS_TYPE, drstype) ;
+    
+    cr2res_qc_dup_mtrlgy_key(inframes, pro_list);
 
     /* Create the first extension header */
     if (ext_plist[0]==NULL) {
@@ -2170,6 +2175,8 @@ static int cr2res_io_save_table(
     wished_extname = cr2res_io_create_extname(1, 1) ;
     cpl_propertylist_update_string(ext_head, "EXTNAME", wished_extname) ;
     cpl_free(wished_extname) ;
+
+    cr2res_qc_dup_chip_idx(ext_head);
 
     /* Remove keywords in the primary header matching NODPOS (PIPE-9952) */
     to_remove = cpl_sprintf("NODPOS") ;
@@ -2214,6 +2221,7 @@ static int cr2res_io_save_table(
         wished_extname = cr2res_io_create_extname(i+1, 1) ;
         cpl_propertylist_update_string(ext_head, "EXTNAME", wished_extname) ;
         cpl_free(wished_extname) ;
+        cr2res_qc_dup_chip_idx(ext_head);
 
         if (tab[i] != NULL) {
             cpl_table_save(tab[i], NULL, ext_head, filename, CPL_IO_EXTEND) ;
@@ -2322,7 +2330,6 @@ static int cr2res_io_save_image(
 {
     cpl_propertylist    *   qclist_loc ;
     cpl_image           *   to_save ;
-    char          		*   wished_extname ;
     char                *   to_remove ;
     int                     det_nr ;
 
@@ -2334,6 +2341,8 @@ static int cr2res_io_save_image(
     }
     cpl_propertylist_update_string(qclist_loc, CPL_DFS_PRO_CATG, procatg);
     cpl_propertylist_update_string(qclist_loc, CR2RES_HEADER_DRS_TYPE, drstype);
+    
+    cr2res_qc_dup_mtrlgy_key(inframes, qclist_loc);
 
     /* Remove keywords in the primary header matching NODPOS (PIPE-9952) */
     to_remove = cpl_sprintf("NODPOS") ;
@@ -2354,6 +2363,7 @@ static int cr2res_io_save_image(
 
     /* Save the extensions */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        char          		*   wished_extname ;
         if (ext_plist[det_nr-1] == NULL) {
             qclist_loc = cpl_propertylist_new();
         } else {
@@ -2364,6 +2374,8 @@ static int cr2res_io_save_image(
         /* Save the DATA */
         wished_extname = cr2res_io_create_extname(det_nr, 1) ;
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", wished_extname) ;
+
+        cr2res_qc_dup_chip_idx(qclist_loc);
 
         if (data[det_nr-1] == NULL)
             to_save = NULL ;
@@ -2428,7 +2440,6 @@ static int cr2res_io_save_imagelist(
     cpl_propertylist    *   qclist_loc ;
     cpl_imagelist       *   list_data ;
     cpl_imagelist       *   list_noise ;
-    char          		*   wished_extname ;
     int                     det_nr ;
     cpl_size                i ;
 
@@ -2440,6 +2451,8 @@ static int cr2res_io_save_imagelist(
     }
     cpl_propertylist_update_string(qclist_loc, CPL_DFS_PRO_CATG, procatg);
     cpl_propertylist_update_string(qclist_loc, CR2RES_HEADER_DRS_TYPE, drstype);
+    
+    cr2res_qc_dup_mtrlgy_key(inframes, qclist_loc);
 
     /* Create the Primary Data Unit without data */
     if (cpl_dfs_save_propertylist(allframes, NULL, parlist, inframes, NULL,
@@ -2454,6 +2467,7 @@ static int cr2res_io_save_imagelist(
 
     /* Save the extensions */
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
+        char          		*   wished_extname ;
 
         /* Extract separately data / noise */
         if (data[det_nr-1] == NULL) {
@@ -2479,6 +2493,7 @@ static int cr2res_io_save_imagelist(
         /* Save the DATA */
         wished_extname = cr2res_io_create_extname(det_nr, 1) ;
         cpl_propertylist_prepend_string(qclist_loc, "EXTNAME", wished_extname) ;
+        cr2res_qc_dup_chip_idx(qclist_loc);
         if (list_data == NULL) {
             cpl_propertylist_save(qclist_loc, filename, CPL_IO_EXTEND) ;
         } else {
@@ -2518,7 +2533,6 @@ static cpl_imagelist * cr2res_hdrl_to_cpl_list(
         int                         data)
 {
     cpl_imagelist       *   out ;
-    const hdrl_image    *   cur_im ;
     const cpl_image     *   cur_cpl_im ;
     cpl_size            i ;
 
@@ -2529,6 +2543,7 @@ static cpl_imagelist * cr2res_hdrl_to_cpl_list(
     /* Create output list */
     out = cpl_imagelist_new() ;
     for (i=0 ; i< hdrl_imagelist_get_size(in) ; i++) {
+        const hdrl_image    *   cur_im ;
         cur_im = hdrl_imagelist_get(in, i) ;
         if (data == 1) cur_cpl_im = hdrl_image_get_image_const(cur_im) ;
         if (data == 0) cur_cpl_im = hdrl_image_get_error_const(cur_im) ;
@@ -2552,7 +2567,6 @@ static int cr2res_io_check_drs_type(
 {
     cpl_propertylist    *   plist ;
     const char          *   drstype ;
-    const char          *   protype ;
 
     /* Check entries */
     if (filename == NULL) return -1 ;
@@ -2562,6 +2576,8 @@ static int cr2res_io_check_drs_type(
     if (plist == NULL) return -1;
     drstype = cr2res_pfits_get_drstype(plist) ;
     if (cpl_error_get_code()) {
+
+        const char          *   protype ;
         cpl_error_reset() ;
 
         /* TRANSITION PHASE starting 09.02.2023 : See ticket PIPE-10551 */

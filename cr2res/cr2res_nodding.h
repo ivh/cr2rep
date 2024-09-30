@@ -47,13 +47,13 @@ char cr2res_nodding_position_char(cr2res_nodding_pos pos) ;
 
 int cr2res_combine_nodding_split(
         const hdrl_imagelist    *   in,
-        cr2res_nodding_pos      *   positions,
+        const cr2res_nodding_pos      *   positions,
         hdrl_imagelist          **  pos_a,
         hdrl_imagelist          **  pos_b) ;
 
 int cr2res_combine_nodding_split_frames(
         const cpl_frameset      *   in,
-        cr2res_nodding_pos      *   positions,
+        const cr2res_nodding_pos      *   positions,
         cpl_frameset            **  pos_a,
         cpl_frameset            **  pos_b) ;
 

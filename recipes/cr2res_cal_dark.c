@@ -334,18 +334,11 @@ static int cr2res_cal_dark(
     cpl_image           *   ima_err ;
 
     double                  ron1, ron2, med, mean, sigma ;
-    cpl_vector          *   qc_ron1,
-                        *   qc_ron2,
-                        *   qc_nb_bad,
-                        *   qc_mean,
-                        *   qc_med,
-                        *   qc_sigma ;
     cpl_image           *   contrib_map;
     cpl_mask            *   bpm ;
-    const char          *   first_fname ;
     char                *   filename ;
     cpl_frame           *   frame ;
-    int                     nb_frames, i, l, det_nr, nb_bad ;
+    int                     i, l, det_nr, nb_bad ;
     int                     single_dit_ndit_setting ;
     int                     original_ndit ;
     double                  original_dit ;
@@ -473,7 +466,10 @@ static int cr2res_cal_dark(
     cpl_free(original_setting);
 
     /* Loop on the settings */
-    for (l=0 ; l<(int)nlabels ; l++) {
+    for (l = 0; l < (int)nlabels; l++) {
+        cpl_vector *qc_ron1, *qc_ron2, *qc_nb_bad, *qc_mean, *qc_med, *qc_sigma;
+        const char *first_fname;
+        int nb_frames;
         /* Get the frames for the current setting */
         raw_one = cpl_frameset_extract(rawframes, labels, (cpl_size)l) ;
         nb_frames = cpl_frameset_get_size(raw_one) ;
@@ -608,10 +604,14 @@ static int cr2res_cal_dark(
                         my_bpm_method = CR2RES_BPM_GLOBAL_STATS ;
                         if (bpm_kappa < 0.0) 
                             my_bpm_kappa = bpm_kappa_global_default ;
+                        else 
+                            my_bpm_kappa = bpm_kappa ;
                     } else {
                         my_bpm_method = CR2RES_BPM_LOCAL_STATS ;
                         if (bpm_kappa < 0.0) 
                             my_bpm_kappa = bpm_kappa_local_default ;
+                        else 
+                            my_bpm_kappa = bpm_kappa ;
                     }
                 } else {
                     my_bpm_method = bpm_method ;

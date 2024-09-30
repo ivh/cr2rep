@@ -47,7 +47,6 @@ static int cr2res_idp_copy_spec(
     int                 det_nr,
     int                 order,
     int                 tracenb,
-    const char      *   recipe,
     const char      *   setting) ;
 static int cr2res_idp_copy_pol(
     cpl_table       *   out,
@@ -55,7 +54,6 @@ static int cr2res_idp_copy_pol(
     cpl_size            out_start_idx,
     int                 det_nr,
     int                 order,
-    const char          *   recipe, 
     const char          *   setting) ;
 
 /*----------------------------------------------------------------------------*/
@@ -98,8 +96,6 @@ int cr2res_idp_save(
     cpl_frame           *   out_frame ;
     const cpl_frame     *   ref_frame ;
     const char          *   ref_fname ;
-    const cpl_frame     *   tw_frame ;
-    const char          *   tw_fname ;
     cpl_propertylist    *   pri_head ;
     cpl_propertylist    *   ext_head ;
     double                  dit, exptime, texptime, mjd_start, mjd_end,
@@ -111,7 +107,8 @@ int cr2res_idp_save(
     int                     err, i, ndit, nframes, nraw, obid, nrows, ord ;
     char                *   keyname;
     char                *   tmp_string;
-    const char          *   fname;
+
+    poltype = NULL;
 
     cpl_msg_info(__func__, "Create IDPs for %s", filename) ;
     /* Output file name */
@@ -198,8 +195,11 @@ int cr2res_idp_save(
     
     nframes = cpl_frameset_get_size(rawframes);
     nraw = 0;
-    for (i = 1; i <= nframes; i++)
-    {
+
+    cpl_errorstate tempes = cpl_errorstate_get();
+
+    for (i = 1; i <= nframes; i++) {
+        const char *fname;
         keyname = cpl_sprintf("ESO PRO REC1 RAW%d NAME", i);
         fname = cpl_propertylist_get_string(pri_head, keyname);
         cpl_free(keyname);
@@ -210,6 +210,8 @@ int cr2res_idp_save(
             nraw++;
         }
     }
+
+    cpl_errorstate_set(tempes);
 
     cpl_propertylist_update_int(pri_head, "NCOMBINE", nraw);
     exptime = dit * ndit * nraw;
@@ -380,10 +382,12 @@ int cr2res_idp_save(
     cpl_propertylist_erase_regexp(pri_head, "ASSO*", 0);
 
     /* Add QC from the main Extension */
-    if (main_qc_plist != NULL) 
-        cpl_propertylist_copy_property_regexp(pri_head, main_qc_plist, "QC*",0);
+    if (main_qc_plist != NULL) {
+        cpl_propertylist_copy_property_regexp(pri_head, main_qc_plist, "QC*",
+                                              0);
+    }
 
-	/* Save the main header */
+    /* Save the main header */
 	cpl_propertylist_save(pri_head, idp_filename, CPL_IO_CREATE);
 
 
@@ -437,21 +441,22 @@ int cr2res_idp_save(
                                 "spec:Data.FluxAxis.Value");
     cpl_propertylist_update_string(ext_head, "TTYPE2", "FLUX");
     cpl_propertylist_update_string(ext_head, "TUCD2", 
-            "phot.flux.density;em.wl;stat.uncalib;meta.main");
-    cpl_propertylist_update_string(ext_head, "TUNIT2", "count");
+            "phot.flux.density;em.wl;stat.uncalib;arith.ratio;meta.main");
+    cpl_propertylist_update_string(ext_head, "TUNIT2", "");
 
     cpl_propertylist_update_string(ext_head, "TUTYP3",
                     "spec:Data.FluxAxis.Accuracy.StatError");
     cpl_propertylist_update_string(ext_head, "TTYPE3", "ERR");
     cpl_propertylist_update_string(ext_head, "TUCD3",
-                                   "stat.error;phot.flux.density");
-    cpl_propertylist_update_string(ext_head, "TUNIT3", "count");
+                                   "stat.error;phot.flux.density;em.ql;stat.uncalib;arith.ratio;meta.main");
+    cpl_propertylist_update_string(ext_head, "TUNIT3", "");
 
     cpl_propertylist_update_string(ext_head, "TUTYP4",
-                    "spec:Data.FluxAxis.Accurancy.QualityStatus");
+                    "spec:Data.FluxAxis.Accuracy.QualityStatus");
     cpl_propertylist_update_string(ext_head, "TTYPE4", "QUAL");
     cpl_propertylist_update_string(ext_head, "TUCD4",
                         "meta.code.qual;meta.main");
+    cpl_propertylist_update_string(ext_head, "TUNIT4", "");
 
     cpl_propertylist_update_string(ext_head, "TUTYP5",
                     "");
@@ -547,13 +552,11 @@ cpl_table * cr2res_idp_create_table(
     cpl_table           *   idp_tab ;
     cpl_table           *   tmp_tab ;
     cpl_array           *   col_names ;
-    cpl_array           *   tmp_arr ;
     const char          *   col_name ;
     char                *   col_kind ;
     cpl_type                col_type;
     cpl_propertylist    *   sort_list ;
     int                     order, trace_nb ;
-    double                  cur_val, pre_val ;
     cpl_size                i, j, ntot, ncols, nrows, nb_selected ;
 
     /* Check Inputs */
@@ -628,7 +631,7 @@ cpl_table * cr2res_idp_create_table(
                             !strcmp(col_kind, CR2RES_COL_SPEC_SUFFIX)) {
                         /* Handle this extracted spectrum */
                         cr2res_idp_copy_spec(tmp_tab, tables[i], ntot, i+1, 
-                                order, trace_nb, recipe, setting) ;
+                                order, trace_nb, setting) ;
                         ntot += cpl_table_get_nrow(tables[i]) ;
                     }
                     if (col_kind != NULL) cpl_free(col_kind) ;
@@ -640,7 +643,7 @@ cpl_table * cr2res_idp_create_table(
                     if (col_kind != NULL && 
                             !strcmp(col_kind, CR2RES_COL_POL_INTENS_SUFFIX)) {
                         cr2res_idp_copy_pol(tmp_tab, tables[i], ntot, i + 1,
-                                        order, recipe, setting);
+                                        order, setting);
                         ntot += cpl_table_get_nrow(tables[i]) ;
                     }
                     if (col_kind != NULL) cpl_free(col_kind) ;
@@ -657,12 +660,23 @@ cpl_table * cr2res_idp_create_table(
     cpl_table_sort(tmp_tab, sort_list) ;
     cpl_propertylist_delete(sort_list) ;
 
-    /* Identify close values */
     cpl_table_unselect_all(tmp_tab) ;
-    for (i=1 ; i<ntot ; i++) {
-        pre_val = cpl_table_get_double(tmp_tab,CR2RES_IDP_COL_WAVE,i-1,NULL);
-        cur_val = cpl_table_get_double(tmp_tab,CR2RES_IDP_COL_WAVE,i, NULL) ;
-        if (fabs(pre_val-cur_val) < 1e-3) {
+    /*Find first valid row*/
+    int ii;
+    int flag = 0;
+    for (ii = 0; ii < ntot; ii++) {
+        cpl_table_get_double(tmp_tab,CR2RES_IDP_COL_WAVE,ii, &flag) ;
+        if(!flag) break;
+        cpl_table_select_row(tmp_tab, ii);
+    }
+
+    /* Identify close values */
+    for (i = ii+1; i < ntot; i++) {
+        double cur_val, pre_val;
+        flag = 0;
+        pre_val = cpl_table_get_double(tmp_tab,CR2RES_IDP_COL_WAVE,i-1, NULL);
+        cur_val = cpl_table_get_double(tmp_tab,CR2RES_IDP_COL_WAVE,i, &flag) ;
+        if (fabs(pre_val-cur_val) < 1e-3 || flag) {
             cpl_table_select_row(tmp_tab, i) ;
         }
     }
@@ -680,7 +694,8 @@ cpl_table * cr2res_idp_create_table(
     ncols = cpl_table_get_ncol(tmp_tab);
     nrows = cpl_table_get_nrow(tmp_tab);
     idp_tab = cpl_table_new(1);
-    for (j=0 ; j<ncols ; j++) {
+    for (j = 0; j < ncols; j++) {
+        cpl_array *tmp_arr;
         col_name = cpl_array_get_string(col_names, j);
         cpl_msg_debug(__func__,"colname: %s", col_name);
         col_type = cpl_table_get_column_type(tmp_tab, col_name);
@@ -739,37 +754,50 @@ int cr2res_idp_compute_mjd(
     int                     i, nframes, ndit ;
 
     /* Initialise */
-    mjd_start_cur = mjd_end_cur = -2.0 ;
     mjd_end_max = -1.0 ;
     mjd_start_min = 1e10 ;
     nframes = cpl_frameset_get_size(fset) ;
 
-    /* Loop */
-    for (i=0 ; i<nframes ; i++) {
-        cur_frame = cpl_frameset_get_position(fset, i) ;
-        cur_fname = cpl_frame_get_filename(cur_frame);
+    cpl_errorstate tempes = cpl_errorstate_get();
+    cpl_error_reset();
 
-        /* Get header infos */
-        plist = cpl_propertylist_load(cur_fname, 0) ;
-        dit = cr2res_pfits_get_dit(plist) ;
-        ndit = cr2res_pfits_get_ndit(plist) ;
-        mjd_obs = cr2res_pfits_get_mjd_obs(plist) ;
-        if (cpl_error_get_code() == CPL_ERROR_NONE) {
-            /* Compute current value */
-            mjd_start_cur = mjd_obs ;
-            mjd_end_cur = mjd_obs + (dit*ndit/(24*60*60)) ;
-        } else {
-            mjd_end_cur = -2.0 ;
-            mjd_start_cur = 1e11 ;
-            cpl_error_reset() ;
+    /* Loop */
+    for (int ifr = 0; ifr <= 1; ifr++) {
+        for (i = 0; i < nframes; i++) {
+            cur_frame = cpl_frameset_get_position(fset, i);
+            if (ifr == 0 &&
+                cpl_frame_get_group(cur_frame) != CPL_FRAME_GROUP_RAW)
+                continue;
+            cur_fname = cpl_frame_get_filename(cur_frame);
+
+            /* Get header infos */
+            plist = cpl_propertylist_load(cur_fname, 0);
+            dit = cr2res_pfits_get_dit(plist);
+            ndit = cr2res_pfits_get_ndit(plist);
+            mjd_obs = cr2res_pfits_get_mjd_obs(plist);
+            if (cpl_error_get_code() == CPL_ERROR_NONE) {
+                /* Compute current value */
+                mjd_start_cur = mjd_obs;
+                mjd_end_cur = mjd_obs + (dit * ndit / (24 * 60 * 60));
+            }
+            else {
+                mjd_end_cur = -2.0;
+                mjd_start_cur = 1e11;
+                cpl_error_reset();
+            }
+            /* Update max */
+            if (mjd_end_cur > mjd_end_max)
+                mjd_end_max = mjd_end_cur;
+            if (mjd_start_cur < mjd_start_min) {
+                mjd_start_min = mjd_start_cur;
+            }
+            cpl_propertylist_delete(plist);
         }
-        /* Update max */
-        if (mjd_end_cur > mjd_end_max)  mjd_end_max = mjd_end_cur ;
-        if (mjd_start_cur < mjd_start_min) {
-            mjd_start_min = mjd_start_cur ;
-        }
-        cpl_propertylist_delete(plist) ;
+        if (mjd_start_min != 1e10)
+            break;
     }
+
+    cpl_errorstate_set(tempes);
 
     if (mjd_start_min < 1e9) {
         *mjd_start = mjd_start_min ;
@@ -803,7 +831,6 @@ static int cr2res_idp_copy_spec(
     int                 det_nr,
     int                 order,
     int                 tracenb,
-    const char          *   recipe, 
     const char          *   setting) 
 {
     char            *   spec_name ;
@@ -893,7 +920,6 @@ static int cr2res_idp_copy_pol(
     cpl_size            out_start_idx,
     int                 det_nr,
     int                 order,
-    const char          *   recipe, 
     const char          *   setting) 
 {
     char            *   spec_name ;
@@ -997,7 +1023,7 @@ static int cr2res_idp_copy_pol(
   @brief    check whether a wl is affected by ghost
   @param    setting         The setting in question
   @param    wl              The wavelength
-  @return   0 or 1, for unaffected and affected, repsectively.
+  @return   0 or 1, for unaffected and affected, respectively.
  */
 /*---------------------------------------------------------------------------*/
 int cr2res_wl_is_ghost(const char * setting, double wl){

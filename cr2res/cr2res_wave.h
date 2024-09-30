@@ -132,7 +132,7 @@ cpl_polynomial * cr2res_wave_xcorr(
 
 cpl_polynomial * cr2res_wave_etalon(
         cpl_bivector    *   spectrum,
-        cpl_bivector    *   spectrum_err,
+        const cpl_bivector    *   spectrum_err,
         cpl_polynomial  *   wavesol_init,
         int                 degree,
         cpl_array       **  wavelength_error) ;
@@ -158,8 +158,9 @@ cpl_polynomial * cr2res_wave_polys_1d_to_2d(
 cpl_polynomial * cr2res_wave_poly_2d_to_1d(
         cpl_polynomial  *   poly_2d,
         int                 order) ;
-
+#ifdef CR2RES_UNUSED
 char * cr2res_wave_method_print(cr2res_wavecal_type wavecal_type) ;
+#endif
 
 int cr2res_wave_fit_single_line(
     const cpl_vector * spec, 

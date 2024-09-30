@@ -144,7 +144,7 @@ static void test_cr2res_pol_demod_stokes_different_wavelengths(){
     // -> pol = 0
     // -> sigma pol = 1 / sqrt(8)
     cpl_bivector * spec = cpl_bivector_new(CR2RES_DETECTOR_SIZE);
-    for (cpl_size i = 0; i < CR2RES_DETECTOR_SIZE; i++)
+    for (i = 0; i < CR2RES_DETECTOR_SIZE; i++)
     {
         cpl_vector_set(cpl_bivector_get_x(spec), i, 1);
         cpl_vector_set(cpl_bivector_get_y(spec), i, 1);
@@ -165,7 +165,7 @@ static void test_cr2res_pol_demod_stokes_different_wavelengths(){
     
     // just use the same spectrum 8 times
     // demod should not modify them (it makes copies)
-    for (int i = 0; i < n; i++)
+    for (i = 0; i < n; i++)
     { 
         intens[i] = cpl_bivector_get_x(spec);
         errors[i] = cpl_bivector_get_y(spec);
@@ -175,7 +175,7 @@ static void test_cr2res_pol_demod_stokes_different_wavelengths(){
 
 
     // These values depend on the chosen wavelength grid
-    // make sure to adjust them appropiately when you change those values
+    // make sure to adjust them appropriately when you change those values
     cpl_size xmin = 287;
     cpl_size xmax = 1760;
     // Check that the results are as expected

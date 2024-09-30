@@ -268,7 +268,7 @@ static int cr2res_util_wave_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_util_wave.wl_degree",
-            CPL_TYPE_INT, "Wavelength Polynomial degree, main dipsersion",
+            CPL_TYPE_INT, "Wavelength Polynomial degree, main dispersion",
             "cr2res.cr2res_util_wave", 5);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_degree");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
@@ -389,8 +389,6 @@ static int cr2res_util_wave(
     cr2res_wavecal_type     wavecal_type ;
     const char          *   sval ;
     cpl_frameset        *   rawframes ;
-    const cpl_frame     *   cur_frame ;
-    const char          *   cur_fname ;
     cpl_frameset        *   cur_fset ;
     const cpl_frame     *   trace_wave_frame ;
     const cpl_frame     *   lines_frame ;
@@ -411,8 +409,8 @@ static int cr2res_util_wave(
     setlocale(LC_NUMERIC, "C");
 
     /* Initialise */
-    wl_start = wl_end = wl_err = -1.0 ;
-    wl_shift = 0.0 ;
+    wl_start = wl_end = -1.0 ; // wl_err
+    //wl_shift = 0.0 ;
     display_wmin = display_wmax = -1.0 ;
 
     /* RETRIEVE INPUT PARAMETERS */
@@ -533,6 +531,8 @@ static int cr2res_util_wave(
 
     /* Loop on the RAW frames */
     for (i=0 ; i<cpl_frameset_get_size(rawframes) ; i++) {
+        const cpl_frame     *   cur_frame ;
+        const char          *   cur_fname ;
         /* Get the Current Frame */
         cur_frame = cpl_frameset_get_position(rawframes, i) ;
         cur_fname = cpl_frame_get_filename(cur_frame) ;

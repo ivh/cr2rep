@@ -66,7 +66,6 @@ static int cr2res_obs_pol_check_inputs_validity(
         cpl_size            *   ngroups) ;
 static int cr2res_obs_pol_reduce(
         const cpl_frameset  *   rawframes,
-        const cpl_frameset  *   raw_flat_frames,
         const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
@@ -129,7 +128,6 @@ static int cr2res_obs_pol_reduce(
         cpl_propertylist    **  ext_plistb) ;
 static int cr2res_obs_pol_reduce_one(
         const cpl_frameset  *   rawframes,
-        const cpl_frameset  *   raw_flat_frames,
         const cpl_frameset  *   raw_background_frames,
         const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
@@ -470,8 +468,7 @@ static int cr2res_obs_pol(
                             subtract_nolight_rows,
                             subtract_interorder_column, save_group ;
     double                  extract_smooth_slit, extract_smooth_spec ;
-    double                  ra, dec, mjd_obs, mjd_cen, geolon, geolat, geoelev,
-                            barycorr;
+    double                  barycorr;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_flat_frames ;
     const cpl_frame     *   trace_wave_frame ;
@@ -526,7 +523,6 @@ static int cr2res_obs_pol(
     cpl_propertylist    *   ext_plista[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plistb[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
-    cpl_propertylist    *   plist ;
     cpl_table           *   eop_table ;
     int                     det_nr, save_products ; 
 
@@ -656,7 +652,7 @@ static int cr2res_obs_pol(
         cpl_msg_indent_more() ;
 
         /* Call the reduction function */
-        if (cr2res_obs_pol_reduce(rawframes, raw_flat_frames, 
+        if (cr2res_obs_pol_reduce(rawframes, 
                     trace_wave_frame, detlin_frame, master_dark_frame, 
                     master_flat_frame, bpm_frame, blaze_frame, 
                     subtract_nolight_rows, subtract_interorder_column, 
@@ -723,6 +719,8 @@ static int cr2res_obs_pol(
     /* Add barycentric correction */
     eop_table = cr2res_io_get_eop_table() ;
     if (eop_table != NULL) {
+        double ra, dec, mjd_obs, geolon, geolat, geoelev;
+        cpl_propertylist    *   plist ;
         plist=cpl_propertylist_load(cpl_frame_get_filename(
                     cpl_frameset_get_position_const(rawframes, 0)), 0) ;
 
@@ -737,6 +735,7 @@ static int cr2res_obs_pol(
 
         barycorr = 0.0 ;
         if (!cpl_error_get_code()) {
+            double mjd_cen;
             mjd_cen = cr2res_utils_get_center_mjd(rawframes) ;
             hdrl_barycorr_compute(ra, dec, eop_table, mjd_obs,
                     (mjd_cen-mjd_obs)*24*3600, geolon, geolat, geoelev,
@@ -753,7 +752,7 @@ static int cr2res_obs_pol(
                 barycorr);
     }
 
-	/* Add QC NUMSAT */
+    /* Add QC NUMSAT */
 	cpl_propertylist_append_int(qc_main,
 			CR2RES_HEADER_QC_NUMSAT,
 			cr2res_qc_numsat(rawframes)) ;
@@ -1127,11 +1126,11 @@ static int cr2res_obs_pol(
   @param reduce_det             The detector to compute
   @param in_calib_[1-4]_a       [out] the calibrated image (A)
   @param trace_wave_[1u-4d]_a   [out] the TW tables used for extraction (A)
-  @param extract1D_[1u-4d]_a    [out] the ectracted table (A)
+  @param extract1D_[1u-4d]_a    [out] the extracted table (A)
   @param pol_speca              [out] polarimetry spectrum (A)
   @param in_calib_[1-4]_b       [out] the calibrated image (B)
   @param trace_wave_[1u-4d]_b   [out] the TW tables used for extraction (B)
-  @param extract1D_[1u-4d]_b    [out] the ectracted table (B)
+  @param extract1D_[1u-4d]_b    [out] the extracted table (B)
   @param pol_specb              [out] polarimetry spectrum (B)
   @param ext_plista             [out] the header for saving the products (A)
   @param ext_plistb             [out] the header for saving the products (B)
@@ -1140,7 +1139,6 @@ static int cr2res_obs_pol(
 /*----------------------------------------------------------------------------*/
 static int cr2res_obs_pol_reduce(
         const cpl_frameset  *   rawframes,
-        const cpl_frameset  *   raw_flat_frames,
         const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
         const cpl_frame     *   master_dark_frame,
@@ -1216,7 +1214,6 @@ static int cr2res_obs_pol_reduce(
     cpl_propertylist    *   ext_plista_loc ;
     cpl_propertylist    *   ext_plistb_loc ;
     cpl_size                ngroups ;
-    double              *   qc_snrs ;
 
     /* Check Inputs */
     if (pol_speca == NULL || pol_specb == NULL || ext_plista == NULL || 
@@ -1259,7 +1256,7 @@ static int cr2res_obs_pol_reduce(
     /* Reduce A position */
     cpl_msg_info(__func__, "Compute Polarimetry for nodding A position") ;
     cpl_msg_indent_more() ;
-    if (cr2res_obs_pol_reduce_one(rawframes_a, raw_flat_frames, rawframes_b,
+    if (cr2res_obs_pol_reduce_one(rawframes_a, rawframes_b,
                 trace_wave_frame, detlin_frame, master_dark_frame, 
                 master_flat_frame, bpm_frame, blaze_frame, 
                 subtract_nolight_rows, subtract_interorder_column, cosmics, 
@@ -1275,7 +1272,7 @@ static int cr2res_obs_pol_reduce(
     /* Reduce B position */
     cpl_msg_info(__func__, "Compute Polarimetry for nodding B position") ;
     cpl_msg_indent_more() ;
-    if (cr2res_obs_pol_reduce_one(rawframes_b, raw_flat_frames, rawframes_a,
+    if (cr2res_obs_pol_reduce_one(rawframes_b, rawframes_a,
                 trace_wave_frame, detlin_frame, master_dark_frame, 
                 master_flat_frame, bpm_frame, blaze_frame,
                 subtract_nolight_rows, subtract_interorder_column, cosmics,
@@ -1386,7 +1383,6 @@ static int cr2res_obs_pol_reduce(
 /*----------------------------------------------------------------------------*/
 static int cr2res_obs_pol_reduce_one(
         const cpl_frameset  *   rawframes,
-        const cpl_frameset  *   raw_flat_frames,
         const cpl_frameset  *   raw_background_frames,
         const cpl_frame     *   trace_wave_frame,
         const cpl_frame     *   detlin_frame,
@@ -1415,15 +1411,12 @@ static int cr2res_obs_pol_reduce_one(
     cr2res_decker       *   decker_positions ;
     hdrl_imagelist      *   in ;
     hdrl_imagelist      *   in_calib_loc ;
-    hdrl_imagelist      *   in_backgr ;
     cpl_image           *   contrib;
     hdrl_image          *   backgr;
-    int                 *   pol_sorting ;
     cpl_table           *   blaze_table ;
     cpl_table           *   trace_wave ;
-    cpl_table           *   trace_wave_corrected ;
+    //cpl_table           *   trace_wave_corrected ;
     cpl_table           **  trace_wave_extract ;
-    cpl_array           *   slit_frac ;
     const char          *   fname ;
     char                *   decker_name ;
     cpl_table           *   slit_func ;
@@ -1448,15 +1441,9 @@ static int cr2res_obs_pol_reduce_one(
     const char          *   first_fname ;
     cpl_size                nframes, nspec_group, spec_size ;
     int                     ngroups, i, j, k, l, o, norders, frame_idx ;
-    char                *   key_name ;
-    char                *   spec_name ;
-    char                *   err_name ;
-    double                  snr, gain, error_factor ;
+    double                  gain, error_factor, blaze_norm ;
     int                 *   order_idx_values ;
-    int                     nb_order_idx_values, order_real, order_zp, 
-                            order_idx, order_idxp ;
-    cpl_vector          *   spec_vec;
-    cpl_vector          *   err_vec;
+    int                     nb_order_idx_values, order_zp;
 
     /* TODO, make parameters */
     int extract_niter = 10;
@@ -1580,6 +1567,8 @@ static int cr2res_obs_pol_reduce_one(
 
     /* Apply Background Correction using the other nodding position */
     if (cpl_frameset_get_size(raw_background_frames) > 1 ) {
+
+        hdrl_imagelist      *   in_backgr ;
         cpl_msg_info(__func__, "Apply the background Correction") ;
         cpl_msg_indent_more() ;
 
@@ -1664,7 +1653,8 @@ static int cr2res_obs_pol_reduce_one(
     }
 
     /* Correct trace_wave with some provided raw flats */
-    if (raw_flat_frames != NULL) {
+    cpl_msg_warning(__func__, "TRACE ADJUST NOT YET IMPLEMENTED") ;
+    /*if (raw_flat_frames != NULL) {
         cpl_msg_info(__func__, "Try to correct the reproducibility error") ;
         cpl_msg_indent_more() ;
         trace_wave_corrected = cr2res_trace_adjust(trace_wave, raw_flat_frames, 
@@ -1675,10 +1665,11 @@ static int cr2res_obs_pol_reduce_one(
             trace_wave_corrected = NULL ;
         }
         cpl_msg_indent_less() ;
-    }
+    }*/
 
     /* Load Blaze */
     blaze_table = NULL ;
+    blaze_norm = 0 ;
     if (blaze_frame != NULL) {
         cpl_msg_info(__func__, "Load the BLAZE") ;
         if ((blaze_table = cr2res_io_load_EXTRACT_1D(cpl_frame_get_filename(
@@ -1688,6 +1679,19 @@ static int cr2res_obs_pol_reduce_one(
             hdrl_imagelist_delete(in_calib_loc) ;
             cpl_table_delete(trace_wave) ;
             return -1 ;
+        }
+        cpl_propertylist    *   blaze_plist ;
+        blaze_plist = cpl_propertylist_load_regexp(cpl_frame_get_filename(
+                            blaze_frame),0,CR2RES_HEADER_QC_BLAZE_NORM,0);
+        if(cpl_propertylist_get_size(blaze_plist)>0){
+            blaze_norm = cpl_propertylist_get_double(blaze_plist, CR2RES_HEADER_QC_BLAZE_NORM);
+        }
+        else {
+            blaze_norm = -1;
+            cpl_msg_warning(__func__, "QC BLAZE NORM value not found, reverting to per trace normalization") ;
+        }
+        if(blaze_plist!=NULL){
+            cpl_propertylist_delete(blaze_plist);
         }
     }
 
@@ -1700,7 +1704,8 @@ static int cr2res_obs_pol_reduce_one(
     for (i = 0; i < ngroups; i++) pol_spec_one_group[i] = NULL;
 
     /* Loop on the groups */
-    for (i=0 ; i<ngroups ; i++) {
+    for (i = 0; i < ngroups; i++) {
+        int *pol_sorting;
         cpl_msg_info(__func__, "Process %d-group number %d/%d", 
                 CR2RES_POLARIMETRY_GROUP_SIZE, i+1, ngroups) ;
         cpl_msg_indent_more() ;    
@@ -1765,7 +1770,7 @@ static int cr2res_obs_pol_reduce_one(
             /* Execute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(input_images[j], trace_wave_extract[2*j],
-                    NULL, blaze_table, -1, -1, CR2RES_EXTR_OPT_CURV,
+                    NULL, blaze_table, blaze_norm, -1, -1, CR2RES_EXTR_OPT_CURV,
                     extract_height, extract_swath_width, extract_oversample, 
                     extract_smooth_slit, extract_smooth_spec,
                     extract_niter, extract_kappa, error_factor, 0, 0, 0, 
@@ -1794,7 +1799,7 @@ static int cr2res_obs_pol_reduce_one(
             /* Execute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(input_images[j],
-                    trace_wave_extract[2*j+1], NULL, blaze_table, -1, -1, 
+                    trace_wave_extract[2*j+1], NULL, blaze_table, blaze_norm, -1, -1, 
                     CR2RES_EXTR_OPT_CURV, extract_height, 
                     extract_swath_width, extract_oversample,
                     extract_smooth_slit, extract_smooth_spec,
@@ -2008,8 +2013,12 @@ static int cr2res_obs_pol_reduce_one(
         cpl_msg_error(__func__, "Cannot create the POL_SPEC table");
         cpl_table_delete(trace_wave) ;
         for (j=0 ; j<nspec_group ; j++) {
-            if (*extract1D[j] != NULL) cpl_table_delete(*extract1D[j]) ;
-            if (*tw[j] != NULL) cpl_table_delete(*tw[j]) ;
+        cpl_table **temp_extract1D = extract1D[j];
+        if (temp_extract1D != NULL && *temp_extract1D != NULL) 
+            cpl_table_delete(*temp_extract1D);
+        cpl_table **temp_tw = tw[j];
+            if (temp_tw != NULL && *temp_tw != NULL)
+                cpl_table_delete(*temp_tw) ;
         }
         cpl_free(*tw) ; *tw = NULL ;
         cpl_free(*extract1D) ; *extract1D = NULL ;
@@ -2027,7 +2036,14 @@ static int cr2res_obs_pol_reduce_one(
         order_idx_values = cr2res_trace_get_order_idx_values(trace_wave,
                 &nb_order_idx_values);
         /* Compute the Real Order numbers and store them in QCs */
-        for (i=0 ; i<nb_order_idx_values ; i++) {
+        for (i = 0; i < nb_order_idx_values; i++) {
+            char *key_name;
+            char *spec_name;
+            char *err_name;
+            cpl_vector *spec_vec;
+            cpl_vector *err_vec;
+            double snr;
+            int order_real, order_idx, order_idxp;
             order_idx = order_idx_values[i] ;
             order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
             order_real = cr2res_order_idx_to_real(order_idx, order_zp) ;
@@ -2080,13 +2096,12 @@ static int * cr2res_obs_pol_get_order_numbers(
         int                 next,
         int             *   norders)
 {
-    cpl_array   *   col_names ;
     const char  *   col_name ;
     char        *   col_type ;
     int         *   tmp_orders_list ;
     int             count_orders ;
     int         *   out_orders ;
-    cpl_size        j, ncols ;
+    cpl_size        j;
     int             i, k, order, trace_nb, max_possible_spectra, new_order ;
 
     /* Check entries */
@@ -2103,7 +2118,9 @@ static int * cr2res_obs_pol_get_order_numbers(
     /* Count the different orders */
     count_orders = 0 ;
     /* Loop over all columns */
-    for (i=0 ; i<next ; i++) {
+    for (i = 0; i < next; i++) {
+        cpl_size ncols;
+        cpl_array *col_names;
         col_names = cpl_table_get_column_names(extracted[i]);
         ncols = cpl_table_get_ncol(extracted[i]) ;
         for (j=0 ; j<ncols ; j++) {
@@ -2150,14 +2167,10 @@ static int cr2res_obs_pol_check_inputs_validity(
         const cpl_frameset  *   rawframes,
         cpl_size            *   ngroups)
 {
-    cpl_propertylist    *       plist ;
-    cpl_frame           *       cur_frame ;
-    const char          *       cur_fname ;
     cr2res_nodding_pos  *       nod_positions ;
     cpl_frameset        *       raw_a ;
     cpl_frameset        *       raw_b ;
     cpl_size                    nframes, nframes_a, nframes_b, i ;
-    double                      mjd_obs, mjd_obs_previous ;
 
     /* Check Inputs */
     if (rawframes == NULL || ngroups == NULL) return -1 ;
@@ -2165,6 +2178,10 @@ static int cr2res_obs_pol_check_inputs_validity(
     
     /* Check that the MJD-OBS is increasing (only when several frames) */
     if (nframes > 1) {
+        cpl_propertylist *plist;
+        cpl_frame *cur_frame;
+        const char *cur_fname;
+        double mjd_obs_previous;
         /* Get the first MJDOBS */
         cur_frame = cpl_frameset_get_position((cpl_frameset*)rawframes, 0) ;
         cur_fname = cpl_frame_get_filename(cur_frame);
@@ -2177,6 +2194,7 @@ static int cr2res_obs_pol_check_inputs_validity(
         }
         /* Loop on the n-1 last frames */
         for (i=1 ; i<nframes ; i++) {
+            double mjd_obs;
             /* Get the current MJDOBS */
             cur_frame = cpl_frameset_get_position((cpl_frameset*)rawframes, i) ;
             cur_fname = cpl_frame_get_filename(cur_frame);

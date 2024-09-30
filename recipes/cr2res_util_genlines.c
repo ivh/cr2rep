@@ -236,15 +236,11 @@ static int cr2res_util_genlines(
     cpl_frame           *   lines_list_frame ;
     const char          *   lines_list_fname ;
     cpl_frameset        *   selection_frames ;
-    cpl_frame           *   selection_frame ;
-    const char          *   selection_fname ;
     char                *   out_file;
     double                  wl_fac ;
     int                     display ;
     cpl_bivector        *   bivec ;
     cpl_bivector        *   bivec_sorted ;
-    cpl_bivector        *   bivec_selec ;
-    cpl_bivector        *   bivec_selected ;
     double              *   pbivec_x ;
     double              *   pbivec_y ;
     double              *   pbivec_selec_x ;
@@ -302,15 +298,14 @@ static int cr2res_util_genlines(
     cpl_vector_multiply_scalar(cpl_bivector_get_x(bivec), wl_fac) ;
 
     /* Sort if needed */
-    int sort = 1 ;
-    if (sort) {
-        bivec_sorted = cpl_bivector_duplicate(bivec) ;
-        cpl_bivector_sort(bivec_sorted, bivec, CPL_SORT_ASCENDING,
-                CPL_SORT_BY_X) ;
-        cpl_bivector_delete(bivec) ;
-        bivec = bivec_sorted ;
-        bivec_sorted = NULL;
-    }
+    //int sort = 1 ;
+    //if (sort) {
+    bivec_sorted = cpl_bivector_duplicate(bivec);
+    cpl_bivector_sort(bivec_sorted, bivec, CPL_SORT_ASCENDING, CPL_SORT_BY_X);
+    cpl_bivector_delete(bivec);
+    bivec = bivec_sorted;
+    bivec_sorted = NULL;
+    //}
 
     /* Display if requested */
     if (display) {
@@ -350,7 +345,11 @@ static int cr2res_util_genlines(
     cpl_table_delete(tab) ;
 
     /* Loop on the selection frames */
-    for (i=0 ; i<cpl_frameset_get_size(selection_frames) ; i++) {
+    for (i = 0; i < cpl_frameset_get_size(selection_frames); i++) {
+        cpl_frame *selection_frame;
+        const char *selection_fname;
+        cpl_bivector *bivec_selec;
+        cpl_bivector *bivec_selected;
         /* Get the Current Frame */
         selection_frame = cpl_frameset_get_position(selection_frames, i) ;
         selection_fname = cpl_frame_get_filename(selection_frame) ;

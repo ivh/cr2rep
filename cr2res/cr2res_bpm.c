@@ -55,6 +55,13 @@ static cpl_mask * cr2res_bpm_compute_running_filter(
 
 /**@{*/
 
+cr2res_bpm_type bpm_types[CR2RES_NB_BPM_TYPES] = {
+    CR2RES_BPM_DARK, 
+    CR2RES_BPM_FLAT, 
+    CR2RES_BPM_DETLIN, 
+    CR2RES_BPM_OUTOFORDER,
+    CR2RES_BPM_EDGEPIX};
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    The BPM computation with min/max threshold
@@ -77,7 +84,7 @@ cpl_mask * cr2res_bpm_compute(
 {
     cpl_mask    *   bpm ;
     cpl_binary  *   pmask_cur ;
-    int             nx, ny, cur_bp_nb, j, k ;
+    int             nx, ny, j, k ;
 
     /* Test entries */
     if (in == NULL) return NULL ;
@@ -112,6 +119,7 @@ cpl_mask * cr2res_bpm_compute(
     ny = cpl_mask_get_size_y(bpm) ;
     pmask_cur = cpl_mask_get_data(bpm) ;
     for (j=0 ; j<ny ; j++) {
+        int cur_bp_nb;
         cur_bp_nb = cpl_mask_count_window(bpm, 1, j+1, nx, j+1) ;
         /* Check if the line has too many bad pixels */
         if (cur_bp_nb > lines_ratio * nx) {
@@ -350,7 +358,7 @@ static cpl_mask * cr2res_bpm_compute_global_stats(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Find BPM based on the median of the surounding pixels
+  @brief    Find BPM based on the median of the surrounding pixels
   @param    img    input image of type CPL_TYPE_DOUBLE
   @param    kappa  Multiplier for threshold
   @param    size   Half-size of the statistics box
@@ -406,7 +414,7 @@ static cpl_mask * cr2res_bpm_compute_local_stats(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Find BPM based on the median of the surounding pixels
+  @brief    Find BPM based on the median of the surrounding pixels
   @author   Ansgar
   @param    img    input image
   @param    kappa  Multiplier for threshold, equivalent to the gaussian sigma
@@ -486,7 +494,7 @@ static cpl_mask * cr2res_bpm_compute_running_filter(
 
 /*----------------------------------------------------------------------------*/
 /**
-  @brief    Find BPM based on the median of the surounding pixels
+  @brief    Find BPM based on the median of the surrounding pixels
   @author   Thomas
   @param    bpm    input BPM as cpl_image
   @return   modified copy of BPM cpl_image
@@ -503,7 +511,7 @@ cpl_image * cr2res_bpm_mask_edgepix(cpl_image * bpm){
     sx = cpl_image_get_size_x(bpm);
     sy = cpl_image_get_size_y(bpm);
 
-    // Image is too small for edgepixels, just keeo it as it is
+    // Image is too small for edgepixels, just keep it as it is
     if ((sx <= CR2RES_NB_BPM_EDGEPIX+1) | (sy <= CR2RES_NB_BPM_EDGEPIX+1)) 
         return out;
 

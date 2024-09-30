@@ -39,13 +39,14 @@
 static void test_cr2res_extract_sum(void);
 static void test_cr2res_extract_median(void);
 static void test_cr2res_extract_sum_tilt(void);
-static void test_cr2res_slitdec_vert_regression(void);
-static void test_cr2res_slitdec_vert_edge_cases(void);
-static void test_cr2res_slitdec_curved(void);
+//static void test_cr2res_slitdec_vert_regression(void);
+//static void test_cr2res_slitdec_vert_edge_cases(void);
+//static void test_cr2res_slitdec_curved(void);
 static void test_cr2res_slitdec_errors(void);
-static void test_cr2res_slitdec_input_slitfunc(void);
+//static void test_cr2res_slitdec_input_slitfunc(void);
 
 
+#ifdef CR2RES_UNUSED_TESTS
 static cpl_table *create_test_table()
 {
     int poly_order = 2;
@@ -97,20 +98,21 @@ static cpl_image *create_test_image()
     }
     return img;
 }
+#endif
 
 static cpl_image *create_image_linear_increase(int width, int height, double spec_in[width])
 {
-    int k;
     double min = 5;
     double step = 0.1;
-    double spec, slitf;
+    double slitf;
     double sigma = height/16.;
     double mu = height/2.;
     cpl_image * img = cpl_image_new(width, height, CPL_TYPE_DOUBLE);
 
     for(int i = 1; i <= width; i++) {
+        double spec;
         spec = i * step + min;       
-        if (i > width/2 - 5 & i < width/2 + 5)
+        if (i > width/2 - 5 && i < width/2 + 5)
             spec -= 2 * min * exp(- (i - width/2) * (i - width/2) / (2. * 1 * 1));
 
         spec_in[i-1] = spec;
@@ -128,16 +130,15 @@ static cpl_image * create_image_sinusoidal(
         int         height,
         double      spec_in[width])
 {
-    int k = 0;
     double min = 5.0;
     double sigma = height/8.;
     double mu = height/2.;
-    double spec = 0.;
-    double slitf = 0.;
+    double slitf;
 
     cpl_image * img = cpl_image_new(width, height, CPL_TYPE_DOUBLE);
 
     for(int i = 1; i <= width; i++) {
+        double spec;
         // Sinusoidal spectrum
         spec = 3 * sin(CPL_MATH_2PI * (i-1.)/(0.2 * width)) + min;
         spec_in[i-1] = spec;
@@ -175,7 +176,6 @@ cpl_image * apply_shear(cpl_image * img, int width, int height, double shear){
 }
 
 static cpl_table * create_table_linear_increase(
-        int         width,
         int         height,
         double      shear)
 {
@@ -271,25 +271,23 @@ static void test_cr2res_extract_sum(void)
     int width = 2000;
     int height = 50;
     double spec_in[width];
-    double shear[width];
     cpl_image * img_in = create_image_linear_increase(width, height, spec_in);
     hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
-    cpl_table * trace_table = create_table_linear_increase(width, height, 0);
+    cpl_table * trace_table = create_table_linear_increase(height, 0);
     int order = 1;
     int trace = 1;
 
     cpl_vector * slit_func;
     cpl_bivector * spec;
     hdrl_image * model;
-    int res;
 
     cpl_test_eq( 0, cr2res_extract_sum_vert(img_hdrl, trace_table, order, trace, height, &slit_func, &spec, &model));
 
     // check results
     double ratio0 = cpl_bivector_get_x_data(spec)[0] / spec_in[0];
-    double ratio;
     for(int i = 0; i < width; i++)
     {
+        double ratio;
         //spectrum, with linear increase
         ratio = cpl_bivector_get_x_data(spec)[i] / spec_in[i];
         cpl_test_abs(ratio, ratio0, FLT_EPSILON);
@@ -349,25 +347,24 @@ static void test_cr2res_extract_median(void)
     int width = 2000;
     int height = 50;
     double spec_in[width];
-    double shear[width];
     cpl_image * img_in = create_image_linear_increase(width, height, spec_in);
     hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
-    cpl_table * trace_table = create_table_linear_increase(width, height, 0);
+    cpl_table * trace_table = create_table_linear_increase(height, 0);
     int order = 1;
     int trace = 1;
 
     cpl_vector * slit_func;
     cpl_bivector * spec;
     hdrl_image * model;
-    int res;
 
     cpl_test_eq( 0, cr2res_extract_median(img_hdrl, trace_table, order, trace, height, &slit_func, &spec, &model));
 
     // check results
     double ratio0 = cpl_bivector_get_x_data(spec)[0] / spec_in[0];
-    double ratio;
     for(int i = 0; i < width; i++)
     {
+
+        double ratio;
         //spectrum, with linear increase
         ratio = cpl_bivector_get_x_data(spec)[i] / spec_in[i];
         cpl_test_abs(ratio, ratio0, FLT_EPSILON);
@@ -427,27 +424,26 @@ static void test_cr2res_extract_sum_tilt(void)
     int width = 2000;
     int height = 50;
     double spec_in[width];
-    double shear[width];
     cpl_image * img_in = create_image_sinusoidal(width, height, spec_in);
     img_in = apply_shear(img_in, width, height, 1);
     hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
-    cpl_table * trace_table = create_table_linear_increase(width, height, 1);
+    cpl_table * trace_table = create_table_linear_increase(height, 1);
     int order = 1;
     int trace = 1;
 
     cpl_vector * slit_func;
     cpl_bivector * spec;
     hdrl_image * model;
-    int res;
 
     cpl_test_eq( 0, cr2res_extract_sum_tilt(img_hdrl, trace_table, order, trace, height, &slit_func, &spec, &model));
 
     // check results
     int delta_x = height / 2 + 1;
     double ratio0 = cpl_bivector_get_x_data(spec)[delta_x] / spec_in[delta_x];
-    double ratio;
     for(int i = delta_x; i < width - delta_x; i++)
     {
+
+        double ratio;
         //spectrum, with linear increase
         ratio = cpl_bivector_get_x_data(spec)[i] / spec_in[i];
         cpl_test_abs(ratio, ratio0, 1);
@@ -477,7 +473,7 @@ static void test_cr2res_extract_sum_tilt(void)
     cpl_table_delete(trace_table);
     hdrl_image_delete(img_hdrl);
 }
-
+#ifdef CR2RES_UNUSED_TESTS
 static void test_cr2res_slitdec_vert_regression(void)
 {
     cpl_image * img_in = create_test_image();
@@ -551,7 +547,7 @@ static void test_cr2res_slitdec_vert_edge_cases(void)
     double spec_in[width];
     cpl_image * img_in = create_image_linear_increase(width, height, spec_in);
     hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
-    cpl_table * trace_table = create_table_linear_increase(width, height, 0);
+    cpl_table * trace_table = create_table_linear_increase(height, 0);
     int order = 1;
     int trace = 1;
     int swath = 15;
@@ -563,7 +559,6 @@ static void test_cr2res_slitdec_vert_edge_cases(void)
     cpl_vector * slit_func;
     cpl_bivector * spec;
     hdrl_image * model;
-    int res;
 
     // Test Edge cases
     cpl_test_eq(-1, cr2res_extract_slitdec_curved(NULL, trace_table, NULL,
@@ -660,7 +655,7 @@ static void test_cr2res_slitdec_curved(void)
     img_in = apply_shear(img_in, width, height, const_shear);
     //cpl_image * img_in = create_image_linear_increase(width, height, cpl_vector_get_data(shear), spec_in);
     hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
-    cpl_table * trace_table = create_table_linear_increase(width, height, const_shear);
+    cpl_table * trace_table = create_table_linear_increase(height, const_shear);
 
     cpl_vector * slit_func;
     cpl_bivector * spec;
@@ -668,7 +663,6 @@ static void test_cr2res_slitdec_curved(void)
     cpl_vector * cmp = cpl_vector_new(width);
     cpl_vector * spec_in_vec = cpl_vector_wrap(width, spec_in);
 
-    int res;
     cpl_test_eq(0,
         cr2res_extract_slitdec_curved(img_hdrl, trace_table, NULL, order, 
             trace, height, swath, oversample, smooth_slit, 0.0,
@@ -712,7 +706,7 @@ static void test_cr2res_slitdec_curved(void)
     cpl_table_delete(trace_table);
     hdrl_image_delete(img_hdrl);
 }
-
+#endif
 
 static void test_cr2res_slitdec_errors(void){
     int width = 1000;
@@ -727,7 +721,7 @@ static void test_cr2res_slitdec_errors(void){
     double kappa = 10;
     double spec_in[width];
 
-    cpl_vector * slit_func, *error;
+    cpl_vector * slit_func;
     cpl_bivector * spec;
     hdrl_image * model;
 
@@ -735,7 +729,7 @@ static void test_cr2res_slitdec_errors(void){
     cpl_image * err_in = cpl_image_new(width, height * 2, CPL_TYPE_DOUBLE);
     cpl_image_add_scalar(err_in, 1);
     hdrl_image * img_hdrl = hdrl_image_create(img_in, err_in);
-    cpl_table * trace_table = create_table_linear_increase(width, height * 2, 0);
+    cpl_table * trace_table = create_table_linear_increase(height * 2, 0);
 
     result = cr2res_extract_slitdec_curved(img_hdrl, trace_table, NULL, 
             order, trace, height, swath, oversample, smooth_slit, 0, 
@@ -743,7 +737,7 @@ static void test_cr2res_slitdec_errors(void){
 
     cpl_test_eq(0, result);
     if (result == 0){
-        error = cpl_bivector_get_y(spec);
+        //error = cpl_bivector_get_y(spec);
         // Free memory
         cpl_vector_delete(slit_func);
         cpl_bivector_delete(spec);
@@ -755,7 +749,7 @@ static void test_cr2res_slitdec_errors(void){
     cpl_image_delete(err_in);
     hdrl_image_delete(img_hdrl);
 }
-
+#ifdef CR2RES_UNUSED_TESTS
 static void test_cr2res_slitdec_input_slitfunc(void)
 {
     int width = 1000;
@@ -777,14 +771,12 @@ static void test_cr2res_slitdec_input_slitfunc(void)
     img_in = apply_shear(img_in, width, height, const_shear);
     //cpl_image * img_in = create_image_linear_increase(width, height, cpl_vector_get_data(shear), spec_in);
     hdrl_image * img_hdrl = hdrl_image_create(img_in, NULL);
-    cpl_table * trace_table = create_table_linear_increase(width, height, const_shear);
+    cpl_table * trace_table = create_table_linear_increase(height, const_shear);
 
     cpl_vector * slit_func = NULL;
     cpl_vector * slit_func_in = NULL;
     cpl_bivector * spec = NULL;
     hdrl_image * model = NULL;
-
-    int res;
     
     // Test with correct size
     cpl_size ny_os = oversample*(height+1) + 1;
@@ -840,6 +832,7 @@ static void test_cr2res_slitdec_input_slitfunc(void)
     cpl_table_delete(trace_table);
     hdrl_image_delete(img_hdrl);
 }
+#endif
 
 /*----------------------------------------------------------------------------*/
 /**

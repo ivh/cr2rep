@@ -62,7 +62,6 @@ int cpl_plugin_get_info(cpl_pluginlist * list);
 
 static int cr2res_cal_wave_qc_une_flux(
         const cpl_table         **      extracted,
-        const cpl_table         **      tw,
         const cpl_propertylist  **      ext_plist,
         double                          cwlen,
         cpl_propertylist        *       plist) ;
@@ -409,7 +408,7 @@ static int cr2res_cal_wave_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_cal_wave.wl_degree",
-            CPL_TYPE_INT, "Wavelegth Polynomial degree",
+            CPL_TYPE_INT, "Wavelength Polynomial degree",
             "cr2res.cr2res_cal_wave", 0);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "wl_degree");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
@@ -528,10 +527,10 @@ static int cr2res_cal_wave(
                             fallback_input_wavecal_flag, 
                             save_intermediate_flag, keep_higher_degrees_flag, 
                             clean_spectrum, subtract_nolight_rows,
-                            cosmics ;
+                            cosmics;
     double                  ext_smooth_slit, ext_smooth_spec, wl_start, wl_end,
                             wl_err, wl_shift, display_wmin,
-                            display_wmax, central_wlen ;
+                            display_wmax, central_wlen;
     cr2res_collapse         collapse ;
     cr2res_wavecal_type     wavecal_type ;
     const char          *   sval ;
@@ -556,16 +555,20 @@ static int cr2res_cal_wave(
     hdrl_image          *   out_wave_map_fpet[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plist_fpet[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   qc_main ;
-    int                     det_nr, i ;
+    int                     det_nr, i;
 
     /* Needed for sscanf() */
     setlocale(LC_NUMERIC, "C");
 
     /* Initialise */
-    wl_start = wl_end = wl_err = -1.0 ;
-    wl_shift = 0.0 ;
+    wl_start = wl_end = -1.0 ;
+
     collapse = CR2RES_COLLAPSE_UNSPECIFIED ;
     display_wmin = display_wmax = -1.0 ;
+
+    int qc_sizes[] = {CR2RES_NB_DETECTORS,CR2RES_NB_DETECTORS};
+    cpl_propertylist** qc_plists[] = {ext_plist_une, ext_plist_fpet} ;
+    cpl_propertylist** qc_plists_une[] = {ext_plist_une} ;
 
     /* RETRIEVE INPUT PARAMETERS */
     param = cpl_parameterlist_find_const(parlist,
@@ -716,7 +719,7 @@ static int cr2res_cal_wave(
         return -1 ;
     }
     if (lines_frame == NULL && rawframes_une != NULL) {
-        if (rawframes_une !=NULL) cpl_frameset_delete(rawframes_une) ;
+        cpl_frameset_delete(rawframes_une) ;
         if (rawframes_fpet!=NULL) cpl_frameset_delete(rawframes_fpet) ;
         cpl_msg_error(__func__, "The emission lines catalog is needed");
         cpl_error_set(__func__, CPL_ERROR_ILLEGAL_INPUT) ;
@@ -850,11 +853,33 @@ static int cr2res_cal_wave(
             cpl_error_reset() ;
         }
         }
+
         cpl_msg_indent_less() ;
     }
 
     /* QC Computation */
     qc_main = cpl_propertylist_new() ;
+
+    cr2res_qc_calculate_mean_and_rmsd(qc_plists, 2, qc_sizes, 
+                             CR2RES_HEADER_QC_WAVE_CENTWL, qc_main,
+                             CR2RES_HEADER_QC_WAVE_CENTWL_AVG, CR2RES_HEADER_QC_WAVE_CENTWL_RMS);
+
+    cr2res_qc_calculate_mean_and_rmsd(qc_plists, 2, qc_sizes, 
+                             CR2RES_HEADER_QC_WAVE_DISPWL, qc_main,
+                             CR2RES_HEADER_QC_WAVE_DISPWL_AVG, CR2RES_HEADER_QC_WAVE_DISPWL_RMS);
+
+    char* qc_une_keywords[] = {
+    CR2RES_HEADER_QC_WAVE_LAMP_EFFIC,
+    CR2RES_HEADER_QC_WAVE_RESOL,
+    CR2RES_HEADER_QC_WAVE_RESOL_FWHM,
+    CR2RES_HEADER_QC_WAVE_POS,
+    CR2RES_HEADER_QC_WAVE_BESTXCORR,
+    CR2RES_HEADER_QC_OVEREXPOSED
+};
+
+
+    int qc_une_keywords_size = sizeof(qc_une_keywords) / sizeof(qc_une_keywords[0]);
+
     if (rawframes_une != NULL) {
         plist = cpl_propertylist_load(cpl_frame_get_filename(
                     cpl_frameset_get_position_const(rawframes_une, 0)), 0) ;
@@ -864,11 +889,79 @@ static int cr2res_cal_wave(
         /* QC.UNE.FLUX  Computation */
         if (cr2res_cal_wave_qc_une_flux(
                     (const cpl_table **)out_extracted_une,
-                    (const cpl_table **)out_trace_wave_une,
                     (const cpl_propertylist **)ext_plist_une, 
                     central_wlen, qc_main)) {
             cpl_msg_warning(__func__, "QC.UNE.FLUX Computation failed") ;
         }
+
+        /* Should get min and max order_id's from column of all detectors here*/
+        /*int nb_traces = cpl_table_get_nrow(out_trace_wave_une[0]);*/
+
+        int min_order = INT_MAX;
+        int max_order = INT_MIN;
+        int current_min, current_max;
+
+        for (int qc_i = 0; qc_i < CR2RES_NB_DETECTORS; qc_i++) {
+            if (out_trace_wave_une[qc_i] == NULL) {
+                continue;
+            }
+            current_min = cpl_table_get_column_min(out_trace_wave_une[qc_i], "Order");
+            if (cpl_error_get_code() != CPL_ERROR_NONE) {
+                continue;
+            }
+            if (current_min < min_order) {
+                min_order = current_min;
+            }
+
+           current_max = cpl_table_get_column_max(out_trace_wave_une[qc_i], "Order");
+            if (cpl_error_get_code() != CPL_ERROR_NONE) {
+               continue;
+            }
+            if (current_max > max_order) {
+                max_order = current_max;
+            }
+        }
+
+        int qc_j;
+        for (qc_j=0; qc_j<qc_une_keywords_size ; qc_j++) {
+            for (int order_id=min_order ; order_id<=max_order ; order_id++) {
+
+                int qc_sizes_une[] = {CR2RES_NB_DETECTORS};
+                char * qc_ref, * qc_res_avg, * qc_res_rmsd ;
+
+                if(strcmp(qc_une_keywords[qc_j], CR2RES_HEADER_QC_OVEREXPOSED)==0) {
+                    qc_ref = cpl_sprintf("%s%02d",
+                            qc_une_keywords[qc_j], order_id);
+                    qc_res_avg = cpl_sprintf("%s%02d %s",
+                            qc_une_keywords[qc_j], order_id, "AVG");
+                    qc_res_rmsd = cpl_sprintf("%s%02d %s",
+                            qc_une_keywords[qc_j], order_id, "RMS");;
+                }
+                else {
+                    qc_ref = cpl_sprintf("%s-%02d-%02d",
+                            qc_une_keywords[qc_j], order_id, 1);
+                    qc_res_avg = cpl_sprintf("%s-%02d-%02d %s",
+                            qc_une_keywords[qc_j], order_id, 1, "AVG");
+                    qc_res_rmsd = cpl_sprintf("%s-%02d-%02d %s",
+                            qc_une_keywords[qc_j], order_id, 1, "RMS");
+                }
+
+                cr2res_qc_calculate_mean_and_rmsd(qc_plists_une, 1, qc_sizes_une, 
+                                 qc_ref, qc_main,
+                                 qc_res_avg, qc_res_rmsd);
+
+                cpl_free(qc_ref);
+                cpl_free(qc_res_avg);
+                cpl_free(qc_res_rmsd);
+            }
+        }
+
+    if (cpl_error_get_code() != CPL_ERROR_NONE) {
+        cpl_msg_error(__func__, "Failed to set QC params for UNE: %s",
+                cpl_error_get_message_default ( cpl_error_get_code())) ;
+        return -1 ;
+    }
+
     }
 
     if (rawframes_fpet != NULL) {
@@ -898,7 +991,7 @@ static int cr2res_cal_wave(
     /* Save Products UNE */
     if (rawframes_une != NULL &&
             (rawframes_fpet == NULL ||   // UNE is the main product
-             (rawframes_fpet != NULL && save_intermediate_flag))) { 
+             save_intermediate_flag)) { 
         out_file = cpl_sprintf("%s_tw_une.fits", RECIPE_STRING) ;
         cr2res_io_save_TRACE_WAVE(out_file, frameset, frameset, parlist, 
                 out_trace_wave_une, qc_main, ext_plist_une, 
@@ -1077,15 +1170,8 @@ static int cr2res_cal_wave_reduce(
         hdrl_image          **  out_wave_map_fpet,
         cpl_propertylist    **  ext_plist_fpet)
 {
-    cpl_vector          *   dits_une ;
-    cpl_vector          *   ndits_une ;
     cpl_vector          *   ndits_fpet ;
-    const cpl_frame     *   fpet_frame ;
-    const char          *   fpet_fname ;
-    hdrl_image          *   fpet_image ;
-    hdrl_imagelist      *   in_une ;
     hdrl_imagelist      *   in_fpet ;
-    hdrl_imagelist      *   in_une_calib ;
     hdrl_imagelist      *   in_fpet_calib ;
     hdrl_image          *   collapsed_une ;
     hdrl_image          *   collapsed_fpet ;
@@ -1110,15 +1196,13 @@ static int cr2res_cal_wave_reduce(
     cpl_propertylist    *   qcs_fpet_out ;
     cpl_propertylist    *   plist_fpet_out ;
     cpl_propertylist    *   plist ;
-    hdrl_image          *   first_image ;
     const char          *   first_file ;
     cpl_polynomial      *   slit_polya ;
     cpl_polynomial      *   slit_polyb ;
     cpl_polynomial      *   slit_polyc ;
-    cpl_array           *   slit_array ;
-    double                  qc_overexposed, gain, error_factor ;
-    int                     i, order, trace_id, ext_nr, zp_order_une, 
-                            zp_order_fpet, nb_traces, grat1_order_une, 
+    double                  gain, error_factor ;
+    int                     i, order, trace_id, ext_nr, 
+                            zp_order_fpet, nb_traces,
                             grat1_order_fpet ;
     
     /* TODO, make parameters */
@@ -1149,6 +1233,11 @@ static int cr2res_cal_wave_reduce(
     /* Compute the Slit Curvature using the first passed FPET frame */
     tw_in = NULL ;
     if (rawframes_fpet != NULL) {
+
+        const cpl_frame     *   fpet_frame ;
+        const char          *   fpet_fname ;
+        hdrl_image          *   fpet_image ;
+
         fpet_frame = cpl_frameset_get_position_const(rawframes_fpet, 0) ;
         fpet_fname = cpl_frame_get_filename(fpet_frame) ;
         cpl_msg_info(__func__, 
@@ -1205,6 +1294,7 @@ static int cr2res_cal_wave_reduce(
                 return -1 ;
             }
 
+            cpl_array           *   slit_array ;
             /* Fill the SLIT_CURVE_A/B/C for the current trace */
             slit_array = cr2res_convert_poly_to_array(slit_polya, 3) ;
             cpl_polynomial_delete(slit_polya) ;
@@ -1232,6 +1322,14 @@ static int cr2res_cal_wave_reduce(
 
     /* Reduce the UNE */
     if (rawframes_une != NULL) {
+
+        cpl_vector          *   dits_une ;
+        cpl_vector          *   ndits_une ;
+        hdrl_imagelist      *   in_une ;
+        hdrl_imagelist      *   in_une_calib ;
+        hdrl_image          *   first_image ;
+        int      zp_order_une, grat1_order_une ;
+
         cpl_msg_info(__func__, "Reduce %"CPL_SIZE_FORMAT" UNE Frames",
                 cpl_frameset_get_size(rawframes_une)) ;
         cpl_msg_indent_more() ;
@@ -1335,7 +1433,7 @@ static int cr2res_cal_wave_reduce(
         /* Execute the extraction for UNE */
         cpl_msg_info(__func__, "Spectra Extraction UNE") ;
         cpl_msg_indent_more() ;
-        if (cr2res_extract_traces(collapsed_une, tw_in, NULL, NULL, 
+        if (cr2res_extract_traces(collapsed_une, tw_in, NULL, NULL, 0,
                     reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
                     ext_height, ext_swath_width, ext_oversample, 
                     ext_smooth_slit, ext_smooth_spec,
@@ -1421,6 +1519,7 @@ static int cr2res_cal_wave_reduce(
 			/* Check if this trace needs to be skipped */
 			if (reduce_trace > -1 && trace_id != reduce_trace) continue ;
 
+            double qc_overexposed;
 			qc_overexposed = cr2res_qc_overexposed(
 					hdrl_image_get_image(first_image), tw_in, order) ;
 			char * qc_name = cpl_sprintf("%s%02d",
@@ -1589,7 +1688,7 @@ static int cr2res_cal_wave_reduce(
         /* Execute the extraction for FPET */
         cpl_msg_info(__func__, "Spectra Extraction FPET") ;
         cpl_msg_indent_more() ;
-        if (cr2res_extract_traces(collapsed_fpet, tw_in, NULL, NULL, 
+        if (cr2res_extract_traces(collapsed_fpet, tw_in, NULL, NULL, 0,
                     reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
                     ext_height, ext_swath_width, ext_oversample, 
                     ext_smooth_slit, ext_smooth_spec, 
@@ -1710,14 +1809,13 @@ static int cr2res_cal_wave_reduce(
 /**
   @brief Compute QC.UNE.FLUX
   @param    extracted   3 extracted tables (1 per detector)
-  @param    tw          3 TW tables (1 per detector)
   @param    ext_plist   3 Extension headers (1 per detector)
   @param    cwlen
   @param    plist       Header for holding the QC values
   @return   0 if ok
   
   Use Detector 1 if CWLEN (from input file headers) is < 1100.0,
-  detector 2 otherwse.
+  detector 2 otherwise.
   The order that is the closest to the center of the detector is used.
 
   QC.UNE.FLUX is the average of the lines between 1000 and 37000 intensity
@@ -1726,22 +1824,19 @@ static int cr2res_cal_wave_reduce(
 /*----------------------------------------------------------------------------*/
 static int cr2res_cal_wave_qc_une_flux(
         const cpl_table         **      extracted,
-        const cpl_table         **      tw,
         const cpl_propertylist  **      ext_plist,
         double                          cwlen,
         cpl_propertylist        *       plist)
 {
     const cpl_table         *   ref_extr ;
-    const cpl_table         *   ref_tw ;
     const cpl_propertylist  *   ref_plist ;
     cpl_bivector            *   spec ;
     cpl_bivector            *   spec_err ;
     cpl_bivector            *   intensities ;
-    double                  *   pintens,
-                            *   pbgs ;
-    double                      qc_flux, min_intens, max_intens, val ;
+    double                  *   pintens;
+    double                      qc_flux, min_intens, max_intens;
     int                         ref_det, corder_idx ;
-	cpl_size					k, nintensities, nval ;
+	cpl_size					k;
 
     /* Check Inputs */
     if (extracted==NULL || ext_plist == NULL) return -1 ;
@@ -1759,7 +1854,7 @@ static int cr2res_cal_wave_qc_une_flux(
     if (cwlen <= 1100.0)    ref_det = 0 ;
     else                    ref_det = 1 ;
     ref_extr = extracted[ref_det] ;
-    ref_tw = tw[ref_det] ;
+
     ref_plist = ext_plist[ref_det] ;
 
     /* Get central order index */
@@ -1776,22 +1871,30 @@ static int cr2res_cal_wave_qc_une_flux(
 
     /* Plot the spectrum */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_errorstate status;
+        status = cpl_errorstate_get();
         cpl_plot_bivector(
                 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Intensity';",
                 "t 'UNE Spectrum' w lines", "",
                 spec);
+        cpl_error_reset();
+        cpl_errorstate_set(status);
     }
 
     /* Compute the lines statistics */
     if ((intensities = cr2res_qc_lines_intens_bgd(spec)) == NULL) {
         cpl_msg_warning(__func__, "Cannot get the lines statistics") ;
-    } else {
+    }
+    else {
+        cpl_size nintensities, nval;
+        double * pbgs ;
         nintensities = cpl_bivector_get_size(intensities) ;
         pintens = cpl_bivector_get_x_data(intensities) ;
         pbgs = cpl_bivector_get_y_data(intensities) ;
         /* Compute qc_flux of lines in [min_intens,max_intens] */
         nval = 0 ;
         for (k=0 ; k<nintensities ; k++) {
+            double val;
             val = pintens[k] - pbgs[k] ;
             if (val < max_intens && val > min_intens) {
                 qc_flux += val ;
@@ -1820,7 +1923,7 @@ static int cr2res_cal_wave_qc_une_flux(
   @return   0 if ok
   
   Use Detector 1 if CWLEN (from input file headers) is < 1100.0,
-  detector 2 otherwse.
+  detector 2 otherwise.
   The order that is the closest to the center of the detector is used.
 
   QC.FPI.CONTRAST
@@ -1843,20 +1946,23 @@ static int cr2res_cal_wave_qc_fpi(
     const cpl_table         *   ref_extr ;
     const cpl_table         *   ref_tw ;
     const cpl_propertylist  *   ref_plist ;
-    double                      qc_contrast, qc_separation, maxpeak,
-                                lpeak, lmin, contrast_val ;
+    double                      qc_contrast, qc_flux, qc_separation;
     int                         corder_idx, ref_det, first_fringe_idx,
                                 last_fringe_idx, nb_fringes_between ;
     cpl_bivector            *   spec ;
     cpl_bivector            *   spec_err ;
     cpl_vector              *   xpeaks ;
     cpl_vector              *   lpeaks ;
+    cpl_vector              *   fpeaks ;
     cpl_vector              *   xmins ;
+    cpl_vector              *   fmins ;
     cpl_vector              *   lmins ;
     cpl_vector              *   tmp_vec ;
+    cpl_vector              *   flux_vec ;
     cpl_polynomial          *   wlpoly ;
-    cpl_size                    k, npeaks, start_val_search, end_val_search, 
-                                search_hsize, xminpos ;
+    cpl_size                    k, npeaks, end_val_search;
+
+    
 
     /* Check Inputs */
     if (extracted==NULL || ext_plist == NULL) return -1 ;
@@ -1864,10 +1970,6 @@ static int cr2res_cal_wave_qc_fpi(
         if (extracted[k] == NULL) return -1 ;
         if (ext_plist[k] == NULL) return -1 ;
     }
-
-    /* Initialize */
-    search_hsize = 2 ;
-    qc_contrast = qc_separation = -1.0 ;
 
     /* Detector used depends on the cwlen */
     if (cwlen <= 1100.0)    ref_det = 0 ;
@@ -1890,10 +1992,15 @@ static int cr2res_cal_wave_qc_fpi(
 
     /* Plot the spectrum */
     if (cpl_msg_get_level() == CPL_MSG_DEBUG) {
+        cpl_errorstate status;
+
+        status = cpl_errorstate_get();
         cpl_plot_bivector(
                 "set grid;set xlabel 'Wavelength (nm)';set ylabel 'Intensity';",
                 "t 'FPI Spectrum' w lines", "",
                 spec);
+        cpl_error_reset();
+        cpl_errorstate_set(status);
     }
 
     /* Identify the peaks */
@@ -1919,12 +2026,15 @@ static int cr2res_cal_wave_qc_fpi(
         return -1 ;
     }
 
-    /* Get the wavelengthѕ at the peak positions */
+    /* Get the wavelengths at the peak positions */
     lpeaks = cr2res_polynomial_eval_vector(wlpoly, xpeaks);
 
     /* Get the Min after each peak */
     xmins = cpl_vector_new(npeaks) ;
+    fpeaks = cpl_vector_new(npeaks);
+    fmins = cpl_vector_new(npeaks);
     for (k=0 ; k<npeaks ; k++) {
+        cpl_size start_val_search, xminpos;
 
         /* Min of the peak */
         start_val_search = (int)cpl_vector_get(xpeaks, k) ;
@@ -1936,12 +2046,14 @@ static int cr2res_cal_wave_qc_fpi(
         tmp_vec = cpl_vector_extract(cpl_bivector_get_y(spec), 
                 start_val_search-1, end_val_search-1, 1) ;
         xminpos = cpl_vector_get_minpos(tmp_vec) ;
+        cpl_vector_set(fpeaks,k,cpl_vector_get(tmp_vec,0));
+        cpl_vector_set(fmins,k,cpl_vector_get(tmp_vec,xminpos));
         cpl_vector_delete(tmp_vec) ;
 
         cpl_vector_set(xmins, k, start_val_search + xminpos) ;
     }
     
-    /* Get the wavelengthѕ at the min positions */
+    /* Get the wavelengths at the min positions */
     lmins = cr2res_polynomial_eval_vector(wlpoly, xmins);
     cpl_polynomial_delete(wlpoly) ;
 
@@ -1967,14 +2079,19 @@ static int cr2res_cal_wave_qc_fpi(
     /* CONTRAST */
     /* Ignore first and last peaks */
     tmp_vec = cpl_vector_new(npeaks-2) ;
+    flux_vec = cpl_vector_new(npeaks-2) ;
     for (k=1 ; k<npeaks-1 ; k++) {
-        lpeak = cpl_vector_get(lpeaks, k) ;
-        lmin = cpl_vector_get(lmins, k) ;
-        contrast_val = (lmin-lpeak) / (lmin+lpeak) ;
+        double fpeak, fmin, contrast_val ;
+        fpeak = cpl_vector_get(fpeaks, k) ;
+        fmin = cpl_vector_get(fmins, k) ;
+        contrast_val = (fpeak-fmin) / (fmin+fpeak) ;
         cpl_vector_set(tmp_vec, k-1, contrast_val) ;
+        cpl_vector_set(flux_vec, k-1, fpeak) ;
     }
     qc_contrast = cpl_vector_get_mean(tmp_vec) ;
+    qc_flux = cpl_vector_get_mean(flux_vec) ;
     cpl_vector_delete(tmp_vec) ;
+    cpl_vector_delete(flux_vec) ;
     cpl_vector_delete(lmins) ;
 
     /* SEPARATION */
@@ -1987,10 +2104,14 @@ static int cr2res_cal_wave_qc_fpi(
         nb_fringes_between ;
 
     cpl_vector_delete(lpeaks) ;
+    cpl_vector_delete(fpeaks) ;
+    cpl_vector_delete(fmins) ;
 
     /* Store the QCs */
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FPI_CONTRAST, 
             qc_contrast) ;
+    cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FPI_FLUX, 
+            qc_flux) ;
     cpl_propertylist_append_double(plist, CR2RES_HEADER_QC_FPI_SEPARATION, 
             qc_separation) ;
 
@@ -2006,7 +2127,7 @@ static int cr2res_cal_wave_qc_fpi(
   @return   0 if ok
   
   Use Detector 1 if CWLEN (from input file headers) is < 1100.0,
-  detector 2 otherwse.
+  detector 2 otherwise.
 
   For each order n of the detector, evaluate the slit curvature at
   x=1024 pixels (middle of the detector), evaluate the slit position at
@@ -2021,16 +2142,8 @@ static int cr2res_cal_wave_qc_tilt(
         cpl_propertylist    *       plist)
 {
     const cpl_table *   ref_tw ;
-    const cpl_array *   tmp_array ;
-    cpl_polynomial  *   slit_poly_a ;
-    cpl_polynomial  *   slit_poly_b ;
-    cpl_polynomial  *   slit_poly_c ;
-    cpl_polynomial  *   upper_poly ;
-    cpl_polynomial  *   lower_poly ;
-    cpl_polynomial  *   slit_curv_poly ;
-    char            *   qc_name;
-    double              top_x, top_y, bot_x, bot_y, tilt, tilt_avg;
-    int                 cur_order, ref_x, ntilt ;
+    double              tilt_avg;
+    int                 ref_x, ntilt ;
     cpl_size            nrows, k ;
 
     /* Check Inputs */
@@ -2051,6 +2164,19 @@ static int cr2res_cal_wave_qc_tilt(
 
     /* Loop on rows */
     for (k=0 ; k<nrows ; k++) {
+
+        const cpl_array *   tmp_array ;
+        cpl_polynomial  *   slit_poly_a ;
+        cpl_polynomial  *   slit_poly_b ;
+        cpl_polynomial  *   slit_poly_c ;
+        cpl_polynomial  *   upper_poly ;
+        cpl_polynomial  *   lower_poly ;
+        cpl_polynomial  *   slit_curv_poly ;
+        char            *   qc_name;
+        double              top_x, top_y, bot_x, bot_y;
+        double              tilt;
+        int                 cur_order ;
+
         cur_order = cpl_table_get(ref_tw, CR2RES_COL_ORDER, k, NULL) ;
 
         /* Get the Slit curvature for the trace */
@@ -2110,7 +2236,3 @@ static int cr2res_cal_wave_qc_tilt(
 
     return 0 ;
 }
-
-
-
-

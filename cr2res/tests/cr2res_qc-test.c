@@ -55,7 +55,7 @@ static void test_cr2res_qc_obs_nodding_slit_psf(void);
 /*----------------------------------------------------------------------------*/
 
 /**@{*/
-
+#ifdef CR2RES_UNUSED_TESTS
 /*----------------------------------------------------------------------------*/
 /**
   @brief Create a default table with test data
@@ -212,8 +212,9 @@ static cpl_table *create_test_table()
     cpl_free(extname);
     return traces;
 }
+#endif
 
-
+#ifdef CR2RES_UNUSED_TESTS
 /*----------------------------------------------------------------------------*/
 /**
   @brief Create a default image to test against based on the default table data
@@ -233,12 +234,12 @@ static cpl_image *create_test_image(void)
 
     return trace_ima;
 }
+#endif
 
 static void test_cr2res_dark_qc_ron(void)
 {
     cpl_image *ima1, *ima2;
     int hsize, nsamples, ndit;
-    double res;
 
     ima1 = cpl_image_new(100, 100, CPL_TYPE_DOUBLE);
     ima2 = cpl_image_new(100, 100, CPL_TYPE_DOUBLE);
@@ -256,7 +257,7 @@ static void test_cr2res_dark_qc_ron(void)
         }
     }
     
-    res = cr2res_dark_qc_ron(ima1, ima2, hsize, nsamples, ndit);
+    cr2res_dark_qc_ron(ima1, ima2, hsize, nsamples, ndit);
     cpl_test_error(CPL_ERROR_NONE);
 
     cpl_image_delete(ima1);
@@ -271,7 +272,6 @@ static void test_cr2res_qc_obs_nodding_slit_psf()
     double A = 1; // total area of the slitfunc should always be 1
     double offset = 0;
     double sigma = nrow / 20;
-    double value = 0;
     double fwhm = -1;
 
     char col1[] = "01_01_SLIT_FUNC";
@@ -283,6 +283,7 @@ static void test_cr2res_qc_obs_nodding_slit_psf()
 
     for (cpl_size i = 0; i < nrow; i++)
     {
+        double value;
         // area / sqrt(2 pi sigma^2) * exp( -(x - x0)^2/(2 sigma^2)) + offset
         value = A / sqrt(CPL_MATH_2_PI * sigma * sigma) * exp( -(i - x0) * 
                 (i - x0) / (2. * sigma * sigma)) + offset;

@@ -117,12 +117,10 @@ int cr2res_photom_engine(
     cpl_bivector    *   std_star_biv ;
     cpl_table       *   throughput_loc ;
     cpl_array       *   col_names ;
-    const char      *   col_name ;
     char            *   cwname ;
     char            *   csname ;
     char            *   ccname ;
     char            *   ctname ;
-    char            *   col_type ;
     cpl_bivector    *   spec_biv ;
     cpl_bivector    *   spec_err_biv ;
     cpl_vector      *   conversion_vec ;
@@ -165,14 +163,16 @@ int cr2res_photom_engine(
 	col_names = cpl_table_get_column_names(extr);
 	ncols = cpl_table_get_ncol(extr) ;
 	for (j=0 ; j<ncols ; j++) {
-		col_name = cpl_array_get_string(col_names, j);
+        const char *col_name;
+        char *col_type;
+        col_name = cpl_array_get_string(col_names, j);
 		col_type = cr2res_dfs_SPEC_colname_parse(col_name, &order, &trace_nb) ;
 		if (col_type != NULL && !strcmp(col_type, CR2RES_COL_SPEC_SUFFIX)) {
             /* Get this extracted spectrum */
 			if (cr2res_extract_EXTRACT1D_get_spectrum(extr, order, trace_nb,
 						&spec_biv, &spec_err_biv)) {
                 cpl_msg_error(__func__, "Cannot get the extracted spectrum") ;
-                if (col_type != NULL) cpl_free(col_type) ;
+                cpl_free(col_type) ;
                 continue ;
             }
             cpl_msg_info(__func__, 
@@ -187,7 +187,7 @@ int cr2res_photom_engine(
                 cpl_error_reset() ;
                 cpl_bivector_delete(spec_biv) ;
                 cpl_bivector_delete(spec_err_biv) ;
-                if (col_type != NULL) cpl_free(col_type) ;
+                cpl_free(col_type) ;
                 continue ;
             }
 
@@ -607,7 +607,7 @@ static cpl_vector * cr2res_photom_sensitivity(
 
     /* Multiply by the factor */
     if (cpl_vector_multiply_scalar(sensitivity, factor) != CPL_ERROR_NONE) {
-        cpl_msg_error(__func__, "Cannot mupltiply by the factor") ;
+        cpl_msg_error(__func__, "Cannot multiply by the factor") ;
         cpl_vector_delete(sensitivity) ;
         return NULL ;
     }
@@ -639,7 +639,7 @@ static int cr2res_photom_star_find(
         double              *   pdist)
 {
     int                 nra, ndec, minind ;
-    double              dmin, gdist ;
+    double              dmin;
     const double    *   pv_ra ;
     const double    *   pv_dec ;
     int                 i ;
@@ -661,6 +661,7 @@ static int cr2res_photom_star_find(
     
     /* Find the index of the star closest to the given coordinate */
     for (i=0 ; i < nra ; i++) {
+        double gdist;
         /* Get the distance */
         gdist = cr2res_photom_great_circle_dist(pv_ra[i], pv_dec[i], ra, dec);
         if (i == 0 || gdist < dmin) {

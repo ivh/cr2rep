@@ -83,8 +83,6 @@ hdrl_imagelist * cr2res_calib_imagelist(
         const cpl_vector        *   ndits)
 {
     hdrl_imagelist      *   out ;
-    const hdrl_image    *   cur_ima ;
-    hdrl_image          *   cur_ima_calib ;
     double                  dit ;
     int                     ndit ;
     cpl_size                i ;
@@ -100,7 +98,9 @@ hdrl_imagelist * cr2res_calib_imagelist(
     out = hdrl_imagelist_new() ;
 
     /* Loop on the images */
-    for (i=0 ; i<hdrl_imagelist_get_size(in) ; i++) {
+    for (i = 0; i < hdrl_imagelist_get_size(in); i++) {
+        const hdrl_image *cur_ima;
+        hdrl_image *cur_ima_calib;
         cur_ima = hdrl_imagelist_get(in, i) ;
         if (dark != NULL)  dit = cpl_vector_get(dits, i) ;
         if (ndits != NULL) ndit = (int)cpl_vector_get(ndits, i) ;
@@ -161,10 +161,6 @@ hdrl_image * cr2res_calib_image(
     hdrl_image          *   out ;
     hdrl_image          *   calib ;
     hdrl_imagelist      *   calib_list ;
-    cpl_propertylist    *   plist ;
-    double                  dark_dit ;
-    cpl_image           *   img_tmp ;
-    cpl_size                i;
 
     /* Test entries */
     if (in == NULL) return NULL ;
@@ -206,13 +202,16 @@ hdrl_image * cr2res_calib_image(
     cpl_msg_info(__func__, "Add shot-noise") ;
     if (cr2res_add_shotnoise(out, ndit, chip)){
         cpl_msg_error(__func__, "Cannot add shot-noise") ;
-        hdrl_imagelist_delete(calib_list) ;
+        if(detlin != NULL)
+            hdrl_imagelist_delete(calib_list) ;
         hdrl_image_delete(out);
         return NULL ;
     }
 
     /* Apply the dark */
     if (dark != NULL) {
+        cpl_propertylist *plist;
+        double dark_dit;
         cpl_msg_info(__func__, "Correct for the dark") ;
 
         /* Load the dark */
@@ -259,6 +258,8 @@ hdrl_image * cr2res_calib_image(
 
     /* Subtract residual bias/dark from vignetted rows at bottom */
     if (subtract_nolight_rows) {
+        cpl_size i;
+        cpl_image *img_tmp;
         cpl_msg_info(__func__, "Subtract median of bottom rows");
 
         img_tmp = cpl_image_collapse_median_create(
@@ -402,10 +403,8 @@ int cr2res_calib_subtract_interorder_column(hdrl_image * in,
     cpl_image * img;
     const cpl_image * flat_img;
     cpl_polynomial * poly;
-    cpl_matrix * px;
-    cpl_vector * py;
     cpl_vector * tmp;
-    cpl_size ncolumns, nrow, npixel;
+    cpl_size ncolumns, nrow;
     cpl_size i, j;
     int badpix;
     int badcols = 0;
@@ -423,9 +422,11 @@ int cr2res_calib_subtract_interorder_column(hdrl_image * in,
     nrow = cpl_image_get_size_y(img);
 
 
-    for (i = CR2RES_NB_BPM_EDGEPIX + 1; 
-                i < ncolumns - CR2RES_NB_BPM_EDGEPIX; i++)
-    {
+    for (i = CR2RES_NB_BPM_EDGEPIX + 1; i < ncolumns - CR2RES_NB_BPM_EDGEPIX;
+         i++) {
+        cpl_size npixel;
+        cpl_matrix *px;
+        cpl_vector *py;
         // Fill vectors and matrix
         px = cpl_matrix_new(1, nrow);
         py = cpl_vector_new(nrow);

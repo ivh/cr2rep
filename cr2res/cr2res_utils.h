@@ -70,7 +70,7 @@ char * cr2res_decker_print_position(cr2res_decker dpos) ;
 
 int cr2res_format_setting(char * setting_id) ;
 int cr2res_format_setting2(char * setting_id) ;
-int cr2res_is_short_wavelength(char * setting_id) ;
+int cr2res_is_short_wavelength(const char * setting_id) ;
 
 double cr2res_vector_get_mad(cpl_vector * invec, double *mad);
 
@@ -113,13 +113,19 @@ cpl_vector * cr2res_polynomial_eval_vector(
         const cpl_polynomial * poly,
         const cpl_vector     * vec);
 
+double cr2res_util_blaze_stat(
+        const cpl_table     *   blaze,
+        int * ngood,
+        double * blaze_tot);
+
 cpl_vector * cr2res_threshold_spec(const cpl_vector * invector, int smooth, 
                                 double thresh) ;
 
 char * cr2res_get_base_name(const char * filename) ;
 char * cr2res_get_root_name(const char * filename) ;
-
+#ifdef CR2RES_UNUSED
 const char * cr2res_extract_filename(const cpl_frameset *, const char *) ;
+#endif
 cpl_frameset * cr2res_extract_frameset(const cpl_frameset *, const char *) ;
 cpl_frameset * cr2res_extract_frameset_several_tags(
         const cpl_frameset  *   in,
@@ -150,17 +156,17 @@ int cr2res_vector_erase_element(
 
 int cr2res_vector_abs(
         cpl_vector * vector);
-
+#ifdef CR2RES_UNUSED
 int cr2res_util_optimal_filter_1d(
-        double     * Yarg,
+        const double     * Yarg,
         double       Lam1,
         double     * Result,
         int          n,
         int          Options[],
-        double     * Xarg,
-        double     * Weights,
+        const double     * Xarg,
+        const double     * Weights,
         double       Lam2);
-
+#endif
 cpl_image * cr2res_util_optimal_filter_2d(
         const cpl_image * img,
         const cpl_image * weight,

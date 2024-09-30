@@ -43,7 +43,6 @@
 int cr2res_combine_spectra(cpl_bivector * spliced[],
     cpl_bivector * spliced_err[],
     cpl_vector * spectrum_order,
-    cpl_bivector * first,
     cpl_bivector * last,
     int nspectra,
     cpl_bivector ** spectrum,
@@ -82,12 +81,12 @@ int cr2res_splice(
         cpl_bivector    **  spliced,
         cpl_bivector    **  spliced_err)
 {
-    int i, j, k, trace, nspectra, nb_order_idx_values, nb_traces, sucess;
-    int * order_idx_values, * traces;
+    int i, j, k, nspectra, nb_order_idx_values, nb_traces, success;
+    int * traces;
     int count = 0;
     // trace determines which trace to get from the table
     // trace == -1, means all traces
-    trace = -1;
+    // int trace = -1;
 
     cpl_bivector ** sp;
     cpl_bivector ** sp_err;
@@ -104,23 +103,24 @@ int cr2res_splice(
     // Count total number of spectra
     nspectra = 0;
     for (i = 0; i < ninputs; i++){
+            nspectra += cpl_table_get_nrow(trace_wave[i]);
+    }
+    /*for (i = 0; i < ninputs; i++){
         if (trace == -1){
-            // Count all traces
             nspectra += cpl_table_get_nrow(trace_wave[i]);
         }
         else{
-            // Count number of orders with the requested trace
             order_idx_values = cr2res_trace_get_order_idx_values(trace_wave[i],
                     &nb_order_idx_values);
             for (j = 0; j < nb_order_idx_values; j++){
-                if ((k = cr2res_get_trace_table_index(trace_wave[i],
+                if ((cr2res_get_trace_table_index(trace_wave[i],
                                 order_idx_values[j], trace)) != -1) {
                     nspectra++;
                 }
             }
             cpl_free(order_idx_values);
         }
-    }
+    }*/
 
     cpl_msg_info(__func__, "Number of segments: %i", nspectra);
 
@@ -134,17 +134,31 @@ int cr2res_splice(
     // fill data vectors by reading table data
     count = 0;
     for (i = 0; i < ninputs; i++){
+        int * order_idx_values;
         order_idx_values = cr2res_trace_get_order_idx_values(trace_wave[i],
                     &nb_order_idx_values);
-        for (j = 0; j < nb_order_idx_values; j++){
-            if (trace == -1){
+        for (j = 0; j < nb_order_idx_values; j++) {
+            traces = cr2res_get_trace_numbers(trace_wave[i],
+                                              order_idx_values[j], &nb_traces);
+            for (k = 0; k < nb_traces; k++) {
+                success =
+                    cr2res_extract_data(trace_wave[i], blaze[i],
+                                        extracted_1d[i], order_idx_values[j],
+                                        traces[k], &wave[count], &spec[count],
+                                        &uncs[count], &cont[count]);
+                if (success == 0) {
+                    count++;
+                }
+            }
+            cpl_free(traces);
+            /*if (trace == -1){
                 traces = cr2res_get_trace_numbers(trace_wave[i],
                         order_idx_values[j], &nb_traces);
                 for (k = 0; k < nb_traces; k++) {
-                    sucess = cr2res_extract_data(trace_wave[i], blaze[i],
+                    success = cr2res_extract_data(trace_wave[i], blaze[i],
                         extracted_1d[i], order_idx_values[j], traces[k], 
                         &wave[count], &spec[count], &uncs[count], &cont[count]);
-                    if (sucess == 0){
+                    if (success == 0){
                         count++;
                     }
 
@@ -153,14 +167,13 @@ int cr2res_splice(
             }
             else
             {
-                // Skip orders without the requested trace
                 if (cr2res_extract_data(trace_wave[i], blaze[i], 
                             extracted_1d[i], order_idx_values[j], trace, 
                             &wave[count], &spec[count], &uncs[count],
                             &cont[count]) != -1) {
                     count++;
                 }
-            }
+            }*/
         }
         cpl_free(order_idx_values);
     }
@@ -168,12 +181,12 @@ int cr2res_splice(
     nspectra = count;
     cpl_msg_info(__func__, "%i segments with data found", nspectra);
 
-    // Splice orders, but keep them seperate
+    // Splice orders, but keep them separate
     cr2res_splice_orders(wave, spec, uncs, cont, nspectra, &sp, &sp_err,
         &sp_order, &first, &last);
 
     // Combine orders into one big spectrum
-    cr2res_combine_spectra(sp, sp_err, sp_order, first, last, nspectra, spliced,
+    cr2res_combine_spectra(sp, sp_err, sp_order, last, nspectra, spliced,
         spliced_err);
 
     cpl_bivector_delete(first);
@@ -295,7 +308,6 @@ int cr2res_combine_spectra(
     cpl_bivector * spliced[],
     cpl_bivector * spliced_err[],
     cpl_vector * spectrum_order,
-    cpl_bivector * first,
     cpl_bivector * last,
     int nspectra,
     cpl_bivector ** spectrum,
@@ -306,27 +318,28 @@ int cr2res_combine_spectra(
         spectrum == NULL || spectrum_err == NULL || spectrum_order == NULL)
             return -1;
 
-    int i = 0, j = 0, k = 0;
-    int iord = 0 ;
-    volatile int fx, lx, fy, ly;
+    int i = 0, k = 0;
 
     *spectrum = cpl_bivector_new(nspectra * CR2RES_DETECTOR_SIZE);
     *spectrum_err = cpl_bivector_new(nspectra * CR2RES_DETECTOR_SIZE);
 
     for (i = 0; i < nspectra; i++){
+
+        int lx, ly;
+        int iord, j;
         iord = cpl_vector_get(spectrum_order, i);
 
-        fx = cpl_bivector_get_x_data(first)[iord];
+        //fx = cpl_bivector_get_x_data(first)[iord];
         lx = cpl_bivector_get_x_data(last)[iord] + 1;
-        fy = cpl_bivector_get_y_data(first)[iord];
+        //fy = cpl_bivector_get_y_data(first)[iord];
         ly = cpl_bivector_get_y_data(last)[iord] + 1;
 
         if ( i == 0 ){
-            fx = 0;
+            //fx = 0;
             lx = 0;
         }
         if (i == nspectra-1){
-            fy = CR2RES_DETECTOR_SIZE;            
+            //fy = CR2RES_DETECTOR_SIZE;            
             ly = CR2RES_DETECTOR_SIZE;
         }
         cpl_msg_debug(__func__, "lx: %i, ly: %i", lx, ly);
@@ -393,21 +406,15 @@ int cr2res_splice_orders(
 
     cpl_size i, j, k; 
     int * loop0, *loop1;
-    int iord0, iord1;
-    int first0, first1, last0, last1, overlap0, overlap1;
     int n = CR2RES_DETECTOR_SIZE;
-    double minW0, minW1, maxW0, maxW1;
-    cpl_size minW0pos, minW1pos, maxW0pos, maxW1pos;
     double wgt0, wgt1;
     // temporary work arrays
     cpl_bivector * wave_center;
-    cpl_vector *s0, *s1, *tmpS0, *tmpS1;
-    cpl_vector *u0, *u1, *tmpU0, *tmpU1;
-    cpl_vector *w0, *w1, *tmpW0, *tmpW1;
-    cpl_vector *c0, *c1, *tmpC0, *tmpC1;
+    cpl_vector *tmpS0, *tmpS1;
+    cpl_vector *tmpU0, *tmpU1;
+    cpl_vector *tmpW0, *tmpW1;
+    cpl_vector *tmpC0, *tmpC1;
     cpl_bivector * tmp2, * tmp3;
-    cpl_vector * tmp4;
-    double median;
 
     loop0 = cpl_malloc((nspectra-1) * sizeof(int));
     loop1 = cpl_malloc((nspectra-1) * sizeof(int));
@@ -426,6 +433,9 @@ int cr2res_splice_orders(
 
     // Load data into vector arrays
     for (i=0; i<nspectra; i++){
+
+        cpl_vector * tmp4;
+        double median;
 
         // Get Wavelength Center
         cpl_vector_set(cpl_bivector_get_x(wave_center), i, i);        
@@ -468,7 +478,17 @@ int cr2res_splice_orders(
     }
 
     for (i=0; i < nspectra-1; i++){
-        // about the nomencalture
+
+        int iord0, iord1;
+        int first0, first1, last0, last1, overlap0, overlap1;
+        cpl_size minW0pos, minW1pos, maxW0pos, maxW1pos;
+
+        double minW0, minW1, maxW0, maxW1;
+        cpl_vector *s0, *s1;
+        cpl_vector *u0, *u1;
+        cpl_vector *w0, *w1;
+        cpl_vector *c0, *c1;
+        // about the nomenclature
         // Order "0" is closer to central
         // Order "1" is the neighbour further away
         iord0 = loop0[i];
@@ -502,7 +522,7 @@ int cr2res_splice_orders(
         maxW1 = cpl_vector_get(w1, maxW1pos);
         maxW0 = cpl_vector_get(w0, maxW0pos);
 
-        // indices of the first and last overlaping value
+        // indices of the first and last overlapping value
         first0 = -1;
         first1 = -1;
         last0 = -1;

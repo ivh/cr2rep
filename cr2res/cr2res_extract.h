@@ -47,6 +47,7 @@ int cr2res_extract_traces(
         const cpl_table     *   traces,
         const cpl_table     *   slit_func_in,
         const cpl_table     *   blaze_table_in,
+        float                   blaze_norm,
         int                     reduce_order,
         int                     reduce_trace,
         cr2res_extr_method      extr_method,
