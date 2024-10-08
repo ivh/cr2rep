@@ -35,6 +35,7 @@
 #include "cr2res_utils.h"
 #include "cr2res_dfs.h"
 #include "cr2res_io.h"
+#include "cr2res_qc.h"
 
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
@@ -118,6 +119,9 @@ int cr2res_idp_save(
     ref_frame = cpl_frameset_get_position_const(rawframes, 0) ;
     ref_fname = cpl_frame_get_filename(ref_frame) ;
     pri_head = cpl_propertylist_load(ref_fname, 0); 
+
+
+    cr2res_qc_dup_mtrlgy_key(rawframes, pri_head);
     
     /* Create the first EXTENSION header */
     ext_head = cpl_propertylist_new() ;
@@ -431,44 +435,34 @@ int cr2res_idp_save(
     
     cpl_propertylist_update_string(ext_head, "TUTYP1", 
                         "spec:Data.SpectralAxis.Value");
-    cpl_propertylist_update_string(ext_head, "TTYPE1", "WAVE");
     cpl_propertylist_update_string(ext_head, "TUCD1", "em.wl");
-    cpl_propertylist_update_string(ext_head, "TUNIT1", "nm");
     cpl_propertylist_update_double(ext_head, "TDMIN1", wmin);
     cpl_propertylist_update_double(ext_head, "TDMAX1", wmax);
 
     cpl_propertylist_update_string(ext_head, "TUTYP2",
                                 "spec:Data.FluxAxis.Value");
-    cpl_propertylist_update_string(ext_head, "TTYPE2", "FLUX");
     cpl_propertylist_update_string(ext_head, "TUCD2", 
             "phot.flux.density;em.wl;stat.uncalib;arith.ratio;meta.main");
-    cpl_propertylist_update_string(ext_head, "TUNIT2", "");
 
     cpl_propertylist_update_string(ext_head, "TUTYP3",
                     "spec:Data.FluxAxis.Accuracy.StatError");
-    cpl_propertylist_update_string(ext_head, "TTYPE3", "ERR");
     cpl_propertylist_update_string(ext_head, "TUCD3",
                                    "stat.error;phot.flux.density;em.ql;stat.uncalib;arith.ratio;meta.main");
-    cpl_propertylist_update_string(ext_head, "TUNIT3", "");
 
     cpl_propertylist_update_string(ext_head, "TUTYP4",
                     "spec:Data.FluxAxis.Accuracy.QualityStatus");
-    cpl_propertylist_update_string(ext_head, "TTYPE4", "QUAL");
     cpl_propertylist_update_string(ext_head, "TUCD4",
                         "meta.code.qual;meta.main");
-    cpl_propertylist_update_string(ext_head, "TUNIT4", "");
 
     cpl_propertylist_update_string(ext_head, "TUTYP5",
                     "");
     cpl_propertylist_update_string(ext_head, "TUCD5",
                         "instr.order");
-    cpl_propertylist_update_string(ext_head, "TUNIT5", "");
 
     cpl_propertylist_update_string(ext_head, "TUTYP6",
                     "");
     cpl_propertylist_update_string(ext_head, "TUCD6",
                         "meta.number;instr.det"); 
-    cpl_propertylist_update_string(ext_head, "TUNIT6", "");
 
     if (!strcmp(recipe,"cr2res_obs_pol")) { // POL
         cpl_propertylist_update_string(ext_head, "TUTYP7", "");
@@ -476,26 +470,22 @@ int cr2res_idp_save(
                                     poltype);
         cpl_propertylist_update_string(ext_head, "TUCD7", tmp_string);
         cpl_free(tmp_string);
-        cpl_propertylist_update_string(ext_head, "TUNIT7", "");
 
         cpl_propertylist_update_string(ext_head, "TUTYP8", "");
         tmp_string = cpl_sprintf("stat.error;phys.polarization.stokes.%s",
                                  poltype);
         cpl_propertylist_update_string(ext_head, "TUCD8", tmp_string);
         cpl_free(tmp_string);
-        cpl_propertylist_update_string(ext_head, "TUNIT8", "");
     } else { //  Nodding and staring
         cpl_propertylist_update_string(ext_head, "TUTYP7",
                         "");
         cpl_propertylist_update_string(ext_head, "TUCD7",
                             "pos.cartesian.x;instr.det");
-        cpl_propertylist_update_string(ext_head, "TUNIT7", "pixel");
 
         cpl_propertylist_update_string(ext_head, "TUTYP8",
                         "");
         cpl_propertylist_update_string(ext_head, "TUCD8",
                             "meta.number"); // TraceNb
-        cpl_propertylist_update_string(ext_head, "TUNIT8", "");
 
     }
     /* For Y pixel coordinate in OBS_2D
@@ -717,17 +707,17 @@ cpl_table * cr2res_idp_create_table(
 
     /* Set the units */
     cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_WAVE, "nm") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_DETEC, "Nb Detector") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_ORDER, "Nb Order") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_QUAL, "") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_FLUX, "ADU") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_ERR, "ADU") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_DETEC, " ") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_ORDER, " ") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_QUAL, " ") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_FLUX, " ") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_ERR, " ") ;
     if (strcmp(recipe, "cr2res_obs_pol")) { // nodding and staring
-        cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_TRACE, "Nb Trace") ;
-        cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_XPOS, "pixels") ;
+        cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_TRACE, " ") ;
+        cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_XPOS, "pixel") ;
     } else {
-        cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_STOKES, "ADU") ;
-        cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_STOKESERR, "ADU") ;
+        cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_STOKES, " ") ;
+        cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_STOKESERR, " ") ;
     }
 
     return idp_tab ;
