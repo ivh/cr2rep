@@ -497,7 +497,7 @@ static void test_cr2res_trace_get_height(void)
 
     cpl_test(res = cr2res_trace_get_height(trace, order_nb, trace_nb));
     //test output
-    cpl_test_eq(res, 174.1271552); // value analytically from test table
+    cpl_test_eq(res, (int) 174.1271552); // value analytically from test table
 
     //deallocate memory
     cpl_table_delete(trace);

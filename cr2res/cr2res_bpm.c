@@ -88,9 +88,6 @@ cpl_mask * cr2res_bpm_compute(
 
     /* Test entries */
     if (in == NULL) return NULL ;
-    if (method != CR2RES_BPM_GLOBAL_STATS &&
-            method != CR2RES_BPM_LOCAL_STATS &&
-            method != CR2RES_BPM_RUNNING_FILTER) return NULL ;
 
     /* This first method works for SW, not L and M */
     if (method == CR2RES_BPM_GLOBAL_STATS) {
@@ -108,6 +105,8 @@ cpl_mask * cr2res_bpm_compute(
             cpl_msg_error(__func__, "Cannot create bad pixels map") ;
             return NULL ;
         }
+    } else {
+        return NULL ;
     }
 
     /*

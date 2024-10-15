@@ -442,17 +442,17 @@ int cr2res_idp_save(
     cpl_propertylist_update_string(ext_head, "TUTYP2",
                                 "spec:Data.FluxAxis.Value");
     cpl_propertylist_update_string(ext_head, "TUCD2", 
-            "phot.flux.density;em.wl;stat.uncalib;arith.ratio;meta.main");
+            "phot.flux.density;em.wl;stat.uncalib;arith.ratio");
 
     cpl_propertylist_update_string(ext_head, "TUTYP3",
                     "spec:Data.FluxAxis.Accuracy.StatError");
     cpl_propertylist_update_string(ext_head, "TUCD3",
-                                   "stat.error;phot.flux.density;em.ql;stat.uncalib;arith.ratio;meta.main");
+                                   "stat.error;phot.flux.density;em.ql;stat.uncalib;arith.ratio");
 
     cpl_propertylist_update_string(ext_head, "TUTYP4",
                     "spec:Data.FluxAxis.Accuracy.QualityStatus");
     cpl_propertylist_update_string(ext_head, "TUCD4",
-                        "meta.code.qual;meta.main");
+                        "meta.code.qual");
 
     cpl_propertylist_update_string(ext_head, "TUTYP5",
                     "");
