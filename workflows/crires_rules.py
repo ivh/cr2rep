@@ -30,8 +30,8 @@ def is_test(f):
 def is_flat(f):
     return is_calib(f) and \
            (f[kwd.dpr_type] == "FLAT" and f[kwd.dpr_tech] == 'SPECTRUM' and
-            f[kwd.det_read_curname] == "New_RR_UpTheRamp" and f[kwd.ins_opti8_id] == "Open"
-            and kwd.det_ndit != 50)
+            f[kwd.det_read_curname] == "New_RR_UpTheRamp" and f[kwd.ins_opti8_id] == "Open")
+#            and kwd.det_ndit != 50) no distinction between regular and deep flats.
 
 
 def is_science_astrometry_other(f):
@@ -77,3 +77,8 @@ def is_gas_cell(f):
 
 def assoc_dark(ref, f):
     return match(ref, f, [kwd.ins_wlen_id, kwd.det_seq1_dit]) and f[kwd.ins_lamp11_st] == "closed"
+
+
+def assoc_flat(ref, f):
+    # Deep-flats with det.ndit=50 are not considered for association
+    return match(ref, f, [kwd.ins_wlen_id, kwd.ins_slit1_id]) and f[kwd.det_ndit] != 50
