@@ -81,14 +81,14 @@ match_flat_sc2d = (match_rules()
 raw_wave_une = (data_source('WAVE_Uranium_Neon')
                 .with_classification_rule(wave_une_class)
                 .with_grouping_keywords(group_cal_common)
-                .with_setup_keywords(setup + [kwd.object, kwd.qc_mtrlgy_id])
+                .with_setup_keywords(setup + [kwd.object, kwd.ocs_mtrlgy_st])
                 .with_match_keywords(match_flat + [kwd.tpl_start], time_range=ONE_DAY, level=0)
                 .build())
 
 raw_wave_fpet = (data_source('WAVE_FabryPerot_Etalon')
                  .with_classification_rule(wave_fpet_class)
                  .with_grouping_keywords(group_cal_common + [kwd.dpr_type])
-                 .with_setup_keywords(setup + [kwd.object, kwd.qc_mtrlgy_id])
+                 .with_setup_keywords(setup + [kwd.object, kwd.ocs_mtrlgy_st])
                  .build())
 
 # These wavelength calbirations are not processed by any recipe, but they are used for monitoring purposes

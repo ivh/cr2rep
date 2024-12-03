@@ -1,17 +1,10 @@
-default_parameters: &default
-  tags: [ qc0, qc1calib ]
+default_parameters:
   is_default: yes
 
-qc1_parameters:
-  <<: *default
-  is_default: no
-
 qc0_parameters:
-  <<: *default
   is_default: no
 
 science_parameters:
-  <<: *default
   is_default: no
   packaging_parameters:
     science_fringe:
