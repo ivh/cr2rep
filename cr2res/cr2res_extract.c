@@ -3252,8 +3252,37 @@ static int cr2res_extract_slit_func_curved(
                        mask[y * ncols + x];
             }
         }
-        unc[x] = sqrt(sP[x] * sum / msum / error_factor);
+        if (msum != 0){
+            // This can give NaNs if m/sum is less than zero, i.e. low/no flux
+            // due to ignoring background flux.
+            unc[x] = sqrt(fabs(sP[x]) * fabs(sum) / fabs(msum) / error_factor);
+        } else {
+            // Fix bad value to NaN as Phase3 doesn't allow Inf.
+            unc[x] = NAN;
+        }
     }
+    // Uncertainty calculation, following Horne 1986, different from above
+    /*for (x = 0; x < ncols; x++) {
+        double num_sum;
+        double den_sum;
+        
+        unc[x] = 0.0;
+        num_sum = 0.0;
+        den_sum = 0.0;
+        for (y = 0; y < nrows; y++) {
+            if (mask[y * ncols + x]) {
+                num_sum += (model[y * ncols + x]) *
+                        mask[y * ncols + x];
+                den_sum += (model[y * ncols + x] * model[y * ncols + x]) *
+                       mask[y * ncols + x] / (pix_unc[y * ncols + x] * pix_unc[y * ncols + x]);
+            }
+        }
+        if (den_sum != 0){
+            unc[x] = error_factor *(num_sum / den_sum);
+        } else {
+            unc[x] = 1.0;
+        }
+    }*/
 
     return 0;
 }

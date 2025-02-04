@@ -217,6 +217,10 @@ int cr2res_idp_save(
 
     cpl_errorstate_set(tempes);
 
+    /* Add QC from the first Extension  ext_plist[0] */
+    if (ext_plist[0] != NULL)
+        cpl_propertylist_copy_property_regexp(ext_head, ext_plist[0], "QC*", 0);
+
     cpl_propertylist_update_int(pri_head, "NCOMBINE", nraw);
     exptime = dit * ndit * nraw;
     cpl_propertylist_update_double(pri_head, "EXPTIME", exptime);
@@ -356,14 +360,30 @@ int cr2res_idp_save(
 
     /* Get some keys from the extension headers*/
     tmp_arr = cpl_array_new(12*CR2RES_NB_DETECTORS, CPL_TYPE_DOUBLE);
+    cpl_array * tmp_arr_sig = cpl_array_new(CR2RES_NB_DETECTORS, CPL_TYPE_DOUBLE);
     for (i=0; i<CR2RES_NB_DETECTORS; i++){
+        resol = cpl_propertylist_get_double(ext_plist[i], CR2RES_HEADER_QC_SIGNAL);
+        if (resol==0){
+            cpl_error_reset();
+        } else {
+            cpl_array_set_double(tmp_arr_sig, i, resol);
+        }
         for (ord=0; ord < 12; ord++){
             keyname = cpl_sprintf(CR2RES_HEADER_QC_SNR, ord+1);
             resol = cpl_propertylist_get_double(ext_plist[i], keyname);
             if (resol==0){
                 cpl_error_reset();
             } else {
-                cpl_array_set_double(tmp_arr, ord + (i*12),resol);
+            /* FIXME: The error propagation is not correct. PIPE-11912
+             * Correction_factor = <Error_propagated_corrected> / <Error_propagated> 
+             * where
+             * <Error_propagated_corrected> = [((a*<Error_propagated>)**2 + b**2)**0.5]
+             * where a=2.12 and b=26.1, as above.
+             */
+                double perr = cpl_array_get_double(tmp_arr_sig, i, NULL) / resol;
+                double corr = sqrt(pow(2.12*perr,2) + 26.1*26.1) / perr;
+                cpl_array_set_double(tmp_arr, ord + (i*12),resol/corr);
+                cpl_propertylist_update_double(ext_head, keyname, resol/corr) ;
             }
             cpl_free(keyname);
         }
@@ -508,9 +528,6 @@ int cr2res_idp_save(
     cpl_propertylist_erase(ext_head, "CRVAL1");
     cpl_propertylist_erase(ext_head, "CUNIT1");
 
-    /* Add QC from the first Extension  ext_plist[0] */
-    if (ext_plist[0] != NULL)
-        cpl_propertylist_copy_property_regexp(ext_head, ext_plist[0], "QC*", 0);
 
     /* Save the table */
     cpl_table_save(idp_tab, NULL, ext_head, idp_filename, CPL_IO_EXTEND) ;
@@ -866,15 +883,25 @@ static int cr2res_idp_copy_spec(
     /* copy line by line */
     for (i=0 ; i<in_size ; i++) {
         if (out_start_idx + i <out_size) {
-            if (!isnan(pwave[i])) 
+            //if (!isnan(pwave[i]))
                 cpl_table_set_double(out, CR2RES_IDP_COL_WAVE, 
                         out_start_idx + i, pwave[i]) ;
-            if (!isnan(pspec[i])) 
+            //if (!isnan(pspec[i])) 
                 cpl_table_set_double(out, CR2RES_IDP_COL_FLUX, 
                         out_start_idx + i, pspec[i]) ;
-            if (!isnan(perr[i])) 
+            //if (!isnan(perr[i])){ 
+            /* FIXME: PIPE-11912 - Error propagation is not correct.
+             * Scale up the propagated errors (column name ERR) according to
+             * the following empirically derived equation:
+             * Error_propagated_corrected = ((a*Error_propagated)^2 + b^2)^0.5
+             * where a=2.12 and b=26.1. 
+             * For the record, these factors were measured with uncertainties
+             * of 0.02 and 1.2, respectively.
+             */
+                double err_corrected = sqrt(pow(2.12*perr[i],2) + pow(26.1,2));
                 cpl_table_set_double(out, CR2RES_IDP_COL_ERR, 
-                        out_start_idx + i, perr[i]) ;
+                        out_start_idx + i, err_corrected) ;
+            
             if (i<5 || (i>=CR2RES_DETECTOR_SIZE-5)) edgepix = 2;
             else edgepix=0;
             cpl_table_set_int(out, CR2RES_IDP_COL_QUAL, out_start_idx + i, 

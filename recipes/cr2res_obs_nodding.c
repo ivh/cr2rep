@@ -1177,6 +1177,7 @@ static int cr2res_obs_nodding_reduce(
     char                *   cur_setting ;
     int                 *   order_idx_values ;
     double              *   qc_snrs ;
+    double              *   qc_der_snrs ;
     int                     nb_order_idx_values,
                             order_zp, order_idx, order_idxp ;
 
@@ -1597,11 +1598,16 @@ static int cr2res_obs_nodding_reduce(
     /* QC - SNR on nodding A position */
     qc_snrs = cr2res_qc_snr(trace_wave_a, extracted_a, &order_idx_values,
             &nb_order_idx_values) ;
+    qc_der_snrs = cr2res_qc_der_snr(trace_wave_a, extracted_a, &order_idx_values,
+            &nb_order_idx_values) ;
     for (i=0 ; i<nb_order_idx_values ; i++) {
         order_idx = order_idx_values[i] ;
         order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
         key_name = cpl_sprintf(CR2RES_HEADER_QC_SNR, order_idxp) ;
         cpl_propertylist_append_double(plist, key_name, qc_snrs[i]) ;
+        cpl_free(key_name) ;
+        key_name = cpl_sprintf(CR2RES_HEADER_QC_DER_SNR, order_idxp) ;
+        cpl_propertylist_append_double(plist, key_name, qc_der_snrs[i]) ;
         cpl_free(key_name) ;
     }
     cpl_free(order_idx_values) ;

@@ -1092,6 +1092,113 @@ double cr2res_qc_compute_snr(cpl_vector * spec,
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Computes the DER SNR of several spectra
+  @param    tw          The TW table
+  @param    extracted   The Extracted table
+  @param    out_order_idx_values    [out] The order values
+  @param    out_nb_order_idx_values [out] The number of order values
+  @return   An array of size out_nb_order_idx_values with the SNRs values
+ */
+/*----------------------------------------------------------------------------*/
+double * cr2res_qc_der_snr(
+        const cpl_table *   tw,
+        const cpl_table *   extracted,
+        int             **  out_order_idx_values,
+        int             *   out_nb_order_idx_values)
+{
+    int             *   order_idx_values ;
+    int                 nb_order_idx_values ;
+    cpl_bivector    *   my_spec,
+                    *   my_spec_err ;
+    double          *   snrs ;
+    int                 i;
+
+    /* Check Entries */
+    if (tw==NULL || extracted==NULL || out_order_idx_values==NULL ||
+            out_nb_order_idx_values==NULL) return NULL ;
+
+    /* Get the number of orders from TW table */
+    order_idx_values = cr2res_trace_get_order_idx_values(tw,
+            &nb_order_idx_values) ;
+
+    /* Allocate the output arrays */
+    snrs = cpl_malloc(nb_order_idx_values * sizeof(double)) ;
+
+    /* Loop on the orders */
+    for (i=0 ; i<nb_order_idx_values ; i++) {
+        /* Compute the SNR */
+        if (cr2res_extract_EXTRACT1D_get_spectrum(extracted,
+                order_idx_values[i], 1, &my_spec, &my_spec_err) == 0) {
+            snrs[i] = cr2res_qc_compute_der_snr(
+                cpl_bivector_get_y(my_spec),
+                cpl_bivector_get_y(my_spec_err));
+            cpl_bivector_delete(my_spec);
+            cpl_bivector_delete(my_spec_err);
+        }
+        else
+        {
+            snrs[i] = -1.0 ;
+        }
+    }
+
+    *out_order_idx_values = order_idx_values ; 
+    *out_nb_order_idx_values = nb_order_idx_values ;
+    return snrs ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Computes the DER SNR of one spectrum
+  @param    spec        The spectrum
+  @param    err   The error
+  @return   SNR value (double)
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_compute_der_snr(cpl_vector * spec,
+                             cpl_vector * err)
+{
+    cpl_vector *filt_spec;
+    
+    int filt_spec_size;
+
+    filt_spec = cpl_vector_new(cpl_vector_get_size(spec));
+
+    filt_spec_size = 0;
+    for (int j=0 ; j<cpl_vector_get_size(err) ; j++) {
+        double err_val;
+        double spec_val;
+        err_val = cpl_vector_get(err,j) ;
+        spec_val = cpl_vector_get(spec,j) ;
+        if (!(isnan(spec_val) || isnan(err_val) || spec_val==0.0)) {
+            cpl_vector_set(filt_spec, filt_spec_size, spec_val);
+            filt_spec_size++;
+        }
+    }
+
+    if (filt_spec_size > 4) {
+        cpl_vector_set_size(filt_spec, filt_spec_size);
+
+        cpl_vector *abs_diff = cpl_vector_new(filt_spec_size - 4);
+
+        for (int i = 2; i < filt_spec_size - 2; i++) {
+            cpl_vector_set(abs_diff, i - 2, fabs(2.0 * cpl_vector_get(filt_spec, i) - cpl_vector_get(filt_spec, i - 2) - cpl_vector_get(filt_spec, i + 2)));
+        }
+
+        double signal = cpl_vector_get_median(filt_spec);
+        double noise = 0.6052697 * cpl_vector_get_median(abs_diff);
+
+        cpl_vector_delete(abs_diff);
+        cpl_vector_delete(filt_spec);
+
+        return signal / noise;
+    } else {
+        cpl_vector_delete(filt_spec) ; 
+        return -1.0;
+    }
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Computes the FWHM of the PSF along the slit for a given order
   @param    slitfu      Slit func table
   @param    order_idxp  Order index

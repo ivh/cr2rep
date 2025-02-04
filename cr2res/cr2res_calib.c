@@ -436,7 +436,8 @@ int cr2res_calib_subtract_interorder_column(hdrl_image * in,
             // Filter pixels that are rejected in the flat (i.e. between orders)
             // but not rejected by the image (i.e. not bad pixels)
             if (cpl_image_is_rejected(flat_img, i, j) 
-                    && !cpl_image_is_rejected(img, i, j)){
+                    && !cpl_image_is_rejected(img, i, j) &&
+                    isnan(cpl_image_get(img, i, j, &badpix)) == 0){
                 cpl_matrix_set(px, 0, npixel, j);
                 cpl_vector_set(py, npixel, cpl_image_get(img, i, j, &badpix));
                 npixel++;
@@ -456,7 +457,8 @@ int cr2res_calib_subtract_interorder_column(hdrl_image * in,
         // Reject outliers and filter
         median = cr2res_vector_get_mad(py, &mad);
         for (j=0;j<npixel;j++){
-            if (cpl_vector_get(py,j) > median*2)
+            // Filtering for the range: median - 1*median to median + 1*median
+            if ((cpl_vector_get(py,j) > median*2) || (cpl_vector_get(py,j) < 0.0) )
                 cpl_vector_set(py,j,median);
         }
         //tmp = cpl_vector_filter_median_create(py,50);
