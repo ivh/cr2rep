@@ -31,7 +31,7 @@ wave_une_class = classification_rule('WAVE_UNE', {**calib_spc_keywords, kwd.dpr_
 wave_fpet_class = classification_rule('WAVE_FPET', {**calib_spc_keywords, kwd.dpr_type: "WAVE,FPET"})
 wave_sgc_class = classification_rule('WAVE_SGC', {**calib_spc_keywords, kwd.dpr_type: "WAVE,ABSORPTION_SGC"})
 wave_n20_class = classification_rule('WAVE_N20', {**calib_spc_keywords, kwd.dpr_type: "WAVE,ABSORPTION_N2O"})
-wave_sky = classification_rule('WAVE_SKY', {**calib_spc_keywords, kwd.dpr_type: "WAVE,SKY"})
+wave_sky = classification_rule('WAVE_SKY', {**calib_keywords, kwd.dpr_type: "WAVE,SKY"})
 wave_other_class = classification_rule('WAVE_OTHER', {**calib_spc_keywords, kwd.dpr_type: "WAVE,ABSORPTION_OTHER"})
 detlin_lamp_class = classification_rule("DETLIN_LAMP", {**calib_keywords, kwd.dpr_type: "FLAT,LAMP,DETCHECK"})
 detlin_dark_class = classification_rule("DETLIN_DARK", {**calib_keywords, kwd.dpr_type: "DARK,DETCHECK"})
@@ -42,6 +42,8 @@ std_nod_other_class = classification_rule('CAL_NODDING_OTHER', {**calib_other_ke
 
 std_nod_jitter_class = classification_rule('CAL_NODDING_JITTER', {**calib_jitter_keywords,
                                                                   kwd.dpr_type: "STD"})
+std_polarimetry_class = classification_rule("OBS_POLARIMETRY_OTHER", {**crires, kwd.dpr_catg: "CALIB",
+                                                                      kwd.dpr_type: "STD,POL"})
 
 sci_nod_other_class = classification_rule('OBS_NODDING_OTHER', {**science_nod_other_keywords,
                                                                 kwd.dpr_type: "OBJECT"})
@@ -51,7 +53,6 @@ sci_staring_other_class = classification_rule('OBS_STARING_OTHER', {**science_st
                                                                     kwd.dpr_type: "OBJECT"})
 sci_staring_jitter_class = classification_rule('OBS_STARING_JITTER', {**science_stare_jitter_keywords,
                                                                       kwd.dpr_type: "OBJECT"})
-
 sci_astrometry_other_class = classification_rule('OBS_ASTROMETRY_OTHER', rules.is_science_astrometry_other)
 sci_astrometry_jitter_class = classification_rule('OBS_ASTROMETRY_JITTER', rules.is_science_astrometry_jitter)
 sci_polarimetry_class = classification_rule('OBS_POLARIMETRY_OTHER', rules.is_science_polarimetry_other)

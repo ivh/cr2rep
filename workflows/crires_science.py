@@ -7,7 +7,7 @@ IDP = "idp"
 
 
 @subworkflow("science", "")
-def process_science(dark, flat_calibrations, flat_calibrations_for_2d, wavelength_calibrations, detector_linearity):
+def process_science(dark, flat_calibrations, wavelength_calibrations, detector_linearity):
     # This workflow collects all the tasks needed to process science observations
 
     # - Process nodding exposures
@@ -41,7 +41,7 @@ def process_science(dark, flat_calibrations, flat_calibrations_for_2d, wavelengt
                        .with_associated_input(util_trace_tw, min_ret=0, condition=is_short_wavelength)
                        .with_associated_input(util_trace_tw, min_ret=1, condition=is_long_wavelength)
                        .with_associated_input(dark, [CAL_DARK_MASTER, CAL_DARK_BPM],
-                                              match_rules=match_dark_for_science, min_ret=0)
+                                              match_rules=match_dark_for_science)
                        .with_associated_input(detector_linearity, [linearity_coefficients], min_ret=0)
                        .with_dynamic_parameter("wavelength_range", get_wavelength_range)
                        .with_input_filter(CAL_FLAT_MASTER, CAL_FLAT_TW, CAL_WAVE_TW, CAL_FLAT_EXTRACT_1D,
@@ -57,7 +57,7 @@ def process_science(dark, flat_calibrations, flat_calibrations_for_2d, wavelengt
                            .with_alternatives(flat_calibrations)
                            .with_alternative_associated_inputs(wavelength_calibrations)
                            .with_associated_input(dark, [CAL_DARK_MASTER, CAL_DARK_BPM],
-                                                  match_rules=match_dark_for_polarimetry, min_ret=1)
+                                                  match_rules=match_dark_for_polarimetry)
                            .with_associated_input(photo_flux, min_ret=0)
                            .with_associated_input(util_wave_tw, min_ret=0)
                            .with_associated_input(util_trace_tw, min_ret=0, condition=is_short_wavelength)
@@ -82,7 +82,7 @@ def process_science(dark, flat_calibrations, flat_calibrations_for_2d, wavelengt
                           .with_associated_input(util_trace_tw, min_ret=1, condition=is_long_wavelength)
                           .with_associated_input(detector_linearity, [linearity_coefficients], min_ret=0)
                           .with_associated_input(dark, [CAL_DARK_MASTER, CAL_DARK_BPM],
-                                                 match_rules=match_dark_for_science, min_ret=0)
+                                                 match_rules=match_dark_for_science)
                           .with_dynamic_parameter("wavelength_range", get_wavelength_range)
                           .with_input_filter(CAL_FLAT_MASTER, CAL_FLAT_TW, CAL_WAVE_TW, CAL_FLAT_EXTRACT_1D,
                                              photo_flux_class, util_wave_tw_class, util_trace_tw_class,
@@ -95,7 +95,7 @@ def process_science(dark, flat_calibrations, flat_calibrations_for_2d, wavelengt
                   .with_recipe("cr2res_obs_2d")
                   .with_main_input(raw_science_2d)
                   .with_associated_input(raw_science_2d_sky, min_ret=0, max_ret=1000)
-                  .with_alternatives(flat_calibrations_for_2d)
+                  .with_alternatives(flat_calibrations)
                   .with_alternative_associated_inputs(wavelength_calibrations)
                   .with_associated_input(photo_flux, min_ret=0)
                   .with_associated_input(util_wave_tw, min_ret=0)

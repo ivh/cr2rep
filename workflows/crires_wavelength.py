@@ -66,10 +66,10 @@ def wavelength_calibration(dark, flat_calibrations):
     wavelength_sky = (task("wave_sky")
                       .with_report("crires_rawdisp", ReportInput.RECIPE_INPUTS)
                       .with_main_input(raw_wave_sky)
-                      .with_alternatives(flat_calibrations)
-                      .with_associated_input(emission_lines, min_ret=0)
-                      .with_associated_input(util_wave_tw, min_ret=0)
-                      .with_associated_input(util_trace_tw, min_ret=0)
+                      # .with_alternatives(flat_calibrations)
+                      # .with_associated_input(emission_lines, min_ret=0)
+                      # .with_associated_input(util_wave_tw, min_ret=0)
+                      # .with_associated_input(util_trace_tw, min_ret=0)
                       .with_meta_targets([QC1_CALIB])
                       .build())
 
@@ -87,19 +87,19 @@ def wavelength_calibration(dark, flat_calibrations):
     #   The task "wave_gas_cell" closest in time to the science or standard star observation is associated. The quality
     #   level of the association is determined by the time ranges.
 
-    match_wave_2_5days_l0 = (match_rules()
-                             .with_match_keywords(match_flat, time_range=RelativeTimeRange(-2.5, 2.5), level=0))
-    match_wave_2_5days_l1 = (match_rules()
-                             .with_match_keywords(match_flat, time_range=RelativeTimeRange(-2.5, 2.5), level=1))
+    match_wave_7days_l0 = (match_rules()
+                           .with_match_keywords(match_flat, time_range=ONE_WEEK, level=0))
+    match_wave_7days_l1 = (match_rules()
+                           .with_match_keywords(match_flat, time_range=ONE_WEEK, level=1))
     match_wave_10days = (match_rules()
                          .with_match_keywords(match_flat, time_range=RelativeTimeRange(-10, 10), level=2))
     match_wave_unlimited = (match_rules()
                             .with_match_keywords(match_flat, time_range=UNLIMITED, level=3))
 
     wavelength_calibrations = (alternative_associated_inputs()
-                               .with_associated_input(wavelength_fpet, [CAL_WAVE_TW], match_rules=match_wave_2_5days_l0,
+                               .with_associated_input(wavelength_fpet, [CAL_WAVE_TW], match_rules=match_wave_7days_l0,
                                                       condition=is_short_wavelength)
-                               .with_associated_input(wavelength_une, [CAL_WAVE_UNE], match_rules=match_wave_2_5days_l1,
+                               .with_associated_input(wavelength_une, [CAL_WAVE_UNE], match_rules=match_wave_7days_l1,
                                                       condition=is_short_wavelength)
                                .with_associated_input(wavelength_fpet, [CAL_WAVE_TW], match_rules=match_wave_10days,
                                                       condition=is_short_wavelength)
@@ -110,7 +110,7 @@ def wavelength_calibration(dark, flat_calibrations):
                                .with_associated_input(wavelength_une, [CAL_WAVE_UNE], match_rules=match_wave_unlimited,
                                                       condition=is_short_wavelength)
                                .with_associated_input(wavelength_gas_cell, [CAL_WAVE_GAS_CELL],
-                                                      match_rules=match_wave_2_5days_l0, condition=is_long_wavelength)
+                                                      match_rules=match_wave_7days_l0, condition=is_long_wavelength)
                                .with_associated_input(wavelength_gas_cell, [CAL_WAVE_GAS_CELL],
                                                       match_rules=match_wave_10days, condition=is_long_wavelength)
                                .with_associated_input(wavelength_gas_cell, [CAL_WAVE_GAS_CELL],

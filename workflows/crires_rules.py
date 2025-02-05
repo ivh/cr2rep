@@ -29,42 +29,44 @@ def is_test(f):
 
 def is_flat(f):
     return is_calib(f) and \
-           (f[kwd.dpr_type] == "FLAT" and f[kwd.dpr_tech] == 'SPECTRUM' and
-            f[kwd.det_read_curname] == "New_RR_UpTheRamp" and f[kwd.ins_opti8_id] == "Open")
+        (f[kwd.dpr_type] == "FLAT" and f[kwd.dpr_tech] == 'SPECTRUM' and
+         f[kwd.det_read_curname] == "New_RR_UpTheRamp" and f[kwd.ins_opti8_id] == "Open")
+
+
 #            and kwd.det_ndit != 50) no distinction between regular and deep flats.
 
 
 def is_science_astrometry_other(f):
     return is_science(f) and \
-           (f[kwd.dpr_type] == "OBJECT" and (f[kwd.dpr_tech] == 'SPECTRUM,NODDING,OTHER,ASTROMETRY' or
-                                             f[kwd.dpr_tech] == 'SPECTRUM,NODDING,OTHER,ASTROM') and
-            f[kwd.det_read_curname] == "New_RR_UpTheRamp")
+        (f[kwd.dpr_type] == "OBJECT" and (f[kwd.dpr_tech] == 'SPECTRUM,NODDING,OTHER,ASTROMETRY' or
+                                          f[kwd.dpr_tech] == 'SPECTRUM,NODDING,OTHER,ASTROM') and
+         f[kwd.det_read_curname] == "New_RR_UpTheRamp")
 
 
 def is_science_astrometry_jitter(f):
     return is_science(f) and \
-           (f[kwd.dpr_type] == "OBJECT" and (f[kwd.dpr_tech] == 'SPECTRUM,NODDING,JITTER,ASTROMETRY' or
-                                             f[kwd.dpr_tech] == 'SPECTRUM,NODDING,JITTER,ASTROM') and
-            f[kwd.det_read_curname] == "New_RR_UpTheRamp")
+        (f[kwd.dpr_type] == "OBJECT" and (f[kwd.dpr_tech] == 'SPECTRUM,NODDING,JITTER,ASTROMETRY' or
+                                          f[kwd.dpr_tech] == 'SPECTRUM,NODDING,JITTER,ASTROM') and
+         f[kwd.det_read_curname] == "New_RR_UpTheRamp")
 
 
 def is_science_polarimetry_other(f):
     return is_science(f) and \
-           (f[kwd.dpr_type] == "OBJECT" and (f[kwd.dpr_tech] == 'SPECTRUM,NODDING,OTHER,POLARIMETRY' or
-                                             f[kwd.dpr_tech] == 'SPECTRUM,NODDING,OTHER,POLARI') and
-            f[kwd.det_read_curname] == "New_RR_UpTheRamp")
+        (f[kwd.dpr_type] == "OBJECT" and (f[kwd.dpr_tech] == 'SPECTRUM,NODDING,OTHER,POLARIMETRY' or
+                                          f[kwd.dpr_tech] == 'SPECTRUM,NODDING,OTHER,POLARI') and
+         f[kwd.det_read_curname] == "New_RR_UpTheRamp")
 
 
 def is_science_2d_object(f):
     return is_science(f) and \
-           (f[kwd.dpr_type] == "OBJECT" and (f[kwd.dpr_tech] == 'SPECTRUM,GENERIC') and
-            f[kwd.det_read_curname] == "New_RR_UpTheRamp")
+        (f[kwd.dpr_type] == "OBJECT" and (f[kwd.dpr_tech] == 'SPECTRUM,GENERIC') and
+         f[kwd.det_read_curname] == "New_RR_UpTheRamp")
 
 
 def is_science_2d_sky(f):
     return is_science(f) and \
-           (f[kwd.dpr_type] == "SKY" and (f[kwd.dpr_tech] == 'SPECTRUM,GENERIC') and
-            f[kwd.det_read_curname] == "New_RR_UpTheRamp")
+        (f[kwd.dpr_type] == "SKY" and (f[kwd.dpr_tech] == 'SPECTRUM,GENERIC') and
+         f[kwd.det_read_curname] == "New_RR_UpTheRamp")
 
 
 def is_gas_cell(f):
@@ -76,7 +78,7 @@ def is_gas_cell(f):
 # second: f  =file to associate (e.g. calibration)
 
 def assoc_dark(ref, f):
-    return match(ref, f, [kwd.ins_wlen_id, kwd.det_seq1_dit]) and f[kwd.ins_lamp11_st] == "closed"
+    return match(ref, f, [kwd.ins_wlen_id, kwd.det_seq1_dit]) and f[kwd.ins_slit1_id] == "closed"
 
 
 def assoc_flat(ref, f):
