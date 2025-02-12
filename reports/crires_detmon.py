@@ -11,9 +11,9 @@ class CriresDetmonReport(MasterDarkBiasReport):
 
    def __init__(self):
         super().__init__("crires_detmon")
-        self.file_readers["master_im"] = self.master_im_file_reader
+        self.data_readers["master_im"] = self.master_im_data_reader
 
-   def master_im_file_reader(self, filename):
+   def master_im_data_reader(self, filename):
         hdu = fits.open(filename, mode="readonly")
         for ext1 in extensions:
             if len(hdu[ext1].data.shape) > 2:
