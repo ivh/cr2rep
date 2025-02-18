@@ -308,10 +308,12 @@ int cr2res_idp_save(
 	cpl_propertylist_set_comment(pri_head, "TOT_FLUX", 
             "True if flux data represent the total source flux.");
 
-    /* Find blaze to decide if continuum normalized or not */
+    /* Find blaze to decide if continuum normalized or not, 
+     * but set false anyway for now, code left in case this
+     * changes again.*/
     if ( cpl_frameset_find_const(allframes, 
             CR2RES_CAL_FLAT_EXTRACT_1D_PROCATG) != NULL) {
-        cpl_propertylist_update_bool(pri_head, "CONTNORM", 1) ;
+        cpl_propertylist_update_bool(pri_head, "CONTNORM", 0) ;
     } else {
         cpl_propertylist_update_bool(pri_head, "CONTNORM", 0) ;
     }
@@ -488,12 +490,12 @@ int cr2res_idp_save(
     cpl_propertylist_update_string(ext_head, "TUTYP2",
                                 "spec:Data.FluxAxis.Value");
     cpl_propertylist_update_string(ext_head, "TUCD2", 
-            "phot.flux.density;em.wl;stat.uncalib;arith.ratio");
+            "phot.flux.density;em.wl;stat.uncalib");
 
     cpl_propertylist_update_string(ext_head, "TUTYP3",
                     "spec:Data.FluxAxis.Accuracy.StatError");
     cpl_propertylist_update_string(ext_head, "TUCD3",
-                                   "stat.error;phot.flux.density;em.ql;stat.uncalib;arith.ratio");
+                                   "stat.error;phot.flux.density;em.wl;stat.uncalib");
 
     cpl_propertylist_update_string(ext_head, "TUTYP4",
                     "spec:Data.FluxAxis.Accuracy.QualityStatus");
@@ -755,8 +757,8 @@ cpl_table * cr2res_idp_create_table(
     cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_DETEC, " ") ;
     cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_ORDER, " ") ;
     cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_QUAL, " ") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_FLUX, " ") ;
-    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_ERR, " ") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_FLUX, "adu") ;
+    cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_ERR, "adu") ;
     if (strcmp(recipe, "cr2res_obs_pol")) { // nodding and staring
         cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_TRACE, " ") ;
         cpl_table_set_column_unit(idp_tab, CR2RES_IDP_COL_XPOS, "pixel") ;
