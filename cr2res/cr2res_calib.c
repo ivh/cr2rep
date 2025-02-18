@@ -375,7 +375,8 @@ int cr2res_add_shotnoise(hdrl_image * in, double dit, int ndit, int chip){
     cpl_image_divide_scalar(tmp_im, gain_sqrt);
     cpl_image_divide_scalar(tmp_im, sqrt((float)ndit));
     /* Add read noise following definition given in CRIRES
-       user manual. */
+       user manual. 
+       read_noise_adu = read_noise_e- /(sqrt(ndit)*gain))*/
     double min_dit = 1.427;
     double lim_dit = 50.0;
     double min_rn;
@@ -386,12 +387,12 @@ int cr2res_add_shotnoise(hdrl_image * in, double dit, int ndit, int chip){
     }
     double lim_rn = 6.0;
     if(dit <= min_dit){
-        cpl_image_add_scalar(tmp_im, min_rn/pow(gain_sqrt, 2));
+        cpl_image_add_scalar(tmp_im, min_rn/(sqrt(ndit)*pow(gain_sqrt, 2)));
     } else if(dit >= lim_dit) {
-        cpl_image_add_scalar(tmp_im, lim_rn/pow(gain_sqrt, 2));
+        cpl_image_add_scalar(tmp_im, lim_rn/(sqrt(ndit)*pow(gain_sqrt, 2)));
     } else {
         double read_noise = min_rn + (lim_rn-min_rn)*(dit-min_dit)/(lim_dit-min_dit);
-        cpl_image_add_scalar(tmp_im, read_noise/2.1);
+        cpl_image_add_scalar(tmp_im, read_noise/(sqrt(ndit)*pow(gain_sqrt, 2)));
     }
 
     /* The BPM should not be stored in the error image */
