@@ -38,7 +38,7 @@
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
 
-int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip);
+int cr2res_add_shotnoise(hdrl_image * in, double dit, int ndit, int chip);
 int cr2res_calib_subtract_interorder_column(hdrl_image * in,
     const hdrl_image * flat, cpl_size degree);
 
@@ -102,7 +102,8 @@ hdrl_imagelist * cr2res_calib_imagelist(
         const hdrl_image *cur_ima;
         hdrl_image *cur_ima_calib;
         cur_ima = hdrl_imagelist_get(in, i) ;
-        if (dark != NULL)  dit = cpl_vector_get(dits, i) ;
+        //if (dark != NULL)  dit = cpl_vector_get(dits, i) ;
+        if (dits != NULL)  dit = cpl_vector_get(dits, i) ;
         if (ndits != NULL) ndit = (int)cpl_vector_get(ndits, i) ;
 
         /* Calibrate */
@@ -200,7 +201,7 @@ hdrl_image * cr2res_calib_image(
 
     /* Add shot-noise */
     cpl_msg_info(__func__, "Add shot-noise") ;
-    if (cr2res_add_shotnoise(out, ndit, chip)){
+    if (cr2res_add_shotnoise(out, dit, ndit, chip)){
         cpl_msg_error(__func__, "Cannot add shot-noise") ;
         if(detlin != NULL)
             hdrl_imagelist_delete(calib_list) ;
@@ -338,7 +339,7 @@ hdrl_image * cr2res_calib_image(
   @return   0 if ok, -1 in error case
  */
 /*----------------------------------------------------------------------------*/
-int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip){
+int cr2res_add_shotnoise(hdrl_image * in, double dit, int ndit, int chip){
     double gain_sqrt;
     cpl_image * error = hdrl_image_get_error(in);
     cpl_image * adu  = hdrl_image_get_image(in);
@@ -373,6 +374,25 @@ int cr2res_add_shotnoise(hdrl_image * in, int ndit, int chip){
     }
     cpl_image_divide_scalar(tmp_im, gain_sqrt);
     cpl_image_divide_scalar(tmp_im, sqrt((float)ndit));
+    /* Add read noise following definition given in CRIRES
+       user manual. */
+    double min_dit = 1.427;
+    double lim_dit = 50.0;
+    double min_rn;
+    if (chip ==1){
+        min_rn = 11.0;
+    } else {
+        min_rn = 12.0;
+    }
+    double lim_rn = 6.0;
+    if(dit <= min_dit){
+        cpl_image_add_scalar(tmp_im, min_rn/pow(gain_sqrt, 2));
+    } else if(dit >= lim_dit) {
+        cpl_image_add_scalar(tmp_im, lim_rn/pow(gain_sqrt, 2));
+    } else {
+        double read_noise = min_rn + (lim_rn-min_rn)*(dit-min_dit)/(lim_dit-min_dit);
+        cpl_image_add_scalar(tmp_im, read_noise/2.1);
+    }
 
     /* The BPM should not be stored in the error image */
     /* Therefore it is removed from tmp_im before the addition to error */

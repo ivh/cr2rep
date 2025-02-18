@@ -77,6 +77,7 @@ static int cr2res_obs_nodding_reduce(
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
         int                     cosmics,
+        int                     error_method,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
@@ -226,6 +227,7 @@ Nodding Observation                                                     \n\
     cr2res_io_save_THROUGHPUT()                                         \n\
 ";
 
+
 /*-----------------------------------------------------------------------------
                                 Function code
  -----------------------------------------------------------------------------*/
@@ -323,6 +325,14 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_enum("cr2res.cr2res_obs_nodding.error_method", 
+            CPL_TYPE_STRING, "The 1d extraction error calculation method",
+            "cr2res.cr2res_obs_nodding",
+            "Poisson", 2, "Poisson", "Horne");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "error_method");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.nodding_invert",
             CPL_TYPE_BOOL, "Flag to use when A is above B",
             "cr2res.cr2res_obs_nodding", FALSE);
@@ -338,7 +348,7 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     cpl_parameterlist_append(recipe->parameters, p);
 
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.extract_swath_width",
-            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_obs_nodding", 800);
+            CPL_TYPE_INT, "The swath width", "cr2res.cr2res_obs_nodding", 2048);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_swath_width");
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
@@ -457,7 +467,8 @@ static int cr2res_obs_nodding(
                             extract_height, reduce_det, 
                             disp_order_idx, disp_trace, disp_det, 
                             nodding_invert, create_idp, subtract_nolight_rows,
-                            subtract_interorder_column, cosmics ;
+                            subtract_interorder_column, cosmics,
+                            error_method;
     double                  extract_smooth_slit, extract_smooth_spec;
     double                  dit, gain;
     double                  ra, dec, mjd_obs, mjd_cen, geolon, geolat, geoelev,
@@ -541,6 +552,12 @@ static int cr2res_obs_nodding(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.cosmics");
     cosmics = cpl_parameter_get_bool(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_nodding.error_method");
+    if(strcmp(cpl_parameter_get_string(param),"Horne") == 0)
+        error_method = CR2RES_EXTRACT_ERROR_HORNE;
+    else
+        error_method = CR2RES_EXTRACT_ERROR_POISSON;
 
     /* TODO, make parameters, maybe */
     int extract_niter = 30;
@@ -653,6 +670,7 @@ static int cr2res_obs_nodding(
                     detlin_frame, master_dark_frame, master_flat_frame,
                     bpm_frame, blaze_frame, nodding_invert,
                     subtract_nolight_rows, subtract_interorder_column, cosmics,
+                    error_method,
                     extract_oversample, extract_swath_width, extract_height,
                     extract_smooth_slit, extract_smooth_spec, extract_niter,
                     extract_kappa, det_nr, disp_det, disp_order_idx, disp_trace,
@@ -765,14 +783,23 @@ static int cr2res_obs_nodding(
                 cpl_error_reset() ;
             }
             cpl_table_delete(eop_table) ;
-            cpl_propertylist_append_double(qc_main, CR2RES_HEADER_DRS_BARYCORR,
-                    barycorr);
+            
         }
 
+
+        if(error_method == CR2RES_EXTRACT_ERROR_HORNE){
+            cpl_propertylist_append_string(qc_main, CR2RES_HEADER_DRS_ERRMETHOD,
+                    "Horne") ;
+            }
+        else {
+            cpl_propertylist_append_string(qc_main, CR2RES_HEADER_DRS_ERRMETHOD,
+                "Poisson") ;
+            }
         /* Add QC NUMSAT */
         cpl_propertylist_append_int(qc_main,
                 CR2RES_HEADER_QC_NUMSAT,
                 cr2res_qc_numsat(raw_one_angle)) ;
+
 
         /* Save only the used RAW - fill raw_one_angle with CALIBS */
         if (trace_wave_frame != NULL) 
@@ -1110,6 +1137,7 @@ static int cr2res_obs_nodding_reduce(
         int                     subtract_nolight_rows,
         int                     subtract_interorder_column,
         int                     cosmics,
+        int                     error_method,
         int                     extract_oversample,
         int                     extract_swath_width,
         int                     extract_height,
@@ -1238,8 +1266,9 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_indent_less() ;
 
     /* Load the DITs if necessary */
-    if (master_dark_frame != NULL)  dits = cr2res_io_read_dits(rawframes) ;
-    else                            dits = NULL ;
+    dits = cr2res_io_read_dits(rawframes) ;
+    //if (master_dark_frame != NULL)  dits = cr2res_io_read_dits(rawframes) ;
+    //else                            dits = NULL ;
     if (cpl_msg_get_level() == CPL_MSG_DEBUG && dits != NULL) 
         cpl_vector_dump(dits, stdout) ;
 
@@ -1298,8 +1327,13 @@ static int cr2res_obs_nodding_reduce(
     }
     
     /* error factor is gain * ndit *nexp */
-    error_factor = gain * cpl_vector_get(ndits, 0) * 
+    if (error_method == CR2RES_EXTRACT_ERROR_HORNE) {
+        error_factor = -1.0;
+    }
+    else {
+        error_factor = gain * cpl_vector_get(ndits, 0) * 
                                         hdrl_imagelist_get_size(in_a);
+    }
     
     for (i=0; i<cpl_vector_get_size(ndits); i++){
         if (cpl_vector_get(ndits,i) != cpl_vector_get(ndits, 0))

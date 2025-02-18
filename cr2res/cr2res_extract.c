@@ -387,8 +387,8 @@ int cr2res_extract_traces(
                             val = pspec[j] / (pblaze[j]/norm_factor) ; 
 
                             /* Error */
-                            /* err(a/b)=(a/b)sqrt((err_a/a)^2+(err_b/b)^2) */
-                            err = val * sqrt(((pspec_err[j]*pspec_err[j])/
+                            /* err(a/b)=abs(a/b)sqrt((err_a/a)^2+(err_b/b)^2) */
+                            err = fabs(val) * sqrt(((pspec_err[j]*pspec_err[j])/
                                         (pspec[j]*pspec[j]))+
                                     ((pblaze_err[j]*pblaze_err[j])/
                                      (pblaze[j]*pblaze[j])));
@@ -3238,52 +3238,96 @@ static int cr2res_extract_slit_func_curved(
                   sLmax, osample, nrows, ny);
 
 
-    for (x = 0; x < ncols; x++) {
-        double msum;
-        
-        unc[x] = 0.0;
-        msum = 0.0;
-        sum = 0.0;
-        for (y = 0; y < nrows; y++) {
-            if (mask[y * ncols + x]) {
-                msum += (im[y * ncols + x] * model[y * ncols + x]) *
-                        mask[y * ncols + x];
-                sum += (model[y * ncols + x] * model[y * ncols + x]) *
-                       mask[y * ncols + x];
+    /*
+        for (x = 0; x < ncols; x++) {
+            double msum;
+            
+            unc[x] = 0.0;
+            msum = 0.0;
+            sum = 0.0;
+            for (y = 0; y < nrows; y++) {
+                if (mask[y * ncols + x]) {
+                    msum += (im[y * ncols + x] * model[y * ncols + x]) *
+                            mask[y * ncols + x];
+                    sum += (model[y * ncols + x] * model[y * ncols + x]) *
+                           mask[y * ncols + x];
+                }
+            }
+            if (msum != 0){
+                // This can give NaNs if m/sum is less than zero, i.e. low/no flux
+                // due to ignoring background flux.
+                unc[x] = sqrt(fabs(sP[x]) * fabs(sum) / fabs(msum) / error_factor);
+            } else {
+                // Fix bad value to NaN as Phase3 doesn't allow Inf.
+                unc[x] = NAN;
             }
         }
-        if (msum != 0){
-            // This can give NaNs if m/sum is less than zero, i.e. low/no flux
-            // due to ignoring background flux.
-            unc[x] = sqrt(fabs(sP[x]) * fabs(sum) / fabs(msum) / error_factor);
-        } else {
-            // Fix bad value to NaN as Phase3 doesn't allow Inf.
-            unc[x] = NAN;
+    */
+    if (error_factor == -1)
+    {
+        // Uncertainty calculation, following Horne 1986.
+        for (x = 0; x < ncols; x++)
+        {
+            double num_sum;
+            double den_sum;
+            double model_sum = 0.0;
+
+            unc[x] = 0.0;
+            num_sum = 0.0;
+            den_sum = 0.0;
+            for (y = 0; y < nrows; y++)
+            {
+                model_sum += model[y * ncols + x];
+            }
+            for (y = 0; y < nrows; y++)
+            {
+                double model_norm = model[y * ncols + x] / model_sum;
+                num_sum += model_norm * mask[y * ncols + x];
+                den_sum += (model_norm * model_norm) * mask[y * ncols + x] / (pix_unc[y * ncols + x] * pix_unc[y * ncols + x]);
+            }
+            if (den_sum != 0)
+            {
+                unc[x] = sqrt(fabs(num_sum / den_sum));
+            }
+            else
+            {
+                unc[x] = NAN;
+            }
         }
     }
-    // Uncertainty calculation, following Horne 1986, different from above
-    /*for (x = 0; x < ncols; x++) {
-        double num_sum;
-        double den_sum;
-        
-        unc[x] = 0.0;
-        num_sum = 0.0;
-        den_sum = 0.0;
-        for (y = 0; y < nrows; y++) {
-            if (mask[y * ncols + x]) {
-                num_sum += (model[y * ncols + x]) *
-                        mask[y * ncols + x];
-                den_sum += (model[y * ncols + x] * model[y * ncols + x]) *
-                       mask[y * ncols + x] / (pix_unc[y * ncols + x] * pix_unc[y * ncols + x]);
+    else
+    {
+        // Uncertainty calculation only using total object flux, needs later correction.
+        for (x = 0; x < ncols; x++)
+        {
+            double msum;
+
+            unc[x] = 0.0;
+            msum = 0.0;
+            sum = 0.0;
+            for (y = 0; y < nrows; y++)
+            {
+                if (mask[y * ncols + x])
+                {
+                    msum += (im[y * ncols + x] * model[y * ncols + x]) *
+                            mask[y * ncols + x];
+                    sum += (model[y * ncols + x] * model[y * ncols + x]) *
+                           mask[y * ncols + x];
+                }
+            }
+            if (msum != 0)
+            {
+                // This can give NaNs if m/sum is less than zero, i.e. low/no flux
+                // due to ignoring background flux.
+                unc[x] = sqrt(fabs(sP[x]) * fabs(sum) / fabs(msum) / error_factor);
+            }
+            else
+            {
+                // Fix bad value to NaN as Phase3 doesn't allow Inf.
+                unc[x] = NAN;
             }
         }
-        if (den_sum != 0){
-            unc[x] = error_factor *(num_sum / den_sum);
-        } else {
-            unc[x] = 1.0;
-        }
-    }*/
-
+    }
     return 0;
 }
 

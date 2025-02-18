@@ -54,7 +54,9 @@ int cr2res_idp_save(
 cpl_table * cr2res_idp_create_table(
         cpl_table               **  tables,
         const char              *   recipe,
-        const char              *   setting) ;
+        const char              *   setting,
+        int                         error_method,
+        int                         nab) ;
 
 int cr2res_idp_compute_mjd(
         cpl_frameset        *   fset,

@@ -48,7 +48,9 @@ static int cr2res_idp_copy_spec(
     int                 det_nr,
     int                 order,
     int                 tracenb,
-    const char      *   setting) ;
+    const char      *   setting,
+    int                 error_method,
+    int                 nab) ;
 static int cr2res_idp_copy_pol(
     cpl_table       *   out,
     const cpl_table *   in,
@@ -108,6 +110,11 @@ int cr2res_idp_save(
     int                     err, i, ndit, nframes, nraw, obid, nrows, ord ;
     char                *   keyname;
     char                *   tmp_string;
+    const cpl_parameter *   param ;
+    int                    error_method ;
+    int                   nab;
+
+    const char *nod_catg = "OBS_NODDING_EXTRACT";
 
     poltype = NULL;
 
@@ -130,7 +137,24 @@ int cr2res_idp_save(
     setting = cpl_propertylist_get_string(pri_head, "ESO INS WLEN ID");
 
     /* Create the big table */
-    idp_tab = cr2res_idp_create_table(tables, recipe, setting) ;
+    // NEED TO PASS ERRMETHOD AND NABCYCLES, ERRMETHOD IS IN THE PARLIST, NAB IS IN THE MAIN HEADER
+
+    param = cpl_parameterlist_find_const(parlist,
+                                         "cr2res.cr2res_obs_nodding.error_method");
+    if (strcmp(cpl_parameter_get_string(param), "Horne") == 0)
+        error_method = CR2RES_EXTRACT_ERROR_HORNE;
+    else
+        error_method = CR2RES_EXTRACT_ERROR_POISSON;
+    if (strncmp(procatg, nod_catg, strlen(nod_catg)) == 0)
+    {
+        nab = cpl_propertylist_get_int(pri_head, "ESO SEQ NABCYCLES");
+        if (strcmp(procatg, CR2RES_OBS_NODDING_EXTRACTC_IDP_PROCATG) == 0)
+            nab = nab * 2;
+    }
+    else
+        nab = 0;
+
+    idp_tab = cr2res_idp_create_table(tables, recipe, setting, error_method, nab);
 
     /* Get wmin / wmax */
     wlen_arr = cpl_table_get_array(idp_tab, CR2RES_IDP_COL_WAVE, 0);
@@ -383,7 +407,9 @@ int cr2res_idp_save(
                 double perr = cpl_array_get_double(tmp_arr_sig, i, NULL) / resol;
                 double corr = sqrt(pow(2.12*perr,2) + 26.1*26.1) / perr;
                 cpl_array_set_double(tmp_arr, ord + (i*12),resol/corr);
-                cpl_propertylist_update_double(ext_head, keyname, resol/corr) ;
+                if(i==0){
+                    cpl_propertylist_update_double(ext_head, keyname, resol/corr) ;
+                }
             }
             cpl_free(keyname);
         }
@@ -554,7 +580,9 @@ int cr2res_idp_save(
 cpl_table * cr2res_idp_create_table(
         cpl_table               **  tables,
         const char              *   recipe,
-        const char              *   setting)
+        const char              *   setting,
+        int                         error_method,
+        int                         nab)
 {
     cpl_table           *   idp_tab ;
     cpl_table           *   tmp_tab ;
@@ -638,7 +666,7 @@ cpl_table * cr2res_idp_create_table(
                             !strcmp(col_kind, CR2RES_COL_SPEC_SUFFIX)) {
                         /* Handle this extracted spectrum */
                         cr2res_idp_copy_spec(tmp_tab, tables[i], ntot, i+1, 
-                                order, trace_nb, setting) ;
+                                order, trace_nb, setting, error_method, nab); ;
                         ntot += cpl_table_get_nrow(tables[i]) ;
                     }
                     if (col_kind != NULL) cpl_free(col_kind) ;
@@ -838,7 +866,9 @@ static int cr2res_idp_copy_spec(
     int                 det_nr,
     int                 order,
     int                 tracenb,
-    const char          *   setting) 
+    const char          *   setting,
+    int                 error_method,
+    int                 nab) 
 {
     char            *   spec_name ;
     char            *   wave_name ;
@@ -897,10 +927,17 @@ static int cr2res_idp_copy_spec(
              * where a=2.12 and b=26.1. 
              * For the record, these factors were measured with uncertainties
              * of 0.02 and 1.2, respectively.
+             * NEED TO ADD HIERARCH ESO SEQ NABCYCLES
              */
-                double err_corrected = sqrt(pow(2.12*perr[i],2) + pow(26.1,2));
+            if (error_method == CR2RES_EXTRACT_ERROR_POISSON && nab > 0 && perr[i] != 0.0) {
+                double err_corrected = sqrt(pow(2.12*perr[i],2) + pow(26.1,2)/nab);
                 cpl_table_set_double(out, CR2RES_IDP_COL_ERR, 
                         out_start_idx + i, err_corrected) ;
+                }
+            else{
+                cpl_table_set_double(out, CR2RES_IDP_COL_ERR, 
+                        out_start_idx + i, perr[i]) ;
+            }
             
             if (i<5 || (i>=CR2RES_DETECTOR_SIZE-5)) edgepix = 2;
             else edgepix=0;

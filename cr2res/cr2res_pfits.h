@@ -62,6 +62,7 @@
 #define CR2RES_HEADER_DRS_TYPE          "ESO DRS TYPE"
 #define CR2RES_HEADER_DRS_TMID          "ESO DRS TMID"
 #define CR2RES_HEADER_DRS_BARYCORR      "ESO DRS BARYCORR"
+#define CR2RES_HEADER_DRS_ERRMETHOD     "ESO DRS ERRMETHOD"
 #define CR2RES_HEADER_OCS_MTRLGY        "ESO OCS MTRLGY ST"
 
 /* QC Parameter Names */
@@ -177,6 +178,9 @@
 
 #define CR2RES_HEADER_QC_MTRLGY_ID          "ESO QC MTRLGY ID"
 #define CR2RES_HEADER_QC_DET_ID             "ESO QC DET ID"
+
+#define CR2RES_EXTRACT_ERROR_POISSON 0
+#define CR2RES_EXTRACT_ERROR_HORNE 1
 
 /*-----------------------------------------------------------------------------
                                    Functions prototypes
