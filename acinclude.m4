@@ -114,7 +114,7 @@ AC_DEFUN([CR2RES_SET_PATHS],
     fi
 
     if test -z "$workflowdir"; then
-        workflowdir='${datadir}/esopipes/workflows/crires-${VERSION}/crires'
+        workflowdir='${datadir}/esopipes/workflows/${PACKAGE}-${VERSION}/crires'
     fi
 
     if test -z "$reportsdir"; then
