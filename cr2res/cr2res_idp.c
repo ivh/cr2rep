@@ -147,7 +147,7 @@ int cr2res_idp_save(
         error_method = CR2RES_EXTRACT_ERROR_POISSON;
     if (strncmp(procatg, nod_catg, strlen(nod_catg)) == 0)
     {
-        nab = cpl_propertylist_get_int(pri_head, "ESO SEQ NABCYCLES");
+        nab = cpl_propertylist_get_int(pri_head, "ESO PRO DATANCOM") / 2;
         if (strcmp(procatg, CR2RES_OBS_NODDING_EXTRACTC_IDP_PROCATG) == 0)
             nab = nab * 2;
     }
