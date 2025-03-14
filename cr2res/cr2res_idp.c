@@ -147,7 +147,8 @@ int cr2res_idp_save(
         error_method = CR2RES_EXTRACT_ERROR_POISSON;
     if (strncmp(procatg, nod_catg, strlen(nod_catg)) == 0)
     {
-        nab = cpl_propertylist_get_int(pri_head, "ESO PRO DATANCOM") / 2;
+        //nab =  cpl_frameset_count_tags(rawframes,CR2RES_OBS_NODDING_JITTER_RAW) / 2;
+        nab = 1;
         if (strcmp(procatg, CR2RES_OBS_NODDING_EXTRACTC_IDP_PROCATG) == 0)
             nab = nab * 2;
     }
@@ -407,7 +408,7 @@ int cr2res_idp_save(
              * where a=2.12 and b=26.1, as above.
              */
                 double perr = cpl_array_get_double(tmp_arr_sig, i, NULL) / resol;
-                double corr = sqrt(pow(2.12*perr,2) + 26.1*26.1) / perr;
+                double corr = sqrt(pow(2.08*perr,2) + nab*25.2*25.2) / perr;
                 cpl_array_set_double(tmp_arr, ord + (i*12),resol/corr);
                 if(i==0){
                     cpl_propertylist_update_double(ext_head, keyname, resol/corr) ;
@@ -932,7 +933,7 @@ static int cr2res_idp_copy_spec(
              * NEED TO ADD HIERARCH ESO SEQ NABCYCLES
              */
             if (error_method == CR2RES_EXTRACT_ERROR_POISSON && nab > 0 && perr[i] != 0.0) {
-                double err_corrected = sqrt(pow(2.12*perr[i],2) + pow(26.1,2)/nab);
+                double err_corrected = sqrt(pow(2.08*perr[i],2) + nab*pow(25.2,2));
                 cpl_table_set_double(out, CR2RES_IDP_COL_ERR, 
                         out_start_idx + i, err_corrected) ;
                 }
