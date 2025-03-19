@@ -690,6 +690,18 @@ cpl_table * cr2res_idp_create_table(
             cpl_array_delete(col_names) ;
         }
     }
+    /*Remove any rows with NaN as the wavelength value*/
+    cpl_table_unselect_all(tmp_tab) ;
+    int ii;
+    for (ii = 0; ii < ntot; ii++) {
+        double wave;
+        wave = cpl_table_get_double(tmp_tab,CR2RES_IDP_COL_WAVE,ii, NULL) ;
+        if (isnan(wave)) {
+            cpl_table_select_row(tmp_tab, ii) ;
+        }
+    }
+    cpl_table_erase_selected(tmp_tab) ;
+
 
     /* Sort by the wavelengths */
     sort_list = cpl_propertylist_new() ;
@@ -700,7 +712,6 @@ cpl_table * cr2res_idp_create_table(
 
     cpl_table_unselect_all(tmp_tab) ;
     /*Find first valid row*/
-    int ii;
     int flag = 0;
     for (ii = 0; ii < ntot; ii++) {
         cpl_table_get_double(tmp_tab,CR2RES_IDP_COL_WAVE,ii, &flag) ;
