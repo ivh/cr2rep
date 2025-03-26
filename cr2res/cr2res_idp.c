@@ -59,6 +59,20 @@ static int cr2res_idp_copy_pol(
     int                 order,
     const char          *   setting) ;
 
+/*-----------------------------------------------------------------------------
+                                Utility functions
+ -----------------------------------------------------------------------------*/
+
+static void replace_spaces_with_underscores(char *str) 
+{     
+
+    for (int i = 0; str[i] != '\0'; i++) {         
+         if (str[i] == ' ') {             
+              str[i] = '_'; // Replace space with an underscore         
+         }     
+     } 
+} 
+
 /*----------------------------------------------------------------------------*/
 /**
  * @defgroup cr2res_idp     IDP related functions
@@ -459,13 +473,17 @@ int cr2res_idp_save(
                     cpl_propertylist_get_string(pri_head, "OBJECT"));
     cpl_propertylist_set_comment(ext_head, "OBJECT",
                     cpl_propertylist_get_comment(pri_head, "OBJECT"));
-    tmp_string = cpl_sprintf("%s - %f", 
-        cpl_propertylist_get_string(pri_head, "OBJECT"), mjd_start);
+    tmp_string = cpl_sprintf("%s_%d_%s", 
+        cpl_propertylist_get_string(pri_head, "OBJECT"),
+        cr2res_pfits_get_obs_id(pri_head),
+        cpl_propertylist_get_string(pri_head, "DATE-OBS"));
+
+    replace_spaces_with_underscores(tmp_string); 
 
     cpl_propertylist_update_string(ext_head, "TITLE", tmp_string);
     cpl_free(tmp_string);
     cpl_propertylist_set_comment(ext_head, "TITLE",
-                    "Title is OBJECT and MJD at start");
+                    "IDP title");
 
     cpl_propertylist_update_double(ext_head, "SPEC_VAL", (wmax+wmin)/2.0) ;
     cpl_propertylist_set_comment(ext_head, "SPEC_VAL", 
