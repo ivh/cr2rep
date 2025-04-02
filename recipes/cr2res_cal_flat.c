@@ -828,21 +828,30 @@ static int cr2res_cal_flat(
                     for (j=0 ; j<nb_orders ; j++) {
                         qc_orderpos = cpl_vector_new(CR2RES_NB_DETECTORS) ;
                         qc_overexposed = cpl_vector_new(CR2RES_NB_DETECTORS) ;
-                        for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++){
-                            // OVEREXPOSEDn
-                            qc_name = cpl_sprintf("%s%02d",
-                                    CR2RES_HEADER_QC_OVEREXPOSED, orders[j]) ;
-                            cpl_vector_set(qc_overexposed, det_nr-1,
-                                    cpl_propertylist_get_double(
-                                        ext_plist[i][det_nr-1], qc_name)) ;
-                            cpl_free(qc_name) ;
-                            // ORDERPOSn
-                            qc_name = cpl_sprintf("%s%02d",
-                                    CR2RES_HEADER_QC_FLAT_ORDERPOS, orders[j]) ;
-                            cpl_vector_set(qc_orderpos, det_nr-1,
-                                    cpl_propertylist_get_double(
-                                        ext_plist[i][det_nr-1], qc_name)) ;
-                            cpl_free(qc_name) ;
+                        cpl_vector_fill(qc_orderpos, 0.0) ;
+                        cpl_vector_fill(qc_overexposed, 0.0) ;
+                        for (det_nr = 1; det_nr <= CR2RES_NB_DETECTORS; det_nr++)
+                        {
+                                // OVEREXPOSEDn
+                                qc_name = cpl_sprintf("%s%02d",
+                                                      CR2RES_HEADER_QC_OVEREXPOSED, orders[j]);
+                                if (cpl_propertylist_has(ext_plist[i][det_nr - 1], qc_name))
+                                {
+                                        cpl_vector_set(qc_overexposed, det_nr - 1,
+                                                       cpl_propertylist_get_double(
+                                                           ext_plist[i][det_nr - 1], qc_name));
+                                }
+                                cpl_free(qc_name);
+                                // ORDERPOSn
+                                qc_name = cpl_sprintf("%s%02d",
+                                                      CR2RES_HEADER_QC_FLAT_ORDERPOS, orders[j]);
+                                if (cpl_propertylist_has(ext_plist[i][det_nr - 1], qc_name))
+                                {
+                                        cpl_vector_set(qc_orderpos, det_nr - 1,
+                                                       cpl_propertylist_get_double(
+                                                           ext_plist[i][det_nr - 1], qc_name));
+                                }
+                                cpl_free(qc_name);
                         }
 
                         // OVEREXPOSEDn.AVG/RMS
