@@ -125,7 +125,7 @@ int cr2res_idp_save(
     char                *   keyname;
     char                *   tmp_string;
     const cpl_parameter *   param ;
-    int                    error_method ;
+    int                    error_method  = -1;
     int                   nab;
 
     const char *nod_catg = "OBS_NODDING_EXTRACT";
@@ -153,14 +153,15 @@ int cr2res_idp_save(
     /* Create the big table */
     // NEED TO PASS ERRMETHOD AND NABCYCLES, ERRMETHOD IS IN THE PARLIST, NAB IS IN THE MAIN HEADER
 
-    param = cpl_parameterlist_find_const(parlist,
-                                         "cr2res.cr2res_obs_nodding.error_method");
-    if (strcmp(cpl_parameter_get_string(param), "Horne") == 0)
-        error_method = CR2RES_EXTRACT_ERROR_HORNE;
-    else
-        error_method = CR2RES_EXTRACT_ERROR_POISSON;
     if (strncmp(procatg, nod_catg, strlen(nod_catg)) == 0)
     {
+
+        param = cpl_parameterlist_find_const(parlist,
+                                             "cr2res.cr2res_obs_nodding.error_method");
+        if (strcmp(cpl_parameter_get_string(param), "Horne") == 0)
+            error_method = CR2RES_EXTRACT_ERROR_HORNE;
+        else
+            error_method = CR2RES_EXTRACT_ERROR_POISSON;
         //nab =  cpl_frameset_count_tags(rawframes,CR2RES_OBS_NODDING_JITTER_RAW) / 2;
         nab = 1;
         if (strcmp(procatg, CR2RES_OBS_NODDING_EXTRACTC_IDP_PROCATG) == 0)
