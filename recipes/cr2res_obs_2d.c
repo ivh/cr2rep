@@ -521,7 +521,7 @@ static int cr2res_obs_2d(
         used_frameset = cpl_frameset_new() ;
         cpl_frameset_insert(used_frameset, cpl_frame_duplicate(rawframe_obj)) ;
         if (rawframe_sky != NULL) 
-            cpl_frameset_insert(frameset,
+            cpl_frameset_insert(used_frameset,
                     cpl_frame_duplicate(rawframe_sky)) ;
         if (trace_wave_frame!= NULL)
             cpl_frameset_insert(used_frameset,
