@@ -40,7 +40,9 @@ class CriresRawdispReport(CriresReportMixin, MasterRawdispReport):
             "WAVE_SKY": "wave_sky",
             #
             "CAL_NODDING_JITTER": "standard_star",
-            "CAL_NODDING_OTHER": "standard_star"
+            "CAL_NODDING_OTHER": "standard_star",
+            #
+            "OBS_POLARIMETRY_OTHER": "standard_star_pol",
         }
         
 		self.select_raw_files = {}

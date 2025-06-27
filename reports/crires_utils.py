@@ -83,6 +83,8 @@ class CriresSetupInfo:
         metadata = md_1(hdul)
         return metadata
 
-
+    def standard_star_pol(hdul):
+        metadata = md_1(hdul)
+        return metadata
 
 

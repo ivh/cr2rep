@@ -15,24 +15,30 @@ class CriresWavelengthReport(CriresReportMixin, MasterEchelleFlatfieldReport, Ma
         
 
    def parse_sof(self):
-        map = None
-        raw = None
- 
+        master_im = None
+        wave_cal = []
+        
         for filename, catg in self.inputs:
-            if catg == "CAL_WAVE_MAP" and map is None:
-               map = filename
-            if (catg == "WAVE_FPET" or catg == "WAVE_UNE") and raw is None:
-               raw = filename
+            if catg == "CAL_WAVE_MAP" and master_im is None:
+                master_im = filename
+            if catg == "WAVE_FPET":
+                wave_cal.append(filename)
+        
+        if len(wave_cal) == 0:
+            for filename, catg in self.inputs:
+                if catg == "WAVE_UNE":
+                    wave_cal.append(filename)
+        
         # Build and return the file name list
         file_lists = []
-        if map is not None and raw is not None:
-            file_lists.append(
-                {
-                    "master_product": map,
-                    "raw": raw,
-                    "master_im": map,
-                }
-            )
+        if master_im is not None:
+            for item in wave_cal:
+                file_lists.append(
+                    {
+                        "master_product": master_im,
+                        "raw": wave_cal[0],
+                    }
+                )
         return file_lists
  
    def generate_first_panel(self):
@@ -93,7 +99,7 @@ class CriresWavelengthReport(CriresReportMixin, MasterEchelleFlatfieldReport, Ma
         panels = {}
         p = Panel(x=3, y=3, height_ratios=[1, 4, 4])
 
-        master = self.hdus[0]["master_im"]
+        master = self.hdus[0]["master_product"]
         rawname = str(master["PRIMARY"].header.get("HIERARCH ESO PRO REC1 RAW1 NAME"))
 
         # Text Plot
@@ -123,7 +129,7 @@ class CriresWavelengthReport(CriresReportMixin, MasterEchelleFlatfieldReport, Ma
         for i,ext1 in enumerate(extensions):
 
             full_plot, zoom_plot = super().image_plot(
-                self.hdus[0]["master_im"][ext1],
+                self.hdus[0]["master_product"][ext1],
                 zoom_in=True,
                 zoom_in_extent=200,
                 img_kwargs={
