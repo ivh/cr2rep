@@ -26,7 +26,7 @@ def process_science(dark, flat_calibrations, wavelength_calibrations, detector_l
                        .with_dynamic_parameter("wavelength_range", get_wavelength_range)
                        .with_input_filter(CAL_FLAT_MASTER, CAL_FLAT_TW, CAL_WAVE_TW, photo_flux_class,
                                           CAL_FLAT_EXTRACT_1D, util_wave_tw_class, util_trace_tw_class,
-                                          linearity_coefficients)
+                                          linearity_coefficients, CAL_DARK_MASTER, CAL_DARK_BPM)
                        .with_meta_targets([SCIENCE, QC0, IDP, CALCHECKER])
                        .build())
 
@@ -46,7 +46,7 @@ def process_science(dark, flat_calibrations, wavelength_calibrations, detector_l
                        .with_dynamic_parameter("wavelength_range", get_wavelength_range)
                        .with_input_filter(CAL_FLAT_MASTER, CAL_FLAT_TW, CAL_WAVE_TW, CAL_FLAT_EXTRACT_1D,
                                           photo_flux_class, util_wave_tw_class, util_trace_tw_class,
-                                          linearity_coefficients)
+                                          linearity_coefficients, CAL_DARK_MASTER, CAL_DARK_BPM)
                        .with_meta_targets([SCIENCE, QC0, IDP, CALCHECKER])
                        .build())
 
@@ -86,14 +86,14 @@ def process_science(dark, flat_calibrations, wavelength_calibrations, detector_l
                           .with_dynamic_parameter("wavelength_range", get_wavelength_range)
                           .with_input_filter(CAL_FLAT_MASTER, CAL_FLAT_TW, CAL_WAVE_TW, CAL_FLAT_EXTRACT_1D,
                                              photo_flux_class, util_wave_tw_class, util_trace_tw_class,
-                                             linearity_coefficients)
+                                             linearity_coefficients, CAL_DARK_MASTER, CAL_DARK_BPM)
                           .with_meta_targets([SCIENCE, QC0, CALCHECKER])
                           .build())
 
     # - Process two-dimensional observations
     science_2d = (task("science_2d")
                   .with_recipe("cr2res_obs_2d")
-                  .with_main_input(raw_science_2d)
+                  .with_main_input(raw_science_2d_object)
                   .with_associated_input(raw_science_2d_sky, min_ret=0, max_ret=1000)
                   .with_alternatives(flat_calibrations)
                   .with_alternative_associated_inputs(wavelength_calibrations)

@@ -37,11 +37,13 @@ detlin_lamp_class = classification_rule("DETLIN_LAMP", {**calib_keywords, kwd.dp
 detlin_dark_class = classification_rule("DETLIN_DARK", {**calib_keywords, kwd.dpr_type: "DARK,DETCHECK"})
 wave_une_rassoc_class = classification_rule('WAVE_UNE_RASSOC', {**crires, kwd.dpr_type: "WAVE,UNE"})
 
-std_nod_other_class = classification_rule('CAL_NODDING_OTHER', {**calib_other_keywords,
-                                                                kwd.dpr_type: "STD"})
+std_nod_other_class = classification_rule('CAL_NODDING_OTHER',
+                                          {**calib_other_keywords,
+                                           kwd.dpr_type: ["STD", "STD,RV", "STD,FLUX", "STD,TELLURIC"]})
 
-std_nod_jitter_class = classification_rule('CAL_NODDING_JITTER', {**calib_jitter_keywords,
-                                                                  kwd.dpr_type: "STD"})
+std_nod_jitter_class = classification_rule('CAL_NODDING_JITTER',
+                                           {**calib_jitter_keywords,
+                                            kwd.dpr_type: ["STD", "STD,RV", "STD,FLUX", "STD,TELLURIC"]})
 std_polarimetry_class = classification_rule("OBS_POLARIMETRY_OTHER", {**crires, kwd.dpr_catg: "CALIB",
                                                                       kwd.dpr_type: "STD,POL"})
 

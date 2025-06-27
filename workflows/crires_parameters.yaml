@@ -1,11 +1,35 @@
-default_parameters:
+default_parameters: &default
   is_default: yes
+  recipe_parameters:
+    science_nodding:
+      cr2res.cr2res_obs_nodding.create_idp: "TRUE"
+    science_polarimetry:
+      cr2res.cr2res_obs_nodding.create_idp: "FALSE"
+    science_staring:
+      cr2res.cr2res_obs_staring.create_idp: "FALSE"
 
 qc0_parameters:
+  <<: *default
   is_default: no
 
 science_parameters:
+  <<: *default
   is_default: no
-  packaging_parameters:
-    science_fringe:
-      - $DATASET/final_results/$TIMESTAMP/$pro.catg$_$arcfile$: [ .* ]
+  packaging_config: &default_pkg
+    science_nodding:
+      - $DATASET/$TIMESTAMP/SPECTRUM_COMBINED_$obs.targ.name$.$EXT: [ ^OBS_NODDING_EXTRACTC_IDP$ ]
+      - $DATASET/$TIMESTAMP/SPECTRUM_A_$obs.targ.name$.$EXT: [ ^OBS_NODDING_EXTRACTA_IDP$ ]
+      - $DATASET/$TIMESTAMP/SPECTRUM_B_$obs.targ.name$.$EXT: [ ^OBS_NODDING_EXTRACTB_IDP$ ]
+    science_2d:
+      - $DATASET/$TIMESTAMP/SPECTRA_$obs.targ.name$.$EXT: [ ^OBS_2D_EXTRACT$ ]
+    science_polarimetry:
+      - $DATASET/$TIMESTAMP/SPECTRA_POL_A_$obs.targ.name$.$EXT: [ ^OBS_POL_SPECA$ ]
+      - $DATASET/$TIMESTAMP/SPECTRA_POL_B_$obs.targ.name$.$EXT: [ ^OBS_POL_SPECB$ ]
+    science_staring:
+      - $DATASET/$TIMESTAMP/SPECTRA_$obs.targ.name$.$EXT: [ ^OBS_STARING_EXTRACT$ ]
+
+idp_parameters:
+  <<: *default
+  is_default: no
+  packaging_config:
+    <<: *default_pkg

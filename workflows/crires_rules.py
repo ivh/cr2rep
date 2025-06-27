@@ -28,45 +28,41 @@ def is_test(f):
 
 
 def is_flat(f):
-    return is_calib(f) and \
-        (f[kwd.dpr_type] == "FLAT" and f[kwd.dpr_tech] == 'SPECTRUM' and
-         f[kwd.det_read_curname] == "New_RR_UpTheRamp" and f[kwd.ins_opti8_id] == "Open")
+    return is_calib(f) and f[kwd.dpr_type] == "FLAT" and f[kwd.dpr_tech] == 'SPECTRUM' and \
+        f[kwd.det_read_curname] == "New_RR_UpTheRamp" and f[kwd.ins_opti8_id] == "Open"
 
 
 #            and kwd.det_ndit != 50) no distinction between regular and deep flats.
 
 
 def is_science_astrometry_other(f):
-    return is_science(f) and \
-        (f[kwd.dpr_type] == "OBJECT" and (f[kwd.dpr_tech] == 'SPECTRUM,NODDING,OTHER,ASTROMETRY' or
-                                          f[kwd.dpr_tech] == 'SPECTRUM,NODDING,OTHER,ASTROM') and
-         f[kwd.det_read_curname] == "New_RR_UpTheRamp")
+    return is_science(f) and f[kwd.dpr_type] == "OBJECT" and \
+        f[kwd.dpr_tech] in ['SPECTRUM,NODDING,OTHER,ASTROMETRY', 'SPECTRUM,NODDING,OTHER,ASTROM'] and \
+        f[kwd.det_read_curname] == "New_RR_UpTheRamp"
 
 
 def is_science_astrometry_jitter(f):
-    return is_science(f) and \
-        (f[kwd.dpr_type] == "OBJECT" and (f[kwd.dpr_tech] == 'SPECTRUM,NODDING,JITTER,ASTROMETRY' or
-                                          f[kwd.dpr_tech] == 'SPECTRUM,NODDING,JITTER,ASTROM') and
-         f[kwd.det_read_curname] == "New_RR_UpTheRamp")
+    return is_science(f) and f[kwd.dpr_type] == "OBJECT" and \
+        f[kwd.dpr_tech] in ['SPECTRUM,NODDING,JITTER,ASTROMETRY', 'SPECTRUM,NODDING,JITTER,ASTROM'] and \
+        f[kwd.det_read_curname] == "New_RR_UpTheRamp"
 
 
 def is_science_polarimetry_other(f):
-    return is_science(f) and \
-        (f[kwd.dpr_type] == "OBJECT" and (f[kwd.dpr_tech] == 'SPECTRUM,NODDING,OTHER,POLARIMETRY' or
-                                          f[kwd.dpr_tech] == 'SPECTRUM,NODDING,OTHER,POLARI') and
-         f[kwd.det_read_curname] == "New_RR_UpTheRamp")
+    return is_science(f) and f[kwd.dpr_type] == "OBJECT" and \
+        f[kwd.dpr_tech] in ['SPECTRUM,NODDING,OTHER,POLARIMETRY', 'SPECTRUM,NODDING,OTHER,POLARI'] and \
+        f[kwd.det_read_curname] == "New_RR_UpTheRamp"
+
+
+def is_science_2d(f):
+    return is_science(f) and f[kwd.dpr_tech] == 'SPECTRUM,GENERIC' and f[kwd.det_read_curname] == "New_RR_UpTheRamp"
 
 
 def is_science_2d_object(f):
-    return is_science(f) and \
-        (f[kwd.dpr_type] == "OBJECT" and (f[kwd.dpr_tech] == 'SPECTRUM,GENERIC') and
-         f[kwd.det_read_curname] == "New_RR_UpTheRamp")
+    return is_science_2d(f) and f[kwd.dpr_type] == "OBJECT"
 
 
 def is_science_2d_sky(f):
-    return is_science(f) and \
-        (f[kwd.dpr_type] == "SKY" and (f[kwd.dpr_tech] == 'SPECTRUM,GENERIC') and
-         f[kwd.det_read_curname] == "New_RR_UpTheRamp")
+    return is_science_2d(f) and f[kwd.dpr_type] == "SKY"
 
 
 def is_gas_cell(f):
