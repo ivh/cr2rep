@@ -77,6 +77,7 @@ action FLAT_action
         PRO.CATG=="CAL_DARK_MASTER_WKF"
         and inputFile.INSTRUME==INSTRUME        
         and inputFile.INS.WLEN.ID==INS.WLEN.ID 
+        and inputFile.INS.SLIT1.ID==INS.SLIT1.ID 
         and inputFile.DET.SEQ1.DIT==DET.SEQ1.DIT ;
 
 	minRet = 0; maxRet = 1;
@@ -84,6 +85,7 @@ action FLAT_action
         PRO.CATG=="CAL_DARK_BPM_WKF"
         and inputFile.INSTRUME==INSTRUME        
         and inputFile.INS.WLEN.ID==INS.WLEN.ID 
+        and inputFile.INS.SLIT1.ID==INS.SLIT1.ID 
         and inputFile.DET.SEQ1.DIT==DET.SEQ1.DIT ;
 
 	minRet = 0; maxRet = 1;
@@ -114,13 +116,15 @@ action WAVE_action
     select file as CAL_DARK_MASTER_WKF from calibFiles where
         PRO.CATG=="CAL_DARK_MASTER_WKF"
         and inputFile.INSTRUME==INSTRUME        
-        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID
+        and inputFile.INS.SLIT1.ID==INS.SLIT1.ID ;
 
 	minRet = 0; maxRet = 1;
     select file as CAL_DARK_BPM_WKF from calibFiles where
         PRO.CATG=="CAL_DARK_BPM_WKF"
         and inputFile.INSTRUME==INSTRUME        
-        and inputFile.INS.WLEN.ID==INS.WLEN.ID ;
+        and inputFile.INS.WLEN.ID==INS.WLEN.ID 
+        and inputFile.INS.SLIT1.ID==INS.SLIT1.ID ;
 
 	minRet = 0; maxRet = 1;
     select file as CAL_FLAT_MASTER_WKF from calibFiles where
