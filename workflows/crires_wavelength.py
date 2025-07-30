@@ -46,7 +46,7 @@ def wavelength_calibration(dark, flat_calibrations):
                       .with_associated_input(util_trace_tw, min_ret=0)
                       .with_input_filter(CAL_FLAT_MASTER, CAL_FLAT_TW, CAL_DARK_MASTER, CAL_DARK_BPM,
                                          emission_lines_class, util_wave_tw_class)
-                      .with_meta_targets([QC1_CALIB])
+                      .with_meta_targets([QC1_CALIB, CALCHECKER])
                       .build())
 
     # This collects wavelength calibrations from gas cells. It is used only for monitoring and associated to the relevant
