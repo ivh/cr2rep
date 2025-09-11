@@ -1183,6 +1183,19 @@ cpl_table * cr2res_extract_SLITFUNC_create(
         }
     if (all_null == 1) return NULL ;
 
+    /* Resize all vectors to nrows_max, otherwise cpl_table_copy_data_double 
+       accesses values outside the vector*/
+    for (i = 0; i < nb_traces; i++)
+        if (slit_func[i] != NULL)
+        {
+            nrows = cpl_vector_get_size(slit_func[i]);
+            cpl_vector_set_size(slit_func[i], nrows_max);
+            for (int j = nrows; j < nrows_max; j++)
+            {
+                cpl_vector_set(slit_func[i], j, 0.0);
+            }
+        }
+
     /* Create the table */
     out = cpl_table_new(nrows_max);
     for (i=0 ; i<nb_traces ; i++) {
@@ -1201,6 +1214,13 @@ cpl_table * cr2res_extract_SLITFUNC_create(
             pslit = cpl_vector_get_data_const(slit_func[i]) ;
             col_name = cr2res_dfs_SLIT_FUNC_colname(order, trace_id) ;
             cpl_table_copy_data_double(out, col_name, pslit) ;
+            cpl_free(col_name) ;
+        } else {
+            order = cpl_table_get(trace_table, CR2RES_COL_ORDER, i, NULL) ;
+            trace_id = cpl_table_get(trace_table, CR2RES_COL_TRACENB, i, NULL) ;
+            col_name = cr2res_dfs_SLIT_FUNC_colname(order, trace_id) ;
+            cpl_table_fill_column_window_double(out, col_name, 0, nrows_max, NAN);
+            cpl_table_set_column_invalid(out, col_name, 0, nrows_max);
             cpl_free(col_name) ;
         }
     }
@@ -1695,13 +1715,13 @@ int cr2res_extract_slitdec_curved(
             /* prepare signal, error and mask */
             for(y=1;y<=height;y++){
                 errval = cpl_image_get(err_rect, x, y, &badpix);
-                if (isnan(errval) | badpix){
+                if (isnan(errval) || badpix){
                     // default to errval of 1 instead of 0
                     // this avoids division by 0
                     errval = 1;
                 }
                 pixval = cpl_image_get(img_rect, x, y, &badpix);
-                if (isnan(pixval) | badpix){
+                if (isnan(pixval) || badpix){
                     // We set bad pixels to neg. infinity, to make sure they are
                     // rejected in the extraction
                     // The algorithm does not like NANs!
@@ -3197,7 +3217,7 @@ static int cr2res_extract_slit_func_curved(
             for (x = delta_x; x < ncols - delta_x; x++) {
                 cpl_image_set(img_mad, x + 1, y + 1,
                               (model[y * ncols + x] - im[y * ncols + x]));
-                if ((mask[y * ncols + x] == 0) | (im[y * ncols + x] == 0))
+                if ((mask[y * ncols + x] == 0) || (im[y * ncols + x] == 0))
                     cpl_image_reject(img_mad, x + 1, y + 1);
             }
         }

@@ -455,7 +455,7 @@ int cr2res_splice_orders(
             if (isfinite(cpl_vector_get(uncs[i], j)) == 0){
                 cpl_vector_set(uncs[i], j, 1);
             }
-            if ((cpl_vector_get(cont[i], j) == 0) | (isfinite(cpl_vector_get(cont[i], j)) == 0)){
+            if ((cpl_vector_get(cont[i], j) == 0) || (isfinite(cpl_vector_get(cont[i], j)) == 0)){
                 cpl_vector_set(cont[i], j, 1);
             }
             cpl_vector_set(tmp4, j, 

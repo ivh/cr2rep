@@ -511,7 +511,7 @@ cpl_image * cr2res_bpm_mask_edgepix(cpl_image * bpm){
     sy = cpl_image_get_size_y(bpm);
 
     // Image is too small for edgepixels, just keep it as it is
-    if ((sx <= CR2RES_NB_BPM_EDGEPIX+1) | (sy <= CR2RES_NB_BPM_EDGEPIX+1)) 
+    if ((sx <= CR2RES_NB_BPM_EDGEPIX+1) || (sy <= CR2RES_NB_BPM_EDGEPIX+1)) 
         return out;
 
     for (i=1; i<=sx; i++){

@@ -1204,9 +1204,11 @@ static int cr2res_obs_nodding_reduce(
     cpl_array           *   fwhm_b_array ;
     char                *   cur_setting ;
     int                 *   order_idx_values ;
+    int                 *   order_idx_values_der ;
     double              *   qc_snrs ;
     double              *   qc_der_snrs ;
     int                     nb_order_idx_values,
+                            nb_order_idx_values_der,
                             order_zp, order_idx, order_idxp ;
 
     /* Check Inputs */
@@ -1632,8 +1634,8 @@ static int cr2res_obs_nodding_reduce(
     /* QC - SNR on nodding A position */
     qc_snrs = cr2res_qc_snr(trace_wave_a, extracted_a, &order_idx_values,
             &nb_order_idx_values) ;
-    qc_der_snrs = cr2res_qc_der_snr(trace_wave_a, extracted_a, &order_idx_values,
-            &nb_order_idx_values) ;
+    qc_der_snrs = cr2res_qc_der_snr(trace_wave_a, extracted_a, &order_idx_values_der,
+            &nb_order_idx_values_der) ;
     for (i=0 ; i<nb_order_idx_values ; i++) {
         order_idx = order_idx_values[i] ;
         order_idxp = cr2res_io_convert_order_idx_to_idxp(order_idx) ;
@@ -1645,7 +1647,9 @@ static int cr2res_obs_nodding_reduce(
         cpl_free(key_name) ;
     }
     cpl_free(order_idx_values) ;
+    cpl_free(order_idx_values_der) ;
     cpl_free(qc_snrs) ;
+    cpl_free(qc_der_snrs) ;
 
     /* Get the order numbers from the TW rows */
     order_idx_values = cr2res_trace_get_order_idx_values(trace_wave, 
