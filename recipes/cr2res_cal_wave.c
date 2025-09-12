@@ -1435,7 +1435,7 @@ static int cr2res_cal_wave_reduce(
         cpl_msg_indent_more() ;
         if (cr2res_extract_traces(collapsed_une, tw_in, NULL, NULL, 0,
                     reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
-                    ext_height, ext_swath_width, ext_oversample, 
+                    ext_height, ext_swath_width, ext_oversample, 0.0,
                     ext_smooth_slit, ext_smooth_spec,
                     extract_niter, extract_kappa, error_factor, 0, 0, 0,
                     &extracted_une, &slit_func_une, &model_master_une) == -1) {
@@ -1690,7 +1690,7 @@ static int cr2res_cal_wave_reduce(
         cpl_msg_indent_more() ;
         if (cr2res_extract_traces(collapsed_fpet, tw_in, NULL, NULL, 0,
                     reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
-                    ext_height, ext_swath_width, ext_oversample, 
+                    ext_height, ext_swath_width, ext_oversample, 0.0,
                     ext_smooth_slit, ext_smooth_spec, 
                     extract_niter, extract_kappa, error_factor, 0, 0, 0,
                     &extracted_fpet, &slit_func_fpet, &model_master_fpet)==-1) {

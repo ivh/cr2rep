@@ -79,6 +79,7 @@ static int cr2res_obs_nodding_reduce(
         int                     cosmics,
         int                     error_method,
         int                     extract_oversample,
+        double                  extract_pclip,
         int                     extract_swath_width,
         int                     extract_height,
         double                  extract_smooth_slit,
@@ -347,6 +348,13 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.extract_pclip",
+            CPL_TYPE_DOUBLE, "percentage of high and low pixels to clip on first iteration",
+            "cr2res.cr2res_obs_nodding", 0.1);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_pclip");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.extract_swath_width",
             CPL_TYPE_INT, "The swath width", "cr2res.cr2res_obs_nodding", 2048);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_swath_width");
@@ -469,7 +477,8 @@ static int cr2res_obs_nodding(
                             nodding_invert, create_idp, subtract_nolight_rows,
                             subtract_interorder_column, cosmics,
                             error_method;
-    double                  extract_smooth_slit, extract_smooth_spec;
+    double                  extract_smooth_slit, extract_smooth_spec,
+                            extract_pclip;
     double                  dit, gain;
     double                  ra, dec, mjd_obs, mjd_cen, geolon, geolat, geoelev,
                             barycorr;
@@ -522,6 +531,9 @@ static int cr2res_obs_nodding(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.extract_oversample");
     extract_oversample = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_nodding.extract_pclip");
+    extract_pclip = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.extract_swath_width");
     extract_swath_width = cpl_parameter_get_int(param);
@@ -671,7 +683,7 @@ static int cr2res_obs_nodding(
                     bpm_frame, blaze_frame, nodding_invert,
                     subtract_nolight_rows, subtract_interorder_column, cosmics,
                     error_method,
-                    extract_oversample, extract_swath_width, extract_height,
+                    extract_oversample, extract_pclip, extract_swath_width, extract_height,
                     extract_smooth_slit, extract_smooth_spec, extract_niter,
                     extract_kappa, det_nr, disp_det, disp_order_idx, disp_trace,
                     &(combineda[det_nr - 1]), &(extracta[det_nr - 1]),
@@ -1101,7 +1113,9 @@ static int cr2res_obs_nodding(
   @param nodding_invert         Flag to use if A is above B
   @param subtract_nolight_rows
   @param cosmics                Flag to correct for cosmics
+  @param error_method           Extraction related
   @param extract_oversample     Extraction related
+  @param extract_pclip          Extraction related
   @param extract_swath_width    Extraction related
   @param extract_height         Extraction related
   @param extract_smooth_slit    Extraction: smoothing along slit
@@ -1139,6 +1153,7 @@ static int cr2res_obs_nodding_reduce(
         int                     cosmics,
         int                     error_method,
         int                     extract_oversample,
+        double                  extract_pclip,
         int                     extract_swath_width,
         int                     extract_height,
         double                  extract_smooth_slit,
@@ -1560,7 +1575,7 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_indent_more() ;
     if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, blaze_table, blaze_norm, -1,
                 -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
-                extract_oversample, extract_smooth_slit, extract_smooth_spec,
+                extract_oversample, extract_pclip, extract_smooth_slit, extract_smooth_spec,
                 extract_niter, extract_kappa, error_factor,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_a, &slit_func_a, &model_master_a) == -1) {
@@ -1579,7 +1594,7 @@ static int cr2res_obs_nodding_reduce(
     cpl_msg_indent_more() ;
     if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, blaze_table, blaze_norm, -1,
                 -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
-                extract_oversample, extract_smooth_slit, extract_smooth_spec,
+                extract_oversample, extract_pclip, extract_smooth_slit, extract_smooth_spec,
                 extract_niter, extract_kappa, error_factor,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_b, &slit_func_b, &model_master_b) == -1) {

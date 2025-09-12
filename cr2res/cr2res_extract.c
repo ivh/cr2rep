@@ -81,6 +81,7 @@ static int cr2res_extract_slit_func_curved(
         int         ncols,
         int         nrows,
         int         osample,
+        double      pclip,
         double  *   im,
         double  *   pix_unc,
         int     *   mask,
@@ -166,6 +167,7 @@ static int debug_output(int         ncols,
   @param    extr_height     number of pix above and below mid-line or -1
   @param    swath_width     width per swath
   @param    oversample      factor for oversampling
+  @param    pclip           pclip for optimal extraction
   @param    smooth_slit     smoothing along slit
   @param    smooth_spec     smoothing along spectrum
   @param    error_factor    Factor to get errors scale correctly
@@ -192,6 +194,7 @@ int cr2res_extract_traces(
         int                     extr_height,
         int                     swath_width,
         int                     oversample,
+        double                  pclip,
         double                  smooth_slit,
         double                  smooth_spec,
         int                     niter,
@@ -314,7 +317,7 @@ int cr2res_extract_traces(
         } else if (extr_method == CR2RES_EXTR_OPT_CURV) {
             if (cr2res_extract_slitdec_curved(img, traces, slit_func_in_vec,
                         order, trace_id, extr_height, swath_width,
-                        oversample, smooth_slit, smooth_spec,
+                        oversample, pclip, smooth_slit, smooth_spec,
                         niter, kappa, error_factor,
                         &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
@@ -1396,6 +1399,7 @@ int cr2res_extract_slitdec_curved(
         int                     height,
         int                     swath,
         int                     oversample,
+        double                  pclip,
         double                  smooth_slit,
         double                  smooth_spec,
         int                     niter,
@@ -1823,7 +1827,7 @@ int cr2res_extract_slitdec_curved(
         cpl_image_unwrap(img_tmp);
         
         /* Finally ready to call the slit-decomp */
-        cr2res_extract_slit_func_curved(error_factor, swath, height, oversample, 
+        cr2res_extract_slit_func_curved(error_factor, swath, height, oversample, pclip,
                 img_sw_data, err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, 
                 y_lower_limit, slitcurves_sw, delta_x, slitfu_sw_data, 
                 spec_sw_data, model_sw, unc_sw_data, smooth_spec, smooth_slit, 
@@ -2346,7 +2350,7 @@ cpl_table * cr2res_extract_EXTRACT2D_create(
 
     /* Check entries */
     if (spectrum==NULL || trace_table==NULL || position==NULL ||
-            wavelength==NULL || slit_fraction==NULL || trace_table==NULL) 
+            wavelength==NULL || slit_fraction==NULL) 
         return NULL ;
 
     /* Initialise */
@@ -2922,6 +2926,7 @@ static int cr2res_extract_slit_func_curved(
         int         ncols,
         int         nrows,
         int         osample,
+        double      pclip,
         double  *   im,
         double  *   pix_unc,
         int     *   mask,
@@ -2991,6 +2996,56 @@ static int cr2res_extract_slit_func_curved(
      }
     }
 */
+    int nclip = (int)(ncols * nrows * pclip / 100);
+    if (nclip > 0)
+    {
+        if (nclip > ncols * nrows / 2)
+            nclip = (ncols * nrows / 2) - 1;
+        cpl_vector *im_vec = cpl_vector_wrap(ncols * nrows, im);
+        cpl_vector *pos_vec = cpl_vector_new(ncols * nrows);
+        for (x = 0; x < ncols; x++)
+        {
+            for (y = 0; y < nrows; y++)
+            {
+                cpl_vector_set(pos_vec, y * ncols + x, y * ncols + x);
+            }
+        }
+        cpl_bivector *im_in_bvec = cpl_bivector_wrap_vectors(pos_vec, im_vec);
+        cpl_bivector *im_sort_bvec = cpl_bivector_new(ncols * nrows);
+        cpl_bivector_sort(im_sort_bvec, im_in_bvec, CPL_SORT_ASCENDING, CPL_SORT_BY_Y);
+        cpl_bivector_unwrap_vectors(im_in_bvec);
+        cpl_vector_unwrap(im_vec);
+        cpl_vector_delete(pos_vec);
+
+        cpl_vector *pos_sort_vec = cpl_bivector_get_x(im_sort_bvec);
+
+        int ii = 0, mm = 0;
+        while (mm < nclip)
+        {
+            int pos = (int)cpl_vector_get(pos_sort_vec, ii);
+            if (mask[pos] != 0)
+            {
+                mask[pos] = 0;
+                mm++;
+            }
+            ii++;
+        }
+
+        ii = ncols * nrows - 1;
+        mm = 0;
+        while (mm < nclip)
+        {
+            int pos = (int)cpl_vector_get(pos_sort_vec, ii);
+            if (mask[pos] != 0)
+            {
+                mask[pos] = 0;
+                mm++;
+            }
+            ii--;
+        }
+        cpl_bivector_delete(im_sort_bvec);
+        pos_sort_vec = NULL;
+    }
 
     /* Loop through sL , sP reconstruction until convergence is reached */
     iter = 0;

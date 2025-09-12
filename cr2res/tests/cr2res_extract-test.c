@@ -732,7 +732,7 @@ static void test_cr2res_slitdec_errors(void){
     cpl_table * trace_table = create_table_linear_increase(height * 2, 0);
 
     result = cr2res_extract_slitdec_curved(img_hdrl, trace_table, NULL, 
-            order, trace, height, swath, oversample, smooth_slit, 0, 
+            order, trace, height, swath, oversample, 0.0, smooth_slit, 0, 
             niter, kappa, CR2RES_GAIN_CHIP1, &slit_func, &spec, &model);
 
     cpl_test_eq(0, result);

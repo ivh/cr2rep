@@ -71,6 +71,7 @@ static int cr2res_obs_staring_reduce(
         int                     subtract_interorder_column,
         int                     cosmics,
         int                     extract_oversample,
+        double                  extract_pclip,
         int                     extract_swath_width,
         int                     extract_height,
         double                  extract_smooth_slit,
@@ -274,6 +275,13 @@ static int cr2res_obs_staring_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.extract_pclip",
+            CPL_TYPE_DOUBLE, "percentage of high and low pixels to clip on first iteration",
+            "cr2res.cr2res_obs_staring", 0.1);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_pclip");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.extract_swath_width",
             CPL_TYPE_INT, "The swath width", "cr2res.cr2res_obs_staring", 2048);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_swath_width");
@@ -389,7 +397,7 @@ static int cr2res_obs_staring(
                             extract_oversample, create_idp, cosmics,
                             extract_swath_width, extract_height, reduce_det;
     double                  extract_smooth_slit, extract_smooth_spec, 
-                            slit_low, slit_up ;
+                            extract_pclip, slit_low, slit_up ;
     double                  barycorr;
     cpl_array           *   slit_frac ;
     cpl_frameset        *   rawframes ;
@@ -423,6 +431,9 @@ static int cr2res_obs_staring(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.extract_oversample");
     extract_oversample = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_staring.extract_pclip");
+    extract_pclip = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.extract_swath_width");
     extract_swath_width = cpl_parameter_get_int(param);
@@ -520,7 +531,7 @@ static int cr2res_obs_staring(
                     trace_wave_frame, detlin_frame, master_dark_frame, 
                     master_flat_frame, bpm_frame, blaze_frame, slit_frac, 
                     subtract_nolight_rows, subtract_interorder_column,
-                    cosmics, extract_oversample, 
+                    cosmics, extract_oversample, extract_pclip,
                     extract_swath_width, extract_height, extract_smooth_slit, 
                     extract_smooth_spec, det_nr,
                     &(combined[det_nr-1]),
@@ -694,6 +705,7 @@ static int cr2res_obs_staring_reduce(
         int                     subtract_interorder_column,
         int                     cosmics,
         int                     extract_oversample,
+        double                  extract_pclip,
         int                     extract_swath_width,
         int                     extract_height,
         double                  extract_smooth_slit,
@@ -886,7 +898,7 @@ static int cr2res_obs_staring_reduce(
     cpl_msg_info(__func__, "Spectra Extraction") ;
     if (cr2res_extract_traces(collapsed, trace_wave, NULL, blaze_table, blaze_norm, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
-                extract_oversample, extract_smooth_slit, extract_smooth_spec,
+                extract_oversample, extract_pclip, extract_smooth_slit, extract_smooth_spec,
                 extract_niter, extract_kappa, error_factor, 
                 0, 0, 0, &extracted, &slit_func, &model_master) == -1) {
         cpl_msg_error(__func__, "Failed to extract");

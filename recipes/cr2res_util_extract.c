@@ -211,6 +211,13 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_value("cr2res.cr2res_util_extract.pclip",
+            CPL_TYPE_DOUBLE, "percentage of high and low pixels to clip on first iteration",
+            "cr2res_util_extract.pclip", 0.1);
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "pclip");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.swath_width",
             CPL_TYPE_INT, "The swath width", "cr2res.cr2res_util_extract", 800);
     cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "swath_width");
@@ -334,7 +341,7 @@ static int cr2res_util_extract(
     int                     oversample, swath_width, extr_height,
                             reduce_det, reduce_order, reduce_trace ;
     double                  smooth_slit, smooth_spec, slit_low, slit_up,
-                            gain, error_factor ;
+                            pclip, gain, error_factor ;
     cpl_array           *   slit_frac ;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   cur_fset ;
@@ -361,6 +368,9 @@ static int cr2res_util_extract(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_extract.oversample");
     oversample = cpl_parameter_get_int(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_extract.pclip");
+    pclip = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_extract.swath_width");
     swath_width = cpl_parameter_get_int(param);
@@ -558,7 +568,7 @@ static int cr2res_util_extract(
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(science_hdrl, trace_table,
                         slit_func_in, NULL, 0, reduce_order, reduce_trace, 
-                        extr_method, extr_height, swath_width, oversample,
+                        extr_method, extr_height, swath_width, oversample, pclip,
                         smooth_slit, smooth_spec,
                         extract_niter, extract_kappa, error_factor, 0, 0, 0, 
                         &(extract_tab[det_nr-1]), &(slit_func_tab[det_nr-1]), 
