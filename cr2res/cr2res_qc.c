@@ -1251,12 +1251,19 @@ double cr2res_qc_obs_slit_psf(
     /* remove "strange" values, i.e. nan and unreasonably large values */
     /* otherwise the fit will not work */
     /* Slitfunc should be normalised to the oversampling rate(?) */
+    cpl_size nan_count = 0;
     for (j = 0; j < nrow; j++) {
         if (isnan(data[j]) | (data[j] > 1)){
             cpl_vector_set(y, j, 0);
+            nan_count++;
         } else {
             cpl_vector_set(y, j, data[j]);
         }
+    }
+    if (nan_count == nrow) {
+        cpl_vector_delete(x);
+        cpl_vector_delete(y);
+        return 0.0 ;
     }
     cpl_vector_fit_gaussian(x, NULL, y, NULL, fit_pars, &x0, &sigma,
             &area, &offset, NULL, NULL, NULL);
