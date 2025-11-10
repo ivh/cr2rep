@@ -24,9 +24,10 @@ ACLOCAL_AMFLAGS = -I m4macros
 DISTCLEANFILES = *~
 
 
-COMPILE_FIRST = 
+COMPILE_FIRST =
 
-TOPSUBDIRS = tools hdrl irplib cr2res recipes reports workflows regtests reflex
+# Removed hdrl, irplib, and regtests as they are not available
+TOPSUBDIRS = tools cr2res recipes reports workflows reflex
 
 COMPILE_LAST =
 

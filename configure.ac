@@ -71,7 +71,7 @@ ESO_FUNC_STRDUP
 CPL_CHECK_LIBS
 
 # setup hdrl folder
-HDRL_CHECK([hdrl])
+# HDRL_CHECK([hdrl]) - HDRL not available, building without it
 
 # Check for <xx>clipm
 # - can be called multiple times
@@ -86,7 +86,7 @@ CR2RES_CREATE_SYMBOLS
 
 AM_WITH_DMALLOC
 
-AC_CONFIG_SUBDIRS([hdrl])
+# AC_CONFIG_SUBDIRS([hdrl]) - HDRL not available, building without it
 
 AC_CONFIG_FILES(Makefile
                 doxygen/Doxyfile
@@ -100,9 +100,5 @@ AC_CONFIG_FILES(Makefile
                 reflex/cr2res_obs_pol.xml
                 recipes/Makefile
                 reports/Makefile
-                workflows/Makefile
-                regtests/Makefile
-                regtests/tests/Makefile
-                irplib/Makefile
-                irplib/tests/Makefile)
+                workflows/Makefile)
 AC_OUTPUT
