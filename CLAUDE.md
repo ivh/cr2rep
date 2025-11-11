@@ -6,6 +6,10 @@ This guide provides the fastest path to get the CR2RES pipeline compiled and run
 
 This repository requires dependencies that are bundled in ESO's official distribution kit. The git repository alone is incomplete.
 
+**Required tools:**
+- `uv` - Python package installer (for EDPS installation)
+- Standard build tools (gcc, make, autotools)
+
 ## Quick Start (Copy-Paste for Claude)
 
 **For automated installation, run these commands in sequence:**
@@ -37,8 +41,11 @@ cd esorex-3.13.10 && ./configure --prefix=/opt/cr2res && make && make install
 ln -sf /opt/cr2res/bin/esorex /usr/local/bin/esorex && \
 sed -i 's|^esorex.caller.recipe-dir=.*|esorex.caller.recipe-dir=/usr/local/lib/esopipes-plugins/cr2re-1.6.11|' /opt/cr2res/etc/esorex.rc
 
-# Step 7: Verify (should show version 3.13.10 and 21 recipes)
-esorex --version && echo "---" && esorex --recipes | grep -c cr2res
+# Step 7: Install EDPS (30 seconds)
+uv tool install -p 3.13 --with 'anyio<4' --extra-index-url https://ftp.eso.org/pub/dfs/pipelines/libraries/ edps
+
+# Step 8: Verify (should show version 3.13.10, 21 recipes, and crires workflow)
+esorex --version && echo "---" && esorex --recipes | grep -c cr2res && echo "---" && echo -e "\n\n\n\n\n" | edps -lw
 ```
 
 **Total time: ~10 minutes**
@@ -131,7 +138,29 @@ sed -i 's|^esorex.caller.recipe-dir=.*|esorex.caller.recipe-dir=/usr/local/lib/e
 
 **Note**: `sudo` removed - not needed if running as root
 
-### 6. Verify Installation
+### 6. Install EDPS (ESO Data Processing System) (~30 seconds)
+
+EDPS provides workflow management for automated data reduction:
+
+```bash
+uv tool install -p 3.13 --with 'anyio<4' --extra-index-url https://ftp.eso.org/pub/dfs/pipelines/libraries/ edps
+```
+
+**Success indicators**:
+- Installation completes with "Installed 31 packages"
+- Three executables installed: `edps`, `edps-server`, `edps-shutdown`
+
+**Verify EDPS and detect workflows**:
+
+```bash
+# Initialize EDPS and list available workflows (accept defaults by pressing Enter)
+echo -e "\n\n\n\n\n" | edps -lw
+```
+
+**Expected output**:
+- `['crires.crires_wkf']` - CR2RES workflow detected
+
+### 7. Verify Installation
 
 ```bash
 # Check esorex version (should show 3.13.10)
@@ -145,6 +174,9 @@ esorex --recipes | grep -c cr2res
 
 # Get help for a specific recipe
 esorex --help cr2res_cal_flat
+
+# Verify EDPS workflow detection
+edps -lw
 ```
 
 **Expected output**:
@@ -152,6 +184,7 @@ esorex --help cr2res_cal_flat
 - Libraries: `CPL = 7.3.2, CFITSIO = 4.3.1`
 - Recipe count: `21`
 - All recipes start with `cr2res_`
+- EDPS workflow: `['crires.crires_wkf']`
 
 ## What Gets Built
 
@@ -164,6 +197,12 @@ esorex --help cr2res_cal_flat
 - 4 Calibration recipes (dark, flat, detlin, wave)
 - 4 Observation recipes (nodding, 2d, staring, pol)
 - 13 Utility recipes (extraction, tracing, calibration, etc.)
+
+**Data Processing Tools:**
+- `esorex` - ESO Recipe Execution Tool for running recipes
+- `edps` - ESO Data Processing System for workflow management
+- `edps-server` - EDPS background server
+- `edps-shutdown` - EDPS server shutdown utility
 
 ## Key Files Modified
 
@@ -178,6 +217,8 @@ When setting up from scratch, these files need the dependencies integrated:
 - **EsoRex config**: `/opt/cr2res/etc/esorex.rc`
 - **Recipe directory**: `/usr/local/lib/esopipes-plugins/cr2re-1.6.11/`
 - **EsoRex binary**: `/usr/local/bin/esorex` (symlink to `/opt/cr2res/bin/esorex`)
+- **EDPS config**: `~/.edps/` (bookkeeping and configuration)
+- **EDPS workflows**: `/home/user/cr2rep/workflows/` (CR2RES workflow definitions)
 
 ## Troubleshooting
 
@@ -226,6 +267,23 @@ When setting up from scratch, these files need the dependencies integrated:
 - **Fix**: Check `/usr/local/lib/esopipes-plugins/cr2re-1.6.11/` for `.so` files
 - **Verify**: `ls /usr/local/lib/esopipes-plugins/cr2re-1.6.11/*.so | wc -l` should show 21
 
+### EDPS Issues
+
+**Issue**: `edps: command not found`
+- **Cause**: EDPS not installed or not in PATH
+- **Fix**: Install with `uv tool install -p 3.13 --with 'anyio<4' --extra-index-url https://ftp.eso.org/pub/dfs/pipelines/libraries/ edps`
+- **Verify**: `which edps` should show the installation path
+
+**Issue**: `edps -lw` shows empty list `[]`
+- **Cause**: EDPS cannot find workflow files in the repository
+- **Fix**: Ensure you're in the cr2rep directory with `workflows/` subdirectory
+- **Verify**: `ls workflows/crires_wkf.py` should show the workflow file
+
+**Issue**: EDPS initialization prompts for configuration
+- **Cause**: First-time setup - EDPS creates configuration directory
+- **Fix**: Accept defaults by pressing Enter or use `echo -e "\n\n\n\n\n" | edps -lw`
+- **Config location**: `~/.edps/` directory
+
 ## Clean Restart
 
 If installation fails and you need to start over:
@@ -243,6 +301,10 @@ rm -rf /usr/local/lib/cr2re-1.6.11
 rm -f /usr/local/bin/esorex
 rm -rf /opt/cr2res
 
+# Remove EDPS
+uv tool uninstall edps
+rm -rf ~/.edps
+
 # Clear temporary files
 rm -rf /tmp/cr2re-kit-1.6.10
 
@@ -259,7 +321,7 @@ export ESOREX_RECIPES=/usr/local/lib/esopipes-plugins/cr2re-1.6.11
 
 ## Running Recipes
 
-Basic usage:
+### Manual Recipe Execution with EsoRex
 
 ```bash
 # Create a SOF (Set of Frames) file
@@ -272,6 +334,30 @@ EOF
 # Run the recipe
 esorex cr2res_cal_flat example.sof
 ```
+
+### Automated Workflow with EDPS
+
+EDPS provides automated data reduction using the CR2RES workflow:
+
+```bash
+# List available workflows
+edps -lw
+
+# Run workflow on a directory containing raw data
+edps -w crires.crires_wkf /path/to/raw/data
+
+# Check processing status
+edps -s
+
+# View workflow help
+edps -wh crires.crires_wkf
+```
+
+**EDPS Features:**
+- Automatic file classification and association
+- Dependency resolution between calibration and science frames
+- Parallel processing of independent tasks
+- Progress tracking and error handling
 
 ## Development Notes
 
@@ -323,6 +409,14 @@ grep recipe-dir /opt/cr2res/etc/esorex.rc
 # 8. Test recipe help
 esorex --help cr2res_cal_flat | head -5
 # Expected: Recipe description and usage
+
+# 9. Check EDPS is accessible
+which edps
+# Expected: /root/.local/bin/edps (or similar path)
+
+# 10. Verify EDPS workflow detection
+edps -lw
+# Expected: ['crires.crires_wkf']
 ```
 
 **All checks passed?** Installation complete! ✓
