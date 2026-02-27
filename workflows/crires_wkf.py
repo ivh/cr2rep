@@ -4,7 +4,6 @@ from edps import task, alternative_associated_inputs
 from .crires_datasources import *
 from .crires_science import process_science
 from .crires_standards import crires_standards
-from .crires_task_functions import *
 from .crires_wavelength import wavelength_calibration
 
 __title__ = "CRIRES workflow"

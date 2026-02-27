@@ -1,9 +1,8 @@
-from edps import task, QC0, SCIENCE, CALCHECKER, subworkflow
+from edps import QC0, SCIENCE, CALCHECKER, IDP
+from edps import task, subworkflow, ReportInput
 
 from .crires_datasources import *
-from .crires_task_functions import *
-
-IDP = "idp"
+from .crires_task_functions import is_short_wavelength, is_long_wavelength, get_wavelength_range
 
 
 @subworkflow("science", "")
@@ -13,6 +12,7 @@ def process_science(dark, flat_calibrations, wavelength_calibrations, detector_l
     # - Process nodding exposures
     science_nodding = (task("science_nodding")
                        .with_recipe("cr2res_obs_nodding")
+                       .with_report("crires_science", ReportInput.RECIPE_INPUTS_OUTPUTS)
                        .with_main_input(raw_science_nodding)
                        .with_alternatives(flat_calibrations)
                        .with_alternative_associated_inputs(wavelength_calibrations)
@@ -33,6 +33,7 @@ def process_science(dark, flat_calibrations, wavelength_calibrations, detector_l
     # - Process staring observations
     science_staring = (task("science_staring")
                        .with_recipe("cr2res_obs_staring")
+                       .with_report("crires_science", ReportInput.RECIPE_INPUTS_OUTPUTS)
                        .with_main_input(raw_science_staring)
                        .with_alternatives(flat_calibrations)
                        .with_alternative_associated_inputs(wavelength_calibrations)

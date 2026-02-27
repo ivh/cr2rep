@@ -1,5 +1,5 @@
+from edps import RelativeTimeRange, ONE_DAY, TWO_DAYS, ONE_WEEK, UNLIMITED
 from edps import data_source, match_rules
-from edps.generator.time_range import *
 
 from .crires_classification import *
 
@@ -18,7 +18,8 @@ arm = [kwd.ins_path]
 binning = [kwd.det_binx, kwd.det_biny]
 arm_binning = arm + binning
 instrument = [kwd.instrume]
-group_cal_common = [kwd.tpl_start, kwd.ins_wlen_id, kwd.ins_slit1_id, kwd.det_seq1_dit]
+group_slit = [kwd.ins_wlen_id, kwd.ins_slit1_id, kwd.det_seq1_dit]
+group_cal_common = group_slit + [kwd.tpl_start]
 group_detlin = instrument + [kwd.det_read_curname, kwd.tpl_start]
 
 # match_flat and matching keywords:
@@ -134,13 +135,13 @@ raw_science_nodding = (data_source('SCIENCE_NODDING')
 raw_science_staring = (data_source('SCIENCE_STARING')
                        .with_classification_rule(sci_staring_jitter_class)
                        .with_classification_rule(sci_staring_other_class)
-                       .with_grouping_keywords(group_cal_common + [kwd.dpr_tech])
+                       .with_grouping_keywords(group_slit + [kwd.dpr_tech, "$combination_kwd"])
                        .with_setup_keywords(match_flat + [kwd.det_seq1_dit])
                        .build())
 
 raw_sci_polarimetry = (data_source('SCIENCE_POLARIMETRY')
                        .with_classification_rule(sci_polarimetry_class)
-                       .with_grouping_keywords(group_cal_common)
+                       .with_grouping_keywords(group_slit + ["$combination_kwd"])
                        .with_setup_keywords(match_flat + [kwd.det_seq1_dit])
                        .build())
 

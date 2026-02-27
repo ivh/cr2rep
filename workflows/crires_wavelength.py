@@ -1,7 +1,8 @@
-from edps import task, QC1_CALIB, CALCHECKER, subworkflow, alternative_associated_inputs, ReportInput
+from edps import QC1_CALIB, CALCHECKER
+from edps import task, subworkflow, alternative_associated_inputs, ReportInput, copy_all
 
 from .crires_datasources import *
-from .crires_task_functions import *
+from .crires_task_functions import is_short_wavelength, is_long_wavelength
 
 
 @subworkflow("wavelength calibration", "")
@@ -65,11 +66,8 @@ def wavelength_calibration(dark, flat_calibrations):
     # This tasks collects wavelenght calibrations from sky. It is used for monitoring but not in the data processing.
     wavelength_sky = (task("wave_sky")
                       .with_report("crires_rawdisp", ReportInput.RECIPE_INPUTS)
+                      .with_function(copy_all)
                       .with_main_input(raw_wave_sky)
-                      # .with_alternatives(flat_calibrations)
-                      # .with_associated_input(emission_lines, min_ret=0)
-                      # .with_associated_input(util_wave_tw, min_ret=0)
-                      # .with_associated_input(util_trace_tw, min_ret=0)
                       .with_meta_targets([QC1_CALIB])
                       .build())
 

@@ -1,12 +1,23 @@
 default_parameters: &default
   is_default: yes
-  recipe_parameters:
+  parameter_metadata:
+    $combination_kwd: "It specifies how to group the science spectra taken in stare and 
+                       polarimetry mode for processing. It has no effects on nodding data: exposures
+                       within the same OB are processed and combined together.
+                       Valid entries are: 
+                       'tpl.start': it processes together the spectra taken within the same OB (default).
+                       'arcfile': it processes files independently. This option is useful to process time-series data."
+  recipe_parameters: &default_rp
     science_nodding:
       cr2res.cr2res_obs_nodding.create_idp: "TRUE"
     science_polarimetry:
       cr2res.cr2res_obs_nodding.create_idp: "FALSE"
     science_staring:
-      cr2res.cr2res_obs_staring.create_idp: "FALSE"
+      cr2res.cr2res_obs_staring.create_idp: "TRUE"
+    standard_star:
+      cr2res.cr2res_obs_nodding.create_idp: "FALSE"
+  workflow_parameters:
+    $combination_kwd: 'tpl.start'
 
 qc0_parameters:
   <<: *default
@@ -15,6 +26,10 @@ qc0_parameters:
 science_parameters:
   <<: *default
   is_default: no
+  recipe_parameters:
+    <<: *default_rp
+    standard_star:
+      cr2res.cr2res_obs_nodding.create_idp: "TRUE"
   packaging_config: &default_pkg
     science_nodding:
       - $DATASET/$TIMESTAMP/SPECTRUM_COMBINED_$obs.targ.name$.$EXT: [ ^OBS_NODDING_EXTRACTC_IDP$ ]
@@ -31,5 +46,9 @@ science_parameters:
 idp_parameters:
   <<: *default
   is_default: no
+  recipe_parameters:
+    <<: *default_rp
+    standard_star:
+      cr2res.cr2res_obs_nodding.create_idp: "TRUE"
   packaging_config:
     <<: *default_pkg

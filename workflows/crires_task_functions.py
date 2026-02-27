@@ -1,4 +1,6 @@
-from edps import JobParameters, List, get_parameter, ClassifiedFitsFile
+from typing import List
+
+from edps import JobParameters, get_parameter, ClassifiedFitsFile
 
 from . import crires_keywords as kwd
 

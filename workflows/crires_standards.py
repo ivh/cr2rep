@@ -10,6 +10,7 @@ def crires_standards(dark, flat_calibrations, wavelength_calibrations, detector_
                      .with_recipe("cr2res_obs_nodding")
                      .with_report("crires_rawdisp", ReportInput.RECIPE_INPUTS)
                      .with_report("crires_std_star", ReportInput.RECIPE_INPUTS_OUTPUTS)
+                     .with_report("crires_science", ReportInput.RECIPE_INPUTS_OUTPUTS)
                      .with_main_input(raw_standard)
                      .with_dynamic_parameter("wavelength_range", get_wavelength_range)
                      .with_alternatives(flat_calibrations)
