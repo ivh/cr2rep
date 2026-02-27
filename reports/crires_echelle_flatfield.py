@@ -3,58 +3,54 @@ from adari_core.plots.panel import Panel
 from adari_core.data_libs.echelle_flatfield import MasterEchelleFlatfieldReport
 from adari_core.data_libs.master_dark_bias import MasterDarkBiasReport
 
-from adari_core.plots.images import ImagePlot
-from astropy.io import fits
 import numpy as np
 from .crires_utils import CriresSetupInfo
-from adari_core.utils.utils import fetch_kw_or_default
 import logging
 
 import os
 
-from . import CriresReportMixin
+from .crires_utils import CriresReportMixin
 
 logger = logging.getLogger(__name__)
 
 center_size = 200
 
-class CriresEchelleFlatfieldReport(CriresReportMixin, MasterEchelleFlatfieldReport, MasterDarkBiasReport):
+
+class CriresEchelleFlatfieldReport(
+    CriresReportMixin, MasterEchelleFlatfieldReport, MasterDarkBiasReport
+):
     image_category = "master_product"
     raw_extension_default = 0
     im_clipping = "percentile"
     im_clipping_kwargs = {"percentile": 99}
     center_size = 200
-    
+
     def __init__(self):
         super().__init__("crires_echelle_flatfield")
         self.center_size = center_size
         self.hist_bins_max = 20
-        self.data_extensions = [
-            "CHIP1.INT1", "CHIP2.INT1", "CHIP3.INT1"
-        ]
-        
+        self.data_extensions = ["CHIP1.INT1", "CHIP2.INT1", "CHIP3.INT1"]
+
     def parse_sof(self):
         raw_flat = None
         master_flat = None
-        
+
         for filename, catg in self.inputs:
-            if catg == f"CAL_FLAT_MASTER":
+            if catg == "CAL_FLAT_MASTER":
                 master_flat = filename
-        
-            if catg == f"FLAT":
+
+            if catg == "FLAT":
                 raw_flat = filename
-        
+
         file_lists = []
-        raw_extension_default = []
         if master_flat is not None and raw_flat is not None:
             file_lists.append(
                 {
                     "master_product": master_flat,
                     "raw": raw_flat,
                 }
-            )        
+            )
         return file_lists
-
 
     def generate_first_panel(self):
         panels = {}
@@ -62,11 +58,11 @@ class CriresEchelleFlatfieldReport(CriresReportMixin, MasterEchelleFlatfieldRepo
         # Generate indidual raw-cuts
         for ext in self.data_extensions:
             new_panels = super().generate_panels(
-                master_product_ext=ext, 
+                master_product_ext=ext,
                 raw_ext=self.raw_extension_default,
                 direction="x",
-                panel_kwargs = self.panel_kwargs,
-                interpolation = "nearest",
+                panel_kwargs=self.panel_kwargs,
+                interpolation="nearest",
             )
 
             for i, (panel, panel_descr) in enumerate(new_panels.items()):
@@ -75,15 +71,14 @@ class CriresEchelleFlatfieldReport(CriresReportMixin, MasterEchelleFlatfieldRepo
                     f"{os.path.basename(panel_descr['master_product'])}, "
                     f"{panel_descr['master_product_ext']}"
                 )
-            
+
                 master = self.hdus[i]["master_product"]
                 raw = self.hdus[i]["raw"]
-                hdr = master[ext].header
 
                 plot = panel.retrieve(2, 1)
                 plot.legend = True
                 plot.add_data(np.nan_to_num(raw[ext].data))
-    
+
                 px = 0
                 py = 0
                 # which hdul and ext to use
@@ -98,14 +93,12 @@ class CriresEchelleFlatfieldReport(CriresReportMixin, MasterEchelleFlatfieldRepo
                     "FILE NAME: " + fname,
                     "RAW1 NAME: "
                     + str(
-                        master["PRIMARY"].header.get(
-                            "HIERARCH ESO PRO REC1 RAW1 NAME"
-                        )
+                        master["PRIMARY"].header.get("HIERARCH ESO PRO REC1 RAW1 NAME")
                     ),
                 )
                 t1.add_data(col1)
                 panel.assign_plot(t1, px, py, xext=2)
-    
+
                 px = px + 2
                 t2 = TextPlot(columns=1, v_space=vspace, xext=1)
                 self.metadata = CriresSetupInfo.master_flat(master)
@@ -118,20 +111,16 @@ class CriresEchelleFlatfieldReport(CriresReportMixin, MasterEchelleFlatfieldRepo
         return panels
 
     def generate_second_panel(self):
-
         panels = {}
         p = Panel(x=3, y=3, height_ratios=[1, 4, 4])
 
         # Generate the multi-extension panels
-        channel = ["CHIP1", "CHIP2", "CHIP3"]
 
-                # Metadata in Text Plot
-        px, py = 0, 0
+        # Metadata in Text Plot
         vspace = 0.3
         t1 = TextPlot(columns=1, v_space=vspace)
         fname = os.path.basename(str(self.hdus[0]["master_product"].filename()))
         master_im = self.hdus[0]["master_product"]
-
 
         col1 = (
             str(master_im["PRIMARY"].header.get("INSTRUME")),
@@ -139,11 +128,7 @@ class CriresEchelleFlatfieldReport(CriresReportMixin, MasterEchelleFlatfieldRepo
             + str(master_im["PRIMARY"].header.get("HIERARCH ESO PRO CATG")),
             "FILE NAME: " + fname,
             "RAW1 NAME: "
-            + str(
-                master_im["PRIMARY"].header.get(
-                    "HIERARCH ESO PRO REC1 RAW1 NAME"
-                )
-            ),
+            + str(master_im["PRIMARY"].header.get("HIERARCH ESO PRO REC1 RAW1 NAME")),
         )
         t1.add_data(col1)
         p.assign_plot(t1, 0, 0, xext=2)
@@ -167,18 +152,16 @@ class CriresEchelleFlatfieldReport(CriresReportMixin, MasterEchelleFlatfieldRepo
                     "v_clip": self.im_clipping,
                     "v_clip_kwargs": self.im_clipping_kwargs,
                 },
-                zoom_img_kwargs={"v_clip": self.im_clipping,
+                zoom_img_kwargs={
+                    "v_clip": self.im_clipping,
                     "v_clip_kwargs": self.im_clipping_kwargs,
-                                },
+                },
             )
             p.assign_plot(full_plot, i, 1, xext=1)
             p.assign_plot(zoom_plot, i, 2, xext=1)
 
             plt = p.retrieve(i, 1)
             plt.interp = "nearest"
-            
-            hdul = self.hdus[0][self.image_category]
-            setup = str(hdul["PRIMARY"].header.get("HIERARCH ESO INS MODE", "N/A"))
 
             addme = {
                 "report_name": "crires_echelle_flatfield_multi",
@@ -198,7 +181,6 @@ class CriresEchelleFlatfieldReport(CriresReportMixin, MasterEchelleFlatfieldRepo
             **self.generate_second_panel(),
         }
         return panels
-
 
 
 rep = CriresEchelleFlatfieldReport()
