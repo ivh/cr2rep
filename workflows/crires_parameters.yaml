@@ -7,6 +7,8 @@ default_parameters: &default
                        Valid entries are: 
                        'tpl.start': it processes together the spectra taken within the same OB (default).
                        'arcfile': it processes files independently. This option is useful to process time-series data."
+    only_masterflat_for_standard: "Associates only masterflats when processing standard stars, ignoring other products 
+                       derived from processing flat fields Possible values: 'true'/'false' (default='false)."
   recipe_parameters: &default_rp
     science_nodding:
       cr2res.cr2res_obs_nodding.create_idp: "TRUE"
@@ -15,17 +17,24 @@ default_parameters: &default
     science_staring:
       cr2res.cr2res_obs_staring.create_idp: "TRUE"
     standard_star:
-      cr2res.cr2res_obs_nodding.create_idp: "FALSE"
+      cr2res.cr2res_obs_nodding.create_idp: "TRUE"
   workflow_parameters:
-    $combination_kwd: 'tpl.start'
+    $combination_kwd: "tpl.start"
+    only_masterflat_for_standard: "true"
 
 qc0_parameters:
   <<: *default
   is_default: no
+  workflow_parameters:
+    $combination_kwd: "tpl.start"
+    only_masterflat_for_standard: "false"
 
 science_parameters:
   <<: *default
   is_default: no
+  workflow_parameters:
+    $combination_kwd: "tpl.start"
+    only_masterflat_for_standard: "false"
   recipe_parameters:
     <<: *default_rp
     standard_star:
@@ -46,6 +55,9 @@ science_parameters:
 idp_parameters:
   <<: *default
   is_default: no
+  workflow_parameters:
+    $combination_kwd: "tpl.start"
+    only_masterflat_for_standard: "false"
   recipe_parameters:
     <<: *default_rp
     standard_star:

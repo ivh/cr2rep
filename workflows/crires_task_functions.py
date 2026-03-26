@@ -1,6 +1,6 @@
 from typing import List
 
-from edps import JobParameters, get_parameter, ClassifiedFitsFile
+from edps import JobParameters, get_parameter, ClassifiedFitsFile, Job
 
 from . import crires_keywords as kwd
 
@@ -24,3 +24,12 @@ def is_short_wavelength(params: JobParameters) -> bool:
 
 def is_long_wavelength(params: JobParameters) -> bool:
     return get_parameter(params, "wavelength_range") == "long_wavelength"
+
+
+# Filter out flat calibrations for standard stars, depending on the value of the workflow parameter "only_masterflat_for_standard".
+# If this parameter is set to "true", only CAL_FLAT_MASTER will be kept in the input filter, while CAL_FLAT_TW and CAL_FLAT_EXTRACT_1D will be removed.
+def change_input_filter(job: Job):
+    only_masterflat = str(job.parameters.get_workflow_param("only_masterflat_for_standard", "None")).lower()
+    if only_masterflat == 'true':
+        new_filter = [x for x in job.input_filter if x not in ['CAL_FLAT_TW', 'CAL_FLAT_EXTRACT_1D']]
+        job.input_filter = new_filter
