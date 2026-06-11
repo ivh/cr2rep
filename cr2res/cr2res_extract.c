@@ -2894,11 +2894,13 @@ static int cr2res_extract_slit_func_curved(
             /* Solve the system of equations */
             cr2res_extract_bandsol_rowmajor(l_Aij, l_bj, ny, 4 * osample + 1);
 
-            /* Normalize the slit function */
+            /* Normalize the slit function; sum of |sL| (not plain sum) keeps
+               the flux scale of the historic cr2res convention when sL has
+               negative parts (e.g. background residuals in nodding A-B) */
             norm = 0.e0;
             for (iy = 0; iy < ny; iy++) {
                 sL[iy] = l_bj[iy];
-                norm += sL[iy];
+                norm += fabs(sL[iy]);
             }
             norm /= osample;
             for (iy = 0; iy < ny; iy++)
