@@ -50,21 +50,18 @@ typedef unsigned char byte;
 #define min(a,b) (((a)<(b))?(a):(b))
 #define max(a,b) (((a)>(b))?(a):(b))
 #define signum(a) (((a)>0)?1:((a)<0)?-1:0)
-#define zeta_index(x, y, z) (z * ncols * nrows) + (y * ncols) + x
-#define mzeta_index(x, y) (y * ncols) + x
-#define xi_index(x, y, z) (z * ncols * ny) + (y * ncols) + x
-
-// Alternative indexing, probably faster
-//#define zeta_index(x, y, z) (x * nrows + y) * 3*(osample+1) + z
-//#define mzeta_index(x, y) (x * nrows) + y
-//#define xi_index(x, y, z) (x * ny + y) * 4 + z
-
-
-typedef struct {
-    int     x ;
-    int     y ;     /* Coordinates of target pixel x,y  */
-    double  w ;     /* Contribution weight <= 1/osample */
-} xi_ref;
+/* The zeta entries of one detector pixel are contiguous in memory, as
+   required by the pixel-centric SLE fill loops */
+#define zeta_index(x, y, z) \
+    ((z) + (y) * (3 * (osample + 1)) + (x) * (3 * (osample + 1)) * nrows)
+#define mzeta_index(x, y) ((y) + (x) * nrows)
+/* Band matrices are stored row-major (band entries for one row are
+   contiguous): this matches the access pattern of both the SLE fill
+   loops and the row-major bandsol */
+#define laij_index(x, y) ((x) * (4 * osample + 1) + (y))
+#define paij_index(x, y) ((x) * nx + (y))
+/* 6 polynomial coefficients per column (degrees up to 5 supported) */
+#define curve_index(x, y) ((x) * 6 + (y))
 
 typedef struct {
     int     x ;
@@ -88,8 +85,7 @@ static int cr2res_extract_slit_func_curved(
         double  *   ycen,
         int     *   ycen_offset,
         int         y_lower_lim,
-        //double  *   PSF_curve,
-        cpl_polynomial ** slitcurves,
+        const double *  slitcurve,
         int         delta_x,
         double  *   sL,
         double  *   sP,
@@ -97,32 +93,34 @@ static int cr2res_extract_slit_func_curved(
         double  *   unc,
         double      lambda_sP,
         double      lambda_sL,
-        double      sP_stop,
         int         maxiter,
         double      kappa,
         const double   *  slit_func_in,
-        double    *  sP_old,
         double    *  l_Aij,
         double    *  p_Aij,
         double    *  l_bj,
         double    *  p_bj,
-        cpl_image *  img_mad,
-        xi_ref    *  xi,
+        double    *  zw,
+        int       *  zk,
         zeta_ref  *  zeta,
         int       *  m_zeta) ;
 
-static int cr2res_extract_xi_zeta_tensors(
+static int cr2res_extract_zeta_tensors(
         int         ncols,
         int         nrows,
-        int         ny,
-        double  *   ycen,
+        const double  *   ycen,
         const int     *   ycen_offset,
         int         y_lower_lim,
         int         osample,
-        cpl_polynomial ** slitcurves,
-        xi_ref   *  xi,
+        const double  *   slitcurve,
         zeta_ref *  zeta,
         int      *  m_zeta) ;
+
+static int cr2res_extract_bandsol_rowmajor(
+        double  *   a,
+        double  *   r,
+        int         n,
+        int         nd) ;
 
 static int cr2res_extract_slitdec_adjust_swath(
         cpl_vector  *   ycen,
@@ -133,17 +131,6 @@ static int cr2res_extract_slitdec_adjust_swath(
         int             dx,
         cpl_vector  **  bins_begin,
         cpl_vector  **  bins_end) ;
-
-static int debug_output(int         ncols,
-        int         nrows,
-        int         osample,
-        double  *   im,
-        double  *   pix_unc,
-        int     *   mask,
-        double  *   ycen,
-        int     *   ycen_offset,
-        int         y_lower_lim,
-        cpl_polynomial  ** slitcurves);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -1434,19 +1421,18 @@ int cr2res_extract_slitdec_curved(
     cpl_vector      *   bins_begin;
     cpl_vector      *   bins_end;
     cpl_vector      *   unc_decomposition;
-    cpl_size            lenx, leny, pow;
+    cpl_size            lenx, leny;
     cpl_type            imtyp;
     cpl_polynomial      *slitcurve_A, *slitcurve_B, *slitcurve_C;
-    cpl_polynomial  **  slitcurves_sw;
+    double          *   slitcurve_sw;
     hdrl_image      *   model_out;
     cpl_bivector    *   spectrum_loc;
-    double          *   sP_old;
     double          *   l_Aij;
     double          *   p_Aij;
     double          *   l_bj;
     double          *   p_bj;
-    cpl_image       *   img_mad;
-    xi_ref          *   xi;
+    double          *   zw;
+    int             *   zk;
     zeta_ref        *   zeta;
     int             *   m_zeta;
     char            *   path;
@@ -1634,8 +1620,7 @@ int cr2res_extract_slitdec_curved(
     ycen_sw = cpl_malloc(swath*sizeof(double));
     ycen_offset_sw = cpl_malloc(swath * sizeof(int));
 
-    slitcurves_sw = cpl_malloc(swath * sizeof(cpl_polynomial*));
-    for (i=0; i<swath; i++) slitcurves_sw[i]= cpl_polynomial_new(1);
+    slitcurve_sw = cpl_malloc(swath * 6 * sizeof(double));
 
     // Local versions of return data
     slitfu = cpl_vector_new(ny_os);
@@ -1673,18 +1658,14 @@ int cr2res_extract_slitdec_curved(
     nx = 4 * delta_x + 1;
     if(nx < 3) nx = 3;
 
-    sP_old = cpl_malloc(swath * sizeof(double));
     l_Aij  = cpl_malloc(ny * (4*oversample+1) * sizeof(double));
     p_Aij  = cpl_malloc(swath * nx * sizeof(double));
     l_bj   = cpl_malloc(ny * sizeof(double));
     p_bj   = cpl_malloc(swath * sizeof(double));
-    img_mad = cpl_image_new(swath, height, CPL_TYPE_DOUBLE);
 
-    /*
-       Convolution tensor telling the coordinates of detector pixels on which
-       {x, iy} element falls and the corresponding projections. [ncols][ny][4]
-    */
-    xi = cpl_malloc(swath * ny * 4 * sizeof(xi_ref));
+    /* Scratch buffers for per-pixel merged zeta weights */
+    zw = cpl_malloc(3 * (oversample + 1) * sizeof(double));
+    zk = cpl_malloc(3 * (oversample + 1) * sizeof(int));
 
     /* Convolution tensor telling the coordinates of subpixels {x, iy}
        contributing to detector pixel {x, y}. [ncols][nrows][3*(osample+1)]
@@ -1748,24 +1729,11 @@ int cr2res_extract_slitdec_curved(
                 mask_sw[j] = !badpix;
             }
 
-            /* set slit curvature polynomials */
-            /* subtract col because we want origin relative to here */
-            pow = 2;
-            cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow,
-                cpl_polynomial_eval_1d(slitcurve_C, x, NULL));
-            pow = 1;
-            cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow,
-                cpl_polynomial_eval_1d(slitcurve_B, x, NULL));
-            pow = 0;
-            cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow,
-                cpl_polynomial_eval_1d(slitcurve_A, x, NULL) - x);
-
-            // Shift polynomial to local frame
-            // -------------------------------
+            /* set slit curvature coefficients, shifted to the local frame */
             // The slit curvature has been determined in the global reference
             // frame, with the a coefficient set to 0 in the local frame.
-            // The following transformation will shift it into the local frame
-            // again and should result in a = 0.
+            // Shifting the polynomial by ycen moves it into the local frame
+            // again and should result in a = 0:
             //      a - x + yc * b + yc * yc * c
             // However this only works, as long as ycen
             // is the same ycen that was used for the slitcurvature. If e.g. we
@@ -1782,9 +1750,18 @@ int cr2res_extract_slitdec_curved(
             // Note that this means, we use the curvature a few pixels offset.
             // Usually this is no problem, since it only varies slowly over the
             // order.
-            cpl_polynomial_shift_1d(slitcurves_sw[col-1], 0,
-                                            cpl_vector_get(ycen, x-1));
-            cpl_polynomial_set_coeff(slitcurves_sw[col-1], &pow, 0);
+            {
+                double b, c, yc;
+                b = cpl_polynomial_eval_1d(slitcurve_B, x, NULL);
+                c = cpl_polynomial_eval_1d(slitcurve_C, x, NULL);
+                yc = cpl_vector_get(ycen, x-1);
+                slitcurve_sw[curve_index(col-1, 0)] = 0;
+                slitcurve_sw[curve_index(col-1, 1)] = b + 2 * yc * c;
+                slitcurve_sw[curve_index(col-1, 2)] = c;
+                slitcurve_sw[curve_index(col-1, 3)] = 0;
+                slitcurve_sw[curve_index(col-1, 4)] = 0;
+                slitcurve_sw[curve_index(col-1, 5)] = 0;
+            }
         }
 
         for (j=0; j< height * swath; j++) model_sw[j] = 0;
@@ -1828,11 +1805,11 @@ int cr2res_extract_slitdec_curved(
         
         /* Finally ready to call the slit-decomp */
         cr2res_extract_slit_func_curved(error_factor, swath, height, oversample, pclip,
-                img_sw_data, err_sw_data, mask_sw, ycen_sw, ycen_offset_sw, 
-                y_lower_limit, slitcurves_sw, delta_x, slitfu_sw_data, 
-                spec_sw_data, model_sw, unc_sw_data, smooth_spec, smooth_slit, 
-                5.e-5, niter, kappa, slit_func_in, sP_old, l_Aij, p_Aij, l_bj, 
-                p_bj, img_mad, xi, zeta, m_zeta);
+                img_sw_data, err_sw_data, mask_sw, ycen_sw, ycen_offset_sw,
+                y_lower_limit, slitcurve_sw, delta_x, slitfu_sw_data,
+                spec_sw_data, model_sw, unc_sw_data, smooth_spec, smooth_slit,
+                niter, kappa, slit_func_in, l_Aij, p_Aij, l_bj,
+                p_bj, zw, zk, zeta, m_zeta);
 
         // add up slit-functions, divide by nswaths below to get average
         if (i==0) cpl_vector_copy(slitfu,slitfu_sw);
@@ -1873,11 +1850,6 @@ int cr2res_extract_slitdec_curved(
 
             path = cpl_sprintf("debug_img_sw_%i.fits", i);
             cpl_image_save(img_sw, path, CPL_TYPE_DOUBLE, NULL,
-                    CPL_IO_CREATE);
-            cpl_free(path);
-
-            path = cpl_sprintf("debug_img_mad_%i.fits", i);
-            cpl_image_save(img_mad, path,  CPL_TYPE_DOUBLE, NULL,
                     CPL_IO_CREATE);
             cpl_free(path);
         }
@@ -1984,14 +1956,13 @@ int cr2res_extract_slitdec_curved(
     cpl_vector_divide_scalar(slitfu, nswaths);
 
     // Deallocate loop memory
-    cpl_image_delete(img_mad);
-    cpl_free(sP_old);
     cpl_free(l_Aij);
     cpl_free(p_Aij);
     cpl_free(l_bj);
     cpl_free(p_bj);
+    cpl_free(zw);
+    cpl_free(zk);
 
-    cpl_free(xi);
     cpl_free(zeta);
     cpl_free(m_zeta);
 
@@ -2015,8 +1986,7 @@ int cr2res_extract_slitdec_curved(
     cpl_polynomial_delete(slitcurve_A);
     cpl_polynomial_delete(slitcurve_B);
     cpl_polynomial_delete(slitcurve_C);
-    for (i=0; i<swath; i++) cpl_polynomial_delete(slitcurves_sw[i]);
-    cpl_free(slitcurves_sw);
+    cpl_free(slitcurve_sw);
 
     // insert model_rect into large frame
     if (cr2res_image_insert_rect(model_rect, ycen, img_out) == -1) {
@@ -2447,92 +2417,94 @@ cpl_table * cr2res_extract_EXTRACT2D_create(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Helper to insert one subpixel contribution into the zeta tensor
+ */
+/*----------------------------------------------------------------------------*/
+static void cr2res_extract_zeta_add(
+        zeta_ref  * zeta,
+        int       * m_zeta,
+        int         ncols,
+        int         nrows,
+        int         osample,
+        int         x,
+        int         iy,
+        int         xx,
+        int         yy,
+        double      w)
+{
+    if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && w > 0)
+    {
+        const int m = m_zeta[mzeta_index(xx, yy)];
+        zeta[zeta_index(xx, yy, m)].x = x;
+        zeta[zeta_index(xx, yy, m)].iy = iy;
+        zeta[zeta_index(xx, yy, m)].w = w;
+        m_zeta[mzeta_index(xx, yy)]++;
+    }
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Helper function for cr2res_extract_slit_func_curved
   @param ncols          Swath width in pixels
   @param nrows          Extraction slit height in pixels
-  @param ny             Size of the slit function array: ny=osample(nrows+1)+1
   @param ycen           Order centre line offset from pixel row boundary
   @param ycen_offset    Order image column shift
   @param y_lower_lim    Number of detector pixels below the pixel
                         containing the central line yc
   @param osample        Subpixel oversampling factor
-  @param PSF_curve      Parabolic fit to the slit image curvature
-                        For column d_x = PSF_curve[ncols][0] +
-                                        PSF_curve[ncols][1] *d_y +
-                                        PSF_curve[ncols][2] *d_y^2
+  @param slitcurve      Polynomial fit to the slit image curvature [ncols][6]
+                        For column d_x = sum_k slitcurve[x][k] * d_y^k,
                         where d_y is the offset from the central line ycen.
-                        Thus central subpixel of omega[x][y'][delta_x][iy']
-                        does not stick out of column x
-  @param xi[ncols][ny][4]   Convolution tensor telling the coordinates
-                            of detector pixels on which {x, iy} element
-                            falls and the corresponding projections
   @param zeta[ncols][nrows][3 * (osample + 1)]
                         Convolution tensor telling the coordinates
                         of subpixels {x, iy} contributing to detector pixel
                         {x, y}
   @param m_zeta[ncols][nrows]
                         The actual number of contributing elements in zeta
+  @return   0 on success
 
-  @return
+  Create the zeta tensor, which describes the contribution of each subpixel
+  of the oversampled slit function to each detector pixel, considering the
+  curvature of the slit.
+
+  Historically this routine also built the inverse mapping ("xi" tensor,
+  subpixel -> detector pixels). Since the SLE fill loops in
+  cr2res_extract_slit_func_curved became pixel-centric, only zeta is needed,
+  which also collapses the bookkeeping of which xi corner (LL/LR/UL/UR) a
+  contribution belongs to: the zeta insertions were identical for all corner
+  cases.
  */
 /*----------------------------------------------------------------------------*/
-static int cr2res_extract_xi_zeta_tensors(
+static int cr2res_extract_zeta_tensors(
         int         ncols,
         int         nrows,
-        int         ny,
-        double  *   ycen,
+        const double  *   ycen,
         const int     *   ycen_offset,
         int         y_lower_lim,
         int         osample,
-        cpl_polynomial ** slitcurves,
-        xi_ref   *  xi,
+        const double  *   slitcurve,
         zeta_ref *  zeta,
         int      *  m_zeta)
 {
-    int x, xx, y, yy, ix, ix1, ix2, iy, m;
-    double step, delta, w;
+    int x, xx, y, yy, ix1, ix2, iy, iy1, iy2;
+    double step, delta, dy, w, d1, d2;
+
     step = 1.e0 / osample;
 
-    /* Clean xi */
+    /* Clean zeta counts. The zeta entries themselves need no initialization:
+       only the first m_zeta[x, y] entries of each list are ever read. */
     for (x = 0; x < ncols; x++)
-    {
-        for (iy = 0; iy < ny; iy++)
-        {
-            for (m = 0; m < 4; m++)
-            {
-                xi[xi_index(x, iy, m)].x = -1;
-                xi[xi_index(x, iy, m)].y = -1;
-                xi[xi_index(x, iy, m)].w = 0.;
-            }
-        }
-    }
-
-    /* Clean zeta */
-    for (x = 0; x < ncols; x++)
-    {
         for (y = 0; y < nrows; y++)
-        {
             m_zeta[mzeta_index(x, y)] = 0;
-            for (ix = 0; ix < 3 * (osample + 1); ix++)
-            {
-                zeta[zeta_index(x, y, ix)].x = -1;
-                zeta[zeta_index(x, y, ix)].iy = -1;
-                zeta[zeta_index(x, y, ix)].w = 0.;
-            }
-        }
-    }
 
     /*
-    Construct the xi and zeta tensors. They contain pixel references and contribution. 
-    values going from a given subpixel to other pixels (xi) and coming from other subpixels
-    to a given detector pixel (zeta).
-    Note, that xi and zeta are used in the equations for sL, sP and for the model but they
-    do not involve the data, only the geometry. Thus it can be pre-computed once.
+    Construct the zeta tensor. It contains pixel references and contribution
+    values coming from subpixels to a given detector pixel.
+    Note that zeta is used in the equations for sL, sP and for the model but it
+    does not involve the data, only the geometry. Thus it can be pre-computed once.
     */
     for (x = 0; x < ncols; x++)
     {
-        int iy1, iy2;
-        double d1, d2, dy;
         /*
         I promised to reconsider the initial offset. Here it is. For the original layout
         (no column shifts and discontinuities in ycen) there is pixel y that contains the
@@ -2548,7 +2520,7 @@ static int cr2res_extract_xi_zeta_tensors(
         case 1. In case 2 things are more logical: iy1=(yc-y)*osample+(y-1)*osample;
         iy2=(y+1-yc)*osample)+(y-1)*osample. ycen is yc-y making things simpler. Note also that
         the same pattern repeats for all rows: we only need to initialize iy1 and iy2 and keep
-        incrementing them by osample. 
+        incrementing them by osample.
         */
 
         iy2 = osample - floor(ycen[x] * osample);
@@ -2576,24 +2548,6 @@ static int cr2res_extract_xi_zeta_tensors(
             d1 = step;
         d2 = step - d1;
 
-        /*
-        The final hurdle for 2D slit decomposition is to construct two 3D reference tensors. We proceed
-        similar to 1D case except that now each iy subpixel can be shifted left or right following
-        the curvature of the slit image on the detector. We assume for now that each subpixel is
-        exactly 1 detector pixel wide. This may not be exactly true if the curvature changes across
-        the focal plane but will deal with it when the necessity will become apparent. For now we
-        just assume that a shift delta the weight w assigned to subpixel iy is divided between
-        ix1=int(delta) and ix2=int(delta)+signum(delta) as (1-|delta-ix1|)*w and |delta-ix1|*w.
-
-        The curvature is given by a quadratic polynomial evaluated from an approximation for column
-        x: delta = PSF_curve[x][0] + PSF_curve[x][1] * (y-yc[x]) + PSF_curve[x][2] * (y-yc[x])^2.
-        It looks easy except that y and yc are set in the global detector coordinate system rather than
-        in the shifted and cropped swath passed to slit_func_2d. One possible solution I will try here
-        is to modify PSF_curve before the call such as:
-        delta = PSF_curve'[x][0] + PSF_curve'[x][1] * (y'-ycen[x]) + PSF_curve'[x][2] * (y'-ycen[x])^2
-        where y' = y - floor(yc).
-        */
-
         /* Define initial distance from ycen       */
         /* It is given by the center of the first  */
         /* subpixel falling into pixel y_lower_lim */
@@ -2602,290 +2556,79 @@ static int cr2res_extract_xi_zeta_tensors(
         /*
         Now we go detector pixels x and y incrementing subpixels looking for their contributions
         to the current and adjacent pixels. Note that the curvature/tilt of the projected slit
-        image could be so large that subpixel iy may no contribute to column x at all. On the
-        other hand, subpixels around ycen by definition must contribute to pixel x,y. 
-        3rd index in xi refers corners of pixel xx,y: 0:LL, 1:LR, 2:UL, 3:UR.
+        image could be so large that subpixel iy may not contribute to column x at all. On the
+        other hand, subpixels around ycen by definition must contribute to pixel x,y.
+
+        Each subpixel is assumed to be exactly 1 detector pixel wide; a horizontal shift delta
+        divides its weight w between columns ix1=int(delta) and ix2=ix1+signum(delta) as
+        (1-|delta-ix1|)*w and |delta-ix1|*w. The yy offset is required because the iy subpixel
+        contributes to the yy row in the xx column of detector pixels where yy and y are in the
+        same row. In the packed array this is not necessarily true. Instead, what we know is:
+        y+ycen_offset[x] == yy+ycen_offset[xx]
         */
-        for (y = 0; y < nrows; y++) {
+
+        for (y = 0; y < nrows; y++)
+        {
             iy1 += osample; // Bottom subpixel falling in row y
             iy2 += osample; // Top subpixel falling in row y
             dy -= step;
-            for (iy = iy1; iy <= iy2; iy++) {
-                if (iy == iy1)      w = d1;
-                else if (iy == iy2) w = d2;
-                else                w = step;
+            for (iy = iy1; iy <= iy2; iy++)
+            {
+                double t;
+                if (iy == iy1)
+                    w = d1;
+                else if (iy == iy2)
+                    w = d2;
+                else
+                    w = step;
                 dy += step;
-                delta = cpl_polynomial_eval_1d(slitcurves[x], dy - ycen[x], NULL);
+                t = dy - ycen[x];
+                delta = t * (slitcurve[curve_index(x, 1)] +
+                        t * (slitcurve[curve_index(x, 2)] +
+                        t * (slitcurve[curve_index(x, 3)] +
+                        t * (slitcurve[curve_index(x, 4)] +
+                        t *  slitcurve[curve_index(x, 5)]))));
                 ix1 = delta;
                 ix2 = ix1 + signum(delta);
 
-                /* Three cases: subpixel on the bottom boundary of row y, intermediate subpixels and top boundary */
-
-                if (iy == iy1) /* Case A: Subpixel iy is entering detector row y */
+                if (ix1 < ix2) /* Subpixel iy shifts to the right from column x */
                 {
-                    if (ix1 < ix2) /* Subpixel iy shifts to the right from column x  */
+                    if (x + ix1 >= 0 && x + ix2 < ncols)
                     {
-                        if (x + ix1 >= 0 && x + ix2 < ncols)
-                        {
-                            xx = x + ix1; /* Upper right corner of subpixel iy */
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 3)].x = xx;
-                            xi[xi_index(x, iy, 3)].y = yy;
-                            xi[xi_index(x, iy, 3)].w = w - fabs(delta - ix1) * w;
-                            // xx>=0 && xx<ncols is already given by the loop condition
-                            if (xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 3)].w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = xi[xi_index(x, iy, 3)].w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                            xx = x + ix2; /* Upper left corner of subpixel iy */
-                            // This offset is required because the iy subpixel
-                            // is going to contribute to the yy row in xx column
-                            // of detector pixels where yy and y are in the same
-                            // row. In the packed array this is not necessarily true.
-                            // Instead, what we know is that:
-                            // y+ycen_offset[x] == yy+ycen_offset[xx]
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-
-                            xi[xi_index(x, iy, 2)].x = xx;
-                            xi[xi_index(x, iy, 2)].y = yy;
-                            xi[xi_index(x, iy, 2)].w = fabs(delta - ix1) * w;
-                            if (xx >= 0 && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 2)].w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = xi[xi_index(x, iy, 2)].w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                        }
-                    }
-                    else if (ix1 > ix2) /* Subpixel iy shifts to the left from column x */
-                    {
-                        if (x + ix2 >= 0 && x + ix1 < ncols)
-                        {
-                            xx = x + ix2; /* Upper left corner of subpixel iy */
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 2)].x = xx;
-                            xi[xi_index(x, iy, 2)].y = yy;
-                            xi[xi_index(x, iy, 2)].w = fabs(delta - ix1) * w;
-                            if (xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 2)].w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = xi[xi_index(x, iy, 2)].w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                            xx = x + ix1; /* Upper right corner of subpixel iy */
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 3)].x = xx;
-                            xi[xi_index(x, iy, 3)].y = yy;
-                            xi[xi_index(x, iy, 3)].w = w - fabs(delta - ix1) * w;
-                            if (xx >= 0 && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 3)].w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = xi[xi_index(x, iy, 3)].w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (x + ix1 >= 0 && x + ix1 < ncols)
-                        {
-                            xx = x + ix1; /* Subpixel iy stays inside column x */
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 2)].x = xx;
-                            xi[xi_index(x, iy, 2)].y = yy;
-                            xi[xi_index(x, iy, 2)].w = w;
-                            if (yy >= 0 && yy < nrows && w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                        }
+                        xx = x + ix1;
+                        yy = y + ycen_offset[x] - ycen_offset[xx];
+                        cr2res_extract_zeta_add(zeta, m_zeta, ncols, nrows,
+                                osample, x, iy, xx, yy,
+                                w - fabs(delta - ix1) * w);
+                        xx = x + ix2;
+                        yy = y + ycen_offset[x] - ycen_offset[xx];
+                        cr2res_extract_zeta_add(zeta, m_zeta, ncols, nrows,
+                                osample, x, iy, xx, yy,
+                                fabs(delta - ix1) * w);
                     }
                 }
-                else if (iy == iy2) /* Case C: Subpixel iy is leaving detector row y */
+                else if (ix1 > ix2) /* Subpixel iy shifts to the left from column x */
                 {
-                    if (ix1 < ix2) /* Subpixel iy shifts to the right from column x */
+                    if (x + ix2 >= 0 && x + ix1 < ncols)
                     {
-                        if (x + ix1 >= 0 && x + ix2 < ncols)
-                        {
-                            xx = x + ix1; /* Bottom right corner of subpixel iy */
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 1)].x = xx;
-                            xi[xi_index(x, iy, 1)].y = yy;
-                            xi[xi_index(x, iy, 1)].w = w - fabs(delta - ix1) * w;
-                            if (xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 1)].w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = xi[xi_index(x, iy, 1)].w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                            xx = x + ix2; /* Bottom left corner of subpixel iy */
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 0)].x = xx;
-                            xi[xi_index(x, iy, 0)].y = yy;
-                            xi[xi_index(x, iy, 0)].w = fabs(delta - ix1) * w;
-                            if (xx >= 0 && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 0)].w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = xi[xi_index(x, iy, 0)].w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                        }
-                    }
-                    else if (ix1 > ix2) /* Subpixel iy shifts to the left from column x */
-                    {
-                        if (x + ix2 >= 0 && x + ix1 < ncols)
-                        {
-                            xx = x + ix2; /* Bottom left corner of subpixel iy */
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 0)].x = xx;
-                            xi[xi_index(x, iy, 0)].y = yy;
-                            xi[xi_index(x, iy, 0)].w = fabs(delta - ix1) * w;
-                            if (xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 0)].w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = xi[xi_index(x, iy, 0)].w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                            xx = x + ix1; /* Bottom right corner of subpixel iy */
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 1)].x = xx;
-                            xi[xi_index(x, iy, 1)].y = yy;
-                            xi[xi_index(x, iy, 1)].w = w - fabs(delta - ix1) * w;
-                            if (xx >= 0 && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 1)].w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = xi[xi_index(x, iy, 1)].w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                        }
-                    }
-                    else /* Subpixel iy stays inside column x        */
-                    {
-                        if (x + ix1 >= 0 && x + ix1 < ncols)
-                        {
-                            xx = x + ix1;
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 0)].x = xx;
-                            xi[xi_index(x, iy, 0)].y = yy;
-                            xi[xi_index(x, iy, 0)].w = w;
-                            if (yy >= 0 && yy < nrows && w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                        }
+                        xx = x + ix2;
+                        yy = y + ycen_offset[x] - ycen_offset[xx];
+                        cr2res_extract_zeta_add(zeta, m_zeta, ncols, nrows,
+                                osample, x, iy, xx, yy,
+                                fabs(delta - ix1) * w);
+                        xx = x + ix1;
+                        yy = y + ycen_offset[x] - ycen_offset[xx];
+                        cr2res_extract_zeta_add(zeta, m_zeta, ncols, nrows,
+                                osample, x, iy, xx, yy,
+                                w - fabs(delta - ix1) * w);
                     }
                 }
-                else /* CASE B: Subpixel iy is fully inside detector row y */
+                else /* Subpixel iy stays inside column x */
                 {
-                    if (ix1 < ix2) /* Subpixel iy shifts to the right from column x      */
-                    {
-                        if (x + ix1 >= 0 && x + ix2 < ncols)
-                        {
-                            xx = x + ix1; /* Bottom right corner of subpixel iy */
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 1)].x = xx;
-                            xi[xi_index(x, iy, 1)].y = yy;
-                            xi[xi_index(x, iy, 1)].w = w - fabs(delta - ix1) * w;
-                            if (xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 1)].w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = xi[xi_index(x, iy, 1)].w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                            xx = x + ix2; /* Bottom left corner of subpixel iy */
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 0)].x = xx;
-                            xi[xi_index(x, iy, 0)].y = yy;
-                            xi[xi_index(x, iy, 0)].w = fabs(delta - ix1) * w;
-                            if (xx >= 0 && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 0)].w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = xi[xi_index(x, iy, 0)].w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                        }
-                    }
-                    else if (ix1 > ix2) /* Subpixel iy shifts to the left from column x */
-                    {
-                        if (x + ix2 >= 0 && x + ix1 < ncols)
-                        {
-                            xx = x + ix2; /* Bottom right corner of subpixel iy */
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 1)].x = xx;
-                            xi[xi_index(x, iy, 1)].y = yy;
-                            xi[xi_index(x, iy, 1)].w = fabs(delta - ix1) * w;
-                            if (xx < ncols && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 1)].w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = xi[xi_index(x, iy, 1)].w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                            xx = x + ix1; /* Bottom left corner of subpixel iy */
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 0)].x = xx;
-                            xi[xi_index(x, iy, 0)].y = yy;
-                            xi[xi_index(x, iy, 0)].w = w - fabs(delta - ix1) * w;
-                            if (xx >= 0 && yy >= 0 && yy < nrows && xi[xi_index(x, iy, 0)].w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = xi[xi_index(x, iy, 0)].w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                        }
-                    }
-                    else /* Subpixel iy stays inside column x */
-                    {
-                        if (x + ix2 >= 0 && x + ix2 < ncols)
-                        {
-                            xx = x + ix2;
-                            yy = y + ycen_offset[x] - ycen_offset[xx];
-                            xi[xi_index(x, iy, 0)].x = xx;
-                            xi[xi_index(x, iy, 0)].y = yy;
-                            xi[xi_index(x, iy, 0)].w = w;
-                            if (yy >= 0 && yy < nrows && w > 0)
-                            {
-                                m = m_zeta[mzeta_index(xx, yy)];
-                                zeta[zeta_index(xx, yy, m)].x = x;
-                                zeta[zeta_index(xx, yy, m)].iy = iy;
-                                zeta[zeta_index(xx, yy, m)].w = w;
-                                m_zeta[mzeta_index(xx, yy)]++;
-                            }
-                        }
-                    }
+                    xx = x + ix1;
+                    yy = y + ycen_offset[x] - ycen_offset[xx];
+                    cr2res_extract_zeta_add(zeta, m_zeta, ncols, nrows,
+                            osample, x, iy, xx, yy, w);
                 }
             }
         }
@@ -2900,14 +2643,15 @@ static int cr2res_extract_xi_zeta_tensors(
   @param ncols      Swath width in pixels
   @param nrows      Extraction slit height in pixels
   @param osample    Subpixel oversampling factor
+  @param pclip      Percentage of extreme pixels to pre-clip from the mask
   @param im         Image to be decomposed [nrows][ncols]
-  @param pix_unc
+  @param pix_unc    Individual pixel uncertainties [nrows][ncols]
   @param mask       Initial and final mask for the swath [nrows][ncols]
   @param ycen       Order centre line offset from pixel row boundary [ncols]
   @param ycen_offset    Order image column shift     [ncols]
   @param y_lower_lim    Number of detector pixels below the pixel containing
                         the central line yc
-  @param PSF_curve  Slit curvature
+  @param slitcurve  Slit curvature coefficients [ncols][6]
   @param delta_x    Maximum horizontal shift in detector pixels due to slit
                     image curvature
   @param sL         Slit function resulting from decomposition    [ny]
@@ -2916,9 +2660,19 @@ static int cr2res_extract_xi_zeta_tensors(
   @param unc        Spectrum uncertainties based on data - model [ncols]
   @param lambda_sP  Smoothing parameter for the spectrum, could be zero
   @param lambda_sL  Smoothing parameter for the slit function, usually>0
-  @param sP_stop
-  @param maxiter
-  @return
+  @param maxiter    Maximum number of iterations
+  @param kappa      Outlier rejection threshold in sigma, <= 0 disables
+  @param slit_func_in   Fixed slit function to use, or NULL to solve for it
+  @param l_Aij p_Aij l_bj p_bj  Pre-allocated SLE work arrays
+  @param zw zk     Pre-allocated scratch buffers of size 3*(osample+1)
+  @param zeta m_zeta   Pre-allocated zeta tensor arrays
+  @return   0 on success
+
+  Both SLE matrices are sums over detector pixels of all pairs of subpixels
+  contributing to that pixel, i.e. pairs of entries in the pixel's zeta list.
+  Iterating pixel-centrically reads zeta sequentially and skips masked pixels
+  entirely. Accumulation order differs from the historic xi-centric loops
+  only at the rounding level.
  */
 /*----------------------------------------------------------------------------*/
 static int cr2res_extract_slit_func_curved(
@@ -2933,7 +2687,7 @@ static int cr2res_extract_slit_func_curved(
         double  *   ycen,
         int     *   ycen_offset,
         int         y_lower_lim,
-        cpl_polynomial  ** slitcurves,
+        const double *  slitcurve,
         int         delta_x,
         double  *   sL,
         double  *   sP,
@@ -2941,25 +2695,21 @@ static int cr2res_extract_slit_func_curved(
         double  *   unc,
         double      lambda_sP,
         double      lambda_sL,
-        double      sP_stop,
         int         maxiter,
         double      kappa,
         const double  *   slit_func_in,
-        double    *  sP_old,
         double    *  l_Aij,
         double    *  p_Aij,
         double    *  l_bj,
         double    *  p_bj,
-        cpl_image *  img_mad,
-        xi_ref    *  xi,
+        double    *  zw,
+        int       *  zk,
         zeta_ref  *  zeta,
         int       *  m_zeta)
 {
-    int x, xx, xxx, y, yy, iy, jy, n, m, ny, nx;
-    double norm, lambda, diag_tot, ww, www, sP_change, sP_med;
-    double tmp, sLmax, sum;
-    int info, iter;
-    cpl_vector *tmp_vec;
+    int x, xx, y, yy, iy, n, m, nk, mz, ny, nx;
+    double norm, lambda, diag_tot, ww, dev, cost, cost_old, ftol, tmp, sum;
+    int nclip, iter, isum;
 
     /* The size of the sL array. */
     /* Extra osample is because ycen can be between 0 and 1. */
@@ -2968,9 +2718,12 @@ static int cr2res_extract_slit_func_curved(
     if (nx < 3)
         nx = 3;
 
-    cr2res_extract_xi_zeta_tensors(ncols, nrows, ny, ycen, ycen_offset,
-                                   y_lower_lim, osample, slitcurves, xi, zeta,
-                                   m_zeta);
+    /* Maximum cost difference between two iterations to stop convergence */
+    ftol = 1e-7;
+    cost = INFINITY;
+
+    cr2res_extract_zeta_tensors(ncols, nrows, ycen, ycen_offset,
+                                y_lower_lim, osample, slitcurve, zeta, m_zeta);
 
     // If a slit func is given, use that instead of recalculating it
     if (slit_func_in != NULL) {
@@ -2985,18 +2738,8 @@ static int cr2res_extract_slit_func_curved(
             sL[iy] /= norm;
     }
 
-    /* Resetting the mask and img values for outliers and NaN */
-    /*    for (y = 0; y < nrows; y++) {
-     for (x = 0; x < ncols; x++) {
-       mask[y * ncols + x] = 1;
-       if(im[y * ncols + x] < -1.e3) {
-         mask[y * ncols + x] = 0;
-         //im[y * ncols + x] = 0.e0;
-       }
-     }
-    }
-*/
-    int nclip = (int)(ncols * nrows * pclip / 100);
+    /* Pre-clip the most extreme pixels from the mask */
+    nclip = (int)(ncols * nrows * pclip / 100);
     if (nclip > 0)
     {
         if (nclip > ncols * nrows / 2)
@@ -3049,174 +2792,210 @@ static int cr2res_extract_slit_func_curved(
 
     /* Loop through sL , sP reconstruction until convergence is reached */
     iter = 0;
-    // cost = 0; Not used without cost_old?
     do {
-        //cost_old = cost; this is not used apparently?
-        double cost, sigma;
-        int isum;
+        // Save the total cost (chi-square) from the previous iteration
+        cost_old = cost;
+
         if (slit_func_in == NULL) {
             /* Compute slit function sL */
+
             /* Prepare the RHS and the matrix */
-            for (iy = 0; iy < ny; iy++) {
-                l_bj[iy] = 0.e0;
-                /* Clean RHS                */
-                for (jy = 0; jy <= 4 * osample; jy++)
-                    l_Aij[iy + ny * jy] = 0.e0;
-            }
+            for (iy = 0; iy < ny; iy++)
+                l_bj[iy] = 0.e0; /* Clean RHS */
+            for (iy = 0; iy < ny * (4 * osample + 1); iy++)
+                l_Aij[iy] = 0.e0;
+
             /* Fill in SLE arrays for slit function */
-            diag_tot = 0.e0;
-            for (iy = 0; iy < ny; iy++) {
-                for (x = 0; x < ncols; x++) {
-                    for (n = 0; n < 4; n++) {
-                        ww = xi[xi_index(x, iy, n)].w;
-                        if (ww > 0) {
-                            xx = xi[xi_index(x, iy, n)].x;
-                            yy = xi[xi_index(x, iy, n)].y;
-                            if (xx >= 0 && xx < ncols && yy >= 0 &&
-                                yy < nrows) {
-                                if (m_zeta[mzeta_index(xx, yy)] > 0) {
-                                    for (m = 0; m < m_zeta[mzeta_index(xx, yy)];
-                                         m++) {
-                                        xxx = zeta[zeta_index(xx, yy, m)].x;
-                                        jy = zeta[zeta_index(xx, yy, m)].iy;
-                                        www = zeta[zeta_index(xx, yy, m)].w;
-                                        if (jy - iy + 2 * osample >= 0)
-                                            l_Aij[iy + ny * (jy - iy +
-                                                             2 * osample)] +=
-                                                sP[xxx] * sP[x] * www * ww *
-                                                mask[yy * ncols + xx];
-                                    }
-                                    l_bj[iy] += im[yy * ncols + xx] *
-                                                mask[yy * ncols + xx] * sP[x] *
-                                                ww;
-                                }
+            for (xx = 0; xx < ncols; xx++) {
+                for (yy = 0; yy < nrows; yy++) {
+                    const zeta_ref *zrow;
+                    double imv;
+                    mz = m_zeta[mzeta_index(xx, yy)];
+                    if (mz <= 0 || !mask[yy * ncols + xx])
+                        continue;
+                    zrow = &zeta[zeta_index(xx, yy, 0)];
+                    imv = im[yy * ncols + xx];
+                    /* Merge entries sharing the same subpixel index iy: only
+                       the summed weight enters both the matrix and the RHS */
+                    nk = 0;
+                    for (m = 0; m < mz; m++) {
+                        const int key = zrow[m].iy;
+                        const double v = sP[zrow[m].x] * zrow[m].w;
+                        for (n = 0; n < nk; n++) {
+                            if (zk[n] == key) {
+                                zw[n] += v;
+                                break;
                             }
                         }
+                        if (n == nk) {
+                            zk[nk] = key;
+                            zw[nk++] = v;
+                        }
+                    }
+                    /* The matrix is symmetric: accumulate each unordered pair
+                       once into the upper bands; mirrored below after the
+                       fill */
+                    for (m = 0; m < nk; m++) {
+                        const double um = zw[m];
+                        iy = zk[m];
+                        l_Aij[laij_index(iy, 2 * osample)] += um * um;
+                        for (n = m + 1; n < nk; n++) {
+                            const int iyn = zk[n];
+                            const int lo = min(iy, iyn);
+                            const int d = iyn > iy ? iyn - iy : iy - iyn;
+                            l_Aij[laij_index(lo, d + 2 * osample)] +=
+                                zw[n] * um;
+                        }
+                        l_bj[iy] += imv * um;
                     }
                 }
-                diag_tot += fabs(l_Aij[iy + ny * 2 * osample]);
             }
+
+            /* Mirror the upper bands into the lower bands:
+               A[r+d, 2o-d] = A[r, 2o+d] */
+            for (m = 1; m <= 2 * osample; m++)
+                for (iy = 0; iy < ny - m; iy++)
+                    l_Aij[laij_index(iy + m, 2 * osample - m)] =
+                        l_Aij[laij_index(iy, 2 * osample + m)];
+
+            diag_tot = 0.e0;
+            for (iy = 0; iy < ny; iy++)
+                diag_tot += l_Aij[laij_index(iy, 2 * osample)];
+
             /* Scale regularization parameters */
             lambda = lambda_sL * diag_tot / ny;
+
             /* Add regularization parts for the SLE matrix */
-            /* Main diagonal  */
-            l_Aij[ny * 2 * osample] += lambda;
-            /* Upper diagonal */
-            l_Aij[ny * (2 * osample + 1)] -= lambda;
+            l_Aij[laij_index(0, 2 * osample)] += lambda;     /* Main diag  */
+            l_Aij[laij_index(0, 2 * osample + 1)] -= lambda; /* Upper diag */
             for (iy = 1; iy < ny - 1; iy++) {
-                /* Lower diagonal */
-                l_Aij[iy + ny * (2 * osample - 1)] -= lambda;
-                /* Main diagonal  */
-                l_Aij[iy + ny * 2 * osample] += lambda * 2.e0;
-                /* Upper diagonal */
-                l_Aij[iy + ny * (2 * osample + 1)] -= lambda;
+                l_Aij[laij_index(iy, 2 * osample - 1)] -= lambda;
+                l_Aij[laij_index(iy, 2 * osample)] += lambda * 2.e0;
+                l_Aij[laij_index(iy, 2 * osample + 1)] -= lambda;
             }
-            /* Lower diagonal */
-            l_Aij[ny - 1 + ny * (2 * osample - 1)] -= lambda;
-            /* Main diagonal  */
-            l_Aij[ny - 1 + ny * 2 * osample] += lambda;
+            l_Aij[laij_index(ny - 1, 2 * osample - 1)] -= lambda;
+            l_Aij[laij_index(ny - 1, 2 * osample)] += lambda;
+
+            /* Regularize diagonal to prevent singular matrix from fully
+               masked rows */
+            {
+                double max_diag = 0.0;
+                for (iy = 0; iy < ny; iy++)
+                    if (l_Aij[laij_index(iy, 2 * osample)] > max_diag)
+                        max_diag = l_Aij[laij_index(iy, 2 * osample)];
+                if (max_diag > 0.0) {
+                    const double min_diag = max_diag * 1.0e-10;
+                    for (iy = 0; iy < ny; iy++)
+                        if (l_Aij[laij_index(iy, 2 * osample)] < min_diag)
+                            l_Aij[laij_index(iy, 2 * osample)] = min_diag;
+                }
+            }
 
             /* Solve the system of equations */
-            info = cr2res_extract_slitdec_bandsol(l_Aij, l_bj, ny,
-                                                  4 * osample + 1, lambda);
-            if (info)
-                cpl_msg_error(__func__, "info(sL)=%d\n", info);
+            cr2res_extract_bandsol_rowmajor(l_Aij, l_bj, ny, 4 * osample + 1);
 
             /* Normalize the slit function */
             norm = 0.e0;
             for (iy = 0; iy < ny; iy++) {
                 sL[iy] = l_bj[iy];
-                norm += fabs(sL[iy]);
+                norm += sL[iy];
             }
             norm /= osample;
             for (iy = 0; iy < ny; iy++)
                 sL[iy] /= norm;
         }
 
-        /*  Compute spectrum sP */
-        for (x = 0; x < ncols; x++) {
-            for (xx = 0; xx < nx; xx++)
-                p_Aij[xx * ncols + x] = 0.;
-            p_bj[x] = 0;
-        }
-        for (x = 0; x < ncols; x++) {
-            for (iy = 0; iy < ny; iy++) {
-                for (n = 0; n < 4; n++) {
-                    ww = xi[xi_index(x, iy, n)].w;
-                    if (ww > 0) {
-                        xx = xi[xi_index(x, iy, n)].x;
-                        yy = xi[xi_index(x, iy, n)].y;
-                        if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows) {
-                            if (m_zeta[mzeta_index(xx, yy)] > 0) {
-                                for (m = 0; m < m_zeta[mzeta_index(xx, yy)];
-                                     m++) {
-                                    xxx = zeta[zeta_index(xx, yy, m)].x;
-                                    jy = zeta[zeta_index(xx, yy, m)].iy;
-                                    www = zeta[zeta_index(xx, yy, m)].w;
-                                    p_Aij[x +
-                                          ncols * (xxx - x + 2 * delta_x)] +=
-                                        sL[jy] * sL[iy] * www * ww *
-                                        mask[yy * ncols + xx];
-                                }
-                                p_bj[x] += im[yy * ncols + xx] *
-                                           mask[yy * ncols + xx] * sL[iy] * ww;
-                            }
+        /* Compute spectrum sP */
+        for (x = 0; x < ncols; x++)
+            p_bj[x] = 0.e0;
+        for (x = 0; x < ncols * nx; x++)
+            p_Aij[x] = 0.e0;
+
+        /* Pixel-centric fill, see the slit function SLE above */
+        for (xx = 0; xx < ncols; xx++) {
+            for (yy = 0; yy < nrows; yy++) {
+                const zeta_ref *zrow;
+                double imv;
+                mz = m_zeta[mzeta_index(xx, yy)];
+                if (mz <= 0 || !mask[yy * ncols + xx])
+                    continue;
+                zrow = &zeta[zeta_index(xx, yy, 0)];
+                imv = im[yy * ncols + xx];
+                /* Merge entries sharing the same source column x; with small
+                   curvature this collapses the list to just a few entries */
+                nk = 0;
+                for (m = 0; m < mz; m++) {
+                    const int key = zrow[m].x;
+                    const double v = sL[zrow[m].iy] * zrow[m].w;
+                    for (n = 0; n < nk; n++) {
+                        if (zk[n] == key) {
+                            zw[n] += v;
+                            break;
                         }
                     }
+                    if (n == nk) {
+                        zk[nk] = key;
+                        zw[nk++] = v;
+                    }
+                }
+                /* Symmetric matrix: upper bands only, mirrored after fill */
+                for (m = 0; m < nk; m++) {
+                    const double um = zw[m];
+                    x = zk[m];
+                    p_Aij[paij_index(x, 2 * delta_x)] += um * um;
+                    for (n = m + 1; n < nk; n++) {
+                        const int xn = zk[n];
+                        const int lo = min(x, xn);
+                        const int d = xn > x ? xn - x : x - xn;
+                        p_Aij[paij_index(lo, d + 2 * delta_x)] += zw[n] * um;
+                    }
+                    p_bj[x] += imv * um;
                 }
             }
         }
 
-        /* Save the previous iteration spectrum */
-        for (x = 0; x < ncols; x++)
-            sP_old[x] = sP[x];
+        /* Mirror the upper bands into the lower bands */
+        for (m = 1; m <= 2 * delta_x; m++)
+            for (x = 0; x < ncols - m; x++)
+                p_Aij[paij_index(x + m, 2 * delta_x - m)] =
+                    p_Aij[paij_index(x, 2 * delta_x + m)];
 
-        lambda = 1;
         if (lambda_sP > 0.e0) {
             lambda = lambda_sP; /* Scale regularization parameter */
-            p_Aij[ncols * (2 * delta_x)] += lambda;     /* Main diagonal  */
-            p_Aij[ncols * (2 * delta_x + 1)] -= lambda; /* Upper diagonal */
+            p_Aij[paij_index(0, 2 * delta_x)] += lambda;     /* Main diag  */
+            p_Aij[paij_index(0, 2 * delta_x + 1)] -= lambda; /* Upper diag */
             for (x = 1; x < ncols - 1; x++) {
-                /* Lower diagonal */
-                p_Aij[x + ncols * (2 * delta_x - 1)] -= lambda;
-                /* Main diagonal  */
-                p_Aij[x + ncols * (2 * delta_x)] += lambda * 2.e0;
-                /* Upper diagonal */
-                p_Aij[x + ncols * (2 * delta_x + 1)] -= lambda;
+                p_Aij[paij_index(x, 2 * delta_x - 1)] -= lambda;
+                p_Aij[paij_index(x, 2 * delta_x)] += lambda * 2.e0;
+                p_Aij[paij_index(x, 2 * delta_x + 1)] -= lambda;
             }
-            /* Lower diagonal */
-            p_Aij[ncols - 1 + ncols * (2 * delta_x - 1)] -= lambda;
-            /* Main diagonal  */
-            p_Aij[ncols - 1 + ncols * (2 * delta_x)] += lambda;
+            p_Aij[paij_index(ncols - 1, 2 * delta_x - 1)] -= lambda;
+            p_Aij[paij_index(ncols - 1, 2 * delta_x)] += lambda;
+        }
+
+        /* Regularize diagonal to prevent singular matrix from fully masked
+           columns. When a column has no valid data (all pixels masked), the
+           corresponding row of the matrix is zero, causing division by zero
+           in bandsol. The resulting spectrum value for masked columns will
+           be ~0 (from p_bj[x]/diag). */
+        {
+            double max_diag = 0.0;
+            for (x = 0; x < ncols; x++)
+                if (p_Aij[paij_index(x, 2 * delta_x)] > max_diag)
+                    max_diag = p_Aij[paij_index(x, 2 * delta_x)];
+            if (max_diag > 0.0) {
+                const double min_diag = max_diag * 1.0e-10;
+                for (x = 0; x < ncols; x++)
+                    if (p_Aij[paij_index(x, 2 * delta_x)] < min_diag)
+                        p_Aij[paij_index(x, 2 * delta_x)] = min_diag;
+            }
         }
 
         /* Solve the system of equations */
-        info = cr2res_extract_slitdec_bandsol(p_Aij, p_bj, ncols, nx, lambda);
-        if (info)
-            cpl_msg_error(__func__, "info(sP)=%d\n", info);
+        cr2res_extract_bandsol_rowmajor(p_Aij, p_bj, ncols, nx);
 
         for (x = 0; x < ncols; x++)
             sP[x] = p_bj[x]; /* New Spectrum vector */
-
-
-        /* Compute median value of the spectrum for normalisation purpose */
-        tmp_vec = cpl_vector_wrap(ncols, sP);
-        sP_med = fabs(cpl_vector_get_median_const(tmp_vec));
-        cpl_vector_unwrap(tmp_vec);
-
-        /* Compute the change in the spectrum */
-        sP_change = 0.e0;
-        for (x = 0; x < ncols; x++) {
-            if (fabs(sP[x] - sP_old[x]) > sP_change)
-                sP_change = fabs(sP[x] - sP_old[x]);
-        }
-
-        if ((isnan(sP[0]) || (sP[ncols / 2] == 0)) &&
-            (cpl_msg_get_level() == CPL_MSG_DEBUG)) {
-            debug_output(ncols, nrows, osample, im, pix_unc, mask, ycen,
-                         ycen_offset, y_lower_lim, slitcurves);
-            cpl_msg_error(__func__, "Swath failed");
-        }
 
         /* Compute the model */
         for (y = 0; y < nrows * ncols; y++) {
@@ -3232,14 +3011,9 @@ static int cr2res_extract_slit_func_curved(
                 }
             }
         }
-        /* Compare model and data */
-        // We use a simple standard deviation here (which is NOT robust to
-        // outliers), since it is less strict than a more robust measurement
-        // (e.g. MAD) would be. Initial problems in the guess will be more
-        // easily be fixed this way. We would mask them away otherwise.
-        // On the other hand the std may get to large and might fail to remove
-        // outliers sufficiently in some circumstances.
 
+        /* Compare model and data: reduced chi-square as convergence
+           criterion and RMS of residuals for outlier rejection */
         cost = 0.e0;
         sum = 0.e0;
         isum = 0;
@@ -3255,40 +3029,31 @@ static int cr2res_extract_slit_func_curved(
             }
         }
         cost /= (isum - (ncols + ny));
-        sigma = sqrt(sum / isum);
+        dev = sqrt(sum / isum);
 
         /* Adjust the mask marking outliers */
-        for (y = 0; y < nrows; y++) {
-            for (x = delta_x; x < ncols - delta_x; x++) {
-                if (fabs(model[y * ncols + x] - im[y * ncols + x]) >
-                    kappa * sigma)
-                    mask[y * ncols + x] = 0;
-                else
-                    mask[y * ncols + x] = 1;
+        if (kappa > 0) {
+            for (y = 0; y < nrows; y++) {
+                for (x = delta_x; x < ncols - delta_x; x++) {
+                    if (fabs(model[y * ncols + x] - im[y * ncols + x]) <
+                        kappa * dev)
+                        mask[y * ncols + x] = 1;
+                    else
+                        mask[y * ncols + x] = 0;
+                }
             }
         }
 
-        for (y = 0; y < nrows; y++) {
-            for (x = delta_x; x < ncols - delta_x; x++) {
-                cpl_image_set(img_mad, x + 1, y + 1,
-                              (model[y * ncols + x] - im[y * ncols + x]));
-                if ((mask[y * ncols + x] == 0) || (im[y * ncols + x] == 0))
-                    cpl_image_reject(img_mad, x + 1, y + 1);
-            }
-        }
+        cpl_msg_debug(__func__, "Iter: %i, Sigma: %g, Cost: %g",
+                      iter, dev, cost);
 
-        cpl_msg_debug(
-            __func__,
-            "Iter: %i, Sigma: %f, Cost: %f, sP_change: %f, sP_lim: %f", iter,
-            sigma, cost, sP_change, sP_stop * sP_med);
+        /* Check for convergence. maxiter is an unconditional upper bound;
+           the non-finite-cost retry must not bypass it (the solver can
+           produce NaNs, e.g. when kappa<=0 leaves NaN cells un-masked). */
+    } while ((iter++ < maxiter) && ((cost_old - cost > ftol) ||
+             !isfinite(cost) || !isfinite(cost_old)));
 
-        iter++;
-    } while (iter == 1 ||
-             (iter <= maxiter
-              //                      && fabs(cost - cost_old) > sP_stop));
-              && sP_change > sP_stop * sP_med));
-
-    if (iter == maxiter && sP_change > sP_stop * sP_med)
+    if (iter > maxiter && ((cost_old - cost > ftol) || !isfinite(cost)))
         cpl_msg_warning(
             __func__,
             "Maximum number of %d iterations reached without converging.",
@@ -3303,41 +3068,8 @@ static int cr2res_extract_slit_func_curved(
             sL[y] *= -1.0;
         for (x = 0; x < ncols; x++)
             sP[x] *= -1.0;
-        sum *= -1.0;
     }
-    tmp_vec = cpl_vector_wrap(ny, sL);
-    sLmax = cpl_vector_get_max(tmp_vec);
-    cpl_vector_unwrap(tmp_vec);
-    cpl_msg_debug(__func__,
-                  "sL-sum, sLmax, osample, nrows, ny: %g, %g, %d, %d, %d", sum,
-                  sLmax, osample, nrows, ny);
 
-
-    /*
-        for (x = 0; x < ncols; x++) {
-            double msum;
-            
-            unc[x] = 0.0;
-            msum = 0.0;
-            sum = 0.0;
-            for (y = 0; y < nrows; y++) {
-                if (mask[y * ncols + x]) {
-                    msum += (im[y * ncols + x] * model[y * ncols + x]) *
-                            mask[y * ncols + x];
-                    sum += (model[y * ncols + x] * model[y * ncols + x]) *
-                           mask[y * ncols + x];
-                }
-            }
-            if (msum != 0){
-                // This can give NaNs if m/sum is less than zero, i.e. low/no flux
-                // due to ignoring background flux.
-                unc[x] = sqrt(fabs(sP[x]) * fabs(sum) / fabs(msum) / error_factor);
-            } else {
-                // Fix bad value to NaN as Phase3 doesn't allow Inf.
-                unc[x] = NAN;
-            }
-        }
-    */
     if (error_factor == -1)
     {
         // Uncertainty calculation, following Horne 1986.
@@ -3403,6 +3135,60 @@ static int cr2res_extract_slit_func_curved(
             }
         }
     }
+    return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Solve a sparse system of linear equations, row-major layout
+  @param    a   2D array [n,nd], band entries of one row are contiguous
+  @param    r   array of RHS of size n
+  @param    n   number of equations
+  @param    nd  width of the band (3 for tri-diagonal system), odd number
+  @return   0 on success
+
+  Same as cr2res_extract_slitdec_bandsol but for a band matrix stored
+  row-major, matching the access pattern of the SLE fill loops in
+  cr2res_extract_slit_func_curved. The main diagonal is in a(*,nd/2), the
+  first lower subdiagonal in a(1:n-1,nd/2-1), the first upper subdiagonal
+  in a(0:n-2,nd/2+1), etc.
+ */
+/*----------------------------------------------------------------------------*/
+static int cr2res_extract_bandsol_rowmajor(
+        double  *   a,
+        double  *   r,
+        int         n,
+        int         nd)
+{
+    double aa;
+    int i, j, k;
+
+    /* Forward sweep */
+    for (i = 0; i < n - 1; i++)
+    {
+        aa = a[i * nd + nd / 2];
+        r[i] /= aa;
+        for (j = 0; j < nd; j++)
+            a[i * nd + j] /= aa;
+        for (j = 1; j < min(nd / 2 + 1, n - i); j++)
+        {
+            aa = a[(i + j) * nd + nd / 2 - j];
+            r[i + j] -= r[i] * aa;
+            for (k = 0; k < nd - j; k++)
+                a[(i + j) * nd + k] -= a[i * nd + k + j] * aa;
+        }
+    }
+
+    /* Backward sweep */
+    r[n - 1] /= a[(n - 1) * nd + nd / 2];
+    for (i = n - 1; i > 0; i--)
+    {
+        for (j = 1; j <= min(nd / 2, i); j++)
+            r[i - j] -= r[i] * a[(i - j) * nd + nd / 2 + j];
+        r[i - 1] /= a[(i - 1) * nd + nd / 2];
+    }
+
+    r[0] /= a[nd / 2];
     return 0;
 }
 
@@ -3574,66 +3360,4 @@ static int cr2res_extract_slitdec_adjust_swath(
                 bin + sw + 2 * dx);
     }
     return sw + 2 * dx;
-}
-
-static int debug_output( 
-        int         ncols,
-        int         nrows,
-        int         osample,
-        double  *   im,
-        double  *   pix_unc,
-        int     *   mask,
-        double  *   ycen,
-        int     *   ycen_offset,
-        int         y_lower_lim,
-        cpl_polynomial  ** slitcurves)
-{
-    cpl_image * img;
-    cpl_vector * vec;
-    cpl_propertylist * pl;
-
-    pl = cpl_propertylist_new();
-    cpl_propertylist_append_int(pl, "osample", osample);
-    cpl_propertylist_append_int(pl, "y_lower_lim", y_lower_lim);
-
-    img = cpl_image_wrap_double(ncols, nrows, im);
-    cpl_image_save(img, "debug_image_at_error.fits", CPL_TYPE_DOUBLE, pl,
-        CPL_IO_CREATE);
-    cpl_image_unwrap(img);
-
-    img = cpl_image_wrap_int(ncols, nrows, mask);
-    cpl_image_save(img, "debug_mask_after_error.fits", CPL_TYPE_INT, NULL,
-        CPL_IO_CREATE);
-    cpl_image_unwrap(img);
-
-    img = cpl_image_wrap_double(ncols, nrows, pix_unc);
-    cpl_image_save(img, "debug_unc_at_error.fits", CPL_TYPE_DOUBLE, NULL,
-        CPL_IO_CREATE);
-    cpl_image_unwrap(img);
-
-    vec = cpl_vector_wrap(ncols, ycen);
-    cpl_vector_save(vec, "debug_ycen_after_error.fits", CPL_TYPE_DOUBLE, NULL,
-        CPL_IO_CREATE);
-    cpl_vector_unwrap(vec);
-
-    vec = cpl_vector_new(ncols);
-    for (int i = 0; i < ncols; i++) cpl_vector_set(vec, i, ycen_offset[i]);
-    cpl_vector_save(vec, "debug_offset_after_error.fits", CPL_TYPE_INT, NULL,
-        CPL_IO_CREATE);
-    cpl_vector_delete(vec);
-
-    img = cpl_image_new(ncols, 3, CPL_TYPE_DOUBLE);
-    for (cpl_size i = 0; i < ncols; i++){
-        for (cpl_size j = 0; j < 3 ; j++){
-            cpl_image_set(img, i+1, j+1,
-                cpl_polynomial_get_coeff(slitcurves[i], &j));
-        }
-    }
-    cpl_image_save(img, "debug_slitcurves_at_error.fits", CPL_TYPE_DOUBLE,
-        NULL, CPL_IO_CREATE);
-    cpl_image_delete(img);
-
-    cpl_propertylist_delete(pl);
-
-    return 0;
 }
