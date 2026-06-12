@@ -44,6 +44,32 @@ ESO_ENABLE_STRICT(no)
 ESO_PROG_CC_FLAG([fno-builtin], [CFLAGS=" -fno-builtin $CFLAGS"])
 ESO_PROG_CC_FLAG([std=c99], [CFLAGS="$CFLAGS -std=c99"])
 
+# simple openmp check, same macro as in hdrl/configure.ac
+# ESO_ENABLE_OPENMP(openmp=no)
+#-----------------------------
+AC_DEFUN([ESO_ENABLE_OPENMP],
+[
+    AC_REQUIRE([AC_PROG_CC])
+
+    AC_ARG_ENABLE(openmp,
+                  AS_HELP_STRING([--enable-openmp],
+                                 [compiles with openmp compiler options (may not work!) [[default=$1]]]),
+                  eso_enable_openmp=$enableval, eso_enable_openmp=$1)
+
+    AC_CACHE_CHECK([whether openmp compiler options should be used],
+                   eso_cv_enable_openmp,
+                   eso_cv_enable_openmp=$eso_enable_openmp)
+
+
+    if test x"$eso_cv_enable_openmp" = xyes; then
+        ESO_PROG_CC_FLAG([fopenmp], [CFLAGS="$CFLAGS -fopenmp"
+                                     LDFLAGS="$LDFLAGS -fopenmp"])
+        ESO_PROG_CC_FLAG([xopenmp], [CFLAGS="$CFLAGS -xopenmp"
+                                     LDFLAGS="$LDFLAGS -xopenmp"])
+    fi
+])
+ESO_ENABLE_OPENMP([yes])
+
 ESO_CHECK_DOCTOOLS
 
 AC_ENABLE_STATIC(no)
