@@ -93,9 +93,11 @@ static int cr2res_extract_slit_func_curved(
         double  *   unc,
         double      lambda_sP,
         double      lambda_sL,
+        double      sP_stop,
         int         maxiter,
         double      kappa,
         const double   *  slit_func_in,
+        double    *  sP_old,
         double    *  l_Aij,
         double    *  p_Aij,
         double    *  l_bj,
@@ -1427,6 +1429,7 @@ int cr2res_extract_slitdec_curved(
     double          *   slitcurve_sw;
     hdrl_image      *   model_out;
     cpl_bivector    *   spectrum_loc;
+    double          *   sP_old;
     double          *   l_Aij;
     double          *   p_Aij;
     double          *   l_bj;
@@ -1658,6 +1661,7 @@ int cr2res_extract_slitdec_curved(
     nx = 4 * delta_x + 1;
     if(nx < 3) nx = 3;
 
+    sP_old = cpl_malloc(swath * sizeof(double));
     l_Aij  = cpl_malloc(ny * (4*oversample+1) * sizeof(double));
     p_Aij  = cpl_malloc(swath * nx * sizeof(double));
     l_bj   = cpl_malloc(ny * sizeof(double));
@@ -1808,7 +1812,7 @@ int cr2res_extract_slitdec_curved(
                 img_sw_data, err_sw_data, mask_sw, ycen_sw, ycen_offset_sw,
                 y_lower_limit, slitcurve_sw, delta_x, slitfu_sw_data,
                 spec_sw_data, model_sw, unc_sw_data, smooth_spec, smooth_slit,
-                niter, kappa, slit_func_in, l_Aij, p_Aij, l_bj,
+                5.e-5, niter, kappa, slit_func_in, sP_old, l_Aij, p_Aij, l_bj,
                 p_bj, zw, zk, zeta, m_zeta);
 
         // add up slit-functions, divide by nswaths below to get average
@@ -1956,6 +1960,7 @@ int cr2res_extract_slitdec_curved(
     cpl_vector_divide_scalar(slitfu, nswaths);
 
     // Deallocate loop memory
+    cpl_free(sP_old);
     cpl_free(l_Aij);
     cpl_free(p_Aij);
     cpl_free(l_bj);
@@ -2695,9 +2700,11 @@ static int cr2res_extract_slit_func_curved(
         double  *   unc,
         double      lambda_sP,
         double      lambda_sL,
+        double      sP_stop,
         int         maxiter,
         double      kappa,
         const double  *   slit_func_in,
+        double    *  sP_old,
         double    *  l_Aij,
         double    *  p_Aij,
         double    *  l_bj,
@@ -2708,7 +2715,9 @@ static int cr2res_extract_slit_func_curved(
         int       *  m_zeta)
 {
     int x, xx, y, yy, iy, n, m, nk, mz, ny, nx;
-    double norm, lambda, diag_tot, ww, dev, cost, cost_old, ftol, tmp, sum;
+    double norm, lambda, diag_tot, ww, dev, cost, tmp, sum;
+    double sP_change, sP_med;
+    cpl_vector * tmp_vec;
     int nclip, iter, isum;
 
     /* The size of the sL array. */
@@ -2717,10 +2726,6 @@ static int cr2res_extract_slit_func_curved(
     nx = 4 * delta_x + 1;
     if (nx < 3)
         nx = 3;
-
-    /* Maximum cost difference between two iterations to stop convergence */
-    ftol = 1e-7;
-    cost = INFINITY;
 
     cr2res_extract_zeta_tensors(ncols, nrows, ycen, ycen_offset,
                                 y_lower_lim, osample, slitcurve, zeta, m_zeta);
@@ -2793,8 +2798,9 @@ static int cr2res_extract_slit_func_curved(
     /* Loop through sL , sP reconstruction until convergence is reached */
     iter = 0;
     do {
-        // Save the total cost (chi-square) from the previous iteration
-        cost_old = cost;
+        /* Save the spectrum from the previous iteration */
+        for (x = 0; x < ncols; x++)
+            sP_old[x] = sP[x];
 
         if (slit_func_in == NULL) {
             /* Compute slit function sL */
@@ -2999,6 +3005,18 @@ static int cr2res_extract_slit_func_curved(
         for (x = 0; x < ncols; x++)
             sP[x] = p_bj[x]; /* New Spectrum vector */
 
+        /* Compute median value of the spectrum for normalisation purpose */
+        tmp_vec = cpl_vector_wrap(ncols, sP);
+        sP_med = fabs(cpl_vector_get_median_const(tmp_vec));
+        cpl_vector_unwrap(tmp_vec);
+
+        /* Compute the change in the spectrum */
+        sP_change = 0.e0;
+        for (x = 0; x < ncols; x++) {
+            if (fabs(sP[x] - sP_old[x]) > sP_change)
+                sP_change = fabs(sP[x] - sP_old[x]);
+        }
+
         /* Compute the model */
         for (y = 0; y < nrows * ncols; y++) {
             model[y] = 0.;
@@ -3046,16 +3064,21 @@ static int cr2res_extract_slit_func_curved(
             }
         }
 
-        cpl_msg_debug(__func__, "Iter: %i, Sigma: %g, Cost: %g",
-                      iter, dev, cost);
+        cpl_msg_debug(
+            __func__,
+            "Iter: %i, Sigma: %g, Cost: %g, sP_change: %g, sP_lim: %g",
+            iter, dev, cost, sP_change, sP_stop * sP_med);
 
-        /* Check for convergence. maxiter is an unconditional upper bound;
-           the non-finite-cost retry must not bypass it (the solver can
-           produce NaNs, e.g. when kappa<=0 leaves NaN cells un-masked). */
-    } while ((iter++ < maxiter) && ((cost_old - cost > ftol) ||
-             !isfinite(cost) || !isfinite(cost_old)));
+        iter++;
 
-    if (iter > maxiter && ((cost_old - cost > ftol) || !isfinite(cost)))
+        /* Check for convergence: largest change in the spectrum between
+           two iterations, relative to its median (historic criterion,
+           empirically robust on a large variety of data). On NaNs the
+           comparison is false and the loop exits, as in the old code. */
+    } while (iter == 1 ||
+             (iter <= maxiter && sP_change > sP_stop * sP_med));
+
+    if (iter > maxiter && sP_change > sP_stop * sP_med)
         cpl_msg_warning(
             __func__,
             "Maximum number of %d iterations reached without converging.",

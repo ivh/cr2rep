@@ -1,11 +1,17 @@
 # Speed branch: faster slit-decomposition extraction
 
 Status notes for the port of the fast extraction algorithm from CharSlit
-into cr2rep. Last updated 2026-06-11.
+into cr2rep. Last updated 2026-06-12.
 
 ## Status
 
 - Branch `speed`, commit `632dd74` (based on `26f0671`, v1.6.12 paranal release).
+- 2026-06-12: restored master's spectrum-change stop criterion (see
+  Convergence below). With it, old vs new products match at machine
+  precision across the board: SPEC relmax ~5-7e-14, ERR ~3-5e-11,
+  SLIT_FUNC ~1e-11, WL identical — including the CO2 order 05 and the
+  flipped clipping pixels listed below, which no longer differ at all.
+  Speed unchanged: 55 s wall / 26 s user on the benchmark.
 - The algorithm from `~/CharSlit.git` (branch `speed`, commit `4681cbe`) is
   plugged into `cr2res/cr2res_extract.c`, replacing the old
   `cr2res_extract_slit_func_curved` / `cr2res_extract_xi_zeta_tensors`.
@@ -18,11 +24,12 @@ into cr2rep. Last updated 2026-06-11.
   old (26f0671) vs new. Wall: 106 s -> 51 s; user CPU: 78 s -> 25 s
   (frame loading/combination overhead is shared, so the extraction-only
   speedup is larger than the 2x wall ratio).
-- Spectra agree within numerical errors (mostly < 0.01 sigma, many orders
-  bit-identical) after restoring the sum-of-|sL| normalization (see below).
-  Exceptions: order 05 (4324-4410 nm, inside the opaque CO2 band, pure
-  noise / negative flux -> ill-conditioned decomposition differs) and a
-  few isolated pixels where kappa-clipping decisions flip.
+- (2026-06-11, before the stop-criterion restore:) spectra agreed within
+  numerical errors (mostly < 0.01 sigma, many orders bit-identical) after
+  restoring the sum-of-|sL| normalization (see below). Exceptions then:
+  order 05 (4324-4410 nm, inside the opaque CO2 band, pure noise /
+  negative flux -> ill-conditioned decomposition differed) and a few
+  isolated pixels where kappa-clipping decisions flipped.
 
 ## What was ported (where the 3-5x comes from)
 
@@ -40,10 +47,16 @@ into cr2rep. Last updated 2026-06-11.
   mirrored.
 - Band matrices are now row-major (band entries of one row contiguous),
   solved by a new static `cr2res_extract_bandsol_rowmajor`.
-- Convergence: reduced chi-square based, stops when cost improvement
-  < ftol=1e-7; maxiter is an unconditional bound (also for non-finite cost).
-  Replaces the old sP_change/sP_stop criterion (the 5e-5 literal at the
-  call site is gone, `sP_old` no longer needed).
+- Convergence: CharSlit's reduced-chi-square criterion was initially taken,
+  but reverted (2026-06-12) to master's historic criterion: stop when the
+  largest per-pixel spectrum change between iterations drops below
+  sP_stop * |median(sP)| (sP_stop=5e-5 literal at the call site,
+  caller-allocated `sP_old` buffer, as in master). The cost criterion left
+  iteration-path differences (1e-4 ripple, divergent solutions in
+  noise-only orders); the restored one reproduces master exactly. Do not
+  sync CharSlit's cost-based criterion. One fix kept vs master: the
+  no-convergence warning checks `iter > maxiter` (master's `== maxiter`
+  could never fire).
 - Diagonal regularization (max_diag * 1e-10 floor) on both matrices
   prevents singular systems from fully masked rows/columns.
 
@@ -92,4 +105,5 @@ into cr2rep. Last updated 2026-06-11.
    benchmark done, see Status; cal_flat not yet).
 2. Consider syncing future CharSlit improvements; the algorithm core was
    kept structurally close to CharSlit's `slitdec.c` to ease diffing.
-   NOTE: do not sync CharSlit's plain-sum sL normalization (see above).
+   NOTE: do not sync CharSlit's plain-sum sL normalization or its
+   cost-based convergence criterion (see above).
