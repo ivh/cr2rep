@@ -31,6 +31,7 @@
 /*-----------------------------------------------------------------------------
                                    Includes
  -----------------------------------------------------------------------------*/
+#include <limits.h>
 #include <math.h>
 #include <cpl.h>
 
@@ -69,6 +70,15 @@ typedef struct {
     double  w;      /* Contribution weight <= 1/osample */
 } zeta_ref;
 
+/* Key ranges of one pixel's zeta list, maintained by the zeta build.
+   The SLE fill loops merge the list by subpixel index iy (sL system) or
+   source column x (sP system) into a small dense window [min, max]
+   instead of searching a list of unique keys. */
+typedef struct {
+    int     min_iy, max_iy ;
+    int     min_x, max_x ;
+} zeta_rng;
+
 /*-----------------------------------------------------------------------------
                                 Functions prototypes
  -----------------------------------------------------------------------------*/
@@ -105,7 +115,8 @@ static int cr2res_extract_slit_func_curved(
         double    *  zw,
         int       *  zk,
         zeta_ref  *  zeta,
-        int       *  m_zeta) ;
+        int       *  m_zeta,
+        zeta_rng  *  z_rng) ;
 
 static int cr2res_extract_zeta_tensors(
         int         ncols,
@@ -116,7 +127,8 @@ static int cr2res_extract_zeta_tensors(
         int         osample,
         const double  *   slitcurve,
         zeta_ref *  zeta,
-        int      *  m_zeta) ;
+        int      *  m_zeta,
+        zeta_rng *  z_rng) ;
 
 static int cr2res_extract_bandsol_rowmajor(
         double  *   a,
@@ -197,25 +209,12 @@ int cr2res_extract_traces(
         hdrl_image          **  model_master)
 {
     cpl_bivector        **  spectrum ;
-    double              *   pspec ;
-    double              *   pspec_err ;
-    cpl_bivector        *   blaze_biv ;
-    cpl_bivector        *   blaze_err_biv ;
-    double              *   pblaze ;
-    double              *   pblaze_err ;
-    cpl_vector          *   tmp_vec ;
-    cpl_vector          *   slit_func_in_vec ;
     cpl_vector          **  slit_func_vec ;
+    hdrl_image          **  model_one ;
     cpl_table           *   slit_func_loc ;
     cpl_table           *   extract_loc ;
     hdrl_image          *   model_loc ;
-    hdrl_image          *   model_loc_one ;
-    double                  first_nonzero_value, first_nonzero_error, 
-                            norm_factor, val, err ;
-    int                     nb_traces, i, j;
-    int                     badpix;
-    cpl_size                x, y, kth;
-    hdrl_value              pixval;
+    int                     nb_traces, i;
 
     /* Check Entries */
     if (img == NULL || traces == NULL) return -1 ;
@@ -226,17 +225,28 @@ int cr2res_extract_traces(
     /* Allocate Data containers */
     spectrum = cpl_malloc(nb_traces * sizeof(cpl_bivector *)) ;
     slit_func_vec = cpl_malloc(nb_traces * sizeof(cpl_vector *)) ;
+    model_one = cpl_malloc(nb_traces * sizeof(hdrl_image *)) ;
     model_loc = hdrl_image_duplicate(img) ;
     hdrl_image_mul_scalar(model_loc, (hdrl_value){0.0, 0.0}) ;
 
-    /* Loop over the traces and extract them */
+    /* Loop over the traces and extract them. The traces are independent
+       of each other: with OpenMP they are extracted in parallel, each
+       trace entirely within one thread (so per-trace results do not
+       depend on the threading), and the per-trace models are merged
+       sequentially in trace order below. */
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic, 1)
+#endif
     for (i=0 ; i<nb_traces ; i++) {
         /* Initialise */
+        cpl_vector  *   slit_func_in_vec ;
+        hdrl_image  *   model_loc_one ;
         int trace_id;
         int order;
         slit_func_vec[i] = NULL ;
         spectrum[i] = NULL ;
         model_loc_one = NULL ;
+        model_one[i] = NULL ;
 
         /* Get Order and trace id */
         order = cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) ;
@@ -326,14 +336,20 @@ int cr2res_extract_traces(
 
         /* Correct the blaze if passed */
         if (blaze_table_in != NULL) {
+            cpl_bivector * blaze_biv ;
+            cpl_bivector * blaze_err_biv ;
             if (cr2res_extract_EXTRACT1D_get_spectrum(blaze_table_in, order,
                     trace_id, &blaze_biv, &blaze_err_biv)) {
                 cpl_msg_warning(__func__,
                         "Cannot Get the Blaze for order/trace:%d/%d - skip",
                         order, trace_id) ;
             } else {
+                double * pblaze ;
+                double * pblaze_err ;
+                double first_nonzero_value, first_nonzero_error ;
+                int j ;
                 /* The Blaze needs to be 'cleaned from 0s before division */
-                pblaze = 
+                pblaze =
                     cpl_vector_get_data(cpl_bivector_get_y(blaze_biv)) ;
                 pblaze_err =
                     cpl_vector_get_data(cpl_bivector_get_y(blaze_err_biv)) ;
@@ -348,14 +364,17 @@ int cr2res_extract_traces(
                 if (fabs(first_nonzero_value)<1e-3) {
                     cpl_msg_warning(__func__, "Blaze filled with zeros - skip");
                 } else {
+                    double * pspec ;
+                    double * pspec_err ;
+                    double norm_factor, val, err ;
                     for (j=0 ; j<cpl_bivector_get_size(blaze_biv) ; j++) {
                         if (fabs(pblaze[j])<1e-3) {
-                            pblaze[j] = first_nonzero_value ; 
-                            pblaze_err[j] = first_nonzero_error ; 
+                            pblaze[j] = first_nonzero_value ;
+                            pblaze_err[j] = first_nonzero_error ;
                         }
                     }
 
-                    /* Normalize the Blaze, prefer the normalization factor given in 
+                    /* Normalize the Blaze, prefer the normalization factor given in
                      * QC FLAT BLAZE NORM if present otherwise revert to trace-wise
                      * 95th percentile normalization
                      */
@@ -363,6 +382,8 @@ int cr2res_extract_traces(
                     if (blaze_norm > 0){
                         norm_factor = blaze_norm;
                     } else {
+                        cpl_vector * tmp_vec ;
+                        cpl_size kth ;
                         tmp_vec=cpl_vector_duplicate(cpl_bivector_get_y(blaze_biv));
                         kth = (cpl_size)(cpl_bivector_get_size(blaze_biv)*0.95) ;
                         irplib_vector_get_kth(tmp_vec, kth) ;
@@ -376,7 +397,7 @@ int cr2res_extract_traces(
                     for (j=0 ; j<cpl_bivector_get_size(blaze_biv) ; j++) {
                         if (fabs(pspec[j]) > 1e-3) {
                             /* Apply division by normalized blaze */
-                            val = pspec[j] / (pblaze[j]/norm_factor) ; 
+                            val = pspec[j] / (pblaze[j]/norm_factor) ;
 
                             /* Error */
                             /* err(a/b)=abs(a/b)sqrt((err_a/a)^2+(err_b/b)^2) */
@@ -393,7 +414,7 @@ int cr2res_extract_traces(
                         pspec_err[j] = err ;
                     }
                     if (cpl_error_get_code()) {
-                        cpl_error_reset(); 
+                        cpl_error_reset();
                         cpl_msg_warning(__func__,
                             "Cannot Correct Blaze for order/trace:%d/%d - skip",
                                 order, trace_id) ;
@@ -404,30 +425,65 @@ int cr2res_extract_traces(
             }
         }
 
-        /* Update the model global image */
-        if (model_loc_one != NULL) {
-            //hdrl_image_add_image(model_loc, model_loc_one) ;
-            for (x = 1; x <= hdrl_image_get_size_x(model_loc); x++){
-                for (y = 1; y <= hdrl_image_get_size_y(model_loc); y++){
-                    pixval = hdrl_image_get_pixel(model_loc_one, 
-                                                    x, y, &badpix);
-                    if (pixval.data != 0 && badpix == 0){
-                        hdrl_image_set_pixel(model_loc, x, y, pixval);
-                    }
+        /* Keep the model for the in-order merge below */
+        model_one[i] = model_loc_one ;
+
+        cpl_msg_indent_less() ;
+    }
+
+    /* Update the model global image: merge the per-trace models in trace
+       order, and plot if requested. Equivalent to setting every pixel
+       where the trace model is non-zero and not rejected (cpl_image_set
+       semantics: the written pixel is accepted). Direct buffer access:
+       the per-pixel hdrl calls dominated the runtime of this function. */
+    for (i=0 ; i<nb_traces ; i++) {
+        if (model_one[i] != NULL) {
+            const cpl_image * src_data =
+                hdrl_image_get_image_const(model_one[i]) ;
+            const cpl_image * src_err =
+                hdrl_image_get_error_const(model_one[i]) ;
+            const double * sd = cpl_image_get_data_double_const(src_data) ;
+            const double * se = cpl_image_get_data_double_const(src_err) ;
+            const cpl_mask * src_bpm = cpl_image_get_bpm_const(src_data) ;
+            const cpl_binary * sb =
+                src_bpm ? cpl_mask_get_data_const(src_bpm) : NULL ;
+            cpl_image * dst_data = hdrl_image_get_image(model_loc) ;
+            cpl_image * dst_err = hdrl_image_get_error(model_loc) ;
+            double * dd = cpl_image_get_data_double(dst_data) ;
+            double * de = cpl_image_get_data_double(dst_err) ;
+            /* clearing flags is only needed where a map exists */
+            cpl_binary * dbd = cpl_image_get_bpm_const(dst_data) ?
+                cpl_mask_get_data(cpl_image_get_bpm(dst_data)) : NULL ;
+            cpl_binary * dbe = cpl_image_get_bpm_const(dst_err) ?
+                cpl_mask_get_data(cpl_image_get_bpm(dst_err)) : NULL ;
+            cpl_size npix = hdrl_image_get_size_x(model_loc)
+                          * hdrl_image_get_size_y(model_loc) ;
+            cpl_size k ;
+            for (k = 0 ; k < npix ; k++) {
+                if (sd[k] != 0 && (sb == NULL || !sb[k])) {
+                    dd[k] = sd[k] ;
+                    de[k] = se[k] ;
+                    if (dbd != NULL) dbd[k] = CPL_BINARY_0 ;
+                    if (dbe != NULL) dbe[k] = CPL_BINARY_0 ;
                 }
             }
-            hdrl_image_delete(model_loc_one) ;
+            hdrl_image_delete(model_one[i]) ;
+            model_one[i] = NULL ;
         }
 
         /* Plot the Spectrum */
-        if (display && disp_order_idx==order && disp_trace==trace_id) {
+        if (display && spectrum[i] != NULL &&
+                disp_order_idx ==
+                    cpl_table_get(traces, CR2RES_COL_ORDER, i, NULL) &&
+                disp_trace ==
+                    cpl_table_get(traces, CR2RES_COL_TRACENB, i, NULL)) {
             cpl_plot_vector(
             "set grid;set xlabel 'pixels';set ylabel 'Flux (ADU)';",
             "t 'Extracted Spectrum' w lines", "",
             cpl_bivector_get_x_const(spectrum[i])) ;
         }
-        cpl_msg_indent_less() ;
     }
+    cpl_free(model_one) ;
 
     /* Create the slit_func_tab for the current detector */
     if ((slit_func_loc = cr2res_extract_SLITFUNC_create(slit_func_vec,
@@ -1438,6 +1494,7 @@ int cr2res_extract_slitdec_curved(
     int             *   zk;
     zeta_ref        *   zeta;
     int             *   m_zeta;
+    zeta_rng        *   z_rng;
     char            *   path;
     double              pixval, errval;
     double              trace_cen, trace_height;
@@ -1667,9 +1724,13 @@ int cr2res_extract_slitdec_curved(
     l_bj   = cpl_malloc(ny * sizeof(double));
     p_bj   = cpl_malloc(swath * sizeof(double));
 
-    /* Scratch buffers for per-pixel merged zeta weights */
-    zw = cpl_malloc(3 * (oversample + 1) * sizeof(double));
-    zk = cpl_malloc(3 * (oversample + 1) * sizeof(int));
+    /* Scratch buffers for per-pixel merged zeta weights: large enough for
+       both the slit-function window (2*oversample+1) and the spectrum
+       window (2*delta_x+1 <= nx) */
+    i = 3 * (oversample + 1);
+    if (i < nx) i = nx;
+    zw = cpl_malloc(i * sizeof(double));
+    zk = cpl_malloc(i * sizeof(int));
 
     /* Convolution tensor telling the coordinates of subpixels {x, iy}
        contributing to detector pixel {x, y}. [ncols][nrows][3*(osample+1)]
@@ -1677,8 +1738,10 @@ int cr2res_extract_slitdec_curved(
     zeta = cpl_malloc(swath * height * 3 * (oversample + 1)
                                     * sizeof(zeta_ref));
 
-    /* The actual number of contributing elements in zeta  [ncols][nrows]  */
+    /* The actual number of contributing elements in zeta  [ncols][nrows]
+       and the key ranges of each pixel's zeta list */
     m_zeta = cpl_malloc(swath * height * sizeof(int));
+    z_rng = cpl_malloc(swath * height * sizeof(zeta_rng));
 
     for (i = 0; i < nswaths; i++) {
         double *img_sw_data;
@@ -1813,7 +1876,7 @@ int cr2res_extract_slitdec_curved(
                 y_lower_limit, slitcurve_sw, delta_x, slitfu_sw_data,
                 spec_sw_data, model_sw, unc_sw_data, smooth_spec, smooth_slit,
                 5.e-5, niter, kappa, slit_func_in, sP_old, l_Aij, p_Aij, l_bj,
-                p_bj, zw, zk, zeta, m_zeta);
+                p_bj, zw, zk, zeta, m_zeta, z_rng);
 
         // add up slit-functions, divide by nswaths below to get average
         if (i==0) cpl_vector_copy(slitfu,slitfu_sw);
@@ -1970,6 +2033,7 @@ int cr2res_extract_slitdec_curved(
 
     cpl_free(zeta);
     cpl_free(m_zeta);
+    cpl_free(z_rng);
 
     cpl_image_delete(img_rect);
     cpl_image_delete(err_rect);
@@ -2425,9 +2489,10 @@ cpl_table * cr2res_extract_EXTRACT2D_create(
   @brief    Helper to insert one subpixel contribution into the zeta tensor
  */
 /*----------------------------------------------------------------------------*/
-static void cr2res_extract_zeta_add(
+static inline void cr2res_extract_zeta_add(
         zeta_ref  * zeta,
         int       * m_zeta,
+        zeta_rng  * z_rng,
         int         ncols,
         int         nrows,
         int         osample,
@@ -2440,10 +2505,15 @@ static void cr2res_extract_zeta_add(
     if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && w > 0)
     {
         const int m = m_zeta[mzeta_index(xx, yy)];
+        zeta_rng * zr = &z_rng[mzeta_index(xx, yy)];
         zeta[zeta_index(xx, yy, m)].x = x;
         zeta[zeta_index(xx, yy, m)].iy = iy;
         zeta[zeta_index(xx, yy, m)].w = w;
         m_zeta[mzeta_index(xx, yy)]++;
+        if (iy < zr->min_iy) zr->min_iy = iy;
+        if (iy > zr->max_iy) zr->max_iy = iy;
+        if (x < zr->min_x) zr->min_x = x;
+        if (x > zr->max_x) zr->max_x = x;
     }
 }
 
@@ -2489,7 +2559,8 @@ static int cr2res_extract_zeta_tensors(
         int         osample,
         const double  *   slitcurve,
         zeta_ref *  zeta,
-        int      *  m_zeta)
+        int      *  m_zeta,
+        zeta_rng *  z_rng)
 {
     int x, xx, y, yy, ix1, ix2, iy, iy1, iy2;
     double step, delta, dy, w, d1, d2;
@@ -2497,10 +2568,17 @@ static int cr2res_extract_zeta_tensors(
     step = 1.e0 / osample;
 
     /* Clean zeta counts. The zeta entries themselves need no initialization:
-       only the first m_zeta[x, y] entries of each list are ever read. */
+       only the first m_zeta[x, y] entries of each list are ever read.
+       Same for the key ranges: only read where m_zeta[x, y] > 0. */
     for (x = 0; x < ncols; x++)
-        for (y = 0; y < nrows; y++)
+        for (y = 0; y < nrows; y++) {
+            zeta_rng * zr = &z_rng[mzeta_index(x, y)];
             m_zeta[mzeta_index(x, y)] = 0;
+            zr->min_iy = INT_MAX;
+            zr->max_iy = INT_MIN;
+            zr->min_x = INT_MAX;
+            zr->max_x = INT_MIN;
+        }
 
     /*
     Construct the zeta tensor. It contains pixel references and contribution
@@ -2602,12 +2680,12 @@ static int cr2res_extract_zeta_tensors(
                     {
                         xx = x + ix1;
                         yy = y + ycen_offset[x] - ycen_offset[xx];
-                        cr2res_extract_zeta_add(zeta, m_zeta, ncols, nrows,
+                        cr2res_extract_zeta_add(zeta, m_zeta, z_rng, ncols, nrows,
                                 osample, x, iy, xx, yy,
                                 w - fabs(delta - ix1) * w);
                         xx = x + ix2;
                         yy = y + ycen_offset[x] - ycen_offset[xx];
-                        cr2res_extract_zeta_add(zeta, m_zeta, ncols, nrows,
+                        cr2res_extract_zeta_add(zeta, m_zeta, z_rng, ncols, nrows,
                                 osample, x, iy, xx, yy,
                                 fabs(delta - ix1) * w);
                     }
@@ -2618,12 +2696,12 @@ static int cr2res_extract_zeta_tensors(
                     {
                         xx = x + ix2;
                         yy = y + ycen_offset[x] - ycen_offset[xx];
-                        cr2res_extract_zeta_add(zeta, m_zeta, ncols, nrows,
+                        cr2res_extract_zeta_add(zeta, m_zeta, z_rng, ncols, nrows,
                                 osample, x, iy, xx, yy,
                                 fabs(delta - ix1) * w);
                         xx = x + ix1;
                         yy = y + ycen_offset[x] - ycen_offset[xx];
-                        cr2res_extract_zeta_add(zeta, m_zeta, ncols, nrows,
+                        cr2res_extract_zeta_add(zeta, m_zeta, z_rng, ncols, nrows,
                                 osample, x, iy, xx, yy,
                                 w - fabs(delta - ix1) * w);
                     }
@@ -2632,7 +2710,7 @@ static int cr2res_extract_zeta_tensors(
                 {
                     xx = x + ix1;
                     yy = y + ycen_offset[x] - ycen_offset[xx];
-                    cr2res_extract_zeta_add(zeta, m_zeta, ncols, nrows,
+                    cr2res_extract_zeta_add(zeta, m_zeta, z_rng, ncols, nrows,
                             osample, x, iy, xx, yy, w);
                 }
             }
@@ -2712,7 +2790,8 @@ static int cr2res_extract_slit_func_curved(
         double    *  zw,
         int       *  zk,
         zeta_ref  *  zeta,
-        int       *  m_zeta)
+        int       *  m_zeta,
+        zeta_rng  *  z_rng)
 {
     int x, xx, y, yy, iy, n, m, nk, mz, ny, nx;
     double norm, lambda, diag_tot, ww, dev, cost, tmp, sum;
@@ -2728,7 +2807,8 @@ static int cr2res_extract_slit_func_curved(
         nx = 3;
 
     cr2res_extract_zeta_tensors(ncols, nrows, ycen, ycen_offset,
-                                y_lower_lim, osample, slitcurve, zeta, m_zeta);
+                                y_lower_lim, osample, slitcurve, zeta, m_zeta,
+                                z_rng);
 
     // If a slit func is given, use that instead of recalculating it
     if (slit_func_in != NULL) {
@@ -2815,14 +2895,53 @@ static int cr2res_extract_slit_func_curved(
             for (xx = 0; xx < ncols; xx++) {
                 for (yy = 0; yy < nrows; yy++) {
                     const zeta_ref *zrow;
+                    const zeta_rng *zr;
                     double imv;
+                    int k0, rng;
                     mz = m_zeta[mzeta_index(xx, yy)];
                     if (mz <= 0 || !mask[yy * ncols + xx])
                         continue;
                     zrow = &zeta[zeta_index(xx, yy, 0)];
                     imv = im[yy * ncols + xx];
                     /* Merge entries sharing the same subpixel index iy: only
-                       the summed weight enters both the matrix and the RHS */
+                       the summed weight enters both the matrix and the RHS.
+                       The iy of one pixel span at most 2*osample+1 indices
+                       (the band width assumed by the matrix), so merge into
+                       a dense window zw[iy - k0] instead of searching a
+                       list of unique keys. */
+                    zr = &z_rng[mzeta_index(xx, yy)];
+                    k0 = zr->min_iy;
+                    rng = zr->max_iy - k0;
+                    if (rng <= 2 * osample) {
+                        for (n = 0; n <= rng; n++)
+                            zw[n] = 0.e0;
+                        for (m = 0; m < mz; m++)
+                            zw[zrow[m].iy - k0] += sP[zrow[m].x] * zrow[m].w;
+                        /* The matrix is symmetric: accumulate each unordered
+                           pair once into the upper bands (mirrored below
+                           after the fill). Walking the window row-wise makes
+                           the inner loop contiguous in both operands. Window
+                           entries between actual keys are zero and add
+                           exactly nothing. */
+                        for (m = 0; m <= rng; m++) {
+                            const double um = zw[m];
+                            const double *restrict uv = zw + m;
+                            double *restrict arow =
+                                &l_Aij[laij_index(k0 + m, 2 * osample)];
+                            const int dmax = rng - m;
+                            /* element-wise independent fmas: vectorization
+                               does not reorder per-element arithmetic */
+#ifdef _OPENMP
+#pragma omp simd
+#endif
+                            for (n = 0; n <= dmax; n++)
+                                arow[n] += um * uv[n];
+                            l_bj[k0 + m] += imv * um;
+                        }
+                        continue;
+                    }
+                    /* Over-wide list (extreme geometry): merge by searching
+                       unique keys, as before */
                     nk = 0;
                     for (m = 0; m < mz; m++) {
                         const int key = zrow[m].iy;
@@ -2838,9 +2957,6 @@ static int cr2res_extract_slit_func_curved(
                             zw[nk++] = v;
                         }
                     }
-                    /* The matrix is symmetric: accumulate each unordered pair
-                       once into the upper bands; mirrored below after the
-                       fill */
                     for (m = 0; m < nk; m++) {
                         const double um = zw[m];
                         iy = zk[m];
@@ -2923,14 +3039,44 @@ static int cr2res_extract_slit_func_curved(
         for (xx = 0; xx < ncols; xx++) {
             for (yy = 0; yy < nrows; yy++) {
                 const zeta_ref *zrow;
+                const zeta_rng *zr;
                 double imv;
+                int k0, rng;
                 mz = m_zeta[mzeta_index(xx, yy)];
                 if (mz <= 0 || !mask[yy * ncols + xx])
                     continue;
                 zrow = &zeta[zeta_index(xx, yy, 0)];
                 imv = im[yy * ncols + xx];
                 /* Merge entries sharing the same source column x; with small
-                   curvature this collapses the list to just a few entries */
+                   curvature this collapses the list to just a few entries.
+                   Sources span at most 2*delta_x+1 columns (the band width
+                   of the matrix), so merge into a dense window zw[x - k0]. */
+                zr = &z_rng[mzeta_index(xx, yy)];
+                k0 = zr->min_x;
+                rng = zr->max_x - k0;
+                if (rng <= 2 * delta_x) {
+                    for (n = 0; n <= rng; n++)
+                        zw[n] = 0.e0;
+                    for (m = 0; m < mz; m++)
+                        zw[zrow[m].x - k0] += sL[zrow[m].iy] * zrow[m].w;
+                    /* Symmetric matrix: upper bands only, mirrored after
+                       the fill */
+                    for (m = 0; m <= rng; m++) {
+                        const double um = zw[m];
+                        const double *restrict uv = zw + m;
+                        double *restrict arow =
+                            &p_Aij[paij_index(k0 + m, 2 * delta_x)];
+                        const int dmax = rng - m;
+#ifdef _OPENMP
+#pragma omp simd
+#endif
+                        for (n = 0; n <= dmax; n++)
+                            arow[n] += um * uv[n];
+                        p_bj[k0 + m] += imv * um;
+                    }
+                    continue;
+                }
+                /* Over-wide list: merge by searching unique keys */
                 nk = 0;
                 for (m = 0; m < mz; m++) {
                     const int key = zrow[m].x;
@@ -2946,7 +3092,6 @@ static int cr2res_extract_slit_func_curved(
                         zw[nk++] = v;
                     }
                 }
-                /* Symmetric matrix: upper bands only, mirrored after fill */
                 for (m = 0; m < nk; m++) {
                     const double um = zw[m];
                     x = zk[m];
@@ -3017,18 +3162,20 @@ static int cr2res_extract_slit_func_curved(
                 sP_change = fabs(sP[x] - sP_old[x]);
         }
 
-        /* Compute the model */
-        for (y = 0; y < nrows * ncols; y++) {
-            model[y] = 0.;
-        }
-        for (y = 0; y < nrows; y++) {
-            for (x = 0; x < ncols; x++) {
-                for (m = 0; m < m_zeta[mzeta_index(x, y)]; m++) {
-                    xx = zeta[zeta_index(x, y, m)].x;
-                    iy = zeta[zeta_index(x, y, m)].iy;
-                    ww = zeta[zeta_index(x, y, m)].w;
-                    model[y * ncols + x] += sP[xx] * sL[iy] * ww;
+        /* Compute the model. x is the outer loop so that the zeta tensor,
+           by far the largest array, is read sequentially */
+        for (x = 0; x < ncols; x++) {
+            for (y = 0; y < nrows; y++) {
+                const zeta_ref *zrow = &zeta[zeta_index(x, y, 0)];
+                double acc = 0.;
+                mz = m_zeta[mzeta_index(x, y)];
+                for (m = 0; m < mz; m++) {
+                    xx = zrow[m].x;
+                    iy = zrow[m].iy;
+                    ww = zrow[m].w;
+                    acc += sP[xx] * sL[iy] * ww;
                 }
+                model[y * ncols + x] = acc;
             }
         }
 

@@ -3,6 +3,69 @@
 Status notes for the port of the fast extraction algorithm from CharSlit
 into cr2rep. Last updated 2026-06-12.
 
+## Round 2 (2026-06-12): dense-window fills, in-order model merge, OpenMP
+
+A second optimization pass on top of the CharSlit port. All changes keep
+the products BIT-IDENTICAL to the round-1 code (verified on a synthetic
+full-frame benchmark: spectra, errors, slit functions, models and the
+extract_traces tables compared with cmp over several configurations,
+incl. curvature, bad pixels, cosmics, pclip, both error_factor modes and
+the input-slit-function path; valgrind clean; all 9 unit suites pass).
+
+What changed, in decreasing order of measured impact:
+
+1. Model computation loop in cr2res_extract_slit_func_curved walks x
+   outermost so the zeta tensor (the largest array, ~16 B/entry) is read
+   sequentially; it was striding ~23 kB per step and was ~30% of the
+   runtime. Per-pixel sums accumulate in the same order as before.
+2. The SLE fill loops no longer search a list of unique keys to merge a
+   pixel's zeta entries: the zeta build now records per pixel the key
+   ranges (zeta_rng: min/max of iy and of x), and the merge scatters into
+   a dense window zw[key - min]. The iy range of one pixel is at most
+   2*osample (the band width the matrix assumes anyway; checked, with the
+   old search path kept as fallback), the x range at most 2*delta_x (by
+   construction). The band accumulation walks the window row-wise so the
+   inner loop is contiguous (vectorizable) in both operands. Bit-exact
+   because per-slot merge order is unchanged and each band element gets
+   at most one contribution per pixel, so pair enumeration order cannot
+   matter; window gaps contribute exact zeros.
+3. The per-trace model merge in cr2res_extract_traces used
+   hdrl_image_get/set_pixel per pixel (4.2M hdrl calls per trace ~ as
+   expensive as the decomposition itself); replaced by direct buffer
+   access with identical semantics (write data+error and accept the
+   pixel where the trace model is non-zero and not rejected).
+4. OpenMP: the trace loop in cr2res_extract_traces runs in parallel
+   (schedule(dynamic,1)); each trace is computed entirely within one
+   thread, results are stored per trace and merged sequentially in trace
+   order, so products do not depend on thread count or scheduling.
+   configure.ac gained the same ESO_ENABLE_OPENMP([yes]) macro hdrl uses
+   (--disable-openmp to turn off). CPL's error state is omp-threadprivate
+   and the system/ESO CPL builds link libgomp; like hdrl's own parallel
+   regions this assumes the default CPL memory mode (no thread-unsafe
+   xmemory tracking, i.e. don't combine with CPL_MEMORY_MODE=1/2).
+   The two fill inner loops carry "#pragma omp simd" (inert without
+   -fopenmp); element-wise independent, so no FP reordering.
+5. cr2res_extract_zeta_add is static inline and maintains the zeta_rng
+   ranges; the zeta build remains once per swath.
+
+Measured on the synthetic benchmark (2048x2048, height 45, 4-px shear,
+noise+cosmics+bad pixels, niter 30, kappa 10), best-of-N wall time of the
+extraction call against round 1:
+
+- slitdec_curved, swath 800 / osample 7 / pclip 0.1: 0.321 -> 0.212 s
+- slitdec_curved, swath 2048 / osample 10 / Horne unc: 0.327 -> 0.214 s
+- extract_traces, 4 orders, defaults: 1.127 -> 0.635 s (1 thread),
+  0.264 s (4 threads). Real recipes (cal_flat, obs_nodding) extract
+  6-9 orders per detector, so the parallel win applies there.
+  (These wall times still include the per-call rectify/median-collapse
+  setup, so the core-decomposition speedup is larger than the ratios.)
+
+Profile after round 2 is dominated by the three unavoidable sequential
+sweeps over zeta per iteration (two SLE fills + model) and the zeta build
+itself - i.e. memory bandwidth on the tensor. Further gains would need
+slimming the zeta entries (e.g. packed 12-B entries, ~25% traffic) or
+swath-level parallelism; both judged not worth the complexity now.
+
 ## Status
 
 - Branch `speed`, commit `632dd74` (based on `26f0671`, v1.6.12 paranal release).
