@@ -16,12 +16,14 @@ def crires_standards(dark, flat_calibrations, wavelength_calibrations, detector_
                      .with_job_processing(change_input_filter)
                      .with_alternatives(flat_calibrations)
                      .with_alternative_associated_inputs(wavelength_calibrations)
+                     .with_associated_input(dark, [CAL_DARK_BPM],
+                                            match_rules=match_dark_for_science, min_ret=1)
                      .with_associated_input(photo_flux, min_ret=0)
                      .with_associated_input(util_wave_tw, min_ret=0)
                      .with_associated_input(util_trace_tw, min_ret=0, condition=is_short_wavelength)
                      .with_associated_input(util_trace_tw, min_ret=1, condition=is_long_wavelength)
                      .with_input_filter(CAL_FLAT_MASTER, CAL_FLAT_TW, CAL_FLAT_EXTRACT_1D, CAL_WAVE_TW, CAL_WAVE_UNE,
-                                        photo_flux_class, util_wave_tw_class, util_trace_tw_class)
+                                        CAL_DARK_BPM, photo_flux_class, util_wave_tw_class, util_trace_tw_class)
                      .with_meta_targets([qc1calib, calchecker, IDP])
                      .build())
 

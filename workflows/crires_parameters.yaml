@@ -3,10 +3,11 @@ default_parameters: &default
   parameter_metadata:
     $combination_kwd: "It specifies how to group the science spectra taken in stare and 
                        polarimetry mode for processing. It has no effects on nodding data: exposures
-                       within the same OB are processed and combined together.
-                       Valid entries are: 
-                       'tpl.start': it processes together the spectra taken within the same OB (default).
-                       'arcfile': it processes files independently. This option is useful to process time-series data."
+                       within the same observing template are processed and combined together.
+                       Valid suggestions are are: 
+                         'tpl.start': it processes together the spectra taken within the same template and setup (default).
+                         'arcfile': it processes files independently. This option is useful to process time-series data.
+                       Any header keyword can be used, non existing keywords will be ignored."
     only_masterflat_for_standard: "Associates only masterflats when processing standard stars, ignoring other products 
                        derived from processing flat fields Possible values: 'true'/'false' (default='false)."
   recipe_parameters: &default_rp
@@ -17,7 +18,7 @@ default_parameters: &default
     science_staring:
       cr2res.cr2res_obs_staring.create_idp: "TRUE"
     standard_star:
-      cr2res.cr2res_obs_nodding.create_idp: "TRUE"
+      cr2res.cr2res_obs_nodding.create_idp: "FALSE"
   workflow_parameters:
     $combination_kwd: "tpl.start"
     only_masterflat_for_standard: "true"

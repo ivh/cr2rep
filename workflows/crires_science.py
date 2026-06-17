@@ -20,13 +20,13 @@ def process_science(dark, flat_calibrations, wavelength_calibrations, detector_l
                        .with_associated_input(util_wave_tw, min_ret=0)
                        .with_associated_input(util_trace_tw, min_ret=0, condition=is_short_wavelength)
                        .with_associated_input(util_trace_tw, min_ret=1, condition=is_long_wavelength)
-                       .with_associated_input(dark, [CAL_DARK_MASTER, CAL_DARK_BPM],
+                       .with_associated_input(dark, [CAL_DARK_BPM],
                                               match_rules=match_dark_for_science, min_ret=0)
                        .with_associated_input(detector_linearity, [linearity_coefficients], min_ret=0)
                        .with_dynamic_parameter("wavelength_range", get_wavelength_range)
                        .with_input_filter(CAL_FLAT_MASTER, CAL_FLAT_TW, CAL_WAVE_TW, photo_flux_class,
                                           CAL_FLAT_EXTRACT_1D, util_wave_tw_class, util_trace_tw_class,
-                                          linearity_coefficients, CAL_DARK_MASTER, CAL_DARK_BPM)
+                                          linearity_coefficients, CAL_DARK_BPM)
                        .with_meta_targets([SCIENCE, QC0, IDP, CALCHECKER])
                        .build())
 

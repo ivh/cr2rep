@@ -12,7 +12,7 @@ def is_gas_cell(f):
 # second: f  =file to associate (e.g. calibration)
 
 def assoc_dark(ref, f):
-    return match(ref, f, [kwd.ins_wlen_id, kwd.det_seq1_dit]) and f[kwd.ins_slit1_id] == "closed"
+    return match(ref, f, [kwd.ins_wlen_id]) and f[kwd.ins_slit1_id] == "closed"
 
 
 def assoc_flat(ref, f):
