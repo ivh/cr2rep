@@ -55,11 +55,11 @@ match_dark_for_calibs = (match_rules()
                          .with_match_keywords(setup, time_range=UNLIMITED, level=3))
 
 match_dark_for_flats = (match_rules()
-                        .with_match_keywords([kwd.ins_wlen_id, kwd.ins_slit1_id, kwd.det_ndit],
+                        .with_match_keywords([kwd.ins_wlen_id, kwd.ins_slit1_id],
                                              time_range=RelativeTimeRange(-1.5, 1.5), level=0)
-                        .with_match_keywords([kwd.ins_wlen_id, kwd.ins_slit1_id, kwd.det_ndit],
+                        .with_match_keywords([kwd.ins_wlen_id, kwd.ins_slit1_id],
                                              time_range=TWO_DAYS, level=1)
-                        .with_match_keywords([kwd.ins_wlen_id, kwd.ins_slit1_id, kwd.det_ndit],
+                        .with_match_keywords([kwd.ins_wlen_id, kwd.ins_slit1_id],
                                              time_range=UNLIMITED, level=3))
 
 match_dark_for_science = (match_rules()
