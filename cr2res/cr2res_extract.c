@@ -1500,7 +1500,7 @@ int cr2res_extract_slitdec_curved(
     double              trace_cen, trace_height;
     int                 i, j, k, nswaths, col, x, y, ny_os,
                         badpix, delta_x;
-    int                 ny, nx;
+    int                 ny, nx_alloc;
   
 
     /* Check Entries */
@@ -1715,20 +1715,25 @@ int cr2res_extract_slitdec_curved(
     // Assign memory for extract_curved algorithm
     // Since the arrays always have the same size, we can reuse allocated memory
     ny = oversample * (height + 1) + 1;
-    nx = 4 * delta_x + 1;
-    if(nx < 3) nx = 3;
+    /* Upper bound on the sP band width: a subpixel shifts by at most
+       delta_x columns either way, so two subpixels of one detector pixel
+       span at most 2*delta_x. Only used for allocation -- the band actually
+       needed is measured from the geometry in the decomposition itself and
+       is much narrower. */
+    nx_alloc = 4 * delta_x + 1;
+    if (nx_alloc < 3) nx_alloc = 3;
 
     sP_old = cpl_malloc(swath * sizeof(double));
     l_Aij  = cpl_malloc(ny * (4*oversample+1) * sizeof(double));
-    p_Aij  = cpl_malloc(swath * nx * sizeof(double));
+    p_Aij  = cpl_malloc(swath * nx_alloc * sizeof(double));
     l_bj   = cpl_malloc(ny * sizeof(double));
     p_bj   = cpl_malloc(swath * sizeof(double));
 
     /* Scratch buffers for per-pixel merged zeta weights: large enough for
        both the slit-function window (2*oversample+1) and the spectrum
-       window (2*delta_x+1 <= nx) */
+       window (2*delta_x+1 <= nx_alloc) */
     i = 3 * (oversample + 1);
-    if (i < nx) i = nx;
+    if (i < nx_alloc) i = nx_alloc;
     zw = cpl_malloc(i * sizeof(double));
     zk = cpl_malloc(i * sizeof(int));
 
@@ -2799,7 +2804,7 @@ static int cr2res_extract_slit_func_curved(
         int       *  m_zeta,
         zeta_rng  *  z_rng)
 {
-    int x, xx, y, yy, iy, n, m, nk, mz, ny, nx;
+    int x, xx, y, yy, iy, n, m, nk, mz, ny, nx, bx;
     double norm, lambda, diag_tot, ww, dev, cost, tmp, sum;
     double sP_change, sP_med;
     cpl_vector * tmp_vec;
@@ -2808,13 +2813,34 @@ static int cr2res_extract_slit_func_curved(
     /* The size of the sL array. */
     /* Extra osample is because ycen can be between 0 and 1. */
     ny = osample * (nrows + 1) + 1;
-    nx = 4 * delta_x + 1;
-    if (nx < 3)
-        nx = 3;
 
     cr2res_extract_zeta_tensors(ncols, nrows, ycen, ycen_offset,
                                 y_lower_lim, osample, slitcurve, zeta, m_zeta,
                                 z_rng);
+
+    /* Width of the sP band. p_Aij[x, x'] is nonzero only where some detector
+       pixel draws from both columns, so the band is set by the widest source
+       column span of a single pixel -- i.e. by how much the shift varies
+       across one pixel row -- and not by delta_x, the largest shift anywhere
+       in the swath. The two differ a lot on a tall slit: span 2 against
+       2*delta_x up to ~46 on a 176-row swath, and bandsol costs
+       O(ncols * nx^2). Measuring the span also makes the sP fill's
+       key-search fallback unreachable by construction. */
+    {
+        int span = 0;
+        for (x = 0; x < ncols; x++)
+            for (y = 0; y < nrows; y++) {
+                const zeta_rng * zr = &z_rng[mzeta_index(x, y)];
+                if (m_zeta[mzeta_index(x, y)] <= 0)
+                    continue;
+                if (zr->max_x - zr->min_x > span)
+                    span = zr->max_x - zr->min_x;
+            }
+        /* The smoothing penalty writes the first off-diagonal, so it needs
+           a band of at least one */
+        bx = (lambda_sP > 0.e0 && span < 1) ? 1 : span;
+        nx = 2 * bx + 1;
+    }
 
     // If a slit func is given, use that instead of recalculating it
     if (slit_func_in != NULL) {
@@ -3060,81 +3086,50 @@ static int cr2res_extract_slit_func_curved(
                 imv = im[yy * ncols + xx];
                 /* Merge entries sharing the same source column x; with small
                    curvature this collapses the list to just a few entries.
-                   Sources span at most 2*delta_x+1 columns (the band width
-                   of the matrix), so merge into a dense window zw[x - k0]. */
+                   Sources span at most bx+1 columns -- that is how the band
+                   width was measured -- so merge into a dense window
+                   zw[x - k0], and no fallback is needed. */
                 zr = &z_rng[mzeta_index(xx, yy)];
                 k0 = zr->min_x;
                 rng = zr->max_x - k0;
-                if (rng <= 2 * delta_x) {
-                    for (n = 0; n <= rng; n++)
-                        zw[n] = 0.e0;
-                    for (m = 0; m < mz; m++)
-                        zw[zrow[m].x - k0] += sL[zrow[m].iy] * zrow[m].w;
-                    /* Symmetric matrix: upper bands only, mirrored after
-                       the fill */
-                    for (m = 0; m <= rng; m++) {
-                        const double um = zw[m];
-                        const double *restrict uv = zw + m;
-                        double *restrict arow =
-                            &p_Aij[paij_index(k0 + m, 2 * delta_x)];
-                        const int dmax = rng - m;
+                for (n = 0; n <= rng; n++)
+                    zw[n] = 0.e0;
+                for (m = 0; m < mz; m++)
+                    zw[zrow[m].x - k0] += sL[zrow[m].iy] * zrow[m].w;
+                /* Symmetric matrix: upper bands only, mirrored after
+                   the fill */
+                for (m = 0; m <= rng; m++) {
+                    const double um = zw[m];
+                    const double *restrict uv = zw + m;
+                    double *restrict arow = &p_Aij[paij_index(k0 + m, bx)];
+                    const int dmax = rng - m;
 #ifdef _OPENMP
 #pragma omp simd
 #endif
-                        for (n = 0; n <= dmax; n++)
-                            arow[n] += um * uv[n];
-                        p_bj[k0 + m] += imv * um;
-                    }
-                    continue;
-                }
-                /* Over-wide list: merge by searching unique keys */
-                nk = 0;
-                for (m = 0; m < mz; m++) {
-                    const int key = zrow[m].x;
-                    const double v = sL[zrow[m].iy] * zrow[m].w;
-                    for (n = 0; n < nk; n++) {
-                        if (zk[n] == key) {
-                            zw[n] += v;
-                            break;
-                        }
-                    }
-                    if (n == nk) {
-                        zk[nk] = key;
-                        zw[nk++] = v;
-                    }
-                }
-                for (m = 0; m < nk; m++) {
-                    const double um = zw[m];
-                    x = zk[m];
-                    p_Aij[paij_index(x, 2 * delta_x)] += um * um;
-                    for (n = m + 1; n < nk; n++) {
-                        const int xn = zk[n];
-                        const int lo = min(x, xn);
-                        const int d = xn > x ? xn - x : x - xn;
-                        p_Aij[paij_index(lo, d + 2 * delta_x)] += zw[n] * um;
-                    }
-                    p_bj[x] += imv * um;
+                    for (n = 0; n <= dmax; n++)
+                        arow[n] += um * uv[n];
+                    p_bj[k0 + m] += imv * um;
                 }
             }
         }
 
         /* Mirror the upper bands into the lower bands */
-        for (m = 1; m <= 2 * delta_x; m++)
+        for (m = 1; m <= bx; m++)
             for (x = 0; x < ncols - m; x++)
-                p_Aij[paij_index(x + m, 2 * delta_x - m)] =
-                    p_Aij[paij_index(x, 2 * delta_x + m)];
+                p_Aij[paij_index(x + m, bx - m)] =
+                    p_Aij[paij_index(x, bx + m)];
 
         if (lambda_sP > 0.e0) {
             lambda = lambda_sP; /* Scale regularization parameter */
-            p_Aij[paij_index(0, 2 * delta_x)] += lambda;     /* Main diag  */
-            p_Aij[paij_index(0, 2 * delta_x + 1)] -= lambda; /* Upper diag */
+            p_Aij[paij_index(0, bx)] += lambda;     /* Main diag  */
+            p_Aij[paij_index(0, bx + 1)] -= lambda; /* Upper diag */
             for (x = 1; x < ncols - 1; x++) {
-                p_Aij[paij_index(x, 2 * delta_x - 1)] -= lambda;
-                p_Aij[paij_index(x, 2 * delta_x)] += lambda * 2.e0;
-                p_Aij[paij_index(x, 2 * delta_x + 1)] -= lambda;
+                p_Aij[paij_index(x, bx - 1)] -= lambda;
+                p_Aij[paij_index(x, bx)] += lambda * 2.e0;
+                p_Aij[paij_index(x, bx + 1)] -= lambda;
             }
-            p_Aij[paij_index(ncols - 1, 2 * delta_x - 1)] -= lambda;
-            p_Aij[paij_index(ncols - 1, 2 * delta_x)] += lambda;
+            p_Aij[paij_index(ncols - 1, bx - 1)] -= lambda;
+            p_Aij[paij_index(ncols - 1, bx)] += lambda;
         }
 
         /* Regularize diagonal to prevent singular matrix from fully masked
@@ -3145,13 +3140,13 @@ static int cr2res_extract_slit_func_curved(
         {
             double max_diag = 0.0;
             for (x = 0; x < ncols; x++)
-                if (p_Aij[paij_index(x, 2 * delta_x)] > max_diag)
-                    max_diag = p_Aij[paij_index(x, 2 * delta_x)];
+                if (p_Aij[paij_index(x, bx)] > max_diag)
+                    max_diag = p_Aij[paij_index(x, bx)];
             if (max_diag > 0.0) {
                 const double min_diag = max_diag * 1.0e-10;
                 for (x = 0; x < ncols; x++)
-                    if (p_Aij[paij_index(x, 2 * delta_x)] < min_diag)
-                        p_Aij[paij_index(x, 2 * delta_x)] = min_diag;
+                    if (p_Aij[paij_index(x, bx)] < min_diag)
+                        p_Aij[paij_index(x, bx)] = min_diag;
             }
         }
 
