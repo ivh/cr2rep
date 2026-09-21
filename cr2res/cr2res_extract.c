@@ -2505,7 +2505,13 @@ static inline void cr2res_extract_zeta_add(
     if (xx >= 0 && xx < ncols && yy >= 0 && yy < nrows && w > 0)
     {
         const int m = m_zeta[mzeta_index(xx, yy)];
-        zeta_rng * zr = &z_rng[mzeta_index(xx, yy)];
+        zeta_rng * zr ;
+        /* Extreme geometry can feed one pixel from more subpixels than the
+           fixed per-pixel list holds; drop the entry rather than overflow
+           into the next pixel's list. Real data reaches ~18 of 21 slots. */
+        if (m >= 3 * (osample + 1))
+            return;
+        zr = &z_rng[mzeta_index(xx, yy)];
         zeta[zeta_index(xx, yy, m)].x = x;
         zeta[zeta_index(xx, yy, m)].iy = iy;
         zeta[zeta_index(xx, yy, m)].w = w;
@@ -2965,6 +2971,11 @@ static int cr2res_extract_slit_func_curved(
                             const int iyn = zk[n];
                             const int lo = min(iy, iyn);
                             const int d = iyn > iy ? iyn - iy : iy - iyn;
+                            /* Pairs beyond the band cannot be represented by
+                               the band matrix; storing them would write into
+                               the next row's band (or past the array) */
+                            if (d > 2 * osample)
+                                continue;
                             l_Aij[laij_index(lo, d + 2 * osample)] +=
                                 zw[n] * um;
                         }
@@ -3230,6 +3241,13 @@ static int cr2res_extract_slit_func_curved(
             __func__,
             "Maximum number of %d iterations reached without converging.",
             maxiter);
+
+    /* A non-finite spectrum (e.g. unmasked NaN pixels with kappa == 0) must
+       not pass silently: the convergence test cannot catch it, since NaN
+       compares false and exits the loop as if converged */
+    if (!isfinite(sP_change))
+        cpl_msg_warning(__func__,
+            "Non-finite spectrum after %d iterations.", iter);
 
     /* Flip sign if converged in negative direction */
     sum = 0.0;
