@@ -52,10 +52,13 @@ typedef unsigned char byte;
 #define max(a,b) (((a)>(b))?(a):(b))
 #define signum(a) (((a)>0)?1:((a)<0)?-1:0)
 /* The zeta entries of one detector pixel are contiguous in memory, as
-   required by the pixel-centric SLE fill loops */
+   required by the pixel-centric SLE fill loops, and zeta is y-major: one
+   detector row's lists are contiguous, so the fills and the model can
+   iterate rows outermost (which keeps their band-matrix windows
+   cache-resident) while still reading zeta sequentially */
 #define zeta_index(x, y, z) \
-    ((z) + (y) * (3 * (osample + 1)) + (x) * (3 * (osample + 1)) * nrows)
-#define mzeta_index(x, y) ((y) + (x) * nrows)
+    ((z) + (x) * (3 * (osample + 1)) + (y) * (3 * (osample + 1)) * ncols)
+#define mzeta_index(x, y) ((x) + (y) * ncols)
 /* Band matrices are stored row-major (band entries for one row are
    contiguous): this matches the access pattern of both the SLE fill
    loops and the row-major bandsol */
@@ -116,7 +119,10 @@ static int cr2res_extract_slit_func_curved(
         int       *  zk,
         zeta_ref  *  zeta,
         int       *  m_zeta,
-        zeta_rng  *  z_rng) ;
+        zeta_rng  *  z_rng,
+        int       *  k0col,
+        double    *  d1col,
+        double    *  flat_scratch) ;
 
 static int cr2res_extract_zeta_tensors(
         int         ncols,
@@ -1495,6 +1501,9 @@ int cr2res_extract_slitdec_curved(
     zeta_ref        *   zeta;
     int             *   m_zeta;
     zeta_rng        *   z_rng;
+    int             *   k0col;
+    double          *   d1col;
+    double          *   flat_scratch;
     char            *   path;
     double              pixval, errval;
     double              trace_cen, trace_height;
@@ -1748,6 +1757,11 @@ int cr2res_extract_slitdec_curved(
     m_zeta = cpl_malloc(swath * height * sizeof(int));
     z_rng = cpl_malloc(swath * height * sizeof(zeta_rng));
 
+    /* Per-column geometry and accumulators of the flat-geometry fast path */
+    k0col = cpl_malloc(swath * sizeof(int));
+    d1col = cpl_malloc(swath * sizeof(double));
+    flat_scratch = cpl_malloc(20 * (oversample + 1) * sizeof(double));
+
     for (i = 0; i < nswaths; i++) {
         double *img_sw_data;
         double *err_sw_data;
@@ -1881,7 +1895,8 @@ int cr2res_extract_slitdec_curved(
                 y_lower_limit, slitcurve_sw, delta_x, slitfu_sw_data,
                 spec_sw_data, model_sw, unc_sw_data, smooth_spec, smooth_slit,
                 5.e-5, niter, kappa, slit_func_in, sP_old, l_Aij, p_Aij, l_bj,
-                p_bj, zw, zk, zeta, m_zeta, z_rng);
+                p_bj, zw, zk, zeta, m_zeta, z_rng, k0col, d1col,
+                flat_scratch);
 
         // add up slit-functions, divide by nswaths below to get average
         if (i==0) cpl_vector_copy(slitfu,slitfu_sw);
@@ -2039,6 +2054,9 @@ int cr2res_extract_slitdec_curved(
     cpl_free(zeta);
     cpl_free(m_zeta);
     cpl_free(z_rng);
+    cpl_free(k0col);
+    cpl_free(d1col);
+    cpl_free(flat_scratch);
 
     cpl_image_delete(img_rect);
     cpl_image_delete(err_rect);
@@ -2574,15 +2592,17 @@ static int cr2res_extract_zeta_tensors(
         zeta_rng *  z_rng)
 {
     int x, xx, y, yy, ix1, ix2, iy, iy1, iy2;
-    double step, delta, dy, w, d1, d2;
+    double step, delta, w;
+    int * iy1c, * iy2c;
+    double * d1c, * d2c, * dyc;
 
     step = 1.e0 / osample;
 
     /* Clean zeta counts. The zeta entries themselves need no initialization:
        only the first m_zeta[x, y] entries of each list are ever read.
        Same for the key ranges: only read where m_zeta[x, y] > 0. */
-    for (x = 0; x < ncols; x++)
-        for (y = 0; y < nrows; y++) {
+    for (y = 0; y < nrows; y++)
+        for (x = 0; x < ncols; x++) {
             zeta_rng * zr = &z_rng[mzeta_index(x, y)];
             m_zeta[mzeta_index(x, y)] = 0;
             zr->min_iy = INT_MAX;
@@ -2597,6 +2617,18 @@ static int cr2res_extract_zeta_tensors(
     Note that zeta is used in the equations for sL, sP and for the model but it
     does not involve the data, only the geometry. Thus it can be pre-computed once.
     */
+    /* The build is row-outer so that zeta (y-major) is written near-
+       sequentially. The per-column recurrences (iy1, iy2, dy) live in small
+       state arrays and execute exactly the same operation sequence per
+       column as the historic column-outer loop, so all inserted values are
+       bit-identical; only the order of entries within one pixel's list
+       changes (sums over them reorder at the rounding level). */
+    iy1c = cpl_malloc(ncols * sizeof(int));
+    iy2c = cpl_malloc(ncols * sizeof(int));
+    d1c = cpl_malloc(ncols * sizeof(double));
+    d2c = cpl_malloc(ncols * sizeof(double));
+    dyc = cpl_malloc(ncols * sizeof(double));
+
     for (x = 0; x < ncols; x++)
     {
         /*
@@ -2617,8 +2649,8 @@ static int cr2res_extract_zeta_tensors(
         incrementing them by osample.
         */
 
-        iy2 = osample - floor(ycen[x] * osample);
-        iy1 = iy2 - osample;
+        iy2c[x] = osample - floor(ycen[x] * osample);
+        iy1c[x] = iy2c[x] - osample;
 
         /*
         Handling partial subpixels cut by detector pixel rows is again tricky. Here we have three
@@ -2637,34 +2669,39 @@ static int cr2res_extract_zeta_tensors(
         dy=(iy-(y_lower_lim+ycen[x])*osample)*step-0.5*step
         */
 
-        d1 = fmod(ycen[x], step);
-        if (d1 == 0)
-            d1 = step;
-        d2 = step - d1;
+        d1c[x] = fmod(ycen[x], step);
+        if (d1c[x] == 0)
+            d1c[x] = step;
+        d2c[x] = step - d1c[x];
 
         /* Define initial distance from ycen       */
         /* It is given by the center of the first  */
         /* subpixel falling into pixel y_lower_lim */
-        dy = ycen[x] - floor((y_lower_lim + ycen[x]) / step) * step - step;
+        dyc[x] = ycen[x] - floor((y_lower_lim + ycen[x]) / step) * step - step;
+    }
 
-        /*
-        Now we go detector pixels x and y incrementing subpixels looking for their contributions
-        to the current and adjacent pixels. Note that the curvature/tilt of the projected slit
-        image could be so large that subpixel iy may not contribute to column x at all. On the
-        other hand, subpixels around ycen by definition must contribute to pixel x,y.
+    /*
+    Now we go detector pixels x and y incrementing subpixels looking for their contributions
+    to the current and adjacent pixels. Note that the curvature/tilt of the projected slit
+    image could be so large that subpixel iy may not contribute to column x at all. On the
+    other hand, subpixels around ycen by definition must contribute to pixel x,y.
 
-        Each subpixel is assumed to be exactly 1 detector pixel wide; a horizontal shift delta
-        divides its weight w between columns ix1=int(delta) and ix2=ix1+signum(delta) as
-        (1-|delta-ix1|)*w and |delta-ix1|*w. The yy offset is required because the iy subpixel
-        contributes to the yy row in the xx column of detector pixels where yy and y are in the
-        same row. In the packed array this is not necessarily true. Instead, what we know is:
-        y+ycen_offset[x] == yy+ycen_offset[xx]
-        */
+    Each subpixel is assumed to be exactly 1 detector pixel wide; a horizontal shift delta
+    divides its weight w between columns ix1=int(delta) and ix2=ix1+signum(delta) as
+    (1-|delta-ix1|)*w and |delta-ix1|*w. The yy offset is required because the iy subpixel
+    contributes to the yy row in the xx column of detector pixels where yy and y are in the
+    same row. In the packed array this is not necessarily true. Instead, what we know is:
+    y+ycen_offset[x] == yy+ycen_offset[xx]
+    */
 
-        for (y = 0; y < nrows; y++)
+    for (y = 0; y < nrows; y++)
+    {
+        for (x = 0; x < ncols; x++)
         {
-            iy1 += osample; // Bottom subpixel falling in row y
-            iy2 += osample; // Top subpixel falling in row y
+            const double d1 = d1c[x], d2 = d2c[x];
+            double dy = dyc[x];
+            iy1 = iy1c[x] += osample; // Bottom subpixel falling in row y
+            iy2 = iy2c[x] += osample; // Top subpixel falling in row y
             dy -= step;
             for (iy = iy1; iy <= iy2; iy++)
             {
@@ -2725,9 +2762,242 @@ static int cr2res_extract_zeta_tensors(
                             osample, x, iy, xx, yy, w);
                 }
             }
+            dyc[x] = dy;
         }
     }
+
+    cpl_free(iy1c);
+    cpl_free(iy2c);
+    cpl_free(d1c);
+    cpl_free(d2c);
+    cpl_free(dyc);
     return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Fast path for exactly flat geometry: per-column geometry
+
+  When every horizontal shift is exactly zero (all curvature coefficients are
+  0.0, which is the case for a trace-only trace wave, i.e. before the slit
+  curvature has been calibrated), detector pixel (x,y) receives exactly the
+  subpixels iy = k0col[x] + y*osample .. + osample of its own column, with
+  weights (d1, step, ..., step, step-d1) where d1 = d1col[x]. The zeta tensor
+  is then fully determined by ycen, so the SLE fills and the model can be
+  computed directly, without building or streaming zeta (by far the largest
+  array). All sums are algebraically identical to the general path;
+  accumulation order differs only at the rounding level.
+ */
+/*----------------------------------------------------------------------------*/
+static void cr2res_extract_flat_setup(
+        int             ncols,
+        int             osample,
+        const double *  ycen,
+        int          *  k0col,
+        double       *  d1col)
+{
+    const double step = 1.e0 / osample;
+    int x;
+
+    for (x = 0; x < ncols; x++) {
+        /* same expressions as in cr2res_extract_zeta_tensors: k0col[x] is
+           the first subpixel of row y=0, i.e. iy1 after the first
+           `iy1 += osample` */
+        double d1;
+        k0col[x] = osample - floor(ycen[x] * osample);
+        d1 = fmod(ycen[x], step);
+        if (d1 == 0)
+            d1 = step;
+        d1col[x] = d1;
+    }
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Flat-geometry slit function SLE fill
+
+  One pixel contributes the outer product of sP[x] * (d1, s, ..., s, s-d1) at
+  band rows k0..k0+osample. Per detector row y and per k0-class c the weight
+  products are polynomials in d1 of degree <= 2, so all contributions of one
+  row collapse into 5 moments per class:
+  M{0,1,2} = sum mask*sP^2*d1^{0,1,2}, R{0,1} = sum mask*im*sP*d1^{0,1}.
+ */
+/*----------------------------------------------------------------------------*/
+static void cr2res_extract_flat_fill_sL(
+        int             ncols,
+        int             nrows,
+        int             osample,
+        const double *  im,
+        const int    *  mask,
+        const double *  sP,
+        const int    *  k0col,
+        const double *  d1col,
+        double       *  scratch,
+        double       *  l_Aij,
+        double       *  l_bj)
+{
+    const double s = 1.e0 / osample;
+    const int bw = 4 * osample + 1;
+    const int nc = osample + 1; /* classes c = 1..osample, indexed directly */
+    /* Four interleaved accumulator sets (combined per row) break the serial
+       dependency chains through the per-class sums; this only reorders the
+       additions at the rounding level. */
+    double * M0 = scratch, * M1 = M0 + 4 * nc, * M2 = M1 + 4 * nc,
+           * R0 = M2 + 4 * nc, * R1 = R0 + 4 * nc;
+    int x, y, c, d, i;
+
+    for (y = 0; y < nrows; y++) {
+        const double * imrow = im + (size_t)y * ncols;
+        const int * mrow = mask + (size_t)y * ncols;
+        for (c = 0; c < 4 * nc; c++)
+            M0[c] = M1[c] = M2[c] = R0[c] = R1[c] = 0.e0;
+        for (x = 0; x < ncols; x++) {
+            double a, b, dd;
+            int cc;
+            if (!mrow[x])
+                continue;
+            cc = k0col[x] + nc * (x & 3);
+            dd = d1col[x];
+            a = sP[x] * sP[x];
+            b = imrow[x] * sP[x];
+            M0[cc] += a;
+            M1[cc] += a * dd;
+            M2[cc] += a * dd * dd;
+            R0[cc] += b;
+            R1[cc] += b * dd;
+        }
+        for (c = 1; c <= osample; c++) {
+            M0[c] = ((M0[c] + M0[c + nc]) + M0[c + 2 * nc]) + M0[c + 3 * nc];
+            M1[c] = ((M1[c] + M1[c + nc]) + M1[c + 2 * nc]) + M1[c + 3 * nc];
+            M2[c] = ((M2[c] + M2[c + nc]) + M2[c + 2 * nc]) + M2[c + 3 * nc];
+            R0[c] = ((R0[c] + R0[c + nc]) + R0[c + 2 * nc]) + R0[c + 3 * nc];
+            R1[c] = ((R1[c] + R1[c + nc]) + R1[c + 2 * nc]) + R1[c + 3 * nc];
+        }
+        for (c = 1; c <= osample; c++) {
+            int k0;
+            double m0ss, m1s, r0s, * arow;
+            if (M0[c] == 0.e0 && R0[c] == 0.e0)
+                continue;
+            k0 = y * osample + c;
+            m0ss = M0[c] * s * s;
+            m1s = M1[c] * s;
+            r0s = R0[c] * s;
+            /* band row k0 (first subpixel, weight d1): pairs with all */
+            arow = &l_Aij[(size_t)k0 * bw + 2 * osample];
+            arow[0] += M2[c];                       /* d1*d1     */
+            for (d = 1; d < osample; d++)
+                arow[d] += m1s;                     /* d1*s      */
+            arow[osample] += m1s - M2[c];           /* d1*(s-d1) */
+            l_bj[k0] += R1[c];
+            /* band rows k0+i (interior, weight s) */
+            for (i = 1; i < osample; i++) {
+                arow = &l_Aij[(size_t)(k0 + i) * bw + 2 * osample];
+                for (d = 0; d < osample - i; d++)
+                    arow[d] += m0ss;                /* s*s       */
+                arow[osample - i] += m0ss - m1s;    /* s*(s-d1)  */
+                l_bj[k0 + i] += r0s;
+            }
+            /* band row k0+osample (last subpixel, weight s-d1) */
+            l_Aij[(size_t)(k0 + osample) * bw + 2 * osample]
+                += m0ss - 2 * m1s + M2[c];          /* (s-d1)^2  */
+            l_bj[k0 + osample] += r0s - R1[c];
+        }
+    }
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Per-row, per-class pieces of the merged slit-function value
+            v(x,y) = sum_i w_i(x) * sL[k0+i] = A(y,c) + d1col[x] * B(y,c)
+ */
+/*----------------------------------------------------------------------------*/
+static void cr2res_extract_flat_row_AB(
+        int             y,
+        int             osample,
+        const double *  sL,
+        double       *  A,
+        double       *  B)
+{
+    const double s = 1.e0 / osample;
+    int c, i;
+
+    for (c = 1; c <= osample; c++) {
+        const int k0 = y * osample + c;
+        double mid = 0.e0;
+        for (i = 1; i < osample; i++)
+            mid += sL[k0 + i];
+        A[c] = s * (mid + sL[k0 + osample]);
+        B[c] = sL[k0] - sL[k0 + osample];
+    }
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Flat-geometry spectrum SLE fill
+
+  With all shifts zero every pixel maps to its own column, so the matrix is
+  purely diagonal (band offset bx, which is 0 unless lambda_sP > 0 forces a
+  minimum band of 1).
+ */
+/*----------------------------------------------------------------------------*/
+static void cr2res_extract_flat_fill_sP(
+        int             ncols,
+        int             nrows,
+        int             osample,
+        int             bx,
+        int             nx,
+        const double *  im,
+        const int    *  mask,
+        const double *  sL,
+        const int    *  k0col,
+        const double *  d1col,
+        double       *  scratch,
+        double       *  p_Aij,
+        double       *  p_bj)
+{
+    double * A = scratch, * B = A + osample + 1;
+    int x, y;
+
+    for (y = 0; y < nrows; y++) {
+        const double * imrow = im + (size_t)y * ncols;
+        const int * mrow = mask + (size_t)y * ncols;
+        cr2res_extract_flat_row_AB(y, osample, sL, A, B);
+        for (x = 0; x < ncols; x++) {
+            double v;
+            if (!mrow[x])
+                continue;
+            v = A[k0col[x]] + d1col[x] * B[k0col[x]];
+            p_Aij[(size_t)x * nx + bx] += v * v;
+            p_bj[x] += imrow[x] * v;
+        }
+    }
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Flat-geometry model
+ */
+/*----------------------------------------------------------------------------*/
+static void cr2res_extract_flat_model(
+        int             ncols,
+        int             nrows,
+        int             osample,
+        const double *  sP,
+        const double *  sL,
+        const int    *  k0col,
+        const double *  d1col,
+        double       *  scratch,
+        double       *  model)
+{
+    double * A = scratch, * B = A + osample + 1;
+    int x, y;
+
+    for (y = 0; y < nrows; y++) {
+        double * mdrow = model + (size_t)y * ncols;
+        cr2res_extract_flat_row_AB(y, osample, sL, A, B);
+        for (x = 0; x < ncols; x++)
+            mdrow[x] = sP[x] * (A[k0col[x]] + d1col[x] * B[k0col[x]]);
+    }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -2759,7 +3029,9 @@ static int cr2res_extract_zeta_tensors(
   @param slit_func_in   Fixed slit function to use, or NULL to solve for it
   @param l_Aij p_Aij l_bj p_bj  Pre-allocated SLE work arrays
   @param zw zk     Pre-allocated scratch buffers of size 3*(osample+1)
-  @param zeta m_zeta   Pre-allocated zeta tensor arrays
+  @param zeta m_zeta z_rng  Pre-allocated zeta tensor arrays
+  @param k0col d1col flat_scratch  Pre-allocated work arrays of the
+                    flat-geometry fast path
   @return   0 on success
 
   Both SLE matrices are sums over detector pixels of all pairs of subpixels
@@ -2802,9 +3074,13 @@ static int cr2res_extract_slit_func_curved(
         int       *  zk,
         zeta_ref  *  zeta,
         int       *  m_zeta,
-        zeta_rng  *  z_rng)
+        zeta_rng  *  z_rng,
+        int       *  k0col,
+        double    *  d1col,
+        double    *  flat_scratch)
 {
     int x, xx, y, yy, iy, n, m, nk, mz, ny, nx, bx;
+    int fast_flat;
     double norm, lambda, diag_tot, ww, dev, cost, tmp, sum;
     double sP_change, sP_med;
     cpl_vector * tmp_vec;
@@ -2814,7 +3090,23 @@ static int cr2res_extract_slit_func_curved(
     /* Extra osample is because ycen can be between 0 and 1. */
     ny = osample * (nrows + 1) + 1;
 
-    cr2res_extract_zeta_tensors(ncols, nrows, ycen, ycen_offset,
+    /* The fast path applies when the geometry is exactly flat: all curvature
+       coefficients are 0.0, so every subpixel shift is exactly zero. This is
+       what a trace-only trace wave gives (cr2res_trace initialises the
+       SLIT_CURV_B/C columns to zero), i.e. any extraction before the slit
+       curvature has been calibrated. */
+    fast_flat = 1;
+    for (x = 0; x < ncols && fast_flat; x++)
+        for (m = 1; m < 6; m++)
+            if (slitcurve[curve_index(x, m)] != 0.e0) {
+                fast_flat = 0;
+                break;
+            }
+
+    if (fast_flat)
+        cr2res_extract_flat_setup(ncols, osample, ycen, k0col, d1col);
+    else
+        cr2res_extract_zeta_tensors(ncols, nrows, ycen, ycen_offset,
                                 y_lower_lim, osample, slitcurve, zeta, m_zeta,
                                 z_rng);
 
@@ -2828,8 +3120,10 @@ static int cr2res_extract_slit_func_curved(
        key-search fallback unreachable by construction. */
     {
         int span = 0;
-        for (x = 0; x < ncols; x++)
-            for (y = 0; y < nrows; y++) {
+        /* The flat path maps every pixel to its own column, so its span is 0 */
+        if (!fast_flat)
+        for (y = 0; y < nrows; y++)
+            for (x = 0; x < ncols; x++) {
                 const zeta_rng * zr = &z_rng[mzeta_index(x, y)];
                 if (m_zeta[mzeta_index(x, y)] <= 0)
                     continue;
@@ -2923,9 +3217,18 @@ static int cr2res_extract_slit_func_curved(
             for (iy = 0; iy < ny * (4 * osample + 1); iy++)
                 l_Aij[iy] = 0.e0;
 
-            /* Fill in SLE arrays for slit function */
-            for (xx = 0; xx < ncols; xx++) {
-                for (yy = 0; yy < nrows; yy++) {
+            /* Fill in SLE arrays for slit function.
+               Row-outer: the band rows of l_Aij touched by one detector row
+               span only ~2*osample rows, which then stay cache-resident for
+               the whole row sweep; iterated column-outer the walk swept the
+               entire band matrix once per column. zeta is y-major, so this
+               order also reads it sequentially. */
+            if (fast_flat)
+                cr2res_extract_flat_fill_sL(ncols, nrows, osample, im, mask,
+                        sP, k0col, d1col, flat_scratch, l_Aij, l_bj);
+            else
+            for (yy = 0; yy < nrows; yy++) {
+                for (xx = 0; xx < ncols; xx++) {
                     const zeta_ref *zrow;
                     const zeta_rng *zr;
                     double imv;
@@ -3072,9 +3375,15 @@ static int cr2res_extract_slit_func_curved(
         for (x = 0; x < ncols * nx; x++)
             p_Aij[x] = 0.e0;
 
-        /* Pixel-centric fill, see the slit function SLE above */
-        for (xx = 0; xx < ncols; xx++) {
-            for (yy = 0; yy < nrows; yy++) {
+        /* Pixel-centric row-outer fill, see the slit function SLE above.
+           For this system the band rows are keyed by source column (near
+           xx), so the row sweep also walks p_Aij near-sequentially. */
+        if (fast_flat)
+            cr2res_extract_flat_fill_sP(ncols, nrows, osample, bx, nx, im,
+                    mask, sL, k0col, d1col, flat_scratch, p_Aij, p_bj);
+        else
+        for (yy = 0; yy < nrows; yy++) {
+            for (xx = 0; xx < ncols; xx++) {
                 const zeta_ref *zrow;
                 const zeta_rng *zr;
                 double imv;
@@ -3168,10 +3477,15 @@ static int cr2res_extract_slit_func_curved(
                 sP_change = fabs(sP[x] - sP_old[x]);
         }
 
-        /* Compute the model. x is the outer loop so that the zeta tensor,
-           by far the largest array, is read sequentially */
-        for (x = 0; x < ncols; x++) {
-            for (y = 0; y < nrows; y++) {
+        /* Compute the model. y is the outer loop so that the zeta tensor
+           (y-major, by far the largest array) is read sequentially and
+           model is written sequentially */
+        if (fast_flat)
+            cr2res_extract_flat_model(ncols, nrows, osample, sP, sL, k0col,
+                    d1col, flat_scratch, model);
+        else
+        for (y = 0; y < nrows; y++) {
+            for (x = 0; x < ncols; x++) {
                 const zeta_ref *zrow = &zeta[zeta_index(x, y, 0)];
                 double acc = 0.;
                 mz = m_zeta[mzeta_index(x, y)];
