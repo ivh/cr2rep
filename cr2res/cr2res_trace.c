@@ -1479,9 +1479,12 @@ static double cr2res_trace_calculate_pixel_shift(
     // horizontal pixel shift
     pix_shift_x = *a + (*c * (*pix_shift_y) + *b) * (*pix_shift_y);
 
-    // Shift to global position
+    // Back to global coefficients. The global b is the same for every point
+    // on the slit image, so undo exactly the conversion above; subtracting
+    // at the shifted y put an extra -2c*dy into the new trace's local slope,
+    // i.e. a spurious common A/B wavelength shift of -2c*dy^2.
     *a = n + 1;
-    *b -= 2 * (*c) * (*pix_shift_y + pix_all);
+    *b -= 2 * (*c) * pix_all;
 
     return pix_shift_x;
 }
