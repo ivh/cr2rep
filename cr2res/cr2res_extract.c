@@ -1748,16 +1748,17 @@ int cr2res_extract_slitdec_curved(
     weights_sw = cpl_vector_new(swath);
     for (i = 0; i < swath; i++) cpl_vector_set(weights_sw, i, 0);
 
-    /* Pre-calculate the weights for overlapping swaths*/
-    for (i=delta_x; i < swath/2; i++) {
-        j = i - delta_x + 1;
+    /* Pre-calculate the weights for overlapping swaths. Column delta_x at
+       either end also gets zero weight: the outermost columns of a swath
+       solution can be off by many times the flux, and even a 1/(swath/2)
+       share of that shows as a spike at every swath join. */
+    for (i=delta_x+1; i < swath/2; i++) {
+        j = i - delta_x;
         cpl_vector_set(weights_sw, i, j);
         cpl_vector_set(weights_sw, swath - i - 1, j);
     }
-    // normalize such that max(w)=1
-    cpl_vector_divide_scalar(weights_sw, swath/2 - delta_x + 1);
-
-    // assert cpl_vector_get_sum(weights_sw) == swath / 2 - delta_x
+    // normalize such that max(w)=1, which makes overlapping swaths sum to 1
+    cpl_vector_divide_scalar(weights_sw, swath/2 - delta_x - 1);
     // Assign memory for extract_curved algorithm
     // Since the arrays always have the same size, we can reuse allocated memory
     ny = oversample * (height + 1) + 1;
@@ -2003,7 +2004,7 @@ int cr2res_extract_slitdec_curved(
 
         if (nswaths==1) ; // no weighting if only one swath 
         else if (i==0){ // first and last half swath are not weighted
-            for (j = 0; j < delta_x; j++)
+            for (j = 0; j <= delta_x; j++)
             {
                 cpl_vector_set(spec_sw, j, 0);
                 cpl_vector_set(unc_sw, j, 0.);
