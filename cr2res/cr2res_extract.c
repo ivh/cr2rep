@@ -33,6 +33,7 @@
  -----------------------------------------------------------------------------*/
 #include <limits.h>
 #include <math.h>
+#include <strings.h>
 #include <cpl.h>
 
 #include "irplib_utils.h"
@@ -109,8 +110,11 @@ static int cr2res_extract_slit_func_curved(
         double      sP_stop,
         int         maxiter,
         double      kappa,
+        cr2res_extr_weights weights,
+        double      noise_floor,
         const double   *  slit_func_in,
         double    *  sP_old,
+        double    *  wbuf,
         double    *  l_Aij,
         double    *  p_Aij,
         double    *  l_bj,
@@ -177,6 +181,10 @@ static int cr2res_extract_slitdec_adjust_swath(
   @param    pclip           pclip for optimal extraction
   @param    smooth_slit     smoothing along slit
   @param    smooth_spec     smoothing along spectrum
+  @param    niter           maximum number of iterations
+  @param    kappa           outlier rejection threshold in sigma
+  @param    weights         pixel weights of the slit decomposition
+  @param    noise_floor     read-noise variance for model weights, <0: auto
   @param    error_factor    Factor to get errors scale correctly
   @param    display         Flag to allow display
   @param    disp_order_idx  The order index to display
@@ -206,6 +214,8 @@ int cr2res_extract_traces(
         double                  smooth_spec,
         int                     niter,
         double                  kappa,
+        cr2res_extr_weights     weights,
+        double                  noise_floor,
         double                  error_factor,
         int                     display,
         int                     disp_order_idx,
@@ -323,7 +333,7 @@ int cr2res_extract_traces(
             if (cr2res_extract_slitdec_curved(img, traces, slit_func_in_vec,
                         order, trace_id, extr_height, swath_width,
                         oversample, pclip, smooth_slit, smooth_spec,
-                        niter, kappa, error_factor,
+                        niter, kappa, weights, noise_floor, error_factor,
                         &(slit_func_vec[i]),
                         &(spectrum[i]), &model_loc_one) != 0) {
                 cpl_msg_error(__func__,
@@ -1405,6 +1415,23 @@ int cr2res_extract_SLIT_FUNC_get_vector(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Parse the extraction weights parameter
+  @param    str     NONE, UNC, MODEL or FLUX (case-insensitive)
+  @return   The weights mode, or -1 if not recognised
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_extract_weights_from_string(const char * str)
+{
+    if (str == NULL) return -1 ;
+    if (!strcasecmp(str, "NONE"))  return CR2RES_EXTR_WEIGHTS_NONE ;
+    if (!strcasecmp(str, "UNC"))   return CR2RES_EXTR_WEIGHTS_UNC ;
+    if (!strcasecmp(str, "MODEL")) return CR2RES_EXTR_WEIGHTS_MODEL ;
+    if (!strcasecmp(str, "FLUX"))  return CR2RES_EXTR_WEIGHTS_FLUX ;
+    return -1 ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Extract optimally (slit-decomposition) with polynomial slit
   @param    img_in      full detector image
   @param    trace_tab   The traces table
@@ -1416,6 +1443,13 @@ int cr2res_extract_SLIT_FUNC_get_vector(
   @param    oversample  factor for oversampling
   @param    smooth_slit smoothing along slit
   @param    smooth_spec smoothing along spectrum
+  @param    niter       maximum number of iterations
+  @param    kappa       outlier rejection threshold in sigma
+  @param    weights     pixel weights in the sL and sP solves (see
+                        cr2res_extract_slit_func_curved)
+  @param    noise_floor read-noise variance in the units of the image for
+                        CR2RES_EXTR_WEIGHTS_MODEL, < 0 for the 5th percentile
+                        of the squared pixel errors
   @param    error_factor        error_factor
   @param    slit_func   the returned slit function
   @param    spec        the returned spectrum
@@ -1455,6 +1489,8 @@ int cr2res_extract_slitdec_curved(
         double                  smooth_spec,
         int                     niter,
         double                  kappa,
+        cr2res_extr_weights     weights,
+        double                  noise_floor,
         double                  error_factor,
         cpl_vector          **  slit_func,
         cpl_bivector        **  spec,
@@ -1492,6 +1528,7 @@ int cr2res_extract_slitdec_curved(
     hdrl_image      *   model_out;
     cpl_bivector    *   spectrum_loc;
     double          *   sP_old;
+    double          *   wbuf;
     double          *   l_Aij;
     double          *   p_Aij;
     double          *   l_bj;
@@ -1733,6 +1770,8 @@ int cr2res_extract_slitdec_curved(
     if (nx_alloc < 3) nx_alloc = 3;
 
     sP_old = cpl_malloc(swath * sizeof(double));
+    wbuf = weights == CR2RES_EXTR_WEIGHTS_NONE ? NULL :
+        cpl_malloc((size_t)swath * height * sizeof(double));
     l_Aij  = cpl_malloc(ny * (4*oversample+1) * sizeof(double));
     p_Aij  = cpl_malloc(swath * nx_alloc * sizeof(double));
     l_bj   = cpl_malloc(ny * sizeof(double));
@@ -1894,9 +1933,9 @@ int cr2res_extract_slitdec_curved(
                 img_sw_data, err_sw_data, mask_sw, ycen_sw, ycen_offset_sw,
                 y_lower_limit, slitcurve_sw, delta_x, slitfu_sw_data,
                 spec_sw_data, model_sw, unc_sw_data, smooth_spec, smooth_slit,
-                5.e-5, niter, kappa, slit_func_in, sP_old, l_Aij, p_Aij, l_bj,
-                p_bj, zw, zk, zeta, m_zeta, z_rng, k0col, d1col,
-                flat_scratch);
+                5.e-5, niter, kappa, weights, noise_floor, slit_func_in,
+                sP_old, wbuf, l_Aij, p_Aij, l_bj, p_bj, zw, zk, zeta, m_zeta,
+                z_rng, k0col, d1col, flat_scratch);
 
         // add up slit-functions, divide by nswaths below to get average
         if (i==0) cpl_vector_copy(slitfu,slitfu_sw);
@@ -2044,6 +2083,7 @@ int cr2res_extract_slitdec_curved(
 
     // Deallocate loop memory
     cpl_free(sP_old);
+    cpl_free(wbuf);
     cpl_free(l_Aij);
     cpl_free(p_Aij);
     cpl_free(l_bj);
@@ -2776,6 +2816,28 @@ static int cr2res_extract_zeta_tensors(
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Scale the positive weights to mean 1
+ */
+/*----------------------------------------------------------------------------*/
+static void cr2res_extract_normalise_weights(
+        double  *   w,
+        int         n)
+{
+    double wsum = 0.e0;
+    int i, nw = 0;
+
+    for (i = 0; i < n; i++)
+        if (w[i] > 0.e0) {
+            wsum += w[i];
+            nw++;
+        }
+    if (nw > 0 && wsum > 0.e0)
+        for (i = 0; i < n; i++)
+            w[i] *= nw / wsum;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Fast path for exactly flat geometry: per-column geometry
 
   When every horizontal shift is exactly zero (all curvature coefficients are
@@ -2820,7 +2882,8 @@ static void cr2res_extract_flat_setup(
   band rows k0..k0+osample. Per detector row y and per k0-class c the weight
   products are polynomials in d1 of degree <= 2, so all contributions of one
   row collapse into 5 moments per class:
-  M{0,1,2} = sum mask*sP^2*d1^{0,1,2}, R{0,1} = sum mask*im*sP*d1^{0,1}.
+  M{0,1,2} = sum mask*w*sP^2*d1^{0,1,2}, R{0,1} = sum mask*w*im*sP*d1^{0,1},
+  with w the pixel weight (1 if wpix is NULL).
  */
 /*----------------------------------------------------------------------------*/
 static void cr2res_extract_flat_fill_sL(
@@ -2829,6 +2892,7 @@ static void cr2res_extract_flat_fill_sL(
         int             osample,
         const double *  im,
         const int    *  mask,
+        const double *  wpix,
         const double *  sP,
         const int    *  k0col,
         const double *  d1col,
@@ -2852,14 +2916,15 @@ static void cr2res_extract_flat_fill_sL(
         for (c = 0; c < 4 * nc; c++)
             M0[c] = M1[c] = M2[c] = R0[c] = R1[c] = 0.e0;
         for (x = 0; x < ncols; x++) {
-            double a, b, dd;
+            double a, b, dd, wv;
             int cc;
             if (!mrow[x])
                 continue;
             cc = k0col[x] + nc * (x & 3);
             dd = d1col[x];
-            a = sP[x] * sP[x];
-            b = imrow[x] * sP[x];
+            wv = wpix ? wpix[(size_t)y * ncols + x] : 1.e0;
+            a = wv * sP[x] * sP[x];
+            b = wv * imrow[x] * sP[x];
             M0[cc] += a;
             M1[cc] += a * dd;
             M2[cc] += a * dd * dd;
@@ -2948,6 +3013,7 @@ static void cr2res_extract_flat_fill_sP(
         int             nx,
         const double *  im,
         const int    *  mask,
+        const double *  wpix,
         const double *  sL,
         const int    *  k0col,
         const double *  d1col,
@@ -2963,12 +3029,13 @@ static void cr2res_extract_flat_fill_sP(
         const int * mrow = mask + (size_t)y * ncols;
         cr2res_extract_flat_row_AB(y, osample, sL, A, B);
         for (x = 0; x < ncols; x++) {
-            double v;
+            double v, wv;
             if (!mrow[x])
                 continue;
             v = A[k0col[x]] + d1col[x] * B[k0col[x]];
-            p_Aij[(size_t)x * nx + bx] += v * v;
-            p_bj[x] += imrow[x] * v;
+            wv = wpix ? wpix[(size_t)y * ncols + x] : 1.e0;
+            p_Aij[(size_t)x * nx + bx] += wv * v * v;
+            p_bj[x] += wv * imrow[x] * v;
         }
     }
 }
@@ -3026,7 +3093,29 @@ static void cr2res_extract_flat_model(
   @param lambda_sL  Smoothing parameter for the slit function, usually>0
   @param maxiter    Maximum number of iterations
   @param kappa      Outlier rejection threshold in sigma, <= 0 disables
+  @param weights    Pixel weights in the sL and sP solves, normalised to
+                    mean 1 over the usable pixels:
+                    NONE: unweighted, the historic solution; every row enters
+                      sP with weight ~sL, so its line profile with ~sL^2,
+                      which favours the bright rows where the line shape
+                      varies along the slit.
+                    UNC: static 1/pix_unc^2. Uncertainties computed from the
+                      noisy data are correlated with the noise and distort
+                      line profiles.
+                    MODEL: 1/(max(model, 0) + noise_floor), noise-optimal,
+                      but the LSF moves with S/N. Only knows the decomposed
+                      object: light from anything else in the swath looks
+                      faint and gets large weights.
+                    FLUX: 1/(slit-function value): the bright-source LSF,
+                      independent of S/N, at some noise cost for faint data.
+                    MODEL and FLUX start unweighted and are refreshed after
+                    every iteration.
+  @param noise_floor    Read-noise variance in the units of im for MODEL;
+                    < 0: the 5th percentile of pix_unc^2 over usable pixels
   @param slit_func_in   Fixed slit function to use, or NULL to solve for it
+  @param sP_old     Pre-allocated work array [ncols]
+  @param wbuf       Pre-allocated weight array [nrows][ncols], or NULL
+                    for NONE
   @param l_Aij p_Aij l_bj p_bj  Pre-allocated SLE work arrays
   @param zw zk     Pre-allocated scratch buffers of size 3*(osample+1)
   @param zeta m_zeta z_rng  Pre-allocated zeta tensor arrays
@@ -3064,8 +3153,11 @@ static int cr2res_extract_slit_func_curved(
         double      sP_stop,
         int         maxiter,
         double      kappa,
+        cr2res_extr_weights weights,
+        double      noise_floor,
         const double  *   slit_func_in,
         double    *  sP_old,
+        double    *  wbuf,
         double    *  l_Aij,
         double    *  p_Aij,
         double    *  l_bj,
@@ -3081,6 +3173,8 @@ static int cr2res_extract_slit_func_curved(
 {
     int x, xx, y, yy, iy, n, m, nk, mz, ny, nx, bx;
     int fast_flat;
+    const int npix = ncols * nrows;
+    double * wpix = NULL;
     double norm, lambda, diag_tot, ww, dev, cost, tmp, sum;
     double sP_change, sP_med;
     cpl_vector * tmp_vec;
@@ -3201,6 +3295,38 @@ static int cr2res_extract_slit_func_curved(
         pos_sort_vec = NULL;
     }
 
+    /* Optional pixel weights, normalised to mean 1 over the usable pixels
+       so that lambda_sL (scaled with the matrix diagonal) keeps its meaning.
+       wpix is what the fills use (NULL: unweighted, bit-identical to the
+       historic solution); wbuf owns the memory. MODEL and FLUX are
+       refreshed from the model after every iteration, so the first
+       iteration is unweighted. The model sets the shape of the variance
+       (photon noise; a gain is a global factor and drops out), noise_floor
+       the read-noise level in the units of im. */
+    if (weights == CR2RES_EXTR_WEIGHTS_UNC) {
+        for (n = 0; n < npix; n++) {
+            const double u = pix_unc[n];
+            wbuf[n] = (mask[n] && isfinite(u) && u > 0.e0) ?
+                1.e0 / (u * u) : 0.e0;
+        }
+        cr2res_extract_normalise_weights(wbuf, npix);
+        wpix = wbuf;
+    } else if (weights == CR2RES_EXTR_WEIGHTS_MODEL && !(noise_floor >= 0.e0)) {
+        nk = 0;
+        for (n = 0; n < npix; n++) {
+            const double u = pix_unc[n];
+            if (mask[n] && isfinite(u) && u > 0.e0)
+                wbuf[nk++] = u * u;
+        }
+        noise_floor = 0.e0;
+        if (nk > 0) {
+            tmp_vec = cpl_vector_wrap(nk, wbuf);
+            cpl_vector_sort(tmp_vec, CPL_SORT_ASCENDING);
+            noise_floor = wbuf[(int)(0.05 * (nk - 1))];
+            cpl_vector_unwrap(tmp_vec);
+        }
+    }
+
     /* Loop through sL , sP reconstruction until convergence is reached */
     iter = 0;
     do {
@@ -3225,19 +3351,20 @@ static int cr2res_extract_slit_func_curved(
                order also reads it sequentially. */
             if (fast_flat)
                 cr2res_extract_flat_fill_sL(ncols, nrows, osample, im, mask,
-                        sP, k0col, d1col, flat_scratch, l_Aij, l_bj);
+                        wpix, sP, k0col, d1col, flat_scratch, l_Aij, l_bj);
             else
             for (yy = 0; yy < nrows; yy++) {
                 for (xx = 0; xx < ncols; xx++) {
                     const zeta_ref *zrow;
                     const zeta_rng *zr;
-                    double imv;
+                    double imv, wv;
                     int k0, rng;
                     mz = m_zeta[mzeta_index(xx, yy)];
                     if (mz <= 0 || !mask[yy * ncols + xx])
                         continue;
                     zrow = &zeta[zeta_index(xx, yy, 0)];
                     imv = im[yy * ncols + xx];
+                    wv = wpix ? wpix[yy * ncols + xx] : 1.e0;
                     /* Merge entries sharing the same subpixel index iy: only
                        the summed weight enters both the matrix and the RHS.
                        The iy of one pixel span at most 2*osample+1 indices
@@ -3259,7 +3386,7 @@ static int cr2res_extract_slit_func_curved(
                            entries between actual keys are zero and add
                            exactly nothing. */
                         for (m = 0; m <= rng; m++) {
-                            const double um = zw[m];
+                            const double um = wv * zw[m];
                             const double *restrict uv = zw + m;
                             double *restrict arow =
                                 &l_Aij[laij_index(k0 + m, 2 * osample)];
@@ -3294,8 +3421,9 @@ static int cr2res_extract_slit_func_curved(
                     }
                     for (m = 0; m < nk; m++) {
                         const double um = zw[m];
+                        const double wum = wv * um;
                         iy = zk[m];
-                        l_Aij[laij_index(iy, 2 * osample)] += um * um;
+                        l_Aij[laij_index(iy, 2 * osample)] += wum * um;
                         for (n = m + 1; n < nk; n++) {
                             const int iyn = zk[n];
                             const int lo = min(iy, iyn);
@@ -3306,9 +3434,9 @@ static int cr2res_extract_slit_func_curved(
                             if (d > 2 * osample)
                                 continue;
                             l_Aij[laij_index(lo, d + 2 * osample)] +=
-                                zw[n] * um;
+                                zw[n] * wum;
                         }
-                        l_bj[iy] += imv * um;
+                        l_bj[iy] += imv * wum;
                     }
                 }
             }
@@ -3380,19 +3508,20 @@ static int cr2res_extract_slit_func_curved(
            xx), so the row sweep also walks p_Aij near-sequentially. */
         if (fast_flat)
             cr2res_extract_flat_fill_sP(ncols, nrows, osample, bx, nx, im,
-                    mask, sL, k0col, d1col, flat_scratch, p_Aij, p_bj);
+                    mask, wpix, sL, k0col, d1col, flat_scratch, p_Aij, p_bj);
         else
         for (yy = 0; yy < nrows; yy++) {
             for (xx = 0; xx < ncols; xx++) {
                 const zeta_ref *zrow;
                 const zeta_rng *zr;
-                double imv;
+                double imv, wv;
                 int k0, rng;
                 mz = m_zeta[mzeta_index(xx, yy)];
                 if (mz <= 0 || !mask[yy * ncols + xx])
                     continue;
                 zrow = &zeta[zeta_index(xx, yy, 0)];
                 imv = im[yy * ncols + xx];
+                wv = wpix ? wpix[yy * ncols + xx] : 1.e0;
                 /* Merge entries sharing the same source column x; with small
                    curvature this collapses the list to just a few entries.
                    Sources span at most bx+1 columns -- that is how the band
@@ -3408,7 +3537,7 @@ static int cr2res_extract_slit_func_curved(
                 /* Symmetric matrix: upper bands only, mirrored after
                    the fill */
                 for (m = 0; m <= rng; m++) {
-                    const double um = zw[m];
+                    const double um = wv * zw[m];
                     const double *restrict uv = zw + m;
                     double *restrict arow = &p_Aij[paij_index(k0 + m, bx)];
                     const int dmax = rng - m;
@@ -3497,6 +3626,48 @@ static int cr2res_extract_slit_func_curved(
                 }
                 model[y * ncols + x] = acc;
             }
+        }
+
+        /* Model-variance or flux weights for the next iteration */
+        if (weights == CR2RES_EXTR_WEIGHTS_MODEL) {
+            for (n = 0; n < npix; n++)
+                wbuf[n] = mask[n] ?
+                    1.e0 / (fmax(model[n], 0.e0) + noise_floor) : 0.e0;
+            cr2res_extract_normalise_weights(wbuf, npix);
+            wpix = wbuf;
+        } else if (weights == CR2RES_EXTR_WEIGHTS_FLUX) {
+            /* 1/v with v the slit-function value of the pixel (model /
+               spectrum), floored at 1e-3 of its maximum: rows enter sP in
+               proportion to their flux at any S/N */
+            double vmax = 0.e0, vfloor;
+            if (fast_flat) {
+                double * A = flat_scratch, * B = A + osample + 1;
+                for (y = 0; y < nrows; y++) {
+                    cr2res_extract_flat_row_AB(y, osample, sL, A, B);
+                    for (x = 0; x < ncols; x++)
+                        wbuf[y * ncols + x] =
+                            A[k0col[x]] + d1col[x] * B[k0col[x]];
+                }
+            } else
+            for (y = 0; y < nrows; y++) {
+                for (x = 0; x < ncols; x++) {
+                    const zeta_ref *zrow = &zeta[zeta_index(x, y, 0)];
+                    double acc = 0.;
+                    mz = m_zeta[mzeta_index(x, y)];
+                    for (m = 0; m < mz; m++)
+                        acc += sL[zrow[m].iy] * zrow[m].w;
+                    wbuf[y * ncols + x] = acc;
+                }
+            }
+            for (n = 0; n < npix; n++)
+                if (mask[n] && wbuf[n] > vmax)
+                    vmax = wbuf[n];
+            vfloor = 1.e-3 * vmax;
+            for (n = 0; n < npix; n++)
+                wbuf[n] = (mask[n] && vmax > 0.e0) ?
+                    1.e0 / fmax(wbuf[n], vfloor) : 0.e0;
+            cr2res_extract_normalise_weights(wbuf, npix);
+            wpix = wbuf;
         }
 
         /* Compare model and data: reduced chi-square as convergence

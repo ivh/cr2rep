@@ -81,6 +81,7 @@ static int cr2res_obs_pol_reduce(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        cr2res_extr_weights     extract_weights,
         int                     save_group,
         int                     reduce_det,
         hdrl_image          **  in_calib_1_a,
@@ -145,6 +146,7 @@ static int cr2res_obs_pol_reduce_one(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        cr2res_extr_weights     extract_weights,
         int                     save_group,
         int                     reduce_det,
         hdrl_image          *** in_calib,
@@ -389,6 +391,16 @@ static int cr2res_obs_pol_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_enum("cr2res.cr2res_obs_pol.extract_weights",
+            CPL_TYPE_STRING, "Pixel weights of the slit decomposition "
+            "(NONE / UNC: 1/err^2 / MODEL: 1/(model+noise floor), "
+            "noise-optimal / FLUX: S/N-independent LSF)",
+            "cr2res.cr2res_obs_pol", "NONE", 4, "NONE", "UNC", "MODEL",
+            "FLUX");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_weights");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_pol.extract_smooth_slit",
             CPL_TYPE_DOUBLE, "Smoothing along the slit",
             "cr2res.cr2res_obs_pol", 2.0);
@@ -476,6 +488,7 @@ static int cr2res_obs_pol(
                             extract_height, reduce_det, create_idp, 
                             subtract_nolight_rows,
                             subtract_interorder_column, save_group ;
+    cr2res_extr_weights     extract_weights ;
     double                  extract_smooth_slit, extract_smooth_spec,
                             extract_pclip ;
     double                  barycorr;
@@ -566,6 +579,10 @@ static int cr2res_obs_pol(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_pol.extract_smooth_spec");
     extract_smooth_spec = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_pol.extract_weights");
+    extract_weights = cr2res_extract_weights_from_string(
+            cpl_parameter_get_string(param));
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_pol.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -671,7 +688,7 @@ static int cr2res_obs_pol(
                     subtract_nolight_rows, subtract_interorder_column, 
                     cosmics, extract_oversample, extract_pclip, extract_swath_width, 
                     extract_height, extract_smooth_slit, 
-                    extract_smooth_spec, save_group, det_nr,
+                    extract_smooth_spec, extract_weights, save_group, det_nr,
                     &(in_calib_1_a[det_nr-1]),
                     &(in_calib_2_a[det_nr-1]),
                     &(in_calib_3_a[det_nr-1]),
@@ -1135,6 +1152,7 @@ static int cr2res_obs_pol(
   @param extract_height         Extraction related
   @param extract_smooth_slit    Extraction related
   @param extract_smooth_spec    Extraction related
+  @param extract_weights    Extraction: pixel weights
   @param save_group             Group for which extra products will be saved
   @param reduce_det             The detector to compute
   @param in_calib_[1-4]_a       [out] the calibrated image (A)
@@ -1167,6 +1185,7 @@ static int cr2res_obs_pol_reduce(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        cr2res_extr_weights     extract_weights,
         int                     save_group,
         int                     reduce_det,
         hdrl_image          **  in_calib_1_a,
@@ -1275,7 +1294,7 @@ static int cr2res_obs_pol_reduce(
                 master_flat_frame, bpm_frame, blaze_frame, 
                 subtract_nolight_rows, subtract_interorder_column, cosmics, 
                 extract_oversample, extract_pclip, extract_swath_width, extract_height, 
-                extract_smooth_slit, extract_smooth_spec, save_group,
+                extract_smooth_slit, extract_smooth_spec, extract_weights, save_group,
                 reduce_det, 
                 &in_calib_a_loc, &trace_wave_a_loc, &extract1D_a_loc, 
                 &pol_speca_loc, &ext_plista_loc) == -1) {
@@ -1291,7 +1310,7 @@ static int cr2res_obs_pol_reduce(
                 master_flat_frame, bpm_frame, blaze_frame,
                 subtract_nolight_rows, subtract_interorder_column, cosmics,
                 extract_oversample, extract_pclip, extract_swath_width, extract_height,
-                extract_smooth_slit, extract_smooth_spec, save_group, 
+                extract_smooth_slit, extract_smooth_spec, extract_weights, save_group, 
                 reduce_det, 
                 &in_calib_b_loc, &trace_wave_b_loc, &extract1D_b_loc, 
                 &pol_specb_loc, &ext_plistb_loc) == -1) {
@@ -1385,6 +1404,7 @@ static int cr2res_obs_pol_reduce(
   @param extract_height         Extraction related
   @param extract_smooth_slit    Extraction related
   @param extract_smooth_spec    Extraction related
+  @param extract_weights    Extraction: pixel weights
   @param save_group             Group for which extra products will be saved
   @param reduce_det             The detector to compute
   @param in_calib   [out] the array of the 4 calibrated images of a group 
@@ -1413,6 +1433,7 @@ static int cr2res_obs_pol_reduce_one(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        cr2res_extr_weights     extract_weights,
         int                     save_group,
         int                     reduce_det,
         hdrl_image          *** in_calib,
@@ -1788,7 +1809,8 @@ static int cr2res_obs_pol_reduce_one(
                     NULL, blaze_table, blaze_norm, -1, -1, CR2RES_EXTR_OPT_CURV,
                     extract_height, extract_swath_width, extract_oversample, extract_pclip,
                     extract_smooth_slit, extract_smooth_spec,
-                    extract_niter, extract_kappa, error_factor, 0, 0, 0, 
+                    extract_niter, extract_kappa, extract_weights, -1.0,
+                    error_factor, 0, 0, 0, 
                     &(extract_1d[2*j]), &slit_func, &model_master) == -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j] = NULL ;
@@ -1818,7 +1840,8 @@ static int cr2res_obs_pol_reduce_one(
                     CR2RES_EXTR_OPT_CURV, extract_height, 
                     extract_swath_width, extract_oversample, extract_pclip,
                     extract_smooth_slit, extract_smooth_spec,
-                    extract_niter, extract_kappa, error_factor, 0, 0, 0, 
+                    extract_niter, extract_kappa, extract_weights, -1.0,
+                    error_factor, 0, 0, 0, 
                     &(extract_1d[2*j+1]), &slit_func, &model_master)== -1) {
                 cpl_msg_error(__func__, "Failed Extraction") ;
                 extract_1d[2*j+1] = NULL ;

@@ -38,6 +38,14 @@ typedef enum {
     CR2RES_EXTR_OPT_CURV,
 } cr2res_extr_method ;
 
+/* Pixel weights in the slit-decomposition solves */
+typedef enum {
+    CR2RES_EXTR_WEIGHTS_NONE,
+    CR2RES_EXTR_WEIGHTS_UNC,
+    CR2RES_EXTR_WEIGHTS_MODEL,
+    CR2RES_EXTR_WEIGHTS_FLUX,
+} cr2res_extr_weights ;
+
 /*-----------------------------------------------------------------------------
                                        Prototypes
  -----------------------------------------------------------------------------*/
@@ -59,6 +67,8 @@ int cr2res_extract_traces(
         double                  smooth_spec,
         int                     niter,
         double                  kappa,
+        cr2res_extr_weights     weights,
+        double                  noise_floor,
         double                  gain,
         int                     display,
         int                     disp_order_idx,
@@ -111,6 +121,8 @@ int cr2res_extract_slitdec_curved(
         double                  smooth_spec,
         int                     niter,
         double                  kappa,
+        cr2res_extr_weights     weights,
+        double                  noise_floor,
         double                  gain,
         cpl_vector          **  slit_func,
         cpl_bivector        **  spec,
@@ -130,6 +142,8 @@ int cr2res_extract_EXTRACT1D_get_spectrum(
         int                     trace_nb,
         cpl_bivector        **  spec,
         cpl_bivector        **  spec_err) ;
+
+int cr2res_extract_weights_from_string(const char * str) ;
 
 int cr2res_extract_SLIT_FUNC_get_vector(
         const cpl_table     *   tab,

@@ -247,6 +247,16 @@ static int cr2res_util_extract_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_enum("cr2res.cr2res_util_extract.weights",
+            CPL_TYPE_STRING, "Pixel weights of the slit decomposition "
+            "(NONE / UNC: 1/err^2 / MODEL: 1/(model+noise floor), "
+            "noise-optimal / FLUX: S/N-independent LSF)",
+            "cr2res.cr2res_util_extract", "NONE", 4, "NONE", "UNC", "MODEL",
+            "FLUX");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "weights");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_util_extract.method",
             CPL_TYPE_STRING, "Extraction method (SUM / MEDIAN / TILTSUM / "
             "OPT_CURV )",
@@ -340,6 +350,7 @@ static int cr2res_util_extract(
     const cpl_parameter *   param;
     int                     oversample, swath_width, extr_height,
                             reduce_det, reduce_order, reduce_trace ;
+    cr2res_extr_weights     weights ;
     double                  smooth_slit, smooth_spec, slit_low, slit_up,
                             pclip, gain, error_factor ;
     cpl_array           *   slit_frac ;
@@ -380,6 +391,10 @@ static int cr2res_util_extract(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_extract.smooth_spec");
     smooth_spec = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_util_extract.weights");
+    weights = cr2res_extract_weights_from_string(
+            cpl_parameter_get_string(param));
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_util_extract.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -570,7 +585,8 @@ static int cr2res_util_extract(
                         slit_func_in, NULL, 0, reduce_order, reduce_trace, 
                         extr_method, extr_height, swath_width, oversample, pclip,
                         smooth_slit, smooth_spec,
-                        extract_niter, extract_kappa, error_factor, 0, 0, 0, 
+                        extract_niter, extract_kappa, weights, -1.0,
+                    error_factor, 0, 0, 0, 
                         &(extract_tab[det_nr-1]), &(slit_func_tab[det_nr-1]), 
                         &(model_master[det_nr-1]))==-1) {
                 cpl_table_delete(trace_table) ;

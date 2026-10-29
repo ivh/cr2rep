@@ -1437,7 +1437,8 @@ static int cr2res_cal_wave_reduce(
                     reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
                     ext_height, ext_swath_width, ext_oversample, 0.0,
                     ext_smooth_slit, ext_smooth_spec,
-                    extract_niter, extract_kappa, error_factor, 0, 0, 0,
+                    extract_niter, extract_kappa, CR2RES_EXTR_WEIGHTS_NONE, -1.0,
+                    error_factor, 0, 0, 0,
                     &extracted_une, &slit_func_une, &model_master_une) == -1) {
             cpl_msg_error(__func__, "Failed to extract");
             hdrl_image_delete(collapsed_une) ;
@@ -1692,7 +1693,8 @@ static int cr2res_cal_wave_reduce(
                     reduce_order, reduce_trace, CR2RES_EXTR_OPT_CURV, 
                     ext_height, ext_swath_width, ext_oversample, 0.0,
                     ext_smooth_slit, ext_smooth_spec, 
-                    extract_niter, extract_kappa, error_factor, 0, 0, 0,
+                    extract_niter, extract_kappa, CR2RES_EXTR_WEIGHTS_NONE, -1.0,
+                    error_factor, 0, 0, 0,
                     &extracted_fpet, &slit_func_fpet, &model_master_fpet)==-1) {
             cpl_msg_error(__func__, "Failed to extract");
             cpl_table_delete(tw_in) ;

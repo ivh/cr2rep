@@ -82,6 +82,7 @@ static int cr2res_cal_flat_reduce(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        cr2res_extr_weights     extract_weights,
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
@@ -399,6 +400,16 @@ static int cr2res_cal_flat_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_enum("cr2res.cr2res_cal_flat.extract_weights",
+            CPL_TYPE_STRING, "Pixel weights of the slit decomposition "
+            "(NONE / UNC: 1/err^2 / MODEL: 1/(model+noise floor), "
+            "noise-optimal / FLUX: S/N-independent LSF)",
+            "cr2res.cr2res_cal_flat", "NONE", 4, "NONE", "UNC", "MODEL",
+            "FLUX");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_weights");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_cal_flat.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
             "cr2res.cr2res_cal_flat", 0);
@@ -484,6 +495,7 @@ static int cr2res_cal_flat(
     double                  bpm_low, bpm_high, bpm_lines_ratio,
                             trace_threshold, extract_smooth_slit,
                             extract_smooth_spec ;
+    cr2res_extr_weights     extract_weights ;
     cr2res_extr_method      extr_method;
     const char          *   sval ;
     const cpl_frame     *   trace_wave_frame ;
@@ -600,6 +612,10 @@ static int cr2res_cal_flat(
             "cr2res.cr2res_cal_flat.extract_smooth_spec");
     extract_smooth_spec = cpl_parameter_get_double(param);
     param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_cal_flat.extract_weights");
+    extract_weights = cr2res_extract_weights_from_string(
+            cpl_parameter_get_string(param));
+    param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_cal_flat.detector");
     reduce_det = cpl_parameter_get_int(param);
     param = cpl_parameterlist_find_const(parlist,
@@ -703,7 +719,8 @@ static int cr2res_cal_flat(
                             trace_smooth_x, trace_smooth_y, trace_threshold, 
                             trace_opening, extr_method, extract_oversample, 
                             extract_swath_width, extract_height, 
-                            extract_smooth_slit, extract_smooth_spec, det_nr, 
+                            extract_smooth_slit, extract_smooth_spec,
+                            extract_weights, det_nr, 
                             reduce_order, reduce_trace,
                             &(master_flat[det_nr-1]),
                             &(trace_wave[i][det_nr-1]),
@@ -1094,6 +1111,7 @@ static int cr2res_cal_flat(
   @param extract_height     Extraction related
   @param extract_smooth_slit     Extraction related
   @param extract_smooth_spec     Extraction related
+  @param extract_weights    Extraction: pixel weights
   @param reduce_det         The detector to compute
   @param reduce_order       The order to compute (-1 for all)
   @param reduce_trace       The trace to compute (-1 for all)
@@ -1131,6 +1149,7 @@ static int cr2res_cal_flat_reduce(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        cr2res_extr_weights     extract_weights,
         int                     reduce_det,
         int                     reduce_order,
         int                     reduce_trace,
@@ -1396,7 +1415,7 @@ static int cr2res_cal_flat_reduce(
                         trace_id, extract_height, extract_swath_width, 
                         extract_oversample, 0.0, extract_smooth_slit, 
                         extract_smooth_spec, extract_niter, extract_kappa,
-                        error_factor,
+                        extract_weights, -1.0, error_factor,
                         &(slit_func_vec[i]), &(spectrum[i]), &model_tmp) != 0) {
                 cpl_msg_error(__func__, "Cannot (slitdec-) extract the trace") ;
                 slit_func_vec[i] = NULL ;

@@ -84,6 +84,7 @@ static int cr2res_obs_nodding_reduce(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        cr2res_extr_weights     extract_weights,
         int                     extract_niter,
         double                  extract_kappa,
         int                     reduce_det,
@@ -381,6 +382,16 @@ static int cr2res_obs_nodding_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_enum("cr2res.cr2res_obs_nodding.extract_weights",
+            CPL_TYPE_STRING, "Pixel weights of the slit decomposition "
+            "(NONE / UNC: 1/err^2 / MODEL: 1/(model+noise floor), "
+            "noise-optimal / FLUX: S/N-independent LSF)",
+            "cr2res.cr2res_obs_nodding", "NONE", 4, "NONE", "UNC", "MODEL",
+            "FLUX");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_weights");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_nodding.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
             "cr2res.cr2res_obs_nodding", 0);
@@ -477,6 +488,7 @@ static int cr2res_obs_nodding(
                             nodding_invert, create_idp, subtract_nolight_rows,
                             subtract_interorder_column, cosmics,
                             error_method;
+    cr2res_extr_weights     extract_weights ;
     double                  extract_smooth_slit, extract_smooth_spec,
                             extract_pclip;
     double                  dit, gain;
@@ -546,6 +558,10 @@ static int cr2res_obs_nodding(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.extract_smooth_spec");
     extract_smooth_spec = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_nodding.extract_weights");
+    extract_weights = cr2res_extract_weights_from_string(
+            cpl_parameter_get_string(param));
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_nodding.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -684,7 +700,8 @@ static int cr2res_obs_nodding(
                     subtract_nolight_rows, subtract_interorder_column, cosmics,
                     error_method,
                     extract_oversample, extract_pclip, extract_swath_width, extract_height,
-                    extract_smooth_slit, extract_smooth_spec, extract_niter,
+                    extract_smooth_slit, extract_smooth_spec, extract_weights,
+                    extract_niter,
                     extract_kappa, det_nr, disp_det, disp_order_idx, disp_trace,
                     &(combineda[det_nr - 1]), &(extracta[det_nr - 1]),
                     &(slitfunca[det_nr - 1]), &(modela[det_nr - 1]),
@@ -1120,6 +1137,7 @@ static int cr2res_obs_nodding(
   @param extract_height         Extraction related
   @param extract_smooth_slit    Extraction: smoothing along slit
   @param extract_smooth_spec    Extraction: smoothing along spectrum
+  @param extract_weights    Extraction: pixel weights
   @param reduce_det             The detector to compute
   @param disp_det               The detector to display
   @param disp_order_idx         The order index to display
@@ -1158,6 +1176,7 @@ static int cr2res_obs_nodding_reduce(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        cr2res_extr_weights     extract_weights,
         int                     extract_niter,
         double                  extract_kappa,
         int                     reduce_det,
@@ -1576,7 +1595,8 @@ static int cr2res_obs_nodding_reduce(
     if (cr2res_extract_traces(collapsed_a, trace_wave_a, NULL, blaze_table, blaze_norm, -1,
                 -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_pclip, extract_smooth_slit, extract_smooth_spec,
-                extract_niter, extract_kappa, error_factor,
+                extract_niter, extract_kappa, extract_weights, -1.0,
+                    error_factor,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_a, &slit_func_a, &model_master_a) == -1) {
         cpl_msg_error(__func__, "Failed to extract A");
@@ -1595,7 +1615,8 @@ static int cr2res_obs_nodding_reduce(
     if (cr2res_extract_traces(collapsed_b, trace_wave_b, NULL, blaze_table, blaze_norm, -1,
                 -1, CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_pclip, extract_smooth_slit, extract_smooth_spec,
-                extract_niter, extract_kappa, error_factor,
+                extract_niter, extract_kappa, extract_weights, -1.0,
+                    error_factor,
                 disp_det==reduce_det, disp_order_idx, disp_trace,
                 &extracted_b, &slit_func_b, &model_master_b) == -1) {
         cpl_msg_error(__func__, "Failed to extract B");

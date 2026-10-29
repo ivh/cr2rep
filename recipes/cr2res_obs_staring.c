@@ -76,6 +76,7 @@ static int cr2res_obs_staring_reduce(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        cr2res_extr_weights     extract_weights,
         int                     reduce_det,
         hdrl_image          **  combined,
         cpl_table           **  extract,
@@ -310,6 +311,16 @@ static int cr2res_obs_staring_create(cpl_plugin * plugin)
     cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
     cpl_parameterlist_append(recipe->parameters, p);
 
+    p = cpl_parameter_new_enum("cr2res.cr2res_obs_staring.extract_weights",
+            CPL_TYPE_STRING, "Pixel weights of the slit decomposition "
+            "(NONE / UNC: 1/err^2 / MODEL: 1/(model+noise floor), "
+            "noise-optimal / FLUX: S/N-independent LSF)",
+            "cr2res.cr2res_obs_staring", "NONE", 4, "NONE", "UNC", "MODEL",
+            "FLUX");
+    cpl_parameter_set_alias(p, CPL_PARAMETER_MODE_CLI, "extract_weights");
+    cpl_parameter_disable(p, CPL_PARAMETER_MODE_ENV);
+    cpl_parameterlist_append(recipe->parameters, p);
+
     p = cpl_parameter_new_value("cr2res.cr2res_obs_staring.detector",
             CPL_TYPE_INT, "Only reduce the specified detector",
             "cr2res.cr2res_obs_staring", 0);
@@ -396,6 +407,7 @@ static int cr2res_obs_staring(
     int                     subtract_nolight_rows, subtract_interorder_column,
                             extract_oversample, create_idp, cosmics,
                             extract_swath_width, extract_height, reduce_det;
+    cr2res_extr_weights     extract_weights ;
     double                  extract_smooth_slit, extract_smooth_spec, 
                             extract_pclip, slit_low, slit_up ;
     double                  barycorr;
@@ -446,6 +458,10 @@ static int cr2res_obs_staring(
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.extract_smooth_spec");
     extract_smooth_spec = cpl_parameter_get_double(param);
+    param = cpl_parameterlist_find_const(parlist,
+            "cr2res.cr2res_obs_staring.extract_weights");
+    extract_weights = cr2res_extract_weights_from_string(
+            cpl_parameter_get_string(param));
     param = cpl_parameterlist_find_const(parlist,
             "cr2res.cr2res_obs_staring.detector");
     reduce_det = cpl_parameter_get_int(param);
@@ -533,7 +549,7 @@ static int cr2res_obs_staring(
                     subtract_nolight_rows, subtract_interorder_column,
                     cosmics, extract_oversample, extract_pclip,
                     extract_swath_width, extract_height, extract_smooth_slit, 
-                    extract_smooth_spec, det_nr,
+                    extract_smooth_spec, extract_weights, det_nr,
                     &(combined[det_nr-1]),
                     &(extract[det_nr-1]),
                     &(slitfunc[det_nr-1]),
@@ -684,6 +700,7 @@ static int cr2res_obs_staring(
   @param extract_height         Extraction related
   @param extract_smooth_slit    Extraction related
   @param extract_smooth_spec    Extraction related
+  @param extract_weights    Extraction: pixel weights
   @param reduce_det             The detector to compute
   @param extract                [out] extracted spectrum 
   @param slitfunc               [out] slit function
@@ -710,6 +727,7 @@ static int cr2res_obs_staring_reduce(
         int                     extract_height,
         double                  extract_smooth_slit,
         double                  extract_smooth_spec,
+        cr2res_extr_weights     extract_weights,
         int                     reduce_det,
         hdrl_image          **  combined,
         cpl_table           **  extract,
@@ -899,7 +917,8 @@ static int cr2res_obs_staring_reduce(
     if (cr2res_extract_traces(collapsed, trace_wave, NULL, blaze_table, blaze_norm, -1, -1,
                 CR2RES_EXTR_OPT_CURV, extract_height, extract_swath_width, 
                 extract_oversample, extract_pclip, extract_smooth_slit, extract_smooth_spec,
-                extract_niter, extract_kappa, error_factor, 
+                extract_niter, extract_kappa, extract_weights, -1.0,
+                    error_factor, 
                 0, 0, 0, &extracted, &slit_func, &model_master) == -1) {
         cpl_msg_error(__func__, "Failed to extract");
         hdrl_image_delete(collapsed) ;
