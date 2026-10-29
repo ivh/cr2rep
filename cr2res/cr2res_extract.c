@@ -33,6 +33,7 @@
  -----------------------------------------------------------------------------*/
 #include <limits.h>
 #include <math.h>
+#include <stdlib.h>
 #include <strings.h>
 #include <cpl.h>
 
@@ -1447,9 +1448,8 @@ int cr2res_extract_weights_from_string(const char * str)
   @param    kappa       outlier rejection threshold in sigma
   @param    weights     pixel weights in the sL and sP solves (see
                         cr2res_extract_slit_func_curved)
-  @param    noise_floor read-noise variance in the units of the image for
-                        CR2RES_EXTR_WEIGHTS_MODEL, < 0 for the 5th percentile
-                        of the squared pixel errors
+  @param    noise_floor variance offset in the units of the image for
+                        CR2RES_EXTR_WEIGHTS_MODEL, < 0 to fit it
   @param    error_factor        error_factor
   @param    slit_func   the returned slit function
   @param    spec        the returned spectrum
@@ -2836,6 +2836,103 @@ static void cr2res_extract_normalise_weights(
             w[i] *= nw / wsum;
 }
 
+static int cr2res_extract_cmp_pair(const void * p, const void * q)
+{
+    const double x = ((const double *)p)[0], y = ((const double *)q)[0];
+    return (x > y) - (x < y);
+}
+
+static int cr2res_extract_cmp_double(const void * p, const void * q)
+{
+    const double x = *(const double *)p, y = *(const double *)q;
+    return (x > y) - (x < y);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Fit pix_unc^2 = a * model + b over the usable pixels
+  @param    b_min   lower limit for b; if fix_b, b is fixed to it
+  @return   nothing, a >= 0 and b >= b_min on return
+
+  The model is the background-subtracted object, so the variance is affine
+  in it, not proportional: b carries read noise and the shot noise of any
+  subtracted background (nodding A-B), a = 1/(gain * frames combined).
+  The line is fitted to the medians of model and pix_unc^2 in bins of equal
+  pixel count along the model, because unmasked hot pixels with huge
+  pix_unc dominate a plain least-squares fit.
+ */
+/*----------------------------------------------------------------------------*/
+static void cr2res_extract_variance_fit(
+        const double    *   model,
+        const double    *   pix_unc,
+        const int       *   mask,
+        int                 npix,
+        double              b_min,
+        int                 fix_b,
+        double          *   a,
+        double          *   b)
+{
+    const int nbin_max = 32, nbin_min_pix = 32;
+    double * pv, * tmp, * bm, * bv;
+    double sm = 0., sv = 0., smm = 0., smv = 0., det;
+    int n, i, j, k, nk = 0, nbin;
+
+    *a = 0.e0;
+    *b = b_min;
+    pv = cpl_malloc(2 * npix * sizeof(double));
+    for (n = 0; n < npix; n++) {
+        const double u = pix_unc[n];
+        if (!mask[n] || !isfinite(u) || !(u > 0.e0) || !isfinite(model[n]))
+            continue;
+        pv[2 * nk] = model[n];
+        pv[2 * nk + 1] = u * u;
+        nk++;
+    }
+    nbin = nk / nbin_min_pix;
+    if (nbin > nbin_max) nbin = nbin_max;
+    if (nbin < 2) {
+        cpl_free(pv);
+        return;
+    }
+    qsort(pv, nk, 2 * sizeof(double), cr2res_extract_cmp_pair);
+
+    tmp = cpl_malloc((nk / nbin + 1) * sizeof(double));
+    bm = cpl_malloc(2 * nbin * sizeof(double));
+    bv = bm + nbin;
+    for (k = 0; k < nbin; k++) {
+        const int i0 = (int)((long)k * nk / nbin);
+        const int i1 = (int)((long)(k + 1) * nk / nbin);
+        const int nb = i1 - i0;
+        /* already sorted by model */
+        bm[k] = 0.5 * (pv[2 * (i0 + (nb - 1) / 2)] + pv[2 * (i0 + nb / 2)]);
+        for (i = i0, j = 0; i < i1; i++, j++) tmp[j] = pv[2 * i + 1];
+        qsort(tmp, nb, sizeof(double), cr2res_extract_cmp_double);
+        bv[k] = 0.5 * (tmp[(nb - 1) / 2] + tmp[nb / 2]);
+        sm += bm[k];
+        sv += bv[k];
+        smm += bm[k] * bm[k];
+        smv += bm[k] * bv[k];
+    }
+    cpl_free(tmp);
+    cpl_free(bm);
+    cpl_free(pv);
+
+    if (!fix_b) {
+        det = nbin * smm - sm * sm;
+        if (det > 0.e0) {
+            *a = (nbin * smv - sm * sv) / det;
+            *b = (sv - *a * sm) / nbin;
+        }
+        if (*a < 0.e0) {
+            *a = 0.e0;
+            *b = sv / nbin;
+        }
+        if (*b >= b_min) return;
+        *b = b_min;
+    }
+    if (smm > 0.e0) *a = fmax((smv - *b * sm) / smm, 0.e0);
+}
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Fast path for exactly flat geometry: per-column geometry
@@ -3102,7 +3199,8 @@ static void cr2res_extract_flat_model(
                     UNC: static 1/pix_unc^2. Uncertainties computed from the
                       noisy data are correlated with the noise and distort
                       line profiles.
-                    MODEL: 1/(max(model, 0) + noise_floor), noise-optimal,
+                    MODEL: 1/(a * max(model, 0) + b), with a, b fitted to
+                      pix_unc^2 each iteration; noise-optimal,
                       but the LSF moves with S/N. Only knows the decomposed
                       object: light from anything else in the swath looks
                       faint and gets large weights.
@@ -3110,8 +3208,9 @@ static void cr2res_extract_flat_model(
                       independent of S/N, at some noise cost for faint data.
                     MODEL and FLUX start unweighted and are refreshed after
                     every iteration.
-  @param noise_floor    Read-noise variance in the units of im for MODEL;
-                    < 0: the 5th percentile of pix_unc^2 over usable pixels
+  @param noise_floor    Variance offset b in the units of im for MODEL
+                    (read noise plus subtracted background); < 0: fitted,
+                    but not below the 5th percentile of pix_unc^2
   @param slit_func_in   Fixed slit function to use, or NULL to solve for it
   @param sP_old     Pre-allocated work array [ncols]
   @param wbuf       Pre-allocated weight array [nrows][ncols], or NULL
@@ -3172,7 +3271,7 @@ static int cr2res_extract_slit_func_curved(
         double    *  flat_scratch)
 {
     int x, xx, y, yy, iy, n, m, nk, mz, ny, nx, bx;
-    int fast_flat;
+    int fast_flat, fit_b = 0;
     const int npix = ncols * nrows;
     double * wpix = NULL;
     double norm, lambda, diag_tot, ww, dev, cost, tmp, sum;
@@ -3300,9 +3399,9 @@ static int cr2res_extract_slit_func_curved(
        wpix is what the fills use (NULL: unweighted, bit-identical to the
        historic solution); wbuf owns the memory. MODEL and FLUX are
        refreshed from the model after every iteration, so the first
-       iteration is unweighted. The model sets the shape of the variance
-       (photon noise; a gain is a global factor and drops out), noise_floor
-       the read-noise level in the units of im. */
+       iteration is unweighted. MODEL uses the variance a * model + b
+       fitted to pix_unc^2; the scale a matters next to b, since it sets
+       where the source shot noise takes over from the floor. */
     if (weights == CR2RES_EXTR_WEIGHTS_UNC) {
         for (n = 0; n < npix; n++) {
             const double u = pix_unc[n];
@@ -3312,6 +3411,7 @@ static int cr2res_extract_slit_func_curved(
         cr2res_extract_normalise_weights(wbuf, npix);
         wpix = wbuf;
     } else if (weights == CR2RES_EXTR_WEIGHTS_MODEL && !(noise_floor >= 0.e0)) {
+        fit_b = 1;
         nk = 0;
         for (n = 0; n < npix; n++) {
             const double u = pix_unc[n];
@@ -3630,9 +3730,13 @@ static int cr2res_extract_slit_func_curved(
 
         /* Model-variance or flux weights for the next iteration */
         if (weights == CR2RES_EXTR_WEIGHTS_MODEL) {
-            for (n = 0; n < npix; n++)
-                wbuf[n] = mask[n] ?
-                    1.e0 / (fmax(model[n], 0.e0) + noise_floor) : 0.e0;
+            double va, vb;
+            cr2res_extract_variance_fit(model, pix_unc, mask, npix,
+                    noise_floor, !fit_b, &va, &vb);
+            for (n = 0; n < npix; n++) {
+                const double v = va * fmax(model[n], 0.e0) + vb;
+                wbuf[n] = mask[n] && v > 0.e0 ? 1.e0 / v : 0.e0;
+            }
             cr2res_extract_normalise_weights(wbuf, npix);
             wpix = wbuf;
         } else if (weights == CR2RES_EXTR_WEIGHTS_FLUX) {
