@@ -1516,14 +1516,17 @@ static int cr2res_obs_pol_reduce_one(
         cpl_msg_error(__func__, "Cannot read the ORDER_ZP from the input TW") ;
         return -1 ;
     }
-    order_zp = cr2res_pfits_get_order_zp(plist) ;
-    cpl_propertylist_delete(plist) ;
-    if (cpl_error_get_code()) {
-        cpl_msg_error(__func__, "Missing ORDER_ZP in the header - Skip") ;
-        cpl_error_reset() ;
-        /* Negative Zerop to log the fact that it is missing */
-        order_zp = -100 ;
+    {
+        cpl_errorstate es = cpl_errorstate_get() ;
+        order_zp = cr2res_pfits_get_order_zp(plist) ;
+        if (!cpl_errorstate_is_equal(es)) {
+            cpl_errorstate_set(es) ;
+            order_zp = -100 ;
+        }
     }
+    cpl_propertylist_delete(plist) ;
+    if (order_zp == -100)
+        cpl_msg_error(__func__, "Missing ORDER_ZP in the header - Skip") ;
 
     /* Check number of frames */
     nframes = cpl_frameset_get_size(rawframes) ;
@@ -2110,15 +2113,18 @@ static int cr2res_obs_pol_reduce_one(
             spec_name = cr2res_dfs_POL_INTENS_colname(order_idxp);
             err_name = cr2res_dfs_POL_INTENS_ERROR_colname(order_idxp);
 
-            spec_vec = cpl_vector_wrap(cpl_table_get_nrow(pol_spec_merged),
-                cpl_table_get_data_double(pol_spec_merged, spec_name));
-            err_vec = cpl_vector_wrap(cpl_table_get_nrow(pol_spec_merged),
-                cpl_table_get_data_double(pol_spec_merged, err_name));
-            snr = cr2res_qc_compute_snr(spec_vec, err_vec);
+            snr = -1.0 ;
+            if (cpl_table_has_column(pol_spec_merged, spec_name) &&
+                    cpl_table_has_column(pol_spec_merged, err_name)) {
+                spec_vec = cpl_vector_wrap(cpl_table_get_nrow(pol_spec_merged),
+                    cpl_table_get_data_double(pol_spec_merged, spec_name));
+                err_vec = cpl_vector_wrap(cpl_table_get_nrow(pol_spec_merged),
+                    cpl_table_get_data_double(pol_spec_merged, err_name));
+                snr = cr2res_qc_compute_snr(spec_vec, err_vec);
+                cpl_vector_unwrap(spec_vec);
+                cpl_vector_unwrap(err_vec);
+            }
             cpl_propertylist_append_double(ext_plist_loc, key_name, snr);
-
-            cpl_vector_unwrap(spec_vec);
-            cpl_vector_unwrap(err_vec);
             cpl_free(key_name);
             cpl_free(spec_name) ;
             cpl_free(err_name) ;
