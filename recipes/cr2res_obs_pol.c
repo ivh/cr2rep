@@ -154,6 +154,12 @@ static int cr2res_obs_pol_reduce_one(
         cpl_table           *** extract1D,
         cpl_table           **  pol_spec,
         cpl_propertylist    **  ext_plist) ;
+static void cr2res_obs_pol_drop_edge_orders(
+        cpl_table           **  tws,
+        int                     n,
+        const hdrl_image    *   ima,
+        int                     height,
+        int                     reduce_det) ;
 static int cr2res_obs_pol_create(cpl_plugin *);
 static int cr2res_obs_pol_exec(cpl_plugin *);
 static int cr2res_obs_pol_destroy(cpl_plugin *);
@@ -1790,6 +1796,20 @@ static int cr2res_obs_pol_reduce_one(
             trace_wave_extract[j] = NULL;
         }
 
+        /* Demodulation needs all 8 beams of an order, so an order with any
+           beam beyond the detector edge is dropped from all of them */
+        for (j=0 ; j<CR2RES_POLARIMETRY_GROUP_SIZE ; j++) {
+            frame_idx = i * CR2RES_POLARIMETRY_GROUP_SIZE + pol_sorting[j] ;
+            trace_wave_extract[2*j] = cr2res_pol_get_beam_trace(trace_wave,
+                    decker_positions[frame_idx], 1);
+            trace_wave_extract[2*j+1] = cr2res_pol_get_beam_trace(trace_wave,
+                    decker_positions[frame_idx], 2);
+        }
+        cr2res_obs_pol_drop_edge_orders(trace_wave_extract, nspec_group,
+                hdrl_imagelist_get_const(in_calib_loc,
+                    i * CR2RES_POLARIMETRY_GROUP_SIZE + pol_sorting[0]),
+                extract_height, i == 0 ? reduce_det : 0) ;
+
         /* Loop on the frames */
         for (j=0 ; j<CR2RES_POLARIMETRY_GROUP_SIZE ; j++) {
             frame_idx = i * CR2RES_POLARIMETRY_GROUP_SIZE + pol_sorting[j] ;
@@ -1808,8 +1828,6 @@ static int cr2res_obs_pol_reduce_one(
                     fname, reduce_det, decker_name) ;
             cpl_free(decker_name) ;
             cpl_msg_indent_more();
-
-            trace_wave_extract[2 * j] = cr2res_pol_get_beam_trace(trace_wave, decker_positions[frame_idx], 1);
 
             /* Execute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
@@ -1839,8 +1857,6 @@ static int cr2res_obs_pol_reduce_one(
             cpl_free(decker_name) ;
             cpl_msg_indent_more() ;
            
-            trace_wave_extract[2*j+1] = cr2res_pol_get_beam_trace(trace_wave, decker_positions[frame_idx], 2);
-
             /* Execute the extraction */
             cpl_msg_info(__func__, "Spectra Extraction") ;
             if (cr2res_extract_traces(input_images[j],
@@ -2373,3 +2389,101 @@ static int cr2res_obs_pol_check_inputs_validity(
     return 1 ;
 }
 
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Remove orders with any beam that cannot be extracted
+  @param    tws         The n beam trace tables, modified in place
+  @param    n           Number of tables
+  @param    ima         Image whose mask is checked (may be NULL)
+  @param    height      Extraction height (<=0: trace height)
+  @param    reduce_det  Detector for the warning, 0 to stay silent
+
+  A beam is unusable if its window crosses the detector edge or if less
+  than half of its pixels are unmasked (e.g. an order the master flat does
+  not cover). Same criteria as the extraction, which would otherwise fail
+  on each beam with several error messages.
+ */
+/*----------------------------------------------------------------------------*/
+static void cr2res_obs_pol_drop_edge_orders(
+        cpl_table           **  tws,
+        int                     n,
+        const hdrl_image    *   ima,
+        int                     height,
+        int                     reduce_det)
+{
+    cpl_array   *   bad ;
+    const cpl_binary *  pmask ;
+    cpl_size        nbad, r, b ;
+    int             k ;
+
+    pmask = NULL ;
+    if (ima != NULL)
+        pmask = cpl_mask_get_data_const(hdrl_image_get_mask_const(ima)) ;
+
+    bad = cpl_array_new(0, CPL_TYPE_INT) ;
+    nbad = 0 ;
+    for (k=0 ; k<n ; k++) {
+        if (tws[k] == NULL) continue ;
+        for (r=0 ; r<cpl_table_get_nrow(tws[k]) ; r++) {
+            cpl_vector * ycen ;
+            double cen, h ;
+            int order, trace, known ;
+            order = cpl_table_get_int(tws[k], CR2RES_COL_ORDER, r, NULL) ;
+            trace = cpl_table_get_int(tws[k], CR2RES_COL_TRACENB, r, NULL) ;
+            ycen = cr2res_trace_get_ycen(tws[k], order, trace,
+                    CR2RES_DETECTOR_SIZE) ;
+            if (ycen == NULL) {
+                cpl_error_reset() ;
+                continue ;
+            }
+            cen = cpl_vector_get(ycen, cpl_vector_get_size(ycen)/2) ;
+            h = height > 0 ? height :
+                cr2res_trace_get_height(tws[k], order, trace) ;
+            if (cen - h/2 >= 0.0 && cen + h/2 <= CR2RES_DETECTOR_SIZE) {
+                cpl_size x, y, ngood = 0, ntot = 0 ;
+                if (pmask == NULL) {
+                    cpl_vector_delete(ycen) ;
+                    continue ;
+                }
+                for (x=0 ; x<CR2RES_DETECTOR_SIZE ; x++) {
+                    cpl_size y0 = (cpl_size)(cpl_vector_get(ycen, x) - h/2) ;
+                    for (y=y0 ; y<y0+(cpl_size)h ; y++) {
+                        ntot++ ;
+                        if (y >= 0 && y < CR2RES_DETECTOR_SIZE &&
+                                pmask[y*CR2RES_DETECTOR_SIZE+x] == CPL_BINARY_0)
+                            ngood++ ;
+                    }
+                }
+                cpl_vector_delete(ycen) ;
+                if (ngood >= 0.5 * ntot) continue ;
+            } else {
+                cpl_vector_delete(ycen) ;
+            }
+            known = 0 ;
+            for (b=0 ; b<nbad ; b++)
+                if (cpl_array_get_int(bad, b, NULL) == order) known = 1 ;
+            if (!known) {
+                cpl_array_set_size(bad, nbad+1) ;
+                cpl_array_set_int(bad, nbad++, order) ;
+            }
+        }
+    }
+
+    for (b=0 ; b<nbad ; b++) {
+        int order = cpl_array_get_int(bad, b, NULL) ;
+        if (reduce_det > 0)
+            cpl_msg_warning(__func__,
+                "Det %d, order %d: a beam is off the detector or masked, "
+                "order skipped",
+                reduce_det, cr2res_io_convert_order_idx_to_idxp(order)) ;
+        for (k=0 ; k<n ; k++) {
+            if (tws[k] == NULL) continue ;
+            cpl_table_unselect_all(tws[k]) ;
+            cpl_table_or_selected_int(tws[k], CR2RES_COL_ORDER,
+                    CPL_EQUAL_TO, order) ;
+            cpl_table_erase_selected(tws[k]) ;
+        }
+    }
+    cpl_array_delete(bad) ;
+}
