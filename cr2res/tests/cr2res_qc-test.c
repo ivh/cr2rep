@@ -25,6 +25,7 @@
                                 Includes
  -----------------------------------------------------------------------------*/
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <cpl.h>
@@ -46,6 +47,8 @@
 
 static void test_cr2res_dark_qc_ron(void);
 static void test_cr2res_qc_obs_nodding_slit_psf(void);
+static void test_cr2res_qc_pol_null_scatter(void);
+static void test_cr2res_qc_pol_beam_ratio(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -299,6 +302,68 @@ static void test_cr2res_qc_obs_nodding_slit_psf()
     cpl_table_delete(slitfu);
 }
 
+static void test_cr2res_qc_pol_null_scatter(void)
+{
+    cpl_size    i, n = 20000 ;
+    cpl_vector  *null = cpl_vector_new(n) ;
+    cpl_vector  *err = cpl_vector_new(n) ;
+    cpl_vector  *shrt = cpl_vector_new(5) ;
+
+    srand(1) ;
+    for (i=0 ; i<n ; i++) {
+        /* Box-Muller, true sigma 0.002, reported error 0.001 */
+        double u1 = (rand() + 1.0) / (RAND_MAX + 2.0) ;
+        double u2 = (rand() + 1.0) / (RAND_MAX + 2.0) ;
+        double g = sqrt(-2.0*log(u1)) * cos(2.0*CPL_MATH_PI*u2) ;
+        cpl_vector_set(null, i, 0.002 * g) ;
+        cpl_vector_set(err, i, 0.001) ;
+    }
+    /* Outliers and invalid pixels must not matter */
+    for (i=0 ; i<100 ; i++) cpl_vector_set(null, i, 1.0) ;
+    cpl_vector_set(null, 200, NAN) ;
+    cpl_vector_set(err, 201, 0.0) ;
+    cpl_test_abs(cr2res_qc_pol_null_scatter(null, err), 2.0, 0.05) ;
+    cpl_test_abs(cr2res_qc_pol_null_offset(null), 0.0, 1e-4) ;
+    cpl_vector_add_scalar(null, 0.003) ;
+    cpl_test_abs(cr2res_qc_pol_null_offset(null), 0.003, 1e-4) ;
+    cpl_test_abs(cr2res_qc_pol_null_scatter(null, err), 2.0, 0.05) ;
+
+    cpl_test_abs(cr2res_qc_pol_null_scatter(NULL, err), -1.0, 0) ;
+    cpl_vector_fill(shrt, 0.0) ;
+    cpl_test_abs(cr2res_qc_pol_null_scatter(shrt, shrt), -1.0, 0) ;
+
+    cpl_vector_delete(null) ;
+    cpl_vector_delete(err) ;
+    cpl_vector_delete(shrt) ;
+}
+
+static void test_cr2res_qc_pol_beam_ratio(void)
+{
+    cpl_vector  *intens[8] ;
+    double      g = 0.9, p = 0.05 ;
+    /* sign of the polarisation in the up beam: 1u, 2u, 3u, 4u */
+    int         sgn[4] = {1, -1, -1, 1} ;
+    int         j ;
+
+    for (j=0 ; j<4 ; j++) {
+        intens[2*j] = cpl_vector_new(100) ;
+        intens[2*j+1] = cpl_vector_new(100) ;
+        cpl_vector_fill(intens[2*j], 1000.0 * g * (1 + sgn[j]*p)) ;
+        cpl_vector_fill(intens[2*j+1], 1000.0 * (1 - sgn[j]*p)) ;
+    }
+    cpl_vector_set(intens[0], 3, NAN) ;
+    cpl_test_rel(cr2res_qc_pol_beam_ratio(intens, 8), g, 1e-12) ;
+
+    cpl_test_abs(cr2res_qc_pol_beam_ratio(intens, 7), -1.0, 0) ;
+    cpl_vector_fill(intens[5], 0.0) ;
+    cpl_test_abs(cr2res_qc_pol_beam_ratio(intens, 8), -1.0, 0) ;
+    cpl_vector_delete(intens[5]) ;
+    intens[5] = NULL ;
+    cpl_test_abs(cr2res_qc_pol_beam_ratio(intens, 8), -1.0, 0) ;
+
+    for (j=0 ; j<8 ; j++) cpl_vector_delete(intens[j]) ;
+}
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Run the Unit tests
@@ -310,6 +375,8 @@ int main(void)
 
     test_cr2res_dark_qc_ron();
     test_cr2res_qc_obs_nodding_slit_psf();
+    test_cr2res_qc_pol_null_scatter();
+    test_cr2res_qc_pol_beam_ratio();
 
     return cpl_test_end(0);
 }
