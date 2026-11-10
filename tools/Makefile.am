@@ -32,6 +32,7 @@ dist_bin_SCRIPTS =  cr2res_drs2molecfit.py \
                  cr2res_measure_lines.py \
                  cr2res_plotfpet.py \
                  cr2res_plot_obs2d.py \
+                 cr2res_pol_check.py \
                  cr2res_plotresiduals.py \
                  cr2res_plotsolution.py \
                  cr2res_run_setting.sh \
