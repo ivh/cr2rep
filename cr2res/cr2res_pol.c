@@ -344,22 +344,29 @@ int cr2res_pol_resample(cpl_vector ** intens,
     }
   }
 
-  // Do we need to copy the arrays before interpolation
-  // or does it work in place?
+  // Interpolation must not be done in place: with a shared y buffer,
+  // already-overwritten values get read back, turning it into a recursive
+  // filter that smears the spectrum and spreads NaNs over the whole order.
   for (i = 0; i < n; i++) {
       cpl_bivector *tmp;
       cpl_bivector *target;
+      cpl_vector   *out;
+
+      out = cpl_vector_new(cpl_vector_get_size(master_wl));
       tmp = cpl_bivector_wrap_vectors(wl[i], intens[i]);
-      target = cpl_bivector_wrap_vectors(master_wl, intens[i]);
+      target = cpl_bivector_wrap_vectors(master_wl, out);
       cpl_bivector_interpolate_linear(target, tmp);
       cpl_bivector_unwrap_vectors(tmp);
       cpl_bivector_unwrap_vectors(target);
+      cpl_vector_copy(intens[i], out);
 
       tmp = cpl_bivector_wrap_vectors(wl[i], errors[i]);
-      target = cpl_bivector_wrap_vectors(master_wl, errors[i]);
+      target = cpl_bivector_wrap_vectors(master_wl, out);
       cpl_bivector_interpolate_linear(target, tmp);
       cpl_bivector_unwrap_vectors(tmp);
       cpl_bivector_unwrap_vectors(target);
+      cpl_vector_copy(errors[i], out);
+      cpl_vector_delete(out);
 
       // We copy the wavelength here, even though it is currently noy used in
       // the rest of the code

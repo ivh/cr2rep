@@ -43,6 +43,7 @@
 static void test_cr2res_pol_demod_stokes(void);
 static void test_cr2res_pol_demod_stokes_different_wavelengths(void);
 static void test_cr2res_pol_demod_stokes_zeros(void);
+static void test_cr2res_pol_demod_stokes_nan_error(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -271,11 +272,58 @@ static void test_cr2res_pol_demod_stokes_zeros(){
   @brief    Run the Unit tests
  */
 /*----------------------------------------------------------------------------*/
+/* NaN error pixels in shifted beams must stay local; in-place
+   resampling used to propagate them through the whole order. */
+static void test_cr2res_pol_demod_stokes_nan_error(void)
+{
+    int             n = 8, i, j, size = 200, nfinite ;
+    cpl_vector  *   intens[8] ;
+    cpl_vector  *   wl[8] ;
+    cpl_vector  *   errors[8] ;
+    cpl_bivector *  res ;
+
+    for (i=0 ; i<n ; i++) {
+        intens[i] = cpl_vector_new(size) ;
+        wl[i] = cpl_vector_new(size) ;
+        errors[i] = cpl_vector_new(size) ;
+        for (j=0 ; j<size ; j++) {
+            /* down beams shifted by 4.8 pixels to the blue */
+            cpl_vector_set(wl[i], j, 1000.0 + j + (i % 2 ? -4.8 : 0.0)) ;
+            cpl_vector_set(intens[i], j, 1000.0 + 10.0*sin(j/7.0)) ;
+            cpl_vector_set(errors[i], j, 30.0) ;
+        }
+    }
+    /* as in real extractions: NaN errors a few pixels in from both ends */
+    for (i=0 ; i<n ; i++) {
+        for (j=4 ; j<8 ; j++) cpl_vector_set(errors[i], j, NAN) ;
+        for (j=size-9 ; j<size-4 ; j++) cpl_vector_set(errors[i], j, NAN) ;
+    }
+
+    res = cr2res_pol_demod_stokes(intens, wl, errors, n) ;
+    cpl_test_nonnull(res) ;
+    nfinite = 0 ;
+    for (j=0 ; j<size ; j++)
+        if (isfinite(cpl_vector_get(cpl_bivector_get_y(res), j))) nfinite++ ;
+    /* overlap trimming and the edge NaNs cost < 30 pixels */
+    cpl_test_leq(size - 30, nfinite) ;
+    /* identical beams: Stokes must be 0 wherever defined */
+    for (j=10 ; j<size-10 ; j++)
+        cpl_test_abs(cpl_vector_get(cpl_bivector_get_x(res), j), 0.0, 1e-12) ;
+
+    cpl_bivector_delete(res) ;
+    for (i=0 ; i<n ; i++) {
+        cpl_vector_delete(intens[i]) ;
+        cpl_vector_delete(wl[i]) ;
+        cpl_vector_delete(errors[i]) ;
+    }
+}
+
 int main(void)
 {
     cpl_test_init(PACKAGE_BUGREPORT, CPL_MSG_DEBUG);
 
     test_cr2res_pol_demod_stokes();
+    test_cr2res_pol_demod_stokes_nan_error();
     test_cr2res_pol_demod_stokes_different_wavelengths();
     test_cr2res_pol_demod_stokes_zeros();
 
