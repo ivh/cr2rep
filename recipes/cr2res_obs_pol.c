@@ -1459,6 +1459,7 @@ static int cr2res_obs_pol_reduce_one(
     double                  gain, error_factor, blaze_norm ;
     int                 *   order_idx_values ;
     int                     nb_order_idx_values, order_zp;
+    cpl_table           *   beam_ratios ;
 
     /* TODO, make parameters */
     int extract_niter = 10;
@@ -1714,6 +1715,10 @@ static int cr2res_obs_pol_reduce_one(
     ngroups = nframes/CR2RES_POLARIMETRY_GROUP_SIZE ;
     nspec_group = 2*CR2RES_POLARIMETRY_GROUP_SIZE ;
 
+    beam_ratios = cpl_table_new(0) ;
+    cpl_table_new_column(beam_ratios, "ORDER", CPL_TYPE_INT) ;
+    cpl_table_new_column(beam_ratios, "RATIO", CPL_TYPE_DOUBLE) ;
+
     /* Allocate pol_spec_group containers */
     pol_spec_one_group = cpl_malloc(ngroups * sizeof(cpl_table*)) ;
     for (i = 0; i < ngroups; i++) pol_spec_one_group[i] = NULL;
@@ -1941,6 +1946,16 @@ static int cr2res_obs_pol_reduce_one(
             demod_intens[o] =   cr2res_pol_demod_intens(intens, wl, errors,
                     nspec_group) ;
 
+            {
+                double br = cr2res_qc_pol_beam_ratio(intens, nspec_group) ;
+                if (br > 0.0) {
+                    cpl_size nr = cpl_table_get_nrow(beam_ratios) ;
+                    cpl_table_set_size(beam_ratios, nr+1) ;
+                    cpl_table_set_int(beam_ratios, "ORDER", nr, orders[o]) ;
+                    cpl_table_set_double(beam_ratios, "RATIO", nr, br) ;
+                }
+            }
+
             /* Free */
             for (k=0 ; k<nspec_group ; k++) {
                 if (intens[k] != NULL) {
@@ -2027,6 +2042,7 @@ static int cr2res_obs_pol_reduce_one(
     if (pol_spec_merged == NULL) {
         cpl_msg_error(__func__, "Cannot create the POL_SPEC table");
         cpl_table_delete(trace_wave) ;
+        cpl_table_delete(beam_ratios) ;
         for (j=0 ; j<nspec_group ; j++) {
         cpl_table **temp_extract1D = extract1D[j];
         if (temp_extract1D != NULL && *temp_extract1D != NULL) 
@@ -2083,9 +2099,64 @@ static int cr2res_obs_pol_reduce_one(
             cpl_free(key_name);
             cpl_free(spec_name) ;
             cpl_free(err_name) ;
+
+            spec_name = cr2res_dfs_POL_NULL_colname(order_idxp);
+            err_name = cr2res_dfs_POL_NULL_ERROR_colname(order_idxp);
+            if (cpl_table_has_column(pol_spec_merged, spec_name) &&
+                    cpl_table_has_column(pol_spec_merged, err_name)) {
+                double scatter ;
+                spec_vec = cpl_vector_wrap(cpl_table_get_nrow(pol_spec_merged),
+                    cpl_table_get_data_double(pol_spec_merged, spec_name));
+                err_vec = cpl_vector_wrap(cpl_table_get_nrow(pol_spec_merged),
+                    cpl_table_get_data_double(pol_spec_merged, err_name));
+                scatter = cr2res_qc_pol_null_scatter(spec_vec, err_vec) ;
+                key_name = cpl_sprintf(CR2RES_HEADER_QC_POL_NULL_SCATTER,
+                        order_idxp);
+                cpl_propertylist_append_double(ext_plist_loc, key_name,
+                        scatter);
+                cpl_free(key_name);
+                scatter = cr2res_qc_pol_null_offset(spec_vec) ;
+                if (isfinite(scatter)) {
+                    key_name = cpl_sprintf(CR2RES_HEADER_QC_POL_NULL_MED,
+                            order_idxp);
+                    cpl_propertylist_append_double(ext_plist_loc, key_name,
+                            scatter);
+                    cpl_free(key_name);
+                }
+                cpl_vector_unwrap(spec_vec);
+                cpl_vector_unwrap(err_vec);
+            }
+            cpl_free(spec_name) ;
+            cpl_free(err_name) ;
+
+            /* Median over groups of the per-group beam ratios */
+            {
+                cpl_vector * brs = cpl_vector_new(
+                        cpl_table_get_nrow(beam_ratios) + 1) ;
+                cpl_size nbr = 0, r ;
+                for (r=0 ; r<cpl_table_get_nrow(beam_ratios) ; r++) {
+                    if (cpl_table_get_int(beam_ratios, "ORDER", r, NULL)
+                            == order_idx)
+                        cpl_vector_set(brs, nbr++,
+                            cpl_table_get_double(beam_ratios,"RATIO",r,NULL));
+                }
+                key_name = cpl_sprintf(CR2RES_HEADER_QC_POL_BEAM_RATIO,
+                        order_idxp);
+                if (nbr > 0) {
+                    cpl_vector_set_size(brs, nbr) ;
+                    cpl_propertylist_append_double(ext_plist_loc, key_name,
+                            cpl_vector_get_median(brs)) ;
+                } else {
+                    cpl_propertylist_append_double(ext_plist_loc, key_name,
+                            -1.0) ;
+                }
+                cpl_free(key_name);
+                cpl_vector_delete(brs) ;
+            }
         }
         cpl_free(order_idx_values) ;
     }
+    cpl_table_delete(beam_ratios) ;
     cpl_table_delete(trace_wave) ;
 
     /* Return */

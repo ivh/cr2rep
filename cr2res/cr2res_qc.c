@@ -1192,9 +1192,125 @@ double cr2res_qc_compute_der_snr(cpl_vector * spec,
 
         return signal / noise;
     } else {
-        cpl_vector_delete(filt_spec) ; 
+        cpl_vector_delete(filt_spec) ;
         return -1.0;
     }
+}
+
+static double cr2res_qc_finite_median(const cpl_vector * vec)
+{
+    cpl_vector  *   tmp ;
+    cpl_size        i, n ;
+    double          med ;
+
+    if (vec == NULL) return NAN ;
+    tmp = cpl_vector_new(cpl_vector_get_size(vec)) ;
+    n = 0 ;
+    for (i=0 ; i<cpl_vector_get_size(vec) ; i++) {
+        double v = cpl_vector_get(vec, i) ;
+        if (isfinite(v)) cpl_vector_set(tmp, n++, v) ;
+    }
+    if (n == 0) {
+        cpl_vector_delete(tmp) ;
+        return NAN ;
+    }
+    cpl_vector_set_size(tmp, n) ;
+    med = cpl_vector_get_median(tmp) ;
+    cpl_vector_delete(tmp) ;
+    return med ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Robust scatter of the polarimetric null spectrum in units of
+            its propagated error
+  @param    null        The null spectrum
+  @param    err         Its error
+  @return   1.4826*MAD(null/err), or -1 if fewer than 10 valid pixels
+
+  ~1 if the null is consistent with noise and the errors are right.
+  The MAD keeps residuals in a few strong (telluric) lines from dominating.
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_pol_null_scatter(
+        const cpl_vector    *   null,
+        const cpl_vector    *   err)
+{
+    cpl_vector  *   ratio ;
+    cpl_size        i, n ;
+    double          med, mad ;
+
+    if (null == NULL || err == NULL ||
+            cpl_vector_get_size(null) != cpl_vector_get_size(err))
+        return -1.0 ;
+
+    ratio = cpl_vector_new(cpl_vector_get_size(null)) ;
+    n = 0 ;
+    for (i=0 ; i<cpl_vector_get_size(null) ; i++) {
+        double v = cpl_vector_get(null, i) ;
+        double e = cpl_vector_get(err, i) ;
+        if (isfinite(v) && isfinite(e) && e > 0.0)
+            cpl_vector_set(ratio, n++, v/e) ;
+    }
+    if (n < 10) {
+        cpl_vector_delete(ratio) ;
+        return -1.0 ;
+    }
+    cpl_vector_set_size(ratio, n) ;
+    med = cpl_vector_get_median(ratio) ;
+    for (i=0 ; i<n ; i++)
+        cpl_vector_set(ratio, i, fabs(cpl_vector_get(ratio, i) - med)) ;
+    mad = cpl_vector_get_median(ratio) ;
+    cpl_vector_delete(ratio) ;
+    return CPL_MATH_STD_MAD * mad ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Median of the polarimetric null spectrum
+  @param    null        The null spectrum
+  @return   Median over finite pixels, NAN if there are none
+
+  A systematic offset from zero indicates a demodulation or
+  beam-sorting problem, which the scatter alone does not reveal.
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_pol_null_offset(const cpl_vector * null)
+{
+    return cr2res_qc_finite_median(null) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Flux ratio between the two polarimetric beams (up / down)
+  @param    intens      Spectra ordered 1u, 1d, 2u, 2d, ... (as for demod)
+  @param    n           Number of spectra (even)
+  @return   Geometric mean over exposures of median(up)/median(down),
+            or -1 if any spectrum is missing or has non-positive median
+
+  The modulation sequence flips the sign of the polarisation between
+  exposures, so the product of the per-exposure ratios cancels the
+  stellar polarisation and leaves the instrumental beam transmission
+  ratio.
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_pol_beam_ratio(
+        cpl_vector  **  intens,
+        int             n)
+{
+    double  logsum ;
+    int     j ;
+
+    if (intens == NULL || n < 2 || n % 2) return -1.0 ;
+
+    logsum = 0.0 ;
+    for (j=0 ; j<n/2 ; j++) {
+        double up = cr2res_qc_finite_median(intens[2*j]) ;
+        double down = cr2res_qc_finite_median(intens[2*j+1]) ;
+        if (!(up > 0.0 && down > 0.0)) return -1.0 ;
+        logsum += log(up / down) ;
+    }
+    return exp(logsum / (n/2)) ;
 }
 
 /*----------------------------------------------------------------------------*/
