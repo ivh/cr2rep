@@ -126,7 +126,11 @@ double cr2res_qc_compute_der_snr(cpl_vector *spec,
 double cr2res_qc_pol_null_scatter(const cpl_vector *null,
                                   const cpl_vector *err);
 double cr2res_qc_pol_null_offset(const cpl_vector *null);
+double cr2res_qc_pol_null_icorr(const cpl_vector *intens,
+        const cpl_vector *null);
 double cr2res_qc_pol_beam_ratio(cpl_vector **intens, int n);
+int cr2res_qc_order_summary(cpl_propertylist **ext_plists, int nplists,
+        const char *key_format, int positive_only, cpl_propertylist *out);
 
 int cr2res_qc_calculate_mean_and_rmsd(
         cpl_propertylist    ***      plists, 

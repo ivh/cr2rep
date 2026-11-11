@@ -48,7 +48,9 @@
 static void test_cr2res_dark_qc_ron(void);
 static void test_cr2res_qc_obs_nodding_slit_psf(void);
 static void test_cr2res_qc_pol_null_scatter(void);
+static void test_cr2res_qc_pol_null_icorr(void);
 static void test_cr2res_qc_pol_beam_ratio(void);
+static void test_cr2res_qc_order_summary(void);
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -337,6 +339,102 @@ static void test_cr2res_qc_pol_null_scatter(void)
     cpl_vector_delete(shrt) ;
 }
 
+static void test_cr2res_qc_pol_null_icorr(void)
+{
+    cpl_size    i, n = 2048 ;
+    cpl_vector  *intens = cpl_vector_new(n) ;
+    cpl_vector  *null = cpl_vector_new(n) ;
+    cpl_vector  *noise = cpl_vector_new(n) ;
+    double      r ;
+
+    srand(2) ;
+    for (i=0 ; i<n ; i++) {
+        double u1 = (rand() + 1.0) / (RAND_MAX + 2.0) ;
+        double u2 = (rand() + 1.0) / (RAND_MAX + 2.0) ;
+        double g = sqrt(-2.0*log(u1)) * cos(2.0*CPL_MATH_PI*u2) ;
+        /* Sloped continuum with a comb of narrow absorption lines */
+        double depth = 0.5 * exp(-0.5 * pow(((i % 40) - 20) / 2.0, 2)) ;
+        cpl_vector_set(intens, i, (1000.0 + 0.2 * i) * (1.0 - depth)) ;
+        cpl_vector_set(noise, i, 0.002 * g) ;
+        cpl_vector_set(null, i, 0.01 + 0.002 * g) ;
+    }
+    /* Pure noise with a continuum offset */
+    r = cr2res_qc_pol_null_icorr(intens, null) ;
+    cpl_test_abs(r, 0.0, 0.1) ;
+
+    /* A single wild pixel in a line core must not matter */
+    cpl_vector_set(null, 1020, -50.0) ;
+    cpl_test_abs(cr2res_qc_pol_null_icorr(intens, null), r, 0.01) ;
+
+    /* Lines leaking into the null, with either sign */
+    for (i=0 ; i<n ; i++) {
+        double depth = 0.5 * exp(-0.5 * pow(((i % 40) - 20) / 2.0, 2)) ;
+        cpl_vector_set(null, i, cpl_vector_get(noise, i) - 0.05 * depth) ;
+    }
+    cpl_test_lt(0.4, cr2res_qc_pol_null_icorr(intens, null)) ;
+    for (i=0 ; i<n ; i++) {
+        double depth = 0.5 * exp(-0.5 * pow(((i % 40) - 20) / 2.0, 2)) ;
+        cpl_vector_set(null, i, cpl_vector_get(noise, i) + 0.05 * depth) ;
+    }
+    cpl_test_lt(cr2res_qc_pol_null_icorr(intens, null), -0.4) ;
+
+    /* Invalid pixels are skipped */
+    cpl_vector_set(null, 5, NAN) ;
+    cpl_vector_set(intens, 6, 0.0) ;
+    cpl_test_lt(cr2res_qc_pol_null_icorr(intens, null), -0.4) ;
+
+    /* No lines, too few pixels, missing input */
+    for (i=0 ; i<n ; i++) cpl_vector_set(intens, i, 1000.0 + 0.2 * i) ;
+    cpl_test(isnan(cr2res_qc_pol_null_icorr(intens, null))) ;
+    cpl_vector_set_size(intens, 100) ;
+    cpl_vector_set_size(null, 100) ;
+    cpl_test(isnan(cr2res_qc_pol_null_icorr(intens, null))) ;
+    cpl_test(isnan(cr2res_qc_pol_null_icorr(NULL, null))) ;
+
+    cpl_vector_delete(intens) ;
+    cpl_vector_delete(null) ;
+    cpl_vector_delete(noise) ;
+}
+
+static void test_cr2res_qc_order_summary(void)
+{
+    cpl_propertylist    *ext[3] ;
+    cpl_propertylist    *out = cpl_propertylist_new() ;
+
+    ext[0] = cpl_propertylist_new() ;
+    ext[1] = NULL ;
+    ext[2] = cpl_propertylist_new() ;
+    cpl_propertylist_append_double(ext[0], "ESO QC POL BEAMRATIO1", 0.9) ;
+    cpl_propertylist_append_double(ext[0], "ESO QC POL BEAMRATIO2", -1.0) ;
+    cpl_propertylist_append_double(ext[0], "ESO QC POL BEAMRATIO3", 1.0) ;
+    cpl_propertylist_append_double(ext[2], "ESO QC POL BEAMRATIO1", 3.4) ;
+    cpl_propertylist_append_double(ext[2], "ESO QC POL NULL MED1", -0.002) ;
+
+    cpl_test_eq(cr2res_qc_order_summary(ext, 3, "ESO QC POL BEAMRATIO%d",
+                1, out), 3) ;
+    cpl_test_abs(cpl_propertylist_get_double(out,
+                "ESO QC POL BEAMRATIO MED"), 1.0, 1e-12) ;
+    cpl_test_abs(cpl_propertylist_get_double(out,
+                "ESO QC POL BEAMRATIO MIN"), 0.9, 1e-12) ;
+    cpl_test_abs(cpl_propertylist_get_double(out,
+                "ESO QC POL BEAMRATIO MAX"), 3.4, 1e-12) ;
+
+    /* Negative values count unless asked otherwise */
+    cpl_test_eq(cr2res_qc_order_summary(ext, 3, "ESO QC POL NULL MED%d",
+                0, out), 1) ;
+    cpl_test_abs(cpl_propertylist_get_double(out,
+                "ESO QC POL NULL MED MIN"), -0.002, 1e-12) ;
+
+    /* Nothing found, nothing written */
+    cpl_test_eq(cr2res_qc_order_summary(ext, 3, "ESO QC SNR%d", 1, out), 0) ;
+    cpl_test_zero(cpl_propertylist_has(out, "ESO QC SNR MED")) ;
+    cpl_test_eq(cr2res_qc_order_summary(ext, 3, "ESO QC SNR", 1, out), -1) ;
+
+    cpl_propertylist_delete(ext[0]) ;
+    cpl_propertylist_delete(ext[2]) ;
+    cpl_propertylist_delete(out) ;
+}
+
 static void test_cr2res_qc_pol_beam_ratio(void)
 {
     cpl_vector  *intens[8] ;
@@ -376,7 +474,9 @@ int main(void)
     test_cr2res_dark_qc_ron();
     test_cr2res_qc_obs_nodding_slit_psf();
     test_cr2res_qc_pol_null_scatter();
+    test_cr2res_qc_pol_null_icorr();
     test_cr2res_qc_pol_beam_ratio();
+    test_cr2res_qc_order_summary();
 
     return cpl_test_end(0);
 }

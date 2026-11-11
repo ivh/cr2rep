@@ -467,6 +467,83 @@ static int cr2res_obs_pol_destroy(cpl_plugin * plugin)
 
 /*----------------------------------------------------------------------------*/
 /**
+  @brief    Main header additions for the products of one nodding position
+  @param    rawframes   All raw frames
+  @param    ext_plist   The per-detector extension headers with the QCs of
+                        this nodding position
+  @return   The new property list
+ */
+/*----------------------------------------------------------------------------*/
+static cpl_propertylist * cr2res_obs_pol_qc_main(
+        const cpl_frameset  *   rawframes,
+        cpl_propertylist    **  ext_plist)
+{
+    cpl_propertylist    *   qc_main ;
+    cpl_table           *   eop_table ;
+
+    qc_main = cpl_propertylist_new();
+    cpl_propertylist_append_double(qc_main,
+            CR2RES_HEADER_DRS_TMID,
+            cr2res_utils_get_center_mjd(rawframes)) ;
+
+    /* Add barycentric correction */
+    eop_table = cr2res_io_get_eop_table() ;
+    if (eop_table != NULL) {
+        double ra, dec, mjd_obs, geolon, geolat, geoelev, barycorr;
+        cpl_propertylist    *   plist ;
+        plist=cpl_propertylist_load(cpl_frame_get_filename(
+                    cpl_frameset_get_position_const(rawframes, 0)), 0) ;
+
+        ra = cpl_propertylist_get_double(plist, "RA") ;
+        dec = cpl_propertylist_get_double(plist, "DEC") ;
+        mjd_obs = cpl_propertylist_get_double(plist, "MJD-OBS") ;
+        geolon = cpl_propertylist_get_double(plist, "ESO TEL GEOLON") ;
+        geolat = cpl_propertylist_get_double(plist, "ESO TEL GEOLAT") ;
+        geoelev = cpl_propertylist_get_double(plist, "ESO TEL GEOELEV") ;
+
+        cpl_propertylist_delete(plist) ;
+
+        barycorr = 0.0 ;
+        if (!cpl_error_get_code()) {
+            double mjd_cen;
+            mjd_cen = cr2res_utils_get_center_mjd(rawframes) ;
+            hdrl_barycorr_compute(ra, dec, eop_table, mjd_obs,
+                    (mjd_cen-mjd_obs)*24*3600, geolon, geolat, geoelev,
+                    0.0, 0.0, 0.0, 0.0, &barycorr);
+
+            cpl_msg_info(__func__, "Barycentric correction: %g m/s",
+                    barycorr);
+        } else {
+            cpl_msg_info(__func__, "Cannot derive Barycentric correction");
+            cpl_error_reset() ;
+        }
+        cpl_table_delete(eop_table) ;
+        cpl_propertylist_append_double(qc_main, CR2RES_HEADER_DRS_BARYCORR,
+                barycorr);
+    }
+
+    /* Add QC NUMSAT */
+    cpl_propertylist_append_int(qc_main,
+            CR2RES_HEADER_QC_NUMSAT,
+            cr2res_qc_numsat(rawframes)) ;
+
+    /* Per-order QCs summarised over all orders and detectors */
+    cr2res_qc_order_summary(ext_plist, CR2RES_NB_DETECTORS,
+            CR2RES_HEADER_QC_SNR, 1, qc_main) ;
+    cr2res_qc_order_summary(ext_plist, CR2RES_NB_DETECTORS,
+            CR2RES_HEADER_QC_POL_NULL_SCATTER, 1, qc_main) ;
+    cr2res_qc_order_summary(ext_plist, CR2RES_NB_DETECTORS,
+            CR2RES_HEADER_QC_POL_NULL_MED, 0, qc_main) ;
+    cr2res_qc_order_summary(ext_plist, CR2RES_NB_DETECTORS,
+            CR2RES_HEADER_QC_POL_NULL_ICORR, 0, qc_main) ;
+    cr2res_qc_order_summary(ext_plist, CR2RES_NB_DETECTORS,
+            CR2RES_HEADER_QC_POL_BEAM_RATIO, 1, qc_main) ;
+
+    return qc_main ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
   @brief    Interpret the command line options and execute the data processing
   @param    frameset   the frames list
   @param    parlist    the parameters list
@@ -484,7 +561,6 @@ static int cr2res_obs_pol(
                             subtract_interorder_column, save_group ;
     double                  extract_smooth_slit, extract_smooth_spec,
                             extract_pclip ;
-    double                  barycorr;
     cpl_frameset        *   rawframes ;
     cpl_frameset        *   raw_flat_frames ;
     const cpl_frame     *   trace_wave_frame ;
@@ -493,7 +569,8 @@ static int cr2res_obs_pol(
     const cpl_frame     *   master_flat_frame ;
     const cpl_frame     *   bpm_frame ;
     const cpl_frame     *   blaze_frame ;
-    cpl_propertylist    *   qc_main ;
+    cpl_propertylist    *   qc_main_a ;
+    cpl_propertylist    *   qc_main_b ;
     hdrl_image          *   in_calib_1_a[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   in_calib_2_a[CR2RES_NB_DETECTORS] ;
     hdrl_image          *   in_calib_3_a[CR2RES_NB_DETECTORS] ;
@@ -539,7 +616,6 @@ static int cr2res_obs_pol(
     cpl_propertylist    *   ext_plista[CR2RES_NB_DETECTORS] ;
     cpl_propertylist    *   ext_plistb[CR2RES_NB_DETECTORS] ;
     char                *   out_file;
-    cpl_table           *   eop_table ;
     int                     det_nr, save_products ; 
 
     /* Initialise */
@@ -729,52 +805,9 @@ static int cr2res_obs_pol(
         cpl_msg_indent_less() ;
     }
 
-	/* Add ESO.DRS.TMID in the Main Header */
-	qc_main = cpl_propertylist_new();
-	cpl_propertylist_append_double(qc_main,
-			CR2RES_HEADER_DRS_TMID,
-			cr2res_utils_get_center_mjd(rawframes)) ;
-
-    /* Add barycentric correction */
-    eop_table = cr2res_io_get_eop_table() ;
-    if (eop_table != NULL) {
-        double ra, dec, mjd_obs, geolon, geolat, geoelev;
-        cpl_propertylist    *   plist ;
-        plist=cpl_propertylist_load(cpl_frame_get_filename(
-                    cpl_frameset_get_position_const(rawframes, 0)), 0) ;
-
-        ra = cpl_propertylist_get_double(plist, "RA") ;
-        dec = cpl_propertylist_get_double(plist, "DEC") ;
-        mjd_obs = cpl_propertylist_get_double(plist, "MJD-OBS") ;
-        geolon = cpl_propertylist_get_double(plist, "ESO TEL GEOLON") ;
-        geolat = cpl_propertylist_get_double(plist, "ESO TEL GEOLAT") ;
-        geoelev = cpl_propertylist_get_double(plist, "ESO TEL GEOELEV") ;
-
-        cpl_propertylist_delete(plist) ;
-
-        barycorr = 0.0 ;
-        if (!cpl_error_get_code()) {
-            double mjd_cen;
-            mjd_cen = cr2res_utils_get_center_mjd(rawframes) ;
-            hdrl_barycorr_compute(ra, dec, eop_table, mjd_obs,
-                    (mjd_cen-mjd_obs)*24*3600, geolon, geolat, geoelev,
-                    0.0, 0.0, 0.0, 0.0, &barycorr);
-
-            cpl_msg_info(__func__, "Barycentric correction: %g m/s",
-                    barycorr);
-        } else {
-            cpl_msg_info(__func__, "Cannot derive Barycentric correction");
-            cpl_error_reset() ;
-        }
-        cpl_table_delete(eop_table) ;
-        cpl_propertylist_append_double(qc_main, CR2RES_HEADER_DRS_BARYCORR,
-                barycorr);
-    }
-
-    /* Add QC NUMSAT */
-	cpl_propertylist_append_int(qc_main,
-			CR2RES_HEADER_QC_NUMSAT,
-			cr2res_qc_numsat(rawframes)) ;
+    /* Same main header for A and B, apart from the QC summaries */
+    qc_main_a = cr2res_obs_pol_qc_main(rawframes, ext_plista) ;
+    qc_main_b = cr2res_obs_pol_qc_main(rawframes, ext_plistb) ;
 
     /* Save Extra Products if at least one is returned */
     save_products = 0 ;
@@ -1019,11 +1052,11 @@ static int cr2res_obs_pol(
     /* Polarimetry Spectra */
     out_file = cpl_sprintf("%s_pol_specA.fits", RECIPE_STRING) ;
     cr2res_io_save_POL_SPEC(out_file, frameset, rawframes, parlist,
-            pol_speca, qc_main, ext_plista, CR2RES_OBS_POL_SPECA_PROCATG, 
+            pol_speca, qc_main_a, ext_plista, CR2RES_OBS_POL_SPECA_PROCATG, 
             RECIPE_STRING) ;
     if (create_idp) {
         cr2res_idp_save(out_file, frameset, rawframes, parlist,
-                        pol_speca, qc_main, ext_plista,
+                        pol_speca, qc_main_a, ext_plista,
                         CR2RES_OBS_POL_EXTRACTA_IDP_PROCATG,
                         RECIPE_STRING);
     }
@@ -1031,11 +1064,11 @@ static int cr2res_obs_pol(
 
     out_file = cpl_sprintf("%s_pol_specB.fits", RECIPE_STRING) ;
     cr2res_io_save_POL_SPEC(out_file, frameset, rawframes, parlist,
-            pol_specb, qc_main, ext_plistb, CR2RES_OBS_POL_SPECB_PROCATG, 
+            pol_specb, qc_main_b, ext_plistb, CR2RES_OBS_POL_SPECB_PROCATG, 
             RECIPE_STRING) ;
     if (create_idp) {
         cr2res_idp_save(out_file, frameset, rawframes, parlist,
-                        pol_specb, qc_main, ext_plistb,
+                        pol_specb, qc_main_b, ext_plistb,
                         CR2RES_OBS_POL_EXTRACTB_IDP_PROCATG,
                         RECIPE_STRING);
     }
@@ -1044,7 +1077,8 @@ static int cr2res_obs_pol(
 
     /* Free */
     cpl_frameset_delete(rawframes) ;
-    cpl_propertylist_delete(qc_main) ;
+    cpl_propertylist_delete(qc_main_a) ;
+    cpl_propertylist_delete(qc_main_b) ;
     if (raw_flat_frames != NULL) cpl_frameset_delete(raw_flat_frames) ;
     for (det_nr=1 ; det_nr<=CR2RES_NB_DETECTORS ; det_nr++) {
         if (in_calib_1_a[det_nr-1] != NULL) 
@@ -2148,8 +2182,34 @@ static int cr2res_obs_pol_reduce_one(
                 cpl_vector_unwrap(spec_vec);
                 cpl_vector_unwrap(err_vec);
             }
-            cpl_free(spec_name) ;
             cpl_free(err_name) ;
+
+            /* Leak of the spectral lines into the null */
+            {
+                char * intens_name = cr2res_dfs_POL_INTENS_colname(order_idxp);
+                if (cpl_table_has_column(pol_spec_merged, spec_name) &&
+                        cpl_table_has_column(pol_spec_merged, intens_name)) {
+                    cpl_size nrow = cpl_table_get_nrow(pol_spec_merged) ;
+                    cpl_vector * null_vec = cpl_vector_wrap(nrow,
+                        cpl_table_get_data_double(pol_spec_merged, spec_name));
+                    cpl_vector * intens_vec = cpl_vector_wrap(nrow,
+                        cpl_table_get_data_double(pol_spec_merged,
+                            intens_name));
+                    double icorr = cr2res_qc_pol_null_icorr(intens_vec,
+                            null_vec) ;
+                    if (isfinite(icorr)) {
+                        key_name = cpl_sprintf(
+                                CR2RES_HEADER_QC_POL_NULL_ICORR, order_idxp);
+                        cpl_propertylist_append_double(ext_plist_loc, key_name,
+                                icorr);
+                        cpl_free(key_name);
+                    }
+                    cpl_vector_unwrap(null_vec);
+                    cpl_vector_unwrap(intens_vec);
+                }
+                cpl_free(intens_name) ;
+            }
+            cpl_free(spec_name) ;
 
             /* Median over groups of the per-group beam ratios */
             {

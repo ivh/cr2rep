@@ -1280,6 +1280,135 @@ double cr2res_qc_pol_null_offset(const cpl_vector * null)
     return cr2res_qc_finite_median(null) ;
 }
 
+/* Value and original position, for ranking */
+typedef struct {
+    double      v ;
+    cpl_size    i ;
+} cr2res_qc_ranked ;
+
+static int cr2res_qc_ranked_cmp(const void * a, const void * b)
+{
+    const cr2res_qc_ranked * ra = (const cr2res_qc_ranked *)a ;
+    const cr2res_qc_ranked * rb = (const cr2res_qc_ranked *)b ;
+    if (ra->v < rb->v) return -1 ;
+    if (ra->v > rb->v) return 1 ;
+    return (ra->i > rb->i) - (ra->i < rb->i) ;
+}
+
+/* Replace the n values by their ranks 0..n-1 */
+static void cr2res_qc_to_ranks(double * x, cpl_size n)
+{
+    cr2res_qc_ranked    *   r = cpl_malloc(n * sizeof(cr2res_qc_ranked)) ;
+    cpl_size                i ;
+    for (i=0 ; i<n ; i++) { r[i].v = x[i] ; r[i].i = i ; }
+    qsort(r, n, sizeof(cr2res_qc_ranked), cr2res_qc_ranked_cmp) ;
+    for (i=0 ; i<n ; i++) x[r[i].i] = (double)i ;
+    cpl_free(r) ;
+}
+
+/* Running median of x, the ends padded with the first and last value */
+static double * cr2res_qc_running_median(const double * x, cpl_size n,
+        int width)
+{
+    double      *   out = cpl_malloc(n * sizeof(double)) ;
+    cpl_vector  *   win = cpl_vector_new(width) ;
+    cpl_size        i ;
+    int             k, half = width / 2 ;
+    for (i=0 ; i<n ; i++) {
+        for (k=0 ; k<width ; k++) {
+            cpl_size j = i - half + k ;
+            if (j < 0) j = 0 ;
+            if (j > n-1) j = n-1 ;
+            cpl_vector_set(win, k, x[j]) ;
+        }
+        out[i] = cpl_vector_get_median(win) ;
+    }
+    cpl_vector_delete(win) ;
+    return out ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Rank correlation of the polarimetric null spectrum with the
+            intensity spectrum
+  @param    intens      The intensity spectrum
+  @param    null        The null spectrum
+  @return   Spearman coefficient, or NAN if fewer than 200 valid pixels
+            or if the order has too few spectral lines (rms below 1%)
+
+  Both spectra are high-pass filtered with a 101 pixel running median
+  first. ~0 if no line structure leaks into the null. A leak points to
+  a change of the line-spread function between the exposures, additive
+  light in one beam, or detector non-linearity. Ranks are used because
+  the few pixels at the bottom of saturated telluric lines, where the
+  null is undefined, would otherwise dominate.
+ */
+/*----------------------------------------------------------------------------*/
+double cr2res_qc_pol_null_icorr(
+        const cpl_vector    *   intens,
+        const cpl_vector    *   null)
+{
+    const int       width = 101 ;
+    double      *   x ;
+    double      *   y ;
+    double      *   xmed ;
+    double      *   ymed ;
+    double          mean, var, sxy, sxx, syy ;
+    cpl_size        i, n ;
+
+    if (intens == NULL || null == NULL ||
+            cpl_vector_get_size(intens) != cpl_vector_get_size(null))
+        return NAN ;
+
+    x = cpl_malloc(cpl_vector_get_size(intens) * sizeof(double)) ;
+    y = cpl_malloc(cpl_vector_get_size(intens) * sizeof(double)) ;
+    n = 0 ;
+    for (i=0 ; i<cpl_vector_get_size(intens) ; i++) {
+        double a = cpl_vector_get(intens, i) ;
+        double b = cpl_vector_get(null, i) ;
+        if (isfinite(a) && isfinite(b) && a > 0.0) {
+            x[n] = a ;
+            y[n++] = b ;
+        }
+    }
+    if (n < 200) {
+        cpl_free(x) ;
+        cpl_free(y) ;
+        return NAN ;
+    }
+
+    xmed = cr2res_qc_running_median(x, n, width) ;
+    ymed = cr2res_qc_running_median(y, n, width) ;
+    mean = var = 0.0 ;
+    for (i=0 ; i<n ; i++) {
+        x[i] = x[i] / xmed[i] - 1.0 ;
+        y[i] -= ymed[i] ;
+        mean += x[i] ;
+    }
+    cpl_free(xmed) ;
+    cpl_free(ymed) ;
+    mean /= n ;
+    for (i=0 ; i<n ; i++) var += (x[i] - mean) * (x[i] - mean) ;
+    if (!(sqrt(var / n) > 0.01)) {
+        cpl_free(x) ;
+        cpl_free(y) ;
+        return NAN ;
+    }
+
+    cr2res_qc_to_ranks(x, n) ;
+    cr2res_qc_to_ranks(y, n) ;
+    mean = 0.5 * (n - 1) ;
+    sxy = sxx = syy = 0.0 ;
+    for (i=0 ; i<n ; i++) {
+        sxy += (x[i] - mean) * (y[i] - mean) ;
+        sxx += (x[i] - mean) * (x[i] - mean) ;
+        syy += (y[i] - mean) * (y[i] - mean) ;
+    }
+    cpl_free(x) ;
+    cpl_free(y) ;
+    return sxy / sqrt(sxx * syy) ;
+}
+
 /*----------------------------------------------------------------------------*/
 /**
   @brief    Flux ratio between the two polarimetric beams (up / down)
@@ -1311,6 +1440,74 @@ double cr2res_qc_pol_beam_ratio(
         logsum += log(up / down) ;
     }
     return exp(logsum / (n/2)) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+  @brief    Median, minimum and maximum of a per-order QC over all orders
+            and detectors
+  @param    ext_plists      Extension headers holding the per-order QC
+  @param    nplists         Their number (entries may be NULL)
+  @param    key_format      Per-order keyword with one %d for the order
+  @param    positive_only   Skip values <= 0 (the -1 of a failed QC)
+  @param    out             Receives "<key> MED", "<key> MIN", "<key> MAX"
+  @return   Number of values found, -1 on error
+
+  Minimum and maximum rather than percentiles, so that a single bad
+  order still shows.
+ */
+/*----------------------------------------------------------------------------*/
+int cr2res_qc_order_summary(
+        cpl_propertylist    **  ext_plists,
+        int                     nplists,
+        const char          *   key_format,
+        int                     positive_only,
+        cpl_propertylist    *   out)
+{
+    const int       max_order = 100 ;
+    const char  *   stat_names[] = {"MED", "MIN", "MAX"} ;
+    double          stats[3] ;
+    cpl_vector  *   values ;
+    const char  *   pos ;
+    char        *   base ;
+    cpl_size        n ;
+    int             i, o ;
+
+    if (ext_plists == NULL || key_format == NULL || out == NULL) return -1 ;
+    if ((pos = strstr(key_format, "%d")) == NULL) return -1 ;
+
+    values = cpl_vector_new(nplists * max_order + 1) ;
+    n = 0 ;
+    for (i=0 ; i<nplists ; i++) {
+        if (ext_plists[i] == NULL) continue ;
+        for (o=0 ; o<max_order ; o++) {
+            char * key = cpl_sprintf(key_format, o) ;
+            if (cpl_propertylist_has(ext_plists[i], key) &&
+                    cpl_propertylist_get_type(ext_plists[i], key) ==
+                    CPL_TYPE_DOUBLE) {
+                double v = cpl_propertylist_get_double(ext_plists[i], key) ;
+                if (isfinite(v) && (!positive_only || v > 0.0))
+                    cpl_vector_set(values, n++, v) ;
+            }
+            cpl_free(key) ;
+        }
+    }
+    if (n > 0) {
+        cpl_vector_set_size(values, n) ;
+        stats[0] = cpl_vector_get_median_const(values) ;
+        stats[1] = cpl_vector_get_min(values) ;
+        stats[2] = cpl_vector_get_max(values) ;
+        base = cpl_strdup(key_format) ;
+        base[pos - key_format] = '\0' ;
+        for (i=0 ; i<3 ; i++) {
+            char * key = cpl_sprintf("%s %s", base, stat_names[i]) ;
+            cpl_propertylist_update_double(out, key, stats[i]) ;
+            cpl_free(key) ;
+        }
+        cpl_free(base) ;
+    }
+    cpl_vector_delete(values) ;
+    return (int)n ;
 }
 
 /*----------------------------------------------------------------------------*/
