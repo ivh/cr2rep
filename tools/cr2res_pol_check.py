@@ -18,7 +18,14 @@ or exposures. In Stokes V its sign tracks that of the longitudinal field, but
 the convention is not calibrated and neither is the size: the weak-field relation does not hold for Zeeman-resolved lines and
 telluric lines dilute it.
 
-The QC parameters SNR, POL NULL SCATTER, POL NULL MED and POL BEAMRATIO are read
+The QC parameter POL NULL ICORR is the rank correlation of the null with the
+intensity spectrum. A correlation means that spectral lines leak into the
+null, as happens when the line-spread function changes between the exposures,
+when one beam carries additive light (background, ghost), or with detector
+non-linearity. A pure wavelength shift does not show up here but in the
+dI/dlambda part.
+
+The QC parameters SNR, POL NULL SCATTER, POL NULL MED, POL NULL ICORR and POL BEAMRATIO are read
 from the headers. Products of cr2res versions that do not write them yet get
 the same numbers computed here, in the same way as the recipe. The beam ratio
 needs the extracted beams (cr2res_obs_pol_extracted[AB]_[1-4][ud].fits, written
@@ -55,6 +62,9 @@ MAX_NULL_SCATTER = 2.0
 MAX_NULL_OFFSET = 5e-3
 BEAMRATIO_RANGE = (0.8, 1.25)
 MIN_SNR = 100.0
+MAX_ICORR = 0.3
+# rms of the high-passed intensity below which an order has too few lines for POL NULL ICORR
+MIN_LINE_RMS = 0.01
 
 
 def robust_std(x):
@@ -119,9 +129,11 @@ class Order:
             value = None if recompute else header.get(f"ESO QC {name}{n}")
             if value is None:
                 value = compute()
-                self.computed.add(key)
+                if value is not None:
+                    self.computed.add(key)
             # the recipe writes -1 where it could not compute a value
-            self.qc[key] = None if key != "null_med" and value is not None and value < 0 else value
+            signed = key in ("null_med", "icorr")
+            self.qc[key] = None if not signed and value is not None and value < 0 else value
 
         def snr():
             # cr2res_qc_compute_snr: median of spec/err, unusable errors set to 1
@@ -146,7 +158,20 @@ class Order:
 
         resolve("snr", "SNR", snr)
         resolve("null_scatter", "POL NULL SCATTER", null_scatter)
+        def icorr():
+            # cr2res_qc_pol_null_icorr: Spearman coefficient of the high-passed spectra
+            intens, null = full("INTENS"), full("NULL")
+            ok = np.isfinite(intens) & np.isfinite(null) & (intens > 0)
+            if ok.sum() < 200:
+                return None
+            lines = intens[ok] / running_median(intens[ok], HIPASS) - 1
+            if not np.std(lines) > MIN_LINE_RMS:
+                return None
+            rank = lambda x: np.argsort(np.argsort(x, kind="stable"), kind="stable")
+            return float(np.corrcoef(rank(lines), rank(null[ok] - running_median(null[ok], HIPASS)))[0, 1])
+
         resolve("null_med", "POL NULL MED", null_med)
+        resolve("icorr", "POL NULL ICORR", icorr)
         self.qc["realorder"] = header.get(f"ESO QC REALORDER{n}")
         value = None if recompute else header.get(f"ESO QC POL BEAMRATIO{n}")
         self.qc["beamratio"] = value if value is None or value > 0 else None
@@ -280,19 +305,21 @@ def report(spec, verbose):
 
     if verbose:
         print("\n  chip        ord  real   wl[nm]    SNR  beamratio  null_scat  S_scat  "
-              "null_med[%]  S_med[%]  excess[%]  peak[%]")
+              "null_med[%]  S_med[%]  excess[%]  peak[%]  null_icorr")
         for o in good:
             q = o.qc
-            num = lambda v, f: format(v, f) if v is not None else format("n/a", ">" + f.split(".")[0])
+            num = lambda v, f: format(v, f) if v is not None else format("n/a", ">" + f.split(".")[0].lstrip("+"))
             print(f"  {o.chip:10s}  {o.idx}   {num(q['realorder'], '3d')}  {o.wl_mid:8.2f}  "
                   f"{num(q['snr'], '5.0f')}  {num(q['beamratio'], '9.3f')}  {o.null_scatter:9.2f}  "
                   f"{o.stokes_scatter:6.2f}  {o.null_med*100:11.3f}  {o.stokes_med*100:8.3f}  "
-                  f"{o.excess*100:9.3f}  {o.peak*100:7.3f}")
+                  f"{o.excess*100:9.3f}  {o.peak*100:7.3f}  {num(q['icorr'], '+9.3f')}")
 
     def source(key):
         n = sum(key in o.computed for o in good)
         return "" if n == 0 else "   [computed here]" if n == len(good) else f"   [computed here for {n} orders]"
 
+    icorr = [o.qc["icorr"] for o in good if o.qc["icorr"] is not None]
+    n_icorr = sum(abs(r) > MAX_ICORR for r in icorr)
     print("\n  Recipe QC, median over orders (min .. max)")
     print(f"    SNR per pixel                 {span([o.qc['snr'] for o in good], '.0f')}{source('snr')}")
     if spec.beams_found is False:
@@ -302,6 +329,12 @@ def report(spec, verbose):
         print(f"    beam ratio up/down            {span([o.qc['beamratio'] for o in good], '.3f')}{source('beamratio')}")
     print(f"    null scatter / formal error   {span([o.qc['null_scatter'] for o in good], '.2f')}{source('null_scatter')}")
     print(f"    null median [%]               {span([None if o.qc['null_med'] is None else 100*o.qc['null_med'] for o in good], '.3f')}{source('null_med')}")
+
+    if icorr:
+        print(f"    null x intensity, rank corr.  {span(icorr, '+.3f')}{source('icorr')}    (expect 0; "
+              f"|r| above {MAX_ICORR} in {n_icorr} of {len(icorr)} orders)")
+    else:
+        print("    null x intensity, rank corr.  n/a   [no order with enough spectral lines]")
 
     print("\n  Measured here, continuum offsets removed with a running median")
     print(f"    null scatter / formal error   {span([o.null_scatter for o in good], '.2f')}    (1 = errors correct)")
@@ -342,6 +375,10 @@ def report(spec, verbose):
         flags.append(f"beam ratio {min(ratios):.2f} .. {max(ratios):.2f}")
     if np.isfinite(ns_sig) and abs(ns_sig) > 5:
         flags.append(f"null follows dI/dlambda at {abs(ns_sig):.0f} sigma, {ns:+.0f} m/s (beams shifted in wavelength?)")
+    if n_icorr:
+        worst = max(icorr, key=abs)
+        flags.append(f"null correlates with the intensity in {n_icorr} order{'s' if n_icorr > 1 else ''}, r up to {worst:+.2f} "
+                     "(lines leak into the null)")
     if len(good) < len(spec.orders):
         flags.append(f"{len(spec.orders) - len(good)} orders unusable")
 
